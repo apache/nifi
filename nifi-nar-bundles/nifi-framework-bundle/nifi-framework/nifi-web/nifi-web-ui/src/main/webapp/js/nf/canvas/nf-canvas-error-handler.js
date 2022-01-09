@@ -45,7 +45,7 @@
         // In case no further requests will be successful based on the status,
         // the canvas is disabled, and the message pane is shown.
         if ($('#message-pane').is(':visible')) {
-            nfCommon.showLogoutLink();
+            nfCommon.updateLogoutLink();
 
             // hide the splash screen if required
             if ($('#splash').is(':visible')) {

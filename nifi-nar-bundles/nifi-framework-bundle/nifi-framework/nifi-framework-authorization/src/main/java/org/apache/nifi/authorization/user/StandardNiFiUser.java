@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.authorization.user;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -32,6 +31,8 @@ public class StandardNiFiUser implements NiFiUser {
 
     private final String identity;
     private final Set<String> groups;
+    private final Set<String> identityProviderGroups;
+    private final Set<String> allGroups;
     private final NiFiUser chain;
     private final String clientAddress;
     private final boolean isAnonymous;
@@ -39,9 +40,19 @@ public class StandardNiFiUser implements NiFiUser {
     private StandardNiFiUser(final Builder builder) {
         this.identity = builder.identity;
         this.groups = builder.groups == null ? null : Collections.unmodifiableSet(builder.groups);
+        this.identityProviderGroups = builder.identityProviderGroups == null ? null : Collections.unmodifiableSet(builder.identityProviderGroups);
         this.chain = builder.chain;
         this.clientAddress = builder.clientAddress;
         this.isAnonymous = builder.isAnonymous;
+
+        final Set<String> combineGroups = new HashSet<>();
+        if (this.groups != null) {
+            combineGroups.addAll(this.groups);
+        }
+        if (this.identityProviderGroups != null) {
+            combineGroups.addAll(this.identityProviderGroups);
+        }
+        this.allGroups = Collections.unmodifiableSet(combineGroups);
     }
 
     /**
@@ -63,6 +74,16 @@ public class StandardNiFiUser implements NiFiUser {
     @Override
     public Set<String> getGroups() {
         return groups;
+    }
+
+    @Override
+    public Set<String> getIdentityProviderGroups() {
+        return identityProviderGroups;
+    }
+
+    @Override
+    public Set<String> getAllGroups() {
+        return allGroups;
     }
 
     @Override
@@ -107,7 +128,7 @@ public class StandardNiFiUser implements NiFiUser {
         if (groups == null) {
             formattedGroups = "none";
         } else {
-            formattedGroups = StringUtils.join(groups, ", ");
+            formattedGroups = String.join(", ", groups);
         }
 
         return String.format("identity[%s], groups[%s]", getIdentity(), formattedGroups);
@@ -120,6 +141,7 @@ public class StandardNiFiUser implements NiFiUser {
 
         private String identity;
         private Set<String> groups;
+        private Set<String> identityProviderGroups;
         private NiFiUser chain;
         private String clientAddress;
         private boolean isAnonymous = false;
@@ -143,6 +165,17 @@ public class StandardNiFiUser implements NiFiUser {
          */
         public Builder groups(final Set<String> groups) {
             this.groups = groups;
+            return this;
+        }
+
+        /**
+         * Sets the groups that came from an identity provider.
+         *
+         * @param identityProviderGroups the identity provider user groups
+         * @return the builder
+         */
+        public Builder identityProviderGroups(final Set<String> identityProviderGroups) {
+            this.identityProviderGroups = identityProviderGroups;
             return this;
         }
 

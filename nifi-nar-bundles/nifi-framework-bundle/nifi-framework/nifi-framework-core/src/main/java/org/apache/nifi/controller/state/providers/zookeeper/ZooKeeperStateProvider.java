@@ -17,19 +17,8 @@
 
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -39,9 +28,12 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.controller.state.providers.AbstractStateProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -52,8 +44,27 @@ import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.client.ConnectStringParser;
+import org.apache.zookeeper.client.ZKClientConfig;
+import org.apache.zookeeper.common.ZKConfig;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * ZooKeeperStateProvider utilizes a ZooKeeper based store, whether provided internally via configuration and enabling of the {@link org.apache.nifi.controller.state.server.ZooKeeperStateServer}
@@ -61,7 +72,8 @@ import org.apache.zookeeper.data.Stat;
  * consistency across configuration interactions.
  */
 public class ZooKeeperStateProvider extends AbstractStateProvider {
-    private static final int ONE_MB = 1024 * 1024;
+    private static final Logger logger = LoggerFactory.getLogger(ZooKeeperStateProvider.class);
+    private NiFiProperties nifiProperties;
 
     static final AllowableValue OPEN_TO_WORLD = new AllowableValue("Open", "Open", "ZNodes will be open to any ZooKeeper client.");
     static final AllowableValue CREATOR_ONLY = new AllowableValue("CreatorOnly", "CreatorOnly",
@@ -83,7 +95,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid Connect String").valid(true).build();
             }
         })
-        .required(false)
+        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .required(true)
         .build();
     static final PropertyDescriptor SESSION_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Session Timeout")
@@ -118,10 +131,15 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     private byte[] auth;
     private List<ACL> acl;
 
+    private ZooKeeperClientConfig zooKeeperClientConfig;
 
     public ZooKeeperStateProvider() {
     }
 
+    @StateProviderContext
+    public void setNiFiProperties(NiFiProperties properties) {
+        this.nifiProperties = properties;
+    }
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -132,7 +150,6 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         properties.add(ACCESS_CONTROL);
         return properties;
     }
-
 
     @Override
     public synchronized void init(final StateProviderInitializationContext context) {
@@ -145,6 +162,32 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         } else {
             acl = Ids.OPEN_ACL_UNSAFE;
         }
+    }
+
+    /**
+     * Combine properties from NiFiProperties and additional properties, allowing the additional properties to override settings
+     * in the given NiFiProperties.
+     * @param nifiProps A NiFiProperties to be combined with some additional properties
+     * @param additionalProperties Additional properties that can be used to override properties in the given NiFiProperties
+     * @return NiFiProperties that contains the combined properties
+     */
+    static NiFiProperties combineProperties(NiFiProperties nifiProps, Properties additionalProperties) {
+        return new NiFiProperties() {
+
+            @Override
+            public String getProperty(String key) {
+                // Get the additional properties as preference over the NiFiProperties value. Will return null if the property
+                // is not available through either object.
+                return additionalProperties.getProperty(key, nifiProps != null ? nifiProps.getProperty(key) : null);
+            }
+
+            @Override
+            public Set<String> getPropertyKeys() {
+                Set<String> prop = additionalProperties.keySet().stream().map(key -> (String) key).collect(Collectors.toSet());
+                prop.addAll(nifiProps.getPropertyKeys());
+                return prop;
+            }
+        };
     }
 
     @Override
@@ -162,16 +205,31 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     // visible for testing
     synchronized ZooKeeper getZooKeeper() throws IOException {
+
+        ZooKeeperClientConfig clientConfig = getZooKeeperConfig();
+
         if (zooKeeper != null && !zooKeeper.getState().isAlive()) {
             invalidateClient();
         }
 
         if (zooKeeper == null) {
-            zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
-                @Override
-                public void process(WatchedEvent event) {
+            if (clientConfig != null && clientConfig.isClientSecure()) {
+                SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
+                try {
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new NoOpWatcher(), true);
+                    logger.debug("Secure ZooKeeper Client connection [{}] created", connectionString);
+                } catch (final Exception e) {
+                    logger.error("Secure ZooKeeper Client connection [{}] failed", connectionString, e);
+                    invalidateClient();
                 }
-            });
+            } else {
+                final ZKClientConfig zkClientConfig = new ZKClientConfig();
+                if (clientConfig != null) {
+                    zkClientConfig.setProperty(ZKConfig.JUTE_MAXBUFFER, Integer.toString(clientConfig.getJuteMaxbuffer()));
+                }
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new NoOpWatcher(), zkClientConfig);
+                logger.debug("Standard ZooKeeper Client connection [{}] created", connectionString);
+            }
 
             if (auth != null) {
                 zooKeeper.addAuthInfo("digest", auth);
@@ -179,6 +237,18 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         }
 
         return zooKeeper;
+    }
+
+    private ZooKeeperClientConfig getZooKeeperConfig() {
+        if (zooKeeperClientConfig == null) {
+            Properties stateProviderProperties = new Properties();
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, timeoutMillis + " millis");
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, timeoutMillis + " millis");
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
+            zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));
+        }
+        return zooKeeperClientConfig;
     }
 
     private synchronized void invalidateClient() {
@@ -299,7 +369,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
      *
      * @throws IOException if unable to communicate with ZooKeeper
      * @throws NoNodeException if the corresponding ZNode does not exist in ZooKeeper and allowNodeCreation is set to <code>false</code>
-     * @throws StateTooLargeException if the state to be stored exceeds the maximum size allowed by ZooKeeper (1 MB, after serialization)
+     * @throws StateTooLargeException if the state to be stored exceeds the maximum size allowed by ZooKeeper (Based on jute.maxbuffer property, after serialization)
      */
     private void setState(final Map<String, String> stateValues, final int version, final String componentId, final boolean allowNodeCreation) throws IOException, NoNodeException {
         verifyEnabled();
@@ -307,13 +377,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
         try {
             final String path = getComponentPath(componentId);
             final byte[] data = serialize(stateValues);
-            if (data.length > ONE_MB) {
-                throw new StateTooLargeException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId
-                    + " because the state had " + stateValues.size() + " values, which serialized to " + data.length
-                    + " bytes, and the maximum allowed by ZooKeeper is 1 MB (" + ONE_MB + " bytes)");
-            }
-
             final ZooKeeper keeper = getZooKeeper();
+            validateDataSize(keeper.getClientConfig(), data, componentId, stateValues.size());
             try {
                 keeper.setData(path, data, version);
             } catch (final NoNodeException nne) {
@@ -351,13 +416,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
 
     private void createNode(final String path, final byte[] data, final String componentId, final Map<String, String> stateValues, final List<ACL> acls) throws IOException, KeeperException {
         try {
-            if (data != null && data.length > ONE_MB) {
-                throw new StateTooLargeException("Failed to set cluster-wide state in ZooKeeper for component with ID " + componentId
-                    + " because the state had " + stateValues.size() + " values, which serialized to " + data.length
-                    + " bytes, and the maximum allowed by ZooKeeper is 1 MB (" + ONE_MB + " bytes)");
-            }
-
-            getZooKeeper().create(path, data, acls, CreateMode.PERSISTENT);
+            final ZooKeeper zooKeeper = getZooKeeper();
+            zooKeeper.create(path, data, acls, CreateMode.PERSISTENT);
         } catch (final InterruptedException ie) {
             throw new IOException("Failed to update cluster-wide state due to interruption", ie);
         } catch (final KeeperException ke) {
@@ -435,7 +495,7 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             return false;
         } catch (final IOException ioe) {
             final Throwable cause = ioe.getCause();
-            if (cause != null && cause instanceof KeeperException) {
+            if (cause instanceof KeeperException) {
                 final KeeperException ke = (KeeperException) cause;
                 if (Code.BADVERSION == ke.code()) {
                     return false;
@@ -450,6 +510,23 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
     @Override
     public void clear(final String componentId) throws IOException {
         verifyEnabled();
-        setState(Collections.<String, String>emptyMap(), componentId);
+        setState(Collections.emptyMap(), componentId);
+    }
+
+    private void validateDataSize(final ZKClientConfig clientConfig, final byte[] data, final String componentId, final int totalStateValues) throws StateTooLargeException {
+        final int maximumSize = clientConfig.getInt(ZKConfig.JUTE_MAXBUFFER, NiFiProperties.DEFAULT_ZOOKEEPER_JUTE_MAXBUFFER);
+        if (data != null && data.length > maximumSize) {
+            final String message = String.format("Component [%s] State Values [%d] Data Size [%d B] exceeds nifi.zookeeper.jute.maxbuffer size [%d B]",
+                    componentId, totalStateValues, data.length, maximumSize);
+            throw new StateTooLargeException(message);
+        }
+    }
+
+    private static final class NoOpWatcher implements Watcher {
+
+        @Override
+        public void process(final WatchedEvent watchedEvent) {
+
+        }
     }
 }

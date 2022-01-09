@@ -256,7 +256,7 @@ public class CompleteFlowPathLineage extends AbstractLineageStrategy {
         // In order to differentiate a queue between parents and this flow_path, add the hash into the queue qname.
         // E.g, FF1 and FF2 read from dirA were merged, vs FF3 and FF4 read from dirB were merged then passed here, these two should be different queue.
         if (queueBetweenParent != null) {
-            queueBetweenParent.set(ATTR_QUALIFIED_NAME, toQualifiedName(nifiFlow.getClusterName(), firstComponentId + "::" + hash));
+            queueBetweenParent.set(ATTR_QUALIFIED_NAME, toQualifiedName(nifiFlow.getNamespace(), firstComponentId + "::" + hash));
         }
 
         // If the same components emitted multiple provenance events consecutively, merge it to come up with a simpler name.

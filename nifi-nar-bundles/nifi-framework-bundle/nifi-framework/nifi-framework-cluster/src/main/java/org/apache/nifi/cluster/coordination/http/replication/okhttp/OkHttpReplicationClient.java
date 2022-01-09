@@ -21,36 +21,6 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonInclude.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.zip.GZIPInputStream;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
 import okhttp3.Headers;
@@ -62,18 +32,40 @@ import okhttp3.RequestBody;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StreamUtils;
-// Using static imports because of the name conflict:
-import static org.apache.nifi.security.util.SslContextFactory.ClientAuth.WANT;
-import static org.apache.nifi.security.util.SslContextFactory.createTrustSslContextWithTrustManagers;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 public class OkHttpReplicationClient implements HttpReplicationClient {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpReplicationClient.class);
@@ -84,6 +76,7 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private final ObjectMapper jsonCodec = new ObjectMapper();
     private final OkHttpClient okHttpClient;
+    private boolean tlsConfigured = false;
 
     public OkHttpReplicationClient(final NiFiProperties properties) {
         jsonCodec.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
@@ -148,6 +141,16 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
         final Response response = new JacksonResponse(jsonCodec, responseBytes, responseHeaders, URI.create(uri), callResponse.code(), callResponse::close);
         return response;
+    }
+
+    /**
+     * Returns {@code true} if the client has TLS enabled and configured. Even clients created without explicit
+     * keystore and truststore values have a default cipher suite list available, but no keys to use.
+     *
+     * @return true if this client can present keys
+     */
+    public boolean isTLSConfigured() {
+        return tlsConfigured;
     }
 
     private MultivaluedMap<String, String> getHeaders(final okhttp3.Response callResponse) {
@@ -305,9 +308,9 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
     private OkHttpClient createOkHttpClient(final NiFiProperties properties) {
         final String connectionTimeout = properties.getClusterNodeConnectionTimeout();
-        final long connectionTimeoutMs = FormatUtils.getTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
+        final long connectionTimeoutMs = (long) FormatUtils.getPreciseTimeDuration(connectionTimeout, TimeUnit.MILLISECONDS);
         final String readTimeout = properties.getClusterNodeReadTimeout();
-        final long readTimeoutMs = FormatUtils.getTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
+        final long readTimeoutMs = (long) FormatUtils.getPreciseTimeDuration(readTimeout, TimeUnit.MILLISECONDS);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
         okHttpClientBuilder.connectTimeout(connectionTimeoutMs, TimeUnit.MILLISECONDS);
@@ -315,39 +318,21 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
         okHttpClientBuilder.followRedirects(true);
         final int connectionPoolSize = properties.getClusterNodeMaxConcurrentRequests();
         okHttpClientBuilder.connectionPool(new ConnectionPool(connectionPoolSize, 5, TimeUnit.MINUTES));
+        okHttpClientBuilder.eventListener(new RequestReplicationEventListener());
 
-        final Tuple<SSLSocketFactory, X509TrustManager> tuple = createSslSocketFactory(properties);
-        if (tuple != null) {
-            okHttpClientBuilder.sslSocketFactory(tuple.getKey(), tuple.getValue());
+        // Apply the TLS configuration, if present
+        try {
+            final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, new TrustManager[]{trustManager});
+            okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+            tlsConfigured = true;
+        } catch (Exception e) {
+            // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
+            // TODO: The only current use of this class is ThreadPoolRequestReplicatorFactoryBean#getObject() which should be evaluated to see if that can change
+            tlsConfigured = false;
         }
 
         return okHttpClientBuilder.build();
-    }
-
-    private Tuple<SSLSocketFactory, X509TrustManager> createSslSocketFactory(final NiFiProperties properties) {
-        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-
-        if (sslContext == null) {
-            return null;
-        }
-
-        try {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple = createTrustSslContextWithTrustManagers(
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE),
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE),
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE),
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null ? properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray() : null,
-                    properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE),
-                    WANT,
-                    sslContext.getProtocol());
-            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                    .filter(trustManager -> trustManager instanceof X509TrustManager)
-                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-            return new Tuple<>(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-        } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
-            return null;
-        }
     }
 }

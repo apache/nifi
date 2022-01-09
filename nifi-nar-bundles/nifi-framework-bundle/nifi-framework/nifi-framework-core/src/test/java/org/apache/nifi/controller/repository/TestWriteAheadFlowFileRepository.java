@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.controller.repository;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
@@ -25,6 +47,7 @@ import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -45,7 +68,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -54,39 +76,22 @@ import org.mockito.stubbing.Answer;
 import org.wali.MinimalLockingWriteAheadLog;
 import org.wali.WriteAheadRepository;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
-
 @SuppressWarnings("deprecation")
 public class TestWriteAheadFlowFileRepository {
 
-    @BeforeClass
-    public static void setupProperties() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestWriteAheadFlowFileRepository.class.getResource("/conf/nifi.properties").getFile());
-    }
+    private static NiFiProperties niFiProperties;
 
     @Before
+    public void setUp() throws Exception {
+        niFiProperties = NiFiProperties.createBasicNiFiProperties(TestWriteAheadFlowFileRepository.class.getResource("/conf/nifi.properties").getFile());
+        clearRepo();
+    }
+
     @After
+    public void tearDown() throws Exception {
+        clearRepo();
+    }
+
     public void clearRepo() throws IOException {
         final File target = new File("target");
         final File testRepo = new File(target, "test-repo");
@@ -94,7 +99,6 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(testRepo, true);
         }
     }
-
 
     @Test
     @Ignore("Intended only for local performance testing before/after making changes")
@@ -170,6 +174,16 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public long getTotalQueuedDuration(long fromTimestamp) {
+                return 0;
+            }
+
+            @Override
+            public long getMinLastQueueDate() {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return false;
             }
@@ -206,12 +220,27 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public FlowFileRecord poll(Set<FlowFileRecord> expiredRecords) {
                 return null;
             }
 
             @Override
+            public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
+                return null;
+            }
+
+            @Override
             public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords) {
+                return null;
+            }
+
+            @Override
+            public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, PollStrategy pollStrategy) {
                 return null;
             }
 
@@ -324,8 +353,8 @@ public class TestWriteAheadFlowFileRepository {
 
         final ResourceClaimManager claimManager = new StandardResourceClaimManager();
         final StandardRepositoryRecordSerdeFactory serdeFactory = new StandardRepositoryRecordSerdeFactory(claimManager);
-        final WriteAheadRepository<RepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
-        final Collection<RepositoryRecord> initialRecs = repo.recoverRecords();
+        final WriteAheadRepository<SerializedRepositoryRecord> repo = new MinimalLockingWriteAheadLog<>(path, numPartitions, serdeFactory, null);
+        final Collection<SerializedRepositoryRecord> initialRecs = repo.recoverRecords();
         assertTrue(initialRecs.isEmpty());
 
         final int updateCountPerThread = totalUpdates / numThreads;
@@ -336,7 +365,7 @@ public class TestWriteAheadFlowFileRepository {
                 final Thread t = new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        final List<RepositoryRecord> records = new ArrayList<>();
+                        final List<SerializedRepositoryRecord> records = new ArrayList<>();
                         final int numBatches = updateCountPerThread / batchSize;
                         final MockFlowFile baseFlowFile = new MockFlowFile(0L);
 
@@ -349,9 +378,9 @@ public class TestWriteAheadFlowFileRepository {
                                 final StandardRepositoryRecord record = new StandardRepositoryRecord(null, flowFile);
                                 record.setDestination(queue);
                                 final Map<String, String> updatedAttrs = Collections.singletonMap("uuid", uuid);
-                                record.setWorking(flowFile, updatedAttrs);
+                                record.setWorking(flowFile, updatedAttrs, false);
 
-                                records.add(record);
+                                records.add(new LiveSerializedRepositoryRecord(record));
                             }
 
                             try {
@@ -418,7 +447,7 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(path.toFile(), true);
         }
 
-        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties);
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
@@ -447,7 +476,7 @@ public class TestWriteAheadFlowFileRepository {
         repo.close();
 
         // restore
-        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(niFiProperties);
         repo2.initialize(new StandardResourceClaimManager());
         repo2.loadFlowFiles(queueProvider);
         assertTrue(repo2.isValidSwapLocationSuffix("swap123"));
@@ -462,7 +491,7 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(path.toFile(), true);
         }
 
-        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties);
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
@@ -507,7 +536,7 @@ public class TestWriteAheadFlowFileRepository {
         when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
 
         final FlowFileSwapManager swapMgr = new MockFlowFileSwapManager();
-        final FlowFileQueue queue = new StandardFlowFileQueue("1234", new NopConnectionEventListener(), null, null, claimManager, null, swapMgr, null, 10000, 0L, "0 B");
+        final FlowFileQueue queue = new StandardFlowFileQueue("1234", new NopConnectionEventListener(), null, null, claimManager, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
 
         when(connection.getFlowFileQueue()).thenReturn(queue);
         queueProvider.addConnection(connection);
@@ -521,7 +550,7 @@ public class TestWriteAheadFlowFileRepository {
         // Create a flowfile repo, update it once with a FlowFile that points to one resource claim. Then,
         // indicate that a FlowFile was swapped out. We should then be able to recover these FlowFiles and the
         // resource claims' counts should be updated for both the swapped out FlowFile and the non-swapped out FlowFile
-        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(claimManager);
             repo.loadFlowFiles(queueProvider);
 
@@ -532,7 +561,7 @@ public class TestWriteAheadFlowFileRepository {
                     .contentClaim(claim1)
                     .build();
             final StandardRepositoryRecord rec1 = new StandardRepositoryRecord(queue);
-            rec1.setWorking(flowFile1);
+            rec1.setWorking(flowFile1, false);
             rec1.setDestination(queue);
 
             // Create a Record that we can swap out
@@ -543,7 +572,7 @@ public class TestWriteAheadFlowFileRepository {
                     .build();
 
             final StandardRepositoryRecord rec2 = new StandardRepositoryRecord(queue);
-            rec2.setWorking(flowFile2);
+            rec2.setWorking(flowFile2, true);
             rec2.setDestination(queue);
 
             final List<RepositoryRecord> records = new ArrayList<>();
@@ -556,7 +585,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         final ResourceClaimManager recoveryClaimManager = new StandardResourceClaimManager();
-        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null))) {
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
             repo.initialize(recoveryClaimManager);
             final long largestId = repo.loadFlowFiles(queueProvider);
 
@@ -587,7 +616,7 @@ public class TestWriteAheadFlowFileRepository {
             FileUtils.deleteFile(path.toFile(), true);
         }
 
-        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties);
         repo.initialize(new StandardResourceClaimManager());
 
         final TestQueueProvider queueProvider = new TestQueueProvider();
@@ -620,7 +649,7 @@ public class TestWriteAheadFlowFileRepository {
 
         final List<RepositoryRecord> records = new ArrayList<>();
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
-        record.setWorking(flowFileRecord);
+        record.setWorking(flowFileRecord, false);
         record.setDestination(connection.getFlowFileQueue());
         records.add(record);
 
@@ -629,19 +658,19 @@ public class TestWriteAheadFlowFileRepository {
         // update to add new attribute
         ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(flowFileRecord).addAttribute("hello", "world");
         final FlowFileRecord flowFileRecord2 = ffBuilder.build();
-        record.setWorking(flowFileRecord2);
+        record.setWorking(flowFileRecord2, false);
         repo.updateRepository(records);
 
         // update size but no attribute
         ffBuilder = new StandardFlowFileRecord.Builder().fromFlowFile(flowFileRecord2).size(40L);
         final FlowFileRecord flowFileRecord3 = ffBuilder.build();
-        record.setWorking(flowFileRecord3);
+        record.setWorking(flowFileRecord3, true);
         repo.updateRepository(records);
 
         repo.close();
 
         // restore
-        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository(niFiProperties);
         repo2.initialize(new StandardResourceClaimManager());
         repo2.loadFlowFiles(queueProvider);
 
@@ -760,7 +789,7 @@ public class TestWriteAheadFlowFileRepository {
                 }
             }
 
-            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims);
+            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims, 0L, 0L);
         }
 
         @Override

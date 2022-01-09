@@ -39,4 +39,12 @@ public class PubSubAttributes {
     public static final String DYNAMIC_ATTRIBUTES_ATTRIBUTE = "Dynamic Attributes";
     public static final String DYNAMIC_ATTRIBUTES_DESCRIPTION = "Other than the listed attributes, this processor may write zero or more attributes, " +
             "if the original Google Cloud Publisher client added any attributes to the message while sending";
+
+    public static final String ORDERING_KEY_ATTRIBUTE = "gcp.pubsub.ordering.key";
+    public static final String ORDERING_KEY_DESCRIPTION = "If non-empty, identifies related messages for which publish order should be"
+            + " respected. If a 'Subscription' has 'enable_message_ordering' set to 'true',"
+            + " messages published with the same non-empty 'ordering_key' value will be"
+            + " delivered to subscribers in the order in which they are received by the"
+            + " Pub/Sub system. All 'PubsubMessage's published in a given 'PublishRequest'"
+            + " must specify the same 'ordering_key' value.";
 }

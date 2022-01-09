@@ -45,7 +45,8 @@ public class NodeClusterCoordinatorFactoryBean implements FactoryBean<NodeCluste
             final ClusterCoordinationProtocolSenderListener protocolSenderListener =
                     applicationContext.getBean("clusterCoordinationProtocolSenderListener", ClusterCoordinationProtocolSenderListener.class);
             final EventReporter eventReporter = applicationContext.getBean("eventReporter", EventReporter.class);
-            final ClusterNodeFirewall clusterFirewall = applicationContext.getBean("clusterFirewall", ClusterNodeFirewall.class);
+            final Object clusterFirewallBean = applicationContext.getBean("clusterFirewall");
+            final ClusterNodeFirewall clusterFirewall = clusterFirewallBean instanceof ClusterNodeFirewall ? (ClusterNodeFirewall) clusterFirewallBean : null;
             final RevisionManager revisionManager = applicationContext.getBean("revisionManager", RevisionManager.class);
             final LeaderElectionManager electionManager = applicationContext.getBean("leaderElectionManager", LeaderElectionManager.class);
             final FlowElection flowElection = applicationContext.getBean("flowElection", FlowElection.class);

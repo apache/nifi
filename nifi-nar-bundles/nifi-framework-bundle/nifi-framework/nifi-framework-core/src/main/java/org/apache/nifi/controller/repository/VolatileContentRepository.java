@@ -135,8 +135,8 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) {
-        this.claimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) {
+        this.claimManager = context.getResourceClaimManager();
 
         for (int i = 0; i < 3; i++) {
             executor.scheduleWithFixedDelay(new CleanupOldClaims(), 1000, 10, TimeUnit.MILLISECONDS);
@@ -466,6 +466,11 @@ public class VolatileContentRepository implements ContentRepository {
 
         final ContentClaim backupClaim = getBackupClaim(claim);
         return backupClaim == null ? getContent(claim).read() : getBackupRepository().read(backupClaim);
+    }
+
+    @Override
+    public InputStream read(final ResourceClaim claim) throws IOException {
+        return read(new StandardContentClaim(claim, 0L));
     }
 
     @Override

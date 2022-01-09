@@ -17,8 +17,10 @@
 
 package org.apache.nifi.toolkit.repos.flowfile;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 
 import static org.junit.Assert.assertEquals;
@@ -28,10 +30,16 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TestRepairCorruptedFileEndings {
     private final File targetFile = new File("target/1.bin");
+
+    @BeforeClass
+    public static void setupInstance() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     @After

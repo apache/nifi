@@ -33,6 +33,8 @@ import javax.xml.bind.DatatypeConverter;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
+import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
@@ -51,7 +53,7 @@ import org.mockito.Mockito;
 public class TestBeatsSocketChannelHandler {
     private EventFactory<TestEvent> eventFactory;
     private ChannelHandlerFactory<TestEvent,AsyncChannelDispatcher> channelHandlerFactory;
-    private BlockingQueue<ByteBuffer> byteBuffers;
+    private ByteBufferSource byteBufferSource;
     private BlockingQueue<TestEvent> events;
     private ComponentLog logger = Mockito.mock(ComponentLog.class);
     private int maxConnections;
@@ -64,8 +66,7 @@ public class TestBeatsSocketChannelHandler {
         eventFactory = new TestEventHolderFactory();
         channelHandlerFactory = new BeatsSocketChannelHandlerFactory<>();
 
-        byteBuffers = new LinkedBlockingQueue<>();
-        byteBuffers.add(ByteBuffer.allocate(4096));
+        byteBufferSource = new ByteBufferPool(1, 4096);
 
         events = new LinkedBlockingQueue<>();
         logger = Mockito.mock(ComponentLog.class);
@@ -74,7 +75,7 @@ public class TestBeatsSocketChannelHandler {
         sslContext = null;
         charset = StandardCharsets.UTF_8;
 
-        dispatcher = new SocketChannelDispatcher<>(eventFactory, channelHandlerFactory, byteBuffers, events, logger,
+        dispatcher = new SocketChannelDispatcher<>(eventFactory, channelHandlerFactory, byteBufferSource, events, logger,
                 maxConnections, sslContext, charset);
 
     }

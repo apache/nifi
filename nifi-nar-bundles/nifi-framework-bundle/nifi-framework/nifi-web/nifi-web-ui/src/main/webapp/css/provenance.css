@@ -129,18 +129,31 @@ div.provenance-panel {
 }
 
 div.searchable-field {
-    margin-bottom: 5px;
+    margin-bottom: 15px;
 }
 
 div.searchable-field-name {
-    width: 25%;
     float: left;
-    line-height: 26px;
 }
 
-div.searchable-field-value {
-    float: left;
-    width: 75%;
+div.searchable-checkbox-value {
+	margin-top: 3px;
+}
+
+div.searchable-checkbox-label {
+	float: left;
+	margin-top: 2px;
+	font-size: 12px;
+	font-family: Roboto;
+	font-weight: 500;
+	text-transform: none;
+	color: #775351;
+}
+
+div.searchable-checkbox-tooltip {
+	float: left;
+	margin-top: 2px;
+	margin-bottom: 11px;
 }
 
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {

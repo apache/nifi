@@ -24,10 +24,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
 import org.apache.nifi.controller.repository.FileSystemRepository;
+import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
 import org.apache.nifi.controller.repository.TestFileSystemRepository;
 import org.apache.nifi.controller.repository.util.DiskUtils;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
@@ -44,14 +45,13 @@ public class TestContentClaimWriteCache {
 
     @Before
     public void setup() throws IOException {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
         if (rootFile.exists()) {
             DiskUtils.deleteRecursively(rootFile);
         }
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
-        repository.initialize(claimManager);
+        repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
     }
 
@@ -62,7 +62,7 @@ public class TestContentClaimWriteCache {
 
     @Test
     public void testFlushWriteCorrectData() throws IOException {
-        final ContentClaimWriteCache cache = new ContentClaimWriteCache(repository, 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, 4);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);

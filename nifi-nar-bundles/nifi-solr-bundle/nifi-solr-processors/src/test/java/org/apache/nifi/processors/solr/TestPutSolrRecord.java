@@ -18,9 +18,25 @@
  */
 package org.apache.nifi.processors.solr;
 
-import org.apache.nifi.controller.AbstractControllerService;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -36,31 +52,13 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.BaseHttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.util.NamedList;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for PutSolrRecord Processor
@@ -363,7 +361,7 @@ public class TestPutSolrRecord {
             runner.run(1,false);
 
             runner.assertAllFlowFilesTransferred(PutSolrRecord.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }finally {
             try {
                 proc.getSolrClient().close();
@@ -396,7 +394,7 @@ public class TestPutSolrRecord {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrRecord.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }finally {
             try {
                 proc.getSolrClient().close();
@@ -428,7 +426,7 @@ public class TestPutSolrRecord {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrRecord.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }finally {
             try {
                 proc.getSolrClient().close();
@@ -440,7 +438,7 @@ public class TestPutSolrRecord {
 
     @Test
     public void testRemoteSolrExceptionShouldRouteToFailure() throws IOException, SolrServerException, InitializationException {
-        final Throwable throwable = new HttpSolrClient.RemoteSolrException(
+        final Throwable throwable = new BaseHttpSolrClient.RemoteSolrException(
                 "host", 401, "error", new NumberFormatException());
         final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
 
@@ -461,7 +459,7 @@ public class TestPutSolrRecord {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrRecord.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }finally {
             try {
                 proc.getSolrClient().close();
@@ -492,7 +490,7 @@ public class TestPutSolrRecord {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrRecord.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }finally {
             try {
                 proc.getSolrClient().close();
@@ -545,7 +543,8 @@ public class TestPutSolrRecord {
         runner.setProperty(SolrUtils.SOLR_LOCATION, "https://localhost:8443/solr");
         runner.assertNotValid();
 
-        final SSLContextService sslContextService = new MockSSLContextService();
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn("ssl-context");
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
 
@@ -566,7 +565,8 @@ public class TestPutSolrRecord {
         runner.setProperty(SolrUtils.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
 
-        final SSLContextService sslContextService = new MockSSLContextService();
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn("ssl-context");
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
 
@@ -659,7 +659,7 @@ public class TestPutSolrRecord {
             mockSolrClient = new SolrClient() {
                 @Override
                 public NamedList<Object> request(SolrRequest solrRequest, String s) throws SolrServerException, IOException {
-                    Assert.assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrRecord.COLLECTION_PARAM_NAME));
+                    assertEquals(expectedCollection, solrRequest.getParams().get(PutSolrRecord.COLLECTION_PARAM_NAME));
                     return new NamedList<>();
                 }
 
@@ -684,7 +684,7 @@ public class TestPutSolrRecord {
 
         SolrQuery query = new SolrQuery("*:*");
         QueryResponse qResponse = solrServer.query(query);
-        Assert.assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
+        assertEquals(expectedDocuments.size(), qResponse.getResults().getNumFound());
 
         // verify documents have expected fields and values
         for (SolrDocument expectedDoc : expectedDocuments) {
@@ -702,7 +702,7 @@ public class TestPutSolrRecord {
                     break;
                 }
             }
-            Assert.assertTrue("Could not find " + expectedDoc, found);
+            assertTrue(found, String.format("Could not find %s", expectedDoc));
         }
     }
 
@@ -719,78 +719,11 @@ public class TestPutSolrRecord {
         @Override
         protected SolrClient createSolrClient(ProcessContext context, String solrLocation) {
             mockSolrClient = Mockito.mock(SolrClient.class);
-            try {
-                when(mockSolrClient.request(any(SolrRequest.class),
-                        eq((String)null))).thenThrow(throwable);
-            } catch (SolrServerException|IOException e) {
-                Assert.fail(e.getMessage());
-            }
+            assertDoesNotThrow(() -> when(mockSolrClient.request(any(SolrRequest.class),
+                        eq(null))).thenThrow(throwable));
+
             return mockSolrClient;
         }
 
     }
-
-
-    /**
-     * Mock implementation so we don't need to have a real keystore/truststore available for testing.
-     */
-    private class MockSSLContextService extends AbstractControllerService implements SSLContextService {
-
-        @Override
-        public SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStorePassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isTrustStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getKeyStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStorePassword() {
-            return null;
-        }
-
-        @Override
-        public String getKeyPassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isKeyStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getSslAlgorithm() {
-            return null;
-        }
-    }
-
-
 }

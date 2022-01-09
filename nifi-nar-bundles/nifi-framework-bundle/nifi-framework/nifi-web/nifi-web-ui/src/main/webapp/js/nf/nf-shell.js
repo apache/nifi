@@ -200,7 +200,7 @@
                     $('#shell-dialog').modal('show');
 
                     // create the content container
-                    var contentContainer = $('<div>').addClass('shell-content-container').css({
+                    var contentContainer = $('<div />').addClass('shell-content-container').css({
                         width: shell.width(),
                         height: shell.height()
                     }).append(content).appendTo(shell);

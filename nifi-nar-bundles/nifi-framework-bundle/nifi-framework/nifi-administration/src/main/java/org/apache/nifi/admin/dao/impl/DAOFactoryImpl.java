@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.admin.dao.impl;
 
-import java.sql.Connection;
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.admin.dao.KeyDAO;
+import org.apache.nifi.admin.dao.IdpCredentialDAO;
+import org.apache.nifi.admin.dao.IdpUserGroupDAO;
+
+import java.sql.Connection;
 
 /**
  *
@@ -38,8 +40,12 @@ public class DAOFactoryImpl implements DAOFactory {
     }
 
     @Override
-    public KeyDAO getKeyDAO() {
-        return new StandardKeyDAO(connection);
+    public IdpCredentialDAO getIdpCredentialDAO() {
+        return new StandardIdpCredentialDAO(connection);
     }
 
+    @Override
+    public IdpUserGroupDAO getIdpUserGroupDAO() {
+        return new StandardIdpUserGroupDAO(connection);
+    }
 }

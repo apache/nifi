@@ -29,6 +29,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
@@ -60,6 +62,8 @@ public final class KafkaProcessorUtils {
     static final AllowableValue UTF8_ENCODING = new AllowableValue("utf-8", "UTF-8 Encoded", "The key is interpreted as a UTF-8 Encoded string.");
     static final AllowableValue HEX_ENCODING = new AllowableValue("hex", "Hex Encoded",
             "The key is interpreted as arbitrary binary data and is encoded using hexadecimal characters with uppercase letters");
+    static final AllowableValue DO_NOT_ADD_KEY_AS_ATTRIBUTE = new AllowableValue("do-not-add", "Do Not Add Key as Attribute",
+        "The key will not be added as an Attribute");
 
     static final Pattern HEX_KEY_PATTERN = Pattern.compile("(?:[0123456789abcdefABCDEF]{2})+");
 
@@ -86,8 +90,18 @@ public final class KafkaProcessorUtils {
                     "be populated when using this mechanism.");
 
     static final String SCRAM_SHA256_VALUE = "SCRAM-SHA-256";
-    static final AllowableValue SASL_MECHANISM_SCRAM = new AllowableValue(SCRAM_SHA256_VALUE, SCRAM_SHA256_VALUE,"The Salted Challenge Response Authentication Mechanism. " +
+    static final AllowableValue SASL_MECHANISM_SCRAM_SHA256 = new AllowableValue(SCRAM_SHA256_VALUE, SCRAM_SHA256_VALUE,"The Salted Challenge Response Authentication Mechanism using SHA-256. " +
             "The username and password properties must be set when using this mechanism.");
+
+    static final String SCRAM_SHA512_VALUE = "SCRAM-SHA-512";
+    static final AllowableValue SASL_MECHANISM_SCRAM_SHA512 = new AllowableValue(SCRAM_SHA512_VALUE, SCRAM_SHA512_VALUE,"The Salted Challenge Response Authentication Mechanism using SHA-512. " +
+            "The username and password properties must be set when using this mechanism.");
+
+    static final AllowableValue FAILURE_STRATEGY_FAILURE_RELATIONSHIP = new AllowableValue("Route to Failure", "Route to Failure",
+        "When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the 'failure' relationship.");
+    static final AllowableValue FAILURE_STRATEGY_ROLLBACK = new AllowableValue("Rollback", "Rollback",
+        "When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on the top of its queue so that it will be the next FlowFile tried again. " +
+            "For dataflows where ordering of FlowFiles is important, this strategy can be used along with ensuring that the each processor in the dataflow uses only a single Concurrent Task.");
 
     public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
@@ -113,7 +127,7 @@ public final class KafkaProcessorUtils {
             .description("The SASL mechanism to use for authentication. Corresponds to Kafka's 'sasl.mechanism' property.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM)
+            .allowableValues(SASL_MECHANISM_GSSAPI, SASL_MECHANISM_PLAIN, SASL_MECHANISM_SCRAM_SHA256, SASL_MECHANISM_SCRAM_SHA512)
             .defaultValue(GSSAPI_VALUE)
             .build();
     public static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
@@ -142,13 +156,13 @@ public final class KafkaProcessorUtils {
             .description("The Kerberos keytab that will be used to connect to brokers. If not set, it is expected to set a JAAS configuration file "
                     + "in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("sasl.username")
             .displayName("Username")
-            .description("The username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+            .description("The username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE + "/" + SCRAM_SHA512_VALUE)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -156,7 +170,7 @@ public final class KafkaProcessorUtils {
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("sasl.password")
             .displayName("Password")
-            .description("The password for the given username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+            .description("The password for the given username when the SASL Mechanism is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE + "/" + SCRAM_SHA512_VALUE)
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -165,7 +179,8 @@ public final class KafkaProcessorUtils {
     static final PropertyDescriptor TOKEN_AUTH = new PropertyDescriptor.Builder()
             .name("sasl.token.auth")
             .displayName("Token Auth")
-            .description("When " + SASL_MECHANISM.getDisplayName() + " is " + SCRAM_SHA256_VALUE + ", this property indicates if token authentication should be used.")
+            .description("When " + SASL_MECHANISM.getDisplayName() + " is " + SCRAM_SHA256_VALUE + " or " + SCRAM_SHA512_VALUE
+                    + ", this property indicates if token authentication should be used.")
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -183,6 +198,15 @@ public final class KafkaProcessorUtils {
         .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
         .identifiesControllerService(KerberosCredentialsService.class)
         .required(false)
+        .build();
+
+    static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Failure Strategy")
+        .displayName("Failure Strategy")
+        .description("Dictates how the processor handles a FlowFile if it is unable to publish the data to Kafka")
+        .required(true)
+        .allowableValues(FAILURE_STRATEGY_FAILURE_RELATIONSHIP, FAILURE_STRATEGY_ROLLBACK)
+        .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
         .build();
 
     static List<PropertyDescriptor> getCommonPropertyDescriptors() {
@@ -263,14 +287,16 @@ public final class KafkaProcessorUtils {
         }
 
         // validate that if SASL Mechanism is PLAIN or SCRAM, then username and password are both provided
-        if (SASL_MECHANISM_PLAIN.getValue().equals(saslMechanism) || SASL_MECHANISM_SCRAM.getValue().equals(saslMechanism)) {
+        if (SASL_MECHANISM_PLAIN.getValue().equals(saslMechanism)
+                || SASL_MECHANISM_SCRAM_SHA256.getValue().equals(saslMechanism)
+                || SASL_MECHANISM_SCRAM_SHA512.getValue().equals(saslMechanism)) {
             final String username = validationContext.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
             if (StringUtils.isBlank(username)) {
                 results.add(new ValidationResult.Builder()
                         .subject(USERNAME.getDisplayName())
                         .valid(false)
                         .explanation("A username is required when " + SASL_MECHANISM.getDisplayName()
-                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE + "/" + SCRAM_SHA512_VALUE)
                         .build());
             }
 
@@ -280,7 +306,7 @@ public final class KafkaProcessorUtils {
                         .subject(PASSWORD.getDisplayName())
                         .valid(false)
                         .explanation("A password is required when " + SASL_MECHANISM.getDisplayName()
-                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE)
+                                + " is " + PLAIN_VALUE + " or " + SCRAM_SHA256_VALUE + "/" + SCRAM_SHA512_VALUE)
                         .build());
             }
         }
@@ -347,6 +373,10 @@ public final class KafkaProcessorUtils {
 
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if (subject.startsWith(ConsumerPartitionsUtil.PARTITION_PROPERTY_NAME_PREFIX)) {
+                return new ValidationResult.Builder().valid(true).build();
+            }
+
             final boolean knownValue = KafkaProcessorUtils.isStaticStringFieldNamePresent(subject, classType, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class);
             return new ValidationResult.Builder().subject(subject).explanation("Must be a known configuration parameter for this kafka client").valid(knownValue).build();
         }
@@ -392,7 +422,9 @@ public final class KafkaProcessorUtils {
                     ? context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue()
                     : context.getProperty(propertyDescriptor).getValue();
 
-            if (propertyValue != null && !propertyName.equals(USER_PRINCIPAL.getName()) && !propertyName.equals(USER_KEYTAB.getName())) {
+            if (propertyValue != null && !propertyName.equals(USER_PRINCIPAL.getName()) && !propertyName.equals(USER_KEYTAB.getName())
+                && !propertyName.startsWith(ConsumerPartitionsUtil.PARTITION_PROPERTY_NAME_PREFIX)) {
+
                 // If the property name ends in ".ms" then it is a time period. We want to accept either an integer as number of milliseconds
                 // or the standard NiFi time period such as "5 secs"
                 if (propertyName.endsWith(".ms") && !StringUtils.isNumeric(propertyValue.trim())) { // kafka standard time notation
@@ -443,6 +475,7 @@ public final class KafkaProcessorUtils {
                 setPlainJaasConfig(mapToPopulate, context);
                 break;
             case SCRAM_SHA256_VALUE:
+            case SCRAM_SHA512_VALUE:
                 setScramJaasConfig(mapToPopulate, context);
                 break;
             default:

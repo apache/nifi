@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -39,6 +42,11 @@ public class TestNarLoader extends AbstractTestNarLoader {
     static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/extensions";
 
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
     @Test
     public void testNarLoaderWhenAllAvailable() throws IOException {
         // Copy all NARs from src/test/resources/extensions to target/extensions
@@ -56,7 +64,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
         assertEquals(3, narLoadResult.getLoadedBundles().size());
         assertEquals(0, narLoadResult.getSkippedBundles().size());
 
-        assertEquals(5, narClassLoaders.getBundles().size());
+        assertEquals(6, narClassLoaders.getBundles().size());
         assertEquals(1, extensionManager.getExtensions(Processor.class).size());
         assertEquals(1, extensionManager.getExtensions(ControllerService.class).size());
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
@@ -103,7 +111,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
         assertEquals(3, narLoadResult3.getLoadedBundles().size());
         assertEquals(0, narLoadResult3.getSkippedBundles().size());
 
-        assertEquals(5, narClassLoaders.getBundles().size());
+        assertEquals(6, narClassLoaders.getBundles().size());
         assertEquals(1, extensionManager.getExtensions(Processor.class).size());
         assertEquals(1, extensionManager.getExtensions(ControllerService.class).size());
         assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());

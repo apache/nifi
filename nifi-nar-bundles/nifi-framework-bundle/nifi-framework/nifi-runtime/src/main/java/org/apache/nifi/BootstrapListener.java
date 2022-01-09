@@ -16,6 +16,8 @@
  */
 package org.apache.nifi;
 
+import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.controller.status.history.StatusHistoryDump;
 import org.apache.nifi.diagnostics.DiagnosticsDump;
 import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
@@ -40,14 +42,15 @@ public class BootstrapListener {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapListener.class);
 
-    private final NiFi nifi;
+    private final NiFiEntryPoint nifi;
     private final int bootstrapPort;
     private final String secretKey;
 
     private volatile Listener listener;
     private volatile ServerSocket serverSocket;
+    private volatile boolean nifiLoaded = false;
 
-    public BootstrapListener(final NiFi nifi, final int bootstrapPort) {
+    public BootstrapListener(final NiFiEntryPoint nifi, final int bootstrapPort) {
         this.nifi = nifi;
         this.bootstrapPort = bootstrapPort;
         secretKey = UUID.randomUUID().toString();
@@ -70,7 +73,14 @@ public class BootstrapListener {
         listenThread.start();
 
         logger.debug("Notifying Bootstrap that local port is {}", localPort);
-        sendCommand("PORT", new String[] { String.valueOf(localPort), secretKey});
+        sendCommand("PORT", new String[]{String.valueOf(localPort), secretKey});
+    }
+
+    public void reload() throws IOException {
+        if (listener != null) {
+            listener.stop();
+        }
+        sendCommand("RELOAD", new String[]{});
     }
 
     public void stop() {
@@ -79,9 +89,13 @@ public class BootstrapListener {
         }
     }
 
+    public void setNiFiLoaded(boolean nifiLoaded) {
+        this.nifiLoaded = nifiLoaded;
+    }
+
     public void sendStartedStatus(boolean status) throws IOException {
         logger.debug("Notifying Bootstrap that the status of starting NiFi is {}", status);
-        sendCommand("STARTED", new String[]{ String.valueOf(status) });
+        sendCommand("STARTED", new String[]{String.valueOf(status)});
     }
 
     private void sendCommand(final String command, final String[] args) throws IOException {
@@ -173,18 +187,40 @@ public class BootstrapListener {
                                 switch (requestType) {
                                     case PING:
                                         logger.debug("Received PING request from Bootstrap; responding");
-                                        echoPing(socket.getOutputStream());
+                                        sendAnswer(socket.getOutputStream(), "PING");
                                         logger.debug("Responded to PING request from Bootstrap");
                                         break;
+                                    case RELOAD:
+                                        logger.info("Received RELOAD request from Bootstrap");
+                                        sendAnswer(socket.getOutputStream(), "RELOAD");
+                                        nifi.shutdownHook(true);
+                                        return;
                                     case SHUTDOWN:
                                         logger.info("Received SHUTDOWN request from Bootstrap");
-                                        echoShutdown(socket.getOutputStream());
+                                        sendAnswer(socket.getOutputStream(), "SHUTDOWN");
                                         socket.close();
-                                        nifi.shutdownHook();
+                                        nifi.shutdownHook(false);
                                         return;
                                     case DUMP:
                                         logger.info("Received DUMP request from Bootstrap");
                                         writeDump(socket.getOutputStream());
+                                        break;
+                                    case DECOMMISSION:
+                                        logger.info("Received DECOMMISSION request from Bootstrap");
+
+                                        try {
+                                            decommission();
+                                            sendAnswer(socket.getOutputStream(), "DECOMMISSION");
+                                            nifi.shutdownHook(false);
+                                        } catch (final Exception e) {
+                                            final OutputStream out = socket.getOutputStream();
+
+                                            out.write(("Failed to decommission node: " + e + "; see app-log for additional details").getBytes(StandardCharsets.UTF_8));
+                                            out.flush();
+                                        } finally {
+                                            socket.close();
+                                        }
+
                                         break;
                                     case DIAGNOSTICS:
                                         logger.info("Received DIAGNOSTICS request from Bootstrap");
@@ -202,6 +238,18 @@ public class BootstrapListener {
                                         }
 
                                         writeDiagnostics(socket.getOutputStream(), verbose);
+                                        break;
+                                    case STATUS_HISTORY:
+                                        logger.info("Received STATUS_HISTORY request from Bootstrap");
+                                        final String[] statusHistoryArgs = request.getArgs();
+                                        final int days = Integer.parseInt(statusHistoryArgs[0]);
+                                        writeNodeStatusHistory(socket.getOutputStream(), days);
+                                        break;
+                                    case IS_LOADED:
+                                        logger.debug("Received IS_LOADED request from Bootstrap");
+                                        String answer = String.valueOf(nifiLoaded);
+                                        sendAnswer(socket.getOutputStream(), answer);
+                                        logger.debug("Responded to IS_LOADED request from Bootstrap with value: " + answer);
                                         break;
                                 }
                             } catch (final Throwable t) {
@@ -227,18 +275,27 @@ public class BootstrapListener {
         diagnosticsDump.writeTo(out);
     }
 
+    private void decommission() throws InterruptedException {
+        final DecommissionTask decommissionTask = nifi.getServer().getDecommissionTask();
+        if (decommissionTask == null) {
+            throw new IllegalArgumentException("This NiFi instance does not support decommissioning");
+        }
+
+        decommissionTask.decommission();
+    }
+
     private void writeDiagnostics(final OutputStream out, final boolean verbose) throws IOException {
         final DiagnosticsDump diagnosticsDump = nifi.getServer().getDiagnosticsFactory().create(verbose);
         diagnosticsDump.writeTo(out);
     }
 
-    private void echoPing(final OutputStream out) throws IOException {
-        out.write("PING\n".getBytes(StandardCharsets.UTF_8));
-        out.flush();
+    private void writeNodeStatusHistory(final OutputStream out, final int days) throws IOException {
+        final StatusHistoryDump statusHistoryDump = nifi.getServer().getStatusHistoryDumpFactory().create(days);
+        statusHistoryDump.writeTo(out);
     }
 
-    private void echoShutdown(final OutputStream out) throws IOException {
-        out.write("SHUTDOWN\n".getBytes(StandardCharsets.UTF_8));
+    private void sendAnswer(final OutputStream out, final String answer) throws IOException {
+        out.write((answer + "\n").getBytes(StandardCharsets.UTF_8));
         out.flush();
     }
 
@@ -282,10 +339,14 @@ public class BootstrapListener {
 
     private static class BootstrapRequest {
         public enum RequestType {
+            RELOAD,
             SHUTDOWN,
             DUMP,
             DIAGNOSTICS,
-            PING;
+            DECOMMISSION,
+            PING,
+            IS_LOADED,
+            STATUS_HISTORY
         }
 
         private final RequestType requestType;

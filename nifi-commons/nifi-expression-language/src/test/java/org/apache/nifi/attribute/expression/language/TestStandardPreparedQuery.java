@@ -19,8 +19,8 @@ package org.apache.nifi.attribute.expression.language;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -55,7 +55,7 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
-    @Ignore("Intended for manual performance testing; should not be run in an automated environment")
+    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
     public void test10MIterations() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
@@ -70,7 +70,7 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
-    @Ignore("Takes too long")
+    @Disabled("Takes too long")
     public void test10MIterationsWithQuery() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
@@ -253,6 +253,11 @@ public class TestStandardPreparedQuery {
             }
 
             @Override
+            public long getVersion() {
+                return 0;
+            }
+
+            @Override
             public boolean isEmpty() {
                 return parameters.isEmpty();
             }
@@ -302,6 +307,24 @@ public class TestStandardPreparedQuery {
 
         assertTrue(Query.prepare("${allMatchingAttributes('a.*'):equals('hello')}").getVariableImpact().isImpacted("attr"));
         assertTrue(Query.prepare("${anyMatchingAttribute('a.*'):equals('hello')}").getVariableImpact().isImpacted("attr"));
+    }
+
+    @Test
+    public void testIsExpressionLanguagePresent() {
+        assertFalse(Query.prepare("value").isExpressionLanguagePresent());
+        assertFalse(Query.prepare("").isExpressionLanguagePresent());
+
+        assertTrue(Query.prepare("${variable}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname()}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname():equals('localhost')}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("prefix-${hostname()}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${hostname()}-suffix").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${variable1}${hostname()}${variable2}").isExpressionLanguagePresent());
+        assertTrue(Query.prepare("${${variable}}").isExpressionLanguagePresent());
+
+        assertFalse(Query.prepare("${}").isExpressionLanguagePresent());
+
+        assertFalse(Query.prepare("#{param}").isExpressionLanguagePresent());
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {

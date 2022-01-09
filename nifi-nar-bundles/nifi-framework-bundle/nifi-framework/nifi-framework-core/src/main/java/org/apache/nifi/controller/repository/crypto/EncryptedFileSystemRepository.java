@@ -16,29 +16,32 @@
  */
 package org.apache.nifi.controller.repository.crypto;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.security.KeyManagementException;
-import javax.crypto.CipherOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.repository.FileSystemRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.security.kms.EncryptionException;
+import org.apache.nifi.repository.encryption.AesCtrStreamRepositoryEncryptor;
+import org.apache.nifi.repository.encryption.RepositoryEncryptor;
+import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
+import org.apache.nifi.repository.encryption.configuration.EncryptionMetadataHeader;
+import org.apache.nifi.repository.encryption.configuration.kms.RepositoryKeyProviderFactory;
+import org.apache.nifi.repository.encryption.configuration.kms.StandardRepositoryKeyProviderFactory;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.apache.nifi.security.repository.RepositoryEncryptorUtils;
-import org.apache.nifi.security.repository.RepositoryType;
-import org.apache.nifi.security.repository.stream.RepositoryObjectStreamEncryptor;
-import org.apache.nifi.security.repository.stream.aes.RepositoryObjectAESCTREncryptor;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.CipherOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.util.Objects;
 
 /**
  * This class is an implementation of the {@link FileSystemRepository} content repository which provides transparent
@@ -52,25 +55,23 @@ import org.slf4j.LoggerFactory;
 public class EncryptedFileSystemRepository extends FileSystemRepository {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemRepository.class);
 
-    private String activeKeyId;
-    private KeyProvider keyProvider;
+    private RepositoryEncryptor<OutputStream, InputStream> repositoryEncryptor;
+
+    private String keyId;
 
     /**
      * Default no args constructor for service loading only
      */
     public EncryptedFileSystemRepository() {
-        super();
-        keyProvider = null;
+
     }
 
     public EncryptedFileSystemRepository(final NiFiProperties niFiProperties) throws IOException {
         super(niFiProperties);
-
-        // Initialize the encryption-specific fields
-        this.keyProvider = RepositoryEncryptorUtils.validateAndBuildRepositoryKeyProvider(niFiProperties, RepositoryType.CONTENT);
-
-        // Set active key ID
-        setActiveKeyId(niFiProperties.getContentRepositoryEncryptionKeyId());
+        final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.CONTENT, niFiProperties);
+        repositoryEncryptor = new AesCtrStreamRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.CONTENT);
+        keyId = Objects.requireNonNull(niFiProperties.getContentRepositoryEncryptionKeyId(), "Key Identifier required");
     }
 
     /**
@@ -155,6 +156,16 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         return super.exportTo(claim, destination, append, offset, length);
     }
 
+    @Override
+    public InputStream read(final ResourceClaim claim) {
+        throw new UnsupportedOperationException("Cannot read full ResourceClaim as a Stream when using EncryptedFileSystemRepository");
+    }
+
+    @Override
+    public boolean isResourceClaimStreamSupported() {
+        return false;
+    }
+
     /**
      * Returns an InputStream (actually a {@link javax.crypto.CipherInputStream}) which wraps
      * the {@link java.io.FileInputStream} from the content repository claim on disk. This
@@ -166,31 +177,13 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      */
     @Override
     public InputStream read(final ContentClaim claim) throws IOException {
-        InputStream inputStream = super.read(claim);
-
-        try {
-            String recordId = getRecordId(claim);
-            logger.debug("Creating decrypted input stream to read flowfile content with record ID: " + recordId);
-
-            final InputStream decryptingInputStream = getDecryptingInputStream(inputStream, recordId);
-            logger.debug("Reading from record ID {}", recordId);
-            if (logger.isTraceEnabled()) {
-                logger.trace("Stack trace: ", new RuntimeException("Stack Trace for reading from record ID " + recordId));
-            }
-
-            return decryptingInputStream;
-        } catch (EncryptionException | KeyManagementException e) {
-            logger.error("Encountered an error instantiating the encrypted content repository input stream: " + e.getMessage());
-            throw new IOException("Error creating encrypted content repository input stream", e);
+        final InputStream inputStream = super.read(claim);
+        if (claim == null) {
+            return inputStream;
         }
-    }
 
-    private InputStream getDecryptingInputStream(InputStream inputStream, String recordId) throws KeyManagementException, EncryptionException {
-        RepositoryObjectStreamEncryptor encryptor = new RepositoryObjectAESCTREncryptor();
-        encryptor.initialize(keyProvider);
-
-        // ECROS wrapping COS wrapping BCOS wrapping FOS
-        return encryptor.decrypt(inputStream, recordId);
+        final String recordId = getRecordId(claim);
+        return repositoryEncryptor.decrypt(inputStream, recordId);
     }
 
     /**
@@ -204,42 +197,11 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      */
     @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
-        StandardContentClaim scc = validateContentClaimForWriting(claim);
-
-        // BCOS wrapping FOS
-        ByteCountingOutputStream claimStream = getWritableClaimStreamByResourceClaim(scc.getResourceClaim());
+        final StandardContentClaim scc = validateContentClaimForWriting(claim);
+        final ByteCountingOutputStream claimStream = getWritableClaimStreamByResourceClaim(scc.getResourceClaim());
         final long startingOffset = claimStream.getBytesWritten();
-
-        try {
-            String keyId = getActiveKeyId();
-            String recordId = getRecordId(claim);
-            logger.debug("Creating encrypted output stream (keyId: " + keyId + ") to write flowfile content with record ID: " + recordId);
-            final OutputStream out = getEncryptedOutputStream(scc, claimStream, startingOffset, keyId, recordId);
-            logger.debug("Writing to {}", out);
-            if (logger.isTraceEnabled()) {
-                logger.trace("Stack trace: ", new RuntimeException("Stack Trace for writing to " + out));
-            }
-
-            return out;
-        } catch (EncryptionException | KeyManagementException e) {
-            logger.error("Encountered an error instantiating the encrypted content repository output stream: " + e.getMessage());
-            throw new IOException("Error creating encrypted content repository output stream", e);
-        }
-    }
-
-    String getActiveKeyId() {
-        return activeKeyId;
-    }
-
-    public void setActiveKeyId(String activeKeyId) {
-        // Key must not be blank and key provider must make key available
-        if (StringUtils.isNotBlank(activeKeyId) && keyProvider.keyExists(activeKeyId)) {
-            this.activeKeyId = activeKeyId;
-            logger.debug("Set active key ID to '" + activeKeyId + "'");
-        } else {
-            logger.warn("Attempted to set active key ID to '" + activeKeyId + "' but that is not a valid or available key ID. Keeping active key ID as '" + this.activeKeyId + "'");
-
-        }
+        final String recordId = getRecordId(claim);
+        return new EncryptedContentRepositoryOutputStream(scc, claimStream, recordId, startingOffset);
     }
 
     /**
@@ -251,29 +213,16 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
      * @param claim the content claim
      * @return the string identifier
      */
-    public static String getRecordId(ContentClaim claim) {
+    public static String getRecordId(final ContentClaim claim) {
         // For version 1, use the content claim's resource claim ID as the record ID rather than introducing a new field in the metadata
         if (claim != null && claim.getResourceClaim() != null
                 && !StringUtils.isBlank(claim.getResourceClaim().getId())) {
             return "nifi-ecr-rc-" + claim.getResourceClaim().getId() + "+" + claim.getOffset();
         } else {
-            String tempId = "nifi-ecr-ts-" + System.nanoTime();
-            logger.error("Cannot determine record ID from null content claim or claim with missing/empty resource claim ID; using timestamp-generated ID: " + tempId + "+0");
+            final String tempId = "nifi-ecr-ts-" + System.nanoTime();
+            logger.error("Cannot determine record ID from null content claim or claim with missing/empty resource claim ID; using timestamp-generated ID [{}]", tempId + "+0");
             return tempId;
         }
-    }
-
-    private OutputStream getEncryptedOutputStream(StandardContentClaim scc,
-                                                  ByteCountingOutputStream claimStream,
-                                                  long startingOffset,
-                                                  String keyId,
-                                                  String recordId) throws KeyManagementException,
-            EncryptionException {
-        RepositoryObjectStreamEncryptor encryptor = new RepositoryObjectAESCTREncryptor();
-        encryptor.initialize(keyProvider);
-
-        // ECROS wrapping COS wrapping BCOS wrapping FOS
-        return new EncryptedContentRepositoryOutputStream(scc, claimStream, encryptor, recordId, keyId, startingOffset);
     }
 
     /**
@@ -285,14 +234,15 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
         private final CipherOutputStream cipherOutputStream;
         private final long startingOffset;
 
-        EncryptedContentRepositoryOutputStream(StandardContentClaim scc,
-                                               ByteCountingOutputStream byteCountingOutputStream,
-                                               RepositoryObjectStreamEncryptor encryptor, String recordId, String keyId, long startingOffset) throws EncryptionException {
+        EncryptedContentRepositoryOutputStream(final StandardContentClaim scc,
+                                               final ByteCountingOutputStream byteCountingOutputStream,
+                                               final String recordId,
+                                               final long startingOffset) {
             super(scc, byteCountingOutputStream, 0);
             this.startingOffset = startingOffset;
 
             // Set up cipher stream
-            this.cipherOutputStream = (CipherOutputStream) encryptor.encrypt(new NonCloseableOutputStream(byteCountingOutputStream), recordId, keyId);
+            this.cipherOutputStream = (CipherOutputStream) repositoryEncryptor.encrypt(new NonCloseableOutputStream(byteCountingOutputStream), recordId, keyId);
         }
 
         @Override
@@ -305,22 +255,16 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
             ByteBuffer bb = ByteBuffer.allocate(4);
             bb.putInt(b);
             writeBytes(bb.array(), 0, 4);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         @Override
         public synchronized void write(final byte[] b) throws IOException {
             writeBytes(b, 0, b.length);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         @Override
         public synchronized void write(final byte[] b, final int off, final int len) throws IOException {
             writeBytes(b, off, len);
-
-            scc.setLength(bcos.getBytesWritten() - startingOffset);
         }
 
         /**
@@ -331,13 +275,14 @@ public class EncryptedFileSystemRepository extends FileSystemRepository {
          * @param len the length in bytes to write
          * @throws IOException if there is a problem writing the output
          */
-        private void writeBytes(byte[] b, int off, int len) throws IOException {
+        private void writeBytes(final byte[] b, final int off, final int len) throws IOException {
             if (closed) {
                 throw new IOException("Stream is closed");
             }
 
             try {
                 cipherOutputStream.write(b, off, len);
+                scc.setLength(bcos.getBytesWritten() - startingOffset);
             } catch (final IOException ioe) {
                 recycle = false;
                 throw new IOException("Failed to write to " + this, ioe);

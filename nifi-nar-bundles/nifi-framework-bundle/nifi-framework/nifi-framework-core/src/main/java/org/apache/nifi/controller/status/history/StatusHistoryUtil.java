@@ -21,15 +21,18 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StatusHistoryUtil {
 
@@ -75,18 +78,24 @@ public class StatusHistoryUtil {
     }
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final Collection<MetricDescriptor<?>> metricDescriptors) {
-        final List<StatusDescriptorDTO> dtos = new ArrayList<>();
+        final StatusDescriptorDTO[] standardMetricDescriptors = new StatusDescriptorDTO[metricDescriptors.size()];
+        final List<StatusDescriptorDTO> counterMetricDescriptors = new LinkedList<>();
 
-        final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>();
         for (final MetricDescriptor<?> metricDescriptor : metricDescriptors) {
-            allDescriptors.add(metricDescriptor);
+            if (metricDescriptor instanceof StandardMetricDescriptor) {
+                standardMetricDescriptors[metricDescriptor.getMetricIdentifier()] = createStatusDescriptorDto(metricDescriptor);
+            } else if (metricDescriptor instanceof CounterMetricDescriptor) {
+                counterMetricDescriptors.add(createStatusDescriptorDto(metricDescriptor));
+            } else {
+                throw new IllegalArgumentException("Unknown metric descriptor type: " + metricDescriptor.getClass().getName());
+            }
         }
 
-        for (final MetricDescriptor<?> metricDescriptor : allDescriptors) {
-            dtos.add(createStatusDescriptorDto(metricDescriptor));
-        }
-
-        return dtos;
+        // Ordered standard metric descriptors are added first than counter metric descriptors in the order of appearance.
+        final List<StatusDescriptorDTO> result = new ArrayList<>(metricDescriptors.size());
+        result.addAll(Arrays.asList(standardMetricDescriptors).stream().filter(i -> i != null).collect(Collectors.toList()));
+        result.addAll(counterMetricDescriptors);
+        return result;
     }
 
     public static List<StatusDescriptorDTO> createFieldDescriptorDtos(final StatusHistory statusHistory) {

@@ -21,23 +21,38 @@ import java.util.Optional;
 public interface ParameterLookup {
 
     /**
-     * Returns the Parameter with the given name
+     * Returns the Parameter with the given name, considering the base and all inherited ParameterContexts.
      * @param parameterName the name of the Parameter
      * @return the Parameter with the given name or an empty Optional if no Parameter exists with that name
      */
     Optional<Parameter> getParameter(String parameterName);
 
     /**
-     * Returns false if any Parameters are available, true if no Parameters have been defined
+     * Returns false if any Parameters are available, true if no Parameters have been defined in this or any
+     * inherited ParameterContexts.
      * @return true if empty
      */
     boolean isEmpty();
+
+    /**
+     * Indicates the current Version of the Parameter Context. Each time that the Parameter Context is updated, its version is incremented. This allows
+     * other components to know whether or not the values have changed since some other point in time. The version may or may not be persisted across
+     * restarts of the application.
+     *
+     * @return the current version
+     */
+    long getVersion();
 
 
     ParameterLookup EMPTY = new ParameterLookup() {
         @Override
         public Optional<Parameter> getParameter(final String parameterName) {
             return Optional.empty();
+        }
+
+        @Override
+        public long getVersion() {
+            return 0;
         }
 
         @Override

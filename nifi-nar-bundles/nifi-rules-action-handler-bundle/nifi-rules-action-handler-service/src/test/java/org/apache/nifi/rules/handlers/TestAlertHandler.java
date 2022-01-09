@@ -31,8 +31,8 @@ import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
@@ -40,13 +40,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertEquals;
-import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 
 public class TestAlertHandler {
@@ -57,7 +57,7 @@ public class TestAlertHandler {
     private AlertHandler alertHandler;
     private MockAlertBulletinRepository mockAlertBulletinRepository;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(TestProcessor.class);
         mockComponentLog = new MockComponentLog();
@@ -95,12 +95,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(action, metrics);
-            fail();
-        } catch (UnsupportedOperationException ex) {
-            assertTrue(true);
-        }
+        assertThrows(UnsupportedOperationException.class, () -> alertHandler.execute(action, metrics));
     }
 
     @Test
@@ -247,11 +242,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext, action, metrics);
-            fail();
-        } catch (UnsupportedOperationException ex) {
-        }
+        assertThrows(UnsupportedOperationException.class, () -> alertHandler.execute(reportingContext, action, metrics));
     }
 
     @Test
@@ -276,12 +267,9 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
+
         final String warnMessage = mockComponentLog.getWarnMessage();
         assertTrue(StringUtils.isNotEmpty(warnMessage));
         assertEquals("This Action Handler does not support actions with the provided type: FAKE",warnMessage);
@@ -309,12 +297,8 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("FAKE");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
+
         final String debugMessage = mockComponentLog.getDebugMessage();
         assertTrue(StringUtils.isNotEmpty(debugMessage));
         assertEquals("This Action Handler does not support actions with the provided type: FAKE",debugMessage);
@@ -340,12 +324,7 @@ public class TestAlertHandler {
         final Action action = new Action();
         action.setType("ALERT");
         action.setAttributes(attributes);
-        try {
-            alertHandler.execute(reportingContext,action, metrics);
-            assertTrue(true);
-        } catch (UnsupportedOperationException ex) {
-            fail();
-        }
+        assertDoesNotThrow(() -> alertHandler.execute(reportingContext,action, metrics));
     }
 
     private static class MockAlertHandler extends AlertHandler {

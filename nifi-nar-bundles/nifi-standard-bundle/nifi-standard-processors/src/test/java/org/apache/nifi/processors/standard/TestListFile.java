@@ -17,6 +17,9 @@
 
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -28,7 +31,9 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,8 +45,7 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -53,16 +57,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestListFile {
+
+    private static boolean isMillisecondSupported = false;
 
     private final String TESTDIR = "target/test/data/in";
     private final File testDir = new File(TESTDIR);
@@ -103,6 +107,16 @@ public class TestListFile {
             }
         }
     };
+
+    @BeforeClass
+    public static void setupClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+
+        // This only has to be done once.
+        final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
+        file.setLastModified(325990917351L);
+        isMillisecondSupported = file.lastModified() % 1_000 > 0;
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -147,7 +161,6 @@ public class TestListFile {
         runner.clearTransferState();
 
         final List<File> files = listFiles(testDir);
-        final boolean isMillisecondSupported = files.stream().anyMatch(file -> file.lastModified() % 1_000 > 0);
         final Long lagMillis;
         if (isMillisecondSupported) {
             lagMillis = AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS);
@@ -179,60 +192,7 @@ public class TestListFile {
             }
         }
 
-        final BasicFileAttributes basicFileAttributes = new BasicFileAttributes() {
-            @Override
-            public FileTime lastModifiedTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public FileTime lastAccessTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public FileTime creationTime() {
-                return FileTime.fromMillis(System.currentTimeMillis());
-            }
-
-            @Override
-            public boolean isRegularFile() {
-                return false;
-            }
-
-            @Override
-            public boolean isDirectory() {
-                return false;
-            }
-
-            @Override
-            public boolean isSymbolicLink() {
-                return false;
-            }
-
-            @Override
-            public boolean isOther() {
-                return false;
-            }
-
-            @Override
-            public long size() {
-                return 0;
-            }
-
-            @Override
-            public Object fileKey() {
-                return null;
-            }
-        };
-
-        processor = new ListFile() {
-            @Override
-            protected Stream<Path> getPathStream(final Path basePath, final int maxDepth, final BiPredicate<Path, BasicFileAttributes> matcher) throws IOException {
-                return paths.stream()
-                    .filter(path -> matcher.test(path, basicFileAttributes));
-            }
-        };
+        processor = new ListFile();
 
         runner = TestRunners.newTestRunner(processor);
         runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
@@ -275,27 +235,34 @@ public class TestListFile {
         assertTrue(file1.createNewFile());
         assertTrue(file1.setLastModified(time4millis));
 
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 1 matches the filter.");
+
         // process first file and set new timestamp
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles1.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 1 matches the filter.");
 
         // create second file
         final File file2 = new File(TESTDIR + "/listing2.txt");
         assertTrue(file2.createNewFile());
         assertTrue(file2.setLastModified(time2millis));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 2 objects.  Of those, 2 match the filter.");
 
         // process second file after timestamp
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 2 objects.  Of those, 2 match the filter.");
 
         // create third file
         final File file3 = new File(TESTDIR + "/listing3.txt");
         assertTrue(file3.createNewFile());
         assertTrue(file3.setLastModified(time4millis));
+        // 0 are new because the timestamp is before the min listed timestamp
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
 
         // process third file before timestamp
         runNext();
@@ -306,6 +273,7 @@ public class TestListFile {
         // force state to reset and process all files
         runner.removeProperty(ListFile.DIRECTORY);
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -313,6 +281,7 @@ public class TestListFile {
 
         runNext();
         runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
     }
 
     @Test
@@ -334,6 +303,11 @@ public class TestListFile {
                 assertTrue(file2.setLastModified(time2millis));
                 assertTrue(file3.setLastModified(time4millis));
             }
+
+            assertTrue(file1.lastModified() > time3millis && file1.lastModified() <= time0millis);
+            assertTrue(file2.lastModified() > time3millis && file2.lastModified() < time1millis);
+            assertTrue(file3.lastModified() < time3millis);
+
             try {
                 runNext();
             } catch (InterruptedException e) {
@@ -346,6 +320,7 @@ public class TestListFile {
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runNext.apply(true);
         runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
 
         // processor updates internal state, it shouldn't pick the same ones.
         runNext.apply(false);
@@ -360,6 +335,7 @@ public class TestListFile {
         assertEquals(2, successFiles2.size());
         assertEquals(file2.getName(), successFiles2.get(0).getAttribute("filename"));
         assertEquals(file1.getName(), successFiles2.get(1).getAttribute("filename"));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude newest
         runner.setProperty(ListFile.MIN_AGE, age1);
@@ -370,6 +346,7 @@ public class TestListFile {
         assertEquals(2, successFiles3.size());
         assertEquals(file3.getName(), successFiles3.get(0).getAttribute("filename"));
         assertEquals(file2.getName(), successFiles3.get(1).getAttribute("filename"));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude oldest and newest
         runner.setProperty(ListFile.MIN_AGE, age1);
@@ -379,6 +356,7 @@ public class TestListFile {
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
         assertEquals(file2.getName(), successFiles4.get(0).getAttribute("filename"));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 1 matches the filter.");
 
     }
 
@@ -414,26 +392,31 @@ public class TestListFile {
 
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(3, successFiles1.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
 
         // exclude largest
         runner.removeProperty(ListFile.MIN_AGE);
         runner.removeProperty(ListFile.MAX_AGE);
         runner.setProperty(ListFile.MIN_SIZE, "0 b");
         runner.setProperty(ListFile.MAX_SIZE, "7500 b");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(2, successFiles2.size());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
 
         // exclude smallest
         runner.removeProperty(ListFile.MIN_AGE);
         runner.removeProperty(ListFile.MAX_AGE);
         runner.setProperty(ListFile.MIN_SIZE, "2500 b");
         runner.removeProperty(ListFile.MAX_SIZE);
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -444,6 +427,7 @@ public class TestListFile {
         runner.removeProperty(ListFile.MAX_AGE);
         runner.setProperty(ListFile.MIN_SIZE, "2500 b");
         runner.setProperty(ListFile.MAX_SIZE, "7500 b");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 1 matches the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -481,6 +465,7 @@ public class TestListFile {
         runner.removeProperty(ListFile.MIN_SIZE);
         runner.removeProperty(ListFile.MAX_SIZE);
         runner.setProperty(ListFile.IGNORE_HIDDEN_FILES, "false");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 2 objects.  Of those, 2 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -488,11 +473,103 @@ public class TestListFile {
 
         // exclude hidden
         runner.setProperty(ListFile.IGNORE_HIDDEN_FILES, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 2 objects.  Of those, 1 matches the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
     }
+
+    @Test
+    public void testListWithUnreadableFiles() throws Exception {
+        final File file1 = new File(TESTDIR + "/unreadable.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setReadable(false));
+
+        final File file2 = new File(TESTDIR + "/readable.txt");
+        assertTrue(file2.createNewFile());
+
+        final long now = getTestModifiedTime();
+        assertTrue(file1.setLastModified(now));
+        assertTrue(file2.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ".*");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 2 objects.  Of those, 1 matches the filter.");
+        runNext();
+
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles.size());
+    }
+
+    @Test
+    public void testListWithinUnreadableDirectory() throws Exception {
+        final File subdir = new File(TESTDIR + "/subdir");
+        assertTrue(subdir.mkdir());
+        assertTrue(subdir.setReadable(false));
+
+        try {
+            final File file1 = new File(TESTDIR + "/subdir/unreadable.txt");
+            assertTrue(file1.createNewFile());
+            assertTrue(file1.setReadable(false));
+
+            final File file2 = new File(TESTDIR + "/subdir/readable.txt");
+            assertTrue(file2.createNewFile());
+
+            final File file3 = new File(TESTDIR + "/secondReadable.txt");
+            assertTrue(file3.createNewFile());
+
+            final long now = getTestModifiedTime();
+            assertTrue(file1.setLastModified(now));
+            assertTrue(file2.setLastModified(now));
+            assertTrue(file3.setLastModified(now));
+
+            runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+            runner.setProperty(ListFile.FILE_FILTER, ".*");
+            assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 1 matches the filter.");
+            runNext();
+
+            final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+            assertEquals(1, successFiles.size());
+            assertEquals("secondReadable.txt", successFiles.get(0).getAttribute("filename"));
+        } finally {
+            subdir.setReadable(true);
+        }
+    }
+
+    @Test
+    public void testListingNeedsSufficientPrivilegesAndFittingFilter() throws Exception {
+        final File file = new File(TESTDIR + "/file.txt");
+        assertTrue(file.createNewFile());
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+
+        // Run with privileges but without fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "willBeFilteredOut");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles1.size());
+
+        // Run with privileges and with fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "file.*");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 1 matches the filter.");
+        runNext();
+
+        final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles2.size());
+
+        // Run without privileges and with fitting filter
+        assertTrue(file.setReadable(false));
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 0 match the filter.");
+        runNext();
+
+        final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles3.size());
+    }
+
 
     @Test
     public void testFilterFilePattern() throws Exception {
@@ -518,6 +595,7 @@ public class TestListFile {
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.FILE_FILTER, ListFile.FILE_FILTER.getDefaultValue());
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 4 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -526,9 +604,11 @@ public class TestListFile {
         // filter file on pattern
         // Modifying FILE_FILTER property reset listing status, so these files will be listed again.
         runner.setProperty(ListFile.FILE_FILTER, ".*-xyz-.*");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 2 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS, 2);
 
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 2 match the filter.");
         runNext();
         runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
     }
@@ -563,6 +643,7 @@ public class TestListFile {
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.FILE_FILTER, ListFile.FILE_FILTER.getDefaultValue());
         runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 4 match the filter.");
         runNext();
 
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
@@ -572,6 +653,7 @@ public class TestListFile {
         // filter path on pattern subdir1
         runner.setProperty(ListFile.PATH_FILTER, "subdir1");
         runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 3 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -580,6 +662,7 @@ public class TestListFile {
         // filter path on pattern subdir2
         runner.setProperty(ListFile.PATH_FILTER, "subdir2");
         runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 1 matches the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -611,6 +694,7 @@ public class TestListFile {
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS, 3);
         final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -635,8 +719,9 @@ public class TestListFile {
         }
         assertEquals(3, successFiles1.size());
 
-        // exclude hidden
+        // don't recurse
         runner.setProperty(ListFile.RECURSE, "false");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 1 object.  Of that, 1 matches the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
@@ -662,6 +747,7 @@ public class TestListFile {
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
         runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
         runNext();
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
@@ -754,6 +840,7 @@ public class TestListFile {
         makeTestFile("/batch1-age5.txt", time5millis, fileTimes);
 
         // check files
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 3 match the filter.");
         runNext();
 
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
@@ -767,6 +854,7 @@ public class TestListFile {
         // should be ignored since it's older than age3
         makeTestFile("/batch2-age4.txt", time4millis, fileTimes);
 
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 6 objects.  Of those, 6 match the filter.");
         runNext();
 
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
@@ -796,6 +884,14 @@ public class TestListFile {
         age4millis = 20000L;
         age5millis = 100000L;
 
+        // Allow for bigger gaps since the lag is 2s w/o milliseconds.
+        if (!isMillisecondSupported) {
+            age1millis *= 2;
+            age2millis *= 2;
+            age3millis *= 2;
+            age4millis *= 2;
+        }
+
         time0millis = syncTime - age0millis;
         time1millis = syncTime - age1millis;
         time2millis = syncTime - age2millis;
@@ -823,5 +919,15 @@ public class TestListFile {
                 }
             }
         }
+    }
+
+    private void assertVerificationOutcome(final Outcome expectedOutcome, final String expectedExplanationRegex) {
+        final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+
+        assertEquals(1, results.size());
+        final ConfigVerificationResult result = results.get(0);
+        assertEquals(expectedOutcome, result.getOutcome());
+        assertTrue(String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()),
+                result.getExplanation().matches(expectedExplanationRegex));
     }
 }

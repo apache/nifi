@@ -21,9 +21,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
@@ -36,7 +37,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -57,13 +57,10 @@ public class ControllerServiceLoader {
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
     public static List<ControllerServiceNode> loadControllerServices(final FlowController controller, final InputStream serializedStream, final ProcessGroup parentGroup,
-        final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
-
-        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
+        final PropertyEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
 
         try (final InputStream in = new BufferedInputStream(serializedStream)) {
-            final DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
+            final DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(null);
 
             builder.setErrorHandler(new org.xml.sax.ErrorHandler() {
 
@@ -108,7 +105,7 @@ public class ControllerServiceLoader {
     }
 
     public static Map<ControllerServiceNode, Element> loadControllerServices(final List<Element> serviceElements, final FlowController controller,
-                                                                             final ProcessGroup parentGroup, final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+                                                                             final ProcessGroup parentGroup, final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
 
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
         for (final Element serviceElement : serviceElements) {
@@ -131,7 +128,7 @@ public class ControllerServiceLoader {
     }
 
     public static void enableControllerServices(final Map<ControllerServiceNode, Element> nodeMap, final FlowController controller,
-                                                final StringEncryptor encryptor, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) {
+                                                final PropertyEncryptor encryptor, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) {
         // Start services
         if (autoResumeState) {
             final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
@@ -176,7 +173,7 @@ public class ControllerServiceLoader {
         final UUID id = UUID.nameUUIDFromBytes(controllerService.getIdentifier().getBytes(StandardCharsets.UTF_8));
 
         final ControllerServiceNode clone = flowController.getFlowManager().createControllerService(controllerService.getCanonicalClassName(), id.toString(),
-                controllerService.getBundleCoordinate(), Collections.emptySet(), false, true);
+                controllerService.getBundleCoordinate(), Collections.emptySet(), false, true, null);
         clone.setName(controllerService.getName());
         clone.setComments(controllerService.getComments());
 
@@ -191,7 +188,7 @@ public class ControllerServiceLoader {
         return clone;
     }
 
-    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final StringEncryptor encryptor,
+    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final PropertyEncryptor encryptor,
                                                                  final FlowEncodingVersion encodingVersion) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
 
@@ -207,14 +204,14 @@ public class ControllerServiceLoader {
             }
         }
 
-        final ControllerServiceNode node = flowController.getFlowManager().createControllerService(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false, true);
+        final ControllerServiceNode node = flowController.getFlowManager().createControllerService(dto.getType(), dto.getId(), coordinate, Collections.emptySet(), false, true, null);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         node.setVersionedComponentId(dto.getVersionedComponentId());
         return node;
     }
 
-    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor,
+    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final PropertyEncryptor encryptor,
                                                    final FlowEncodingVersion encodingVersion) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
         node.pauseValidationTrigger();

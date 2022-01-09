@@ -19,29 +19,35 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyProcessorClient extends AbstractJerseyClient implements ProcessorClient {
-    private final WebTarget processGroupTarget;
-    private final WebTarget processorTarget;
+    private volatile WebTarget processGroupTarget;
+    private volatile WebTarget processorTarget;
 
     public JerseyProcessorClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyProcessorClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyProcessorClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
         this.processorTarget = baseTarget.path("/processors/{id}");
+    }
+
+    @Override
+    public void acknowledgeDisconnectedNode() {
+        processGroupTarget = processGroupTarget.queryParam("disconnectedNodeAcknowledged", true);
+        processorTarget = processorTarget.queryParam("disconnectedNodeAcknowledged", true);
     }
 
     @Override
@@ -96,27 +102,39 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
 
     @Override
     public ProcessorEntity startProcessor(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
-        return updateProcessorState(processorId, "RUNNING", clientId, version);
+        return updateProcessorState(processorId, "RUNNING", clientId, version, false);
     }
 
     @Override
     public ProcessorEntity startProcessor(final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
-        return startProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
+        return updateProcessorState(processorEntity.getId(), "RUNNING", processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion(),
+            processorEntity.isDisconnectedNodeAcknowledged());
+    }
+
+    @Override
+    public ProcessorEntity runProcessorOnce(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
+        return updateProcessorState(processorId, "RUN_ONCE", clientId, version, false);
+    }
+
+    @Override
+    public ProcessorEntity runProcessorOnce(ProcessorEntity processorEntity) throws NiFiClientException, IOException {
+        return runProcessorOnce(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
     }
 
     @Override
     public ProcessorEntity stopProcessor(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
-        return updateProcessorState(processorId, "STOPPED", clientId, version);
+        return updateProcessorState(processorId, "STOPPED", clientId, version, false);
     }
 
     @Override
     public ProcessorEntity stopProcessor(final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
-        return stopProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
+        return updateProcessorState(processorEntity.getId(), "STOPPED", processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion(),
+            processorEntity.isDisconnectedNodeAcknowledged());
     }
 
     @Override
     public ProcessorEntity disableProcessor(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
-        return updateProcessorState(processorId, "DISABLED", clientId, version);
+        return updateProcessorState(processorId, "DISABLED", clientId, version, false);
     }
 
     @Override
@@ -126,15 +144,23 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
 
     @Override
     public ProcessorEntity deleteProcessor(final String processorId, final String clientId, final long version) throws NiFiClientException, IOException {
+        return deleteProcessor(processorId, clientId, version, false);
+    }
+
+    public ProcessorEntity deleteProcessor(final String processorId, final String clientId, final long version, final Boolean acknowledgeDisconnect) throws NiFiClientException, IOException {
         if (processorId == null) {
             throw new IllegalArgumentException("Processor ID cannot be null");
         }
 
         return executeAction("Error deleting Processor", () -> {
-            final WebTarget target = processorTarget
+            WebTarget target = processorTarget
                 .queryParam("version", version)
                 .queryParam("clientId", clientId)
                 .resolveTemplate("id", processorId);
+
+            if (acknowledgeDisconnect == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
 
             return getRequestBuilder(target).delete(ProcessorEntity.class);
         });
@@ -142,10 +168,12 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
 
     @Override
     public ProcessorEntity deleteProcessor(final ProcessorEntity processorEntity) throws NiFiClientException, IOException {
-        return deleteProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion());
+        return deleteProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), processorEntity.getRevision().getVersion(), processorEntity.isDisconnectedNodeAcknowledged());
     }
 
-    private ProcessorEntity updateProcessorState(final String processorId, final String desiredState, final String clientId, final long version) throws NiFiClientException, IOException {
+    private ProcessorEntity updateProcessorState(final String processorId, final String desiredState, final String clientId, final long version, final Boolean disconnectedNodeAcknowledged)
+                throws NiFiClientException, IOException {
+
         if (processorId == null) {
             throw new IllegalArgumentException("Processor ID cannot be null");
         }
@@ -157,6 +185,7 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
 
             final ProcessorRunStatusEntity runStatusEntity = new ProcessorRunStatusEntity();
             runStatusEntity.setState(desiredState);
+            runStatusEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
 
             final RevisionDTO revisionDto = new RevisionDTO();
             revisionDto.setClientId(clientId);
@@ -167,6 +196,65 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                 Entity.entity(runStatusEntity, MediaType.APPLICATION_JSON_TYPE),
                 ProcessorEntity.class
             );
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity submitConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+        if (configRequestEntity == null) {
+            throw new IllegalArgumentException("Config Request Entity cannot be null");
+        }
+        if (configRequestEntity.getRequest() == null) {
+            throw new IllegalArgumentException("Config Request DTO cannot be null");
+        }
+        if (configRequestEntity.getRequest().getComponentId() == null) {
+            throw new IllegalArgumentException("Processor ID cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProperties() == null) {
+            throw new IllegalArgumentException("Processor properties cannot be null");
+        }
+
+        return executeAction("Error submitting Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests")
+                .resolveTemplate("id", configRequestEntity.getRequest().getComponentId());
+
+            return getRequestBuilder(target).post(
+                Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                VerifyConfigRequestEntity.class
+            );
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity getConfigVerificationRequest(final String processorId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests/{requestId}")
+                .resolveTemplate("id", processorId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).get(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity deleteConfigVerificationRequest(final String processorId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error deleting Config Verification Request", () -> {
+            final WebTarget target = processorTarget
+                .path("/config/verification-requests/{requestId}")
+                .resolveTemplate("id", processorId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
         });
     }
 }

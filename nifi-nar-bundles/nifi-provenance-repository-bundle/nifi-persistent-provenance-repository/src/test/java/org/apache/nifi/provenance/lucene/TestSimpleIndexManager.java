@@ -26,27 +26,60 @@ import org.apache.nifi.provenance.RepositoryConfiguration;
 import org.apache.nifi.provenance.index.EventIndexSearcher;
 import org.apache.nifi.provenance.index.EventIndexWriter;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSimpleIndexManager {
-    @BeforeClass
-    public static void setLogLevel() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
+    @Test
+    public void testDeletingIndexWhileSearcherActive() throws IOException {
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration());
+        final File dir = new File("target/" + UUID.randomUUID());
+        try {
+            final EventIndexWriter writer1 = mgr.borrowIndexWriter(dir);
+            final Document doc1 = new Document();
+            doc1.add(new StringField("id", "1", Store.YES));
+            writer1.index(doc1, 1);
+
+            mgr.returnIndexWriter(writer1, true, true);
+            assertEquals(0, mgr.getWriterCount());
+
+            final EventIndexSearcher eventSearcher = mgr.borrowIndexSearcher(dir);
+            assertEquals(0, mgr.getWriterCount());
+            assertEquals(1, mgr.getSearcherCount());
+
+            boolean removed = mgr.removeIndex(dir);
+            assertFalse(removed);
+            mgr.returnIndexSearcher(eventSearcher);
+
+            assertEquals(0, mgr.getWriterCount());
+            assertEquals(0, mgr.getSearcherCount());
+
+            FileUtils.deleteFile(dir, true);
+            assertFalse(dir.exists());
+
+            assertThrows(FileNotFoundException.class, () -> mgr.borrowIndexSearcher(dir));
+        } finally {
+            if (dir.exists()) {
+                FileUtils.deleteFile(dir, true);
+            }
+        }
     }
+
 
     @Test
     public void testMultipleWritersSimultaneouslySameIndex() throws IOException {
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration());
-        final File dir = new File("target/" + UUID.randomUUID().toString());
+        final File dir = new File("target/" + UUID.randomUUID());
         try {
             final EventIndexWriter writer1 = mgr.borrowIndexWriter(dir);
             final EventIndexWriter writer2 = mgr.borrowIndexWriter(dir);
@@ -77,16 +110,16 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) throws IOException {
+            protected void close(IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };
 
-        final File dir = new File("target/" + UUID.randomUUID().toString());
+        final File dir = new File("target/" + UUID.randomUUID());
 
         final EventIndexWriter writer1 = mgr.borrowIndexWriter(dir);
         final EventIndexWriter writer2 = mgr.borrowIndexWriter(dir);
-        assertTrue(writer1 == writer2);
+        assertSame(writer1, writer2);
 
         mgr.returnIndexWriter(writer1, true, true);
         assertEquals(0, closeCount.get());
@@ -94,11 +127,11 @@ public class TestSimpleIndexManager {
         final EventIndexWriter[] writers = new EventIndexWriter[10];
         for (int i = 0; i < writers.length; i++) {
             writers[i] = mgr.borrowIndexWriter(dir);
-            assertTrue(writers[i] == writer1);
+            assertSame(writers[i], writer1);
         }
 
-        for (int i = 0; i < writers.length; i++) {
-            mgr.returnIndexWriter(writers[i], true, false);
+        for (final EventIndexWriter writer : writers) {
+            mgr.returnIndexWriter(writer, true, false);
             assertEquals(0, closeCount.get());
             assertEquals(1, mgr.getWriterCount());
         }
@@ -117,12 +150,12 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) throws IOException {
+            protected void close(IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };
 
-        final File dir = new File("target/" + UUID.randomUUID().toString());
+        final File dir = new File("target/" + UUID.randomUUID());
 
         final EventIndexWriter writer = mgr.borrowIndexWriter(dir);
         mgr.returnIndexWriter(writer, true, true);
@@ -135,12 +168,12 @@ public class TestSimpleIndexManager {
 
         final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
-            protected void close(IndexWriterCount count) throws IOException {
+            protected void close(IndexWriterCount count) {
                 closeCount.incrementAndGet();
             }
         };
 
-        final File dir = new File("target/" + UUID.randomUUID().toString());
+        final File dir = new File("target/" + UUID.randomUUID());
 
         final EventIndexWriter writer = mgr.borrowIndexWriter(dir);
         mgr.returnIndexWriter(writer, true, false);

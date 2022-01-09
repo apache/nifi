@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
 import javax.naming.ldap.Rdn;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import org.apache.commons.lang3.StringUtils;
@@ -48,12 +49,14 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
@@ -61,6 +64,8 @@ import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -78,6 +83,11 @@ public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
+
+    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
+    public static final String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
+    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
+    public static final String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -113,25 +123,6 @@ public final class CertificateUtils {
         return Collections.unmodifiableMap(orderMap);
     }
 
-    public enum ClientAuth {
-        NONE(0, "none"),
-        WANT(1, "want"),
-        NEED(2, "need");
-
-        private int value;
-        private String description;
-
-        ClientAuth(int value, String description) {
-            this.value = value;
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return "Client Auth: " + this.description + " (" + this.value + ")";
-        }
-    }
-
     /**
      * Extracts the username from the specified DN. If the username cannot be extracted because the CN is in an unrecognized format, the entire CN is returned. If the CN cannot be extracted because
      * the DN is in an unrecognized format, the entire DN is returned.
@@ -156,6 +147,27 @@ public final class CertificateUtils {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length(), separatorIndex);
                 } else {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length());
+                }
+            }
+
+            /*
+                https://tools.ietf.org/html/rfc5280#section-4.1.2.6
+
+                Legacy implementations exist where an electronic mail address is
+                embedded in the subject distinguished name as an emailAddress
+                attribute [RFC2985].  The attribute value for emailAddress is of type
+                IA5String to permit inclusion of the character '@', which is not part
+                of the PrintableString character set.  emailAddress attribute values
+                are not case-sensitive (e.g., "subscriber@example.com" is the same as
+                "SUBSCRIBER@EXAMPLE.COM").
+             */
+            final String emailPattern = "/emailAddress=";
+            final int index = StringUtils.indexOfIgnoreCase(username, emailPattern);
+            if (index >= 0) {
+                String[] dnParts = username.split(emailPattern);
+                if (dnParts.length > 0) {
+                    // only use the actual CN
+                    username = dnParts[0];
                 }
             }
         }
@@ -262,7 +274,7 @@ public final class CertificateUtils {
                 }
                 if (clientAuth == ClientAuth.WANT) {
                     logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
-                    return dn;
+                    return null;
                 }
                 throw new CertificateException(e);
             }
@@ -300,7 +312,7 @@ public final class CertificateUtils {
     }
 
     private static ClientAuth getClientAuthStatus(SSLSocket sslSocket) {
-        return sslSocket.getNeedClientAuth() ? ClientAuth.NEED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
+        return sslSocket.getNeedClientAuth() ? ClientAuth.REQUIRED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
     }
 
     /**
@@ -311,6 +323,7 @@ public final class CertificateUtils {
      * @return a new {@code java.security.cert.X509Certificate}
      * @throws CertificateException if there is an error generating the new certificate
      */
+    @SuppressWarnings("deprecation")
     public static X509Certificate convertLegacyX509Certificate(javax.security.cert.X509Certificate legacyCertificate) throws CertificateException {
         if (legacyCertificate == null) {
             throw new IllegalArgumentException("The X.509 certificate cannot be null");
@@ -453,6 +466,23 @@ public final class CertificateUtils {
      */
     public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays)
             throws CertificateException {
+        return generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, certificateDurationDays, null);
+    }
+
+    /**
+     * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
+     *
+     * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
+     * @param dn                      the distinguished name to user for the {@link X509Certificate}
+     * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
+     * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
+     * @throws CertificateException if there is an generating the new certificate
+     */
+    public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays,
+                                                                    String[] dnsSubjectAlternativeNames)
+            throws CertificateException {
         try {
             ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
             SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
@@ -479,6 +509,24 @@ public final class CertificateUtils {
 
             // (2) extendedKeyUsage extension
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
+
+            // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
+            final String cn = getCommonName(dn);
+            List<GeneralName> generalNames = new ArrayList<>();
+            if (StringUtils.isNotBlank(cn)) {
+                generalNames.add(new GeneralName(GeneralName.dNSName, cn));
+            }
+            if (dnsSubjectAlternativeNames != null) {
+                for (String subjectAlternativeName : dnsSubjectAlternativeNames) {
+                    if (StringUtils.isNotBlank(subjectAlternativeName)) {
+                        generalNames.add(new GeneralName(GeneralName.dNSName, subjectAlternativeName));
+                    }
+                }
+            }
+            if (!generalNames.isEmpty()) {
+                certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(generalNames.toArray(
+                        new GeneralName[generalNames.size()])));
+            }
 
             // Sign the certificate
             X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
@@ -608,12 +656,46 @@ public final class CertificateUtils {
                 ASN1Encodable extension = attValue.getObjectAt(0);
                 if (extension instanceof Extensions) {
                     return (Extensions) extension;
-                } else if (extension instanceof DERSequence) {
+                } else if (extension instanceof DERSequence || extension instanceof DLSequence) {
                     return Extensions.getInstance(extension);
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Returns {@code true} if this exception is due to a TLS problem (either directly or because of its cause, if present). Traverses the cause chain recursively.
+     *
+     * @param e the exception to evaluate
+     * @return true if the direct or indirect cause of this exception was TLS-related
+     */
+    public static boolean isTlsError(Throwable e) {
+        if (e == null) {
+            return false;
+        } else {
+            if (e instanceof CertificateException || e instanceof TlsException || e instanceof SSLException) {
+                return true;
+            } else if (e.getCause() != null) {
+                return isTlsError(e.getCause());
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Extracts the common name from the given DN.
+     *
+     * @param dn the distinguished name to evaluate
+     * @return the common name if it exists, null otherwise.
+     */
+    public static String getCommonName(final String dn) {
+        RDN[] rdns = new X500Name(dn).getRDNs(BCStyle.CN);
+        if (rdns.length == 0) {
+            return null;
+        }
+        return  IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
     private CertificateUtils() {

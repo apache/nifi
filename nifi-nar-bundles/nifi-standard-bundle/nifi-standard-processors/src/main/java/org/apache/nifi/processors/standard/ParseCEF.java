@@ -25,27 +25,8 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
+import com.fluenda.parcefone.event.MacAddress;
 import com.fluenda.parcefone.parser.CEFParser;
-import com.martiansoftware.macnificent.MacAddress;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import javax.validation.Validation;
 import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -73,6 +54,26 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import javax.validation.Validation;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 
 @EventDriven
 @SideEffectFree
@@ -135,6 +136,39 @@ public class ParseCEF extends AbstractProcessor {
             .defaultValue("true")
             .build();
 
+    public static final PropertyDescriptor INCLUDE_CUSTOM_EXTENSIONS = new PropertyDescriptor.Builder()
+            .name("INCLUDE_CUSTOM_EXTENSIONS")
+            .displayName("Include custom extensions")
+            .description("If set to true, custom extensions (not specified in the CEF specifications) will be "
+                    + "included in the generated data/attributes.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor ACCEPT_EMPTY_EXTENSIONS = new PropertyDescriptor.Builder()
+            .name("ACCEPT_EMPTY_EXTENSIONS")
+            .displayName("Accept empty extensions")
+            .description("If set to true, empty extensions will be accepted and will be associated to a null value.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor VALIDATE_DATA = new PropertyDescriptor.Builder()
+            .name("VALIDATE_DATA")
+            .displayName("Validate the CEF event")
+            .description("If set to true, the event will be validated against the CEF standard (revision 23). If the event is invalid, the "
+                    + "FlowFile will be routed to the failure relationship. If this property is set to false, the event will be processed "
+                    + "without validating the data.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     public static final String UTC = "UTC";
     public static final String LOCAL_TZ = "Local Timezone (system Default)";
     public static final PropertyDescriptor TIME_REPRESENTATION = new PropertyDescriptor.Builder()
@@ -175,6 +209,9 @@ public class ParseCEF extends AbstractProcessor {
         final List<PropertyDescriptor>properties = new ArrayList<>();
         properties.add(FIELDS_DESTINATION);
         properties.add(APPEND_RAW_MESSAGE_TO_JSON);
+        properties.add(INCLUDE_CUSTOM_EXTENSIONS);
+        properties.add(ACCEPT_EMPTY_EXTENSIONS);
+        properties.add(VALIDATE_DATA);
         properties.add(TIME_REPRESENTATION);
         properties.add(DATETIME_REPRESENTATION);
         return properties;
@@ -235,12 +272,14 @@ public class ParseCEF extends AbstractProcessor {
             // parcefoneLocale defaults to en_US, so this should not fail. But we force failure in case the custom
             // validator failed to identify an invalid Locale
             final Locale parcefoneLocale = Locale.forLanguageTag(context.getProperty(DATETIME_REPRESENTATION).getValue());
-            event = parser.parse(buffer, true, parcefoneLocale);
+            final boolean validateData = context.getProperty(VALIDATE_DATA).asBoolean();
+            final boolean acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
+            event = parser.parse(buffer, validateData, acceptEmptyExtensions, parcefoneLocale);
 
         } catch (Exception e) {
             // This should never trigger but adding in here as a fencing mechanism to
             // address possible ParCEFone bugs.
-            getLogger().error("Parser returned unexpected Exception {} while processing {}; routing to failure", new Object[] {e, flowFile});
+            getLogger().error("CEF Parsing Failed: {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -257,6 +296,7 @@ public class ParseCEF extends AbstractProcessor {
 
         try {
             final String destination = context.getProperty(FIELDS_DESTINATION).getValue();
+            final boolean includeCustomExtensions = context.getProperty(INCLUDE_CUSTOM_EXTENSIONS).asBoolean();
 
             switch (destination) {
                 case DESTINATION_ATTRIBUTES:
@@ -269,7 +309,7 @@ public class ParseCEF extends AbstractProcessor {
                     }
 
                     // Process KVs composing the Extension field
-                    for (Map.Entry<String, Object> entry : event.getExtension(true).entrySet()) {
+                    for (Map.Entry<String, Object> entry : event.getExtension(true, includeCustomExtensions).entrySet()) {
                     attributes.put("cef.extension." + entry.getKey(), prettyResult(entry.getValue(), tzId));
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
@@ -282,7 +322,7 @@ public class ParseCEF extends AbstractProcessor {
 
                     // Add two JSON objects containing one CEF field each
                     results.set("header", mapper.valueToTree(event.getHeader()));
-                    results.set("extension", mapper.valueToTree(event.getExtension(true)));
+                    results.set("extension", mapper.valueToTree(event.getExtension(true, includeCustomExtensions)));
 
                     // Add the original content to original CEF content
                     // to the resulting JSON
@@ -309,17 +349,12 @@ public class ParseCEF extends AbstractProcessor {
 
             // whatever the parsing stratgy, ready to transfer to success and commit
             session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
         } catch (CEFHandlingException e) {
             // The flowfile has failed parsing & validation, routing to failure and committing
-            getLogger().error("Failed to parse {} as a CEF message due to {}; routing to failure", new Object[] {flowFile, e});
+            getLogger().error("Reading CEF Event Failed: {}", flowFile, e);
             // Create a provenance event recording the routing to failure
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
-            session.commit();
-            return;
-        } finally {
-            session.rollback();
         }
     }
 
@@ -356,6 +391,7 @@ public class ParseCEF extends AbstractProcessor {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false)
                         .explanation(subject + " cannot be empty").build();
             }
+
             final Locale testLocale = Locale.forLanguageTag(input);
             final Locale[] availableLocales = Locale.getAvailableLocales();
 
@@ -366,7 +402,6 @@ public class ParseCEF extends AbstractProcessor {
                         .explanation(input + " is not a valid locale format.").build();
             } else {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-
             }
 
         }

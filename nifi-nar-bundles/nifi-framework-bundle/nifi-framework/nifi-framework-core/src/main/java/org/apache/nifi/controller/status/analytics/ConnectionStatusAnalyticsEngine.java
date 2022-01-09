@@ -19,8 +19,7 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.Map;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,21 +31,19 @@ import org.slf4j.LoggerFactory;
  */
 public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalyticsEngine.class);
-    protected final ComponentStatusRepository statusRepository;
+    protected final StatusHistoryRepository statusRepository;
     protected final FlowManager flowManager;
-    protected final FlowFileEventRepository flowFileEventRepository;
     protected final StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
     protected final long predictionIntervalMillis;
     protected final long queryIntervalMillis;
     protected final String scoreName;
     protected final double scoreThreshold;
 
-    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository, FlowFileEventRepository flowFileEventRepository,
+    public ConnectionStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
                                            StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory, long predictionIntervalMillis,
                                            long queryIntervalMillis, String scoreName, double scoreThreshold) {
         this.flowManager = flowManager;
         this.statusRepository = statusRepository;
-        this.flowFileEventRepository = flowFileEventRepository;
         this.predictionIntervalMillis = predictionIntervalMillis;
         this.statusAnalyticsModelMapFactory = statusAnalyticsModelMapFactory;
         this.queryIntervalMillis = queryIntervalMillis;
@@ -62,12 +59,11 @@ public class ConnectionStatusAnalyticsEngine implements StatusAnalyticsEngine {
     @Override
     public StatusAnalytics getStatusAnalytics(String identifier) {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = statusAnalyticsModelMapFactory.getConnectionStatusModelMap();
-        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, flowFileEventRepository, modelMap, identifier, false);
+        ConnectionStatusAnalytics connectionStatusAnalytics = new ConnectionStatusAnalytics(statusRepository, flowManager, modelMap, identifier, false);
         connectionStatusAnalytics.setIntervalTimeMillis(predictionIntervalMillis);
         connectionStatusAnalytics.setQueryIntervalMillis(queryIntervalMillis);
         connectionStatusAnalytics.setScoreName(scoreName);
         connectionStatusAnalytics.setScoreThreshold(scoreThreshold);
-        connectionStatusAnalytics.refresh();
         return connectionStatusAnalytics;
     }
 

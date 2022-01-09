@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,6 +52,11 @@ public abstract class AbstractTestNarLoader {
     NarClassLoaders narClassLoaders;
     ExtensionDiscoveringManager extensionManager;
 
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
     @Before
     public void setup() throws IOException, ClassNotFoundException {
         deleteDir(getWorkDir());
@@ -72,8 +80,8 @@ public abstract class AbstractTestNarLoader {
 
         extensionManager = new StandardExtensionDiscoveringManager();
 
-        // Should have Framework and Jetty NARs loaded here
-        assertEquals(2, narClassLoaders.getBundles().size());
+        // Should have Framework, Jetty, and NiFiServer NARs loaded here
+        assertEquals(3, narClassLoaders.getBundles().size());
 
         // No extensions should be loaded yet
         assertEquals(0, extensionManager.getExtensions(Processor.class).size());

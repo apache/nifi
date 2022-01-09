@@ -26,9 +26,10 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
@@ -36,6 +37,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.eclipse.jetty.server.Server;
 
@@ -62,13 +64,22 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
     private volatile Map<String, Gauge> gauges;
     private static final CollectorRegistry RECORD_REGISTRY = new CollectorRegistry();
 
+    public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
+            .name("prometheus-reporting-task-ssl-context")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will"
+                    + "accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(RestrictedSSLContextService.class)
+            .build();
+
     private static final List<PropertyDescriptor> properties;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT);
         props.add(PrometheusMetricsUtil.INSTANCE_ID);
-        props.add(PrometheusMetricsUtil.SSL_CONTEXT);
+        props.add(SSL_CONTEXT);
         props.add(PrometheusMetricsUtil.CLIENT_AUTH);
         properties = Collections.unmodifiableList(props);
     }
@@ -81,8 +92,8 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
     @OnEnabled
     public void onScheduled(final ConfigurationContext context) {
         RECORD_REGISTRY.clear();
-        SSLContextService sslContextService = context.getProperty(PrometheusMetricsUtil.SSL_CONTEXT).asControllerService(SSLContextService.class);
-        final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).getValue();
+        SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
+        final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).evaluateAttributeExpressions().getValue();
 
         try {
             List<Function<ReportingContext, CollectorRegistry>> metricsCollectors = new ArrayList<>();
@@ -108,9 +119,10 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
             metricsCollectors.add(nifiMetrics);
 
             prometheusServer.setMetricsCollectors(metricsCollectors);
-            getLogger().info("Started JETTY server");
+            getLogger().info("Started Jetty server");
         } catch (Exception e) {
-            getLogger().error("Failed to start Jetty server", e);
+            // Don't allow this to finish successfully, onTrigger should not be called if the Jetty server wasn't started
+            throw new ProcessException("Failed to start Jetty server", e);
         }
     }
 
@@ -171,15 +183,23 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
 
     @OnDisabled
     public void onStopped() throws Exception {
-        Server server = prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
         recordSchema = null;
     }
 
     @OnShutdown
     public void onShutDown() throws Exception {
-        Server server = prometheusServer.getServer();
-        server.stop();
+        if (prometheusServer != null) {
+            Server server = prometheusServer.getServer();
+            if (server != null) {
+                server.stop();
+            }
+        }
         recordSchema = null;
     }
 
@@ -197,6 +217,7 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
                 || RecordFieldType.BIGINT.equals(dataType)
                 || RecordFieldType.FLOAT.equals(dataType)
                 || RecordFieldType.DOUBLE.equals(dataType)
+                || RecordFieldType.DECIMAL.equals(dataType)
                 || RecordFieldType.BOOLEAN.equals(dataType);
 
     }

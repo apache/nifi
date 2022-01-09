@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.properties
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
+import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -39,7 +41,11 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
             "nifi.security.keystorePasswd",
             "nifi.security.keyPasswd",
             "nifi.security.truststorePasswd",
-            "nifi.provenance.repository.encryption.key"
+            "nifi.provenance.repository.encryption.key",
+            "nifi.provenance.repository.encryption.key.provider.password",
+            "nifi.flowfile.repository.encryption.key.provider.password",
+            "nifi.content.repository.encryption.key.provider.password",
+            "nifi.repository.encryption.key.provider.keystore.password"
     ]
 
     final def COMMON_ADDITIONAL_SENSITIVE_PROPERTIES = [
@@ -53,8 +59,12 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
 
+    private static SensitivePropertyProviderFactory sensitivePropertyProviderFactory =
+            StandardSensitivePropertyProviderFactory.withKey(KEY_HEX)
+
     @BeforeClass
     static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -82,8 +92,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         try {
             filePath = ProtectedNiFiPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath()
         } catch (URISyntaxException ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex)
         }
 
         File file = new File(filePath)
@@ -106,14 +115,14 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
 
             // If it has protected keys, inject the SPP
             if (protectedNiFiProperties.hasProtectedKeys()) {
-                protectedNiFiProperties.addSensitivePropertyProvider(new AESSensitivePropertyProvider(KEY_HEX))
+                protectedNiFiProperties.addSensitivePropertyProvider(sensitivePropertyProviderFactory
+                        .getProvider(PropertyProtectionScheme.AES_GCM))
             }
 
             return protectedNiFiProperties
         } catch (final Exception ex) {
             logger.error("Cannot load properties file due to " + ex.getLocalizedMessage())
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex)
         } finally {
             if (null != inStream) {
                 try {
@@ -132,7 +141,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties()
+        NiFiProperties niFiProperties = new NiFiProperties()
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Assert
@@ -149,7 +158,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert rawProperties.size() == 1
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Assert
@@ -163,7 +172,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         Properties rawProperties = new Properties()
         rawProperties.setProperty("key", "value")
         rawProperties.setProperty("key.protected", "value2")
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
         assert niFiProperties.size() == 2
 
@@ -187,9 +196,9 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert rawProperties.size() == 1
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
-        NiFiProperties emptyProperties = new StandardNiFiProperties()
+        NiFiProperties emptyProperties = new NiFiProperties()
         logger.info("emptyProperties has ${emptyProperties.size()} properties: ${emptyProperties.getPropertyKeys()}")
 
         // Assert
@@ -357,7 +366,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
      * @throws Exception
      */
     @Test
-    void testGetValueOfSensitivePropertyShouldHandleUnknownProtectionScheme() throws Exception {
+    void testGetValueOfSensitivePropertyShouldFailOnUnknownProtectionScheme() throws Exception {
         // Arrange
         final String KEYSTORE_PASSWORD_KEY = "nifi.security.keystorePasswd"
 
@@ -372,16 +381,18 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         boolean isSensitive = properties.isPropertySensitive(KEYSTORE_PASSWORD_KEY)
         boolean isProtected = properties.isPropertyProtected(KEYSTORE_PASSWORD_KEY)
 
-        // While the value is "protected", the scheme is not registered, so treat it as raw
+        // While the value is "protected", the scheme is not registered, so throw an exception
         logger.info("The property is ${isSensitive ? "sensitive" : "not sensitive"} and ${isProtected ? "protected" : "not protected"}")
 
         // Act
-        NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
-        String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
-        logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
+        def msg = shouldFail(IllegalStateException) {
+            NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
+            String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
+            logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
+        }
 
         // Assert
-        assert retrievedKeystorePassword == RAW_KEYSTORE_PASSWORD
+        assert msg == "No provider available for nifi.sensitive.props.key"
         assert isSensitive
         assert isProtected
     }
@@ -436,12 +447,12 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         ProtectedNiFiProperties properties = loadFromFile("/conf/nifi_with_sensitive_properties_protected_aes_multiple_malformed.properties")
 
         // Iterate over the protected keys and track the ones that fail to decrypt
-        SensitivePropertyProvider spp = new AESSensitivePropertyProvider(KEY_HEX)
+        SensitivePropertyProvider spp = sensitivePropertyProviderFactory.getProvider(PropertyProtectionScheme.AES_GCM)
         Set<String> malformedKeys = properties.getProtectedPropertyKeys()
                 .findAll { String key, String scheme -> scheme == spp.identifierKey }
                 .keySet().collect { String key ->
             try {
-                String rawValue = spp.unprotect(properties.getProperty(key))
+                String rawValue = spp.unprotect(properties.getProperty(key), ProtectedPropertyContext.defaultContext(key))
                 return
             } catch (SensitivePropertyProtectionException e) {
                 logger.expected("Caught a malformed value for ${key}")
@@ -535,11 +546,11 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
     // TODO: Test getProtected with multiple providers
 
     /**
-     * In the protection enabled scenario, a call to retrieve a sensitive property should handle if the internal cache of providers is empty.
+     * In the protection enabled scenario, a call to retrieve a sensitive property should fail if the internal cache of providers is empty.
      * @throws Exception
      */
     @Test
-    void testGetValueOfSensitivePropertyShouldHandleInvalidatedInternalCache() throws Exception {
+    void testGetValueOfSensitivePropertyShouldFailOnInvalidatedInternalCache() throws Exception {
         // Arrange
         final String KEYSTORE_PASSWORD_KEY = "nifi.security.keystorePasswd"
         final String EXPECTED_KEYSTORE_PASSWORD = "thisIsABadKeystorePassword"
@@ -550,19 +561,21 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Read raw value from properties: ${RAW_PASSWORD}")
 
         // Overwrite the internal cache
-        properties.localProviderCache = [:]
+        properties.getSensitivePropertyProviders().clear()
 
         boolean isSensitive = properties.isPropertySensitive(KEYSTORE_PASSWORD_KEY)
         boolean isProtected = properties.isPropertyProtected(KEYSTORE_PASSWORD_KEY)
         logger.info("The property is ${isSensitive ? "sensitive" : "not sensitive"} and ${isProtected ? "protected" : "not protected"}")
 
         // Act
-        NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
-        String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
-        logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
+        def msg = shouldFail(IllegalStateException) {
+            NiFiProperties unprotectedProperties = properties.getUnprotectedProperties()
+            String retrievedKeystorePassword = unprotectedProperties.getProperty(KEYSTORE_PASSWORD_KEY)
+            logger.info("${KEYSTORE_PASSWORD_KEY}: ${retrievedKeystorePassword}")
+        }
 
         // Assert
-        assert retrievedKeystorePassword == RAW_PASSWORD
+        assert msg == "No provider available for nifi.sensitive.props.key"
         assert isSensitive
         assert isProtected
     }
@@ -611,6 +624,10 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert !unprotectedPasswordIsProtected
     }
 
+    private static double getPercentOfSensitivePropertiesProtected(final ProtectedNiFiProperties properties) {
+        return (int) Math.round(properties.getProtectedPropertyKeys().size() / ((double) properties.getPopulatedSensitivePropertyKeys().size()) * 100);
+    }
+
     @Test
     void testShouldGetPercentageOfSensitivePropertiesProtected_0() throws Exception {
         // Arrange
@@ -620,7 +637,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Protected property keys: ${properties.getProtectedPropertyKeys().keySet()}")
 
         // Act
-        double percentProtected = properties.getPercentOfSensitivePropertiesProtected()
+        double percentProtected = getPercentOfSensitivePropertiesProtected(properties)
         logger.info("${percentProtected}% (${properties.getProtectedPropertyKeys().size()} of ${properties.getPopulatedSensitivePropertyKeys().size()}) protected")
 
         // Assert
@@ -636,7 +653,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Protected property keys: ${properties.getProtectedPropertyKeys().keySet()}")
 
         // Act
-        double percentProtected = properties.getPercentOfSensitivePropertiesProtected()
+        double percentProtected = getPercentOfSensitivePropertiesProtected(properties)
         logger.info("${percentProtected}% (${properties.getProtectedPropertyKeys().size()} of ${properties.getPopulatedSensitivePropertyKeys().size()}) protected")
 
         // Assert
@@ -652,7 +669,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         logger.info("Protected property keys: ${properties.getProtectedPropertyKeys().keySet()}")
 
         // Act
-        double percentProtected = properties.getPercentOfSensitivePropertiesProtected()
+        double percentProtected = getPercentOfSensitivePropertiesProtected(properties)
         logger.info("${percentProtected}% (${properties.getProtectedPropertyKeys().size()} of ${properties.getPopulatedSensitivePropertyKeys().size()}) protected")
 
         // Assert
@@ -663,13 +680,13 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
     void testInstanceWithNoProtectedPropertiesShouldNotLoadSPP() throws Exception {
         // Arrange
         ProtectedNiFiProperties properties = loadFromFile("/conf/nifi.properties")
-        assert properties.@localProviderCache?.isEmpty()
+        assert properties.getSensitivePropertyProviders().isEmpty()
 
         logger.info("Has protected properties: ${properties.hasProtectedKeys()}")
         assert !properties.hasProtectedKeys()
 
         // Act
-        Map localCache = properties.@localProviderCache
+        Map localCache = properties.getSensitivePropertyProviders()
         logger.info("Internal cache ${localCache} has ${localCache.size()} providers loaded")
 
         // Assert
@@ -703,7 +720,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert properties.getSensitivePropertyProviders().isEmpty()
 
         // Act
-        def msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail(NullPointerException) {
             properties.addSensitivePropertyProvider(null)
         }
         logger.expected(msg)
@@ -753,7 +770,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         ProtectedNiFiProperties protectedNiFiProperties = loadFromFile(noProtectedPropertiesPath)
         logger.info("Loaded ${protectedNiFiProperties.size()} properties from ${noProtectedPropertiesPath}")
 
-        int hashCode = protectedNiFiProperties.internalNiFiProperties.hashCode()
+        int hashCode = protectedNiFiProperties.getApplicationProperties().hashCode()
         logger.info("Hash code of internal instance: ${hashCode}")
 
         // Act
@@ -763,7 +780,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Assert
         assert unprotectedNiFiProperties.size() == protectedNiFiProperties.size()
         assert unprotectedNiFiProperties.getPropertyKeys().every {
-            !unprotectedNiFiProperties.getProperty(it).endsWith(".protected")
+            !unprotectedNiFiProperties.getProperty(it).endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX)
         }
         logger.info("Hash code from returned unprotected instance: ${unprotectedNiFiProperties.hashCode()}")
         assert unprotectedNiFiProperties.hashCode() == hashCode
@@ -778,7 +795,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
 
         int protectedPropertyCount = protectedNiFiProperties.getProtectedPropertyKeys().size()
         int protectionSchemeCount = protectedNiFiProperties
-                .getPropertyKeys().findAll { it.endsWith(".protected") }
+                .getPropertyKeys().findAll { it.endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX) }
                 .size()
         int expectedUnprotectedPropertyCount = protectedNiFiProperties.size() - protectionSchemeCount
 
@@ -794,7 +811,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
 
         logger.info("Expected unprotected property count: ${expectedUnprotectedPropertyCount}")
 
-        int hashCode = protectedNiFiProperties.internalNiFiProperties.hashCode()
+        int hashCode = protectedNiFiProperties.getApplicationProperties().hashCode()
         logger.info("Hash code of internal instance: ${hashCode}")
 
         // Act
@@ -804,7 +821,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Assert
         assert unprotectedNiFiProperties.size() == expectedUnprotectedPropertyCount
         assert unprotectedNiFiProperties.getPropertyKeys().every {
-            !unprotectedNiFiProperties.getProperty(it).endsWith(".protected")
+            !unprotectedNiFiProperties.getProperty(it).endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX)
         }
         logger.info("Hash code from returned unprotected instance: ${unprotectedNiFiProperties.hashCode()}")
         assert unprotectedNiFiProperties.hashCode() != hashCode

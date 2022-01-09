@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Set;
-
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.Set;
 
 /**
  * <p>
@@ -87,5 +87,4 @@ public interface Processor extends ConfigurableComponent {
      * indicate a probable coding defect.
      */
     void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException;
-
 }

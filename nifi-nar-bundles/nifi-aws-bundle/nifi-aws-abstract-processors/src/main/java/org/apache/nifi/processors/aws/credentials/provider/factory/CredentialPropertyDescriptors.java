@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.aws.credentials.provider.factory;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -53,7 +55,7 @@ public class CredentialPropertyDescriptors {
             .displayName("Credentials File")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .description("Path to a file containing AWS access key and secret key in properties file format.")
             .build();
 
@@ -177,6 +179,19 @@ public class CredentialPropertyDescriptors {
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .sensitive(false)
-            .description("Proxy pot for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .description("Proxy port for cross-account access, if needed within your environment. This will configure a proxy to request for temporary access keys into another AWS account")
+            .build();
+
+    public static final PropertyDescriptor ASSUME_ROLE_STS_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("assume-role-sts-endpoint")
+            .displayName("Assume Role STS Endpoint")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .description("The default AWS Security Token Service (STS) endpoint (\"sts.amazonaws.com\") works for " +
+                    "all accounts that are not for China (Beijing) region or GovCloud. You only need to set " +
+                    "this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials " +
+                    "for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
             .build();
 }

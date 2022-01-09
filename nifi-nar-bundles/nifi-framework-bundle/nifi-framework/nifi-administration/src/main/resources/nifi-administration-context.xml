@@ -18,19 +18,14 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
 
-    <!-- initialize the user key data source -->
-    <bean id="keyDataSource" class="org.apache.nifi.admin.KeyDataSourceFactoryBean" destroy-method="shutdown">
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
-
     <!-- initialize the audit data source -->
     <bean id="auditDataSource" class="org.apache.nifi.admin.AuditDataSourceFactoryBean" destroy-method="shutdown">
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
-    <!-- initialize the user key transaction builder -->
-    <bean id="keyTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
-        <property name="dataSource" ref="keyDataSource"/>
+    <!-- initialize the idp data source -->
+    <bean id="idpDataSource" class="org.apache.nifi.admin.IdpDataSourceFactoryBean" destroy-method="shutdown">
+        <property name="properties" ref="nifiProperties"/>
     </bean>
 
     <!-- initialize the audit transaction builder -->
@@ -38,14 +33,24 @@
         <property name="dataSource" ref="auditDataSource"/>
     </bean>
 
-    <!-- administration service -->
-    <bean id="keyService" class="org.apache.nifi.admin.service.impl.StandardKeyService">
-        <property name="transactionBuilder" ref="keyTransactionBuilder"/>
-        <property name="properties" ref="nifiProperties"/>
+    <!-- initialize the idp transaction builder -->
+    <bean id="idpTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
+        <property name="dataSource" ref="idpDataSource"/>
     </bean>
 
     <!-- audit service -->
     <bean id="auditService" class="org.apache.nifi.admin.service.impl.StandardAuditService">
         <property name="transactionBuilder" ref="auditTransactionBuilder"/>
     </bean>
+
+    <!-- idp credential service -->
+    <bean id="idpCredentialService" class="org.apache.nifi.admin.service.impl.StandardIdpCredentialService">
+        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
+    </bean>
+
+    <!-- idp user group service -->
+    <bean id="idpUserGroupService" class="org.apache.nifi.admin.service.impl.StandardIdpUserGroupService">
+        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
+    </bean>
+
 </beans>

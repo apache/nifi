@@ -39,9 +39,10 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.http.HttpInput;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
 import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
+import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
@@ -107,7 +108,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new StandardHttpFlowFileServerProtocol(versionNegotiator, NiFiProperties.createBasicNiFiProperties(null, null));
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator, new NiFiProperties());
     }
 
     @Test
@@ -313,7 +314,8 @@ public class TestHttpFlowFileServerProtocol {
 
         // Assert provenance
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(1, provenanceEvents.size());
+        // Assert provenance (SEND and DROP)
+        assertEquals(2, provenanceEvents.size());
         final ProvenanceEventRecord provenanceEvent = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
         assertEquals(endpointUri, provenanceEvent.getTransitUri());
@@ -365,7 +367,7 @@ public class TestHttpFlowFileServerProtocol {
             sessionState.getFlowFileQueue().offer(flowFile);
         }
 
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
         serverProtocol.handshake(peer);
         assertTrue(serverProtocol.isHandshakeSuccessful());
@@ -409,13 +411,16 @@ public class TestHttpFlowFileServerProtocol {
         final int flowFileSent = serverProtocol.commitTransferTransaction(peer, "3058746557");
         assertEquals(2, flowFileSent);
 
-        // Assert provenance
+        // Assert provenance (SEND and DROP)
         final List<ProvenanceEventRecord> provenanceEvents = sessionState.getProvenanceEvents();
-        assertEquals(2, provenanceEvents.size());
-        for (final ProvenanceEventRecord provenanceEvent : provenanceEvents) {
+        assertEquals(4, provenanceEvents.size());
+        for (int i = 0; i < provenanceEvents.size(); i += 2) {
+            ProvenanceEventRecord provenanceEvent = provenanceEvents.get(i);
             assertEquals(ProvenanceEventType.SEND, provenanceEvent.getEventType());
             assertEquals(endpointUri, provenanceEvent.getTransitUri());
             assertEquals("Remote Host=peer-host, Remote DN=unit-test", provenanceEvent.getDetails());
+            provenanceEvent = provenanceEvents.get(i + 1);
+            assertEquals(ProvenanceEventType.DROP, provenanceEvent.getEventType());
         }
 
     }
@@ -520,7 +525,7 @@ public class TestHttpFlowFileServerProtocol {
     }
 
     private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket ... dataPackets) throws IOException {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
 
         serverProtocol.handshake(peer);
@@ -553,7 +558,7 @@ public class TestHttpFlowFileServerProtocol {
         when(rootGroupPort.getIdentifier()).thenReturn("root-group-port-id");
 
         sessionState = new SharedSessionState(rootGroupPort, new AtomicLong(0));
-        processSession = new MockProcessSession(sessionState, rootGroupPort);
+        processSession = new MockProcessSession(sessionState, rootGroupPort, true, new MockStateManager(rootGroupPort), true);
         processContext = new MockProcessContext(rootGroupPort);
     }
 

@@ -17,14 +17,13 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import com.microsoft.azure.eventprocessorhost.CloseReason;
 import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
 import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
-import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -48,6 +47,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
@@ -86,11 +87,14 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
         @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
         @WritesAttribute(attribute = "eventhub.sequence", description = "The sequence number associated with the message"),
         @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
-    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+    private static final Pattern SAS_TOKEN_PATTERN = Pattern.compile("^\\?.*$");
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -115,17 +119,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(true)
+            .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureEventHubUtils.POLICY_PRIMARY_KEY)
             .name("event-hub-shared-access-policy-primary-key")
-            .displayName("Shared Access Policy Primary Key")
-            .description("The primary key of the shared access policy.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .sensitive(true)
-            .required(true)
             .build();
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-group")
             .displayName("Consumer Group")
@@ -231,7 +231,17 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(true)
+            .required(false)
+            .build();
+    static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
+            .name("storage-sas-token")
+            .displayName("Storage SAS Token")
+            .description("The Azure Storage SAS token to store Event Hub consumer group state. Always starts with a ? character.")
+            .sensitive(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(SAS_TOKEN_PATTERN, true,
+                    "Token must start with a ? character."))
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("storage-container-name")
@@ -261,10 +271,10 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static {
         PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
+                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
                 RECORD_READER, RECORD_WRITER,
                 INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
-                STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_CONTAINER_NAME
+                STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_SAS_TOKEN, STORAGE_CONTAINER_NAME
         ));
 
         Set<Relationship> relationships = new HashSet<>();
@@ -327,6 +337,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final List<ValidationResult> results = new ArrayList<>();
         final ControllerService recordReader = validationContext.getProperty(RECORD_READER).asControllerService();
         final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).asControllerService();
+        final String storageAccountKey = validationContext.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+        final String storageSasToken = validationContext.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+
         if ((recordReader != null && recordWriter == null) || (recordReader == null && recordWriter != null)) {
             results.add(new ValidationResult.Builder()
                     .subject("Record Reader and Writer")
@@ -335,6 +348,27 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .valid(false)
                     .build());
         }
+
+        if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(String.format("%s or %s",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .explanation(String.format("either %s or %s should be set.",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
+        if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(String.format("%s or %s",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .explanation(String.format("%s and %s should not be set at the same time.",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+        results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, validationContext));
         return results;
     }
 
@@ -347,9 +381,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         }
     }
 
-    public class EventProcessorFactory implements IEventProcessorFactory {
+    public class EventProcessorFactory implements IEventProcessorFactory<EventProcessor> {
         @Override
-        public IEventProcessor createEventProcessor(PartitionContext context) throws Exception {
+        public EventProcessor createEventProcessor(PartitionContext context) throws Exception {
             final EventProcessor eventProcessor = new EventProcessor();
             return eventProcessor;
         }
@@ -384,16 +418,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 }
 
                 // Commit NiFi first.
-                session.commit();
                 // If creating an Event Hub checkpoint failed, then the same message can be retrieved again.
-                context.checkpoint();
-
+                session.commitAsync(context::checkpoint);
             } catch (Exception e) {
                 getLogger().error("Unable to fully process received message due to " + e, e);
                 // FlowFiles those are already committed will not get rollback.
                 session.rollback();
             }
-
         }
 
         private void putEventHubAttributes(Map<String, String> attributes, String eventHubName, String partitionId, EventData eventData) {
@@ -403,6 +434,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 attributes.put("eventhub.offset", systemProperties.getOffset());
                 attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
             }
+
+            final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData);
+            attributes.putAll(applicationProperties);
 
             attributes.put("eventhub.name", eventHubName);
             attributes.put("eventhub.partition", partitionId);
@@ -417,8 +451,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
                 final Map<String, String> attributes = new HashMap<>();
                 putEventHubAttributes(attributes, eventHubName, partitionId, eventData);
-
                 flowFile = session.putAllAttributes(flowFile, attributes);
+
                 flowFile = session.write(flowFile, out -> {
                     out.write(eventData.getBytes());
                 });
@@ -581,18 +615,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         validateRequiredProperty(EVENT_HUB_NAME, eventHubName);
 
-        final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
-
-        final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
-
-        final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
-
-        final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(STORAGE_ACCOUNT_KEY, storageAccountKey);
-
 
         final String consumerHostname = orDefault(context.getProperty(CONSUMER_HOSTNAME).evaluateAttributeExpressions().getValue(),
                 EventProcessorHost.createHostName("nifi"));
@@ -625,11 +647,25 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = createStorageConnectionString(context);
 
-        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder().setNamespaceName(namespaceName).setEventHubName( eventHubName).setSasKeyName(sasName).setSasKey(sasKey);
+        final String connectionString;
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        if(useManagedIdentity) {
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, eventHubName);
+        } else {
+            final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
+            validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
+            final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+            validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
+            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, eventHubName, sasName, sasKey);
+        }
 
-        eventProcessorHost = new EventProcessorHost(consumerHostname, eventHubName, consumerGroupName, eventHubConnectionString.toString(), storageConnectionString, containerName);
+        eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
+                                .newBuilder(consumerHostname, consumerGroupName)
+                                .useAzureStorageCheckpointLeaseManager(storageConnectionString, containerName, null)
+                                .useEventHubConnectionString(connectionString, eventHubName)
+                                .build();
 
         options.setExceptionNotification(e -> {
             getLogger().error("An error occurred while receiving messages from Azure Event Hub {}" +
@@ -638,6 +674,19 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         });
 
         eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
+    }
+
+    private String createStorageConnectionString(final ProcessContext context) {
+        final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
+        validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
+
+        final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+        final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+
+        if (storageAccountKey != null) {
+            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey);
+        }
+        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, storageSasToken);
     }
 
     private String orDefault(String value, String defaultValue) {

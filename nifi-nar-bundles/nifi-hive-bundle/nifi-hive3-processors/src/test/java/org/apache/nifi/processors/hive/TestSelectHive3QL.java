@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.hive;
 
+import org.apache.avro.LogicalTypes;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -44,11 +47,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +74,11 @@ public class TestSelectHive3QL {
     private static final Logger LOGGER;
     private final static String MAX_ROWS_KEY = "maxRows";
     private final int NUM_OF_ROWS = 100;
+    private static final int ID = 1;
+    private static final String NAME = "Joe Smith";
+    private static final String BIRTH_DATE = "1956-11-22";
+    private static final String BIG_NUMBER = "12345678.12";
+    private static final String CREATED_ON = "1962-09-23 03:23:34.234";
 
 
     static {
@@ -134,7 +146,7 @@ public class TestSelectHive3QL {
         invokeOnTrigger(QUERY_WITH_EL, true, "Avro");
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
-        assertEquals(3, provenanceEvents.size());
+        assertEquals(4, provenanceEvents.size());
 
         final ProvenanceEventRecord provenance0 = provenanceEvents.get(0);
         assertEquals(ProvenanceEventType.FORK, provenance0.getEventType());
@@ -145,6 +157,9 @@ public class TestSelectHive3QL {
 
         final ProvenanceEventRecord provenance2 = provenanceEvents.get(2);
         assertEquals(ProvenanceEventType.FORK, provenance2.getEventType());
+
+        final ProvenanceEventRecord provenance3 = provenanceEvents.get(3);
+        assertEquals(ProvenanceEventType.DROP, provenance3.getEventType());
     }
 
 
@@ -174,7 +189,18 @@ public class TestSelectHive3QL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0).assertAttributeEquals(SelectHive3QL.RESULT_ROW_COUNT, "2");
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
+
+        final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS);
+        flowfiles.get(0).assertAttributeEquals(SelectHive3QL.RESULT_ROW_COUNT, "2");
+        final long executionTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowfiles.get(0).getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
     }
 
     @Test
@@ -325,6 +351,10 @@ public class TestSelectHive3QL {
 
         TestRunner runner = doOnTrigger(query, incomingFlowFile, outputFormat, preQueries, postQueries);
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
 
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS);
         MockFlowFile flowFile = flowfiles.get(0);
@@ -365,8 +395,14 @@ public class TestSelectHive3QL {
                 }
             }
         }
+
+        final long executionTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
         assertEquals(NUM_OF_ROWS - 10, recordsFromStream);
         assertEquals(recordsFromStream, Integer.parseInt(flowFile.getAttribute(SelectHive3QL.RESULT_ROW_COUNT)));
+        assertEquals(durationTime, fetchTime + executionTime);
         flowFile.assertAttributeEquals(AbstractHive3QLProcessor.ATTR_INPUT_TABLES, "persons");
     }
 
@@ -450,10 +486,20 @@ public class TestSelectHive3QL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 12);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
 
         //ensure all but the last file have 9 records each
         for (int ff = 0; ff < 11; ff++) {
             mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(ff);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
 
@@ -464,6 +510,12 @@ public class TestSelectHive3QL {
 
         //last file should have 1 record
         mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(11);
+        final long executionTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         in = new ByteArrayInputStream(mff.toByteArray());
         assertEquals(1, getNumberOfRecordsFromStream(in));
         mff.assertAttributeExists("fragment.identifier");
@@ -504,7 +556,18 @@ public class TestSelectHive3QL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
+
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0);
+        final long executionTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(flowFile.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         // Assert the attributes from the incoming flow file are preserved in the outgoing flow file(s)
         flowFile.assertAttributeEquals("hiveql.args.1.value", "1");
         flowFile.assertAttributeEquals("hiveql.args.1.type", String.valueOf(Types.INTEGER));
@@ -544,10 +607,20 @@ public class TestSelectHive3QL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 12);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
 
         //ensure all but the last file have 9 records (10 lines = 9 records + header) each
         for (int ff = 0; ff < 11; ff++) {
             mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(ff);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             assertEquals(10, br.lines().count());
@@ -559,6 +632,12 @@ public class TestSelectHive3QL {
 
         //last file should have 1 record (2 lines = 1 record + header)
         mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(11);
+        final long executionTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+        final long fetchTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+        final long durationTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+        assertEquals(durationTime, fetchTime + executionTime);
+
         in = new ByteArrayInputStream(mff.toByteArray());
         BufferedReader br = new BufferedReader(new InputStreamReader(in));
         assertEquals(2, br.lines().count());
@@ -599,9 +678,19 @@ public class TestSelectHive3QL {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, maxFragments);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_ROW_COUNT);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_DURATION);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_EXECUTION_TIME);
+        runner.assertAllFlowFilesContainAttribute(SelectHive3QL.REL_SUCCESS, SelectHive3QL.RESULT_QUERY_FETCH_TIME);
 
         for (int i = 0; i < maxFragments; i++) {
             mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(i);
+            final long executionTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_EXECUTION_TIME));
+            final long fetchTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_FETCH_TIME));
+            final long durationTime = Long.parseLong(mff.getAttribute(SelectHive3QL.RESULT_QUERY_DURATION));
+
+            assertEquals(durationTime, fetchTime + executionTime);
+
             in = new ByteArrayInputStream(mff.toByteArray());
             assertEquals(9, getNumberOfRecordsFromStream(in));
 
@@ -609,6 +698,111 @@ public class TestSelectHive3QL {
             assertEquals(Integer.toString(i), mff.getAttribute("fragment.index"));
             assertEquals(maxFragments.toString(), mff.getAttribute("fragment.count"));
         }
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testAvroRecordCreatedWithoutLogicalTypesByDefault() throws SQLException, IOException {
+        final Schema expectedSchema = SchemaBuilder.record("NiFi_SelectHiveQL_Record").namespace("any.data").fields()
+                .name("ID").type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault()
+                .name("NAME").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIRTH_DATE").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIG_NUMBER").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .endRecord();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Statement stmt = con.createStatement();
+        final InputStream in;
+        final MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (" +
+                ID + ", '" + NAME + "', '" + BIRTH_DATE + "', " + BIG_NUMBER + ", '" + CREATED_ON + "')");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0);
+        in = new ByteArrayInputStream(mff.toByteArray());
+
+        final GenericRecord record = getFirstRecordFromStream(in);
+
+        assertEquals(expectedSchema, record.getSchema());
+        assertEquals(ID, record.get("ID"));
+        assertEquals(NAME, record.get("NAME").toString());
+        assertEquals(BIRTH_DATE, record.get("BIRTH_DATE").toString());
+        assertEquals(BIG_NUMBER, record.get("BIG_NUMBER").toString());
+        assertEquals(CREATED_ON, record.get("CREATED_ON").toString());
+
+        runner.clearTransferState();
+    }
+
+    @Test
+    public void testAvroRecordCreatedWithLogicalTypesWhenSet() throws SQLException, IOException {
+        final Schema expectedSchema = SchemaBuilder.record("NiFi_SelectHiveQL_Record").namespace("any.data").fields()
+                .name("ID").type().unionOf().nullBuilder().endNull().and().intType().endUnion().noDefault()
+                .name("NAME").type().unionOf().nullBuilder().endNull().and().stringType().endUnion().noDefault()
+                .name("BIRTH_DATE").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT))).endUnion().noDefault()
+                .name("BIG_NUMBER").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.decimal(10, 2).addToSchema(Schema.create(Schema.Type.BYTES))).endUnion().noDefault()
+                .name("CREATED_ON").type().unionOf().nullBuilder().endNull().and()
+                .type(LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG))).endUnion().noDefault()
+                .endRecord();
+
+        final int expectedBirthDate = (int) LocalDate.parse(BIRTH_DATE).toEpochDay();
+        final BigDecimal decimal = new BigDecimal(BIG_NUMBER).setScale(2, BigDecimal.ROUND_HALF_EVEN);
+        final ByteBuffer expectedBigNumber = ByteBuffer.wrap(decimal.unscaledValue().toByteArray());
+        final Timestamp timestamp = Timestamp.valueOf(CREATED_ON);
+        final long expectedCreatedOn = timestamp.getTime();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Statement stmt = con.createStatement();
+        final InputStream in;
+        final MockFlowFile mff;
+
+        try {
+            stmt.execute("drop table TEST_QUERY_DB_TABLE");
+        } catch (final SQLException sqle) {
+            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
+        }
+
+        stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), birth_date date, big_number decimal(10,2),created_on timestamp)");
+        stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, birth_date, big_number, created_on) VALUES (" +
+                ID + ", '" + NAME + "', '" + BIRTH_DATE + "', " + BIG_NUMBER + ", '" + CREATED_ON + "')");
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM TEST_QUERY_DB_TABLE");
+        runner.setProperty(SelectHive3QL.USE_AVRO_LOGICAL_TYPES, "true");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
+        mff = runner.getFlowFilesForRelationship(SelectHive3QL.REL_SUCCESS).get(0);
+        in = new ByteArrayInputStream(mff.toByteArray());
+
+        final GenericRecord record = getFirstRecordFromStream(in);
+
+        assertEquals(expectedSchema, record.getSchema());
+        assertEquals(ID, record.get("ID"));
+        assertEquals(NAME, record.get("NAME").toString());
+        assertEquals(expectedBirthDate, record.get("BIRTH_DATE"));
+        assertEquals(expectedBigNumber, record.get("BIG_NUMBER"));
+        assertEquals(expectedCreatedOn, record.get("CREATED_ON"));
+
 
         runner.clearTransferState();
     }
@@ -627,6 +821,13 @@ public class TestSelectHive3QL {
             }
 
             return recordsFromStream;
+        }
+    }
+
+    private GenericRecord getFirstRecordFromStream(InputStream in) throws IOException {
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<>();
+        try (DataFileStream<GenericRecord> dataFileReader = new DataFileStream<>(in, datumReader)) {
+            return dataFileReader.next();
         }
     }
 

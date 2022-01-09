@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -29,6 +30,16 @@ public interface ReportingTasksClient {
 
     ReportingTaskEntity getReportingTask(String id) throws NiFiClientException, IOException;
 
+    ReportingTaskEntity updateReportingTask(ReportingTaskEntity reportingTaskEntity) throws NiFiClientException, IOException;
+
     ReportingTaskEntity activateReportingTask(String id, ReportingTaskRunStatusEntity runStatusEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity submitConfigVerificationRequest(VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity getConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity deleteConfigVerificationRequest(String taskId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    ReportingTaskEntity deleteReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
 
 }

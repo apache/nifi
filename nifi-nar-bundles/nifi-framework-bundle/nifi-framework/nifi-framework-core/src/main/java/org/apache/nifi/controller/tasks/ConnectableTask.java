@@ -32,11 +32,11 @@ import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
-import org.apache.nifi.controller.scheduling.ConnectableProcessContext;
+import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,7 +72,7 @@ public class ConnectableTask {
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
             final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState,
-            final StringEncryptor encryptor) {
+            final PropertyEncryptor encryptor) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
@@ -82,7 +82,8 @@ public class ConnectableTask {
 
         final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
-            processContext = new StandardProcessContext((ProcessorNode) connectable, flowController.getControllerServiceProvider(), encryptor, stateManager, scheduleState::isTerminated);
+            processContext = new StandardProcessContext(
+                    (ProcessorNode) connectable, flowController.getControllerServiceProvider(), encryptor, stateManager, scheduleState::isTerminated, flowController);
         } else {
             processContext = new ConnectableProcessContext(connectable, encryptor, stateManager);
         }
@@ -163,7 +164,7 @@ public class ConnectableTask {
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
             logger.debug("Will not trigger {} because this is not the primary node", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+            return InvocationResult.yield("This node is not the primary node");
         }
 
         // Make sure processor has work to do.
@@ -207,7 +208,7 @@ public class ConnectableTask {
         final String originalThreadName = Thread.currentThread().getName();
         try {
             try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
-                boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING;
+                boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING || connectable.getScheduledState() == ScheduledState.RUN_ONCE;
                 while (shouldRun) {
                     invocationCount++;
                     connectable.onTrigger(processContext, activeSessionFactory);
@@ -250,8 +251,8 @@ public class ConnectableTask {
             } catch (final Throwable t) {
                 // Use ComponentLog to log the event so that a bulletin will be created for this processor
                 final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("{} failed to process session due to {}; Processor Administratively Yielded for {}",
-                    new Object[] {connectable.getRunnableComponent(), t, schedulingAgent.getAdministrativeYieldDuration()}, t);
+                procLog.error("Failed to process session due to {}; Processor Administratively Yielded for {}",
+                    new Object[] {t, schedulingAgent.getAdministrativeYieldDuration()}, t);
                 logger.warn("Administratively Yielding {} due to uncaught Exception: {}", connectable.getRunnableComponent(), t.toString(), t);
 
                 connectable.yield(schedulingAgent.getAdministrativeYieldDuration(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
@@ -259,17 +260,14 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    try {
-                        rawSession.commit();
-                    } catch (final Throwable t) {
-                        final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
+                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
 
-                        try {
-                            rawSession.rollback(true);
-                        } catch (final Exception e1) {
-                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, t.toString() }, t);
-                        }
+                    try {
+                        rawSession.commitAsync(null, t -> {
+                            procLog.error("Failed to commit session {} due to {}; rolling back", new Object[]{rawSession, t.toString()}, t);
+                        });
+                    } catch (final TerminatedTaskException tte) {
+                        procLog.debug("Cannot commit Batch Process Session because the Task was forcefully terminated", tte);
                     }
                 }
 

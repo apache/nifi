@@ -18,9 +18,7 @@ package org.apache.nifi.logging;
 
 public interface LogRepository {
 
-    void addLogMessage(LogLevel level, String message);
-
-    void addLogMessage(LogLevel level, String message, Throwable t);
+    void addLogMessage(LogMessage logMessage);
 
     void addLogMessage(LogLevel level, String messageFormat, Object[] params);
 

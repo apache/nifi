@@ -40,8 +40,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -53,8 +52,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestSiteToSiteReportingRecordSink {
 
@@ -154,7 +154,7 @@ public class TestSiteToSiteReportingRecordSink {
             final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
             final Transaction transaction = Mockito.mock(Transaction.class);
 
-            try {
+            assertDoesNotThrow(() -> {
                 Mockito.doAnswer((Answer<Object>) invocation -> {
                     final byte[] data = invocation.getArgument(0, byte[].class);
                     dataSent.add(data);
@@ -162,10 +162,7 @@ public class TestSiteToSiteReportingRecordSink {
                 }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
                 Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
-            }
+            });
 
             return client;
         }

@@ -19,6 +19,8 @@ package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 
@@ -30,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public enum RecordFieldType {
     /**
@@ -73,6 +76,11 @@ public enum RecordFieldType {
     DOUBLE("double", FLOAT),
 
     /**
+     * A decimal field type. Fields of this type use a {@code java.math.BigDecimal} value.
+     */
+    DECIMAL("decimal", FLOAT, DOUBLE),
+
+    /**
      * A timestamp field type. Fields of this type use a {@code java.sql.Timestamp} value.
      */
     TIMESTAMP("timestamp", "yyyy-MM-dd HH:mm:ss"),
@@ -93,9 +101,14 @@ public enum RecordFieldType {
     CHAR("char"),
 
     /**
+     * An Enum field type.
+     */
+    ENUM("enum", null, new EnumDataType(null)),
+
+    /**
      * A String field type. Fields of this type use a {@code java.lang.String} value.
      */
-    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DATE, TIME, TIMESTAMP),
+    STRING("string", BOOLEAN, BYTE, CHAR, SHORT, INT, BIGINT, LONG, FLOAT, DOUBLE, DECIMAL, DATE, TIME, TIMESTAMP, ENUM),
 
     /**
      * <p>
@@ -122,7 +135,7 @@ public enum RecordFieldType {
      * </pre>
      * </code>
      */
-    RECORD("record", null, new RecordDataType(null)),
+    RECORD("record", null, new RecordDataType((RecordSchema) null)),
 
     /**
      * <p>
@@ -232,7 +245,7 @@ public enum RecordFieldType {
         this.defaultFormat = null;
         this.defaultDataType = new DataType(this, defaultFormat);
 
-        this.narrowDataTypes = new HashSet<>(Arrays.asList(narrowDataTypes));
+        this.narrowDataTypes = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(narrowDataTypes)));
     }
 
     private RecordFieldType(final String simpleName, final String defaultFormat) {
@@ -281,18 +294,55 @@ public enum RecordFieldType {
     }
 
     /**
+     * Returns a Data Type that represents a "RECORD" or "ARRAY" type with the given schema which will be lazily evaluated later.
+     * This method can be used to define a DataType containing recursive type structure.
+     *
+     * @param childSchemaSupplier the Schema for the Record or Array, the child schema will be evaluated when it is accessed at the first time
+     * @return a DataType that represents a Record or Array with the given schema, or <code>null</code> if this RecordFieldType
+     *         is not the RECORD or ARRAY type.
+     */
+    public DataType getRecordDataType(final Supplier<RecordSchema> childSchemaSupplier) {
+        if (this != RECORD) {
+            return null;
+        }
+
+        return new RecordDataType(childSchemaSupplier);
+    }
+
+    /**
      * Returns a Data Type that represents an "ARRAY" type with the given element type.
+     * The returned array data type can't contain null elements.
      *
      * @param elementType the type of the arrays in the element
      * @return a DataType that represents an Array with the given element type, or <code>null</code> if this RecordFieldType
      *         is not the ARRAY type.
      */
     public DataType getArrayDataType(final DataType elementType) {
+        return getArrayDataType(elementType, ArrayDataType.DEFAULT_NULLABLE);
+    }
+
+    /**
+     * Returns a Data Type that represents an "ARRAY" type with the given element type.
+     *
+     * @param elementType the type of the arrays in the element
+     * @param elementsNullable indicates whether the array can contain null elements
+     * @return a DataType that represents an Array with the given element type, or <code>null</code> if this RecordFieldType
+     *         is not the ARRAY type.
+     */
+    public DataType getArrayDataType(final DataType elementType, final boolean elementsNullable) {
         if (this != ARRAY) {
             return null;
         }
 
-        return new ArrayDataType(elementType);
+        return new ArrayDataType(elementType, elementsNullable);
+    }
+
+    public DataType getEnumDataType(final List<String> enums) {
+        if (this != ENUM) {
+            return null;
+        }
+
+        return new EnumDataType(enums);
     }
 
 
@@ -335,17 +385,41 @@ public enum RecordFieldType {
 
     /**
      * Returns a Data Type that represents a "MAP" type with the given value type.
+     * The returned map data type can't contain null values.
      *
      * @param valueDataType the type of the values in the map
      * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
      *         is not the MAP type.
      */
     public DataType getMapDataType(final DataType valueDataType) {
+        return getMapDataType(valueDataType, MapDataType.DEFAULT_NULLABLE);
+    }
+
+    /**
+     * Returns a Data Type that represents a "MAP" type with the given value type.
+     *
+     * @param valueDataType the type of the values in the map
+     * @param valuesNullable indicates whether the map can contain null values
+     * @return a DataType that represents a Map with the given value type, or <code>null</code> if this RecordFieldType
+     *         is not the MAP type.
+     */
+    public DataType getMapDataType(final DataType valueDataType, boolean valuesNullable) {
         if (this != MAP) {
             return null;
         }
 
-        return new MapDataType(valueDataType);
+        return new MapDataType(valueDataType, valuesNullable);
+    }
+
+    /**
+     * Returns a Data Type that represents a decimal type with the given precision and scale.
+     *
+     * @param precision the precision of the decimal
+     * @param scale the scale of the decimal
+     * @return a DataType that represents a decimal with added information about it's precision and scale.
+     */
+    public DataType getDecimalDataType(final int precision, final int scale) {
+        return new DecimalDataType(precision, scale);
     }
 
     /**
@@ -363,5 +437,9 @@ public enum RecordFieldType {
 
     public static RecordFieldType of(final String typeString) {
       return SIMPLE_NAME_MAP.get(typeString);
+    }
+
+    public Set<RecordFieldType> getNarrowDataTypes() {
+        return narrowDataTypes;
     }
 }

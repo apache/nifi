@@ -26,7 +26,7 @@
                 'nf.ProcessorDetails',
                 'nf.ConnectionDetails',
                 'nf.ng.Bridge',
-                'lodash-core'],
+                'lodash'],
             function ($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _) {
                 return (nf.SummaryTable = factory($, Slick, nfCommon, nfErrorHandler, nfStatusHistory, nfProcessorDetails, nfConnectionDetails, nfNgBridge, _));
             });
@@ -40,7 +40,7 @@
                 require('nf.ProcessorDetails'),
                 require('nf.ConnectionDetails'),
                 require('nf.ng.Bridge'),
-                require('lodash-core')));
+                require('lodash')));
     } else {
         nf.SummaryTable = factory(root.$,
             root.Slick,
@@ -544,7 +544,7 @@
 
         // initialize the templates table
         var processorsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -715,7 +715,7 @@
 
         // initialize the options for the cluster processors table
         var clusterProcessorsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -881,7 +881,7 @@
 
         // initialize the templates table
         var connectionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1024,7 +1024,7 @@
 
         // initialize the options for the cluster processors table
         var clusterConnectionsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1217,7 +1217,7 @@
 
         // initialize the templates table
         var processGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1388,7 +1388,7 @@
 
         // initialize the options for the cluster processors table
         var clusterProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1473,7 +1473,7 @@
 
         // initialize the input ports table
         var inputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1635,7 +1635,7 @@
 
         // initialize the options for the cluster input port table
         var clusterInputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1720,7 +1720,7 @@
 
         // initialize the input ports table
         var outputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1882,7 +1882,7 @@
 
         // initialize the options for the cluster output port table
         var clusterOutputPortsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -2023,7 +2023,7 @@
 
         // initialize the remote process groups table
         var remoteProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -2189,7 +2189,7 @@
 
         // initialize the options for the cluster remote process group table
         var clusterRemoteProcessGroupsOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: false,
             enableColumnReorder: false,
@@ -2301,6 +2301,29 @@
 
     var sortState = {};
 
+    var getMinTimeToBackPressure = function (connection) {
+        var maxCurrentUsage = Math.max(_.get(connection, 'percentUseBytes', 0), _.get(connection, 'percentUseCount', 0));
+
+        if (maxCurrentUsage >= 100) {
+            // currently experiencing back pressure
+            return 0;
+        }
+
+        var bytesPrediction = _.get(connection, 'predictions.predictedMillisUntilBytesBackpressure', -1);
+        var countPrediction = _.get(connection, 'predictions.predictedMillisUntilCountBackpressure', -1);
+
+        if (bytesPrediction < 0) {
+            // bytes prediction is unknown. return the count prediction if known, otherwise use the max
+            return countPrediction < 0 ? Number.MAX_VALUE : countPrediction;
+        } else if (countPrediction < 0) {
+            // count prediction is unknown but we know bytes prediction is known, return that
+            return bytesPrediction;
+        }
+
+        // if we get here, both predictions are known. return the minimum of the two
+        return Math.min(bytesPrediction, countPrediction);
+    }
+
     /**
      * Sorts the specified data using the specified sort details.
      *
@@ -2361,19 +2384,8 @@
                     return aPercentUseDataSize - bPercentUseDataSize;
                 }
             } else if (sortDetails.columnId === 'backpressurePrediction') {
-                // if the connection is at backpressure currently, "now" displays and not the estimate. Should account for that when sorting.
-                var aMaxCurrentUsage = Math.max(_.get(a, 'percentUseBytes', 0), _.get(a, 'percentUseCount', 0));
-                var bMaxCurrentUsage = Math.max(_.get(b, 'percentUseBytes', 0), _.get(b, 'percentUseCount', 0));
-
-                var aMinTime = Math.min(_.get(a, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(a, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
-                var bMinTime = Math.min(_.get(b, 'predictions.predictedMillisUntilBytesBackpressure', Number.MAX_VALUE), _.get(b, 'predictions.predictedMillisUntilCountBackpressure', Number.MAX_VALUE));
-
-                if (aMaxCurrentUsage >= 100) {
-                    aMinTime = 0;
-                }
-                if (bMaxCurrentUsage >= 100) {
-                    bMinTime = 0;
-                }
+                var aMinTime = getMinTimeToBackPressure(a);
+                var bMinTime = getMinTimeToBackPressure(b);
 
                 return aMinTime - bMinTime;
             } else if (sortDetails.columnId === 'sent' || sortDetails.columnId === 'received' || sortDetails.columnId === 'input' || sortDetails.columnId === 'output' || sortDetails.columnId === 'transferred') {
@@ -2547,7 +2559,7 @@
                     addGarbageCollection(garbageCollectionContainer, garbageCollection);
                 });
             }
-            
+
             // uptime
             $('#uptime').text(aggregateSnapshot.uptime);
 

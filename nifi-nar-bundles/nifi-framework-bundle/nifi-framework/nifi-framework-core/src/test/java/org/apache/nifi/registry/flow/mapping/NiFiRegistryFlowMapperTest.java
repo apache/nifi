@@ -34,12 +34,15 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -49,25 +52,25 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.ComponentType;
+import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.PortType;
+import org.apache.nifi.flow.PortType;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedFunnel;
-import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -78,6 +81,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -137,6 +141,8 @@ public class NiFiRegistryFlowMapperTest {
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
+        assertEquals(1, versionedParameterContexts.get("context10").getInheritedParameterContexts().size());
+        assertEquals("other-context", versionedParameterContexts.get("context10").getInheritedParameterContexts().get(0));
 
         final String expectedName = innerProcessGroup.getParameterContext().getName();
         verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
@@ -259,6 +265,7 @@ public class NiFiRegistryFlowMapperTest {
             when(parameterContext.getName()).thenReturn("context" + (counter++));
             final Map<ParameterDescriptor, Parameter> parametersMap = Maps.newHashMap();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
+            when(parameterContext.getInheritedParameterContextNames()).thenReturn(Arrays.asList("other-context"));
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);
@@ -337,6 +344,8 @@ public class NiFiRegistryFlowMapperTest {
         final ParameterContext parameterContext = mock(ParameterContext.class);
         when(processGroup.getParameterContext()).thenReturn(parameterContext);
         when(parameterContext.getName()).thenReturn("context"+(counter++));
+        when(processGroup.getFlowFileConcurrency()).thenReturn(FlowFileConcurrency.UNBOUNDED);
+        when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
 
         // prep funnels
         final Set<Funnel> funnels = Sets.newHashSet();
@@ -428,6 +437,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(port, processGroupId);
         preparePositionable(port);
         prepareConnectable(port, ConnectableType.valueOf(portType.name()));
+        when(port.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         return port;
     }
 
@@ -444,7 +454,6 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(processorNode, processGroup.getIdentifier());
         preparePositionable(processorNode);
         prepareConnectable(processorNode, ConnectableType.PROCESSOR);
-        when(processorNode.getProcessGroup()).thenReturn(processGroup);
         when(processorNode.getAutoTerminatedRelationships()).thenReturn(Collections.emptySet());
         when(processorNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(processorNode.getExecutionNode()).thenReturn(ExecutionNode.ALL);
@@ -524,6 +533,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(remoteGroupPort, remoteProcessGroup.getIdentifier());
         when(remoteGroupPort.getName()).thenReturn("remotePort" + (counter++));
         when(remoteGroupPort.getRemoteProcessGroup()).thenReturn(remoteProcessGroup);
+        when(remoteGroupPort.getScheduledState()).thenReturn(ScheduledState.DISABLED);
         return remoteGroupPort;
     }
 
@@ -566,6 +576,8 @@ public class NiFiRegistryFlowMapperTest {
         assertEquals(processGroup.getComments(), versionedProcessGroup.getComments());
         assertEquals(processGroup.getPosition().getX(), versionedProcessGroup.getPosition().getX(), 0);
         assertEquals(processGroup.getPosition().getY(), versionedProcessGroup.getPosition().getY(), 0);
+        assertEquals(processGroup.getFlowFileConcurrency().name(), versionedProcessGroup.getFlowFileConcurrency());
+        assertEquals(processGroup.getFlowFileOutboundPolicy().name(), versionedProcessGroup.getFlowFileOutboundPolicy());
 
         final String expectedParameterContextName =
                 (processGroup.getParameterContext() != null ? processGroup.getParameterContext().getName() : null);
@@ -741,6 +753,7 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(port.getPosition().getY(), versionedPort.getPosition().getY(), 0);
             assertEquals(port.getName(), versionedPort.getName());
             assertEquals(portType, versionedPort.getType());
+            assertEquals(org.apache.nifi.flow.ScheduledState.ENABLED, versionedPort.getScheduledState());
         }
     }
 
@@ -757,6 +770,8 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(expectedPortGroupIdentifier, versionedRemotePort.getGroupIdentifier());
             assertEquals(remotePort.getName(), versionedRemotePort.getName());
             assertEquals(componentType, versionedRemotePort.getComponentType());
+            assertNotNull(versionedRemotePort.getScheduledState());
+            assertEquals(remotePort.getScheduledState().name(), versionedRemotePort.getScheduledState().name());
         }
     }
 

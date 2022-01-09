@@ -17,9 +17,13 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.csv.CSVReader;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -41,7 +45,11 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.SQLException;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +57,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -66,10 +73,16 @@ public class TestQueryRecord {
 
     private static final String REL_NAME = "success";
 
+    private static final String ISO_DATE = "2018-02-04";
+    private static final String INSTANT_FORMATTED = String.format("%sT10:20:55Z", ISO_DATE);
+    private static final Instant INSTANT = Instant.parse(INSTANT_FORMATTED);
+    private static final Date INSTANT_DATE = Date.from(INSTANT);
+    private static final long INSTANT_EPOCH_MILLIS = INSTANT.toEpochMilli();
+
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(QueryRecord.class);
 
-        /**
+        /*
          * we have to disable validation of expression language because the scope of the evaluation
          * depends of the value of another property: if we are caching the schema/queries or not. If
          * we don't disable the validation, it'll throw an error saying that the scope is incorrect.
@@ -125,7 +138,11 @@ public class TestQueryRecord {
         assertEquals(30, output.getValue("ageObj"));
         assertArrayEquals(new String[] { "red", "green"}, (Object[]) output.getValue("colors"));
         assertArrayEquals(new String[] { "John Doe", "Jane Doe"}, (Object[]) output.getValue("names"));
-        assertEquals("1517702400000", output.getAsString("joinTime"));
+
+        final LocalDate localDate = LocalDate.parse(ISO_DATE);
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate.atStartOfDay(), ZoneOffset.systemDefault());
+        final long epochMillis = zonedDateTime.toInstant().toEpochMilli();
+        assertEquals(Long.toString(epochMillis), output.getAsString("joinTime"));
         assertEquals(Double.valueOf(180.8D), output.getAsDouble("weight"));
     }
 
@@ -246,6 +263,130 @@ public class TestQueryRecord {
         final Record output = written.get(0);
         assertEquals("John Doe", output.getValue("name"));
         assertEquals("Software Engineer", output.getValue("title"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithoutCastFailure() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        final Record record2 = createHierarchicalArrayRecord();
+        record2.setValue("height", 30);
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record2);
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT title, name, sum(height) as height_total " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(BigDecimal.valueOf(90.5D), output.getValue("height_total"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithCastChoice() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+                "SELECT title, name, " +
+                    "sum(CAST(height AS DOUBLE)) as height_total_double, " +
+                    "sum(CAST(height AS REAL)) as height_total_float " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Number height = 121.0;
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(height.doubleValue(), output.getValue("height_total_double"));
+        assertEquals(height.floatValue(), output.getValue("height_total_float"));
+    }
+
+    @Test
+    public void testCollectionFunctionsWithCastChoiceWithInts() throws InitializationException {
+        final Record record = createHierarchicalArrayRecord();
+        record.setValue("height", 30);
+
+        final ArrayListRecordReader recordReader = new ArrayListRecordReader(record.getSchema());
+        recordReader.addRecord(record);
+        recordReader.addRecord(record);
+
+        final ArrayListRecordWriter writer = new ArrayListRecordWriter(record.getSchema());
+
+        TestRunner runner = getRunner();
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(REL_NAME,
+            "SELECT title, name, " +
+                "sum(CAST(height AS INT)) as height_total_int, " +
+                "sum(CAST(height AS BIGINT)) as height_total_long " +
+                "FROM FLOWFILE " +
+                "GROUP BY title, name");
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(1, written.size());
+
+        final Number height = 60;
+        final Record output = written.get(0);
+        assertEquals("John Doe", output.getValue("name"));
+        assertEquals("Software Engineer", output.getValue("title"));
+        assertEquals(height.longValue(), output.getValue("height_total_long"));
+        assertEquals(height.intValue(), output.getValue("height_total_int"));
     }
 
     @Test
@@ -534,6 +675,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("dobTimestamp", RecordFieldType.LONG.getDataType()));
         personFields.add(new RecordField("joinTimestamp", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("weight", RecordFieldType.DOUBLE.getDataType()));
+        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.LONG.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("mother", RecordFieldType.RECORD.getRecordDataType(namedPersonSchema)));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
@@ -550,15 +692,16 @@ public class TestQueryRecord {
         favorites.put("roses", "raindrops");
         favorites.put("kittens", "whiskers");
 
-        final long ts = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(365 * 30);
+
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
         map.put("favoriteColors", new String[] { "red", "green" });
-        map.put("dob", new Date(ts));
-        map.put("dobTimestamp", ts);
-        map.put("joinTimestamp", "2018-02-04 10:20:55.802");
+        map.put("dob", INSTANT_DATE);
+        map.put("dobTimestamp", INSTANT_EPOCH_MILLIS);
+        map.put("joinTimestamp", INSTANT_FORMATTED);
         map.put("weight", 180.8D);
+        map.put("height", 60.5);
         map.put("mother", mother);
         final Record person = new MapRecord(personSchema, map);
 
@@ -566,8 +709,7 @@ public class TestQueryRecord {
         personValues.put("person", person);
         personValues.put("favoriteThings", favorites);
 
-        final Record record = new MapRecord(recordSchema, personValues);
-        return record;
+        return new MapRecord(recordSchema, personValues);
     }
 
 
@@ -592,8 +734,7 @@ public class TestQueryRecord {
         map.put("id", id);
         map.put("tags", Arrays.asList(tags));
 
-        final Record record = new MapRecord(recordSchema, map);
-        return record;
+        return new MapRecord(recordSchema, map);
     }
 
     /**
@@ -640,6 +781,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
         personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType())));
         personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
@@ -666,11 +808,10 @@ public class TestQueryRecord {
         final Map<String, Object> map = new HashMap<>();
         map.put("name", "John Doe");
         map.put("age", 30);
+        map.put("height", 60.5);
         map.put("title", "Software Engineer");
         map.put("addresses", new Record[] {homeAddress, workAddress});
-        final Record person = new MapRecord(personSchema, map);
-
-        return person;
+        return new MapRecord(personSchema, map);
     }
 
 
@@ -702,7 +843,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testSimple() throws InitializationException, IOException, SQLException {
+    public void testSimple() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("age", RecordFieldType.INT);
@@ -735,7 +876,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testNullable() throws InitializationException, IOException, SQLException {
+    public void testNullable() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING, true);
         parser.addSchemaField("age", RecordFieldType.INT, true);
@@ -770,7 +911,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testParseFailure() throws InitializationException, IOException, SQLException {
+    public void testParseFailure() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("age", RecordFieldType.INT);
@@ -802,9 +943,37 @@ public class TestQueryRecord {
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
     }
 
+    @Test
+    public void testNoRecordsInput() throws InitializationException {
+        TestRunner runner = getRunner();
+
+        CSVReader csvReader = new CSVReader();
+        runner.addControllerService("csv-reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"age\"");
+
+        runner.addControllerService("csv-reader", csvReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(csvReader);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name from FLOWFILE WHERE age > 23");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "csv-reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
+
+        runner.enqueue("name,age\n");
+        runner.run();
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        System.out.println(new String(out.toByteArray()));
+        out.assertContentEquals("\"name\",\"age\"\n");
+    }
+
 
     @Test
-    public void testTransformCalc() throws InitializationException, IOException, SQLException {
+    public void testTransformCalc() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("ID", RecordFieldType.INT);
         parser.addSchemaField("AMOUNT1", RecordFieldType.FLOAT);
@@ -869,7 +1038,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testAggregateFunction() throws InitializationException, IOException {
+    public void testAggregateFunction() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("points", RecordFieldType.INT);
@@ -898,7 +1067,7 @@ public class TestQueryRecord {
     }
 
     @Test
-    public void testNullValueInSingleField() throws InitializationException, IOException {
+    public void testNullValueInSingleField() throws InitializationException {
         final MockRecordParser parser = new MockRecordParser();
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("points", RecordFieldType.INT);
@@ -965,6 +1134,31 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
     }
 
+    @Test
+    public void testReturnsNoResultWithArrayColumn() throws InitializationException {
+        TestRunner runner = getRunner();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(REL_NAME, "SELECT * from FLOWFILE WHERE status = 'failure'");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
+
+        runner.enqueue("{\"status\": \"starting\",\"myArray\": [{\"foo\": \"foo\"}]}");
+        runner.run();
+
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertContentEquals("[]");
+    }
+
 
     private static class ResultSetValidatingRecordWriter extends AbstractControllerService implements RecordSetWriterFactory {
         private final List<String> columnNames;
@@ -974,7 +1168,7 @@ public class TestQueryRecord {
         }
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
             final List<RecordField> recordFields = columnNames.stream()
                 .map(name -> new RecordField(name, RecordFieldType.STRING.getDataType()))
                 .collect(Collectors.toList());
@@ -1018,7 +1212,7 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public WriteResult write(Record record) throws IOException {
+                public WriteResult write(Record record) {
                     return null;
                 }
 
@@ -1028,11 +1222,11 @@ public class TestQueryRecord {
                 }
 
                 @Override
-                public void beginRecordSet() throws IOException {
+                public void beginRecordSet() {
                 }
 
                 @Override
-                public WriteResult finishRecordSet() throws IOException {
+                public WriteResult finishRecordSet() {
                     return WriteResult.EMPTY;
                 }
             };

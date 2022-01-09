@@ -16,15 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
-import com.google.common.io.Files;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
@@ -32,13 +28,11 @@ import java.net.Proxy.Type;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.nio.file.Files;
 import java.security.Principal;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -55,20 +49,21 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
+
 import okhttp3.Cache;
+import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
+import okhttp3.Handshake;
+import okhttp3.Headers;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.MultipartBody.Builder;
 import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
@@ -76,6 +71,7 @@ import okhttp3.ResponseBody;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -85,6 +81,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -97,78 +94,98 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.Tuple;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
+
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @CapabilityDescription("An HTTP client processor which can interact with a configurable HTTP Endpoint. The destination URL and HTTP Method are configurable."
-    + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
+        + " FlowFile attributes are converted to HTTP headers and the FlowFile contents are included as the body of the request (if the HTTP Method is PUT, POST or PATCH).")
 @WritesAttributes({
-    @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
-    @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
-    @WritesAttribute(attribute = "invokehttp.response.body", description = "In the instance where the status code received is not a success (2xx) "
-        + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
-    @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
-    @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
-    @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.class", description = "The Java exception class raised when the processor fails"),
-    @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
-    @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
-        + "will become the attribute key and the value would be the body of the HTTP response.")})
-@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-                    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
-                            + "the Attribute Expression Language set in the value of the Dynamic Property.")
-public final class InvokeHTTP extends AbstractProcessor {
-    // flowfile attribute keys returned after reading the response
+        @WritesAttribute(attribute = InvokeHTTP.STATUS_CODE, description = "The status code that is returned"),
+        @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
+        @WritesAttribute(attribute = InvokeHTTP.RESPONSE_BODY, description = "In the instance where the status code received is not a success (2xx) "
+                + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
+        @WritesAttribute(attribute = InvokeHTTP.REQUEST_URL, description = "The original request URL"),
+        @WritesAttribute(attribute = InvokeHTTP.REQUEST_DURATION, description = "Duration (in milliseconds) of the HTTP call to the external endpoint"),
+        @WritesAttribute(attribute = InvokeHTTP.RESPONSE_URL, description = "The URL that was ultimately requested after any redirects were followed"),
+        @WritesAttribute(attribute = InvokeHTTP.TRANSACTION_ID, description = "The transaction ID that is returned after reading the response"),
+        @WritesAttribute(attribute = InvokeHTTP.REMOTE_DN, description = "The DN of the remote server"),
+        @WritesAttribute(attribute = InvokeHTTP.EXCEPTION_CLASS, description = "The Java exception class raised when the processor fails"),
+        @WritesAttribute(attribute = InvokeHTTP.EXCEPTION_MESSAGE, description = "The Java exception message raised when the processor fails"),
+        @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
+                + "will become the attribute key and the value would be the body of the HTTP response.")})
+@DynamicProperties({
+        @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description =
+                        "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                                + "the Attribute Expression Language set in the value of the Dynamic Property."),
+        @DynamicProperty(name = "post:form:<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+                description =
+                        "When the HTTP Method is POST, dynamic properties with the property name in the form of post:form:<NAME>,"
+                                + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
+                                + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
+})
+public class InvokeHTTP extends AbstractProcessor {
     public final static String STATUS_CODE = "invokehttp.status.code";
     public final static String STATUS_MESSAGE = "invokehttp.status.message";
     public final static String RESPONSE_BODY = "invokehttp.response.body";
     public final static String REQUEST_URL = "invokehttp.request.url";
+    public final static String REQUEST_DURATION = "invokehttp.request.duration";
+    public final static String RESPONSE_URL = "invokehttp.response.url";
     public final static String TRANSACTION_ID = "invokehttp.tx.id";
     public final static String REMOTE_DN = "invokehttp.remote.dn";
     public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
     public final static String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
 
-
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
+
+    public static final String FORM_BASE = "post:form";
 
     // Set of flowfile attributes which we generally always ignore during
     // processing, including when converting http headers, copying attributes, etc.
     // This set includes our strings defined above as well as some standard flowfile
     // attributes.
     public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
+            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, RESPONSE_URL, TRANSACTION_ID, REMOTE_DN,
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
-    // Set of HTTP header names explicitly excluded from requests.
-    private static final Map<String, String> excludedHeaders = new HashMap<String, String>();
-
     public static final String HTTP = "http";
     public static final String HTTPS = "https";
+
+    public static final String GET_METHOD = "GET";
+    public static final String POST_METHOD = "POST";
+    public static final String PUT_METHOD = "PUT";
+    public static final String PATCH_METHOD = "PATCH";
+    public static final String DELETE_METHOD = "DELETE";
+    public static final String HEAD_METHOD = "HEAD";
+    public static final String OPTIONS_METHOD = "OPTIONS";
+
+    private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
+    private static final String FORM_DATA_NAME_GROUP = "formDataName";
 
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
-                + "Methods other than POST, PUT and PATCH will be sent without a message body.")
+                    + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
-            .defaultValue("GET")
+            .defaultValue(GET_METHOD)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
@@ -197,6 +214,24 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROP_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("idle-timeout")
+            .displayName("Idle Timeout")
+            .description("Max idle time before closing connection to the remote service.")
+            .required(true)
+            .defaultValue("5 mins")
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .build();
+
+    public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
+            .name("max-idle-connections")
+            .displayName("Max Idle Connections")
+            .description("Max number of idle connections to keep open.")
+            .required(true)
+            .defaultValue("5")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
             .name("Include Date Header")
             .description("Include an RFC-2616 Date header in the request.")
@@ -223,6 +258,15 @@ public final class InvokeHTTP extends AbstractProcessor {
                     + "language will be the header value.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_USERAGENT = new PropertyDescriptor.Builder()
+            .name("Useragent")
+            .displayName("Useragent")
+            .description("The Useragent identifier sent along with each request")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -294,6 +338,30 @@ public final class InvokeHTTP extends AbstractProcessor {
             .defaultValue("true")
             .allowableValues("true", "false")
             .required(false)
+            .build();
+
+    public static final PropertyDescriptor PROP_FORM_BODY_FORM_NAME = new PropertyDescriptor.Builder()
+            .name("form-body-form-name")
+            .displayName("FlowFile Form Data Name")
+            .description("When Send Message Body is true, and FlowFile Form Data Name is set, "
+                    + " the FlowFile will be sent as the message body in multipart/form format with this value "
+                    + "as the form data name.")
+            .required(false)
+            .addValidator(
+                    StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor PROP_SET_FORM_FILE_NAME = new PropertyDescriptor.Builder()
+            .name("set-form-filename")
+            .displayName("Set FlowFile Form Data File Name")
+            .description(
+                    "When Send Message Body is true, FlowFile Form Data Name is set, "
+                            + "and Set FlowFile Form Data File Name is true, the FlowFile's fileName value "
+                            + "will be set as the filename property of the form data.")
+            .required(false)
+            .defaultValue("true")
+            .allowableValues("true", "false")
             .build();
 
     // Per RFC 7235, 2617, and 2616.
@@ -408,6 +476,37 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor IGNORE_RESPONSE_CONTENT = new PropertyDescriptor.Builder()
+            .name("ignore-response-content")
+            .description("If true, the processor will not write the response's content into the flow file.")
+            .displayName("Ignore response's content")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor DISABLE_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
+            .name("disable-http2")
+            .description("Determines whether or not to disable use of the HTTP/2 protocol version. If disabled, only HTTP/1.1 is supported.")
+            .displayName("Disable HTTP/2")
+            .required(true)
+            .defaultValue("False")
+            .allowableValues("True", "False")
+            .build();
+
+    public static final PropertyDescriptor FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("flow-file-naming-strategy")
+            .description("Determines the strategy used for setting the filename attribute of the FlowFile.")
+            .displayName("FlowFile Naming Strategy")
+            .required(true)
+            .defaultValue(FlowFileNamingStrategy.RANDOM.name())
+            .allowableValues(
+                    Arrays.stream(FlowFileNamingStrategy.values()).map(strategy ->
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    ).toArray(AllowableValue[]::new)
+            )
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -418,9 +517,14 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_SSL_CONTEXT_SERVICE,
             PROP_CONNECT_TIMEOUT,
             PROP_READ_TIMEOUT,
+            PROP_IDLE_TIMEOUT,
+            PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
+            DISABLE_HTTP2_PROTOCOL,
+            FLOW_FILE_NAMING_STRATEGY,
             PROP_ATTRIBUTES_TO_SEND,
+            PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
             PROXY_CONFIGURATION_SERVICE,
@@ -439,7 +543,10 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY,
             PROP_USE_ETAG,
-            PROP_ETAG_MAX_CACHE_SIZE));
+            PROP_ETAG_MAX_CACHE_SIZE,
+            IGNORE_RESPONSE_CONTENT,
+            PROP_FORM_BODY_FORM_NAME,
+            PROP_SET_FORM_FILE_NAME));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -475,23 +582,20 @@ public final class InvokeHTTP extends AbstractProcessor {
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS_REQ, REL_RESPONSE, REL_RETRY, REL_NO_RETRY, REL_FAILURE)));
 
+    // RFC 2616 Date Time Formatter with hard-coded GMT Zone
+    // https://tools.ietf.org/html/rfc2616#section-3.3 - date format header should not be localized
+    private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
+
+    // Multiple Header Delimiter
+    private static final String MULTIPLE_HEADER_DELIMITER = ", ";
+
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
-    /**
-     * Pattern used to compute RFC 2616 Dates (#sec3.3.1). This format is used by the HTTP Date header and is optionally sent by the processor. This date is effectively an RFC 822/1123 date
-     * string, but HTTP requires it to be in GMT (preferring the literal 'GMT' string).
-     */
-    private static final String RFC_1123 = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormat.forPattern(RFC_1123).withLocale(Locale.US).withZoneUTC();
+    private volatile Pattern regexAttributesToSend = null;
+
+    private volatile boolean useChunked = false;
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
-
-    protected void init(ProcessorInitializationContext context) {
-        excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
-                             "Update processor to use the SSLContextService instead. " +
-                             "See the Access Policies section in the System Administrator's Guide.");
-
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -500,6 +604,22 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith(FORM_BASE)) {
+
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(propertyDescriptorName);
+            if (matcher.matches()) {
+                return new PropertyDescriptor.Builder()
+                        .required(false)
+                        .name(propertyDescriptorName)
+                        .description("Form Data " + matcher.group(FORM_DATA_NAME_GROUP))
+                        .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                        .dynamic(true)
+                        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                        .build();
+            }
+            return null;
+        }
+
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
@@ -513,9 +633,6 @@ public final class InvokeHTTP extends AbstractProcessor {
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
     }
-
-    private volatile Pattern regexAttributesToSend = null;
-    private volatile boolean useChunked = false;
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
@@ -574,25 +691,52 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
-        for (String headerKey : validationContext.getProperties().values()) {
-            if (excludedHeaders.containsKey(headerKey)) {
-                // We're not using the header message format string here, just this
-                // static validation message string:
-                results.add(new ValidationResult.Builder().subject(headerKey).valid(false).explanation("Matches excluded HTTP header name").build());
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        boolean hasFormData = false;
+        for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
+            final Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(descriptor.getName());
+            if (matcher.matches()) {
+                hasFormData = true;
+                break;
             }
+        }
+
+        // if form data exists, and send body is true, Flowfile Form Data Name must be set.
+        final boolean sendBody = validationContext.getProperty(PROP_SEND_BODY).asBoolean();
+        final boolean contentNameSet = validationContext.getProperty(PROP_FORM_BODY_FORM_NAME).isSet();
+        if (hasFormData) {
+            if (sendBody && !contentNameSet) {
+                final String explanation = String.format("[%s] is required when Form Data properties are configured and [%s] is enabled",
+                        PROP_FORM_BODY_FORM_NAME.getDisplayName(),
+                        PROP_SEND_BODY.getDisplayName());
+                results.add(new ValidationResult.Builder()
+                        .subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                        .valid(false)
+                        .explanation(explanation)
+                        .build());
+            }
+        }
+        if (!sendBody && contentNameSet) {
+            final String explanation = String.format("[%s] must be [true] when Form Data properties are configured and [%s] is configured",
+                    PROP_SEND_BODY.getDisplayName(),
+                    PROP_FORM_BODY_FORM_NAME.getDisplayName());
+            results.add(new ValidationResult.Builder()
+                    .subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                    .valid(false)
+                    .explanation(explanation)
+                    .build());
         }
 
         return results;
     }
 
     @OnScheduled
-    public void setUpClient(final ProcessContext context) throws IOException, UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+    public void setUpClient(final ProcessContext context) throws TlsException, IOException {
         okHttpClientAtomicReference.set(null);
 
         OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient().newBuilder();
 
-        // Add a proxy if set
-        boolean isHttpsProxy = HTTPS.equals(context.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue());
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
             final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
             final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
@@ -620,118 +764,46 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         // configure ETag cache if enabled
         final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(etagEnabled) {
+        if (etagEnabled) {
             final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
             okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
+        }
+
+        // Configure whether HTTP/2 protocol should be disabled
+        if (context.getProperty(DISABLE_HTTP2_PROTOCOL).asBoolean()) {
+            okHttpClientBuilder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
         }
 
         // Set timeouts
         okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
+        // Set connectionpool limits
+        okHttpClientBuilder.connectionPool(
+                new ConnectionPool(
+                        context.getProperty(PROP_MAX_IDLE_CONNECTIONS).asInteger(),
+                        context.getProperty(PROP_IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS
+                )
+        );
+
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple =SslContextFactory.createTrustSslContextWithTrustManagers(
-                        sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
-                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
-                        sslService.getKeyStoreType(),
-                        sslService.getTrustStoreFile(),
-                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
-                        sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.NONE,
-                        sslService.getSslAlgorithm());
-            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                    .filter(trustManager -> trustManager instanceof X509TrustManager)
-                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-            okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-            }
+        if (sslService != null) {
+            final SSLContext sslContext = sslService.createContext();
+            final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
+        }
 
         setAuthenticator(okHttpClientBuilder, context);
 
         useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
-    }
-
-    /*
-        Overall, this method is based off of examples from OkHttp3 documentation:
-            https://square.github.io/okhttp/3.x/okhttp/okhttp3/OkHttpClient.Builder.html#sslSocketFactory-javax.net.ssl.SSLSocketFactory-javax.net.ssl.X509TrustManager-
-            https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/CustomTrust.java#L156
-
-        In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
-            https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
-     */
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
-            throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
-
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
-        KeyManager[] keyManagers = null;
-
-        // we will only initialize the keystore if properties have been supplied by the SSLContextService
-        if (sslService.isKeyStoreConfigured()) {
-            final String keystoreLocation = sslService.getKeyStoreFile();
-            final String keystorePass = sslService.getKeyStorePassword();
-            final String keystoreType = sslService.getKeyStoreType();
-
-            // prepare the keystore
-            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-                keyStore.load(keyStoreStream, keystorePass.toCharArray());
-            }
-
-            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        }
-
-        // we will only initialize the truststure if properties have been supplied by the SSLContextService
-        if (sslService.isTrustStoreConfigured()) {
-            // load truststore
-            final String truststoreLocation = sslService.getTrustStoreFile();
-            final String truststorePass = sslService.getTrustStorePassword();
-            final String truststoreType = sslService.getTrustStoreType();
-
-            char[] truststorePasswordChars = new char[0];
-            if (StringUtils.isNotBlank(truststorePass)) {
-                truststorePasswordChars = truststorePass.toCharArray();
-            }
-
-            KeyStore truststore = KeyStore.getInstance(truststoreType);
-            truststore.load(new FileInputStream(truststoreLocation), truststorePasswordChars);
-            trustManagerFactory.init(truststore);
-        }
-
-         /*
-            TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
-            as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
-
-            https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
-         */
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
-        }
-
-        // if keystore properties were not supplied, the keyManagers array will be null
-        sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
-
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
-        if (setAsSocketFactory) {
-            okHttpClientBuilder.socketFactory(sslSocketFactory);
-        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
@@ -764,12 +836,12 @@ public final class InvokeHTTP extends AbstractProcessor {
         // Checking to see if the property to put the body of the response in an attribute was set
         boolean putToAttribute = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).isSet();
         if (requestFlowFile == null) {
-            if(context.hasNonLoopConnection()){
+            if (context.hasNonLoopConnection()) {
                 return;
             }
 
             String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions().getValue().toUpperCase();
-            if ("POST".equals(request) || "PUT".equals(request) || "PATCH".equals(request)) {
+            if (POST_METHOD.equals(request) || PUT_METHOD.equals(request) || PATCH_METHOD.equals(request)) {
                 return;
             } else if (putToAttribute) {
                 requestFlowFile = session.create();
@@ -780,22 +852,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
         final ComponentLog logger = getLogger();
 
-        // log ETag cache metrics
-        final boolean eTagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if(eTagEnabled && logger.isDebugEnabled()) {
-            final Cache cache = okHttpClient.cache();
-            logger.debug("OkHttp ETag cache metrics :: Request Count: {} | Network Count: {} | Hit Count: {}",
-                    new Object[] {cache.requestCount(), cache.networkCount(), cache.hitCount()});
-        }
-
         // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
         final UUID txId = UUID.randomUUID();
 
         FlowFile responseFlowFile = null;
         try {
             // read the url property from the context
-            final String urlstr = trimToEmpty(context.getProperty(PROP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
-            final URL url = new URL(urlstr);
+            final String urlProperty = trimToEmpty(context.getProperty(PROP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
+            final URL url = new URL(urlProperty);
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
 
@@ -817,15 +881,13 @@ public final class InvokeHTTP extends AbstractProcessor {
                 int statusCode = responseHttp.code();
                 String statusMessage = responseHttp.message();
 
-                if (statusCode == 0) {
-                    throw new IllegalStateException("Status code unknown, connection hasn't been attempted.");
-                }
-
                 // Create a map of the status attributes that are always written to the request and response FlowFiles
                 Map<String, String> statusAttributes = new HashMap<>();
                 statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
                 statusAttributes.put(STATUS_MESSAGE, statusMessage);
                 statusAttributes.put(REQUEST_URL, url.toExternalForm());
+                statusAttributes.put(REQUEST_DURATION, Long.toString(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos)));
+                statusAttributes.put(RESPONSE_URL, responseHttp.request().url().toString());
                 statusAttributes.put(TRANSACTION_ID, txId.toString());
 
                 if (requestFlowFile != null) {
@@ -836,13 +898,13 @@ public final class InvokeHTTP extends AbstractProcessor {
                 if (context.getProperty(PROP_ADD_HEADERS_TO_REQUEST).asBoolean() && requestFlowFile != null) {
                     // write the response headers as attributes
                     // this will overwrite any existing flowfile attributes
-                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(url, responseHttp));
+                    requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp));
                 }
 
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
                 boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
-                boolean bodyExists = responseBody != null;
+                boolean bodyExists = responseBody != null && !context.getProperty(IGNORE_RESPONSE_CONTENT).asBoolean();
 
                 InputStream responseBodyStream = null;
                 SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
@@ -872,14 +934,23 @@ public final class InvokeHTTP extends AbstractProcessor {
 
                         // write the response headers as attributes
                         // this will overwrite any existing flowfile attributes
-                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(url, responseHttp));
+                        responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
+
+                        // update FlowFile's filename attribute with an extracted value from the remote URL
+                        if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && GET_METHOD.equals(httpRequest.method())) {
+                            String fileName = getFileNameFromUrl(url);
+                            if (fileName != null) {
+                                responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
+                            }
+                        }
 
                         // transfer the message body to the payload
                         // can potentially be null in edge cases
                         if (bodyExists) {
                             // write content type attribute to response flowfile if it is available
-                            if (responseBody.contentType() != null) {
-                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), responseBody.contentType().toString());
+                            final MediaType contentType = responseBody.contentType();
+                            if (contentType != null) {
+                                responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.MIME_TYPE.key(), contentType.toString());
                             }
                             if (teeInputStream != null) {
                                 responseFlowFile = session.importFrom(teeInputStream, responseFlowFile);
@@ -889,7 +960,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
                             // emit provenance event
                             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                            if(requestFlowFile != null) {
+                            if (requestFlowFile != null) {
                                 session.getProvenanceReporter().fetch(responseFlowFile, url.toExternalForm(), millis);
                             } else {
                                 session.getProvenanceReporter().receive(responseFlowFile, url.toExternalForm(), millis);
@@ -921,16 +992,13 @@ public final class InvokeHTTP extends AbstractProcessor {
                                 + url.toExternalForm() + ". It took " + millis + "millis,");
                     }
                 } finally {
-                    if(outputStreamToRequestAttribute != null){
+                    if (outputStreamToRequestAttribute != null) {
                         outputStreamToRequestAttribute.close();
-                        outputStreamToRequestAttribute = null;
                     }
-                    if(teeInputStream != null){
+                    if (teeInputStream != null) {
                         teeInputStream.close();
-                        teeInputStream = null;
-                    } else if(responseBodyStream != null){
+                    } else if (responseBodyStream != null) {
                         responseBodyStream.close();
-                        responseBodyStream = null;
                     }
                 }
 
@@ -953,21 +1021,16 @@ public final class InvokeHTTP extends AbstractProcessor {
 
 
             // cleanup response flowfile, if applicable
-            try {
-                if (responseFlowFile != null) {
-                    session.remove(responseFlowFile);
-                }
-            } catch (final Exception e1) {
-                logger.error("Could not cleanup response flowfile due to exception: {}", new Object[]{e1}, e1);
+            if (responseFlowFile != null) {
+                session.remove(responseFlowFile);
             }
         }
     }
 
-
     private Request configureRequest(final ProcessContext context, final ProcessSession session, final FlowFile requestFlowFile, URL url) {
-        Request.Builder requestBuilder = new Request.Builder();
+        final Request.Builder requestBuilder = new Request.Builder();
 
-        requestBuilder = requestBuilder.url(url);
+        requestBuilder.url(url);
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
@@ -975,83 +1038,123 @@ public final class InvokeHTTP extends AbstractProcessor {
             final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
             String credential = Credentials.basic(authUser, authPass);
-            requestBuilder = requestBuilder.header("Authorization", credential);
+            requestBuilder.header("Authorization", credential);
         }
 
         // set the request method
         String method = trimToEmpty(context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile).getValue()).toUpperCase();
         switch (method) {
-            case "GET":
-                requestBuilder = requestBuilder.get();
+            case GET_METHOD:
+                requestBuilder.get();
                 break;
-            case "POST":
+            case POST_METHOD:
                 RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile);
-                requestBuilder = requestBuilder.post(requestBody);
+                requestBuilder.post(requestBody);
                 break;
-            case "PUT":
+            case PUT_METHOD:
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile);
-                requestBuilder = requestBuilder.put(requestBody);
+                requestBuilder.put(requestBody);
                 break;
-            case "PATCH":
+            case PATCH_METHOD:
                 requestBody = getRequestBodyToSend(session, context, requestFlowFile);
-                requestBuilder = requestBuilder.patch(requestBody);
+                requestBuilder.patch(requestBody);
                 break;
-            case "HEAD":
-                requestBuilder = requestBuilder.head();
+            case HEAD_METHOD:
+                requestBuilder.head();
                 break;
-            case "DELETE":
-                requestBuilder = requestBuilder.delete();
+            case DELETE_METHOD:
+                requestBuilder.delete();
                 break;
             default:
-                requestBuilder = requestBuilder.method(method, null);
+                requestBuilder.method(method, null);
         }
 
-        requestBuilder = setHeaderProperties(context, requestBuilder, requestFlowFile);
+        String userAgent = trimToEmpty(context.getProperty(PROP_USERAGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
+        requestBuilder.addHeader("User-Agent", userAgent);
+
+        setHeaderProperties(context, requestBuilder, requestFlowFile);
 
         return requestBuilder.build();
     }
 
-    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
-        if(context.getProperty(PROP_SEND_BODY).asBoolean()) {
-            return new RequestBody() {
-                @Override
-                public MediaType contentType() {
-                    String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
-                    contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
-                    return MediaType.parse(contentType);
-                }
+    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context,
+                                             final FlowFile requestFlowFile) {
 
-                @Override
-                public void writeTo(BufferedSink sink) throws IOException {
-                    session.exportTo(requestFlowFile, sink.outputStream());
-                }
+        boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
 
-                @Override
-                public long contentLength(){
-                    return useChunked ? -1 : requestFlowFile.getSize();
-                }
-            };
-        } else {
-            return RequestBody.create(null, new byte[0]);
+        String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
+                .evaluateAttributeExpressions(requestFlowFile).getValue();
+        final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
+        String contentKey = context.getProperty(PROP_FORM_BODY_FORM_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            if (matcher.matches()) {
+                propertyDescriptors.put(matcher.group(FORM_DATA_NAME_GROUP), entry.getKey());
+            }
         }
+
+        RequestBody requestBody = new RequestBody() {
+            @Nullable
+            @Override
+            public MediaType contentType() {
+                return MediaType.parse(contentType);
+            }
+
+            @Override
+            public void writeTo(BufferedSink sink) {
+                session.exportTo(requestFlowFile, sink.outputStream());
+            }
+
+            @Override
+            public long contentLength() {
+                return useChunked ? -1 : requestFlowFile.getSize();
+            }
+        };
+
+        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(contentKey)) {
+            // we have form data
+            MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
+            boolean useFileName = context.getProperty(PROP_SET_FORM_FILE_NAME).asBoolean();
+            String contentFileName = null;
+            if (useFileName) {
+                contentFileName = requestFlowFile.getAttribute(CoreAttributes.FILENAME.key());
+            }
+            // loop through the dynamic form parameters
+            for (final Map.Entry<String, PropertyDescriptor> entry : propertyDescriptors.entrySet()) {
+                final String propValue = context.getProperty(entry.getValue().getName())
+                        .evaluateAttributeExpressions(requestFlowFile).getValue();
+                builder.addFormDataPart(entry.getKey(), propValue);
+            }
+            if (sendBody) {
+                builder.addFormDataPart(contentKey, contentFileName, requestBody);
+            }
+            return builder.build();
+        } else if (sendBody) {
+            return requestBody;
+        }
+        return RequestBody.create(new byte[0], null);
     }
 
-    private Request.Builder setHeaderProperties(final ProcessContext context, Request.Builder requestBuilder, final FlowFile requestFlowFile) {
+    private void setHeaderProperties(final ProcessContext context, final Request.Builder requestBuilder, final FlowFile requestFlowFile) {
         // check if we should send the a Date header with the request
         if (context.getProperty(PROP_DATE_HEADER).asBoolean()) {
-            requestBuilder = requestBuilder.addHeader("Date", DATE_FORMAT.print(System.currentTimeMillis()));
+            final ZonedDateTime universalCoordinatedTimeNow = ZonedDateTime.now(ZoneOffset.UTC);
+            requestBuilder.addHeader("Date", RFC_2616_DATE_TIME.format(universalCoordinatedTimeNow));
         }
 
-        final ComponentLog logger = getLogger();
         for (String headerKey : dynamicPropertyNames) {
             String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
 
-            // don't include any of the excluded headers, log instead
-            if (excludedHeaders.containsKey(headerKey)) {
-                logger.warn(excludedHeaders.get(headerKey), new Object[]{headerKey});
+            // don't include dynamic form data properties
+            if (DYNAMIC_FORM_PARAMETER_NAME.matcher(headerKey).matches()) {
                 continue;
             }
-            requestBuilder = requestBuilder.addHeader(headerKey, headerValue);
+
+            requestBuilder.addHeader(headerKey, headerValue);
         }
 
         // iterate through the flowfile attributes, adding any attribute that
@@ -1073,15 +1176,13 @@ public final class InvokeHTTP extends AbstractProcessor {
                 m.reset(headerKey);
                 if (m.matches()) {
                     String headerVal = trimToEmpty(entry.getValue());
-                    requestBuilder = requestBuilder.addHeader(headerKey, headerVal);
+                    requestBuilder.addHeader(headerKey, headerVal);
                 }
             }
         }
-        return requestBuilder;
     }
 
-
-    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode){
+    private void route(FlowFile request, FlowFile response, ProcessSession session, ProcessContext context, int statusCode) {
         // check if we should yield the processor
         if (!isSuccess(statusCode) && request == null) {
             context.yield();
@@ -1130,95 +1231,59 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     private void logRequest(ComponentLog logger, Request request) {
         logger.debug("\nRequest to remote service:\n\t{}\n{}",
-                new Object[]{request.url().url().toExternalForm(), getLogString(request.headers().toMultimap())});
+                request.url().url().toExternalForm(), getLogString(request.headers().toMultimap()));
     }
 
     private void logResponse(ComponentLog logger, URL url, Response response) {
         logger.debug("\nResponse from remote service:\n\t{}\n{}",
-                new Object[]{url.toExternalForm(), getLogString(response.headers().toMultimap())});
+                url.toExternalForm(), getLogString(response.headers().toMultimap()));
     }
 
     private String getLogString(Map<String, List<String>> map) {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, List<String>> entry : map.entrySet()) {
             List<String> list = entry.getValue();
-            if (list.isEmpty()) {
-                continue;
+            if (!list.isEmpty()) {
+                sb.append("\t");
+                sb.append(entry.getKey());
+                sb.append(": ");
+                if (list.size() == 1) {
+                    sb.append(list.get(0));
+                } else {
+                    sb.append(list.toString());
+                }
+                sb.append("\n");
             }
-            sb.append("\t");
-            sb.append(entry.getKey());
-            sb.append(": ");
-            if (list.size() == 1) {
-                sb.append(list.get(0));
-            } else {
-                sb.append(list.toString());
-            }
-            sb.append("\n");
         }
         return sb.toString();
     }
 
     /**
-     * Convert a collection of string values into a overly simple comma separated string.
-     * <p/>
-     * Does not handle the case where the value contains the delimiter. i.e. if a value contains a comma, this method does nothing to try and escape or quote the value, in traditional csv style.
-     */
-    private String csv(Collection<String> values) {
-        if (values == null || values.isEmpty()) {
-            return "";
-        }
-        if (values.size() == 1) {
-            return values.iterator().next();
-        }
-
-        StringBuilder sb = new StringBuilder();
-        for (String value : values) {
-            value = value.trim();
-            if (value.isEmpty()) {
-                continue;
-            }
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append(value);
-        }
-        return sb.toString().trim();
-    }
-
-    /**
      * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
      */
-    private Map<String, String> convertAttributesFromHeaders(URL url, Response responseHttp){
+    private Map<String, String> convertAttributesFromHeaders(final Response responseHttp) {
         // create a new hashmap to store the values from the connection
-        Map<String, String> map = new HashMap<>();
-        responseHttp.headers().names().forEach( (key) -> {
-                if (key == null) {
-                    return;
-                }
-
-                List<String> values = responseHttp.headers().values(key);
-
-                // we ignore any headers with no actual values (rare)
-                if (values == null || values.isEmpty()) {
-                    return;
-                }
-
+        final Map<String, String> attributes = new HashMap<>();
+        final Headers headers = responseHttp.headers();
+        headers.names().forEach((key) -> {
+            final List<String> values = headers.values(key);
+            // we ignore any headers with no actual values (rare)
+            if (!values.isEmpty()) {
                 // create a comma separated string from the values, this is stored in the map
-                String value = csv(values);
-
-                // put the csv into the map
-                map.put(key, value);
+                final String value = StringUtils.join(values, MULTIPLE_HEADER_DELIMITER);
+                attributes.put(key, value);
+            }
         });
 
-        if (responseHttp.request().isHttps()) {
-            Principal principal = responseHttp.handshake().peerPrincipal();
-
+        final Handshake handshake = responseHttp.handshake();
+        if (handshake != null) {
+            final Principal principal = handshake.peerPrincipal();
             if (principal != null) {
-                map.put(REMOTE_DN, principal.getName());
+                attributes.put(REMOTE_DN, principal.getName());
             }
         }
 
-        return map;
+        return attributes;
     }
 
     private Charset getCharsetFromMediaType(MediaType contentType) {
@@ -1229,31 +1294,28 @@ public final class InvokeHTTP extends AbstractProcessor {
      * Retrieve the directory in which OkHttp should cache responses. This method opts
      * to use a temp directory to write the cache, which means that the cache will be written
      * to a new location each time this processor is scheduled.
-     *
+     * <p>
      * Ref: https://github.com/square/okhttp/wiki/Recipes#response-caching
      *
      * @return the directory in which the ETag cache should be written
      */
-    private static File getETagCacheDir() {
-        return Files.createTempDir();
+    private static File getETagCacheDir() throws IOException {
+        return Files.createTempDirectory(InvokeHTTP.class.getSimpleName()).toFile();
     }
 
-    private static class OverrideHostnameVerifier implements HostnameVerifier {
+    private FlowFileNamingStrategy getFlowFileNamingStrategy(final ProcessContext context) {
+        final String strategy = context.getProperty(FLOW_FILE_NAMING_STRATEGY).getValue();
+        return FlowFileNamingStrategy.valueOf(strategy);
+    }
 
-        private final String trustedHostname;
-        private final HostnameVerifier delegate;
+    private String getFileNameFromUrl(URL url) {
+        String fileName = null;
+        String path = StringUtils.removeEnd(url.getPath(), "/");
 
-        private OverrideHostnameVerifier(String trustedHostname, HostnameVerifier delegate) {
-            this.trustedHostname = trustedHostname;
-            this.delegate = delegate;
+        if (!StringUtils.isEmpty(path)) {
+            fileName = path.substring(path.lastIndexOf('/') + 1);
         }
 
-        @Override
-        public boolean verify(String hostname, SSLSession session) {
-            if (trustedHostname.equalsIgnoreCase(hostname)) {
-                return true;
-            }
-            return delegate.verify(hostname, session);
-        }
+        return fileName;
     }
 }

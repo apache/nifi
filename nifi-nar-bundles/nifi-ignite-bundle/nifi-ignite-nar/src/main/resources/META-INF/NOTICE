@@ -38,11 +38,6 @@ The following binary components are provided under the Apache Software License v
       Apache Commons IO
       Copyright 2002-2016 The Apache Software Foundation
 
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2013 The Apache Software Foundation
-
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
@@ -50,8 +45,8 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Framework
     The following NOTICE information applies:
-      Spring Framework 4.2.4.RELEASE
-      Copyright (c) 2002-2016 Pivotal, Inc.
+      Spring Framework 5
+      Copyright (c) 2002-2021 Pivotal, Inc.
 
 *****************
 Public Domain

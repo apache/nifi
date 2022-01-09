@@ -19,9 +19,10 @@ package org.apache.nifi.atlas.provenance.analyzer;
 import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
+import org.apache.nifi.atlas.provenance.FilesystemPathsLevel;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.junit.Test;
@@ -37,30 +38,62 @@ import static org.mockito.Mockito.when;
 public class TestHDFSPath {
 
     @Test
-    public void testHDFSPath() {
-        final String processorName = "PutHDFS";
+    public void testHDFSPathWithFileLevel() {
         // TODO: what if with HA namenode?
         final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
+        final String expectedPath = "/user/nifi/fileA";
+        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+    }
+
+    @Test
+    public void testHDFSPathWithDirectoryLevel() {
+        final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
+        final String expectedPath = "/user/nifi";
+        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+    }
+
+    @Test
+    public void testHDFSPathRootDirWithFileLevel() {
+        final String transitUri = "hdfs://0.example.com:8020/fileA";
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
+        final String expectedPath = "/fileA";
+        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+    }
+
+    @Test
+    public void testHDFSPathRootDirWithDirectoryLevel() {
+        final String transitUri = "hdfs://0.example.com:8020/fileA";
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
+        final String expectedPath = "/";
+        testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
+    }
+
+    private void testHDFSPath(String transitUri, FilesystemPathsLevel filesystemPathsLevel, String expectedPath) {
+        final String processorName = "PutHDFS";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
         when(record.getComponentType()).thenReturn(processorName);
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
+        when(context.getFilesystemPathsLevel()).thenReturn(filesystemPathsLevel);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
+        assertEquals(HDFSPath.class, analyzer.getClass());
 
         final DataSetRefs refs = analyzer.analyze(context, record);
         assertEquals(0, refs.getInputs().size());
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hdfs_path", ref.getTypeName());
-        assertEquals("/user/nifi/fileA", ref.get(ATTR_NAME));
-        assertEquals("/user/nifi/fileA@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals(expectedPath, ref.get(ATTR_NAME));
+        assertEquals(expectedPath + "@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 }

@@ -232,23 +232,6 @@ public class AbstractCassandraProcessorTest {
         assertNotNull(processor.getCluster());
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testConnectToCassandraWithSSLBadClientAuth() throws Exception {
-        SSLContextService sslService = mock(SSLContextService.class);
-        when(sslService.getIdentifier()).thenReturn("ssl-context");
-        testRunner.addControllerService("ssl-context", sslService);
-        testRunner.enableControllerService(sslService);
-        testRunner.setProperty(AbstractCassandraProcessor.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
-        testRunner.setProperty(AbstractCassandraProcessor.CONSISTENCY_LEVEL, "ONE");
-        testRunner.assertValid(sslService);
-        processor.connectToCassandra(testRunner.getProcessContext());
-        assertNotNull(processor.getCluster());
-        processor.setCluster(null);
-        // Try with a ClientAuth value
-        testRunner.setProperty(AbstractCassandraProcessor.CLIENT_AUTH, "BAD");
-        processor.connectToCassandra(testRunner.getProcessContext());
-    }
-
     @Test
     public void testConnectToCassandraUsernamePassword() throws Exception {
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "user");

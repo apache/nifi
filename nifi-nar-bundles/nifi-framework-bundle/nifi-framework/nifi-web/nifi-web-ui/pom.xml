@@ -18,12 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
     <properties>
-        <node.version>v8.10.0</node.version>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
@@ -36,14 +35,11 @@
         <users.filter>users.properties</users.filter>
         <bulletin.board.filter>bulletin-board.properties</bulletin.board.filter>
         <login.filter>login.properties</login.filter>
+        <logout.filter>logout.properties</logout.filter>
         <provenance.filter>provenance.properties</provenance.filter>
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
-        <!--
-            This property can be set on the command line and allows any bower cli options to be set.
-        -->
-        <bower.options />
     </properties>
     <build>
         <!--
@@ -66,6 +62,7 @@
             <filter>src/main/resources/filters/${users.filter}</filter>
             <filter>src/main/resources/filters/${bulletin.board.filter}</filter>
             <filter>src/main/resources/filters/${login.filter}</filter>
+            <filter>src/main/resources/filters/${logout.filter}</filter>
             <filter>src/main/resources/filters/${provenance.filter}</filter>
         </filters>
         <plugins>
@@ -101,7 +98,8 @@
                                 **/templates.jsp,
                                 **/users.jsp,
                                 **/bulletin-board.jsp,
-                                **/login.jsp
+                                **/login.jsp,
+                                **/logout.jsp
                             </excludes>
                         </configuration>
                     </execution>
@@ -236,8 +234,8 @@
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
 
-                                        <include>lodash-core/distrib/lodash-core.min.js</include>
-                                        <include>lodash-core/distrib/README.md</include>
+                                        <include>lodash/lodash.min.js</include>
+                                        <include>lodash/README.md</include>
 
                                         <include>moment/min/moment.min.js</include>
                                         <include>moment/README.md</include>
@@ -262,6 +260,7 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>package.json</include>
+                                        <include>package-lock.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -361,13 +360,21 @@
                             </includes>
                             <filtering>true</filtering>
                         </resource>
+                        <resource>
+                            <directory>src/main/webapp/WEB-INF/pages</directory>
+                            <targetPath>WEB-INF/pages</targetPath>
+                            <includes>
+                                <include>logout.jsp</include>
+                            </includes>
+                            <filtering>true</filtering>
+                        </resource>
                     </webResources>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.4</version>
+                <version>1.12.0</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -388,7 +395,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--cache-min Infinity install</arguments>
+                            <arguments>--silent ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -446,6 +453,7 @@
                 <users.filter>users-min.properties</users.filter>
                 <bulletin.board.filter>bulletin-board-min.properties</bulletin.board.filter>
                 <login.filter>login-min.properties</login.filter>
+                <logout.filter>logout-min.properties</logout.filter>
                 <provenance.filter>provenance-min.properties</provenance.filter>
             </properties>
             <build>
@@ -478,6 +486,7 @@
                                                 <include>${staging.dir}/js/nf/nf-ng-bridge.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ng-service-provider.js</include>
                                                 <include>${staging.dir}/js/nf/nf-cluster-summary.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
@@ -492,6 +501,7 @@
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-utils.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-go-to.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-snippet.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-verify.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-connection.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-funnel.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-label.js</include>
@@ -560,6 +570,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/history/nf-history-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -576,6 +587,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/provenance/nf-provenance-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -594,6 +606,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/summary/nf-summary-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -621,6 +634,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/counters/nf-counters-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -636,6 +650,7 @@
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-client.js</include>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -650,6 +665,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/templates/nf-templates-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -664,6 +680,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/cluster/nf-cluster-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -678,6 +695,7 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/bulletin-board/nf-bulletin-board-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
@@ -695,12 +713,20 @@
                                             <output>${project.build.directory}/${project.build.finalName}/js/nf/login/nf-login-all.js</output>
                                             <includes>
                                                 <include>${staging.dir}/js/nf/nf-dialog.js</include>
+                                                <include>${staging.dir}/js/nf/nf-authorization-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-storage.js</include>
                                                 <include>${staging.dir}/js/nf/nf-common.js</include>
                                                 <include>${staging.dir}/js/nf/nf-error-handler.js</include>
                                                 <include>${staging.dir}/js/nf/nf-universal-capture.js</include>
                                                 <include>${staging.dir}/js/nf/nf-ajax-setup.js</include>
                                                 <include>${staging.dir}/js/nf/login/nf-login.js</include>
+                                            </includes>
+                                        </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/js/nf/logout/nf-logout-all.js</output>
+                                            <includes>
+                                                <include>${staging.dir}/js/nf/logout/nf-logout.js</include>
                                             </includes>
                                         </aggregation>
                                         <aggregation>
@@ -840,6 +866,16 @@
                                                 <include>${staging.dir}/css/login.css</include>
                                             </includes>
                                         </aggregation>
+                                        <aggregation>
+                                            <insertNewLine>true</insertNewLine>
+                                            <output>${project.build.directory}/${project.build.finalName}/css/nf-logout-all.css</output>
+                                            <includes>
+                                                <include>${staging.dir}/css/main.css</include>
+                                                <include>${staging.dir}/css/banner.css</include>
+                                                <include>${staging.dir}/css/dialog.css</include>
+                                                <include>${staging.dir}/css/logout.css</include>
+                                            </includes>
+                                        </aggregation>
                                     </aggregations>
                                 </configuration>
                             </execution>
@@ -886,6 +922,8 @@
                                 css/nf-bulletin-board-all.css.gz,
                                 css/nf-login-all.css,
                                 css/nf-login-all.css.gz,
+                                css/nf-logout-all.css,
+                                css/nf-logout-all.css.gz,
                                 js/*,
                                 js/d3/**/*,
                                 js/codemirror/**/*,
@@ -898,6 +936,8 @@
                                 js/nf/canvas/nf-ng-canvas-namespace.js.gz,
                                 js/nf/nf-universal-capture.js,
                                 js/nf/nf-universal-capture.js.gz,
+                                js/nf/nf-authorization-storage.js,
+                                js/nf/nf-authorization-storage.js.gz,
                                 js/nf/nf-storage.js,
                                 js/nf/nf-storage.js.gz,
                                 js/nf/nf-ajax-setup.js,
@@ -926,6 +966,8 @@
                                 js/nf/bulletin-board/nf-bulletin-board-all.js.gz,
                                 js/nf/login/nf-login-all.js,
                                 js/nf/login/nf-login-all.js.gz,
+                                js/nf/logout/nf-logout-all.js,
+                                js/nf/logout/nf-logout-all.js.gz,
                                 views/*,
                                 fonts/**/*,
                                 images/*,

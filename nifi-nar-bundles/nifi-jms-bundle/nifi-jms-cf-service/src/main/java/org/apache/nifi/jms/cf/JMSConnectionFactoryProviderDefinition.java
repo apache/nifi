@@ -16,31 +16,10 @@
  */
 package org.apache.nifi.jms.cf;
 
-import javax.jms.ConnectionFactory;
-
 import org.apache.nifi.controller.ControllerService;
 
 /**
- * Defines a strategy to create implementations to load and initialize third
- * party implementations of the {@link ConnectionFactory}
+ * Base interface of controller service implementations of IJMSConnectionFactoryProvider.
  */
-public interface JMSConnectionFactoryProviderDefinition extends ControllerService {
-
-    /**
-     * Returns an instance of the {@link ConnectionFactory} specific to the
-     * target messaging system (i.e.,
-     * org.apache.activemq.ActiveMQConnectionFactory).
-     *
-     * @return instance of {@link ConnectionFactory}
-     */
-    ConnectionFactory getConnectionFactory();
-
-    /**
-     * Resets {@link ConnectionFactory}.
-     * Provider should reset {@link ConnectionFactory} only if a copy provided by a client matches
-     * current {@link ConnectionFactory}.
-     * @param cachedFactory - {@link ConnectionFactory} cached by client.
-     */
-    void resetConnectionFactory(ConnectionFactory cachedFactory);
-
+public interface JMSConnectionFactoryProviderDefinition extends IJMSConnectionFactoryProvider, ControllerService {
 }

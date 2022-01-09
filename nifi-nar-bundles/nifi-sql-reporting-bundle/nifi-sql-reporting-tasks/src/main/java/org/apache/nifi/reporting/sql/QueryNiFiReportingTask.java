@@ -38,13 +38,15 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
+
 @Tags({"status", "connection", "processor", "jvm", "metrics", "history", "bulletin", "prediction", "process", "group", "provenance", "record", "sql"})
 @CapabilityDescription("Publishes NiFi status information based on the results of a user-specified SQL query. The query may make use of the CONNECTION_STATUS, PROCESSOR_STATUS, "
         + "BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables, and can use any functions or capabilities provided by Apache Calcite. Note that the "
         + "CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled (see the nifi.analytics.predict.enabled property in nifi.properties). Attempting a "
         + "query on the table when the capability is disabled will cause an error.")
 public class QueryNiFiReportingTask extends AbstractReportingTask {
-
 
     private List<PropertyDescriptor> properties;
 
@@ -54,11 +56,12 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
 
     @Override
     protected void init(final ReportingInitializationContext config) {
-        metricsQueryService = new MetricsSqlQueryService(getLogger());
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(QueryMetricsUtil.QUERY);
         properties.add(QueryMetricsUtil.RECORD_SINK);
         properties.add(QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
+        properties.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -71,6 +74,9 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
     public void setup(final ConfigurationContext context) throws IOException {
         recordSinkService = context.getProperty(QueryMetricsUtil.RECORD_SINK).asControllerService(RecordSinkService.class);
         recordSinkService.reset();
+        final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
+        metricsQueryService = new MetricsSqlQueryService(getLogger(), defaultPrecision, defaultScale);
     }
 
     @Override

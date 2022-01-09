@@ -18,6 +18,7 @@ package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Set;
@@ -28,7 +29,10 @@ public class ParameterDTO {
     private String description;
     private Boolean sensitive;
     private String value;
+    private Boolean valueRemoved;
     private Set<AffectedComponentEntity> referencingComponents;
+    private ParameterContextReferenceEntity parameterContext;
+    private Boolean inherited;
 
     @ApiModelProperty("The name of the Parameter")
     public String getName() {
@@ -37,6 +41,15 @@ public class ParameterDTO {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @ApiModelProperty(value = "Whether or not the Parameter is inherited from another context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    public Boolean getInherited() {
+        return inherited;
+    }
+
+    public void setInherited(final Boolean inherited) {
+        this.inherited = inherited;
     }
 
     @ApiModelProperty("The description of the Parameter")
@@ -66,9 +79,28 @@ public class ParameterDTO {
         this.value = value;
     }
 
+    @ApiModelProperty("Whether or not the value of the Parameter was removed. When a request is made to change a parameter, the value may be null. The absence of the value may be used either to " +
+        "indicate that the value is not to be changed, or that the value is to be set to null (i.e., removed). This denotes which of the two scenarios is being encountered.")
+    public Boolean getValueRemoved() {
+        return valueRemoved;
+    }
+
+    public void setValueRemoved(final Boolean valueRemoved) {
+        this.valueRemoved = valueRemoved;
+    }
+
     @ApiModelProperty("The set of all components in the flow that are referencing this Parameter")
     public Set<AffectedComponentEntity> getReferencingComponents() {
         return referencingComponents;
+    }
+
+    public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty("A reference to the Parameter Context that contains this one")
+    public ParameterContextReferenceEntity getParameterContext() {
+        return parameterContext;
     }
 
     public void setReferencingComponents(final Set<AffectedComponentEntity> referencingComponents) {

@@ -23,15 +23,18 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hbase.put.PutColumn;
+import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,6 +42,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
@@ -50,11 +56,30 @@ public class MockHBaseClientService extends HBase_1_1_2_ClientService {
     private String family;
     private Map<String, Result> results = new HashMap<>();
     private KerberosProperties kerberosProperties;
+    private boolean allowExplicitKeytab;
+    private UserGroupInformation mockUgi;
+
+    {
+        mockUgi = mock(UserGroupInformation.class);
+        try {
+            doAnswer(invocation -> {
+                PrivilegedExceptionAction<?> action = invocation.getArgument(0);
+                return action.run();
+            }).when(mockUgi).doAs(any(PrivilegedExceptionAction.class));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties) {
+        this(table, family, kerberosProperties, false);
+    }
+
+    public MockHBaseClientService(final Table table, final String family, final KerberosProperties kerberosProperties, boolean allowExplicitKeytab) {
         this.table = table;
         this.family = family;
         this.kerberosProperties = kerberosProperties;
+        this.allowExplicitKeytab = allowExplicitKeytab;
     }
 
     @Override
@@ -122,6 +147,35 @@ public class MockHBaseClientService extends HBase_1_1_2_ClientService {
     }
 
     @Override
+    public void put(final String tableName, final Collection<PutFlowFile> puts) throws IOException {
+        final Map<String, List<PutColumn>> sorted = new HashMap<>();
+        final List<Put> newPuts = new ArrayList<>();
+
+        for (final PutFlowFile putFlowFile : puts) {
+            Map<String, String> map = new HashMap<String, String>();
+            final String rowKeyString = new String(putFlowFile.getRow(), StandardCharsets.UTF_8);
+            List<PutColumn> columns = sorted.get(rowKeyString);
+            if (columns == null) {
+                columns = new ArrayList<>();
+                sorted.put(rowKeyString, columns);
+            }
+
+            columns.addAll(putFlowFile.getColumns());
+            for (PutColumn column : putFlowFile.getColumns()) {
+                map.put(new String(column.getColumnQualifier()), new String(column.getBuffer()));
+            }
+
+            addResult(new String(putFlowFile.getRow()), map, 1);
+        }
+
+        for (final Map.Entry<String, List<PutColumn>> entry : sorted.entrySet()) {
+            newPuts.addAll(buildPuts(entry.getKey().getBytes(StandardCharsets.UTF_8), entry.getValue()));
+        }
+
+        table.put(newPuts);
+    }
+
+    @Override
     public boolean checkAndPut(final String tableName, final byte[] rowId, final byte[] family, final byte[] qualifier, final byte[] value, final PutColumn column) throws IOException {
         for (Result result : results.values()) {
             if (Arrays.equals(result.getRow(), rowId)) {
@@ -169,4 +223,13 @@ public class MockHBaseClientService extends HBase_1_1_2_ClientService {
         return connection;
     }
 
+    @Override
+    boolean isAllowExplicitKeytab() {
+        return allowExplicitKeytab;
+    }
+
+    @Override
+    UserGroupInformation getUgi() {
+        return mockUgi;
+    }
 }

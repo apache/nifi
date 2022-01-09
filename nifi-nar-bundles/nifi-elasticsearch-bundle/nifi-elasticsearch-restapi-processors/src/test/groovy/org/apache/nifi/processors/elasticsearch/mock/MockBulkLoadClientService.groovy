@@ -24,17 +24,22 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
     IndexOperationResponse response
     Closure evalClosure
+    Closure evalParametersClosure
 
     @Override
-    IndexOperationResponse bulk(List<IndexOperationRequest> items) {
+    IndexOperationResponse bulk(List<IndexOperationRequest> items, Map<String, String> requestParameters) {
         if (throwRetriableError) {
-            throw new MockElasticsearchError(true)
+            throw new MockElasticsearchException(true, false)
         } else if (throwFatalError) {
-            throw new MockElasticsearchError(false)
+            throw new MockElasticsearchException(false, false)
         }
 
         if (evalClosure) {
             evalClosure.call(items)
+        }
+
+        if (evalParametersClosure) {
+            evalParametersClosure.call(requestParameters)
         }
 
         response

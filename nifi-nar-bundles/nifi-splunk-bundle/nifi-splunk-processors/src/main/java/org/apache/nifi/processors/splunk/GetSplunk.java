@@ -38,7 +38,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -66,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @TriggerSerially
@@ -105,6 +105,20 @@ public class GetSplunk extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .defaultValue("8089")
+            .build();
+    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Connection Timeout")
+            .description("Max wait time for connection to the Splunk server.")
+            .required(false)
+            .defaultValue("5 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Read Timeout")
+            .description("Max wait time for response from the Splunk server.")
+            .required(false)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
             .name("Query")
@@ -257,6 +271,8 @@ public class GetSplunk extends AbstractProcessor {
         descriptors.add(SCHEME);
         descriptors.add(HOSTNAME);
         descriptors.add(PORT);
+        descriptors.add(CONNECT_TIMEOUT);
+        descriptors.add(READ_TIMEOUT);
         descriptors.add(QUERY);
         descriptors.add(TIME_FIELD_STRATEGY);
         descriptors.add(TIME_RANGE_STRATEGY);
@@ -396,7 +412,7 @@ public class GetSplunk extends AbstractProcessor {
         } else {
             try {
                 // not provided so we need to check the previous state
-                final TimeRange previousRange = loadState(context.getStateManager());
+                final TimeRange previousRange = loadState(session);
                 final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
                 dateFormat.setTimeZone(TimeZone.getTimeZone(timeZone));
 
@@ -412,7 +428,7 @@ public class GetSplunk extends AbstractProcessor {
                     // if its the first time through don't actually run, just save the state to get the
                     // initial time saved and next execution will be the first real execution
                     if (latestTime.equals(earliestTime)) {
-                        saveState(context.getStateManager(), new TimeRange(earliestTime, latestTime));
+                        saveState(session, new TimeRange(earliestTime, latestTime));
                         return;
                     }
 
@@ -496,7 +512,7 @@ public class GetSplunk extends AbstractProcessor {
         // only need to do this for the managed time strategies
         if (!PROVIDED_VALUE.getValue().equals(timeRangeStrategy)) {
             try {
-                saveState(context.getStateManager(), new TimeRange(earliestTime, latestTime));
+                saveState(session, new TimeRange(earliestTime, latestTime));
             } catch (IOException e) {
                 getLogger().error("Unable to load data from State Manager due to {}", new Object[]{e.getMessage()}, e);
                 session.rollback();
@@ -516,6 +532,12 @@ public class GetSplunk extends AbstractProcessor {
 
         final int port = context.getProperty(PORT).asInteger();
         serviceArgs.setPort(port);
+
+        final int connect_timeout = context.getProperty(CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("connectTimeout",connect_timeout);
+
+        final int read_timeout = context.getProperty(READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        serviceArgs.add("readTimeout",read_timeout);
 
         final String app = context.getProperty(APP).getValue();
         if (!StringUtils.isBlank(app)) {
@@ -550,7 +572,7 @@ public class GetSplunk extends AbstractProcessor {
         return Service.connect(serviceArgs);
     }
 
-    private void saveState(StateManager stateManager, TimeRange timeRange) throws IOException {
+    private void saveState(final ProcessSession session, TimeRange timeRange) throws IOException {
         final String earliest = StringUtils.isBlank(timeRange.getEarliestTime()) ? "" : timeRange.getEarliestTime();
         final String latest = StringUtils.isBlank(timeRange.getLatestTime()) ? "" : timeRange.getLatestTime();
 
@@ -559,11 +581,11 @@ public class GetSplunk extends AbstractProcessor {
         state.put(LATEST_TIME_KEY, latest);
 
         getLogger().debug("Saving state with earliestTime of {} and latestTime of {}", new Object[] {earliest, latest});
-        stateManager.setState(state, Scope.CLUSTER);
+        session.setState(state, Scope.CLUSTER);
     }
 
-    private TimeRange loadState(StateManager stateManager) throws IOException {
-        final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
+    private TimeRange loadState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
 
         if (stateMap.getVersion() < 0) {
             getLogger().debug("No previous state found");

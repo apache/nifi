@@ -18,7 +18,6 @@ package org.apache.nifi.rules;
 
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.spel.SpELCondition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.expression.Expression;
@@ -28,7 +27,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 public class RulesSPELCondition implements Condition {
-    private static final Logger LOGGER = LoggerFactory.getLogger(SpELCondition.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RulesSPELCondition.class);
     private final ExpressionParser parser = new SpelExpressionParser();
     private String expression;
     private Expression compiledExpression;

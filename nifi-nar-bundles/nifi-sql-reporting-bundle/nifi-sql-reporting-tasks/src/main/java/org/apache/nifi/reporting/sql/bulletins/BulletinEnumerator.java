@@ -97,14 +97,16 @@ public class BulletinEnumerator implements Enumerator<Object> {
                 bulletin.getCategory(),
                 bulletin.getGroupId(),
                 bulletin.getGroupName(),
+                bulletin.getGroupPath(),
                 bulletin.getLevel(),
                 bulletin.getMessage(),
                 bulletin.getNodeAddress(),
                 nodeId,
                 bulletin.getSourceId(),
                 bulletin.getSourceName(),
-                bulletin.getSourceType().name(),
-                bulletin.getTimestamp()
+                bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(),
+                bulletin.getTimestamp() == null ? null : bulletin.getTimestamp().getTime(),
+                bulletin.getFlowFileUuid()
         };
 
         // If we want no fields just return null

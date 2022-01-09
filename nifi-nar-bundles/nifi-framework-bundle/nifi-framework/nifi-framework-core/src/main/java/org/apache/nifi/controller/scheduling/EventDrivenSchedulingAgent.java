@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.EventBasedWorker;
 import org.apache.nifi.controller.EventDrivenWorkerQueue;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
@@ -32,8 +33,9 @@ import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -49,8 +51,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,8 +69,9 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
     private final RepositoryContextFactory contextFactory;
     private final AtomicInteger maxThreadCount;
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final ExtensionManager extensionManager;
+    private final NodeTypeProvider nodeTypeProvider;
 
     private volatile String adminYieldDuration = "1 sec";
 
@@ -75,7 +80,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     public EventDrivenSchedulingAgent(final FlowEngine flowEngine, final ControllerServiceProvider serviceProvider, final StateManagerProvider stateManagerProvider,
                                       final EventDrivenWorkerQueue workerQueue, final RepositoryContextFactory contextFactory, final int maxThreadCount,
-                                      final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+                                      final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final NodeTypeProvider nodeTypeProvider) {
         super(flowEngine);
         this.serviceProvider = serviceProvider;
         this.stateManagerProvider = stateManagerProvider;
@@ -84,6 +89,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
         this.maxThreadCount = new AtomicInteger(maxThreadCount);
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
+        this.nodeTypeProvider = nodeTypeProvider;
 
         for (int i = 0; i < maxThreadCount; i++) {
             final Runnable eventDrivenTask = new EventDrivenTask(workerQueue, activeThreadCount);
@@ -119,6 +125,11 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
         workerQueue.resumeWork(connectable);
         logger.info("Scheduled {} to run in Event-Driven mode", connectable);
         scheduleStates.put(connectable, scheduleState);
+    }
+
+    @Override
+    protected void doScheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -205,7 +216,8 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     if (connectable instanceof ProcessorNode) {
                         final ProcessorNode procNode = (ProcessorNode) connectable;
                         final StateManager stateManager = new TaskTerminationAwareStateManager(getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
-                        final StandardProcessContext standardProcessContext = new StandardProcessContext(procNode, serviceProvider, encryptor, stateManager, scheduleState::isTerminated);
+                        final StandardProcessContext standardProcessContext = new StandardProcessContext(
+                                procNode, serviceProvider, encryptor, stateManager, scheduleState::isTerminated, nodeTypeProvider);
 
                         final long runNanos = procNode.getRunDuration(TimeUnit.NANOSECONDS);
                         final ProcessSessionFactory sessionFactory;
@@ -252,7 +264,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         } finally {
                             if (batch && rawSession != null) {
                                 try {
-                                    rawSession.commit();
+                                    rawSession.commitAsync();
                                 } catch (final RuntimeException re) {
                                     logger.error("Unable to commit process session", re);
                                 }

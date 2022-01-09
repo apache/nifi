@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
@@ -28,26 +29,31 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
+import java.io.InputStream;
 
 public class JerseyConnectionClient extends AbstractJerseyClient implements ConnectionClient {
-    private final WebTarget connectionTarget;
-    private final WebTarget processGroupTarget;
-    private final WebTarget flowFileQueueTarget;
+    private volatile WebTarget connectionTarget;
+    private volatile WebTarget processGroupTarget;
+    private volatile WebTarget flowFileQueueTarget;
 
     public JerseyConnectionClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyConnectionClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyConnectionClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
 
         this.connectionTarget = baseTarget.path("/connections/{id}");
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
         this.flowFileQueueTarget = baseTarget.path("/flowfile-queues/{id}");
     }
 
+    @Override
+    public void acknowledgeDisconnectedNode() {
+        connectionTarget = connectionTarget.queryParam("disconnectedNodeAcknowledged", true);
+        processGroupTarget = processGroupTarget.queryParam("disconnectedNodeAcknowledged", true);
+        flowFileQueueTarget = flowFileQueueTarget.queryParam("disconnectedNodeAcknowledged", true);
+    }
 
     @Override
     public ConnectionEntity getConnection(final String id) throws NiFiClientException, IOException {
@@ -65,15 +71,23 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
 
     @Override
     public ConnectionEntity deleteConnection(final String id, final String clientId, final long version) throws NiFiClientException, IOException {
+        return deleteConnection(id, clientId, version, false);
+    }
+
+    public ConnectionEntity deleteConnection(final String id, final String clientId, final long version, final Boolean nodeDisconnectionAcknowledged) throws NiFiClientException, IOException {
         if (id == null) {
             throw new IllegalArgumentException("Connection id cannot be null");
         }
 
         return executeAction("Error deleting Connection", () -> {
-            final WebTarget target = connectionTarget
+            WebTarget target = connectionTarget
                 .queryParam("version", version)
                 .queryParam("clientId", clientId)
                 .resolveTemplate("id", id);
+
+            if (nodeDisconnectionAcknowledged == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", true);
+            }
 
             return getRequestBuilder(target).delete(ConnectionEntity.class);
         });
@@ -88,7 +102,7 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
             throw new IllegalArgumentException("Revision cannot be null");
         }
 
-        return deleteConnection(connectionEntity.getId(), connectionEntity.getRevision().getClientId(), connectionEntity.getRevision().getVersion());
+        return deleteConnection(connectionEntity.getId(), connectionEntity.getRevision().getClientId(), connectionEntity.getRevision().getVersion(), connectionEntity.isDisconnectedNodeAcknowledged());
     }
 
     @Override
@@ -269,6 +283,29 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
             }
 
             return getRequestBuilder(target).get(FlowFileEntity.class);
+        });
+    }
+
+    @Override
+    public InputStream getFlowFileContent(final String connectionId, final String flowFileUuid, final String nodeId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (flowFileUuid == null) {
+            throw new IllegalArgumentException("FlowFile UUID cannot be null");
+        }
+
+        return executeAction("Error retrieving FlowFile Content", () -> {
+            WebTarget target = flowFileQueueTarget
+                .path("flowfiles/{uuid}/content")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("uuid", flowFileUuid);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
+
+            return getRequestBuilder(target).get(InputStream.class);
         });
     }
 }

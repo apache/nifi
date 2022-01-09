@@ -17,14 +17,6 @@
 
 package org.apache.nifi.provenance.serialization;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.AbstractRecordWriter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocWriter;
@@ -33,6 +25,14 @@ import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.NonCloseableOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     private static final Logger logger = LoggerFactory.getLogger(CompressableRecordWriter.class);
@@ -145,7 +145,7 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
         }
     }
 
-    protected synchronized void ensureStreamState(final long recordIdentifier, final long startBytes) throws IOException {
+    protected void ensureStreamState(final long recordIdentifier, final long startBytes) throws IOException {
         // add a new block to the TOC if needed.
         if (getTocWriter() != null && (startBytes - blockStartOffset >= uncompressedBlockSize)) {
             blockStartOffset = startBytes;
@@ -222,4 +222,5 @@ public abstract class CompressableRecordWriter extends AbstractRecordWriter {
     protected abstract int getSerializationVersion();
 
     protected abstract String getSerializationName();
+
 }

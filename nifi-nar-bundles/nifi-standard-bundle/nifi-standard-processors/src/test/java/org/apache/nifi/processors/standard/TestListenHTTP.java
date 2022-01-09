@@ -16,56 +16,71 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
-
+import java.io.File;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Random;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import javax.servlet.http.HttpServletResponse;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.servlet.http.HttpServletResponse;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.thread.ThreadPool;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class TestListenHTTP {
 
     private static final String SSL_CONTEXT_SERVICE_IDENTIFIER = "ssl-context";
 
-    private static final String HTTP_POST_METHOD = "POST";
+    private static final MediaType APPLICATION_OCTET_STREAM = MediaType.get("application/octet-stream");
     private static final String HTTP_BASE_PATH = "basePath";
 
     private final static String PORT_VARIABLE = "HTTP_PORT";
@@ -73,11 +88,89 @@ public class TestListenHTTP {
 
     private final static String BASEPATH_VARIABLE = "HTTP_BASEPATH";
     private final static String HTTP_SERVER_BASEPATH_EL = "${" + BASEPATH_VARIABLE + "}";
+    private static final String MULTIPART_ATTRIBUTE = "http.multipart.name";
+
+    private static final String TLS_1_3 = "TLSv1.3";
+    private static final String TLS_1_2 = "TLSv1.2";
+    private static final String LOCALHOST = "localhost";
+
+    private static final int SOCKET_CONNECT_TIMEOUT = 100;
+    private static final long SERVER_START_TIMEOUT = 1200000;
+    private static final Duration CLIENT_CALL_TIMEOUT = Duration.ofSeconds(10);
+    public static final String LOCALHOST_DN = "CN=localhost";
+
+    private static TlsConfiguration tlsConfiguration;
+    private static TlsConfiguration serverConfiguration;
+    private static TlsConfiguration serverTls_1_3_Configuration;
+    private static TlsConfiguration serverNoTruststoreConfiguration;
+    private static SSLContext serverKeyStoreSslContext;
+    private static SSLContext serverKeyStoreNoTrustStoreSslContext;
+    private static SSLContext keyStoreSslContext;
+    private static SSLContext trustStoreSslContext;
+    private static X509TrustManager trustManager;
 
     private ListenHTTP proc;
     private TestRunner runner;
 
     private int availablePort;
+
+    @BeforeClass
+    public static void setUpSuite() throws GeneralSecurityException {
+        // generate new keystore and truststore
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+
+        serverConfiguration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType(),
+                TLS_1_2
+        );
+        serverTls_1_3_Configuration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType(),
+                TLS_1_3
+        );
+        serverNoTruststoreConfiguration = new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeyPassword(),
+                tlsConfiguration.getKeystoreType(),
+                null,
+                null,
+                null,
+                TLS_1_2
+        );
+
+        serverKeyStoreSslContext = SslContextUtils.createSslContext(serverConfiguration);
+        trustManager = SslContextFactory.getX509TrustManager(serverConfiguration);
+        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(serverNoTruststoreConfiguration, new TrustManager[]{trustManager});
+
+        keyStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
+                tlsConfiguration.getKeystorePath(),
+                tlsConfiguration.getKeystorePassword(),
+                tlsConfiguration.getKeystoreType(),
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType())
+        );
+        trustStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
+                null,
+                null,
+                null,
+                tlsConfiguration.getTruststorePath(),
+                tlsConfiguration.getTruststorePassword(),
+                tlsConfiguration.getTruststoreType())
+        );
+    }
 
     @Before
     public void setup() throws IOException {
@@ -86,13 +179,11 @@ public class TestListenHTTP {
         availablePort = NetworkUtils.availablePort();
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
         runner.setVariable(BASEPATH_VARIABLE, HTTP_BASE_PATH);
-
     }
 
     @After
-    public void teardown() {
+    public void shutdownServer() {
         proc.shutdownHttpServer();
-        new File("/Users/alopresto/Workspace/nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/my-file-text.txt").delete();
     }
 
     @Test
@@ -133,9 +224,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -146,9 +235,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -160,9 +247,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -173,9 +258,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecurePOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(false);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -187,9 +270,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -199,10 +280,46 @@ public class TestListenHTTP {
     }
 
     @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithUnauthorizedSubjectDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, "CN=other");
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_FORBIDDEN, true, true);
+    }
+
+    @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithAuthorizedIssuerDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, LOCALHOST_DN);
+        runner.setProperty(ListenHTTP.AUTHORIZED_ISSUER_DN_PATTERN, LOCALHOST_DN);
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK, true, true);
+    }
+
+    @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithUnauthorizedIssuerDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, LOCALHOST_DN); // Although subject is authorized, issuer is not
+        runner.setProperty(ListenHTTP.AUTHORIZED_ISSUER_DN_PATTERN, "CN=other");
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_FORBIDDEN, true, true);
+    }
+
+    @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -214,9 +331,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
@@ -227,9 +342,7 @@ public class TestListenHTTP {
 
     @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithEL() throws Exception {
-        SSLContextService sslContextService = configureProcessorSslContextService(true);
-        runner.setProperty(sslContextService, StandardRestrictedSSLContextService.RESTRICTED_SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -240,63 +353,223 @@ public class TestListenHTTP {
     }
 
     @Test
-    public void testSecureInvalidSSLConfiguration() throws Exception {
-        SSLContextService sslContextService = configureInvalidProcessorSslContextService();
-        runner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, "TLSv1.2");
-        runner.enableControllerService(sslContextService);
+    public void testSecureServerSupportsCurrentTlsProtocolVersion() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
+        startSecureServer();
 
-        runner.setProperty(ListenHTTP.PORT, HTTP_SERVER_PORT_EL);
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_SERVER_BASEPATH_EL);
+        final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
+        final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
+        final String currentProtocol = serverNoTruststoreConfiguration.getProtocol();
+        sslSocket.setEnabledProtocols(new String[]{currentProtocol});
+
+        sslSocket.startHandshake();
+        final SSLSession sslSession = sslSocket.getSession();
+        assertEquals("SSL Session Protocol not matched", currentProtocol, sslSession.getProtocol());
+    }
+
+    @Test
+    public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+        startSecureServer();
+        assertThrows(IOException.class, () -> postMessage(null, true, false));
+    }
+
+    @Test
+    public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
+        startSecureServer();
+        final int responseCode = postMessage(null, true, true);
+        assertEquals(HttpServletResponse.SC_NO_CONTENT, responseCode);
+    }
+
+    @Test
+    public void testSecureServerRejectsUnsupportedTlsProtocolVersion() throws Exception {
+        final String currentProtocol = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
+        final String protocolMessage = String.format("TLS Protocol required [%s] found [%s]", TLS_1_3, currentProtocol);
+        Assume.assumeTrue(protocolMessage, TLS_1_3.equals(currentProtocol));
+
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverTls_1_3_Configuration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+
+        startWebServer();
+        final SSLSocketFactory sslSocketFactory = trustStoreSslContext.getSocketFactory();
+        final SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(LOCALHOST, availablePort);
+        sslSocket.setEnabledProtocols(new String[]{TLS_1_2});
+
+        assertThrows(SSLHandshakeException.class, sslSocket::startHandshake);
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeTooLow() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "7");
+
+        // THEN
         runner.assertNotValid();
     }
 
-    private int executePOST(String message, boolean secure, boolean twoWaySsl) throws Exception {
-        String endpointUrl = buildUrl(secure);
-        final URL url = new URL(endpointUrl);
-        HttpURLConnection connection;
+    @Test
+    public void testMaxThreadPoolSizeTooHigh() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "1001");
 
+        // THEN
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeOkLowerBound() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "8");
+
+        // THEN
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeOkUpperBound() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "1000");
+
+        // THEN
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeSpecifiedInThePropertyIsSetInTheServerInstance() {
+        // GIVEN
+        int maxThreadPoolSize = 201;
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, Integer.toString(maxThreadPoolSize));
+
+        // WHEN
+        startWebServer();
+
+        // THEN
+        Server server = proc.getServer();
+        ThreadPool threadPool = server.getThreadPool();
+        ThreadPool.SizedThreadPool sizedThreadPool = (ThreadPool.SizedThreadPool) threadPool;
+        assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
+    }
+
+    @Test
+    public void testPOSTRequestsReceivedWithRecordReader() throws Exception {
+        final MockRecordParser parser = setupRecordReaderTest();
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+        final String expectedMessage =
+                "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n" +
+                "\"3\",\"rec3\",\"103\"\n" +
+                "\"4\",\"rec4\",\"104\"\n";
+
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false);
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
+        mockFlowFiles.get(0).assertContentEquals(expectedMessage);
+    }
+
+    @Test
+    public void testReturn400WhenInvalidPOSTRequestSentWithRecordReader() throws Exception {
+        final MockRecordParser parser = setupRecordReaderTest();
+        parser.failAfter(2);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_BAD_REQUEST, false, false);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 0);
+    }
+
+    private MockRecordParser setupRecordReaderTest() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        final MockRecordWriter writer = new MockRecordWriter();
+
+        runner.addControllerService("mockRecordParser", parser);
+        runner.setProperty(ListenHTTP.RECORD_READER, "mockRecordParser");
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.addControllerService("mockRecordWriter", writer);
+        runner.setProperty(ListenHTTP.RECORD_WRITER, "mockRecordWriter");
+
+        return parser;
+    }
+
+    private void startSecureServer() {
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.assertValid();
+        startWebServer();
+    }
+
+    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws IOException {
+        final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
+        final Request.Builder requestBuilder = new Request.Builder();
+        final String url = buildUrl(secure);
+        requestBuilder.url(url);
+
+        final byte[] bytes = message == null ? new byte[]{} : message.getBytes(StandardCharsets.UTF_8);
+        final RequestBody requestBody = RequestBody.create(bytes, APPLICATION_OCTET_STREAM);
+        final Request request = requestBuilder.post(requestBody).build();
+
+        try (final Response response = okHttpClient.newCall(request).execute()) {
+            return response.code();
+        }
+    }
+
+    private OkHttpClient getOkHttpClient(final boolean secure, final boolean clientAuthRequired) {
+        final OkHttpClient.Builder builder = new OkHttpClient.Builder();
         if (secure) {
-            final HttpsURLConnection sslCon = (HttpsURLConnection) url.openConnection();
-            if (twoWaySsl) {
-                // use a client certificate, do not reuse the server's keystore
-                SSLContext clientSslContext = SslContextFactory.createSslContext(
-                        "src/test/resources/client-keystore.p12",
-                        "passwordpassword".toCharArray(),
-                        "PKCS12",
-                        "src/test/resources/truststore.jks",
-                        "passwordpassword".toCharArray(),
-                        "JKS",
-                        null,
-                        "TLSv1.2");
-                sslCon.setSSLSocketFactory(clientSslContext.getSocketFactory());
+            if (clientAuthRequired) {
+                builder.sslSocketFactory(keyStoreSslContext.getSocketFactory(), trustManager);
             } else {
-                // with one-way SSL, the client still needs a truststore
-                SSLContext clientSslContext = SslContextFactory.createTrustSslContext(
-                        "src/test/resources/truststore.jks",
-                        "passwordpassword".toCharArray(),
-                        "JKS",
-                        "TLSv1.2");
-                sslCon.setSSLSocketFactory(clientSslContext.getSocketFactory());
+                builder.sslSocketFactory(trustStoreSslContext.getSocketFactory(), trustManager);
             }
-            connection = sslCon;
-        } else {
-            connection = (HttpURLConnection) url.openConnection();
         }
-        connection.setRequestMethod(HTTP_POST_METHOD);
-        connection.setDoOutput(true);
 
-        final DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        builder.callTimeout(CLIENT_CALL_TIMEOUT);
 
-        if (message != null) {
-            wr.writeBytes(message);
-        }
-        wr.flush();
-        wr.close();
-        return connection.getResponseCode();
+        return builder.build();
     }
 
     private String buildUrl(final boolean secure) {
-      return String.format("%s://localhost:%s/%s", secure ? "https" : "http" , availablePort,  HTTP_BASE_PATH);
+        return String.format("%s://localhost:%s/%s", secure ? "https" : "http", availablePort, HTTP_BASE_PATH);
     }
 
     private void testPOSTRequestsReceived(int returnCode, boolean secure, boolean twoWaySsl) throws Exception {
@@ -310,189 +583,176 @@ public class TestListenHTTP {
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
-        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
-        mockFlowFiles.get(0).assertContentEquals("payload 1");
-        mockFlowFiles.get(1).assertContentEquals("");
-        mockFlowFiles.get(2).assertContentEquals("");
-        mockFlowFiles.get(3).assertContentEquals("payload 2");
-    }
+        if (returnCode < 400) { // Only if we actually expect success
+            runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
 
-    private void startWebServerAndSendRequests(Runnable sendRequestToWebserver, int numberOfExpectedFlowFiles, int returnCode) throws Exception {
-      final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-      final ProcessContext context = runner.getProcessContext();
-      proc.createHttpServer(context);
+            mockFlowFiles.get(0).assertContentEquals("payload 1");
+            mockFlowFiles.get(1).assertContentEquals("");
+            mockFlowFiles.get(2).assertContentEquals("");
+            mockFlowFiles.get(3).assertContentEquals("payload 2");
 
-      new Thread(sendRequestToWebserver).start();
-
-      long responseTimeout = 10000;
-
-      int numTransferred = 0;
-      long startTime = System.currentTimeMillis();
-      while (numTransferred < numberOfExpectedFlowFiles && (System.currentTimeMillis() - startTime < responseTimeout)) {
-          proc.onTrigger(context, processSessionFactory);
-          numTransferred = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS).size();
-          Thread.sleep(100);
-      }
-
-      runner.assertTransferCount(ListenHTTP.RELATIONSHIP_SUCCESS, numberOfExpectedFlowFiles);
-    }
-
-    private void startWebServerAndSendMessages(final List<String> messages, int returnCode, boolean secure, boolean twoWaySsl)
-            throws Exception {
-
-        Runnable sendMessagestoWebServer = () -> {
-            try {
-                for (final String message : messages) {
-                    if (executePOST(message, secure, twoWaySsl) != returnCode) {
-                        fail("HTTP POST failed.");
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                fail("Not expecting error here.");
+            if (twoWaySsl) {
+                mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.user.dn", LOCALHOST_DN);
+                mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.issuer.dn", LOCALHOST_DN);
             }
-        };
-
-        startWebServerAndSendRequests(sendMessagestoWebServer, messages.size(), returnCode);
-    }
-
-    private SSLContextService configureProcessorSslContextService(boolean twoWaySsl) throws InitializationException {
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
-        runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
-        if (twoWaySsl) {
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-            runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
         }
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-
-        runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
-        return sslContextService;
     }
 
-    private SSLContextService configureInvalidProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardSSLContextService();
+    private void startWebServer() {
+        final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
+        final ProcessContext context = runner.getProcessContext();
+        proc.onTrigger(context, processSessionFactory);
+
+        final int port = context.getProperty(ListenHTTP.PORT).evaluateAttributeExpressions().asInteger();
+        final InetSocketAddress socketAddress = new InetSocketAddress(LOCALHOST, port);
+        final Socket socket = new Socket();
+        boolean connected = false;
+        long elapsed = 0;
+
+        while (!connected && elapsed < SERVER_START_TIMEOUT) {
+            final long started = System.currentTimeMillis();
+            try {
+                socket.connect(socketAddress, SOCKET_CONNECT_TIMEOUT);
+                connected = true;
+                runner.getLogger().debug("Server Socket Connected after {} ms", new Object[]{elapsed});
+                socket.close();
+            } catch (final Exception e) {
+                runner.getLogger().debug("Server Socket Connect Failed: [{}] {}", new Object[]{e.getClass(), e.getMessage()});
+            }
+            final long connectElapsed = System.currentTimeMillis() - started;
+            elapsed += connectElapsed;
+        }
+
+        if (!connected) {
+            final String message = String.format("HTTP Server Port [%d] not listening after %d ms", port, SERVER_START_TIMEOUT);
+            throw new IllegalStateException(message);
+        }
+    }
+
+    private void startWebServerAndSendMessages(final List<String> messages, final int expectedStatusCode, final boolean secure, final boolean clientAuthRequired) throws Exception {
+        startWebServer();
+
+        for (final String message : messages) {
+            final int statusCode = postMessage(message, secure, clientAuthRequired);
+            assertEquals("HTTP Status Code not matched", expectedStatusCode, statusCode);
+        }
+    }
+
+    private void configureProcessorSslContextService(final ListenHTTP.ClientAuthentication clientAuthentication,
+                                                                  final TlsConfiguration tlsConfiguration) throws InitializationException {
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_SERVICE_IDENTIFIER);
+        Mockito.when(sslContextService.createTlsConfiguration()).thenReturn(tlsConfiguration);
+
+        if (ListenHTTP.ClientAuthentication.REQUIRED.equals(clientAuthentication)) {
+            Mockito.when(sslContextService.createContext()).thenReturn(serverKeyStoreSslContext);
+        } else {
+            Mockito.when(sslContextService.createContext()).thenReturn(serverKeyStoreNoTrustStoreSslContext);
+        }
         runner.addControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
 
+        runner.setProperty(ListenHTTP.CLIENT_AUTHENTICATION, clientAuthentication.name());
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
-        return sslContextService;
+
+        runner.enableControllerService(sslContextService);
     }
 
+    @Test
+    public void testMultipartFormDataRequest() throws IOException {
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
 
-    @Test(/*timeout=10000*/)
-    public void testMultipartFormDataRequest() throws Exception {
+        final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
+        final boolean isSecure = (sslContextService != null);
+        startWebServer();
 
-      runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
-      runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-      runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
+        File file1 = createTextFile("Hello", "World");
+        File file2 = createTextFile("{ \"name\":\"John\", \"age\":30 }");
 
-      final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
-      final boolean isSecure = (sslContextService != null);
-
-      Runnable sendRequestToWebserver = () -> {
-        try {
-          MultipartBody multipartBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
-              .addFormDataPart("p1", "v1")
-              .addFormDataPart("p2", "v2")
-              .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
-              .addFormDataPart("file2", "my-file-data.json", RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
-              .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
-              .build();
-
-          Request request =
-              new Request.Builder()
-                .url(buildUrl(isSecure))
-                .post(multipartBody)
+        MultipartBody multipartBody = new MultipartBody.Builder().setType(MultipartBody.FORM)
+                .addFormDataPart("p1", "v1")
+                .addFormDataPart("p2", "v2")
+                .addFormDataPart("file1", "my-file-text.txt", RequestBody.create(file1, MediaType.parse("text/plain")))
+                .addFormDataPart("file2", "my-file-data.json", RequestBody.create(file2, MediaType.parse("application/json")))
+                .addFormDataPart("file3", "my-file-binary.bin", RequestBody.create(generateRandomBinaryData(), MediaType.parse("application/octet-stream")))
                 .build();
 
-          int timeout = 3000;
-          OkHttpClient client = new OkHttpClient.Builder()
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-                .build();
+        Request request =
+                new Request.Builder()
+                        .url(buildUrl(isSecure))
+                        .post(multipartBody)
+                        .build();
 
-          try (Response response = client.newCall(request).execute()) {
-            Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
-          }
-        } catch (final Throwable t) {
-          t.printStackTrace();
-          Assert.fail(t.toString());
+        final OkHttpClient client = getOkHttpClient(false, false);
+        try (Response response = client.newCall(request).execute()) {
+            Files.deleteIfExists(Paths.get(String.valueOf(file1)));
+            Files.deleteIfExists(Paths.get(String.valueOf(file2)));
+            Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body()), response.isSuccessful());
         }
-      };
 
+        runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
+        // Part fragments are not processed in the order we submitted them.
+        // We cannot rely on the order we sent them in.
+        MockFlowFile mff = findFlowFile(flowFilesForRelationship, "p1");
+        mff.assertAttributeEquals("http.multipart.name", "p1");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeEquals("http.multipart.fragments.sequence.number", "1");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
 
-      startWebServerAndSendRequests(sendRequestToWebserver, 5, 200);
+        mff = findFlowFile(flowFilesForRelationship, "p2");
+        mff.assertAttributeEquals("http.multipart.name", "p2");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
 
-      runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
-      List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
-      // Part fragments are not processed in the order we submitted them.
-      // We cannot rely on the order we sent them in.
-      MockFlowFile mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p1");
-      mff.assertAttributeEquals("http.multipart.name", "p1");
-      mff.assertAttributeExists("http.multipart.size");
-      mff.assertAttributeEquals("http.multipart.fragments.sequence.number", "1");
-      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff = findFlowFile(flowFilesForRelationship, "file1");
+        mff.assertAttributeEquals("http.multipart.name", "file1");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-text.txt");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "text/plain");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
 
-      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "p2");
-      mff.assertAttributeEquals("http.multipart.name", "p2");
-      mff.assertAttributeExists("http.multipart.size");
-      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
-      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff = findFlowFile(flowFilesForRelationship, "file2");
+        mff.assertAttributeEquals("http.multipart.name", "file2");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-data.json");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/json");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
 
-      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file1");
-      mff.assertAttributeEquals("http.multipart.name", "file1");
-      mff.assertAttributeEquals("http.multipart.filename", "my-file-text.txt");
-      mff.assertAttributeEquals("http.headers.multipart.content-type", "text/plain");
-      mff.assertAttributeExists("http.multipart.size");
-      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
-      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-      mff.assertAttributeExists("http.headers.multipart.content-disposition");
-
-      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file2");
-      mff.assertAttributeEquals("http.multipart.name", "file2");
-      mff.assertAttributeEquals("http.multipart.filename", "my-file-data.json");
-      mff.assertAttributeEquals("http.headers.multipart.content-type", "application/json");
-      mff.assertAttributeExists("http.multipart.size");
-      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
-      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-      mff.assertAttributeExists("http.headers.multipart.content-disposition");
-
-      mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", "file3");
-      mff.assertAttributeEquals("http.multipart.name", "file3");
-      mff.assertAttributeEquals("http.multipart.filename", "my-file-binary.bin");
-      mff.assertAttributeEquals("http.headers.multipart.content-type", "application/octet-stream");
-      mff.assertAttributeExists("http.multipart.size");
-      mff.assertAttributeExists("http.multipart.fragments.sequence.number");
-      mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
-      mff.assertAttributeExists("http.headers.multipart.content-disposition");
+        mff = findFlowFile(flowFilesForRelationship, "file3");
+        mff.assertAttributeEquals("http.multipart.name", "file3");
+        mff.assertAttributeEquals("http.multipart.filename", "my-file-binary.bin");
+        mff.assertAttributeEquals("http.headers.multipart.content-type", "application/octet-stream");
+        mff.assertAttributeExists("http.multipart.size");
+        mff.assertAttributeExists("http.multipart.fragments.sequence.number");
+        mff.assertAttributeEquals("http.multipart.fragments.total.number", "5");
+        mff.assertAttributeExists("http.headers.multipart.content-disposition");
     }
 
-     private byte[] generateRandomBinaryData(int i) {
-      byte[] bytes = new byte[100];
-      new Random().nextBytes(bytes);
-      return bytes;
+    private byte[] generateRandomBinaryData() {
+        byte[] bytes = new byte[100];
+        new Random().nextBytes(bytes);
+        return bytes;
     }
-     private File createTextFile(String fileName, String... lines) throws IOException {
-      File file = new File("target/" + fileName);
-      file.deleteOnExit();
-      for (String string : lines) {
-        Files.append(string, file, Charsets.UTF_8);
-      }
-      return file;
+
+    private File createTextFile(String...lines) throws IOException {
+        final File textFile = Files.createTempFile(TestListenHTTP.class.getSimpleName(), ".txt").toFile();
+        textFile.deleteOnExit();
+
+        Files.write(textFile.toPath(), Arrays.asList(lines));
+        return textFile;
     }
-     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
-      Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
-      Assert.assertTrue(optional.isPresent());
-      return optional.get();
+
+    protected MockFlowFile findFlowFile(final List<MockFlowFile> flowFiles, final String attributeValue) {
+        final Optional<MockFlowFile> foundFlowFile = flowFiles.stream().filter(flowFile -> flowFile.getAttribute(MULTIPART_ATTRIBUTE).equals(attributeValue)).findFirst();
+        return foundFlowFile.orElseThrow(() -> new NullPointerException(MULTIPART_ATTRIBUTE));
     }
 }

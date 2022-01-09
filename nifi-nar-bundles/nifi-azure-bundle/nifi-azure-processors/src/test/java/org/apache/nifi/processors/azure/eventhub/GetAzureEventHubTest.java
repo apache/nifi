@@ -78,7 +78,23 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT,"10000");
         testRunner.assertValid();
     }
-
+    @Test
+    public void testProcessorConfigValidityWithManagedIdentityFlag() {
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY,"true");
+        testRunner.assertNotValid();
+        testRunner.setProperty(GetAzureEventHub.NUM_PARTITIONS,"4");
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.ENQUEUE_TIME,"2015-12-22T21:55:10.000Z");
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_SIZE, "5");
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.RECEIVER_FETCH_TIMEOUT,"10000");
+        testRunner.assertValid();
+    }
     @Test
     public void verifyRelationships(){
         assert(1 == processor.getRelationships().size());
@@ -124,6 +140,19 @@ public class GetAzureEventHubTest {
         flowFile.assertAttributeEquals("eventhub.offset", OFFSET_VALUE);
         flowFile.assertAttributeEquals("eventhub.sequence", String.valueOf(SEQUENCE_NUMBER_VALUE));
         flowFile.assertAttributeEquals("eventhub.name", eventHubName);
+
+        testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testNormalFlowWithApplicationProperties() throws Exception {
+        setUpStandardTestConfig();
+        testRunner.run(1, true);
+        testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 10);
+
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GetAzureEventHub.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals("eventhub.property.event-sender", "Apache NiFi");
+        flowFile.assertAttributeEquals("eventhub.property.application", "TestApp");
 
         testRunner.clearTransferState();
     }
@@ -177,6 +206,8 @@ public class GetAzureEventHubTest {
             final LinkedList<EventData> receivedEvents = new LinkedList<>();
             for(int i = 0; i < 10; i++){
                 EventData eventData = EventData.create(String.format("test event number: %d", i).getBytes());
+                eventData.getProperties().put("event-sender", "Apache NiFi");
+                eventData.getProperties().put("application", "TestApp");
                 if (received) {
                     HashMap<String, Object> properties = new HashMap<>();
                     properties.put(AmqpConstants.PARTITION_KEY_ANNOTATION_NAME, PARTITION_KEY_VALUE);

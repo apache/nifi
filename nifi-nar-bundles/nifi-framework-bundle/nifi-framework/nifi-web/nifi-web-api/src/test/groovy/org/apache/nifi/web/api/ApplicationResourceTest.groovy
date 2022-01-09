@@ -16,55 +16,30 @@
  */
 package org.apache.nifi.web.api
 
-import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.util.NiFiProperties
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 import javax.servlet.http.HttpServletRequest
 import javax.ws.rs.core.UriBuilderException
 import javax.ws.rs.core.UriInfo
 
+import static org.apache.nifi.web.util.WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_CONTEXT_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PREFIX_HTTP_HEADER
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER
+
 @RunWith(JUnit4.class)
 class ApplicationResourceTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ApplicationResourceTest.class)
-
-    public static final String PROXY_HOST_HTTP_HEADER = "X-ProxyHost"
-    public static final String FORWARDED_HOST_HTTP_HEADER = "X-Forwarded-Host"
-
-    static final String PROXY_SCHEME_HTTP_HEADER = "X-ProxyScheme"
-    static final String PROXY_PORT_HTTP_HEADER = "X-ProxyPort"
-    static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath"
-
-    static final String FORWARDED_PROTO_HTTP_HEADER = "X-Forwarded-Proto"
-    static final String FORWARDED_PORT_HTTP_HEADER = "X-Forwarded-Port"
-    static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context"
-    static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix"
-
     static final String PROXY_CONTEXT_PATH_PROP = NiFiProperties.WEB_PROXY_CONTEXT_PATH
-    static final String WHITELISTED_PATH = "/some/context/path"
-
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
+    static final String ALLOWED_PATH = "/some/context/path"
 
     class MockApplicationResource extends ApplicationResource {
         void setHttpServletRequest(HttpServletRequest request) {
@@ -85,7 +60,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         String headerValue = ""
         HttpServletRequest mockRequest = [getHeader: { String k ->
             if (proxyHeaders.contains(k)) {
-                headerValue = WHITELISTED_PATH
+                headerValue = ALLOWED_PATH
             } else if ([FORWARDED_PORT_HTTP_HEADER, PROXY_PORT_HTTP_HEADER].contains(k)) {
                 headerValue = "8081"
             } else if ([FORWARDED_PROTO_HTTP_HEADER, PROXY_SCHEME_HTTP_HEADER].contains(k)) {
@@ -95,172 +70,114 @@ class ApplicationResourceTest extends GroovyTestCase {
             } else {
                 headerValue = ""
             }
-            logger.mock("Request.getHeader($k) -> \"$headerValue\"")
             headerValue
         }, getContextPath: { ->
-            logger.mock("Request.getContextPath() -> \"$headerValue\"")
             headerValue
+        }, getScheme: { ->
+            "https"
+        }, getServerPort: { ->
+            443
         }] as HttpServletRequest
 
         UriInfo mockUriInfo = [getBaseUriBuilder: { ->
-            logger.mock("Returning mock UriBuilder")
             new JerseyUriBuilder().uri(new URI('https://nifi.apache.org/'))
         }] as UriInfo
 
         resource.setHttpServletRequest(mockRequest)
         resource.setUriInfo(mockUriInfo)
-        resource.properties = new StandardNiFiProperties()
+        resource.properties = new NiFiProperties()
 
         resource
     }
 
     @Test
-    void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldBlockProxyContextPathHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource()
-        logger.info("Whitelisted path(s): ")
-
-        // Act
-        def msg = shouldFail(UriBuilderException) {
-            String generatedUri = resource.generateResourceUri('actualResource')
-            logger.unexpected("Generated URI: ${generatedUri}")
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
         }
-
-        // Assert
-        logger.expected(msg)
-        assert msg =~ "The provided context path \\[.*\\] was not whitelisted \\[\\]"
     }
 
     @Test
-    void testGenerateUriShouldAllowProxyContextPathHeaderIfInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowProxyContextPathHeaderIfInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource()
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): WHITELISTED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
 
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
-    void testGenerateUriShouldAllowProxyContextPathHeaderIfElementInMultipleWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowProxyContextPathHeaderIfElementInMultipleAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource()
-        String multipleWhitelistedPaths = [WHITELISTED_PATH, "another/path", "a/third/path"].join(",")
-        logger.info("Whitelisted path(s): ${multipleWhitelistedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleWhitelistedPaths] as Properties)
+        String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
 
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
-    void testGenerateUriShouldBlockForwardedContextHeaderIfNotInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldBlockForwardedContextHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
-        logger.info("Whitelisted path(s): ")
 
-        // Act
-        def msg = shouldFail(UriBuilderException) {
-            String generatedUri = resource.generateResourceUri('actualResource')
-            logger.unexpected("Generated URI: ${generatedUri}")
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
         }
-
-        // Assert
-        logger.expected(msg)
-        assert msg =~ "The provided context path \\[.*\\] was not whitelisted \\[\\]"
     }
 
     @Test
-    void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldBlockForwardedPrefixHeaderIfNotInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
-        logger.info("Whitelisted path(s): ")
 
-        // Act
-        def msg = shouldFail(UriBuilderException) {
-            String generatedUri = resource.generateResourceUri('actualResource')
-            logger.unexpected("Generated URI: ${generatedUri}")
+        shouldFail(UriBuilderException) {
+            resource.generateResourceUri('actualResource')
         }
-
-        // Assert
-        logger.expected(msg)
-        assert msg =~ "The provided context path \\[.*\\] was not whitelisted \\[\\]"
     }
 
     @Test
-    void testGenerateUriShouldAllowForwardedContextHeaderIfInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowForwardedContextHeaderIfInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): WHITELISTED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
-
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
-    void testGenerateUriShouldAllowForwardedPrefixHeaderIfInWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowForwardedPrefixHeaderIfInAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
-        logger.info("Whitelisted path(s): ${WHITELISTED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): WHITELISTED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
-
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
-    void testGenerateUriShouldAllowForwardedContextHeaderIfElementInMultipleWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowForwardedContextHeaderIfElementInMultipleAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
-        String multipleWhitelistedPaths = [WHITELISTED_PATH, "another/path", "a/third/path"].join(",")
-        logger.info("Whitelisted path(s): ${multipleWhitelistedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleWhitelistedPaths] as Properties)
+        String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
-
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 
     @Test
-    void testGenerateUriShouldAllowForwardedPrefixHeaderIfElementInMultipleWhitelist() throws Exception {
-        // Arrange
+    void testGenerateUriShouldAllowForwardedPrefixHeaderIfElementInMultipleAllowList() throws Exception {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
-        String multipleWhitelistedPaths = [WHITELISTED_PATH, "another/path", "a/third/path"].join(",")
-        logger.info("Whitelisted path(s): ${multipleWhitelistedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleWhitelistedPaths] as Properties)
+        String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
-        // Act
         String generatedUri = resource.generateResourceUri('actualResource')
-        logger.info("Generated URI: ${generatedUri}")
-
-        // Assert
-        assert generatedUri == "https://nifi.apache.org:8081${WHITELISTED_PATH}/actualResource"
+        assert generatedUri == "https://nifi.apache.org:8081${ALLOWED_PATH}/actualResource"
     }
 }

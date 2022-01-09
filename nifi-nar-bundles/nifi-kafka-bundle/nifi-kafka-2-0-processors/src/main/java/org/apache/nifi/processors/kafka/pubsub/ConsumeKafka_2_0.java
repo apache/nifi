@@ -42,6 +42,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -77,7 +78,6 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_E
         + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration. ",
         expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 public class ConsumeKafka_2_0 extends AbstractProcessor {
-
     static final AllowableValue OFFSET_EARLIEST = new AllowableValue("earliest", "earliest", "Automatically reset the offset to the earliest offset");
 
     static final AllowableValue OFFSET_LATEST = new AllowableValue("latest", "latest", "Automatically reset the offset to the latest offset");
@@ -146,6 +146,16 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
                     + "will result in a single FlowFile which  "
                     + "time it is triggered. To enter special character such as 'new line' use CTRL+Enter or Shift+Enter depending on the OS")
             .build();
+
+    static final PropertyDescriptor SEPARATE_BY_KEY = new PropertyDescriptor.Builder()
+        .name("separate-by-key")
+        .displayName("Separate By Key")
+        .description("If true, and the <Message Demarcator> property is set, two messages will only be added to the same FlowFile if both of the Kafka Messages have identical keys.")
+        .required(false)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .build();
+
     static final PropertyDescriptor HEADER_NAME_REGEX = new PropertyDescriptor.Builder()
         .name("header-name-regex")
         .displayName("Headers to Add as Attributes (Regex)")
@@ -234,6 +244,7 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
         descriptors.add(MESSAGE_DEMARCATOR);
+        descriptors.add(SEPARATE_BY_KEY);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(MAX_POLL_RECORDS);
@@ -275,7 +286,26 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        return KafkaProcessorUtils.validateCommonProperties(validationContext);
+        final Collection<ValidationResult> validationResults = KafkaProcessorUtils.validateCommonProperties(validationContext);
+
+        final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
+        validationResults.add(consumerPartitionsResult);
+
+        final boolean explicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(validationContext.getAllProperties());
+        if (explicitPartitionMapping) {
+            final String topicType = validationContext.getProperty(TOPIC_TYPE).getValue();
+            if (TOPIC_PATTERN.getValue().equals(topicType)) {
+                validationResults.add(new ValidationResult.Builder()
+                    .subject(TOPIC_TYPE.getDisplayName())
+                    .input(TOPIC_PATTERN.getDisplayName())
+                    .valid(false)
+                    .explanation("It is not valid to explicitly assign Topic Partitions and also use a Topic Pattern. "
+                        + "Topic Partitions may be assigned only if explicitly specifying topic names also.")
+                    .build());
+            }
+        }
+
+        return validationResults;
     }
 
     private synchronized ConsumerPool getConsumerPool(final ProcessContext context) {
@@ -284,7 +314,26 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
             return pool;
         }
 
-        return consumerPool = createConsumerPool(context, getLogger());
+        final ConsumerPool consumerPool = createConsumerPool(context, getLogger());
+
+        final boolean explicitAssignment = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties());
+        if (explicitAssignment) {
+            final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
+
+            // Request from Kafka the number of partitions for the topics that we are consuming from. Then ensure that we have
+            // all of the partitions assigned.
+            final int partitionCount = consumerPool.getPartitionCount();
+            if (partitionCount != numAssignedPartitions) {
+                context.yield();
+                consumerPool.close();
+
+                throw new ProcessException("Illegal Partition Assignment: There are " + numAssignedPartitions + " partitions statically assigned using the partitions.* property names, but the Kafka" +
+                    " topic(s) have " + partitionCount + " partitions");
+            }
+        }
+
+        this.consumerPool = consumerPool;
+        return consumerPool;
     }
 
     protected ConsumerPool createConsumerPool(final ProcessContext context, final ComponentLog log) {
@@ -315,6 +364,15 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
         final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
 
+        final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
+
+        final int[] partitionsToConsume;
+        try {
+            partitionsToConsume = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
+        } catch (final UnknownHostException uhe) {
+            throw new ProcessException("Could not determine localhost's hostname", uhe);
+        }
+
         if (topicType.equals(TOPIC_NAME.getValue())) {
             for (final String topic : topicListing.split(",", 100)) {
                 final String trimmedName = topic.trim();
@@ -323,12 +381,12 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
                 }
             }
 
-            return new ConsumerPool(maxLeases, demarcator, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topics, maxUncommittedTime, keyEncoding, securityProtocol,
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
-            return new ConsumerPool(maxLeases, demarcator, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern);
+            return new ConsumerPool(maxLeases, demarcator, separateByKey, props, topicPattern, maxUncommittedTime, keyEncoding, securityProtocol,
+                bootstrapServers, log, honorTransactions, charset, headerNamePattern, partitionsToConsume);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
@@ -365,6 +423,8 @@ public class ConsumeKafka_2_0 extends AbstractProcessor {
 
         activeLeases.clear();
     }
+
+
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {

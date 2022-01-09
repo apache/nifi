@@ -19,14 +19,10 @@ package org.apache.nifi.security.util.crypto
 import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -35,10 +31,12 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class PBKDF2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProviderGroovyTest.class)
+
+    private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
 
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
@@ -50,7 +48,7 @@ class PBKDF2CipherProviderGroovyTest {
     private final String IV_HEX = "01" * 16
     private static ArrayList<Integer> AES_KEY_LENGTHS
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -67,15 +65,6 @@ class PBKDF2CipherProviderGroovyTest {
         }
     }
 
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-
-    }
-
     @Test
     void testGetCipherShouldBeInternallyConsistent() throws Exception {
         // Arrange
@@ -83,8 +72,6 @@ class PBKDF2CipherProviderGroovyTest {
 
         final String PASSWORD = "shortPassword"
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -95,7 +82,7 @@ class PBKDF2CipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
@@ -104,7 +91,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -145,8 +132,6 @@ class PBKDF2CipherProviderGroovyTest {
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -155,7 +140,7 @@ class PBKDF2CipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -164,24 +149,18 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
-        // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
-
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
 
         final String PASSWORD = "shortPassword"
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
 
         final int LONG_KEY_LENGTH = 256
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -192,7 +171,7 @@ class PBKDF2CipherProviderGroovyTest {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false)
@@ -201,7 +180,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -214,7 +193,6 @@ class PBKDF2CipherProviderGroovyTest {
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
 
-        final String plaintext = "This is a plaintext message."
         final EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
         String prf = ""
 
@@ -237,7 +215,6 @@ class PBKDF2CipherProviderGroovyTest {
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
 
-        final String plaintext = "This is a plaintext message."
         final EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         final PBKDF2CipherProvider SHA512_PROVIDER = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
@@ -254,7 +231,7 @@ class PBKDF2CipherProviderGroovyTest {
         Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
         logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-        byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+        byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
         logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
         cipher = SHA512_PROVIDER.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -263,7 +240,7 @@ class PBKDF2CipherProviderGroovyTest {
         logger.info("Recovered: ${recovered}")
 
         // Assert
-        assert plaintext.equals(recovered)
+        assert PLAINTEXT.equals(recovered)
     }
 
     @Test
@@ -276,7 +253,6 @@ class PBKDF2CipherProviderGroovyTest {
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
 
-        final String plaintext = "This is a plaintext message."
         final EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
 
         // Act
@@ -291,7 +267,7 @@ class PBKDF2CipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -300,7 +276,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -334,6 +310,38 @@ class PBKDF2CipherProviderGroovyTest {
     }
 
     @Test
+    void testGetCipherShouldHandleDifferentPRFs() throws Exception {
+        // Arrange
+        RandomIVPBECipherProvider sha256CP = new PBKDF2CipherProvider("SHA-256", TEST_ITERATION_COUNT)
+        RandomIVPBECipherProvider sha512CP = new PBKDF2CipherProvider("SHA-512", TEST_ITERATION_COUNT)
+
+        final String PASSWORD = "thisIsABadPassword"
+        final byte[] SALT = [0x11] * 16
+        final byte[] IV = [0x22] * 16
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+        logger.info("Using algorithm: ${encryptionMethod.getAlgorithm()}")
+
+        // Act
+        Cipher sha256Cipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
+        byte[] sha256CipherBytes = sha256Cipher.doFinal(PLAINTEXT.bytes)
+
+        Cipher sha512Cipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
+        byte[] sha512CipherBytes = sha512Cipher.doFinal(PLAINTEXT.bytes)
+
+        // Assert
+        assert sha512CipherBytes != sha256CipherBytes
+
+        Cipher sha256DecryptCipher = sha256CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
+        byte[] sha256RecoveredBytes = sha256DecryptCipher.doFinal(sha256CipherBytes)
+        assert sha256RecoveredBytes == PLAINTEXT.bytes
+
+        Cipher sha512DecryptCipher = sha512CP.getCipher(encryptionMethod, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
+        byte[] sha512RecoveredBytes = sha512DecryptCipher.doFinal(sha512CipherBytes)
+        assert sha512RecoveredBytes == PLAINTEXT.bytes
+    }
+
+    @Test
     void testGetCipherForDecryptShouldRequireIV() throws Exception {
         // Arrange
         RandomIVPBECipherProvider cipherProvider = new PBKDF2CipherProvider(DEFAULT_PRF, TEST_ITERATION_COUNT)
@@ -341,8 +349,6 @@ class PBKDF2CipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
-
-        final String plaintext = "This is a plaintext message."
 
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
@@ -352,7 +358,7 @@ class PBKDF2CipherProviderGroovyTest {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {
@@ -397,8 +403,6 @@ class PBKDF2CipherProviderGroovyTest {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = Hex.decodeHex(SALT_HEX as char[])
         final byte[] IV = Hex.decodeHex(IV_HEX as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         // Currently only AES ciphers are compatible with PBKDF2, so redundant to test all algorithms
         final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
@@ -452,7 +456,7 @@ class PBKDF2CipherProviderGroovyTest {
         }
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default iteration count is sufficient")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true")
     @Test
     void testDefaultConstructorShouldProvideStrongIterationCount() {
         // Arrange

@@ -124,18 +124,18 @@ public class RecordBin {
 
             logger.debug("Migrating id={} to {}", new Object[] {flowFile.getId(), this});
 
+            if (recordWriter == null) {
+                final OutputStream rawOut = session.write(merged);
+                logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
+
+                this.out = new ByteCountingOutputStream(rawOut);
+
+                recordWriter = writerFactory.createWriter(logger, recordReader.getSchema(), out, flowFile);
+                recordWriter.beginRecordSet();
+            }
+
             Record record;
             while ((record = recordReader.nextRecord()) != null) {
-                if (recordWriter == null) {
-                    final OutputStream rawOut = session.write(merged);
-                    logger.debug("Created OutputStream using session {} for {}", new Object[] {session, this});
-
-                    this.out = new ByteCountingOutputStream(rawOut);
-
-                    recordWriter = writerFactory.createWriter(logger, record.getSchema(), out, flowFile);
-                    recordWriter.beginRecordSet();
-                }
-
                 recordWriter.write(record);
                 recordCount++;
             }
@@ -189,7 +189,7 @@ public class RecordBin {
                 complete = true;
                 session.remove(merged);
                 session.transfer(flowFiles, MergeRecord.REL_FAILURE);
-                session.commit();
+                session.commitAsync();
             }
 
             return true;
@@ -203,6 +203,11 @@ public class RecordBin {
         try {
             if (!isFullEnough()) {
                 return false;
+            }
+
+            if (thresholds.getFragmentCountAttribute().isPresent()) {
+                // Defragment strategy: Compare with the target fragment count.
+                return this.fragmentCount == thresholds.getFragmentCount();
             }
 
             int maxRecords = thresholds.getMaxRecords();
@@ -241,7 +246,7 @@ public class RecordBin {
             }
 
             if (thresholds.getFragmentCountAttribute().isPresent()) {
-                // Compare with the target fragment count.
+                // Defragment strategy: Compare with the target fragment count.
                 return this.fragmentCount == thresholds.getFragmentCount();
             }
 
@@ -298,7 +303,7 @@ public class RecordBin {
 
             session.remove(merged);
             session.transfer(flowFiles, MergeRecord.REL_FAILURE);
-            session.commit();
+            session.commitAsync();
         } finally {
             writeLock.unlock();
         }
@@ -400,7 +405,7 @@ public class RecordBin {
             session.transfer(merged, MergeRecord.REL_MERGED);
             session.transfer(flowFiles, MergeRecord.REL_ORIGINAL);
             session.adjustCounter("Records Merged", writeResult.getRecordCount(), false);
-            session.commit();
+            session.commitAsync();
 
             if (logger.isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());

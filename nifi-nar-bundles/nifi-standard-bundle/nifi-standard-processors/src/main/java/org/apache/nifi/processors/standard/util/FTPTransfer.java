@@ -20,6 +20,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -37,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPHTTPClient;
@@ -50,10 +52,13 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -185,14 +190,14 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public List<FileInfo> getListing() throws IOException {
+    public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
         final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
         final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
-        return getListing(path, depth, maxResults);
+        return getListing(path, depth, maxResults, applyFilters);
     }
 
-    private List<FileInfo> getListing(final String path, final int depth, final int maxResults) throws IOException {
+    private List<FileInfo> getListing(final String path, final int depth, final int maxResults, final boolean applyFilters) throws IOException {
         final List<FileInfo> listing = new ArrayList<>();
         if (maxResults < 1) {
             return listing;
@@ -261,7 +266,7 @@ public class FTPTransfer implements FileTransfer {
             // OR if is a link and we're supposed to follow symlink
             if ((recurse && file.isDirectory()) || (symlink && file.isSymbolicLink())) {
                 try {
-                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
+                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count, applyFilters));
                 } catch (final IOException e) {
                     logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
                 }
@@ -269,8 +274,8 @@ public class FTPTransfer implements FileTransfer {
 
             // if is not a directory and is not a link and it matches
             // FILE_FILTER_REGEX - then let's add it
-            if (!file.isDirectory() && !file.isSymbolicLink() && pathFilterMatches) {
-                if (pattern == null || pattern.matcher(filename).matches()) {
+            if (!file.isDirectory() && !file.isSymbolicLink() && (pathFilterMatches || !applyFilters)) {
+                if (pattern == null || !applyFilters || pattern.matcher(filename).matches()) {
                     listing.add(newFileInfo(file, path));
                     count++;
                 }
@@ -314,35 +319,39 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public InputStream getInputStream(String remoteFileName) throws IOException {
-        return getInputStream(remoteFileName, null);
-    }
-
-    @Override
-    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(flowFile);
-        InputStream in = client.retrieveFileStream(remoteFileName);
-        if (in == null) {
-            final String response = client.getReplyString();
-            // FTPClient doesn't throw exception if file not found.
-            // Instead, response string will contain: "550 Can't open <absolute_path>: No such file or directory"
-            if (response != null && response.trim().endsWith("No such file or directory")){
-                throw new FileNotFoundException(response);
+    public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
+        final FTPClient client = getClient(origFlowFile);
+        InputStream in = null;
+        FlowFile resultFlowFile = null;
+        try {
+            in = client.retrieveFileStream(remoteFileName);
+            if (in == null) {
+                final String response = client.getReplyString();
+                // FTPClient doesn't throw exception if file not found.
+                // Instead, response string will contain: "550 Can't open <absolute_path>: No such file or directory"
+                if (response != null && response.trim().endsWith("No such file or directory")) {
+                    throw new FileNotFoundException(response);
+                }
+                throw new IOException(response);
             }
-            throw new IOException(response);
+            final InputStream remoteIn = in;
+            resultFlowFile = session.write(origFlowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    StreamUtils.copy(remoteIn, out);
+                }
+            });
+            client.completePendingCommand();
+            return resultFlowFile;
+        } finally {
+            if(in != null){
+                try{
+                    in.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
         }
-        return in;
-    }
-
-    @Override
-    public void flush() throws IOException {
-        final FTPClient client = getClient(null);
-        client.completePendingCommand();
-    }
-
-    @Override
-    public boolean flush(final FlowFile flowFile) throws IOException {
-        return getClient(flowFile).completePendingCommand();
     }
 
     @Override
@@ -538,19 +547,8 @@ public class FTPTransfer implements FileTransfer {
         }
     }
 
-    private FTPClient getClient(final FlowFile flowFile) throws IOException {
-        if (client != null) {
-            String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-            if (remoteHostName.equals(desthost)) {
-                // destination matches so we can keep our current session
-                resetWorkingDirectory();
-                return client;
-            } else {
-                // this flowFile is going to a different destination, reset session
-                close();
-            }
-        }
-
+    @VisibleForTesting
+    protected FTPClient createFTPClient() {
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
 
         final Proxy.Type proxyType = proxyConfig.getProxyType();
@@ -566,6 +564,24 @@ public class FTPTransfer implements FileTransfer {
                 client.setSocketFactory(new SocksProxySocketFactory(new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort))));
             }
         }
+
+        return client;
+    }
+
+    private FTPClient getClient(final FlowFile flowFile) throws IOException {
+        if (client != null) {
+            String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+            if (remoteHostName.equals(desthost)) {
+                // destination matches so we can keep our current session
+                resetWorkingDirectory();
+                return client;
+            } else {
+                // this flowFile is going to a different destination, reset session
+                close();
+            }
+        }
+
+        FTPClient client = createFTPClient();
         this.client = client;
         client.setBufferSize(ctx.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
@@ -587,6 +603,7 @@ public class FTPTransfer implements FileTransfer {
         final boolean useUtf8Encoding = ctx.getProperty(UTF8_ENCODING).isSet() ? ctx.getProperty(UTF8_ENCODING).asBoolean() : false;
         if (useUtf8Encoding) {
             client.setControlEncoding("UTF-8");
+            client.setAutodetectUTF8(useUtf8Encoding);
         }
 
         client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());

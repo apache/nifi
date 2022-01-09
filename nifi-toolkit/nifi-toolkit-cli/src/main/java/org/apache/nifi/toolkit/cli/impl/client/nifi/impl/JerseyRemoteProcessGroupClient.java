@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -27,19 +28,17 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 public class JerseyRemoteProcessGroupClient extends AbstractJerseyClient implements RemoteProcessGroupClient {
     private final WebTarget processGroupTarget;
     private final WebTarget rpgTarget;
 
     public JerseyRemoteProcessGroupClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyRemoteProcessGroupClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyRemoteProcessGroupClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
         this.rpgTarget = baseTarget.path("/remote-process-groups/{id}");
     }

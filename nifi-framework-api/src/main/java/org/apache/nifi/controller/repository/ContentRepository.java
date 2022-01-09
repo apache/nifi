@@ -18,7 +18,6 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,13 +36,12 @@ public interface ContentRepository {
 
     /**
      * Initializes the Content Repository, providing to it the
-     * ContentClaimManager that is to be used for interacting with Content
-     * Claims
+     * ContentRepositoryContext.
      *
-     * @param claimManager to handle claims
+     * @param context to initialize repository
      * @throws java.io.IOException if unable to init
      */
-    void initialize(ResourceClaimManager claimManager) throws IOException;
+    void initialize(ContentRepositoryContext context) throws IOException;
 
     /**
      * Shuts down the Content Repository, freeing any resources that may be
@@ -161,6 +159,7 @@ public interface ContentRepository {
      * @throws IllegalArgumentException if the given destination is included in
      * the given claims
      */
+    @Deprecated
     long merge(Collection<ContentClaim> claims, ContentClaim destination, byte[] header, byte[] footer, byte[] demarcator) throws IOException;
 
     /**
@@ -251,6 +250,24 @@ public interface ContentRepository {
      * @throws IOException if unable to read
      */
     InputStream read(ContentClaim claim) throws IOException;
+
+    /**
+     * Provides access ot the input stream for the entire Resource Claim
+     * @param claim the resource claim to read from
+     * @return InputStream over the content of the entire Resource Claim
+     * @throws IOException if unable to read
+     */
+    InputStream read(ResourceClaim claim) throws IOException;
+
+    /**
+     * Indicates whether or not this Content Repository supports obtaining an InputStream for
+     * an entire Resource Claim. If this method returns <code>false</code>, the {@link #read(ResourceClaim)} should not
+     * be called and instead {@link #read(ContentClaim)} should always be used
+     * @return <code>true</code> if reading an entire Resource Claim is allowed, <code>false</code> otherwise
+     */
+    default boolean isResourceClaimStreamSupported() {
+        return true;
+    }
 
     /**
      * Obtains an OutputStream to the content for the given claim.

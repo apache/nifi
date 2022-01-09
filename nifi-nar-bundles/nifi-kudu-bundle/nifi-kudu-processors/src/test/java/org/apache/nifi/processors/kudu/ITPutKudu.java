@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.kudu;
 
 import org.apache.kudu.ColumnSchema;
+import org.apache.kudu.ColumnTypeAttributes;
 import org.apache.kudu.Schema;
 import org.apache.kudu.Type;
 import org.apache.kudu.client.CreateTableOptions;
@@ -67,6 +68,8 @@ public class ITPutKudu {
             new MiniKuduCluster.MiniKuduClusterBuilder()
                 .addMasterServerFlag("--use_hybrid_clock=false")
                 .addTabletServerFlag("--use_hybrid_clock=false")
+                .enableKerberos()
+                .principal("oryx")
     );
 
     private TestRunner testRunner;
@@ -74,6 +77,8 @@ public class ITPutKudu {
     private PutKudu processor;
 
     private MockRecordParser readerFactory;
+
+    private final java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
 
     @Before
     public void setUp() throws Exception {
@@ -95,7 +100,10 @@ public class ITPutKudu {
         testRunner.setProperty(PutKudu.IGNORE_NULL, "true");
         testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "false");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
-        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT.toString());
+        testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT_IGNORE.toString());
+        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "test-user");
+        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "test-user");
+        testRunner.setProperty(PutKudu.KUDU_SASL_PROTOCOL_NAME, "oryx");
     }
 
     private void createKuduTable() throws KuduException {
@@ -103,8 +111,12 @@ public class ITPutKudu {
         List<ColumnSchema> columns = new ArrayList<>();
         columns.add(new ColumnSchema.ColumnSchemaBuilder("id", Type.INT32).key(true).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("stringval", Type.STRING).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("varcharval", Type.VARCHAR).typeAttributes(
+                new ColumnTypeAttributes.ColumnTypeAttributesBuilder().length(256).build()
+        ).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("num32val", Type.INT32).build());
         columns.add(new ColumnSchema.ColumnSchemaBuilder("timestampval", Type.UNIXTIME_MICROS).build());
+        columns.add(new ColumnSchema.ColumnSchemaBuilder("dateval", Type.DATE).build());
         Schema schema = new Schema(columns);
         CreateTableOptions opts = new CreateTableOptions()
             .addHashPartitions(Collections.singletonList("id"), 4);
@@ -115,14 +127,16 @@ public class ITPutKudu {
         readerFactory = new MockRecordParser();
         readerFactory.addSchemaField("id", RecordFieldType.INT);
         readerFactory.addSchemaField("stringVal", RecordFieldType.STRING);
+        readerFactory.addSchemaField("varcharval", RecordFieldType.STRING);
         readerFactory.addSchemaField("num32Val", RecordFieldType.INT);
         readerFactory.addSchemaField("timestampVal", RecordFieldType.TIMESTAMP);
+        readerFactory.addSchemaField("dateval", RecordFieldType.DATE);
         // Add two extra columns to test handleSchemaDrift = true.
         readerFactory.addSchemaField("doubleVal", RecordFieldType.DOUBLE);
         readerFactory.addSchemaField("floatVal", RecordFieldType.FLOAT);
 
         for (int i = 0; i < numOfRecord; i++) {
-            readerFactory.addRecord(i, "val_" + i, 1000 + i, NOW, 100.88 + i, 100.88 + i);
+            readerFactory.addRecord(i, "val_" + i, "varchar_val_" + i, 1000 + i, NOW, today, 100.88 + i, 100.88 + i);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -188,7 +202,7 @@ public class ITPutKudu {
         KuduTable kuduTable = client.openTable(DEFAULT_TABLE_NAME);
 
         // Verify the extra field was added.
-        Assert.assertEquals(6, kuduTable.getSchema().getColumnCount());
+        Assert.assertEquals(8, kuduTable.getSchema().getColumnCount());
         Assert.assertTrue(kuduTable.getSchema().hasColumn("doubleval"));
         Assert.assertTrue(kuduTable.getSchema().hasColumn("floatval"));
 
@@ -197,6 +211,10 @@ public class ITPutKudu {
         int count = 0;
         for (RowResult row : scanner) {
             Assert.assertEquals(NOW, row.getTimestamp("timestampval"));
+            // Comparing string representations, because java.sql.Date does not override
+            // java.util.Date.equals method and therefore compares milliseconds instead of
+            // comparing dates, even though java.sql.Date is supposed to ignore time
+            Assert.assertEquals(today.toString(), row.getDate("dateval").toString());
             count++;
         }
         Assert.assertEquals(recordCount, count);

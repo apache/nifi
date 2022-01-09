@@ -13,7 +13,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -21,7 +21,7 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-toolkit-api</artifactId>
 
     <properties>
-        <okhttp-version>2.7.5</okhttp-version>
+        <okhttp.version>2.7.5</okhttp.version>
     </properties>
 
     <dependencies>
@@ -39,17 +39,17 @@ language governing permissions and limitations under the License. -->
             <artifactId>swagger-annotations</artifactId>
             <!-- TODO - remove version tag here after core NiFi upgrades dependency
                 from com.wordnik:swagger-annotations to io.swagger:swagger-annotations. -->
-            <version>1.5.12</version>
+            <version>1.6.0</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp-version}</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>${okhttp-version}</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>

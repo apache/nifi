@@ -20,7 +20,6 @@ package org.apache.nifi.state;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
 import org.apache.nifi.components.state.StateMap;
 
 public class MockStateMap implements StateMap {
@@ -28,7 +27,7 @@ public class MockStateMap implements StateMap {
     private final long version;
 
     public MockStateMap(final Map<String, String> stateValues, final long version) {
-        this.stateValues = stateValues == null ? Collections.<String, String> emptyMap() : new HashMap<>(stateValues);
+        this.stateValues = stateValues == null ? Collections.emptyMap() : new HashMap<>(stateValues);
         this.version = version;
     }
 

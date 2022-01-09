@@ -31,14 +31,18 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
@@ -111,22 +115,23 @@ public class StandardFlowSnippet implements FlowSnippet {
 
     public void verifyComponentTypesInSnippet() {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(Processor.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInSnippet(dto, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(ControllerService.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInSnippet(dto, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
-            prioritizerClasses.add(c.getName());
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
+            prioritizerClasses.add(name);
         }
 
         final Set<ConnectionDTO> allConns = new HashSet<>();
@@ -147,8 +152,8 @@ public class StandardFlowSnippet implements FlowSnippet {
         }
     }
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group) throws ProcessorInstantiationException {
-        instantiate(flowManager, group, true);
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group) throws ProcessorInstantiationException {
+        instantiate(flowManager, flowController, group, true);
     }
 
 
@@ -217,7 +222,7 @@ public class StandardFlowSnippet implements FlowSnippet {
     }
 
 
-    public void instantiate(final FlowManager flowManager, final ProcessGroup group, final boolean topLevel) {
+    public void instantiate(final FlowManager flowManager, final FlowController flowController, final ProcessGroup group, final boolean topLevel) {
         //
         // Instantiate Controller Services
         //
@@ -226,7 +231,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, controllerServiceDTO.getType(), controllerServiceDTO.getBundle());
                 final ControllerServiceNode serviceNode = flowManager.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(),
-                    bundleCoordinate, Collections.emptySet(), true,true);
+                    bundleCoordinate, Collections.emptySet(), true,true, null);
 
                 serviceNode.pauseValidationTrigger();
                 serviceNodes.add(serviceNode);
@@ -306,6 +311,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             inputPort.setProcessGroup(group);
             inputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             inputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                inputPort.disable();
+            }
             group.addInputPort(inputPort);
         }
 
@@ -331,6 +339,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             outputPort.setProcessGroup(group);
             outputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             outputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                outputPort.disable();
+            }
             group.addOutputPort(outputPort);
         }
 
@@ -392,11 +403,20 @@ public class StandardFlowSnippet implements FlowSnippet {
                     procNode.setAutoTerminatedRelationships(relationships);
                 }
 
+                // We need to add the processor to the ProcessGroup before calling ProcessorNode.setProperties. This will notify the FlowManager that the Processor
+                // has been added to the flow, which is important before calling ProcessorNode.setProperties, since #setProperties may call methods that result in looking
+                // up a Controller Service (such as #getClassloaderIsolationKey). The Processor must be registered with the FlowManager and its parent Process Group
+                // before that can happen, in order to ensure that it has access to any referenced Controller Service.
+                group.addProcessor(procNode);
+
                 if (config.getProperties() != null) {
                     procNode.setProperties(config.getProperties());
                 }
 
-                group.addProcessor(procNode);
+                // Notify the processor node that the configuration (properties, e.g.) has been restored
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, flowController.getControllerServiceProvider(), flowController.getEncryptor(),
+                        flowController.getStateManagerProvider().getStateManager(procNode.getProcessor().getIdentifier()), () -> false, flowController);
+                procNode.onConfigurationRestored(processContext);
             } finally {
                 procNode.resumeValidationTrigger();
             }
@@ -454,6 +474,17 @@ public class StandardFlowSnippet implements FlowSnippet {
             childGroup.setPosition(toPosition(groupDTO.getPosition()));
             childGroup.setComments(groupDTO.getComments());
             childGroup.setName(groupDTO.getName());
+
+            final String flowfileConcurrentName = groupDTO.getFlowfileConcurrency();
+            if (flowfileConcurrentName != null) {
+                childGroup.setFlowFileConcurrency(FlowFileConcurrency.valueOf(flowfileConcurrentName));
+            }
+
+            final String outboundPolicyName = groupDTO.getFlowfileOutboundPolicy();
+            if (outboundPolicyName != null) {
+                childGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(outboundPolicyName));
+            }
+
             if (groupDTO.getVariables() != null) {
                 childGroup.setVariables(groupDTO.getVariables());
             }
@@ -464,6 +495,21 @@ public class StandardFlowSnippet implements FlowSnippet {
                 if (parameterContext != null) {
                     childGroup.setParameterContext(parameterContext);
                 }
+            }
+
+            final String defaultFlowFileExpiration = groupDTO.getDefaultFlowFileExpiration();
+            if (defaultFlowFileExpiration != null) {
+                childGroup.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
+            }
+
+            final Long defaultBackPressureObjectThreshold = groupDTO.getDefaultBackPressureObjectThreshold();
+            if (defaultBackPressureObjectThreshold != null) {
+                childGroup.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
+            }
+
+            final String defaultBackPressureDataSizeThreshold = groupDTO.getDefaultBackPressureDataSizeThreshold();
+            if (defaultBackPressureDataSizeThreshold != null) {
+                childGroup.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
             }
 
             // If this Process Group is 'top level' then we do not set versioned component ID's.
@@ -490,7 +536,7 @@ public class StandardFlowSnippet implements FlowSnippet {
             childTemplateDTO.setControllerServices(contents.getControllerServices());
 
             final StandardFlowSnippet childSnippet = new StandardFlowSnippet(childTemplateDTO, extensionManager);
-            childSnippet.instantiate(flowManager, childGroup, false);
+            childSnippet.instantiate(flowManager, flowController, childGroup, false);
 
             if (groupDTO.getVersionControlInformation() != null) {
                 final VersionControlInformation vci = StandardVersionControlInformation.Builder

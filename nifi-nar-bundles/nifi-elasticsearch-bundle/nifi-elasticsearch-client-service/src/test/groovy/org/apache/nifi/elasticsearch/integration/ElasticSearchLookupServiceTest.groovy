@@ -56,7 +56,7 @@ class ElasticSearchLookupServiceTest {
     void simpleLookupTest() throws Exception {
         def coordinates = ["_id": "12345" ]
 
-        Optional<MapRecord> result = lookupService.lookup(coordinates)
+        Optional<MapRecord> result = lookupService.lookup(coordinates) as Optional<MapRecord>
 
         Assert.assertNotNull(result)
         Assert.assertTrue(result.isPresent())

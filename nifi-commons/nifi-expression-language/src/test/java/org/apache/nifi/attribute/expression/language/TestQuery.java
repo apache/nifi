@@ -29,9 +29,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -55,10 +54,11 @@ import static java.lang.Double.NaN;
 import static java.lang.Double.POSITIVE_INFINITY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestQuery {
 
@@ -89,6 +89,10 @@ public class TestQuery {
         assertInvalid("${attr:indexOf(length())}");
         assertValid("${UUID()}");
         assertInvalid("${UUID():nextInt()}");
+        assertValid("${attr:UUID3('94c09378-43a6-11ea-8bcc-acde48001122')}");
+        assertValid("${attr:UUID5('94c09378-43a6-11ea-8bcc-acde48001122')}");
+        assertInvalid("${UUID3('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
+        assertInvalid("${UUID5('94c09378-43a6-11ea-8bcc-acde48001122', attr)}");
         assertValid("${nextInt()}");
         assertValid("${now():format('yyyy/MM/dd')}");
         assertInvalid("${attr:times(3)}");
@@ -119,23 +123,26 @@ public class TestQuery {
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
         final String mixedEvaluated = mixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("bar${foo}", mixedEvaluated);
+
+        final PreparedQuery multipleEscapedQuery = Query.prepare("$${foo}$${bar}");
+        final String multipleEscapedEvaluated = multipleEscapedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("${foo}${bar}", multipleEscapedEvaluated);
+
+        final PreparedQuery multipleEscapedWithTextQuery = Query.prepare("foo$${foo}bar$${bar}");
+        final String multipleEscapedWithTextEvaluated = multipleEscapedWithTextQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foo${foo}bar${bar}", multipleEscapedWithTextEvaluated);
+
+        final PreparedQuery multipleMixedQuery = Query.prepare("foo${foo}$${foo}bar${bar}$${bar}");
+        final String multipleMixedEvaluated = multipleMixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foobar${foo}bar${bar}", multipleMixedEvaluated);
     }
 
     private void assertValid(final String query) {
-        try {
-            Query.compile(query);
-        } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Expected query to be valid, but it failed to compile due to " + e);
-        }
+        assertDoesNotThrow(() -> Query.compile(query));
     }
 
     private void assertInvalid(final String query) {
-        try {
-            Query.compile(query);
-            Assert.fail("Expected query to be invalid, but it did compile");
-        } catch (final Exception e) {
-        }
+        assertThrows(Exception.class, () -> Query.compile(query));
     }
 
     @Test
@@ -143,11 +150,7 @@ public class TestQuery {
         Query.validateExpression("${abc:substring(${xyz:length()})}", false);
         Query.isValidExpression("${now():format('yyyy-MM-dd')}");
 
-        try {
-            Query.validateExpression("$${attr}", false);
-            Assert.fail("invalid query validated");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.validateExpression("$${attr}", false));
 
         Query.validateExpression("$${attr}", true);
 
@@ -295,7 +298,7 @@ public class TestQuery {
     }
 
     @Test
-    @Ignore("Requires specific locale")
+    @Disabled("Requires specific locale")
     public void implicitDateConversion() {
         final Date date = new Date();
         final Query query = Query.compile("${dateTime:format('yyyy/MM/dd HH:mm:ss.SSS')}");
@@ -341,27 +344,34 @@ public class TestQuery {
     }
 
     @Test
+    public void testParameterReferenceWithSpace() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test param", "unit");
+
+        final Query query = Query.compile("${'#{test param}'}");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
+    }
+
+    @Test
     public void testJsonPath() throws IOException {
         Map<String,String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "", "${json:jsonPathDelete('$.missingpath')}", "");
         verifyEquals("${json:jsonPath('$.missingpath')}", attributes, "");
-        try {
-            verifyEquals("${json:jsonPath('$..')}", attributes, "");
-            Assert.fail("Did not detect bad JSON path expression");
-        } catch (final AttributeExpressionLanguageException e) {
-        }
-        try {
-            verifyEquals("${missing:jsonPath('$.firstName')}", attributes, "");
-            Assert.fail("Did not detect empty JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${json:jsonPath('$..')}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${missing:jsonPath('$.firstName')}", attributes, ""));
+
         attributes.put("invalid", "[}");
-        try {
-            verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John");
-            Assert.fail("Did not detect invalid JSON document");
-        } catch (AttributeExpressionLanguageException e) {
-        }
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${invlaid:jsonPath('$.firstName')}", attributes, "John"));
     }
 
     private void verifyAddressBookAttributes(String originalAddressBook, Map<String,String> attributes, String updatedAttribute, Object updatedValue) {
@@ -496,13 +506,12 @@ public class TestQuery {
        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
-    @Test(expected=IllegalArgumentException.class)
     public void testJsonPathAddNicknameJimmyAtNonArray() throws IOException {
-        Map<String,String> attributes = verifyJsonPathExpressions(
+        assertThrows(IllegalArgumentException.class, () -> verifyJsonPathExpressions(
                 ADDRESS_BOOK_JSON_PATH_EMPTY,
                 "",
                 "${json:jsonPathAdd('$.firstName', 'Jimmy')}",
-                "");
+                ""));
     }
 
     @Test
@@ -571,9 +580,9 @@ public class TestQuery {
         verifyEquals("${allAttributes( 'x', 'y' ):join(',')}", attributes, ",");
     }
 
-    @Test(expected = AttributeExpressionLanguageException.class)
+    @Test
     public void testCannotCombineWithNonReducingFunction() {
-        Query.compile("${allAttributes( 'a.1' ):plus(1)}");
+        assertThrows(AttributeExpressionLanguageException.class, () -> Query.compile("${allAttributes( 'a.1' ):plus(1)}"));
     }
 
     @Test
@@ -1098,32 +1107,25 @@ public class TestQuery {
         attributes.put("negativeDecimal", "-64.1");
 
         // Test that errors relating to not finding methods are properly handled
-        try {
-            verifyEquals("${math('rand'):toNumber()}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'double'", expected.getMessage());
-        }
-        try {
-            verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L);
-            fail();
-        } catch (AttributeExpressionLanguageException expected) {
-            assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
-                    "first argument type: 'double', second argument type:  'long'", expected.getMessage());
-        }
+
+        AttributeExpressionLanguageException expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${math('rand'):toNumber()}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no subjectless method was found with the name:'rand'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${negativeDecimal:math('absolute')}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'absolute', one argument of type: 'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two:toDecimal()})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'double'", expected.getMessage());
+
+        expected = assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${oneDecimal:math('power', ${two})}", attributes, 0L));
+        assertEquals("Cannot evaluate 'math' function because no method was found matching the passed parameters: name:'power', " +
+                "first argument type: 'double', second argument type:  'long'", expected.getMessage());
+
 
         // Can only verify that it runs. ToNumber() will verify that it produced a number greater than or equal to 0.0 and less than 1.0
         verifyEquals("${math('random'):toNumber()}", attributes, 0L);
@@ -1333,12 +1335,7 @@ public class TestQuery {
         verifyEquals("${allAttributes('abc', 'xyz'):length():equals(4)}", attributes, true);
         verifyEquals("${allAttributes('abc', 'xyz', 'other'):isNull()}", attributes, false);
 
-        try {
-            Query.compile("${allAttributes('#ah'):equals('hello')");
-            Assert.fail("Was able to compile with allAttributes and an invalid attribute name");
-        } catch (final AttributeExpressionLanguageParsingException e) {
-            // expected behavior
-        }
+        assertThrows(AttributeExpressionLanguageParsingException.class, () -> Query.compile("${allAttributes('#ah'):equals('hello')"));
     }
 
     @Test
@@ -1633,6 +1630,17 @@ public class TestQuery {
     }
 
     @Test
+    public void testSubstringOOB() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "file-255");
+
+        verifyEquals("${filename:substring(10, 20)}", attributes, "");
+        verifyEquals("${filename:substring(10)}", attributes, "");
+        verifyEquals("${filename:substring(-2)}", attributes, "");
+        verifyEquals("${filename:substring(2, -2)}", attributes, "");
+    }
+
+    @Test
     public void testToRadix() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");
@@ -1884,7 +1892,7 @@ public class TestQuery {
         for (int i = 0; i < results.size(); i++) {
             long result = (Long) getResult("${random()}", attrs).getValue();
             assertThat("random", result, greaterThan(negOne));
-            assertEquals("duplicate random", true, results.add(result));
+            assertEquals(true, results.add(result), "duplicate random");
         }
     }
 
@@ -2055,6 +2063,26 @@ public class TestQuery {
     }
 
     @Test
+    public void testHash() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("str_attr", "string value");
+        attributes.put("nbr_attr", "10");
+        verifyEquals("${literal('john'):hash('MD5')}", attributes, "527bd5b5d689e2c32ae974c6229ff785");
+        verifyEquals("${str_attr:hash('MD5')}", attributes, "64e58419496c7248b4ef25731f88b8c3");
+        verifyEquals("${str_attr:hash('SHA-1')}", attributes, "34990db823e7bb2b47278a7fbf08c62d9e8e4307");
+        verifyEquals("${str_attr:hash('SHA-256')}", attributes, "9b6a1a9167a5caf3f5948413faa89e0ec0de89e12bef55327442e60dcc0e8c9b");
+        verifyEquals("${nbr_attr:toNumber():hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
+        verifyEquals("${nbr_attr:hash('MD5')}", attributes, "d3d9446802a44259755d38e6d163e820");
+    }
+
+    @Test
+    public void testHashFailure() {
+        final Map<String, String> attributes = new HashMap<>();
+        assertThrows(AttributeExpressionLanguageException.class,
+                () -> verifyEquals("${literal('john'):hash('NOT_A_ALGO')}", attributes, "527bd5b5d689e2c32ae974c6229ff785"));
+    }
+
+    @Test
     public void testThread() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${thread()}", attributes, "main");
@@ -2117,24 +2145,61 @@ public class TestQuery {
         assertTrue(multipleResultExpectedResults.contains(actualResult));
 
         verifyEquals("${str:repeat(4)}", attributes, "abcabcabcabc");
-        try {
-            verifyEquals("${str:repeat(-1)}", attributes, "");
-            fail("Should have failed on numRepeats < 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(0)}", attributes, "");
-            fail("Should have failed on numRepeats = 0");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
-        try {
-            verifyEquals("${str:repeat(2,1)}", attributes, "");
-            fail("Should have failed on minRepeats > maxRepeats");
-        } catch(AttributeExpressionLanguageException aele) {
-            // Do nothing, it is expected
-        }
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(-1)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(0)}", attributes, ""));
+        assertThrows(AttributeExpressionLanguageException.class, () -> verifyEquals("${str:repeat(2,1)}", attributes, ""));
+    }
+
+    @Test
+    public void testUuidsWithNamespace() {
+        // Testing a lot of cases here b/c it's a custom UUID3/5 implementation
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("myattr0", "u5IkOYFFvYioYBJSNI2XNjPaVoRjXYnr");
+        attributes.put("myattr1", "mSDgSKQrY67QCTPatV5qHrZa4oUQ2wEX");
+        attributes.put("myattr2", "u6jH7pF8iAqwjr42i3r5DubdNcgwqEaX");
+        attributes.put("myattr3", "9eDG1KbqvHrtIMSmvH44t0K7fHXs7xtz");
+        attributes.put("myattr4", "QeAUDsMYoHJHLsy1BPPSmQWKhCKvwEpj");
+        attributes.put("myattr5", "U5Cw4b79SW1YiB5Va3DfUMI9y4iJwnVS");
+        attributes.put("myattr6", "Ig51Jl3EtwaKlVo9MnDSDdJSlXMgZ1It");
+        attributes.put("myattr7", "F2iLLLHXgliEpIDwJ4JcqeWBVi70cHS6");
+        attributes.put("myattr8", "1BFShkKLOcjwn1GMsyO4Fmb0iNTVt2Tf");
+        attributes.put("myattr9", "WxiyO8Gzw0jQnBlYeZMcdNTwCWJe5MNg");
+        attributes.put("myattr10", null);
+
+        // Version 3s
+        verifyEquals("${myattr0:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')}", attributes, "7ab88cc4-7748-3214-812a-1bc4500a911a");
+        verifyEquals("${myattr1:UUID3('341857cc-c5f3-4f76-b336-169f81e9dc7a')}", attributes, "d788c2df-95e1-33aa-a548-9be42f222909");
+        verifyEquals("${myattr2:UUID3('27e35966-52c9-48ba-bc91-3894a2f164d8')}", attributes, "e960f7af-5eec-3298-8512-e3933836bd5a");
+        verifyEquals("${myattr3:UUID3('1aef683a-2c0b-4f0e-9287-792361873e8f')}", attributes, "bf1727d8-93d3-3550-9071-78c8686f30c3");
+        verifyEquals("${myattr4:UUID3('5f15efac-e274-42b1-8d0f-15c2c97acb7d')}", attributes, "9e68a780-090d-30a9-903c-22cf7eb5c511");
+        verifyEquals("${myattr5:UUID3('ebd71811-fd78-4929-856b-4cec7a38d666')}", attributes, "a2a4b1b5-d93f-3656-be0d-f1db281060c1");
+        verifyEquals("${myattr6:UUID3('7b1bce89-f12b-4b56-afb8-f9b0a1334926')}", attributes, "8eea2153-d42e-3f63-892c-33ff7f0be389");
+        verifyEquals("${myattr7:UUID3('fe085c56-95e2-4cf8-8612-ba878ed35f0b')}", attributes, "3cd6470f-5432-3599-82ce-1f2b22adcec6");
+        verifyEquals("${myattr8:UUID3('2be146a5-f54e-4ca1-a10d-d219e9fc6c6f')}", attributes, "c3ed8ced-b32f-39da-a7ea-75934f419446");
+        verifyEquals("${myattr9:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes, "6507198b-f565-3196-9123-6f946f8c53bc");
+        verifyEmpty("${myattr10:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEmpty("${myattr11:UUID3('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEquals("${myattr9:UUID3(${myattr11})}", attributes, "f2d25da2-cc06-34de-80a3-cf64aff82020");
+
+        // Version 5s
+        verifyEquals("${myattr0:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')}", attributes, "74f6dc12-6d84-500c-9583-e9fed79912ea");
+        verifyEquals("${myattr1:UUID5('45089bfa-f5eb-40e3-bc02-4270ccb8ef34')}", attributes, "7b197702-0ed0-5494-9f61-417e26010308");
+        verifyEquals("${myattr2:UUID5('49861367-c791-4d6d-987e-fe994b2ee4b7')}", attributes, "7b38b455-a0d6-53bd-a0fa-d0f3bf4e7399");
+        verifyEquals("${myattr3:UUID5('1142b2d9-e434-4931-b1a5-6dbf363aa9cf')}", attributes, "cd13422e-b030-547b-807b-a868e9282eab");
+        verifyEquals("${myattr4:UUID5('967190d3-b4ba-4ef3-a8e6-3b8bf2d3f1d8')}", attributes, "e4f1ef89-0d25-55cd-bc4b-1904813c3137");
+        verifyEquals("${myattr5:UUID5('2942f01d-82df-40ee-b1fd-476542160b7c')}", attributes, "a0415b30-5ef9-5530-93a2-fd20f4262d68");
+        verifyEquals("${myattr6:UUID5('3a47c04b-7cea-4c95-a379-018e64c701c5')}", attributes, "e1931aad-30e8-5283-8505-394f0d08b181");
+        verifyEquals("${myattr7:UUID5('6f78ce33-4186-46c0-ae05-15f8c78024cf')}", attributes, "a5c80e26-88d6-5de9-9234-66a050f4d940");
+        verifyEquals("${myattr8:UUID5('b85962a8-6614-49f4-8fdd-a984cf35144e')}", attributes, "6e33ce29-d3f0-59ee-a864-c05ec4d4300d");
+        verifyEquals("${myattr9:UUID5('5b6da974-4eca-4c17-bbd2-3b59a1b40bee')}", attributes, "2e2e846c-1cbc-54b2-96f7-5a66d246126f");
+        verifyEmpty("${myattr10:UUID5('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEmpty("${myattr11:UUID5('4939d5dd-51c1-4d0e-badd-77fa7c7eebc1')}", attributes);
+        verifyEquals("${myattr9:UUID5(${myattr11})}", attributes, "0231a7bf-7bbe-5a0c-8bbd-9c7bc2e95071");
+
+        // Make sure it works using the UUID() expression for the namespace
+        verifyEquals("${myattr0:UUID3(${UUID()}):length()}", attributes, 36L);
+        verifyEquals("${myattr0:UUID5(${UUID()}):length()}", attributes, 36L);
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
@@ -2227,6 +2292,11 @@ public class TestQuery {
         @Override
         public boolean isEmpty() {
             return parameters.isEmpty();
+        }
+
+        @Override
+        public long getVersion() {
+            return 0;
         }
     }
 }

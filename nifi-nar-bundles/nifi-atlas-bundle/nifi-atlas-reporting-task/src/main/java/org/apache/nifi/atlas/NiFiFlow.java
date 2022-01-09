@@ -45,7 +45,6 @@ import static org.apache.nifi.atlas.AtlasUtils.findIdByQualifiedName;
 import static org.apache.nifi.atlas.AtlasUtils.isGuidAssigned;
 import static org.apache.nifi.atlas.AtlasUtils.isUpdated;
 import static org.apache.nifi.atlas.AtlasUtils.updateMetadata;
-import static org.apache.nifi.atlas.NiFiTypes.ATTR_CLUSTER_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_DESCRIPTION;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_INPUTS;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
@@ -65,7 +64,7 @@ public class NiFiFlow {
 
     private final String rootProcessGroupId;
     private String flowName;
-    private String clusterName;
+    private String namespace;
     private String url;
     private String atlasGuid;
     private AtlasEntity exEntity;
@@ -112,13 +111,13 @@ public class NiFiFlow {
         return rootProcessGroupId;
     }
 
-    public String getClusterName() {
-        return clusterName;
+    public String getNamespace() {
+        return namespace;
     }
 
-    public void setClusterName(String clusterName) {
-        updateMetadata(metadataUpdated, updateAudit, ATTR_CLUSTER_NAME, this.clusterName, clusterName);
-        this.clusterName = clusterName;
+    public void setNamespace(String namespace) {
+        updateMetadata(metadataUpdated, updateAudit, "namespace", this.namespace, namespace);
+        this.namespace = namespace;
         atlasObjectId = createAtlasObjectId();
     }
 
@@ -370,7 +369,7 @@ public class NiFiFlow {
     }
 
     public String toQualifiedName(String componentId) {
-        return AtlasUtils.toQualifiedName(clusterName, componentId);
+        return AtlasUtils.toQualifiedName(namespace, componentId);
     }
 
     public enum EntityChangeType {

@@ -16,10 +16,63 @@
  */
 package org.apache.nifi.remote.util;
 
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
+import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
+
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
@@ -64,7 +117,6 @@ import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
 import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.UnknownPortException;
@@ -86,60 +138,6 @@ import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_COUNT;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_DURATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_BATCH_SIZE;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_REQUEST_EXPIRATION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.HANDSHAKE_PROPERTY_USE_COMPRESSION;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_HEADER_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
-import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-
 public class SiteToSiteRestApiClient implements Closeable {
 
     private static final String EVENT_CATEGORY = "Site-to-Site";
@@ -148,7 +146,6 @@ public class SiteToSiteRestApiClient implements Closeable {
     private static final int RESPONSE_CODE_OK = 200;
     private static final int RESPONSE_CODE_CREATED = 201;
     private static final int RESPONSE_CODE_ACCEPTED = 202;
-    private static final int RESPONSE_CODE_NO_CONTENT = 204;
     private static final int RESPONSE_CODE_BAD_REQUEST = 400;
     private static final int RESPONSE_CODE_FORBIDDEN = 403;
     private static final int RESPONSE_CODE_NOT_FOUND = 404;
@@ -173,12 +170,11 @@ public class SiteToSiteRestApiClient implements Closeable {
     private int batchCount = 0;
     private long batchSize = 0;
     private long batchDurationMillis = 0;
-    private TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(2,1);
+    private final TransportProtocolVersionNegotiator transportProtocolVersionNegotiator = new TransportProtocolVersionNegotiator(1);
 
     private String trustedPeerDn;
     private final ScheduledExecutorService ttlExtendTaskExecutor;
     private ScheduledFuture<?> ttlExtendingFuture;
-    private SiteToSiteRestApiClient extendingApiClient;
 
     private int connectTimeoutMillis;
     private int readTimeoutMillis;
@@ -202,7 +198,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             @Override
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
-                thread.setName(Thread.currentThread().getName() + " TTLExtend");
+                thread.setName(Thread.currentThread().getName() + " Site-to-Site Extend Transactions");
                 thread.setDaemon(true);
                 return thread;
             }
@@ -211,7 +207,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     @Override
     public void close() throws IOException {
-        stopExtendingTtl();
+        stopExtendingTransaction();
         closeSilently(httpClient);
         closeSilently(httpAsyncClient);
     }
@@ -379,7 +375,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private ControllerDTO getController() throws IOException {
         // first check cache and prune any old values.
         // Periodically prune the map so that we are not keeping entries around forever, in case an RPG is removed
-        // from he canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
+        // from the canvas, etc. We want to ensure that we avoid memory leaks, even if they are likely to not cause a problem.
         if (System.currentTimeMillis() > lastPruneTimestamp + TimeUnit.MINUTES.toMillis(5)) {
             pruneCache();
         }
@@ -490,7 +486,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                 if (transportProtocolVersionHeader == null) {
                     throw new ProtocolException("Server didn't return confirmed protocol version");
                 }
-                final Integer protocolVersionConfirmedByServer = Integer.valueOf(transportProtocolVersionHeader.getValue());
+                final int protocolVersionConfirmedByServer = Integer.parseInt(transportProtocolVersionHeader.getValue());
                 logger.debug("Finished version negotiation, protocolVersionConfirmedByServer={}", protocolVersionConfirmedByServer);
                 transportProtocolVersionNegotiator.setVersion(protocolVersionConfirmedByServer);
 
@@ -500,8 +496,6 @@ public class SiteToSiteRestApiClient implements Closeable {
                 }
                 serverTransactionTtl = Integer.parseInt(serverTransactionTtlHeader.getValue());
                 break;
-            case RESPONSE_CODE_NO_CONTENT:
-                throw new NoContentException("Server has no flowfiles to provide");
 
             default:
                 try (InputStream content = response.getEntity().getContent()) {
@@ -595,7 +589,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public HttpRequest generateRequest() throws IOException, HttpException {
+            public HttpRequest generateRequest() {
                 final BasicHttpEntity entity = new BasicHttpEntity();
                 post.setEntity(entity);
                 return post;
@@ -628,12 +622,12 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void resetRequest() throws IOException {
+            public void resetRequest() {
                 requestHasBeenReset = true;
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
             }
         };
 
@@ -727,7 +721,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                             if (r < 0) {
                                 closed = true;
                                 logger.debug("Reached to end of input stream. Closing resources...");
-                                stopExtendingTtl();
+                                stopExtendingTransaction();
                                 closeSilently(httpIn);
                                 closeSilently(response);
                             }
@@ -736,7 +730,7 @@ public class SiteToSiteRestApiClient implements Closeable {
                     };
                     ((HttpInput) peer.getCommunicationsSession().getInput()).setInputStream(streamCapture);
 
-                    startExtendingTtl(transactionUrl, httpIn, response);
+                    startExtendingTransaction(transactionUrl);
                     keepItOpen = true;
                     return true;
 
@@ -789,7 +783,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public HttpRequest generateRequest() throws IOException, HttpException {
+            public HttpRequest generateRequest() {
 
                 // Pass the output stream so that Site-to-Site client thread can send
                 // data packet through this connection.
@@ -893,17 +887,17 @@ public class SiteToSiteRestApiClient implements Closeable {
             }
 
             @Override
-            public void resetRequest() throws IOException {
+            public void resetRequest() {
                 logger.debug("Sending data request to {} has been reset...", flowFilesPath);
                 requestHasBeenReset = true;
             }
 
             @Override
-            public void close() throws IOException {
+            public void close() {
                 logger.debug("Closing sending data request to {}", flowFilesPath);
                 closeSilently(outputStream);
                 closeSilently(dataPacketChannel);
-                stopExtendingTtl();
+                stopExtendingTransaction();
             }
         };
 
@@ -917,7 +911,7 @@ public class SiteToSiteRestApiClient implements Closeable {
 
             // Started.
             transferDataLatch = new CountDownLatch(1);
-            startExtendingTtl(transactionUrl, dataPacketChannel, null);
+            startExtendingTransaction(transactionUrl);
 
         } catch (final InterruptedException e) {
             throw new IOException("Awaiting initConnectionLatch has been interrupted.", e);
@@ -932,7 +926,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
 
         // No more data can be sent.
-        // Close PipedOutputStream so that dataPacketChannel doesn't blocked.
+        // Close PipedOutputStream so that dataPacketChannel doesn't get blocked.
         // If we don't close this output stream, then PipedInputStream loops infinitely at read().
         commSession.getOutput().getOutputStream().close();
         logger.debug("{} FinishTransferFlowFiles no more data can be sent", this);
@@ -945,7 +939,7 @@ public class SiteToSiteRestApiClient implements Closeable {
             throw new IOException("Awaiting transferDataLatch has been interrupted.", e);
         }
 
-        stopExtendingTtl();
+        stopExtendingTransaction();
 
         final HttpResponse response;
         try {
@@ -973,37 +967,15 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    private void startExtendingTtl(final String transactionUrl, final Closeable stream, final CloseableHttpResponse response) {
+    private void startExtendingTransaction(final String transactionUrl) {
         if (ttlExtendingFuture != null) {
-            // Already started.
             return;
         }
 
-        logger.debug("Starting extending TTL thread...");
-
-        extendingApiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
-        extendingApiClient.transportProtocolVersionNegotiator = this.transportProtocolVersionNegotiator;
-        extendingApiClient.connectTimeoutMillis = this.connectTimeoutMillis;
-        extendingApiClient.readTimeoutMillis = this.readTimeoutMillis;
-        extendingApiClient.localAddress = this.localAddress;
-
         final int extendFrequency = serverTransactionTtl / 2;
-
-        ttlExtendingFuture = ttlExtendTaskExecutor.scheduleWithFixedDelay(() -> {
-            try {
-                extendingApiClient.extendTransaction(transactionUrl);
-            } catch (final Exception e) {
-                logger.warn("Failed to extend transaction ttl", e);
-
-                try {
-                    // Without disconnecting, Site-to-Site client keep reading data packet,
-                    // while server has already rollback.
-                    this.close();
-                } catch (final IOException ec) {
-                    logger.warn("Failed to close", e);
-                }
-            }
-        }, extendFrequency, extendFrequency, TimeUnit.SECONDS);
+        logger.debug("Extend Transaction Started [{}] Frequency [{} seconds]", transactionUrl, extendFrequency);
+        final Runnable command = new ExtendTransactionCommand(this, transactionUrl, eventReporter);
+        ttlExtendingFuture = ttlExtendTaskExecutor.scheduleWithFixedDelay(command, extendFrequency, extendFrequency, TimeUnit.SECONDS);
     }
 
     private void closeSilently(final Closeable closeable) {
@@ -1045,17 +1017,15 @@ public class SiteToSiteRestApiClient implements Closeable {
 
     }
 
-    private void stopExtendingTtl() {
+    private void stopExtendingTransaction() {
         if (!ttlExtendTaskExecutor.isShutdown()) {
             ttlExtendTaskExecutor.shutdown();
         }
 
         if (ttlExtendingFuture != null && !ttlExtendingFuture.isCancelled()) {
-            logger.debug("Cancelling extending ttl...");
-            ttlExtendingFuture.cancel(true);
+            final boolean cancelled = ttlExtendingFuture.cancel(true);
+            logger.debug("Extend Transaction Cancelled [{}]", cancelled);
         }
-
-        closeSilently(extendingApiClient);
     }
 
     private IOException handleErrResponse(final int responseCode, final InputStream in) throws IOException {
@@ -1088,7 +1058,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         String responseMessage = null;
 
         try {
-            responseMessage = new String(bos.toByteArray(), "UTF-8");
+            responseMessage = new String(bos.toByteArray(), StandardCharsets.UTF_8);
             logger.debug("readResponse responseMessage={}", responseMessage);
 
             final ObjectMapper mapper = new ObjectMapper();
@@ -1456,7 +1426,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         logger.debug("Sending commitReceivingFlowFiles request to transactionUrl: {}, clientResponse={}, checksum={}",
             transactionUrl, clientResponse, checksum);
 
-        stopExtendingTtl();
+        stopExtendingTransaction();
 
         final StringBuilder urlBuilder = new StringBuilder(transactionUrl).append("?responseCode=").append(clientResponse.getCode());
         if (ResponseCode.CONFIRM_TRANSACTION.equals(clientResponse)) {

@@ -19,18 +19,18 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Jersey implementation of ControllerServicersClient.
@@ -41,11 +41,11 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
     private final WebTarget processGroupTarget;
 
     public JerseyControllerServicesClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyControllerServicesClient(final WebTarget baseTarget, final Map<String, String> headers) {
-        super(headers);
+    public JerseyControllerServicesClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.controllerServicesTarget = baseTarget.path("/controller-services");
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
     }
@@ -134,11 +134,15 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
         }
 
         return executeAction("Error deleting Controller Service", () -> {
-            final WebTarget target = controllerServicesTarget
+            WebTarget target = controllerServicesTarget
                 .path("/{id}")
                 .queryParam("version", revision.getVersion())
                 .queryParam("clientId", revision.getClientId())
                 .resolveTemplate("id", controllerServiceEntity.getId());
+
+            if (controllerServiceEntity.isDisconnectedNodeAcknowledged() == Boolean.TRUE) {
+                target = target.queryParam("disconnectedNodeAcknowledged", "true");
+            }
 
             return getRequestBuilder(target).delete(ControllerServiceEntity.class);
         });
@@ -175,5 +179,65 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
             );
         });
 
+    }
+
+    @Override
+    public VerifyConfigRequestEntity submitConfigVerificationRequest(final VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException {
+        if (configRequestEntity == null) {
+            throw new IllegalArgumentException("Config Request Entity cannot be null");
+        }
+        if (configRequestEntity.getRequest() == null) {
+            throw new IllegalArgumentException("Config Request DTO cannot be null");
+        }
+        if (configRequestEntity.getRequest().getComponentId() == null) {
+            throw new IllegalArgumentException("Controller Service ID cannot be null");
+        }
+        if (configRequestEntity.getRequest().getProperties() == null) {
+            throw new IllegalArgumentException("Controller Service properties cannot be null");
+        }
+
+        return executeAction("Error submitting Config Verification Request", () -> {
+            final WebTarget target = controllerServicesTarget
+                .path("{id}/config/verification-requests")
+                .resolveTemplate("id", configRequestEntity.getRequest().getComponentId());
+
+            return getRequestBuilder(target).post(
+                Entity.entity(configRequestEntity, MediaType.APPLICATION_JSON_TYPE),
+                VerifyConfigRequestEntity.class
+            );
+        });
+
+    }
+
+    @Override
+    public VerifyConfigRequestEntity getConfigVerificationRequest(final String serviceId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error retrieving Config Verification Request", () -> {
+            final WebTarget target = controllerServicesTarget
+                .path("{id}/config/verification-requests/{requestId}")
+                .resolveTemplate("id", serviceId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).get(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public VerifyConfigRequestEntity deleteConfigVerificationRequest(final String serviceId, final String verificationRequestId) throws NiFiClientException, IOException {
+        if (verificationRequestId == null) {
+            throw new IllegalArgumentException("Verification Request ID cannot be null");
+        }
+
+        return executeAction("Error deleting Config Verification Request", () -> {
+            final WebTarget target = controllerServicesTarget
+                .path("{id}/config/verification-requests/{requestId}")
+                .resolveTemplate("id", serviceId)
+                .resolveTemplate("requestId", verificationRequestId);
+
+            return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
+        });
     }
 }

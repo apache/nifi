@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-import groovy.util.slurpersupport.GPathResult
 import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
 
@@ -29,10 +29,10 @@ import java.nio.file.attribute.PosixFilePermission
 class TestUtil {
 
     static final String RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT = absolutePathForResource('/nifi-registry/bootstrap_default.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY = absolutePathForResource('/nifi-registry/bootstrap_without_master_key.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY = absolutePathForResource('/nifi-registry/bootstrap_with_empty_master_key.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_128 = absolutePathForResource('/nifi-registry/bootstrap_with_master_key_128.conf')
-    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128 = absolutePathForResource('/nifi-registry/bootstrap_with_master_key_from_password_128.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_NO_KEY = absolutePathForResource('/nifi-registry/bootstrap_without_root_key.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_EMPTY_KEY = absolutePathForResource('/nifi-registry/bootstrap_with_empty_root_key.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_128 = absolutePathForResource('/nifi-registry/bootstrap_with_root_key_128.conf')
+    static final String RESOURCE_REGISTRY_BOOTSTRAP_KEY_FROM_PASSWORD_128 = absolutePathForResource('/nifi-registry/bootstrap_with_root_key_from_password_128.conf')
 
     static final String RESOURCE_REGISTRY_PROPERTIES_COMMENTED = absolutePathForResource('/nifi-registry/nifi-registry-commented.properties')
     static final String RESOURCE_REGISTRY_PROPERTIES_EMPTY = absolutePathForResource('/nifi-registry/nifi-registry-empty.properties')
@@ -101,8 +101,12 @@ class TestUtil {
     }
 
     static String generateTmpFilePath() {
+        generateTmpFilePath("tmp_file")
+    }
+
+    static String generateTmpFilePath(final String tempFileSuffix) {
         File tmpDir = setupTmpDir()
-        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.tmp_file"
+        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.${tempFileSuffix}"
     }
 
     static File generateTmpFile() {
@@ -110,8 +114,17 @@ class TestUtil {
         tmpFile
     }
 
+    static File generateTmpFile(final String tempFileSuffix) {
+        File tmpFile = new File(generateTmpFilePath(tempFileSuffix))
+        tmpFile
+    }
+
     static String copyFileToTempFile(String filePath) {
-        File tmpFile = generateTmpFile()
+        copyFileToTempFile(filePath, "tmp_file")
+    }
+
+    static String copyFileToTempFile(String filePath, final String tempFileSuffix) {
+        File tmpFile = generateTmpFile(tempFileSuffix)
         tmpFile.text = new File(filePath).text
         return tmpFile.getAbsolutePath()
     }
@@ -298,14 +311,15 @@ class TestUtil {
 
         assert populatedSensitiveProperties.size() == protectedSensitiveProperties.size()
 
-        AESSensitivePropertyProvider spp = new AESSensitivePropertyProvider(expectedKey)
+        SensitivePropertyProvider spp = org.apache.nifi.properties.StandardSensitivePropertyProviderFactory.withKey(expectedKey)
+                .getProvider(PropertyProtectionScheme.AES_GCM)
 
         protectedSensitiveProperties.each {
             String value = it.text()
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue))
+            assert plaintextValues.contains(spp.unprotect(propertyValue, org.apache.nifi.properties.ProtectedPropertyContext.defaultContext((String) it.@name)))
         }
 
         return true

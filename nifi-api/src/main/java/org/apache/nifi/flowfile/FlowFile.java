@@ -34,7 +34,7 @@ public interface FlowFile extends Comparable<FlowFile> {
      * should not be used for true universal unique type needs.  For that consider
      * using the attribute found in the flow file's attribute map keyed by
      * {@link org.apache.nifi.flowfile.attributes.CoreAttributes.UUID CoreAttributes.UUID}.
-     * For example, by calling getAttribute(CoreAttributes.UUID.getKey()).
+     * For example, by calling getAttribute(CoreAttributes.UUID.key()).
      */
     long getId();
 
@@ -108,6 +108,7 @@ public interface FlowFile extends Comparable<FlowFile> {
      */
     Map<String, String> getAttributes();
 
+    // All classes defined in an interface are public static, but keeping the definition to be explicit
     public static class KeyValidator {
 
         public static String validateKey(final String key) {

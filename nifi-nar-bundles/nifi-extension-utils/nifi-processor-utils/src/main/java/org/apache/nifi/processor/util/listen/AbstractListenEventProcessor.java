@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.processor.util.listen;
 
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
-
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -32,11 +29,10 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +43,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
 /**
  * An abstract processor to extend from when listening for events over a channel. This processor
  * will start a ChannelDispatcher, and optionally a ChannelResponseDispatcher, in a background
@@ -56,8 +54,6 @@ import java.util.concurrent.TimeUnit;
  * @param <E> the type of events being produced
  */
 public abstract class AbstractListenEventProcessor<E extends Event> extends AbstractProcessor {
-
-
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
@@ -179,19 +175,13 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        final String interfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final InetAddress interfaceAddress = NetworkUtils.getInterfaceAddress(interfaceName);
 
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-
-        InetAddress nicIPAddress = null;
-        if (!StringUtils.isEmpty(nicIPAddressStr)) {
-            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
-            nicIPAddress = netIF.getInetAddresses().nextElement();
-        }
-
         // create the dispatcher and call open() to bind to the given port
         dispatcher = createDispatcher(context, events);
-        dispatcher.open(nicIPAddress, port, maxChannelBufferSize);
+        dispatcher.open(interfaceAddress, port, maxChannelBufferSize);
 
         // start a thread to run the dispatcher
         final Thread readerThread = new Thread(dispatcher);
@@ -221,26 +211,11 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return events == null ? 0 : events.size();
     }
 
-    @OnUnscheduled
-    public void onUnscheduled() {
+    @OnStopped
+    public void closeDispatcher() {
         if (dispatcher != null) {
             dispatcher.close();
         }
-    }
-
-    /**
-     * Creates a pool of ByteBuffers with the given size.
-     *
-     * @param poolSize the number of buffers to initialize the pool with
-     * @param bufferSize the size of each buffer
-     * @return a blocking queue with size equal to poolSize and each buffer equal to bufferSize
-     */
-    protected BlockingQueue<ByteBuffer> createBufferPool(final int poolSize, final int bufferSize) {
-        final LinkedBlockingQueue<ByteBuffer> bufferPool = new LinkedBlockingQueue<>(poolSize);
-        for (int i = 0; i < poolSize; i++) {
-            bufferPool.offer(ByteBuffer.allocate(bufferSize));
-        }
-        return bufferPool;
     }
 
     /**

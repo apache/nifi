@@ -17,9 +17,17 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.toc.StandardTocReader;
+import org.apache.nifi.provenance.toc.StandardTocWriter;
+import org.apache.nifi.provenance.toc.TocReader;
+import org.apache.nifi.provenance.toc.TocUtil;
+import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,40 +42,25 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordWriter;
-import org.apache.nifi.provenance.toc.StandardTocReader;
-import org.apache.nifi.provenance.toc.StandardTocWriter;
-import org.apache.nifi.provenance.toc.TocReader;
-import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.provenance.toc.TocWriter;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecordReaderWriter {
     private final AtomicLong idGenerator = new AtomicLong(0L);
     private File journalFile;
     private File tocFile;
 
-    @BeforeClass
-    public static void setupLogger() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
-    }
-
-    @Before
+    @BeforeEach
     public void setup() {
-        journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testEventIdFirstSchemaRecordReaderWriter");
+        journalFile = new File("target/storage/" + UUID.randomUUID() + "/testEventIdFirstSchemaRecordReaderWriter");
         tocFile = TocUtil.getTocFile(journalFile);
         idGenerator.set(0L);
     }
 
     @Test
     public void testContentClaimUnchanged() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -88,7 +81,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -125,7 +118,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
 
     @Test
     public void testContentClaimRemoved() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -146,7 +139,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -183,7 +176,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
 
     @Test
     public void testContentClaimAdded() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -203,7 +196,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -240,7 +233,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
 
     @Test
     public void testContentClaimChanged() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -261,7 +254,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(1L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -298,7 +291,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
 
     @Test
     public void testEventIdAndTimestampCorrect() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.gz");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.gz");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
@@ -322,7 +315,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         final ProvenanceEventRecord record = builder.build();
 
         writer.writeHeader(500_000L);
-        writer.writeRecord(record);
+        writer.writeRecords(Collections.singletonList(record));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -340,10 +333,9 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         FileUtils.deleteFile(journalFile.getParentFile(), true);
     }
 
-
     @Test
     public void testComponentIdInlineAndLookup() throws IOException {
-        final File journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testSimpleWrite.prov");
+        final File journalFile = new File("target/storage/" + UUID.randomUUID() + "/testSimpleWrite.prov");
         final File tocFile = TocUtil.getTocFile(journalFile);
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
 
@@ -382,12 +374,12 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
         builder.setCurrentContentClaim("container-2", "section-2", "identifier-2", 2L, 2L);
 
         writer.writeHeader(500_000L);
-        writer.writeRecord(builder.build());
+        writer.writeRecords(Collections.singletonList(builder.build()));
 
         builder.setEventId(1_000_001L);
         builder.setComponentId("4444");
         builder.setComponentType("unit-test-component-1");
-        writer.writeRecord(builder.build());
+        writer.writeRecords(Collections.singletonList(builder.build()));
 
         writer.close();
 
@@ -425,9 +417,9 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
     }
 
     @Test
-    @Ignore
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testPerformanceOfRandomAccessReads() throws Exception {
-        journalFile = new File("target/storage/" + UUID.randomUUID().toString() + "/testPerformanceOfRandomAccessReads.gz");
+        journalFile = new File("target/storage/" + UUID.randomUUID() + "/testPerformanceOfRandomAccessReads.gz");
         tocFile = TocUtil.getTocFile(journalFile);
 
         final int blockSize = 1024 * 32;
@@ -435,7 +427,7 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
             writer.writeHeader(0L);
 
             for (int i = 0; i < 100_000; i++) {
-                writer.writeRecord(createEvent());
+                writer.writeRecords(Collections.singletonList(createEvent()));
             }
         }
 
@@ -465,13 +457,8 @@ public class TestEventIdFirstSchemaRecordReaderWriter extends AbstractTestRecord
     }
 
     private void time(final Callable<StandardProvenanceEventRecord> task, final long id) throws Exception {
-        final long start = System.nanoTime();
         final StandardProvenanceEventRecord event = task.call();
-        Assert.assertNotNull(event);
-        Assert.assertEquals(id, event.getEventId());
-        //        System.out.println(event);
-        final long nanos = System.nanoTime() - start;
-        final long millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-        //        System.out.println("Took " + millis + " ms to " + taskDescription);
+        assertNotNull(event);
+        assertEquals(id, event.getEventId());
     }
 }

@@ -19,9 +19,14 @@ package org.apache.nifi.processors.gcp.pubsub;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.batching.BatchingSettings;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
 import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.pubsub.v1.Publisher;
+import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
+import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
 import com.google.common.collect.ImmutableList;
+import com.google.iam.v1.TestIamPermissionsRequest;
+import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.ProjectTopicName;
@@ -29,6 +34,8 @@ import com.google.pubsub.v1.PubsubMessage;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,9 +43,12 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -75,7 +85,10 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
         @WritesAttribute(attribute = TOPIC_NAME_ATTRIBUTE, description = TOPIC_NAME_DESCRIPTION)
 })
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
+        + "will be read into memory to be sent as a PubSub message.")
 public class PublishGCPubSub extends AbstractGCPubSubProcessor{
+    private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.topics.publish");
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-topic")
@@ -121,6 +134,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         );
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         try {
@@ -129,6 +143,72 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
             getLogger().error("Failed to create Google Cloud PubSub Publisher due to {}", new Object[]{e});
             storedException.set(e);
         }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        Publisher publisher = null;
+        try {
+            publisher = getPublisherBuilder(context).build();
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Publisher")
+                    .outcome(Outcome.SUCCESSFUL)
+                    .explanation("Successfully created Publisher")
+                    .build());
+        } catch (final IOException e) {
+            verificationLogger.error("Failed to create Publisher", e);
+            results.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Create Publisher")
+                    .outcome(Outcome.FAILED)
+                    .explanation(String.format("Failed to create Publisher: " + e.getMessage()))
+                    .build());
+        }
+
+        if (publisher != null) {
+            try {
+                final PublisherStubSettings publisherStubSettings = PublisherStubSettings.newBuilder()
+                        .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                        .build();
+
+                final GrpcPublisherStub publisherStub = GrpcPublisherStub.create(publisherStubSettings);
+                final String topicName = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
+                final TestIamPermissionsRequest request = TestIamPermissionsRequest.newBuilder()
+                        .addAllPermissions(REQUIRED_PERMISSIONS)
+                        .setResource(topicName)
+                        .build();
+                final TestIamPermissionsResponse response = publisherStub.testIamPermissionsCallable().call(request);
+                if (response.getPermissionsCount() >= REQUIRED_PERMISSIONS.size()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Verified Topic [%s] exists and the configured user has the correct permissions.", topicName))
+                            .build());
+                } else {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("The configured user does not have the correct permissions on Topic [%s].", topicName))
+                            .build());
+                }
+            } catch (final ApiException e) {
+                verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The configured user appears to have the correct permissions, but the following error was encountered: " + e.getMessage()))
+                        .build());
+            } catch (final IOException e) {
+                verificationLogger.error("The publisher stub could not be created in order to test the permissions", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The publisher stub could not be created in order to test the permissions: " + e.getMessage()))
+                        .build());
+
+            }
+        }
+        return results;
     }
 
     @Override
@@ -153,7 +233,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                 try {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     session.exportTo(flowFile, baos);
-                    final ByteString flowFileContent = ByteString.copyFromUtf8(baos.toString());
+                    final ByteString flowFileContent = ByteString.copyFrom(baos.toByteArray());
 
                     PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
                             .setPublishTime(Timestamp.newBuilder().build())
@@ -162,14 +242,8 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
                     ApiFuture<String> messageIdFuture = publisher.publish(message);
 
-                    while (messageIdFuture.isDone()) {
-                        Thread.sleep(500L);
-                    }
-
-                    final String messageId = messageIdFuture.get();
                     final Map<String, String> attributes = new HashMap<>();
-
-                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageId);
+                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());
                     attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
@@ -180,11 +254,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                                         "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
                         session.transfer(flowFile, REL_RETRY);
                     } else {
-                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}",
-                                new Object[]{topicName, e});
+                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}", new Object[]{topicName, e});
                         session.transfer(flowFile, REL_FAILURE);
-                        context.yield();
                     }
+                    context.yield();
                 }
             }
         } finally {
@@ -215,7 +288,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     private ProjectTopicName getTopicName(ProcessContext context) {
         final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
 
         if (topic.contains("/")) {
             return ProjectTopicName.parse(topic);

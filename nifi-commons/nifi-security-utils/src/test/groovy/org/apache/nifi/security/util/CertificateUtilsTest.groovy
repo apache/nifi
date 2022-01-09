@@ -16,45 +16,34 @@
  */
 package org.apache.nifi.security.util
 
-import org.bouncycastle.asn1.x509.Extension
-import org.bouncycastle.asn1.x509.Extensions
-import org.bouncycastle.asn1.x509.ExtensionsGenerator
-import org.bouncycastle.asn1.x509.GeneralName
-import org.bouncycastle.asn1.x509.GeneralNames
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x500.style.IETFUtils
+import org.bouncycastle.asn1.x509.*
 import org.bouncycastle.operator.OperatorCreationException
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder
+import org.bouncycastle.util.IPAddress
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import javax.net.ssl.SSLException
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 import javax.net.ssl.SSLSocket
-import java.security.InvalidKeyException
-import java.security.KeyPair
-import java.security.KeyPairGenerator
-import java.security.NoSuchAlgorithmException
-import java.security.NoSuchProviderException
-import java.security.SignatureException
+import java.security.*
 import java.security.cert.Certificate
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate
-import java.util.concurrent.Callable
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Executors
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 
-import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
-@RunWith(JUnit4.class)
 class CertificateUtilsTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtilsTest.class)
 
@@ -67,24 +56,15 @@ class CertificateUtilsTest extends GroovyTestCase {
     private static final String PROVIDER = "BC"
 
     private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US"
+    private static final String SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985 = "CN=NiFi Test Server/emailAddress=test@apache.org,OU=Security,O=Apache,ST=CA,C=US"
     private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
+    private static final List<String> SUBJECT_ALT_NAMES = ["127.0.0.1", "nifi.nifi.apache.org"]
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() {
-        super.setUp()
-
-    }
-
-    @After
-    void tearDown() {
-
     }
 
     /**
@@ -104,13 +84,7 @@ class CertificateUtilsTest extends GroovyTestCase {
      *
      * @param dn the DN
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.NoSuchProviderException
-     * @throws java.security.SignatureException
-     * @throws java.security.InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException* @throws NoSuchAlgorithmException* @throws java.security.cert.CertificateException* @throws java.security.NoSuchProviderException* @throws java.security.SignatureException* @throws java.security.InvalidKeyException* @throws OperatorCreationException
      */
     private
     static X509Certificate generateCertificate(String dn) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
@@ -125,13 +99,7 @@ class CertificateUtilsTest extends GroovyTestCase {
      * @param issuerDn the issuer DN
      * @param issuerKey the issuer private key
      * @return the certificate
-     * @throws IOException
-     * @throws NoSuchAlgorithmException
-     * @throws CertificateException
-     * @throws NoSuchProviderException
-     * @throws SignatureException
-     * @throws InvalidKeyException
-     * @throws OperatorCreationException
+     * @throws IOException* @throws NoSuchAlgorithmException* @throws CertificateException* @throws NoSuchProviderException* @throws SignatureException* @throws InvalidKeyException* @throws OperatorCreationException
      */
     private
     static X509Certificate generateIssuedCertificate(String dn, X509Certificate issuer, KeyPair issuerKey) throws IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, SignatureException, InvalidKeyException, OperatorCreationException {
@@ -147,6 +115,7 @@ class CertificateUtilsTest extends GroovyTestCase {
         [certificate, issuerCertificate] as X509Certificate[]
     }
 
+    @SuppressWarnings("deprecation")
     private static javax.security.cert.X509Certificate generateLegacyCertificate(X509Certificate x509Certificate) {
         return javax.security.cert.X509Certificate.getInstance(x509Certificate.getEncoded())
     }
@@ -205,19 +174,18 @@ class CertificateUtilsTest extends GroovyTestCase {
         SSLSocket noneSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> false }] as SSLSocket
 
         // Act
-        CertificateUtils.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
+        ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
         logger.info("Client auth (needSocket): ${needClientAuthStatus}")
-        CertificateUtils.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
+        ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
         logger.info("Client auth (wantSocket): ${wantClientAuthStatus}")
-        CertificateUtils.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
+        ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
         logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
 
         // Assert
-        assert needClientAuthStatus == CertificateUtils.ClientAuth.NEED
-        assert wantClientAuthStatus == CertificateUtils.ClientAuth.WANT
-        assert noneClientAuthStatus == CertificateUtils.ClientAuth.NONE
+        assert needClientAuthStatus == ClientAuth.REQUIRED
+        assert wantClientAuthStatus == ClientAuth.WANT
+        assert noneClientAuthStatus == ClientAuth.NONE
     }
-
 
     @Test
     void testShouldExtractClientCertificatesFromSSLServerSocketWithAnyClientAuth() {
@@ -436,7 +404,16 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void testShouldGenerateSelfSignedCert() throws Exception {
+    void testGetCommonName(){
+        String dn1 = "CN=testDN,O=testOrg"
+        String dn2 = "O=testDN,O=testOrg"
+
+        assertEquals("testDN", CertificateUtils.getCommonName(dn1))
+        assertNull(CertificateUtils.getCommonName(dn2))
+    }
+
+    @Test
+    void testShouldGenerateSelfSignedCert() throws Exception {
         String dn = "CN=testDN,O=testOrg"
 
         int days = 365
@@ -454,12 +431,18 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase())
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm())
 
+        assertEquals(1, x509Certificate.getSubjectAlternativeNames().size())
+
+        GeneralName gn = x509Certificate.getSubjectAlternativeNames().iterator().next()
+        assertEquals(GeneralName.dNSName, gn.getTagNo())
+        assertEquals("testDN", gn.getName().toString())
+
         x509Certificate.checkValidity()
     }
 
     @Test
-    public void testIssueCert() throws Exception {
-        int days = 365;
+    void testIssueCert() throws Exception {
+        int days = 365
         KeyPair issuerKeyPair = generateKeyPair()
         X509Certificate issuer = CertificateUtils.generateSelfSignedX509Certificate(issuerKeyPair, "CN=testCa,O=testOrg", SIGNATURE_ALGORITHM, days)
 
@@ -486,7 +469,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void reorderShouldPutElementsInCorrectOrder() {
+    void reorderShouldPutElementsInCorrectOrder() {
         String cn = "CN=testcn"
         String l = "L=testl"
         String st = "ST=testst"
@@ -504,8 +487,8 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    public void testUniqueSerialNumbers() {
-        def running = new AtomicBoolean(true);
+    void testUniqueSerialNumbers() {
+        def running = new AtomicBoolean(true)
         def executorService = Executors.newCachedThreadPool()
         def serialNumbers = Collections.newSetFromMap(new ConcurrentHashMap())
         try {
@@ -514,7 +497,7 @@ class CertificateUtilsTest extends GroovyTestCase {
                 futures.add(executorService.submit(new Callable<Integer>() {
                     @Override
                     Integer call() throws Exception {
-                        int count = 0;
+                        int count = 0
                         while (running.get()) {
                             def before = System.currentTimeMillis()
                             def serialNumber = CertificateUtils.getUniqueSerialNumber()
@@ -523,23 +506,23 @@ class CertificateUtilsTest extends GroovyTestCase {
                             assertTrue(serialNumberMillis >= before)
                             assertTrue(serialNumberMillis <= after)
                             assertTrue(serialNumbers.add(serialNumber))
-                            count++;
+                            count++
                         }
-                        return count;
+                        return count
                     }
-                }));
+                }))
             }
 
             Thread.sleep(1000)
 
             running.set(false)
 
-            def totalRuns = 0;
+            def totalRuns = 0
             for (int i = 0; i < futures.size(); i++) {
                 try {
                     def numTimes = futures.get(i).get()
                     logger.info("future $i executed $numTimes times")
-                    totalRuns += numTimes;
+                    totalRuns += numTimes
                 } catch (ExecutionException e) {
                     throw e.getCause()
                 }
@@ -585,5 +568,83 @@ class CertificateUtilsTest extends GroovyTestCase {
         assert certificate.getSubjectDN().name == SUBJECT_DN
         assert certificate.getSubjectAlternativeNames().size() == SANS.size()
         assert certificate.getSubjectAlternativeNames()*.last().containsAll(SANS)
+    }
+
+    @Test
+    void testShouldDetectTlsErrors() {
+        // Arrange
+        final String msg = "Test exception"
+
+        // SSLPeerUnverifiedException isn't specifically defined in the method, but is a subclass of SSLException so it should be caught
+        List<Throwable> directErrors = [new TlsException(msg), new SSLPeerUnverifiedException(msg), new CertificateException(msg), new SSLException(msg)]
+        List<Throwable> causedErrors = directErrors.collect { Throwable cause -> new Exception(msg, cause) } + [
+                new Exception(msg,
+                        new Exception("Nested $msg",
+                                new Exception("Double nested $msg",
+                                        new TlsException("Triple nested $msg"))))]
+        List<Throwable> unrelatedErrors = [new Exception(msg), new IllegalArgumentException(msg), new NullPointerException(msg)]
+
+        // Act
+        def directResults = directErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+        def causedResults = causedErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+        def unrelatedResults = unrelatedErrors.collect { Throwable e -> CertificateUtils.isTlsError(e) }
+
+        logger.info("Direct results: ${directResults}")
+        logger.info("Caused results: ${causedResults}")
+        logger.info("Unrelated results: ${unrelatedResults}")
+
+        // Assert
+        assert directResults.every()
+        assert causedResults.every()
+        assert !unrelatedResults.any()
+    }
+
+    @Test
+    void testGetExtensionsFromCSR() {
+        // Arrange
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA")
+        KeyPair keyPair = generator.generateKeyPair()
+        Extensions sanExtensions = createDomainAlternativeNamesExtensions(SUBJECT_ALT_NAMES, SUBJECT_DN)
+
+        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(SUBJECT_DN), keyPair.getPublic())
+        jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, sanExtensions)
+        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder("SHA256WITHRSA")
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())))
+
+        // Act
+        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationRequest)
+
+        // Assert
+        assert(extensions.equivalent(sanExtensions))
+    }
+
+    @Test
+    void testExtractUserNameFromDN() {
+        String expected = "NiFi Test Server"
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN), expected)
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985), expected)
+    }
+
+    // Using this directly from tls-toolkit results in a dependency loop, so it's added here for testing purposes.
+    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = new ArrayList<>()
+
+        try {
+            final String cn = IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].getFirst().getValue())
+            namesList.add(new GeneralName(GeneralName.dNSName, cn))
+        } catch (Exception e) {
+            throw new IOException("Failed to extract CN from request DN: " + requestedDn, e)
+        }
+
+        if (domainAlternativeNames != null) {
+            for (String alternativeName : domainAlternativeNames) {
+                namesList.add(new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName))
+            }
+        }
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray([] as GeneralName[]))
+        ExtensionsGenerator extGen = new ExtensionsGenerator()
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
+        return extGen.generate()
     }
 }

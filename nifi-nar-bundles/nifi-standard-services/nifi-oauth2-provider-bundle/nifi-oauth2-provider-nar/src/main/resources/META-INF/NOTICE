@@ -1,0 +1,42 @@
+nifi-oauth2-provider-nar
+Copyright 2014-2021 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2011 The Apache Software Foundation
+
+
+  (ASLv2) Jackson Core ASL
+      The following NOTICE information applies:
+        This product currently only contains code developed by authors
+        of specific components, as identified by the source code files;
+        if such notes are missing files have been created by
+        Tatu Saloranta.
+
+        For additional credits (generally to people who reported problems)
+        see CREDITS file.
+
+  (ASLv2) Jackson Mapper ASL
+      The following NOTICE information applies:
+        This product currently only contains code developed by authors
+        of specific components, as identified by the source code files;
+        if such notes are missing files have been created by
+        Tatu Saloranta.
+
+        For additional credits (generally to people who reported problems)
+        see CREDITS file.
+
+  (ASLv2) OkHttp Client
+	  * LICENSE:
+	    * okhttp/third_party/okhttp/LICENSE (Apache License 2.0)
+	  * HOMEPAGE:
+	    * https://github.com/square/okhttp

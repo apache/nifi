@@ -22,15 +22,31 @@ public class AzureStorageCredentialsDetails {
 
     private final String storageAccountName;
 
+    private final String storageSuffix;
+
     private final StorageCredentials storageCredentials;
 
+    public AzureStorageCredentialsDetails() {
+        this(null, null, null);
+    }
+
+    @Deprecated
     public AzureStorageCredentialsDetails(String storageAccountName, StorageCredentials storageCredentials) {
+        this(storageAccountName, null, storageCredentials);
+    }
+
+    public AzureStorageCredentialsDetails(String storageAccountName, String storageSuffix, StorageCredentials storageCredentials) {
         this.storageAccountName = storageAccountName;
+        this.storageSuffix = storageSuffix;
         this.storageCredentials = storageCredentials;
     }
 
     public String getStorageAccountName() {
         return storageAccountName;
+    }
+
+    public String getStorageSuffix() {
+        return storageSuffix;
     }
 
     public StorageCredentials getStorageCredentials() {

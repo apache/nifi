@@ -236,7 +236,7 @@ public class TestConsumeKafkaRecord_2_0 {
     }
 
     @Test
-    public void testJaasConfigurationWithScramMechanism() {
+    public void testJaasConfigurationWithScram256Mechanism() {
         runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
@@ -245,6 +245,28 @@ public class TestConsumeKafkaRecord_2_0 {
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.SCRAM_SHA256_VALUE);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.USERNAME, "user1");
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.PASSWORD, "password");
+        runner.assertValid();
+
+        runner.removeProperty(KafkaProcessorUtils.USERNAME);
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testJaasConfigurationWithScram512Mechanism() {
+        runner.setProperty(ConsumeKafkaRecord_2_0.TOPICS, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.GROUP_ID, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_0.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_0.OFFSET_EARLIEST);
+
+        runner.setProperty(KafkaProcessorUtils.SECURITY_PROTOCOL, KafkaProcessorUtils.SEC_SASL_PLAINTEXT);
+        runner.assertNotValid();
+
+        runner.setProperty(KafkaProcessorUtils.SASL_MECHANISM, KafkaProcessorUtils.SCRAM_SHA512_VALUE);
         runner.assertNotValid();
 
         runner.setProperty(KafkaProcessorUtils.USERNAME, "user1");

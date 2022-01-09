@@ -19,9 +19,13 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -37,6 +41,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -79,9 +86,9 @@ public class TestLookupRecord {
         recordReader.addSchemaField("age", RecordFieldType.INT);
         recordReader.addSchemaField("sport", RecordFieldType.STRING);
 
-        recordReader.addRecord("John Doe", 48, null);
-        recordReader.addRecord("Jane Doe", 47, null);
-        recordReader.addRecord("Jimmy Doe", 14, null);
+        recordReader.addRecord("John Doe", 48, null, null);
+        recordReader.addRecord("Jane Doe", 47, null, null);
+        recordReader.addRecord("Jimmy Doe", 14, null, null);
     }
 
     @Test
@@ -125,6 +132,30 @@ public class TestLookupRecord {
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
         out.assertContentEquals("John Doe,48,Soccer\nJane Doe,47,Basketball\nJimmy Doe,14,Football\n");
+    }
+
+    @Test
+    public void testLookupWithTimestamp() {
+        recordReader.addSchemaField("record_timestamp", RecordFieldType.TIMESTAMP);
+        runner.setProperty("lookup", "/record_timestamp");
+
+        final Timestamp timestamp = new Timestamp(0L);
+        final String timestampKey = timestamp.toString();
+        recordReader.addRecord("Jason Doe", 15, null, timestamp);
+
+        lookupService.addValue(timestampKey, "Bowling");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
+        runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+
+        out.assertAttributeEquals("record.count", "1");
+        out.assertAttributeEquals("mime.type", "text/plain");
+        String contents = out.getContent();
+        assertTrue(contents.matches("Jason Doe,15,Bowling,19[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\n"));
     }
 
     @Test
@@ -436,8 +467,90 @@ public class TestLookupRecord {
         out.assertContentEquals("John Doe,48,soccer,basketball\nJane Doe,47\n");
     }
 
+    @Test
+    public void testLookupArray() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupLanguage", "/locales[*]/language");
+        runner.setProperty("lookupRegion", "/locales[*]/region");
+        runner.setProperty("lookupFoo", "/foo/foo");
+
+        lookupService.addValue("FR", "France");
+        lookupService.addValue("CA", "Canada");
+        lookupService.addValue("fr", "French");
+        lookupService.addValue("key", "value");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output.json").toPath());
+    }
+
+    @Test
+    public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupLanguage", "/locales[*]/language");
+        runner.setProperty("lookupRegion", "/locales[*]/region");
+        runner.setProperty("lookupFoo", "/foo/foo");
+
+        lookupService.addValue("FR", "France");
+        lookupService.addValue("CA", "Canada");
+        lookupService.addValue("fr", "French");
+        lookupService.addValue("badkey", "value");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
+    }
+
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
-        private final Map<String, String> values = new HashMap<>();
+        protected final Map<String, String> values = new HashMap<>();
         private Map<String, Object> expectedContext;
 
         public void addValue(final String key, final String value) {
@@ -449,6 +562,7 @@ public class TestLookupRecord {
             return String.class;
         }
 
+        @Override
         public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
             validateContext(context);
             return lookup(coordinates);
@@ -460,7 +574,7 @@ public class TestLookupRecord {
                 return Optional.empty();
             }
 
-            final String key = (String)coordinates.get("lookup");
+            final String key = coordinates.containsKey("lookup") ? coordinates.get("lookup").toString() : null;
             if (key == null) {
                 return Optional.empty();
             }
@@ -517,6 +631,18 @@ public class TestLookupRecord {
         @Override
         public Set<String> getRequiredKeys() {
             return Collections.singleton("lookup");
+        }
+    }
+
+    private static class MapLookupForInPlaceReplacement extends MapLookup implements StringLookupService {
+        @Override
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
+            final String key = (String)coordinates.values().iterator().next();
+            if (key == null) {
+                return Optional.empty();
+            }
+
+            return Optional.ofNullable(values.get(key));
         }
     }
 }

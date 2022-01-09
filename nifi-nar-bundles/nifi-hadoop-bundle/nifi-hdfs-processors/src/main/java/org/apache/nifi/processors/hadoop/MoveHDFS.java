@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import com.google.common.base.Preconditions;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -51,6 +52,7 @@ import org.apache.nifi.util.StopWatch;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -68,7 +70,7 @@ import java.util.regex.Pattern;
  * This processor renames files on HDFS.
  */
 @InputRequirement(Requirement.INPUT_ALLOWED)
-@Tags({"hadoop", "HDFS", "put", "move", "filesystem", "moveHDFS"})
+@Tags({"hadoop", "HCFS", "HDFS", "put", "move", "filesystem", "moveHDFS"})
 @CapabilityDescription("Rename existing files or a directory of files (non-recursive) on Hadoop Distributed File System (HDFS).")
 @ReadsAttribute(attribute = "filename", description = "The name of the file written to HDFS comes from the value of this attribute.")
 @WritesAttributes({
@@ -77,10 +79,10 @@ import java.util.regex.Pattern;
 @SeeAlso({PutHDFS.class, GetHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class MoveHDFS extends AbstractHadoopProcessor {
@@ -245,8 +247,9 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
         Path inputPath;
         try {
-            inputPath = new Path(filenameValue);
-            if (!hdfs.exists(inputPath)) {
+            inputPath = getNormalizedPath(context, INPUT_DIRECTORY_OR_FILE, flowFile);
+            final boolean directoryExists = getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
+            if (!directoryExists) {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
         } catch (Exception e) {
@@ -295,6 +298,11 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         } catch (IOException e) {
             context.yield();
             getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
+            return;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            context.yield();
+            getLogger().warn("Interrupted while retrieving files", e);
             return;
         }
 
@@ -348,9 +356,8 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                     FlowFile flowFile = session.create(parentFlowFile);
                     try {
                         final String originalFilename = file.getName();
-                        final String outputDirValue = context.getProperty(OUTPUT_DIRECTORY).evaluateAttributeExpressions(parentFlowFile).getValue();
-                        final Path configuredRootOutputDirPath = new Path(outputDirValue);
-                        final Path newFile = new Path(configuredRootOutputDirPath, originalFilename);
+                        final Path outputDirPath = getNormalizedPath(context, OUTPUT_DIRECTORY, parentFlowFile);
+                        final Path newFile = new Path(outputDirPath, originalFilename);
                         final boolean destinationExists = hdfs.exists(newFile);
                         // If destination file already exists, resolve that
                         // based on processor configuration
@@ -382,15 +389,15 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
                         // Create destination directory if it does not exist
                         try {
-                            if (!hdfs.getFileStatus(configuredRootOutputDirPath).isDirectory()) {
-                                throw new IOException(configuredRootOutputDirPath.toString()
+                            if (!hdfs.getFileStatus(outputDirPath).isDirectory()) {
+                                throw new IOException(outputDirPath.toString()
                                         + " already exists and is not a directory");
                             }
                         } catch (FileNotFoundException fe) {
-                            if (!hdfs.mkdirs(configuredRootOutputDirPath)) {
-                                throw new IOException(configuredRootOutputDirPath.toString() + " could not be created");
+                            if (!hdfs.mkdirs(outputDirPath)) {
+                                throw new IOException(outputDirPath.toString() + " could not be created");
                             }
-                            changeOwner(context, hdfs, configuredRootOutputDirPath);
+                            changeOwner(context, hdfs, outputDirPath);
                         }
 
                         boolean moved = false;
@@ -419,8 +426,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
                         final String hdfsPath = newFile.getParent().toString();
                         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename);
                         flowFile = session.putAttribute(flowFile, ABSOLUTE_HDFS_PATH_ATTRIBUTE, hdfsPath);
-                        final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath
-                                : "hdfs://" + outputPath;
+                        final String transitUri = hdfs.getUri() + StringUtils.prependIfMissing(outputPath, "/");
                         session.getProvenanceReporter().send(flowFile, transitUri);
                         session.transfer(flowFile, REL_SUCCESS);
 
@@ -435,7 +441,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    protected Set<Path> performListing(final ProcessContext context, Path path) throws IOException {
+    protected Set<Path> performListing(final ProcessContext context, Path path) throws IOException, InterruptedException {
         Set<Path> listing = null;
 
         if (listingLock.tryLock()) {
@@ -465,21 +471,25 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     }
 
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path inputPath, Set<Path> filesVisited)
-            throws IOException {
+            throws IOException, InterruptedException {
         if (null == filesVisited) {
             filesVisited = new HashSet<>();
         }
 
-        if (!hdfs.exists(inputPath)) {
+        UserGroupInformation ugi = getUserGroupInformation();
+
+        final boolean directoryExists = ugi.doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
+        if (!directoryExists) {
             throw new IOException("Selection directory " + inputPath.toString() + " doesn't appear to exist!");
         }
 
         final Set<Path> files = new HashSet<>();
 
-        FileStatus inputStatus = hdfs.getFileStatus(inputPath);
+        FileStatus inputStatus = ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(inputPath));
 
         if (inputStatus.isDirectory()) {
-            for (final FileStatus file : hdfs.listStatus(inputPath)) {
+            FileStatus[] fileStatuses = ugi.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(inputPath));
+            for (final FileStatus file : fileStatuses) {
                 final Path canonicalFile = file.getPath();
 
                 if (!filesVisited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)

@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.parameter;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExpressionLanguageAgnosticParameterParser {
 
@@ -187,4 +187,35 @@ public class TestExpressionLanguageAgnosticParameterParser {
             assertEquals("hello", ((ParameterReference) token).getParameterName());
         }
     }
+
+    @Test
+    public void testMultipleReferencesDifferentExpressions() {
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final List<ParameterToken> tokens = parameterParser.parseTokens("${#{hello}}${#{there}}").toList();
+        assertEquals(2, tokens.size());
+
+        final ParameterToken firstToken = tokens.get(0);
+        assertTrue(firstToken.isParameterReference());
+        assertEquals("hello", ((ParameterReference) firstToken).getParameterName());
+
+        final ParameterToken secondToken = tokens.get(1);
+        assertTrue(secondToken.isParameterReference());
+        assertEquals("there", ((ParameterReference) secondToken).getParameterName());
+    }
+
+    @Test
+    public void testMultipleReferencesSameExpression() {
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final List<ParameterToken> tokens = parameterParser.parseTokens("${#{hello}:append(#{there})}").toList();
+        assertEquals(2, tokens.size());
+
+        final ParameterToken firstToken = tokens.get(0);
+        assertTrue(firstToken.isParameterReference());
+        assertEquals("hello", ((ParameterReference) firstToken).getParameterName());
+
+        final ParameterToken secondToken = tokens.get(1);
+        assertTrue(secondToken.isParameterReference());
+        assertEquals("there", ((ParameterReference) secondToken).getParameterName());
+    }
+
 }

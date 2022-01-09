@@ -147,7 +147,10 @@ public class ParameterContextResource extends ApplicationResource {
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response getParameterContext(@ApiParam("The ID of the Parameter Context") @PathParam("id") final String parameterContextId) {
+    public Response getParameterContext(@ApiParam("The ID of the Parameter Context") @PathParam("id") final String parameterContextId,
+                                        @ApiParam("Whether or not to include inherited parameters from other parameter contexts, and therefore also overridden values.  " +
+                                                "If true, the result will be the 'effective' parameter context.") @QueryParam("includeInheritedParameters")
+                                        @DefaultValue("false") final boolean includeInheritedParameters) {
         // authorize access
         authorizeReadParameterContext(parameterContextId);
 
@@ -156,7 +159,7 @@ public class ParameterContextResource extends ApplicationResource {
         }
 
         // get the specified parameter context
-        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity entity = serviceFacade.getParameterContext(parameterContextId, includeInheritedParameters, NiFiUserUtils.getNiFiUser());
         entity.setUri(generateResourceUri("parameter-contexts", entity.getId()));
 
         // generate the response
@@ -171,7 +174,8 @@ public class ParameterContextResource extends ApplicationResource {
         value = "Create a Parameter Context",
         response = ParameterContextEntity.class,
         authorizations = {
-            @Authorization(value = "Write - /parameter-contexts")
+            @Authorization(value = "Write - /parameter-contexts"),
+            @Authorization(value = "Read - for every inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -307,7 +311,7 @@ public class ParameterContextResource extends ApplicationResource {
         value = "Initiate the Update Request of a Parameter Context",
         response = ParameterContextUpdateRequestEntity.class,
         notes = "This will initiate the process of updating a Parameter Context. Changing the value of a Parameter may require that one or more components be stopped and " +
-            "restarted, so this acttion may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a ParameterContextUpdateRequestEntity, " +
+            "restarted, so this action may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a ParameterContextUpdateRequestEntity, " +
             "and the process of updating the necessary components will occur asynchronously in the background. The client may then periodically poll the status of the request by " +
             "issuing a GET request to /parameter-contexts/update-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
             "/parameter-contexts/update-requests/{requestId}.",
@@ -315,7 +319,9 @@ public class ParameterContextResource extends ApplicationResource {
             @Authorization(value = "Read - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Write - /parameter-contexts/{parameterContextId}"),
             @Authorization(value = "Read - for every component that is affected by the update"),
-            @Authorization(value = "Write - for every component that is affected by the update")
+            @Authorization(value = "Write - for every component that is affected by the update"),
+            @Authorization(value = "Read - for every currently inherited parameter context"),
+            @Authorization(value = "Read - for any new inherited parameter context")
         })
     @ApiResponses(value = {
         @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -327,6 +333,10 @@ public class ParameterContextResource extends ApplicationResource {
     public Response submitParameterContextUpdate(
         @PathParam("contextId") final String contextId,
         @ApiParam(value = "The updated version of the parameter context.", required = true) final ParameterContextEntity requestEntity) {
+
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Parameter Context must be specified.");
+        }
 
         // Verify the request
         final RevisionDTO revisionDto = requestEntity.getRevision();
@@ -396,11 +406,13 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
     private void validateParameterNames(final ParameterContextDTO parameterContextDto) {
-        for (final ParameterEntity entity : parameterContextDto.getParameters()) {
-            final String parameterName = entity.getParameter().getName();
-            if (!isLegalParameterName(parameterName)) {
-                throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName + "). Parameter names may only include letters, numbers, spaces, and the special " +
-                    "characters .-_");
+        if (parameterContextDto.getParameters() != null) {
+            for (final ParameterEntity entity : parameterContextDto.getParameters()) {
+                final String parameterName = entity.getParameter().getName();
+                if (!isLegalParameterName(parameterName)) {
+                    throw new IllegalArgumentException("Request contains an illegal Parameter Name (" + parameterName
+                            + "). Parameter names may only include letters, numbers, spaces, and the special characters .-_");
+                }
             }
         }
     }
@@ -572,7 +584,7 @@ public class ParameterContextResource extends ApplicationResource {
                 parameterContext.authorize(authorizer, RequestAction.READ, user);
                 parameterContext.authorize(authorizer, RequestAction.WRITE, user);
 
-                final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, user);
+                final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(parameterContextId, false, user);
                 for (final ProcessGroupEntity boundGroupEntity : contextEntity.getComponent().getBoundProcessGroups()) {
                     final String groupId = boundGroupEntity.getId();
                     final Authorizable groupAuthorizable = lookup.getProcessGroup(groupId).getAuthorizable();
@@ -619,6 +631,10 @@ public class ParameterContextResource extends ApplicationResource {
         @PathParam("contextId") final String contextId,
         @ApiParam(value = "The validation request", required=true) final ParameterContextValidationRequestEntity requestEntity) {
 
+        if (requestEntity == null) {
+            throw new IllegalArgumentException("Parameter Context must be specified.");
+        }
+
         final ParameterContextValidationRequestDTO requestDto = requestEntity.getRequest();
         if (requestDto == null) {
             throw new IllegalArgumentException("Parameter Context must be specified");
@@ -652,7 +668,7 @@ public class ParameterContextResource extends ApplicationResource {
     }
 
     private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
-        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser());
 
         for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
             final ParameterDTO dto = parameterEntity.getParameter();
@@ -843,10 +859,13 @@ public class ParameterContextResource extends ApplicationResource {
             .filter(component -> "Running".equalsIgnoreCase(component.getComponent().getState()))
             .collect(Collectors.toSet());
 
-        final Set<AffectedComponentEntity> enabledControllerServices = affectedComponents.stream()
+        final Set<AffectedComponentEntity> servicesRequiringDisabledState = affectedComponents.stream()
             .filter(entity -> entity.getComponent() != null)
             .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-            .filter(dto -> "Enabled".equalsIgnoreCase(dto.getComponent().getState()))
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
+            })
             .collect(Collectors.toSet());
 
         stopProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
@@ -854,7 +873,16 @@ public class ParameterContextResource extends ApplicationResource {
             return null;
         }
 
-        disableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
+        // We want to disable only those Controller Services that are currently enabled or enabling, but we need to wait for
+        // services that are currently Disabling to become disabled before we are able to consider this step complete.
+        final Set<AffectedComponentEntity> enabledControllerServices = servicesRequiringDisabledState.stream()
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
+
+        disableControllerServices(enabledControllerServices, servicesRequiringDisabledState, asyncRequest, componentLifecycle, uri);
         if (asyncRequest.isCancelled()) {
             return null;
         }
@@ -870,7 +898,7 @@ public class ParameterContextResource extends ApplicationResource {
         } finally {
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
             if (!asyncRequest.isCancelled()) {
-                enableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
+                enableControllerServices(enabledControllerServices, enabledControllerServices, asyncRequest, componentLifecycle, uri);
             }
 
             if (!asyncRequest.isCancelled()) {
@@ -926,7 +954,7 @@ public class ParameterContextResource extends ApplicationResource {
                 throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
             }
 
-            return serviceFacade.getParameterContext(updatedContext.getId(), user);
+            return serviceFacade.getParameterContext(updatedContext.getId(), false, user);
         } else {
             serviceFacade.verifyUpdateParameterContext(updatedContext.getComponent(), true);
             return serviceFacade.updateParameterContext(revision, updatedContext.getComponent());
@@ -945,7 +973,11 @@ public class ParameterContextResource extends ApplicationResource {
     private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
-            entity = nodeResponse.getClientResponse().readEntity(clazz);
+            if (nodeResponse.getClientResponse() != null) {
+                entity = nodeResponse.getClientResponse().readEntity(clazz);
+            } else {
+                entity = (T) nodeResponse.getThrowable().toString();
+            }
         }
         return entity;
     }
@@ -985,17 +1017,19 @@ public class ParameterContextResource extends ApplicationResource {
         }
     }
 
-    private void disableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
-                                           final URI uri) throws LifecycleManagementException {
+    private void disableControllerServices(final Set<AffectedComponentEntity> enabledControllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
+                                           final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri) throws LifecycleManagementException {
 
         asyncRequest.markStepComplete();
-        logger.info("Disabling {} Controller Services in order to update Parameter Context", controllerServices.size());
+        logger.info("Disabling {} Controller Services in order to update Parameter Context", enabledControllerServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(disableServicesPause::cancel);
-        componentLifecycle.activateControllerServices(uri, "root", controllerServices, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
+        componentLifecycle.activateControllerServices(uri, "root", enabledControllerServices, controllerServicesRequiringDisabledState, ControllerServiceState.DISABLED, disableServicesPause,
+            InvalidComponentAction.WAIT);
     }
 
-    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
+    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
+                                          final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
                                           final URI uri) throws LifecycleManagementException, ResumeFlowException {
         if (logger.isDebugEnabled()) {
             logger.debug("Re-Enabling {} Controller Services: {}", controllerServices.size(), controllerServices);
@@ -1009,7 +1043,8 @@ public class ParameterContextResource extends ApplicationResource {
         final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(controllerServices);
 
         try {
-            componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+            componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, controllerServicesRequiringDisabledState,
+                ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
             asyncRequest.markStepComplete();
         } catch (final IllegalStateException ise) {
             // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
@@ -1165,7 +1200,7 @@ public class ParameterContextResource extends ApplicationResource {
         updateRequestDto.setReferencingComponents(new HashSet<>(affectedComponents.values()));
 
         // Populate the Affected Components
-        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), NiFiUserUtils.getNiFiUser());
+        final ParameterContextEntity contextEntity = serviceFacade.getParameterContext(asyncRequest.getComponentId(), false, NiFiUserUtils.getNiFiUser());
         final ParameterContextUpdateRequestEntity updateRequestEntity = new ParameterContextUpdateRequestEntity();
 
         // If the request is complete, include the new representation of the Parameter Context along with its new Revision. Otherwise, do not include the information, since it is 'stale'

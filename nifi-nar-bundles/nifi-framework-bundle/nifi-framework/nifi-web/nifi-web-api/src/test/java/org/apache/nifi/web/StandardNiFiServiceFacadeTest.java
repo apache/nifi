@@ -38,6 +38,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
 import org.apache.nifi.nar.ExtensionManager;
@@ -50,21 +51,31 @@ import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
+import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
+import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
+import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
+import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -182,7 +193,7 @@ public class StandardNiFiServiceFacadeTest {
         final ControllerFacade controllerFacade = new ControllerFacade();
         controllerFacade.setFlowController(flowController);
 
-        processGroupDAO = mock(ProcessGroupDAO.class);
+        processGroupDAO = mock(ProcessGroupDAO.class, Answers.RETURNS_DEEP_STUBS);
 
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
@@ -242,6 +253,25 @@ public class StandardNiFiServiceFacadeTest {
             verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
             verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
         }
+    }
+
+    @Test
+    public void testGetStatusHistory() {
+        // given
+        final Date generated = new Date();
+        final StatusHistoryDTO dto = new StatusHistoryDTO();
+        dto.setGenerated(generated);
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        Mockito.when(controllerFacade.getNodeStatusHistory()).thenReturn(dto);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        // when
+        final StatusHistoryEntity result = serviceFacade.getNodeStatusHistory();
+
+        // then
+        Mockito.verify(controllerFacade).getNodeStatusHistory();
+        Assert.assertNotNull(result);
+        Assert.assertEquals(generated, result.getStatusHistory().getGenerated());
     }
 
     @Test
@@ -395,4 +425,67 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
     }
 
+    @Test
+    public void testVerifyUpdateRemoteProcessGroups() throws Exception {
+        // GIVEN
+        RemoteProcessGroupDAO remoteProcessGroupDAO = mock(RemoteProcessGroupDAO.class);
+        serviceFacade.setRemoteProcessGroupDAO(remoteProcessGroupDAO);
+
+        String groupId = "groupId";
+        boolean shouldTransmit = true;
+
+        String remoteProcessGroupId1 = "remoteProcessGroupId1";
+        String remoteProcessGroupId2 = "remoteProcessGroupId2";
+
+        List<RemoteProcessGroup> remoteProcessGroups = Arrays.asList(
+            // Current 'transmitting' status should not influence the verification, which should be solely based on the 'shouldTransmitting' value
+            mockRemoteProcessGroup(remoteProcessGroupId1, true),
+            mockRemoteProcessGroup(remoteProcessGroupId2, false)
+        );
+
+        List<RemoteProcessGroupDTO> expected = Arrays.asList(
+            createRemoteProcessGroupDTO(remoteProcessGroupId1, shouldTransmit),
+            createRemoteProcessGroupDTO(remoteProcessGroupId2, shouldTransmit)
+        );
+
+        when(processGroupDAO.getProcessGroup(groupId).findAllRemoteProcessGroups()).thenReturn(remoteProcessGroups);
+        expected.stream()
+            .map(RemoteProcessGroupDTO::getId)
+            .forEach(remoteProcessGroupId -> when(remoteProcessGroupDAO.hasRemoteProcessGroup(remoteProcessGroupId)).thenReturn(true));
+
+
+        // WHEN
+        serviceFacade.verifyUpdateRemoteProcessGroups(groupId, shouldTransmit);
+
+        // THEN
+        ArgumentCaptor<RemoteProcessGroupDTO> remoteProcessGroupDTOArgumentCaptor = ArgumentCaptor.forClass(RemoteProcessGroupDTO.class);
+
+        verify(remoteProcessGroupDAO, times(remoteProcessGroups.size())).verifyUpdate(remoteProcessGroupDTOArgumentCaptor.capture());
+
+        List<RemoteProcessGroupDTO> actual = remoteProcessGroupDTOArgumentCaptor.getAllValues();
+
+        assertEquals(toMap(expected), toMap(actual));
+    }
+
+    private Map<String, Boolean> toMap(List<RemoteProcessGroupDTO> list) {
+        return list.stream().collect(Collectors.toMap(RemoteProcessGroupDTO::getId, RemoteProcessGroupDTO::isTransmitting));
+    }
+
+    private RemoteProcessGroup mockRemoteProcessGroup(String identifier, boolean transmitting) {
+        RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
+
+        when(remoteProcessGroup.getIdentifier()).thenReturn(identifier);
+        when(remoteProcessGroup.isTransmitting()).thenReturn(transmitting);
+
+        return remoteProcessGroup;
+    }
+
+    private RemoteProcessGroupDTO createRemoteProcessGroupDTO(String id, boolean transmitting) {
+        RemoteProcessGroupDTO remoteProcessGroup = new RemoteProcessGroupDTO();
+
+        remoteProcessGroup.setId(id);
+        remoteProcessGroup.setTransmitting(transmitting);
+
+        return remoteProcessGroup;
+    }
 }

@@ -70,9 +70,7 @@
                 provenanceEvents: '../nifi-api/provenance-events/',
                 clusterSearch: '../nifi-api/flow/cluster/search-results',
                 d3Script: 'js/d3/build/d3.min.js',
-                lineageScript: 'js/nf/provenance/nf-provenance-lineage.js',
-                uiExtensionToken: '../nifi-api/access/ui-extension-token',
-                downloadToken: '../nifi-api/access/download-token'
+                lineageScript: 'js/nf/provenance/nf-provenance-lineage.js'
             }
         };
 
@@ -92,33 +90,20 @@
             // build the url
             var dataUri = config.urls.provenanceEvents + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-            // perform the request once we've received a token
-            nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
-                var parameters = {};
+            var parameters = {};
 
-                // conditionally include the ui extension token
-                if (!nfCommon.isBlank(downloadToken)) {
-                    parameters['access_token'] = downloadToken;
-                }
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nfCommon.isBlank(clusterNodeId)) {
+                parameters['clusterNodeId'] = clusterNodeId;
+            }
 
-                // conditionally include the cluster node id
-                var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!nfCommon.isBlank(clusterNodeId)) {
-                    parameters['clusterNodeId'] = clusterNodeId;
-                }
-
-                // open the url
-                if ($.isEmptyObject(parameters)) {
-                    window.open(dataUri);
-                } else {
-                    window.open(dataUri + '?' + $.param(parameters));
-                }
-            }).fail(function () {
-                nfDialog.showOkDialog({
-                    headerText: 'Provenance',
-                    dialogContent: 'Unable to generate access token for downloading content.'
-                });
-            });
+            // open the url
+            if ($.isEmptyObject(parameters)) {
+                window.open(dataUri);
+            } else {
+                window.open(dataUri + '?' + $.param(parameters));
+            }
         };
 
         /**
@@ -133,80 +118,37 @@
             // build the uri to the data
             var dataUri = controllerUri + 'provenance-events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
-            // generate tokens as necessary
-            var getAccessTokens = $.Deferred(function (deferred) {
-                if (nfStorage.hasItem('jwt')) {
-                    // generate a token for the ui extension and another for the callback
-                    var uiExtensionToken = $.ajax({
-                        type: 'POST',
-                        url: config.urls.uiExtensionToken
-                    });
-                    var downloadToken = $.ajax({
-                        type: 'POST',
-                        url: config.urls.downloadToken
-                    });
+            var dataUriParameters = {};
 
-                    // wait for each token
-                    $.when(uiExtensionToken, downloadToken).done(function (uiExtensionTokenResult, downloadTokenResult) {
-                        var uiExtensionToken = uiExtensionTokenResult[0];
-                        var downloadToken = downloadTokenResult[0];
-                        deferred.resolve(uiExtensionToken, downloadToken);
-                    }).fail(function () {
-                        nfDialog.showOkDialog({
-                            headerText: 'Provenance',
-                            dialogContent: 'Unable to generate access token for viewing content.'
-                        });
-                        deferred.reject();
-                    });
-                } else {
-                    deferred.resolve('', '');
-                }
-            }).promise();
+            // conditionally include the cluster node id
+            var clusterNodeId = $('#provenance-event-cluster-node-id').text();
+            if (!nfCommon.isBlank(clusterNodeId)) {
+                dataUriParameters['clusterNodeId'] = clusterNodeId;
+            }
 
-            // perform the request after we've received the tokens
-            getAccessTokens.done(function (uiExtensionToken, downloadToken) {
-                var dataUriParameters = {};
+            // include parameters if necessary
+            if ($.isEmptyObject(dataUriParameters) === false) {
+                dataUri = dataUri + '?' + $.param(dataUriParameters);
+            }
 
-                // conditionally include the cluster node id
-                var clusterNodeId = $('#provenance-event-cluster-node-id').text();
-                if (!nfCommon.isBlank(clusterNodeId)) {
-                    dataUriParameters['clusterNodeId'] = clusterNodeId;
-                }
+            // open the content viewer
+            var contentViewerUrl = $('#nifi-content-viewer-url').text();
 
-                // include the download token if applicable
-                if (!nfCommon.isBlank(downloadToken)) {
-                    dataUriParameters['access_token'] = downloadToken;
-                }
+            // if there's already a query string don't add another ?... this assumes valid
+            // input meaning that if the url has already included a ? it also contains at
+            // least one query parameter
+            if (contentViewerUrl.indexOf('?') === -1) {
+                contentViewerUrl += '?';
+            } else {
+                contentViewerUrl += '&';
+            }
 
-                // include parameters if necessary
-                if ($.isEmptyObject(dataUriParameters) === false) {
-                    dataUri = dataUri + '?' + $.param(dataUriParameters);
-                }
+            var contentViewerParameters = {
+                'ref': dataUri
+            };
 
-                // open the content viewer
-                var contentViewerUrl = $('#nifi-content-viewer-url').text();
-
-                // if there's already a query string don't add another ?... this assumes valid
-                // input meaning that if the url has already included a ? it also contains at
-                // least one query parameter
-                if (contentViewerUrl.indexOf('?') === -1) {
-                    contentViewerUrl += '?';
-                } else {
-                    contentViewerUrl += '&';
-                }
-
-                var contentViewerParameters = {
-                    'ref': dataUri
-                };
-
-                // include the download token if applicable
-                if (!nfCommon.isBlank(uiExtensionToken)) {
-                    contentViewerParameters['access_token'] = uiExtensionToken;
-                }
-
-                // open the content viewer
-                window.open(contentViewerUrl + $.param(contentViewerParameters));
-            });
+            // open the content viewer
+            window.open(contentViewerUrl + $.param(contentViewerParameters));
         };
 
         /**
@@ -508,8 +450,11 @@
         var appendSearchableField = function (field) {
             var searchableField = $('<div class="searchable-field"></div>').appendTo('#searchable-fields-container');
             $('<span class="searchable-field-id hidden"></span>').text(field.id).appendTo(searchableField);
-            $('<div class="searchable-field-name"></div>').text(field.label).appendTo(searchableField);
+            $('<div class="searchable-field-name setting-name"></div>').text(field.label).appendTo(searchableField);
             $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-value nf-checkbox checkbox-unchecked"></div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-label nf-checkbox-label">Exclude from search results</div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-tooltip fa fa-question-circle" title="Query for all values except what is entered."></div>').appendTo(searchableField);
             $('<div class="clear"></div>').appendTo(searchableField);
 
             // make the searchable accessible for populating
@@ -532,10 +477,20 @@
                 var searchableField = $(this);
                 var fieldId = searchableField.children('span.searchable-field-id').text();
                 var searchValue = $.trim(searchableField.find('input.searchable-field-input').val());
+                var searchDetails = {};
 
                 // if the field isn't blank include it in the search
                 if (!nfCommon.isBlank(searchValue)) {
-                    searchCriteria[fieldId] = searchValue;
+                    searchCriteria[fieldId] = searchDetails;
+                    searchDetails["value"] = searchValue;
+                    var inverse = "inverse";
+                    var searchInverse = searchableField.find('div.searchable-checkbox-value').hasClass('checkbox-checked');
+                    if (searchInverse == true)
+                    {
+                        searchDetails[inverse] = true;
+                    } else {
+                        searchDetails[inverse] = false;
+                    }
                 }
             });
             return searchCriteria;
@@ -736,7 +691,7 @@
             }
 
             var provenanceOptions = {
-                forceFitColumns: true,
+                autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: true,
                 enableColumnReorder: false,

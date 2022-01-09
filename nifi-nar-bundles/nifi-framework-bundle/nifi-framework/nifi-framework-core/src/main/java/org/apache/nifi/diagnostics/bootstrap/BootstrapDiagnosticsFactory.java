@@ -25,6 +25,7 @@ import org.apache.nifi.diagnostics.StandardDiagnosticsDump;
 import org.apache.nifi.diagnostics.bootstrap.tasks.ClusterDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.ComponentCountTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.ContentRepositoryScanTask;
+import org.apache.nifi.diagnostics.bootstrap.tasks.DataValveDiagnosticsTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.DiagnosticAnalysisTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.FlowConfigurationDiagnosticTask;
 import org.apache.nifi.diagnostics.bootstrap.tasks.GarbageCollectionDiagnosticTask;
@@ -81,6 +82,7 @@ public class BootstrapDiagnosticsFactory implements DiagnosticsFactory {
         tasks.add(new ComponentCountTask(flowController));
         tasks.add(new NiFiPropertiesDiagnosticTask(nifiProperties));
         tasks.add(new ContentRepositoryScanTask(flowController));
+        tasks.add(new DataValveDiagnosticsTask(flowController.getFlowManager()));
         tasks.add(new ThreadDumpTask());
         return tasks;
     }

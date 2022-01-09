@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -30,12 +26,17 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Iterator;
+import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -67,7 +68,10 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
-
+    public static final PropertyDescriptor FILE_TRANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(LISTING_STRATEGY)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING, BY_TIME_WINDOW)
+        .build();
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
@@ -99,11 +103,21 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+        return performListing(context, 0L, ListingMode.CONFIGURATION_VERIFICATION, false).size();
+    }
+
+    @Override
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
+        return performListing(context, minTimestamp, listingMode, true);
+    }
+
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
+                                            final boolean applyFilters) throws IOException {
         final FileTransfer transfer = getFileTransfer(context);
         final List<FileInfo> listing;
         try {
-            listing = transfer.getListing();
+            listing = transfer.getListing(applyFilters);
         } finally {
             IOUtils.closeQuietly(transfer);
         }
@@ -121,6 +135,17 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         }
 
         return listing;
+    }
+
+    @Override
+    protected String getListingContainerName(final ProcessContext context) {
+        return String.format("Remote Directory [%s] on [%s:%s]", getPath(context), context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue(),
+                context.getProperty(UNDEFAULTED_PORT).evaluateAttributeExpressions().getValue());
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return FileInfo.getRecordSchema();
     }
 
     @Override

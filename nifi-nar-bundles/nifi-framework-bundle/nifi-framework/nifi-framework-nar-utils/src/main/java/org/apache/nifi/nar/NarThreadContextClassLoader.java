@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.Authorizer;
@@ -27,7 +28,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -37,6 +38,7 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -44,8 +46,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * THREAD SAFE
@@ -70,7 +77,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narSpecificClasses.add(AccessPolicyProvider.class);
         narSpecificClasses.add(LoginIdentityProvider.class);
         narSpecificClasses.add(ProvenanceRepository.class);
-        narSpecificClasses.add(ComponentStatusRepository.class);
+        narSpecificClasses.add(StatusHistoryRepository.class);
         narSpecificClasses.add(FlowFileRepository.class);
         narSpecificClasses.add(FlowFileSwapManager.class);
         narSpecificClasses.add(ContentRepository.class);
@@ -175,6 +182,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         }
     }
 
+
     /**
      * Constructs an instance of the given type using either default no args
      * constructor or a constructor which takes a NiFiProperties object
@@ -190,9 +198,28 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
-            throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+                                throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        return createInstance(extensionManager, implementationClassName, typeDefinition, nifiProperties, UUID.randomUUID().toString());
+    }
+
+    /**
+     * Constructs an instance of the given type using either default no args
+     * constructor or a constructor which takes a NiFiProperties object
+     * (preferred).
+     *
+     * @param <T> the type to create an instance for
+     * @param implementationClassName the implementation class name
+     * @param typeDefinition the type definition
+     * @param nifiProperties the NiFiProperties instance
+     * @param instanceId the UUID of the instance
+     * @return constructed instance
+     * @throws InstantiationException if there is an error instantiating the class
+     * @throws IllegalAccessException if there is an error accessing the type
+     * @throws ClassNotFoundException if the class cannot be found
+     */
+    public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties,
+                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
         try {
             final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
             if (bundles.size() == 0) {
@@ -203,11 +230,11 @@ public class NarThreadContextClassLoader extends URLClassLoader {
             }
 
             final Bundle bundle = bundles.get(0);
-            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
-            final Class<?> rawClass = Class.forName(implementationClassName, true, detectedClassLoaderForType);
+            final ClassLoader instanceClassLoader = createClassLoader(implementationClassName, instanceId, bundle, extensionManager);
+            final Class<?> instanceClass = Class.forName(implementationClassName, true, instanceClassLoader);
 
-            Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
-            final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);
+            Thread.currentThread().setContextClassLoader(instanceClassLoader);
+            final Class<?> desiredClass = instanceClass.asSubclass(typeDefinition);
             if(nifiProperties == null){
                 return typeDefinition.cast(desiredClass.newInstance());
             }
@@ -235,5 +262,49 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         } finally {
             Thread.currentThread().setContextClassLoader(originalClassLoader);
         }
+    }
+
+    private static ClassLoader createClassLoader(final String implementationClassName, final String instanceId, final Bundle bundle, final ExtensionManager extensionManager)
+                throws ClassNotFoundException {
+
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
+
+        final RequiresInstanceClassLoading instanceClassLoadingAnnotation = rawClass.getAnnotation(RequiresInstanceClassLoading.class);
+        if (instanceClassLoadingAnnotation == null) {
+            return bundleClassLoader;
+        }
+
+        final Set<URL> instanceUrls = new LinkedHashSet<>();
+        final Set<File> narNativeLibDirs = new LinkedHashSet<>();
+
+        final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
+        narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
+        instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
+
+        ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
+
+        if (instanceClassLoadingAnnotation.cloneAncestorResources()) {
+            while (ancestorClassLoader instanceof NarClassLoader) {
+                final Bundle ancestorNarBundle = extensionManager.getBundle(ancestorClassLoader);
+
+                // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
+                if (ancestorNarBundle == null || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
+                    break;
+                }
+
+                final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
+
+                narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
+                Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
+
+                ancestorClassLoader = ancestorNarClassLoader.getParent();
+            }
+        }
+
+        final InstanceClassLoader instanceClassLoader = new InstanceClassLoader(instanceId, implementationClassName, instanceUrls,
+            Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
+        extensionManager.registerInstanceClassLoader(instanceId, instanceClassLoader);
+        return instanceClassLoader;
     }
 }

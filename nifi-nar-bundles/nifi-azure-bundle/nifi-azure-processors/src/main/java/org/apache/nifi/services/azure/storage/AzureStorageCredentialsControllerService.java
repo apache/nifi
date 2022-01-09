@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -28,13 +35,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of AbstractControllerService interface
@@ -49,7 +49,7 @@ public class AzureStorageCredentialsControllerService extends AbstractController
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name(AzureStorageUtils.ACCOUNT_NAME.getName())
             .displayName(AzureStorageUtils.ACCOUNT_NAME.getDisplayName())
-            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
+            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_NAME_SECURITY_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -60,7 +60,8 @@ public class AzureStorageCredentialsControllerService extends AbstractController
             .unmodifiableList(Arrays.asList(
                     ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
-                    AzureStorageUtils.PROP_SAS_TOKEN));
+                    AzureStorageUtils.PROP_SAS_TOKEN,
+                    AzureStorageUtils.ENDPOINT_SUFFIX));
 
     private ConfigurationContext context;
 

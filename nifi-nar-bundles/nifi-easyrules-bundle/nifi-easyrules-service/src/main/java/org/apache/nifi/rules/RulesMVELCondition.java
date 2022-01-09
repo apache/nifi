@@ -19,7 +19,6 @@ package org.apache.nifi.rules;
 
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
-import org.jeasy.rules.mvel.MVELCondition;
 import org.mvel2.MVEL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +27,7 @@ import java.io.Serializable;
 
 public class RulesMVELCondition implements Condition {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MVELCondition.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RulesMVELCondition.class);
     private String expression;
     private Serializable compiledExpression;
     private boolean ignoreConditionErrors;

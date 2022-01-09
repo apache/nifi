@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-scripting-bundle</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-scripting-nar</artifactId>
@@ -37,8 +37,16 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <type>nar</type>
+        </dependency>
+        
+        <!-- nifi-metrics dependency to include in the NAR for processor to use at runtime -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-metrics</artifactId>
+            <type>jar</type>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Groovy dependencies to include in the NAR for processors to use at runtime -->
@@ -47,6 +55,20 @@
             <artifactId>groovy-all</artifactId>
             <type>pom</type>
             <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-test</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-test-junit5</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-testng</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

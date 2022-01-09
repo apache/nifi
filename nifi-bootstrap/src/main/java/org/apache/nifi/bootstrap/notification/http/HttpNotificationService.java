@@ -28,30 +28,30 @@ import org.apache.nifi.bootstrap.notification.NotificationFailedException;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.util.Tuple;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class HttpNotificationService extends AbstractNotificationService {
 
     public static final String NOTIFICATION_TYPE_KEY = "notification.type";
     public static final String NOTIFICATION_SUBJECT_KEY = "notification.subject";
-
-    public static final String STORE_TYPE_JKS = "JKS";
-    public static final String STORE_TYPE_PKCS12 = "PKCS12";
 
     public static final PropertyDescriptor PROP_URL = new PropertyDescriptor.Builder()
             .name("URL")
@@ -79,13 +79,13 @@ public class HttpNotificationService extends AbstractNotificationService {
     public static final PropertyDescriptor PROP_TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor PROP_TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Truststore Type")
-            .description("The Type of the Truststore. Either JKS or PKCS12")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .description("The Type of the Truststore")
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -101,13 +101,13 @@ public class HttpNotificationService extends AbstractNotificationService {
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
             .defaultValue(null)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor PROP_KEYSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Keystore Type")
             .description("The Type of the Keystore")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -139,6 +139,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     private final AtomicReference<String> urlReference = new AtomicReference<>();
 
     private static final List<PropertyDescriptor> supportedProperties;
+
     static {
         supportedProperties = new ArrayList<>();
         supportedProperties.add(PROP_URL);
@@ -160,7 +161,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName){
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
@@ -193,25 +194,20 @@ public class HttpNotificationService extends AbstractNotificationService {
         // check if the keystore is set and add the factory if so
         if (url.toLowerCase().startsWith("https")) {
             try {
-                Tuple<SSLContext, TrustManager[]> sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
-                        context.getProperty(HttpNotificationService.PROP_KEYSTORE).getValue(),
-                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).isSet()
-                                ? context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue().toCharArray() : null,
-                        context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).isSet()
-                                ? context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).getValue().toCharArray() : null,
-                        context.getProperty(HttpNotificationService.PROP_KEYSTORE_TYPE).getValue(),
-                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue(),
-                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).isSet()
-                                ? context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray() : null,
-                        context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue(),
-                        SslContextFactory.ClientAuth.REQUIRED,
-                        context.getProperty(HttpNotificationService.SSL_ALGORITHM).getValue()
-                );
-                // Find the first X509TrustManager
-                List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                        .filter(trustManager -> trustManager instanceof X509TrustManager)
-                        .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-                okHttpClientBuilder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
+                final TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
+                final X509TrustManager x509TrustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+                if (x509TrustManager == null) {
+                    throw new IllegalStateException("Unable to get X.509 Trust Manager for HTTP Notification Service configured for TLS");
+                }
+
+                final TrustManager[] trustManagers = new TrustManager[] { x509TrustManager };
+                final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+                if (sslContext == null) {
+                    throw new IllegalStateException("Unable to get SSL Context for HTTP Notification Service configured for TLS");
+                }
+
+                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
@@ -220,10 +216,21 @@ public class HttpNotificationService extends AbstractNotificationService {
         httpClientReference.set(okHttpClientBuilder.build());
     }
 
+    private static TlsConfiguration createTlsConfigurationFromContext(NotificationInitializationContext context) {
+        String keystorePath = context.getProperty(HttpNotificationService.PROP_KEYSTORE).getValue();
+        String keystorePassword = context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue();
+        String keyPassword = context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).getValue();
+        String keystoreType = context.getProperty(HttpNotificationService.PROP_KEYSTORE_TYPE).getValue();
+        String truststorePath = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue();
+        String truststorePassword = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue();
+        String truststoreType = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue();
+        return new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType, TlsConfiguration.TLS_PROTOCOL);
+    }
+
     @Override
     public void notify(NotificationContext context, NotificationType notificationType, String subject, String message) throws NotificationFailedException {
         try {
-            final RequestBody requestBody = RequestBody.create(MediaType.parse("text/plain"), message);
+            final RequestBody requestBody = RequestBody.create(message, MediaType.parse("text/plain"));
 
             Request.Builder requestBuilder = new Request.Builder()
                     .post(requestBody)
@@ -231,7 +238,7 @@ public class HttpNotificationService extends AbstractNotificationService {
 
             Map<PropertyDescriptor, String> configuredProperties = context.getProperties();
 
-            for(PropertyDescriptor propertyDescriptor: configuredProperties.keySet()) {
+            for (PropertyDescriptor propertyDescriptor : configuredProperties.keySet()) {
                 if (propertyDescriptor.isDynamic()) {
                     String propertyValue = context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue();
                     requestBuilder = requestBuilder.addHeader(propertyDescriptor.getDisplayName(), propertyValue);
@@ -246,14 +253,14 @@ public class HttpNotificationService extends AbstractNotificationService {
             final OkHttpClient httpClient = httpClientReference.get();
 
             final Call call = httpClient.newCall(request);
-             try (final Response response = call.execute()) {
+            try (final Response response = call.execute()) {
 
-                 if (!response.isSuccessful()) {
-                     throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() + "'. The message was '" +
-                             response.message() + "'");
-                 }
-             }
-        } catch (NotificationFailedException e){
+                if (!response.isSuccessful()) {
+                    throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() + "'. The message was '" +
+                            response.message() + "'");
+                }
+            }
+        } catch (NotificationFailedException e) {
             throw e;
         } catch (Exception e) {
             throw new NotificationFailedException("Failed to send Http Notification", e);

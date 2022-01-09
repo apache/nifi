@@ -35,6 +35,11 @@ public interface ConfigurationContext extends PropertyContext {
     Map<PropertyDescriptor, String> getProperties();
 
     /**
+     * @return the annotation data configured for the component
+     */
+    String getAnnotationData();
+
+    /**
      * @return a String representation of the scheduling period, or <code>null</code> if
      *         the component does not have a scheduling period (e.g., for ControllerServices)
      */

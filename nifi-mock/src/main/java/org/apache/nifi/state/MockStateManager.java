@@ -17,17 +17,17 @@
 
 package org.apache.nifi.state;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MockStateManager implements StateManager {
     private final AtomicInteger versionIndex = new AtomicInteger(0);
@@ -39,6 +39,10 @@ public class MockStateManager implements StateManager {
     private volatile boolean failToSetLocalState = false;
     private volatile boolean failToGetClusterState = false;
     private volatile boolean failToSetClusterState = false;
+    private volatile boolean ignoreAnnotations = false;
+
+    private final AtomicLong localRetrievedCount = new AtomicLong(0L);
+    private final AtomicLong clusterRetrievedCount = new AtomicLong(0L);
 
     private final boolean usesLocalState;
     private final boolean usesClusterState;
@@ -66,6 +70,11 @@ public class MockStateManager implements StateManager {
         }
     }
 
+    public void reset() {
+        clusterStateMap = new MockStateMap(null, -1L);
+        localStateMap = new MockStateMap(null, -1L);
+    }
+
     @Override
     public synchronized void setState(final Map<String, String> state, final Scope scope) throws IOException {
         verifyAnnotation(scope);
@@ -89,9 +98,22 @@ public class MockStateManager implements StateManager {
     private synchronized StateMap retrieveState(final Scope scope) {
         verifyAnnotation(scope);
         if (scope == Scope.CLUSTER) {
+            clusterRetrievedCount.incrementAndGet();
             return clusterStateMap;
         } else {
+            localRetrievedCount.incrementAndGet();
             return localStateMap;
+        }
+    }
+
+    public long getRetrievalCount(final Scope scope) {
+        switch (scope) {
+            case CLUSTER:
+                return clusterRetrievedCount.get();
+            case LOCAL:
+                return localRetrievedCount.get();
+            default:
+                throw new IllegalArgumentException("Invalid scope: " + scope);
         }
     }
 
@@ -120,7 +142,7 @@ public class MockStateManager implements StateManager {
     @Override
     public synchronized void clear(final Scope scope) throws IOException {
         verifyAnnotation(scope);
-        setState(Collections.<String, String> emptyMap(), scope);
+        setState(Collections.emptyMap(), scope);
     }
 
     private void verifyCanSet(final Scope scope) throws IOException {
@@ -137,10 +159,18 @@ public class MockStateManager implements StateManager {
         }
     }
 
+    public void setIgnoreAnnotations(final boolean ignore) {
+        this.ignoreAnnotations = ignore;
+    }
+
     private void verifyAnnotation(final Scope scope) {
+        if (ignoreAnnotations) {
+            return;
+        }
+
         // ensure that the @Stateful annotation is present with the appropriate Scope
         if ((scope == Scope.LOCAL && !usesLocalState) || (scope == Scope.CLUSTER && !usesClusterState)) {
-            Assert.fail("Component is attempting to set or retrieve state with a scope of " + scope + " but does not declare that it will use "
+            Assertions.fail("Component is attempting to set or retrieve state with a scope of " + scope + " but does not declare that it will use "
                 + scope + " state. A @Stateful annotation should be added to the component with a scope of " + scope);
         }
     }
@@ -167,7 +197,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope
      */
     public void assertStateEquals(final String key, final String value, final Scope scope) {
-        Assert.assertEquals(value, getValue(key, scope));
+        Assertions.assertEquals(value, getValue(key, scope));
     }
 
     /**
@@ -178,7 +208,7 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateEquals(final Map<String, String> stateValues, final Scope scope) {
         final StateMap stateMap = retrieveState(scope);
-        Assert.assertEquals(stateValues, stateMap.toMap());
+        Assertions.assertEquals(stateValues, stateMap.toMap());
     }
 
     /**
@@ -189,7 +219,7 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateNotEquals(final Map<String, String> stateValues, final Scope scope) {
         final StateMap stateMap = retrieveState(scope);
-        Assert.assertNotSame(stateValues, stateMap.toMap());
+        Assertions.assertNotSame(stateValues, stateMap.toMap());
     }
 
     /**
@@ -200,7 +230,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope
      */
     public void assertStateNotEquals(final String key, final String value, final Scope scope) {
-        Assert.assertNotEquals(value, getValue(key, scope));
+        Assertions.assertNotEquals(value, getValue(key, scope));
     }
 
     /**
@@ -210,7 +240,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope
      */
     public void assertStateSet(final String key, final Scope scope) {
-        Assert.assertNotNull("Expected state to be set for key " + key + " and scope " + scope + ", but it was not set", getValue(key, scope));
+        Assertions.assertNotNull(getValue(key, scope), "Expected state to be set for key " + key + " and scope " + scope + ", but it was not set");
     }
 
     /**
@@ -220,7 +250,7 @@ public class MockStateManager implements StateManager {
      * @param scope the scope
      */
     public void assertStateNotSet(final String key, final Scope scope) {
-        Assert.assertNull("Expected state not to be set for key " + key + " and scope " + scope + ", but it was set", getValue(key, scope));
+        Assertions.assertNull(getValue(key, scope), "Expected state not to be set for key " + key + " and scope " + scope + ", but it was set");
     }
 
     /**
@@ -230,7 +260,15 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
-        Assert.assertNotSame("Expected state to be set for Scope " + scope + ", but it was not set", -1L, stateMap.getVersion());
+        Assertions.assertNotSame(-1L, stateMap.getVersion(), "Expected state to be set for Scope " + scope + ", but it was not set");
+    }
+
+    /**
+     * Ensures that state was not set for any scope
+     */
+    public void assertStateNotSet() {
+        assertStateNotSet(Scope.CLUSTER);
+        assertStateNotSet(Scope.LOCAL);
     }
 
     /**
@@ -240,7 +278,7 @@ public class MockStateManager implements StateManager {
      */
     public void assertStateNotSet(final Scope scope) {
         final StateMap stateMap = (scope == Scope.CLUSTER) ? clusterStateMap : localStateMap;
-        Assert.assertEquals("Expected state not to be set for Scope " + scope + ", but it was set", -1L, stateMap.getVersion());
+        Assertions.assertEquals(-1L, stateMap.getVersion(), "Expected state not to be set for Scope " + scope + ", but it was set");
     }
 
     /**

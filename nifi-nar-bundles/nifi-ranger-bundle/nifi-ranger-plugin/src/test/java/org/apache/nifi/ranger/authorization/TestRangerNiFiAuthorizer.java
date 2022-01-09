@@ -31,6 +31,7 @@ import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequest;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
@@ -84,6 +85,10 @@ public class TestRangerNiFiAuthorizer {
 
         configurationContext = createMockConfigContext();
         rangerBasePlugin = Mockito.mock(RangerBasePluginWithPolicies.class);
+
+        final RangerPluginConfig pluginConfig = new RangerPluginConfig(serviceType, null, appId, null, null, null);
+        when(rangerBasePlugin.getConfig()).thenReturn(pluginConfig);
+
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.onConfigured(configurationContext);
 
@@ -397,6 +402,10 @@ public class TestRangerNiFiAuthorizer {
                 .thenReturn(new MockPropertyValue(rangerAdminIdentity));
 
         rangerBasePlugin = Mockito.mock(RangerBasePluginWithPolicies.class);
+
+        final RangerPluginConfig pluginConfig = new RangerPluginConfig(serviceType, null, appId, null, null, null);
+        when(rangerBasePlugin.getConfig()).thenReturn(pluginConfig);
+
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.onConfigured(configurationContext);
 

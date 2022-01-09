@@ -47,6 +47,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -314,6 +315,11 @@ public class PutGCSObject extends AbstractGCSProcessor {
     }
 
     @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.create");
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -400,7 +406,6 @@ public class PutGCSObject extends AbstractGCSProcessor {
                         }
 
                         try {
-
                             final Blob blob = storage.create(blobInfoBuilder.build(),
                                     in,
                                     blobWriteOptions.toArray(new Storage.BlobWriteOption[blobWriteOptions.size()])

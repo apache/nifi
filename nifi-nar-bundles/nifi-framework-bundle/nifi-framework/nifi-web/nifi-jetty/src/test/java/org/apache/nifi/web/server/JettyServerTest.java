@@ -19,13 +19,17 @@ package org.apache.nifi.web.server;
 
 import static org.apache.nifi.security.util.KeyStoreUtils.SUN_PROVIDER_NAME;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -43,12 +47,12 @@ public class JettyServerTest {
         addProps.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
         addProps.put(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setKeyStorePassword(testKeystorePassword);
-        verify(contextFactory).setKeyManagerPassword(testKeyPassword);
+        verify(mockSCF).setKeyStorePassword(testKeystorePassword);
+        verify(mockSCF).setKeyManagerPassword(testKeyPassword);
     }
 
     @Test
@@ -59,12 +63,12 @@ public class JettyServerTest {
         final Map<String, String> addProps = new HashMap<>();
         addProps.put(NiFiProperties.SECURITY_KEY_PASSWD, testKeyPassword);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setKeyManagerPassword(testKeyPassword);
-        verify(contextFactory, never()).setKeyStorePassword(anyString());
+        verify(mockSCF).setKeyManagerPassword(testKeyPassword);
+        verify(mockSCF, never()).setKeyStorePassword(anyString());
     }
 
     @Test
@@ -75,12 +79,12 @@ public class JettyServerTest {
         final Map<String, String> addProps = new HashMap<>();
         addProps.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, testKeystorePassword);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setKeyStorePassword(testKeystorePassword);
-        verify(contextFactory).setKeyManagerPassword(testKeystorePassword);
+        verify(mockSCF).setKeyStorePassword(testKeystorePassword);
+        verify(mockSCF).setKeyManagerPassword(testKeystorePassword);
     }
 
     @Test
@@ -90,12 +94,12 @@ public class JettyServerTest {
         String keyStoreType = KeystoreType.JKS.toString();
         addProps.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setKeyStoreType(keyStoreType);
-        verify(contextFactory).setKeyStoreProvider(SUN_PROVIDER_NAME);
+        verify(mockSCF).setKeyStoreType(keyStoreType);
+        verify(mockSCF).setKeyStoreProvider(SUN_PROVIDER_NAME);
     }
 
     @Test
@@ -105,12 +109,12 @@ public class JettyServerTest {
         String keyStoreType = KeystoreType.PKCS12.toString();
         addProps.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, keyStoreType);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setKeyStoreType(keyStoreType);
-        verify(contextFactory).setKeyStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+        verify(mockSCF).setKeyStoreType(keyStoreType);
+        verify(mockSCF).setKeyStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
     }
 
     @Test
@@ -120,12 +124,12 @@ public class JettyServerTest {
         String trustStoreType = KeystoreType.JKS.toString();
         addProps.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, trustStoreType);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setTrustStoreType(trustStoreType);
-        verify(contextFactory).setTrustStoreProvider(SUN_PROVIDER_NAME);
+        verify(mockSCF).setTrustStoreType(trustStoreType);
+        verify(mockSCF).setTrustStoreProvider(SUN_PROVIDER_NAME);
     }
 
     @Test
@@ -135,11 +139,43 @@ public class JettyServerTest {
         String trustStoreType = KeystoreType.PKCS12.toString();
         addProps.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, trustStoreType);
         NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
-        SslContextFactory contextFactory = mock(SslContextFactory.class);
+        SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
 
-        JettyServer.configureSslContextFactory(contextFactory, nifiProperties);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
 
-        verify(contextFactory).setTrustStoreType(trustStoreType);
-        verify(contextFactory).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+        verify(mockSCF).setTrustStoreType(trustStoreType);
+        verify(mockSCF).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+    }
+
+    /**
+     * Verify correct processing of cipher suites with multiple elements.  Verify call to override runtime ciphers.
+     */
+    @Test
+    public void testConfigureSslIncludeExcludeCiphers() {
+        final String[] includeCipherSuites = {"TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256"};
+        final String includeCipherSuitesProp = StringUtils.join(includeCipherSuites, JettyServer.JOIN_ARRAY);
+        final String[] excludeCipherSuites = {".*DHE.*", ".*ECDH.*"};
+        final String excludeCipherSuitesProp = StringUtils.join(excludeCipherSuites, JettyServer.JOIN_ARRAY);
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE, includeCipherSuitesProp);
+        addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE, excludeCipherSuitesProp);
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+
+        final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
+        verify(mockSCF, times(1)).setIncludeCipherSuites(includeCipherSuites);
+        verify(mockSCF, times(1)).setExcludeCipherSuites(excludeCipherSuites);
+    }
+
+    /**
+     * Verify skip cipher configuration when NiFiProperties are not specified.
+     */
+    @Test
+    public void testDoNotConfigureSslIncludeExcludeCiphers() {
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
+        final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
+        verify(mockSCF, times(0)).setIncludeCipherSuites(any());
+        verify(mockSCF, times(0)).setExcludeCipherSuites(any());
     }
 }

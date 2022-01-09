@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -24,7 +23,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.SynchronizedByteCountingOutputStream;
@@ -36,9 +37,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +60,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,12 +82,12 @@ import java.util.regex.Pattern;
 
 /**
  * Is thread safe
- *
  */
 public class FileSystemRepository implements ContentRepository {
 
     public static final int SECTIONS_PER_CONTAINER = 1024;
-    public static final long MIN_CLEANUP_INTERVAL_MILLIS = 1000;
+    public static final long MIN_CLEANUP_INTERVAL_MILLIS = TimeUnit.SECONDS.toMillis(1L);
+    public static final long DEFAULT_CLEANUP_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(1L);
     public static final String ARCHIVE_DIR_NAME = "archive";
     // 100 MB cap for the configurable NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE property to prevent
     // unnecessarily large resource claim files
@@ -125,6 +127,7 @@ public class FileSystemRepository implements ContentRepository {
     private final ScheduledExecutorService containerCleanupExecutor;
 
     private ResourceClaimManager resourceClaimManager; // effectively final
+    private EventReporter eventReporter;
 
     // Map of container to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
@@ -159,7 +162,7 @@ public class FileSystemRepository implements ContentRepository {
             Files.createDirectories(path);
         }
         this.maxFlowFilesPerClaim = nifiProperties.getMaxFlowFilesPerClaim();
-        this.writableClaimQueue  = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
+        this.writableClaimQueue = new LinkedBlockingQueue<>(maxFlowFilesPerClaim);
         final long configuredAppendableClaimLength = DataUnit.parseDataSize(nifiProperties.getMaxAppendableClaimSize(), DataUnit.B).longValue();
         final long appendableClaimLengthCap = DataUnit.parseDataSize(APPENDABLE_CLAIM_LENGTH_CAP, DataUnit.B).longValue();
         if (configuredAppendableClaimLength > appendableClaimLengthCap) {
@@ -223,7 +226,7 @@ public class FileSystemRepository implements ContentRepository {
                 final String containerName = container.getKey();
 
                 final long capacity = container.getValue().toFile().getTotalSpace();
-                if(capacity==0) {
+                if (capacity == 0) {
                     throw new RuntimeException("System returned total space of the partition for " + containerName + " is zero byte. Nifi can not create a zero sized FileSystemRepository");
                 }
                 final long maxArchiveBytes = (long) (capacity * (1D - (maxArchiveRatio - 0.02)));
@@ -255,8 +258,9 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) {
-        this.resourceClaimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) {
+        this.resourceClaimManager = context.getResourceClaimManager();
+        this.eventReporter = context.getEventReporter();
 
         final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
 
@@ -412,7 +416,7 @@ public class FileSystemRepository implements ContentRepository {
 
         long capacity = FileUtils.getContainerCapacity(path);
 
-        if(capacity==0) {
+        if (capacity == 0) {
             throw new IOException("System returned total space of the partition for " + containerName + " is zero byte. "
                     + "Nifi can not create a zero sized FileSystemRepository.");
         }
@@ -577,6 +581,35 @@ public class FileSystemRepository implements ContentRepository {
         return resolvedPath;
     }
 
+    private InputStream getInputStream(final ResourceClaim resourceClaim) {
+        final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+        return getInputStream(contentClaim);
+    }
+
+    private InputStream getInputStream(final ContentClaim claim) {
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
+        final Path containerPath = containers.get(resourceClaim.getContainer());
+        if (containerPath == null) {
+            throw new ContentNotFoundException(claim);
+        }
+
+        // Create the Path that points to the data
+        final Path resolvedPath = containerPath.resolve(resourceClaim.getSection()).resolve(resourceClaim.getId());
+
+        try {
+            return new FileInputStream(resolvedPath.toFile());
+        } catch (final FileNotFoundException fnfe) {
+            // If this occurs, we will also check the archive directory.
+        }
+
+        final Path archivePath = getArchivePath(resourceClaim);
+        try {
+            return new FileInputStream(archivePath.toFile());
+        } catch (final FileNotFoundException fnfe) {
+            throw new ContentNotFoundException(claim, fnfe);
+        }
+    }
+
     @Override
     public ContentClaim create(final boolean lossTolerant) throws IOException {
         ResourceClaim resourceClaim;
@@ -718,7 +751,7 @@ public class FileSystemRepository implements ContentRepository {
 
         final ContentClaim newClaim = create(lossTolerant);
         try (final InputStream in = read(original);
-                final OutputStream out = write(newClaim)) {
+             final OutputStream out = write(newClaim)) {
             StreamUtils.copy(in, out);
         } catch (final IOException ioe) {
             decrementClaimantCount(newClaim);
@@ -783,7 +816,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim);
-                final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
+             final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             final long copied = StreamUtils.copy(in, fos);
             if (alwaysSync) {
                 fos.getFD().sync();
@@ -812,7 +845,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         try (final InputStream in = read(claim);
-                final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
+             final FileOutputStream fos = new FileOutputStream(destination.toFile(), append)) {
             if (offset > 0) {
                 StreamUtils.skip(in, offset);
             }
@@ -875,27 +908,39 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
+    public InputStream read(final ResourceClaim claim) throws IOException {
+        if (claim == null) {
+            return new ByteArrayInputStream(new byte[0]);
+        }
+
+        return getInputStream(claim);
+    }
+
+    @Override
     public InputStream read(final ContentClaim claim) throws IOException {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);
         }
-        final Path path = getPath(claim, true);
-        final FileInputStream fis = new FileInputStream(path.toFile());
+
+        final InputStream fis = getInputStream(claim);
         if (claim.getOffset() > 0L) {
             try {
                 StreamUtils.skip(fis, claim.getOffset());
             } catch (final EOFException eof) {
+                closeQuietly(fis);
+
+                final Path path = getPath(claim, false);
                 final long resourceClaimBytes;
                 try {
                     resourceClaimBytes = Files.size(path);
                 } catch (final IOException e) {
                     throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset()
-                        + " but Resource Claim has fewer than this many bytes (actual length of the resource claim could not be determined)");
+                            + " but Resource Claim has fewer than this many bytes (actual length of the resource claim could not be determined)");
                 }
 
                 throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset() + " but Resource Claim " + path + " is only " + resourceClaimBytes + " bytes");
             } catch (final IOException ioe) {
-                IOUtils.closeQuietly(fis);
+                closeQuietly(fis);
                 throw ioe;
             }
         }
@@ -912,6 +957,18 @@ public class FileSystemRepository implements ContentRepository {
             return new LimitedInputStream(fis, claim::getLength);
         } else {
             return fis;
+        }
+    }
+
+    private void closeQuietly(final Closeable closeable) {
+        if (closeable == null) {
+            return;
+        }
+
+        try {
+            closeable.close();
+        } catch (final IOException ioe) {
+            LOG.warn("Failed to close {}", closeable, ioe);
         }
     }
 
@@ -1339,23 +1396,32 @@ public class FileSystemRepository implements ContentRepository {
 
         // Delete the oldest data
         archiveExpirationLog.debug("Deleting data based on timestamp");
-        final Iterator<ArchiveInfo> itr = notYetExceedingThreshold.iterator();
-        int counter = 0;
-        while (itr.hasNext()) {
-            final ArchiveInfo archiveInfo = itr.next();
-
+        int archiveFilesDeleted = 0;
+        long archiveBytesDeleted = 0L;
+        for (final ArchiveInfo archiveInfo : notYetExceedingThreshold) {
             try {
                 final Path path = archiveInfo.toPath();
                 Files.deleteIfExists(path);
                 containerState.decrementArchiveCount();
+                archiveBytesDeleted += archiveInfo.getSize();
                 LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because the archival size was exceeding the max configured size", archiveInfo.getName(), containerName);
 
                 // Check if we've freed enough space every 25 files that we destroy
-                if (++counter % 25 == 0) {
+                if (++archiveFilesDeleted % 25 == 0) {
                     if (getContainerUsableSpace(containerName) > minRequiredSpace) { // check if we can stop now
                         LOG.debug("Finished cleaning up archive for Container {}", containerName);
                         break;
                     }
+                }
+
+                // If deleting a huge number of files, it can take a while. This may occur when users have a very large number of tiny
+                // FlowFiles and also have the nifi.content.claim.max.appendable.size property set to a low value. In such a case, this
+                // process may block processors from performing their job. As a result, we want to periodically log something to let
+                // users know what is going on, so that the system doesn't appear to just completely freeze up periodically.
+                if (archiveFilesDeleted % 25_000 == 0 && archiveFilesDeleted > 0) {
+                    LOG.info("So far in this iteration, successfully deleted {} files ({}) from archive because the Content Repository size was exceeding the max configured size. Will continue " +
+                                    "deleting files from the archive until the usage drops below the threshold or until all {} archived files have been removed",
+                            archiveFilesDeleted, FormatUtils.formatDataSize(archiveBytesDeleted), notYetExceedingThreshold.size());
                 }
             } catch (final IOException ioe) {
                 LOG.warn("Failed to delete {} from archive due to {}", archiveInfo, ioe.toString());
@@ -1363,9 +1429,11 @@ public class FileSystemRepository implements ContentRepository {
                     LOG.warn("", ioe);
                 }
             }
-
-            itr.remove();
         }
+
+        // Remove the first 'counter' elements from the list because those were removed.
+        notYetExceedingThreshold.subList(0, archiveFilesDeleted).clear();
+        LOG.info("Successfully deleted {} files ({}) from archive", archiveFilesDeleted, FormatUtils.formatDataSize(archiveBytesDeleted));
 
         final long deleteOldestMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - sortRemainingMillis - deleteExpiredMillis;
 
@@ -1567,6 +1635,7 @@ public class FileSystemRepository implements ContentRepository {
         private final Condition condition = lock.newCondition();
 
         private volatile long bytesUsed = 0L;
+        private volatile long checkUsedCutoffTimestamp = 0L;
 
         public ContainerState(final String containerName, final boolean archiveEnabled, final long backPressureBytes, final long capacity) {
             this.containerName = containerName;
@@ -1585,19 +1654,38 @@ public class FileSystemRepository implements ContentRepository {
                 return false;
             }
 
+            if (archivedFileCount.get() == 0) {
+                LOG.debug("Waiting to write to container {} is not required because archivedFileCount is 0", containerName);
+                return false;
+            }
+
             long used = bytesUsed;
 
-            if (used == 0L) {
+            // We want to calculate the amount of free space & amount of used space if either it's not yet been calculated
+            // (used == 0) or if it's been at least 1 minute since the space was last checked.
+            final boolean calculateUsed = (used == 0L) || System.currentTimeMillis() > checkUsedCutoffTimestamp;
+            if (calculateUsed) {
                 try {
                     final long free = getContainerUsableSpace(containerName);
                     used = capacity - free;
                     bytesUsed = used;
+
+                    // Make sure that we check the amount of usable space again in 1 minute.
+                    // This is important because 'bytesUsed' is set in two places:
+                    // here, and in the DestroyExpiredArchives task. However, if there are a huge number
+                    // of archived files, it can take longer to destroy expired archives than to create & archive data.
+                    // As a result, we can have a race condition where that doesn't finish quickly enough and as a result
+                    // this doesn't get updated, so the amount of data archived just grows and grows, eventually leading
+                    // to running out of disk space.
+                    checkUsedCutoffTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1L);
                 } catch (final IOException e) {
+                    checkUsedCutoffTimestamp = 0L;
+                    LOG.warn("Failed to determine how much disk space is available for container {}", containerName, e);
                     return false;
                 }
             }
 
-            return used >= backPressureBytes && archivedFileCount.get() > 0;
+            return used >= backPressureBytes;
         }
 
         public void waitForArchiveExpiration() {
@@ -1609,7 +1697,10 @@ public class FileSystemRepository implements ContentRepository {
             try {
                 while (isWaitRequired()) {
                     try {
-                        LOG.info("Unable to write to container {} due to archive file size constraints; waiting for archive cleanup", containerName);
+                        final String message = String.format("Unable to write flowfile content to content repository container %s due to archive file size constraints;" +
+                                " waiting for archive cleanup", containerName);
+                        LOG.warn(message);
+                        eventReporter.reportEvent(Severity.WARNING, "FileSystemRepository", message);
                         condition.await();
                     } catch (final InterruptedException e) {
                     }
@@ -1629,12 +1720,15 @@ public class FileSystemRepository implements ContentRepository {
                 try {
                     final long free = getContainerUsableSpace(containerName);
                     bytesUsed = capacity - free;
+                    checkUsedCutoffTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1L);
                 } catch (final Exception e) {
+                    LOG.warn("Failed to determine how much disk space is available for container {}", containerName, e);
                     bytesUsed = 0L;
+                    checkUsedCutoffTimestamp = 0L; // Signal that the free space should be calculated again next time it's checked.
                 }
 
                 LOG.debug("Container {} signaled to allow Content Claim Creation", containerName);
-                condition.signal();
+                condition.signalAll();
             } finally {
                 lock.unlock();
             }
@@ -1707,7 +1801,7 @@ public class FileSystemRepository implements ContentRepository {
      * warning will be logged and the method will return minimum value of 1000
      */
     private long determineCleanupInterval(NiFiProperties properties) {
-        long cleanupInterval = MIN_CLEANUP_INTERVAL_MILLIS;
+        long cleanupInterval = DEFAULT_CLEANUP_INTERVAL_MILLIS;
         String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
         if (archiveCleanupFrequency != null) {
             try {

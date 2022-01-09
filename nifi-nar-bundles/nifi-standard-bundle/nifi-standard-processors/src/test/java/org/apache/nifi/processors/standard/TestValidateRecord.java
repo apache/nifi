@@ -18,6 +18,8 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.avro.AvroReader;
+import org.apache.nifi.avro.AvroReaderWithEmbeddedSchema;
+import org.apache.nifi.avro.AvroRecordReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVRecordSetWriter;
@@ -45,17 +47,18 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TestValidateRecord {
-
     private TestRunner runner;
 
     @Before
@@ -547,4 +550,127 @@ public class TestValidateRecord {
         final MockFlowFile validFlowFileInferredSchema = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
         validFlowFileInferredSchema.assertContentEquals(new File("src/test/resources/TestValidateRecord/timestamp.json"));
     }
+
+    @Test
+    public void testValidateMaps() throws IOException, InitializationException, MalformedRecordException {
+        final String validateSchema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestValidateRecord/int-maps-schema.avsc")), StandardCharsets.UTF_8);
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "schema-text-property");
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, validateSchema);
+        runner.enableControllerService(jsonReader);
+
+        final AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
+        runner.addControllerService("writer", avroWriter);
+        runner.enableControllerService(avroWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(ValidateRecord.SCHEMA_TEXT, validateSchema);
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/int-maps-data.json"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+
+        byte[] source = validFlowFile.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(source); final AvroRecordReader reader = new AvroReaderWithEmbeddedSchema(in)) {
+            final Object[] values = reader.nextRecord().getValues();
+            assertEquals("uuid", values[0]);
+            assertEquals(2, ((Map<?,?>) values[1]).size());
+            final Object[] data = (Object[]) values[2];
+            assertEquals(3, data.length);
+            assertEquals(2, ( (Map<?,?>) ((Record) data[0]).getValue("points")).size());
+            assertEquals(2, ( (Map<?,?>) ((Record) data[1]).getValue("points")).size());
+            assertEquals(2, ( (Map<?,?>) ((Record) data[2]).getValue("points")).size());
+        }
+    }
+
+    @Test
+    public void testValidationsDetailsAttributeForInvalidRecords()  throws InitializationException, UnsupportedEncodingException, IOException {
+        final String schema = new String(Files.readAllBytes(Paths.get("src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc")), "UTF-8");
+
+        final CSVReader csvReader = new CSVReader();
+        runner.addControllerService("reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_TEXT, schema);
+        runner.setProperty(csvReader, CSVUtils.FIRST_LINE_IS_HEADER, "false");
+        runner.setProperty(csvReader, CSVUtils.QUOTE_MODE, CSVUtils.QUOTE_MINIMAL.getValue());
+        runner.setProperty(csvReader, CSVUtils.TRAILING_DELIMITER, "false");
+        runner.enableControllerService(csvReader);
+
+        final MockRecordWriter validWriter = new MockRecordWriter("valid", false);
+        runner.addControllerService("writer", validWriter);
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        final String content = "1, John Doe\n"
+            + "2, Jane Doe\n"
+            + "Three, Jack Doe\n";
+
+        runner.enqueue(content);
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+
+        final MockFlowFile invalidFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID).get(0);
+        invalidFlowFile.assertAttributeEquals("record.count", "1");
+        invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
+        invalidFlowFile.assertAttributeExists("valDetails");
+        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
+                + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    @Test
+    public void testValidationForNullElementArrayAndMap() throws Exception {
+        AvroReader avroReader = new AvroReader();
+        runner.addControllerService("reader", avroReader);
+        runner.enableControllerService(avroReader);
+
+
+        final MockRecordWriter validWriter = new MockRecordWriter("valid", false);
+        runner.addControllerService("writer", validWriter);
+        runner.enableControllerService(validWriter);
+
+        final MockRecordWriter invalidWriter = new MockRecordWriter("invalid", true);
+        runner.addControllerService("invalid-writer", invalidWriter);
+        runner.enableControllerService(invalidWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(ValidateRecord.INVALID_RECORD_WRITER, "invalid-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "false");
+        runner.setProperty(ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH, "150");
+        runner.setProperty(ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME, "valDetails");
+
+        runner.enqueue(Paths.get("src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro"));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 0);
+        runner.assertTransferCount(ValidateRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+
+        final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).get(0);
+        validFlowFile.assertAttributeEquals("record.count", "1");
+        validFlowFile.assertContentEquals("valid\n[text, null],{key=null}\n");
+    }
+
 }

@@ -38,7 +38,9 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).assertContentEquals("This is my custom text!");
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        generatedFlowFile.assertContentEquals("This is my custom text!");
+        generatedFlowFile.assertAttributeNotExists("mime.type");
     }
 
     @Test
@@ -59,6 +61,7 @@ public class TestGenerateFlowFile {
         TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
+        runner.setProperty(GenerateFlowFile.MIME_TYPE, "application/text");
         runner.setProperty("plain.dynamic.property", "Plain Value");
         runner.setProperty("expression.dynamic.property", "${literal('Expression Value')}");
         runner.assertValid();
@@ -69,6 +72,7 @@ public class TestGenerateFlowFile {
         MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
         generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
+        generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
     }
 
 }

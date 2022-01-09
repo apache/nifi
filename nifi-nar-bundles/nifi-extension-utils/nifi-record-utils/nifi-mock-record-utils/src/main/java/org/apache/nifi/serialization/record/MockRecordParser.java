@@ -37,6 +37,7 @@ public class MockRecordParser extends AbstractControllerService implements Recor
     private final List<Object[]> records = new ArrayList<>();
     private final List<RecordField> fields = new ArrayList<>();
     private int failAfterN;
+    private MockRecordFailureType failureType = MockRecordFailureType.MALFORMED_RECORD_EXCEPTION;
 
     public MockRecordParser() {
         this(-1);
@@ -47,7 +48,12 @@ public class MockRecordParser extends AbstractControllerService implements Recor
     }
 
     public void failAfter(final int failAfterN) {
+        failAfter(failAfterN, MockRecordFailureType.MALFORMED_RECORD_EXCEPTION);
+    }
+
+    public void failAfter(final int failAfterN, final MockRecordFailureType failureType) {
         this.failAfterN = failAfterN;
+        this.failureType = failureType;
     }
 
     public void addSchemaField(final String fieldName, final RecordFieldType type) {
@@ -80,7 +86,11 @@ public class MockRecordParser extends AbstractControllerService implements Recor
             @Override
             public Record nextRecord(final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
                 if (failAfterN >= 0 && recordCount >= failAfterN) {
-                    throw new MalformedRecordException("Intentional Unit Test Exception because " + recordCount + " records have been read");
+                    if (failureType == MockRecordFailureType.MALFORMED_RECORD_EXCEPTION) {
+                        throw new MalformedRecordException("Intentional Unit Test Exception because " + recordCount + " records have been read");
+                    } else {
+                        throw new IOException("Intentional Unit Test Exception because " + recordCount + " records have been read");
+                    }
                 }
                 recordCount++;
 

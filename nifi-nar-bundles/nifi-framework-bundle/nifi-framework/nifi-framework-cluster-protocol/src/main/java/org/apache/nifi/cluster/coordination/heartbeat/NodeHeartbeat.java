@@ -56,4 +56,9 @@ public interface NodeHeartbeat {
      * @return the time that the node reports having started NiFi
      */
     long getSystemStartTime();
+
+    /**
+     * @return the number of updates that have occurred to the Revision Manager
+     */
+    long getRevisionUpdateCount();
 }

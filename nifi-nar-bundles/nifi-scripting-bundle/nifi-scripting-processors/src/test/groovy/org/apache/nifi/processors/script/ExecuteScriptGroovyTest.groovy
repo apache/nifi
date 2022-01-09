@@ -18,46 +18,33 @@ package org.apache.nifi.processors.script
 
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.util.MockFlowFile
-import org.apache.nifi.util.StopWatch
 import org.apache.nifi.util.TestRunners
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import java.util.concurrent.TimeUnit
+import static org.junit.jupiter.api.Assertions.assertNotNull
 
-import static org.junit.Assert.assertNotNull
-
-@RunWith(JUnit4.class)
 class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteScriptGroovyTest.class)
 
-    @BeforeClass
-    public static void setUpOnce() throws Exception {
+    @BeforeAll
+    static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() throws Exception {
         super.setupExecuteScript()
 
         runner.setValidateExpressionUsage(false)
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy")
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy")
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy")
-    }
-
-    @After
-    public void tearDown() throws Exception {
-
     }
 
     private void setupPooledExecuteScript(int poolSize = 2) {
@@ -76,7 +63,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScript() throws Exception {
+    void testShouldExecuteScript() throws Exception {
         // Arrange
         final String SINGLE_POOL_THREAD_PATTERN = /pool-\d+-thread-1/
 
@@ -98,7 +85,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScriptSerially() throws Exception {
+    void testShouldExecuteScriptSerially() throws Exception {
         // Arrange
         final int ITERATIONS = 10
 
@@ -122,7 +109,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScriptWithPool() throws Exception {
+    void testShouldExecuteScriptWithPool() throws Exception {
         // Arrange
         final int ITERATIONS = 10
         final int POOL_SIZE = 2
@@ -151,53 +138,28 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         }
     }
 
-    @Ignore("This test fails intermittently when the serial execution happens faster than pooled")
     @Test
-    public void testPooledExecutionShouldBeFaster() throws Exception {
-        // Arrange
-        final int ITERATIONS = 1000
-        final int POOL_SIZE = 4
+    void testExecuteScriptRecompileOnChange() throws Exception {
 
-        // Act
-        // Run serially and capture the timing
-        final StopWatch stopWatch = new StopWatch(true)
-        runner.run(ITERATIONS)
-        stopWatch.stop()
-        final long serialExecutionTime = stopWatch.getDuration(TimeUnit.MILLISECONDS)
-        logger.info("Serial execution time for ${ITERATIONS} executions: ${serialExecutionTime} ms")
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/setAttributeHello_executescript.groovy")
+        runner.enqueue('')
+        runner.run()
 
-        // Assert (1)
-        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, ITERATIONS)
-        final List<MockFlowFile> serialResults = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1)
+        List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
+        MockFlowFile flowFile = result.get(0)
+        flowFile.assertAttributeExists('greeting')
+        flowFile.assertAttributeEquals('greeting', 'hello')
+        runner.clearTransferState()
 
-        // Now run parallel
-        setupPooledExecuteScript(POOL_SIZE)
-        logger.info("Set up ExecuteScript processor with pool size: ${POOL_SIZE}")
-        runner.setThreadCount(POOL_SIZE)
-        runner.assertValid()
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/setAttributeGoodbye_executescript.groovy")
+        runner.enqueue('')
+        runner.run()
 
-        stopWatch.start()
-        runner.run(ITERATIONS)
-        stopWatch.stop()
-        final long parallelExecutionTime = stopWatch.getDuration(TimeUnit.MILLISECONDS)
-        logger.info("Parallel execution time for ${ITERATIONS} executions using ${POOL_SIZE} threads: ${parallelExecutionTime} ms")
-
-        // Assert (2)
-        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, ITERATIONS)
-        final List<MockFlowFile> parallelResults = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
-
-        parallelResults.eachWithIndex { MockFlowFile flowFile, int i ->
-            flowFile.assertAttributeExists("time-updated")
-            flowFile.assertAttributeExists("thread")
-            assert flowFile.getAttribute("thread") =~ /pool-\d+-thread-[1-${POOL_SIZE}]/
-        }
-
-        serialResults.eachWithIndex { MockFlowFile flowFile, int i ->
-            flowFile.assertAttributeExists("time-updated")
-            flowFile.assertAttributeExists("thread")
-            assert flowFile.getAttribute("thread") =~ /pool-\d+-thread-1/
-        }
-
-        assert serialExecutionTime > parallelExecutionTime
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1)
+        result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
+        flowFile = result.get(0)
+        flowFile.assertAttributeExists('greeting')
+        flowFile.assertAttributeEquals('greeting', 'good-bye')
     }
 }

@@ -24,23 +24,24 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  */
 public enum KeyDerivationFunction {
 
+    NONE("None", "The cipher is given a raw key conforming to the algorithm specifications"),
     NIFI_LEGACY("NiFi Legacy KDF", "MD5 @ 1000 iterations"),
     OPENSSL_EVP_BYTES_TO_KEY("OpenSSL EVP_BytesToKey", "Single iteration MD5 compatible with PKCS#5 v1.5"),
     BCRYPT("Bcrypt", "Bcrypt with configurable work factor. See Admin Guide"),
     SCRYPT("Scrypt", "Scrypt with configurable cost parameters. See Admin Guide"),
     PBKDF2("PBKDF2", "PBKDF2 with configurable hash function and iteration count. See Admin Guide"),
-    NONE("None", "The cipher is given a raw key conforming to the algorithm specifications");
+    ARGON2("Argon2", "Argon2 with configurable cost parameters. See Admin Guide.");
 
-    private final String name;
+    private final String kdfName;
     private final String description;
 
-    KeyDerivationFunction(String name, String description) {
-        this.name = name;
+    KeyDerivationFunction(String kdfName, String description) {
+        this.kdfName = kdfName;
         this.description = description;
     }
 
-    public String getName() {
-        return name;
+    public String getKdfName() {
+        return kdfName;
     }
 
     public String getDescription() {
@@ -48,14 +49,18 @@ public enum KeyDerivationFunction {
     }
 
     public boolean isStrongKDF() {
-        return (name.equals(BCRYPT.name) || name.equals(SCRYPT.name) || name.equals(PBKDF2.name));
+        return (kdfName.equals(BCRYPT.kdfName) || kdfName.equals(SCRYPT.kdfName) || kdfName.equals(PBKDF2.kdfName) || kdfName.equals(ARGON2.kdfName));
+    }
+
+    public boolean hasFormattedSalt() {
+        return kdfName.equals(BCRYPT.kdfName) || kdfName.equals(SCRYPT.kdfName) || kdfName.equals(ARGON2.kdfName);
     }
 
     @Override
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this);
         ToStringBuilder.setDefaultStyle(ToStringStyle.SHORT_PREFIX_STYLE);
-        builder.append("KDF Name", name);
+        builder.append("KDF Name", kdfName);
         builder.append("Description", description);
         return builder.toString();
     }

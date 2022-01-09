@@ -133,7 +133,7 @@ public class EmbeddedKafka {
             ServerConfig configuration = new ServerConfig();
             configuration.readFrom(quorumConfiguration);
 
-            FileTxnSnapLog txnLog = new FileTxnSnapLog(new File(configuration.getDataLogDir()), new File(configuration.getDataDir()));
+            FileTxnSnapLog txnLog = new FileTxnSnapLog(configuration.getDataLogDir(), configuration.getDataDir());
 
             zkServer.setTxnLogFactory(txnLog);
             zkServer.setTickTime(configuration.getTickTime());

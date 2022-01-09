@@ -23,9 +23,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.processor.DataUnit;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -46,6 +44,12 @@ public class MetricsService {
         return metrics;
     }
 
+    public Map<String, String> getProcessorTags(ProcessorStatus status) {
+        Map<String, String> tags = new HashMap<>();
+        tags.put("processor", status.getName());
+        return tags;
+    }
+
     public Map<String, Double> getPortStatusMetrics(PortStatus status){
         final Map<String, Double> metrics = new HashMap<>();
         metrics.put(MetricNames.ACTIVE_THREADS, new Double(status.getActiveThreadCount()));
@@ -58,26 +62,6 @@ public class MetricsService {
         metrics.put(MetricNames.BYTES_RECEIVED, new Double(status.getBytesReceived()));
         metrics.put(MetricNames.BYTES_SENT, new Double(status.getBytesSent()));
         return metrics;
-    }
-
-    public Map<String,String> getPortStatusTags(PortStatus status) {
-        final Map<String, String> portTags = new HashMap<>();
-        portTags.put(MetricNames.PORT_ID, status.getId());
-        portTags.put(MetricNames.PORT_GROUP_ID, status.getGroupId());
-        portTags.put(MetricNames.PORT_NAME, status.getName());
-        return portTags;
-    }
-
-    public Map<String,String> getConnectionStatusTags(ConnectionStatus status) {
-        final Map<String, String> connectionTags = new HashMap<>();
-        connectionTags.put(MetricNames.CONNECTION_ID, status.getId());
-        connectionTags.put(MetricNames.CONNECTION_NAME, status.getName());
-        connectionTags.put(MetricNames.CONNECTION_GROUP_ID, status.getGroupId());
-        connectionTags.put(MetricNames.CONNECTION_DESTINATION_ID, status.getDestinationId());
-        connectionTags.put(MetricNames.CONNECTTION_DESTINATION_NAME, status.getDestinationName());
-        connectionTags.put(MetricNames.CONNECTION_SOURCE_ID, status.getSourceId());
-        connectionTags.put(MetricNames.CONNECTION_SOURCE_NAME, status.getSourceName());
-        return connectionTags;
     }
 
     public Map<String, Double> getConnectionStatusMetrics(ConnectionStatus status) {
@@ -107,23 +91,6 @@ public class MetricsService {
         metrics.put(MetricNames.TOTAL_TASK_DURATION, new Double(calculateProcessingNanos(status)));
         status.getOutputPortStatus();
         return metrics;
-    }
-
-    public List<String> getAllTagsList() {
-        List<String> tagsList = new ArrayList<>();
-        tagsList.add("env");
-        tagsList.add("dataflow_id");
-        tagsList.add(MetricNames.PORT_ID);
-        tagsList.add(MetricNames.PORT_NAME);
-        tagsList.add(MetricNames.PORT_GROUP_ID);
-        tagsList.add(MetricNames.CONNECTION_ID);
-        tagsList.add(MetricNames.CONNECTION_NAME);
-        tagsList.add(MetricNames.CONNECTION_GROUP_ID);
-        tagsList.add(MetricNames.CONNECTION_SOURCE_ID);
-        tagsList.add(MetricNames.CONNECTION_SOURCE_NAME);
-        tagsList.add(MetricNames.CONNECTION_DESTINATION_ID);
-        tagsList.add(MetricNames.CONNECTTION_DESTINATION_NAME);
-        return tagsList;
     }
 
     //virtual machine metrics

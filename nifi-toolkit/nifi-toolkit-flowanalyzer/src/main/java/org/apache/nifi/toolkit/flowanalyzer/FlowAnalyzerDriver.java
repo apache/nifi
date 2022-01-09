@@ -21,10 +21,8 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.zip.GZIPInputStream;
-
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-
+import org.apache.nifi.security.xml.XmlUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -72,10 +70,8 @@ public class FlowAnalyzerDriver {
 
         System.out.println("Using flow=" + input);
 
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder;
         try {
-            documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(false);
             Document document = documentBuilder.parse(gzipStream);
             NodeList connectionNode = document.getElementsByTagName(CONST_XMLNODE_CONNECTION);
 
@@ -91,7 +87,7 @@ public class FlowAnalyzerDriver {
                     avg = avg.add(byteValue);
                     String dataQueueSize = maxWorkQueueSize.getElementsByTagName("maxWorkQueueSize").item(0)
                             .getTextContent();
-                    Long dataQueueSizeL  = new Long(dataQueueSize);
+                    Long dataQueueSizeL  = Long.valueOf(dataQueueSize);
                     totalQueueSize = dataQueueSizeL + totalQueueSize;
                     if(dataQueueSizeL > maxQueueSize)
                         maxQueueSize = dataQueueSizeL;
@@ -125,7 +121,7 @@ public class FlowAnalyzerDriver {
     }
 
     private static boolean helpRequested(String[] args) {
-        return args.length == 0 || (args.length > 0 && (args[0].equalsIgnoreCase("-h") || args[0].equalsIgnoreCase("--help")));
+        return args.length == 0 || args[0].equalsIgnoreCase("-h") || args[0].equalsIgnoreCase("--help");
     }
 
     /**

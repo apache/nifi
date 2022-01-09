@@ -72,7 +72,7 @@ public class TestStandardFlowFileQueue {
 
     @BeforeClass
     public static void setupLogging() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "INFO");
     }
 
     @Before
@@ -103,7 +103,7 @@ public class TestStandardFlowFileQueue {
             }
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
 
-        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         MockFlowFileRecord.resetIdGenerator();
     }
 
@@ -357,7 +357,7 @@ public class TestStandardFlowFileQueue {
     @Test
     public void testSwapInWhenThresholdIsLessThanSwapSize() {
         // create a queue where the swap threshold is less than 10k
-        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000, 0L, "0 B");
+        queue = new StandardFlowFileQueue("id", new NopConnectionEventListener(), flowFileRepo, provRepo, claimManager, scheduler, swapManager, null, 1000, "0 sec", 0L, "0 B");
 
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());
@@ -602,6 +602,40 @@ public class TestStandardFlowFileQueue {
         assertEquals(0, queue.size().getObjectCount());
 
         assertTrue(swapManager.swappedOut.isEmpty());
+    }
+
+    @Test
+    public void testGetTotalActiveQueuedDuration() {
+        long now = System.currentTimeMillis();
+        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        testFlowfile1.setLastQueuedDate(now - 500);
+        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        testFlowfile2.setLastQueuedDate(now - 1000);
+
+        queue.put(testFlowfile1);
+        queue.put(testFlowfile2);
+
+        assertEquals(1500, queue.getTotalQueuedDuration(now));
+        queue.poll(1, Collections.emptySet());
+
+        assertEquals(1000, queue.getTotalQueuedDuration(now));
+    }
+
+    @Test
+    public void testGetMinLastQueueDate() {
+        long now = System.currentTimeMillis();
+        MockFlowFileRecord testFlowfile1 = new MockFlowFileRecord();
+        testFlowfile1.setLastQueuedDate(now - 1000);
+        MockFlowFileRecord testFlowfile2 = new MockFlowFileRecord();
+        testFlowfile2.setLastQueuedDate(now - 500);
+
+        queue.put(testFlowfile1);
+        queue.put(testFlowfile2);
+
+        assertEquals(1000, now - queue.getMinLastQueueDate());
+        queue.poll(1, Collections.emptySet());
+
+        assertEquals(500, now - queue.getMinLastQueueDate());
     }
 
 

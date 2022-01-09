@@ -18,18 +18,21 @@ package org.apache.nifi.processors.script;
 
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit tests for ExecuteScript with Jython.
  */
 public class TestExecuteJython extends BaseScriptTest {
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         super.setupExecuteScript();
     }
@@ -61,10 +64,9 @@ public class TestExecuteJython extends BaseScriptTest {
     /**
      * Tests a script that does not transfer or remove the original flow file, thereby causing an error during commit.
      *
-     * @throws Exception Any error encountered while testing. Expecting
      */
-    @Test(expected = AssertionError.class)
-    public void testScriptNoTransfer() throws Exception {
+    @Test
+    public void testScriptNoTransfer() {
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
@@ -72,7 +74,29 @@ public class TestExecuteJython extends BaseScriptTest {
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
-        runner.run();
+        assertThrows(AssertionError.class, () -> runner.run());
+    }
 
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
+    @Test
+    public void testPerformance() {
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY,
+                "from org.apache.nifi.processors.script import ExecuteScript\n"
+                        + "flowFile = session.get()\n"
+                        + "flowFile = session.putAttribute(flowFile, \"from-content\", \"test content\")\n"
+                        + "session.transfer(flowFile, ExecuteScript.REL_SUCCESS)");
+
+        runner.assertValid();
+        final int ITERATIONS = 50000;
+        for (int i = 0; i < ITERATIONS; i++) {
+            runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
+        }
+        runner.run(ITERATIONS);
+
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, ITERATIONS);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS);
+        result.get(0).assertAttributeEquals("from-content", "test content");
     }
 }

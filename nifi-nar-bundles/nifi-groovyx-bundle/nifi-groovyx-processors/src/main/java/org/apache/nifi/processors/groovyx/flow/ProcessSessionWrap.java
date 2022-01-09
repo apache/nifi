@@ -16,17 +16,8 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -39,9 +30,21 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processors.groovyx.util.Throwables;
 import org.apache.nifi.provenance.ProvenanceReporter;
 
-import org.apache.nifi.processors.groovyx.util.Throwables;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * wrapped session that collects all created/modified files if created with special flag
@@ -53,8 +56,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
 
     public static final String ERROR_STACKTRACE = "ERROR_STACKTRACE";
     public static final String ERROR_MESSAGE = "ERROR_MESSAGE";
-    private ProcessSession s;
-    private boolean foe;
+    private ProcessSession session;
+    private boolean failureOnError;
 
     /*
     list of files to be sent to failure on error
@@ -68,15 +71,15 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     */
     private Map<String, FlowFile> toDrop = new HashMap<>();
 
-    public ProcessSessionWrap(ProcessSession s, boolean toFailureOnError) {
-        if (s instanceof ProcessSessionWrap) {
+    public ProcessSessionWrap(final ProcessSession session, final boolean toFailureOnError) {
+        if (session instanceof ProcessSessionWrap) {
             throw new RuntimeException("session could be instanceof ProcessSessionWrap");
         }
-        if (s == null) {
+        if (session == null) {
             throw new NullPointerException("Session is mandatory session=null");
         }
-        this.s = s;
-        foe = toFailureOnError;
+        this.session = session;
+        failureOnError = toFailureOnError;
     }
 
     /**
@@ -94,7 +97,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     public abstract SessionFile wrap(FlowFile f);
 
-    public List<FlowFile> wrap(List ff) {
+    public List<FlowFile> wrap(final List<FlowFile> ff) {
         if (ff == null) {
             return null;
         }
@@ -114,11 +117,11 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return f;
     }
 
-    public List<FlowFile> unwrap(Collection<FlowFile> _ff) {
-        if (_ff == null) {
+    public List<FlowFile> unwrap(final Collection<FlowFile> flowFiles) {
+        if (flowFiles == null) {
             return null;
         }
-        List<FlowFile> ff = new ArrayList(_ff);
+        List<FlowFile> ff = new ArrayList<>(flowFiles);
         for (int i = 0; i < ff.size(); i++) {
             ff.set(i, unwrap(ff.get(i)));
         }
@@ -136,7 +139,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     private FlowFile onMod(FlowFile f) {
         assertNotSessionFile(f);
-        if (foe) {
+        if (failureOnError) {
             toDrop.put(f.getAttribute("uuid"), f);
         }
         return f;
@@ -150,8 +153,8 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         if (f == null) {
             return null;
         }
-        if (foe) {
-            toFail.add(s.clone(f));
+        if (failureOnError) {
+            toFail.add(session.clone(f));
             onMod(f);
         }
         return f;
@@ -161,7 +164,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         if (ff == null) {
             return null;
         }
-        if (foe) {
+        if (failureOnError) {
             for (FlowFile f : ff) {
                 onGet(f);
             }
@@ -174,13 +177,13 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     private void onDrop(FlowFile f) {
         assertNotSessionFile(f);
-        if (foe) {
+        if (failureOnError) {
             toDrop.remove(f.getAttribute("uuid"));
         }
     }
 
     private void onDrop(Collection<FlowFile> ff) {
-        if (foe) {
+        if (failureOnError) {
             for (FlowFile f : ff) {
                 onDrop(f);
             }
@@ -188,7 +191,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     }
 
     private void onClear() {
-        if (foe) {
+        if (failureOnError) {
             toDrop.clear();
             toFail.clear();
         }
@@ -202,23 +205,23 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     public void revertReceivedTo(Relationship r, Throwable t) {
         for (FlowFile f : toDrop.values()) {
-            s.remove(f);
+            session.remove(f);
         }
         String errorMessage = Throwables.getMessage(t, null, 950);
         String stackTrace = Throwables.stringStackTrace(t);
         for (FlowFile f : toFail) {
             if (t != null && r != null) {
-                f = s.putAttribute(f, ERROR_MESSAGE, errorMessage);
-                f = s.putAttribute(f, ERROR_STACKTRACE, stackTrace);
+                f = session.putAttribute(f, ERROR_MESSAGE, errorMessage);
+                f = session.putAttribute(f, ERROR_STACKTRACE, stackTrace);
             }
             if (r != null) {
-                s.transfer(f, r);
+                session.transfer(f, r);
             } else {
-                f = s.penalize(f);
-                s.transfer(f);
+                f = session.penalize(f);
+                session.transfer(f);
             }
         }
-        s.commit();
+        session.commit();
         onClear();
     }
     /*============================================= NATIVE METHODS ================================================*/
@@ -242,11 +245,24 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public void commit() {
-        for (FlowFile f : toFail) {
-            s.remove(f);
-        }
-        s.commit();
+        toFail.forEach(session::remove);
+        session.commit();
         onClear();
+    }
+
+    @Override
+    public void commitAsync() {
+        toFail.forEach(session::remove);
+        session.commitAsync(this::onClear);
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        toFail.forEach(session::remove);
+        session.commitAsync(() -> {
+            onSuccess.run();
+            onClear();
+        }, onFailure);
     }
 
     /**
@@ -259,7 +275,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public void rollback() {
-        s.rollback();
+        session.rollback();
         onClear();
     }
 
@@ -274,7 +290,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public void rollback(boolean penalize) {
-        s.rollback(penalize);
+        session.rollback(penalize);
         onClear();
     }
 
@@ -290,7 +306,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public void adjustCounter(String name, long delta, boolean immediate) {
-        s.adjustCounter(name, delta, immediate);
+        session.adjustCounter(name, delta, immediate);
     }
 
     /**
@@ -298,7 +314,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile get() {
-        return wrap(onGet(s.get()));
+        return wrap(onGet(session.get()));
     }
 
     /**
@@ -314,7 +330,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public List<FlowFile> get(int maxResults) {
-        return wrap(onGet(s.get(maxResults)));
+        return wrap(onGet(session.get(maxResults)));
     }
 
     /**
@@ -332,7 +348,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public List<FlowFile> get(FlowFileFilter filter) {
-        return wrap(onGet(s.get(filter)));
+        return wrap(onGet(session.get(filter)));
     }
 
     /**
@@ -341,7 +357,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public QueueSize getQueueSize() {
-        return s.getQueueSize();
+        return session.getQueueSize();
     }
 
     /**
@@ -359,7 +375,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile create() {
-        return wrap(onMod(s.create()));
+        return wrap(onMod(session.create()));
     }
 
     /**
@@ -375,7 +391,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile create(FlowFile parent) {
-        return wrap(onMod(s.create(unwrap(parent))));
+        return wrap(onMod(session.create(unwrap(parent))));
     }
 
     /**
@@ -391,7 +407,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile create(Collection<FlowFile> parents) {
-        return wrap(onMod(s.create(unwrap(parents))));
+        return wrap(onMod(session.create(unwrap(parents))));
     }
 
     /**
@@ -410,7 +426,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile clone(FlowFile example) {
-        return wrap(onMod(s.clone(unwrap(example))));
+        return wrap(onMod(session.clone(unwrap(example))));
     }
 
     /**
@@ -434,7 +450,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public SessionFile clone(FlowFile parent, long offset, long size) {
-        return wrap(onMod(s.clone(unwrap(parent), offset, size)));
+        return wrap(onMod(session.clone(unwrap(parent), offset, size)));
     }
 
     /**
@@ -450,7 +466,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile penalize(FlowFile flowFile) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.penalize(sf.flowFile));
+        sf.flowFile = onMod(session.penalize(sf.flowFile));
         return sf;
     }
 
@@ -468,7 +484,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile putAttribute(FlowFile flowFile, String key, String value) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.putAttribute(sf.flowFile, key, value));
+        sf.flowFile = onMod(session.putAttribute(sf.flowFile, key, value));
         return sf;
     }
 
@@ -487,7 +503,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile putAllAttributes(FlowFile flowFile, Map<String, String> attributes) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.putAllAttributes(sf.flowFile, attributes));
+        sf.flowFile = onMod(session.putAllAttributes(sf.flowFile, attributes));
         return sf;
     }
 
@@ -506,7 +522,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile removeAttribute(FlowFile flowFile, String key) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.removeAttribute(sf.flowFile, key));
+        sf.flowFile = onMod(session.removeAttribute(sf.flowFile, key));
         return sf;
     }
 
@@ -524,7 +540,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile removeAllAttributes(FlowFile flowFile, Set<String> keys) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.removeAllAttributes(sf.flowFile, keys));
+        sf.flowFile = onMod(session.removeAllAttributes(sf.flowFile, keys));
         return sf;
     }
 
@@ -540,7 +556,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile removeAllAttributes(FlowFile flowFile, Pattern keyPattern) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.removeAllAttributes(sf.flowFile, keyPattern));
+        sf.flowFile = onMod(session.removeAllAttributes(sf.flowFile, keyPattern));
         return sf;
     }
 
@@ -566,7 +582,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void transfer(FlowFile flowFile, Relationship relationship) {
         flowFile = unwrap(flowFile);
-        s.transfer(flowFile, relationship);
+        session.transfer(flowFile, relationship);
     }
 
     /**
@@ -585,7 +601,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void transfer(FlowFile flowFile) {
         flowFile = unwrap(flowFile);
-        s.transfer(flowFile);
+        session.transfer(flowFile);
     }
 
     /**
@@ -605,7 +621,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void transfer(Collection<FlowFile> flowFiles) {
         flowFiles = unwrap(flowFiles);
-        s.transfer(flowFiles);
+        session.transfer(flowFiles);
     }
 
     /**
@@ -630,7 +646,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void transfer(Collection<FlowFile> flowFiles, Relationship relationship) {
         flowFiles = unwrap(flowFiles);
-        s.transfer(flowFiles, relationship);
+        session.transfer(flowFiles, relationship);
     }
 
     /**
@@ -646,7 +662,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void remove(FlowFile flowFile) {
         flowFile = unwrap(flowFile);
-        s.remove(flowFile);
+        session.remove(flowFile);
         onDrop(flowFile);
     }
 
@@ -663,7 +679,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void remove(Collection<FlowFile> flowFiles) {
         flowFiles = unwrap(flowFiles);
-        s.remove(flowFiles);
+        session.remove(flowFiles);
         onDrop(flowFiles);
     }
 
@@ -679,7 +695,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void read(FlowFile flowFile, InputStreamCallback reader) throws FlowFileAccessException {
         flowFile = unwrap(flowFile);
-        s.read(flowFile, reader);
+        session.read(flowFile, reader);
     }
 
     /**
@@ -702,7 +718,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public InputStream read(FlowFile flowFile) {
         flowFile = unwrap(flowFile);
-        return s.read(flowFile);
+        return session.read(flowFile);
     }
 
     /**
@@ -725,7 +741,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void read(FlowFile flowFile, boolean allowSessionStreamManagement, InputStreamCallback reader) throws FlowFileAccessException {
         flowFile = unwrap(flowFile);
-        s.read(flowFile, allowSessionStreamManagement, reader);
+        session.read(flowFile, allowSessionStreamManagement, reader);
     }
 
     /**
@@ -746,7 +762,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     public SessionFile merge(Collection<FlowFile> sources, FlowFile destination) {
         SessionFile sfDestination = wrap(destination);
         sources = unwrap(sources);
-        sfDestination.flowFile = onMod(s.merge(sources, sfDestination.flowFile));
+        sfDestination.flowFile = onMod(session.merge(sources, sfDestination.flowFile));
         return sfDestination;
     }
 
@@ -771,7 +787,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     public SessionFile merge(Collection<FlowFile> sources, FlowFile destination, byte[] header, byte[] footer, byte[] demarcator) {
         SessionFile sfDestination = wrap(destination);
         sources = unwrap(sources);
-        sfDestination.flowFile = onMod(s.merge(sources, sfDestination.flowFile, header, footer, demarcator));
+        sfDestination.flowFile = onMod(session.merge(sources, sfDestination.flowFile, header, footer, demarcator));
         return sfDestination;
     }
 
@@ -795,7 +811,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile write(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.write(sf.flowFile, writer));
+        sf.flowFile = onMod(session.write(sf.flowFile, writer));
         return sf;
     }
 
@@ -820,7 +836,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile write(FlowFile flowFile, StreamCallback writer) throws FlowFileAccessException {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.write(sf.flowFile, writer));
+        sf.flowFile = onMod(session.write(sf.flowFile, writer));
         return sf;
     }
 
@@ -840,7 +856,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile append(FlowFile flowFile, OutputStreamCallback writer) throws FlowFileAccessException {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.append(sf.flowFile, writer));
+        sf.flowFile = onMod(session.append(sf.flowFile, writer));
         return sf;
     }
 
@@ -862,7 +878,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile importFrom(Path source, boolean keepSourceFile, FlowFile flowFile) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.importFrom(source, keepSourceFile, sf.flowFile));
+        sf.flowFile = onMod(session.importFrom(source, keepSourceFile, sf.flowFile));
         return sf;
     }
 
@@ -881,7 +897,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public SessionFile importFrom(InputStream source, FlowFile flowFile) {
         SessionFile sf = wrap(flowFile);
-        sf.flowFile = onMod(s.importFrom(source, sf.flowFile));
+        sf.flowFile = onMod(session.importFrom(source, sf.flowFile));
         return sf;
     }
 
@@ -900,7 +916,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void exportTo(FlowFile flowFile, Path destination, boolean append) {
         flowFile = unwrap(flowFile);
-        s.exportTo(flowFile, destination, append);
+        session.exportTo(flowFile, destination, append);
     }
 
     /**
@@ -917,7 +933,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public void exportTo(FlowFile flowFile, OutputStream destination) {
         flowFile = unwrap(flowFile);
-        s.exportTo(flowFile, destination);
+        session.exportTo(flowFile, destination);
     }
 
     /**
@@ -927,13 +943,13 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     @Override
     public ProvenanceReporter getProvenanceReporter() {
-        return s.getProvenanceReporter();
+        return session.getProvenanceReporter();
     }
 
     @Override
     public void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles) {
         flowFiles = unwrap(flowFiles);
-        s.migrate(newOwner, flowFiles);
+        session.migrate(newOwner, flowFiles);
     }
 
     /**
@@ -963,7 +979,26 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     @Override
     public OutputStream write(FlowFile source) {
         source = unwrap(source);
-        return s.write(source);
+        return session.write(source);
     }
 
+    @Override
+    public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        session.setState(state, scope);
+    }
+
+    @Override
+    public StateMap getState(final Scope scope) throws IOException {
+        return session.getState(scope);
+    }
+
+    @Override
+    public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        return session.replaceState(oldValue, newValue, scope);
+    }
+
+    @Override
+    public void clearState(final Scope scope) throws IOException {
+        session.clearState(scope);
+    }
 }

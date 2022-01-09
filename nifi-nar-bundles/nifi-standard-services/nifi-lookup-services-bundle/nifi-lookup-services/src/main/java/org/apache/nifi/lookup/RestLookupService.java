@@ -40,7 +40,6 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
@@ -49,7 +48,6 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -59,20 +57,14 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.util.Tuple;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -91,7 +83,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 @CapabilityDescription("Use a REST service to look up values.")
 @DynamicProperties({
     @DynamicProperty(name = "*", value = "*", description = "All dynamic properties are added as HTTP headers with the name " +
-            "as the header name and the value as the header value.")
+            "as the header name and the value as the header value.", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
@@ -190,7 +182,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     static final List<PropertyDescriptor> DESCRIPTORS;
     static final Set<String> KEYS;
 
-    static final List VALID_VERBS = Arrays.asList("delete", "get", "post", "put");
+    static final List<String> VALID_VERBS = Arrays.asList("delete", "get", "post", "put");
 
     static {
         DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
@@ -216,7 +208,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     private volatile RecordReaderFactory readerFactory;
     private volatile RecordPath recordPath;
     private volatile OkHttpClient client;
-    private volatile Map<String, String> headers;
+    private volatile Map<String, PropertyValue> headers;
     private volatile PropertyValue urlTemplate;
     private volatile String basicUser;
     private volatile String basicPass;
@@ -240,34 +232,12 @@ public class RestLookupService extends AbstractControllerService implements Reco
             setProxy(builder);
         }
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
-            Tuple<SSLContext, TrustManager[]> sslContextTuple = null;
-            try {
-                sslContextTuple = SslContextFactory.createTrustSslContextWithTrustManagers(
-                        sslService.getKeyStoreFile(),
-                        sslService.getKeyStorePassword() != null ? sslService.getKeyStorePassword().toCharArray() : null,
-                        sslService.getKeyPassword() != null ? sslService.getKeyPassword().toCharArray() : null,
-                        sslService.getKeyStoreType(),
-                        sslService.getTrustStoreFile(),
-                        sslService.getTrustStorePassword() != null ? sslService.getTrustStorePassword().toCharArray() : null,
-                        sslService.getTrustStoreType(),
-                        SslContextFactory.ClientAuth.WANT,
-                        sslService.getSslAlgorithm()
-                );
-            } catch (CertificateException | UnrecoverableKeyException | NoSuchAlgorithmException | KeyStoreException | KeyManagementException | IOException e) {
-                throw new ProcessException(e);
-            }
-            List<X509TrustManager> x509TrustManagers = Arrays.stream(sslContextTuple.getValue())
-                    .filter(trustManager -> trustManager instanceof X509TrustManager)
-                    .map(trustManager -> (X509TrustManager) trustManager).collect(Collectors.toList());
-            builder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), x509TrustManagers.get(0));
-
-            if (sslContextTuple.getValue().length > 0) {
-                builder.sslSocketFactory(sslContextTuple.getKey().getSocketFactory(), (X509TrustManager) sslContextTuple.getValue()[0]);
-            } else {
-                throw new ProcessException("Failed to create SSL socket factory with trust manager.");
-            }
+            final SSLContext sslContext = sslService.createContext();
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            builder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         client = builder.build();
@@ -294,7 +264,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             if (descriptor.isDynamic()) {
                 headers.put(
                     descriptor.getDisplayName(),
-                    context.getProperty(descriptor).evaluateAttributeExpressions().getValue()
+                    context.getProperty(descriptor)
                 );
             }
         }
@@ -306,7 +276,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final Proxy proxy = config.createProxy();
             builder.proxy(proxy);
 
-            if (config.hasCredential()){
+            if (config.hasCredential()) {
                 builder.proxyAuthenticator((route, response) -> {
                     final String credential= Credentials.basic(config.getProxyUserName(), config.getProxyUserPassword());
                     return response.request().newBuilder()
@@ -325,10 +295,10 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
     @Override
     public Optional<Record> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
-        final String endpoint = determineEndpoint(coordinates);
-        final String mimeType = (String)coordinates.get(MIME_TYPE_KEY);
-        final String method   = ((String)coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
-        final String body     = (String)coordinates.get(BODY_KEY);
+        final String endpoint = determineEndpoint(coordinates, context);
+        final String mimeType = (String) coordinates.get(MIME_TYPE_KEY);
+        final String method   = ((String) coordinates.getOrDefault(METHOD_KEY, "get")).trim().toLowerCase();
+        final String body     = (String) coordinates.get(BODY_KEY);
 
         validateVerb(method);
 
@@ -346,7 +316,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             }
         }
 
-        Request request = buildRequest(mimeType, method, body, endpoint);
+        Request request = buildRequest(mimeType, method, body, endpoint, context);
         try {
             Response response = executeRequest(request);
 
@@ -379,13 +349,21 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    protected String determineEndpoint(Map<String, Object> coordinates) {
+    protected String determineEndpoint(Map<String, Object> coordinates, Map<String, String> context) {
         Map<String, String> converted = coordinates.entrySet().stream()
-            .filter(e -> e.getValue() != null)
-            .collect(Collectors.toMap(
-                e -> e.getKey(),
-                e -> e.getValue().toString()
-            ));
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().toString()
+                ));
+        Map<String, String> contextConverted = (context == null) ? Collections.emptyMap()
+                : context.entrySet().stream()
+                .filter(e -> e.getValue() != null)
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue
+                ));
+        converted.putAll(contextConverted);
         return urlTemplate.evaluateAttributeExpressions(converted).getValue();
     }
 
@@ -395,7 +373,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             .displayName(propertyDescriptorName)
             .addValidator(Validator.VALID)
             .dynamic(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     }
 
@@ -440,15 +418,15 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
     }
 
-    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint) {
+    private Request buildRequest(final String mimeType, final String method, final String body, final String endpoint, final Map<String,String> context) {
         RequestBody requestBody = null;
         if (body != null) {
             final MediaType mt = MediaType.parse(mimeType);
-            requestBody = RequestBody.create(mt, body);
+            requestBody = RequestBody.create(body, mt);
         }
         Request.Builder request = new Request.Builder()
                 .url(endpoint);
-        switch(method) {
+        switch (method) {
             case "delete":
                 request = body != null ? request.delete(requestBody) : request.delete();
                 break;
@@ -464,8 +442,8 @@ public class RestLookupService extends AbstractControllerService implements Reco
         }
 
         if (headers != null) {
-            for (Map.Entry<String, String> header : headers.entrySet()) {
-                request = request.addHeader(header.getKey(), header.getValue());
+            for (Map.Entry<String, PropertyValue> header : headers.entrySet()) {
+                request = request.addHeader(header.getKey(), header.getValue().evaluateAttributeExpressions(context).getValue());
             }
         }
 

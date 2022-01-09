@@ -135,11 +135,6 @@ The following binary components are provided under the Apache Software License v
         Apache Commons Collections
         Copyright 2001-2013 The Apache Software Foundation
 
-    (ASLv2) Apache Commons Logging
-      The following NOTICE information applies:
-        Apache Commons Logging
-        Copyright 2003-2014 The Apache Software Foundation
-
     (ASLv2) Apache Commons VFS
       The following NOTICE information applies:
         Apache Commons VFS
@@ -304,12 +299,6 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Apache Maven
         Copyright 2003-2017 The Apache Software Foundation.
-
-************************
-Eclipse Public License 1.0
-************************
-
-    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
 
 *****************
 Public Domain

@@ -606,11 +606,14 @@ public class LuceneEventIndex implements EventIndex {
                 querySubmissionMap.put(query.getIdentifier(), submission);
 
                 final List<Long> eventIds = eventIdListOption.get();
+                logger.debug("Cached Query {} produced {} Event IDs for {}: {}", cachedQuery, eventIds.size(), query, eventIds);
 
                 queryExecutor.submit(() -> {
                     List<ProvenanceEventRecord> events;
                     try {
                         events = eventStore.getEvents(eventIds, authorizer, EventTransformer.EMPTY_TRANSFORMER);
+                        logger.debug("Retrieved {} of {} Events from Event Store", events.size(), eventIds.size());
+
                         submission.getResult().update(events, eventIds.size());
                     } catch (final Exception e) {
                         submission.getResult().setError("Failed to retrieve Provenance Events from store; see logs for more details");
@@ -639,7 +642,7 @@ public class LuceneEventIndex implements EventIndex {
         querySubmissionMap.put(query.getIdentifier(), submission);
 
         final org.apache.lucene.search.Query luceneQuery = LuceneUtil.convertQuery(query);
-        logger.debug("Submitting query {} with identifier {} against index directories {}", luceneQuery, query.getIdentifier(), indexDirectories);
+        logger.debug("Submitting query {} with identifier {} against {} index directories: {}", luceneQuery, query.getIdentifier(), indexDirectories.size(), indexDirectories);
 
         if (indexDirectories.isEmpty()) {
             submission.getResult().update(Collections.emptyList(), 0L);

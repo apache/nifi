@@ -28,6 +28,15 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.core.exceptions.AuthenticationException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
+import com.datastax.driver.extras.codecs.arrays.ObjectArrayCodec;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
@@ -44,18 +53,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractCassandraProcessor is a base class for Cassandra processors and contains logic and variables common to most
@@ -109,7 +108,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SSLContextService.ClientAuth.values())
+            .allowableValues(ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 
@@ -225,6 +224,9 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     public void onScheduled(ProcessContext context) {
         final boolean connectionProviderIsSet = context.getProperty(CONNECTION_PROVIDER_SERVICE).isSet();
 
+        // Register codecs
+        registerAdditionalCodecs();
+
         if (connectionProviderIsSet) {
             CassandraSessionProviderService sessionProvider = context.getProperty(CONNECTION_PROVIDER_SERVICE).asControllerService(CassandraSessionProviderService.class);
             cluster.set(sessionProvider.getCluster());
@@ -254,24 +256,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
             // Set up the client for secure (SSL/TLS communications) if configured to do so
             final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final String rawClientAuth = context.getProperty(CLIENT_AUTH).getValue();
             final SSLContext sslContext;
 
             if (sslService != null) {
-                final SSLContextService.ClientAuth clientAuth;
-
-                if (StringUtils.isBlank(rawClientAuth)) {
-                    clientAuth = SSLContextService.ClientAuth.REQUIRED;
-                } else {
-                    try {
-                        clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
-                    } catch (final IllegalArgumentException iae) {
-                        throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
-                    }
-                }
-
-                sslContext = sslService.createSSLContext(clientAuth);
+                sslContext = sslService.createContext();
             } else {
                 sslContext = null;
             }
@@ -308,6 +296,14 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             cluster.set(newCluster);
             cassandraSession.set(newSession);
         }
+    }
+
+    protected void registerAdditionalCodecs() {
+        // Conversion between a String[] and a list of varchar
+        CodecRegistry.DEFAULT_INSTANCE.register(new ObjectArrayCodec<>(
+                DataType.list(DataType.varchar()),
+                String[].class,
+                TypeCodec.varchar()));
     }
 
     /**
@@ -534,7 +530,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
         if (contactPointList == null) {
             return null;
         }
-        final List<String> contactPointStringList = Arrays.asList(contactPointList.split(","));
+        final String[] contactPointStringList = contactPointList.split(",");
         List<InetSocketAddress> contactPoints = new ArrayList<>();
 
         for (String contactPointEntry : contactPointStringList) {

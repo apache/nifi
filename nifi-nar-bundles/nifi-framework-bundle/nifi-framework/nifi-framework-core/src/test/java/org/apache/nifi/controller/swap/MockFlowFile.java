@@ -34,7 +34,7 @@ public class MockFlowFile implements FlowFileRecord {
 
     private final long id;
     private final long entryDate = System.currentTimeMillis();
-    private final long lastQueueDate = System.currentTimeMillis();
+    private final long lastQueueDate = System.currentTimeMillis() + 1;
     private final Map<String, String> attributes;
     private final long size;
     private final ContentClaim contentClaim;

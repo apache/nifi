@@ -19,14 +19,17 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-aws-bundle</artifactId>
     <packaging>pom</packaging>
 
     <properties>
-        <aws-java-sdk-version>1.11.677</aws-java-sdk-version>
+        <!-- keep AWS 1.x until NIFI-8287 -->
+        <aws-java-sdk-version>1.12.133</aws-java-sdk-version>
+        <!-- keep KCL 1.x until NIFI-8531 (blocked by NIFI-8287) -->
+        <aws-kinesis-client-library-version>1.14.7</aws-kinesis-client-library-version>
     </properties>
 
     <dependencyManagement>
@@ -38,6 +41,25 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-core</artifactId>
+                <version>${aws-java-sdk-version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-databind</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.dataformat</groupId>
+                        <artifactId>jackson-dataformat-cbor</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -47,6 +69,7 @@
         <module>nifi-aws-service-api</module>
         <module>nifi-aws-service-api-nar</module>
         <module>nifi-aws-abstract-processors</module>
+        <module>nifi-aws-parameter-value-providers</module>
     </modules>
 
 </project>

@@ -26,8 +26,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,8 +33,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TestGetSFTP {
-
-    private static final Logger logger = LoggerFactory.getLogger(TestGetSFTP.class);
 
     private TestRunner getSFTPRunner;
     private static SSHTestServer sshTestServer;
@@ -90,7 +86,7 @@ public class TestGetSFTP {
         //Verify files deleted
         for(int i=1;i<5;i++){
             Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
-            Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
+            Assert.assertFalse("File not deleted.", file1.toAbsolutePath().toFile().exists());
         }
 
         getSFTPRunner.clearTransferState();
@@ -114,7 +110,7 @@ public class TestGetSFTP {
             // Verify files deleted
             for (int i = 1; i < 3; i++) {
                 Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile" + i + ".txt");
-                Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
+                Assert.assertFalse("File not deleted.", file1.toAbsolutePath().toFile().exists());
             }
 
             getSFTPRunner.clearTransferState();
@@ -140,10 +136,10 @@ public class TestGetSFTP {
 
         //Verify non-dotted files were deleted and dotted files were not deleted
         Path file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile1.txt");
-        Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
+        Assert.assertFalse("File not deleted.", file1.toAbsolutePath().toFile().exists());
 
         file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/testFile3.txt");
-        Assert.assertTrue("File not deleted.", !file1.toAbsolutePath().toFile().exists());
+        Assert.assertFalse("File not deleted.", file1.toAbsolutePath().toFile().exists());
 
         file1 = Paths.get(sshTestServer.getVirtualFileSystemPath() + "/.testFile2.txt");
         Assert.assertTrue("File deleted.", file1.toAbsolutePath().toFile().exists());

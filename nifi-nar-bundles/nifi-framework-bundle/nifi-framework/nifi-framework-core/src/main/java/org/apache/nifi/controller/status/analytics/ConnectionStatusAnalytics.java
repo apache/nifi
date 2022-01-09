@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections4.MapUtils;
@@ -29,11 +29,9 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
-import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
@@ -50,8 +48,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalytics.class);
     private final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
     private QueryWindow queryWindow;
-    private final ComponentStatusRepository componentStatusRepository;
-    private final FlowFileEventRepository flowFileEventRepository;
+    private final StatusHistoryRepository statusHistoryRepository;
     private final String connectionIdentifier;
     private final FlowManager flowManager;
     private final Boolean supportOnlineLearning;
@@ -60,15 +57,24 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private long queryIntervalMillis = 5L * 60 * 1000;  //Default is 3 minutes
     private String scoreName = "rSquared";
     private double scoreThreshold = .90;
+    private Map<String, Long> predictions;
 
-    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
+    private static String TIME_TO_BYTE_BACKPRESSURE_MILLIS = "timeToBytesBackpressureMillis";
+    private static String TIME_TO_COUNT_BACKPRESSURE_MILLIS = "timeToCountBackpressureMillis";
+    private static String NEXT_INTERVAL_BYTES = "nextIntervalBytes";
+    private static String NEXT_INTERVAL_COUNT = "nextIntervalCount";
+    private static String NEXT_INTERVAL_PERCENTAGE_USE_COUNT = "nextIntervalPercentageUseCount";
+    private static String NEXT_INTERVAL_PERCENTAGE_USE_BYTES = "nextIntervalPercentageUseBytes";
+    private static String INTERVAL_TIME_MILLIS = "intervalTimeMillis";
+
+    public ConnectionStatusAnalytics(StatusHistoryRepository statusHistoryRepository, FlowManager flowManager,
                                      Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, String connectionIdentifier, Boolean supportOnlineLearning) {
-        this.componentStatusRepository = componentStatusRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.flowManager = flowManager;
-        this.flowFileEventRepository = flowFileEventRepository;
         this.modelMap = modelMap;
         this.connectionIdentifier = connectionIdentifier;
         this.supportOnlineLearning = supportOnlineLearning;
+        predictions = initPredictions();
     }
 
     /**
@@ -87,7 +93,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
             StatusAnalyticsModel model = modelFunction.getKey();
             StatusMetricExtractFunction extract = modelFunction.getValue();
-            StatusHistory statusHistory = componentStatusRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
+            StatusHistory statusHistory = statusHistoryRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
             Tuple<Stream<Double[]>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
             Double[][] features = modelData.getKey().toArray(size -> new Double[size][1]);
             Double[] values = modelData.getValue().toArray(size -> new Double[size]);
@@ -128,15 +134,9 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
-    public Long getTimeToBytesBackpressureMillis() {
+    Long getTimeToBytesBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
 
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
-        FlowFileEvent flowFileEvent = getStatusReport();
-
-        final Connection connection = getConnection();
-        if (connection == null) {
-            throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
-        }
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
 
@@ -156,15 +156,9 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return milliseconds until backpressure is predicted to occur, based on the number of objects in the queue.
      */
-    public Long getTimeToCountBackpressureMillis() {
+    Long getTimeToCountBackpressureMillis(final Connection connection, FlowFileEvent flowFileEvent) {
 
         final StatusAnalyticsModel countModel = getModel("queuedCount");
-        FlowFileEvent flowFileEvent = getStatusReport();
-
-        final Connection connection = getConnection();
-        if (connection == null) {
-            throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
-        }
 
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
 
@@ -185,9 +179,8 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the total number of bytes in the queue.
      */
 
-    public Long getNextIntervalBytes() {
+    Long getNextIntervalBytes(FlowFileEvent flowFileEvent) {
         final StatusAnalyticsModel bytesModel = getModel("queuedBytes");
-        FlowFileEvent flowFileEvent = getStatusReport();
 
         if (validModel(bytesModel) && flowFileEvent != null) {
             List<Double> predictFeatures = new ArrayList<>();
@@ -208,9 +201,8 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return milliseconds until backpressure is predicted to occur, based on the number of bytes in the queue.
      */
 
-    public Long getNextIntervalCount() {
+    Long getNextIntervalCount(FlowFileEvent flowFileEvent) {
         final StatusAnalyticsModel countModel = getModel("queuedCount");
-        FlowFileEvent flowFileEvent = getStatusReport();
 
         if (validModel(countModel) && flowFileEvent != null) {
             List<Double> predictFeatures = new ArrayList<>();
@@ -231,14 +223,10 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      *
      * @return percentage of bytes used at next interval
      */
-    public Long getNextIntervalPercentageUseCount() {
+    Long getNextIntervalPercentageUseCount(final Connection connection, FlowFileEvent flowFileEvent) {
 
-        final Connection connection = getConnection();
-        if (connection == null) {
-            throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
-        }
         final double backPressureCountThreshold = connection.getFlowFileQueue().getBackPressureObjectThreshold();
-        final long nextIntervalCount = getNextIntervalCount();
+        final long nextIntervalCount = getNextIntervalCount(flowFileEvent);
 
         if (nextIntervalCount > -1L) {
             return Math.min(100, Math.round((nextIntervalCount / backPressureCountThreshold) * 100));
@@ -254,18 +242,14 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      * @return percentage of bytes used at next interval
      */
 
-    public Long getNextIntervalPercentageUseBytes() {
+    Long getNextIntervalPercentageUseBytes(final Connection connection, FlowFileEvent flowFileEvent) {
 
-        final Connection connection = getConnection();
-        if (connection == null) {
-            throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
-        }
         final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
         final double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
-        final long nextIntervalBytes = getNextIntervalBytes();
+        final long nextIntervalBytes = getNextIntervalBytes(flowFileEvent);
 
         if (nextIntervalBytes > -1L) {
-            return Math.min(100, Math.round((getNextIntervalBytes() / backPressureBytes) * 100));
+            return Math.min(100, Math.round((getNextIntervalBytes(flowFileEvent) / backPressureBytes) * 100));
         } else {
             return -1L;
         }
@@ -313,21 +297,28 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
      */
     @Override
     public Map<String, Long> getPredictions() {
-
-        Map<String, Long> predictions = new HashMap<>();
-        predictions.put("timeToBytesBackpressureMillis", getTimeToBytesBackpressureMillis());
-        predictions.put("timeToCountBackpressureMillis", getTimeToCountBackpressureMillis());
-        predictions.put("nextIntervalBytes", getNextIntervalBytes());
-        predictions.put("nextIntervalCount", getNextIntervalCount());
-        predictions.put("nextIntervalPercentageUseCount", getNextIntervalPercentageUseCount());
-        predictions.put("nextIntervalPercentageUseBytes", getNextIntervalPercentageUseBytes());
-        predictions.put("intervalTimeMillis", getIntervalTimeMillis());
-
-        predictions.forEach((key, value) -> {
-            LOG.debug("Prediction model for connection id {}: {}={} ", connectionIdentifier, key, value);
-        });
-
         return predictions;
+    }
+
+    public void loadPredictions(final RepositoryStatusReport statusReport) {
+        long startTs = System.currentTimeMillis();
+        Connection connection = flowManager.getConnection(connectionIdentifier);
+        if (connection == null) {
+            throw new NoSuchElementException("Connection with the following id cannot be found:" + connectionIdentifier + ". Model should be invalidated!");
+        }
+        FlowFileEvent flowFileEvent = statusReport.getReportEntry(connectionIdentifier);
+        predictions.put(TIME_TO_BYTE_BACKPRESSURE_MILLIS, getTimeToBytesBackpressureMillis(connection, flowFileEvent));
+        predictions.put(TIME_TO_COUNT_BACKPRESSURE_MILLIS, getTimeToCountBackpressureMillis(connection, flowFileEvent));
+        predictions.put(NEXT_INTERVAL_BYTES, getNextIntervalBytes(flowFileEvent));
+        predictions.put(NEXT_INTERVAL_COUNT, getNextIntervalCount(flowFileEvent));
+        predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_COUNT, getNextIntervalPercentageUseCount(connection, flowFileEvent));
+        predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_BYTES, getNextIntervalPercentageUseBytes(connection, flowFileEvent));
+        predictions.put(INTERVAL_TIME_MILLIS, getIntervalTimeMillis());
+        long endTs = System.currentTimeMillis();
+        LOG.debug("Prediction Calculations for connectionID {}: {}", connectionIdentifier, endTs - startTs);
+        predictions.forEach((key, value) -> {
+            LOG.trace("Prediction model for connection id {}: {}={} ", connectionIdentifier, key, value);
+        });
     }
 
     @Override
@@ -335,15 +326,16 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
         return supportOnlineLearning;
     }
 
-    private Connection getConnection() {
-        final ProcessGroup rootGroup = flowManager.getRootGroup();
-        Optional<Connection> connection = rootGroup.findAllConnections().stream().filter(c -> c.getIdentifier().equals(this.connectionIdentifier)).findFirst();
-        return connection.orElse(null);
-    }
-
-    private FlowFileEvent getStatusReport() {
-        RepositoryStatusReport statusReport = flowFileEventRepository.reportTransferEvents(System.currentTimeMillis());
-        return statusReport.getReportEntry(this.connectionIdentifier);
+    private Map<String, Long> initPredictions() {
+        predictions = new ConcurrentHashMap<>();
+        predictions.put(TIME_TO_BYTE_BACKPRESSURE_MILLIS, -1L);
+        predictions.put(TIME_TO_COUNT_BACKPRESSURE_MILLIS, -1L);
+        predictions.put(NEXT_INTERVAL_BYTES, -1L);
+        predictions.put(NEXT_INTERVAL_COUNT, -1L);
+        predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_COUNT, -1L);
+        predictions.put(NEXT_INTERVAL_PERCENTAGE_USE_BYTES, -1L);
+        predictions.put(INTERVAL_TIME_MILLIS, -1L);
+        return predictions;
     }
 
     /**

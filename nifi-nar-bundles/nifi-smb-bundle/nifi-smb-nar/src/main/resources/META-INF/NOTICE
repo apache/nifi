@@ -1,0 +1,19 @@
+nifi-smb-nar
+Copyright 2019 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ALSv2) smbj
+    The following NOTICE information applies:
+      Copyright (C)2016 - SMBJ Contributors
+
+  (ASLv2) asn-one
+    The following NOTICE information applies:
+      Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>

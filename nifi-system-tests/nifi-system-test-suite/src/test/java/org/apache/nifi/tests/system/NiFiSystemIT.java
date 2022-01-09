@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system;
 
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -29,36 +28,58 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.TestWatcher;
 import org.junit.rules.Timeout;
+import org.junit.runner.Description;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(NiFiSystemIT.class);
+    private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
+
     public static final int CLIENT_API_PORT = 5671;
+    public static final int CLIENT_API_BASE_PORT = 5670;
     public static final String NIFI_GROUP_ID = "org.apache.nifi";
     public static final String TEST_EXTENSIONS_ARTIFACT_ID = "nifi-system-test-extensions-nar";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
     public static final String TEST_CS_PACKAGE = "org.apache.nifi.cs.tests.system";
+    public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
 
     private static final Pattern FRAMEWORK_NAR_PATTERN = Pattern.compile("nifi-framework-nar-(.*?)\\.nar");
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
     private static volatile String nifiFrameworkVersion = null;
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Convenience Relationship for use in tests")
-        .build();
-
     @Rule
     public TestName name = new TestName();
     @Rule
-    public Timeout defaultTimeout = new Timeout(2, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
+
+    @Rule(order = Integer.MIN_VALUE)
+    public TestWatcher quarantineRule = new TestWatcher() {
+        @Override
+        protected void failed(final Throwable t, final Description description) {
+            final String testName = description.getMethodName();
+            try {
+                final File dir = quarantineTroubleshootingInfo(testName, t);
+                logger.info("Test failure for <{}>. Successfully wrote troubleshooting info to {}", testName, dir.getAbsolutePath());
+            } catch (final Exception e) {
+                logger.error("Failed to quarantine troubleshooting info for test " + testName, e);
+            }
+        }
+    };
 
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
@@ -93,10 +114,25 @@ public abstract class NiFiSystemIT {
     }
 
     @After
-    public void teardown() throws IOException, NiFiClientException {
+    public void teardown() throws Exception {
         try {
+            Exception destroyFlowFailure = null;
+
             if (isDestroyFlowAfterEachTest()) {
-                destroyFlow();
+                try {
+                    destroyFlow();
+                } catch (final Exception e) {
+                    logger.error("Failed to destroy flow", e);
+                    destroyFlowFailure = e;
+                }
+            }
+
+            if (isDestroyEnvironmentAfterEachTest()) {
+                cleanup();
+            }
+
+            if (destroyFlowFailure != null) {
+                throw destroyFlowFailure;
             }
         } finally {
             if (nifiClient != null) {
@@ -105,11 +141,36 @@ public abstract class NiFiSystemIT {
         }
     }
 
+    protected File quarantineTroubleshootingInfo(final String methodName, final Throwable failureCause) throws IOException {
+        NiFiInstance instance = getNiFiInstance();
+
+        // The @AfterClass may or may not have already run at this point. If it has, the instance will be null.
+        // In that case, just create a new instance and use it - it will map to the same directories.
+        if (instance == null) {
+            instance = getInstanceFactory().createInstance();
+        }
+
+        final File troubleshooting = new File("target/troubleshooting");
+        final File quarantineDir = new File(troubleshooting, methodName);
+        quarantineDir.mkdirs();
+
+        instance.quarantineTroubleshootingInfo(quarantineDir, failureCause);
+        return quarantineDir;
+    }
+
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return false;
+    }
+
     protected void destroyFlow() throws NiFiClientException, IOException {
         getClientUtil().stopProcessGroupComponents("root");
-        getClientUtil().disableControllerServices("root");
+        getClientUtil().disableControllerServices("root", true);
+        getClientUtil().disableControllerLevelServices();
+        getClientUtil().stopReportingTasks();
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
+        getClientUtil().deleteControllerLevelServices();
+        getClientUtil().deleteReportingTasks();
     }
 
     protected void waitForAllNodesConnected() {
@@ -121,6 +182,8 @@ public abstract class NiFiSystemIT {
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes, final long sleepMillis) {
+        logger.info("Waiting for {} nodes to connect", expectedNumberOfNodes);
+
         final NiFiClient client = getNifiClient();
 
         final long maxTime = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(60);
@@ -131,6 +194,8 @@ public abstract class NiFiSystemIT {
                 if (connectedNodeCount == expectedNumberOfNodes) {
                     return;
                 }
+
+                logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
 
                 if (System.currentTimeMillis() > maxTime) {
                     throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
@@ -148,8 +213,16 @@ public abstract class NiFiSystemIT {
         }
     }
 
+    protected void switchClientToNode(final int nodeIndex) {
+        setupClient(CLIENT_API_BASE_PORT + nodeIndex);
+    }
+
     protected void setupClient() {
-        nifiClient = createClient();
+        setupClient(getClientApiPort());
+    }
+
+    protected void setupClient(final int apiPort) {
+        nifiClient = createClient(apiPort);
         clientUtil = new NiFiClientUtil(nifiClient, getNiFiVersion());
     }
 
@@ -157,9 +230,9 @@ public abstract class NiFiSystemIT {
         return clientUtil;
     }
 
-    protected NiFiClient createClient() {
+    protected NiFiClient createClient(final int port) {
         final NiFiClientConfig clientConfig = new NiFiClientConfig.Builder()
-            .baseUrl("http://localhost:" + getClientApiPort())
+            .baseUrl("http://localhost:" + port)
             .connectTimeout(30000)
             .readTimeout(30000)
             .build();
@@ -183,7 +256,7 @@ public abstract class NiFiSystemIT {
         return nifiClient;
     }
 
-    protected String getNiFiVersion() {
+    protected static String getNiFiVersion() {
         final String knownVersion = nifiFrameworkVersion;
         if (knownVersion != null) {
             return knownVersion;
@@ -225,30 +298,75 @@ public abstract class NiFiSystemIT {
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
                 .instanceDirectory("target/standalone-instance")
+                .overrideNifiProperties(getNifiPropertiesOverrides())
                 .build());
+    }
+
+    protected Map<String, String> getNifiPropertiesOverrides() {
+        return Collections.emptyMap();
     }
 
     protected boolean isDestroyFlowAfterEachTest() {
         return true;
     }
 
-    protected void waitFor(final BooleanSupplier condition) throws InterruptedException {
-        while (!condition.getAsBoolean()) {
-            Thread.sleep(10L);
+    protected void waitFor(final ExceptionalBooleanSupplier condition) throws InterruptedException {
+        waitFor(condition, 10L);
+    }
+
+    protected void waitFor(final ExceptionalBooleanSupplier condition, final long delayMillis) throws InterruptedException {
+        boolean result = false;
+        while (!result) {
+            try {
+                result = condition.getAsBoolean();
+            } catch (Exception ignore) {
+            }
+
+            Thread.sleep(delayMillis);
         }
     }
 
+    protected void waitForQueueNotEmpty(final String connectionId) throws InterruptedException {
+        logger.info("Waiting for Queue on Connection {} to not be empty", connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size > 0, "greater than 0");
+
+        logger.info("Queue on Connection {} is not empty", connectionId);
+    }
+
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
+        logger.info("Waiting for Queue Count of {} on Connection {}", queueSize, connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size == queueSize, String.valueOf(queueSize));
+
+        logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
+    }
+
+    private void waitForQueueCountToMatch(final String connectionId, final Predicate<Integer> test, final String queueSizeDescription) throws InterruptedException {
         waitFor(() -> {
             final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
-            return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued() == queueSize;
+            final int currentSize = statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued();
+            final String sourceName = statusEntity.getConnectionStatus().getSourceName();
+            final String destinationName = statusEntity.getConnectionStatus().getDestinationName();
+            logEverySecond("Current Queue Size for Connection from {} to {} = {}, Waiting for {}", sourceName, destinationName, currentSize, queueSizeDescription);
+
+            return test.test(currentSize);
         });
+    }
+
+    private void logEverySecond(final String message, final Object... args) {
+        final Long lastLogTime = lastLogTimestamps.get(message);
+        if (lastLogTime == null || lastLogTime < System.currentTimeMillis() - 1000L) {
+            logger.info(message, args);
+            lastLogTimestamps.put(message, System.currentTimeMillis());
+        }
     }
 
     private ConnectionStatusEntity getConnectionStatus(final String connectionId) {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Failed to obtain connection status");
             return null;
         }

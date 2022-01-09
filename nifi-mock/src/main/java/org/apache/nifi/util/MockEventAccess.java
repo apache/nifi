@@ -21,7 +21,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.action.Action;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -105,4 +104,19 @@ public class MockEventAccess implements EventAccess {
         this.flowChanges.add(action);
     }
 
+    public long getTotalBytesRead() {
+        return -1;
+    }
+
+    public long getTotalBytesWritten() {
+        return -1;
+    }
+
+    public long getTotalBytesSent() {
+        return -1;
+    }
+
+    public long getTotalBytesReceived() {
+        return -1;
+    }
 }

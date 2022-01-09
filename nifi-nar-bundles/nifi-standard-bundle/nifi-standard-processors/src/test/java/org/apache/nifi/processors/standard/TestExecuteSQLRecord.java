@@ -170,6 +170,18 @@ public class TestExecuteSQLRecord {
     }
 
     @Test
+    public void testAutoCommitFalse() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        runner.setProperty(ExecuteSQL.AUTO_COMMIT, "false");
+        invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
+    public void testAutoCommitTrue() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        runner.setProperty(ExecuteSQL.AUTO_COMMIT, "true");
+        invokeOnTriggerRecords(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
     public void testWithOutputBatching() throws InitializationException, SQLException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -274,6 +286,49 @@ public class TestExecuteSQLRecord {
         lastFlowFile.assertAttributeEquals(ExecuteSQLRecord.RESULTSET_INDEX, "0");
         lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
+    }
+
+    @Test
+    public void testWithOutputBatchingLastBatchFails() throws InitializationException, SQLException {
+        // remove previous test database, if any
+        final File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        try {
+            stmt.execute("drop table TEST_NULL_INT");
+        } catch (final SQLException sqle) {
+        }
+
+        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 varchar(50), constraint my_pk primary key (id))");
+
+        // Insert some valid numeric values (for TO_NUMBER call later)
+        for (int i = 0; i < 11; i++) {
+            stmt.execute("insert into TEST_NULL_INT (id, val1) VALUES (" + i + ", '" + i + "')");
+        }
+        // Insert invalid numeric value
+        stmt.execute("insert into TEST_NULL_INT (id, val1) VALUES (100, 'abc')");
+
+        Map<String, String> attrMap = new HashMap<>();
+        String testAttrName = "attr1";
+        String testAttrValue = "value1";
+        attrMap.put(testAttrName, testAttrValue);
+
+        MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
+        runner.addControllerService("writer", recordWriter);
+        runner.setProperty(ExecuteSQLRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.enableControllerService(recordWriter);
+
+        runner.setIncomingConnection(true);
+        runner.setProperty(ExecuteSQLRecord.MAX_ROWS_PER_FLOW_FILE, "5");
+        runner.enqueue("SELECT ID, CAST(VAL1 AS INTEGER) AS TN FROM TEST_NULL_INT", attrMap);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteSQLRecord.REL_FAILURE, 1);
+        runner.assertTransferCount(ExecuteSQLRecord.REL_SUCCESS, 0);
     }
 
     @Test
@@ -501,6 +556,11 @@ public class TestExecuteSQLRecord {
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         SimpleCommerceDataSet.loadTestData2Database(con, 100, 200, 100);
         LOGGER.info("test data loaded");
+
+        //commit loaded data if auto-commit is dissabled
+        if (!con.getAutoCommit()){
+            con.commit();
+        }
 
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}

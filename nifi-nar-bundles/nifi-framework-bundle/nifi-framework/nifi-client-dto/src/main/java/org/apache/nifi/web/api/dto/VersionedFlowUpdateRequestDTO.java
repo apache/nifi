@@ -25,7 +25,8 @@ import javax.xml.bind.annotation.XmlType;
 public class VersionedFlowUpdateRequestDTO extends FlowUpdateRequestDTO {
     private VersionControlInformationDTO versionControlInformation;
 
-    @ApiModelProperty(value = "The VersionControlInformation that describes where the Versioned Flow is located; this may not be populated until the request is completed.", readOnly = true)
+    @ApiModelProperty(value = "The VersionControlInformation that describes where the Versioned Flow is located; this may not be populated until the request is completed.",
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public VersionControlInformationDTO getVersionControlInformation() {
         return versionControlInformation;
     }

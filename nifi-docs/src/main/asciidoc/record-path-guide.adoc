@@ -3,7 +3,7 @@
 // contributor license agreements.  See the NOTICE file distributed with
 // this work for additional information regarding copyright ownership.
 // The ASF licenses this file to You under the Apache License, Version 2.0
-// (the "License"); you may not use this file except ixn compliance with
+// (the "License"); you may not use this file except in compliance with
 // the License.  You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
@@ -115,7 +115,7 @@ the "root" Record. We then want to reference the `address` field of the child Re
 == Descendant Operator
 In addition to providing an explicit path to reach the `zip` field, it may sometimes be useful to reference the `zip` field without knowing
 the full path. In such a case, we can use the `descendant` operator (`//`) instead of the `child` operator (`/`). To reach the same `zip`
-field as above, we can accomplish this by simply using the path `//zip`. 
+field as above, we can accomplish this by simply using the path `//zip`.
 
 There is a very important distinction, though, between the `child` operator and the `descendant` operator: the `descendant` operator may match
 many fields, whereas the `child` operator will match at most one field. To help understand this, consider the following Record:
@@ -138,7 +138,7 @@ many fields, whereas the `child` operator will match at most one field. To help 
 		"zip": "11697"
 	}
 }
----- 
+----
 
 Now, if we use the RecordPath `/workAddress/zip`, we will be referencing the `zip` field that has a value of "10020." The RecordPath `/homeAddress/zip` will
 reference the `zip` field that has a value of "11697." However, the RecordPath `//zip` will reference both of these fields.
@@ -192,7 +192,7 @@ using the index of the element within square brackets (the index is 0-based). So
 	]
 }
 ----
- 
+
 We can now reference the first element in the `addresses` array by using the RecordPath `/addresses[0]`. We can access the second element using the RecordPath `/addresses[1]`.
 There may be times, though, that we don't know how many elements will exist in the array. So we can use negative indices to count backward from the end of the array. For example,
 we can access the last element as `/addresses[-1]` or the next-to-last element as `/addresses[-2]`. If we want to reference several elements, we can use a comma-separated list of
@@ -234,7 +234,7 @@ is telling the RecordPath that we want to access the `details` field at the high
 field we can use square brackets to indicate that we want to specify a Map Key, and we can then specify the key in quotes.
 
 Further, we can select more than one Map Key, using a comma-separated list: `/details/address['city', 'state', 'zip']`. We can also select all of the fields, if we want,
-using the Wildcard operator (`*`): `/details/address[*]`. Map fields do not contain any sort of ordering, so it is not possible to reference the keys by numeric indices.
+using the Wildcard operator (`\*`): `/details/address[*]`. Map fields do not contain any sort of ordering, so it is not possible to reference the keys by numeric indices.
 
 
 [[predicates]]
@@ -255,7 +255,7 @@ fields relative to the field that the Predicate applies to. The `Operator` must 
 - Greater Than (`>`)
 - Greater Than or Equal To (`>=`)
 - Less Than (`<`)
-- Less Than or Equal To (`<=`)
+- Less Than or Equal To (`\<=`)
 
 The `Expression` can be a literal value such as `50` or `Hello` or can be another RecordPath.
 
@@ -283,12 +283,12 @@ To illustrate this, let's take the following Record as an example:
 		"preferredState": "NY"
 	}
 }
----- 
+----
 
-Now we can use a Predicate to choose only the fields where the state is not New York. For example, we can use `/*[./state != 'NY']`. This will select any Record field
+Now we can use a Predicate to choose only the fields where the state is not New York. For example, we can use `/\*[./state != 'NY']`. This will select any Record field
 that has a `state` field if the state does not have a value of "NY". Note that the `details` Record will not be returned because it does not have a field named `state`.
 So in this example, the RecordPath will select only the `homeAddress` field. Once we have selected that field, we can continue on with our RecordPath. As we stated
-above, we can select the `zip` field: `/*[./state != 'NY']/zip`. This RecordPath will result in selecting the `zip` field only from the `homeAddress` field.  
+above, we can select the `zip` field: `/*[./state != 'NY']/zip`. This RecordPath will result in selecting the `zip` field only from the `homeAddress` field.
 
 We can also compare the value in one field with the value in another field. For example, we can select the address that is in the person's preferred state by using
 the RecordPath `/*[./state = /details/preferredState]`. In this example, this RecordPath will retrieve the `workAddress` field because its `state` field matches the
@@ -441,7 +441,7 @@ and the replacement value. The replacement value may optionally use back-referen
 | `replaceRegex( /name, 'xyz', 'zyx' )` | John Doe
 | `replaceRegex( /name, '\s+.*', /workAddress/city )` | John New York
 | `replaceRegex(/name, '([JD])', '$1x')` | Jxohn Dxoe
-| `replaceRegex(/name, '(?<hello>[JD])', '${hello}x')` | Jxohn Dxoe 
+| `replaceRegex(/name, '(?<hello>[JD])', '${hello}x')` | Jxohn Dxoe
 |==================================================================
 
 
@@ -471,7 +471,7 @@ can sometimes be useful, however, to obtain the name of the field instead of the
 In the above example, the first RecordPath returns two separate field names: "workAddress" and "homeAddress". The second
 RecordPath, in contrast, returns the value of a "city" field and uses the `fieldName` function as a predicate. The second
 RecordPath finds a "city" field whose parent does not have a name that begins with "work". This means that it will return
-the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".  
+the value of the "city" field whose parent is "homeAddress" but not the value of the "city" field whose parent is "workAddress".
 
 
 === toDate
@@ -561,9 +561,83 @@ The following record path would convert the String field into a byte array using
 
 `toBytes( /s, "UTF-16")`
 
+=== coalesce
+
+Returns the first value from the given arguments that is non-null. For example, given a record such as:
+
+----
+{
+  "id": null,
+  "name": "John Doe"
+}
+----
+
+The following record path would return "John Doe":
+
+`coalesce(/id, /name)`
+
+Given the record:
+
+----
+{
+  "id": "1234",
+  "name": null
+}
+----
+
+The same record path would return "1234".
+
+Given the record:
+
+----
+{
+  "id": null,
+  "name": null
+}
+----
+
+The record path would return `null`.
+
+Given the record:
+
+----
+{
+  "id": "null",
+  "name": "John Doe"
+}
+----
+
+The record path would return the String "null". Note here the very important difference in that the `id`
+field does not have a null value but rather the value of the field is the literal string "null".
+
+Given the record:
+
+----
+{
+  "name": null
+}
+----
+
+The record path would return `null`. Given that the `id` field is not present, it is treated as a `null` value.
+
+Given the record:
+
+----
+{
+  "id": "1234",
+  "name": "John Doe"
+}
+----
+
+The record path would return "1234". However, the record path `coalesce(/name, /id)` would return "John Doe" because
+both fields given are non-null, so the `coalesce` function returns the first value that is referenced in its arguments,
+not the first value that is encountered in the Record itself.
+
+
 === format
 
-Converts a Date to a String in the given format with the given time zone(optional, default time zone is GMT).
+Converts a Date to a String in the given format with an optional time zone. The function defaults to the system local
+time zone when the second argument is not provided.
 
 The first argument to this function must be a Date or a Number, and the second argument must be a format String that
 follows the Java SimpleDateFormat, and the third argument, optional, must be a format String that
@@ -598,7 +672,7 @@ The following record path expressions would format the date as a String:
 | `format( /eventDate, "yyyy-MM-dd'T'HH:mm:ss'Z'")` | 2017-10-20T00:00:00Z
 | `format( /eventDate, "yyyy-MM-dd")` | 2017-10-20
 | `format( /eventDate, "yyyy-MM-dd HH:mm:ss Z", "GMT+8:00")` | 2017-10-20 08:00:00 +0800
-| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20 
+| `format( /eventDate, "yyyy-MM-dd", "GMT+8:00")` | 2017-10-20
 |==========================================================
 
 In the case where the field is declared as a String, the toDate function must be called before formatting.
@@ -778,7 +852,128 @@ The following record path expression would decode the String using Base64:
 | `base64Decode(/name)` | John
 |==========================================================
 
-=== PadLeft
+=== escapeJson
+
+JSON Stringifies a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "person": {
+    "name" : "John",
+    "age" : 30
+  }
+}
+----
+
+The following record path expression would convert the record into an escaped JSON String:
+
+|==========================================================
+| RecordPath | Return value
+| `escapeJson(/person)` | "{\"person\":{\"name\":\"John\",\"age\":30}}"
+| `escapeJson(/person/firstName)` | "\"John\""
+| `escapeJson(/person/age)` | "30"
+|==========================================================
+
+=== unescapeJson
+
+Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "json_str": "{\"person\":{\"name\":\"John\",\"age\":30}}"
+}
+----
+
+The following record path expression would populate the record with unescaped JSON fields:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str)` | {"person": {"name": "John", "age": 30}}"
+|==========================================================
+
+Given a record such as:
+
+----
+{
+  "json_str": "\"John\""
+}
+----
+
+The following record path expression would return:
+
+|==========================================================
+| RecordPath | Return value
+| `unescapeJson(/json_str)` | "John"
+|==========================================================
+
+Note that the target schema must be pre-defined if the unescaped JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
+
+=== hash
+
+Converts a String using a hash algorithm.  For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "name", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "name" : "John"
+}
+----
+
+The following record path expression would hash the String using one of these, [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5] algorithms.
+
+|==========================================================
+| RecordPath | Return value
+| `hash(/name, 'MD5')` | 527bd5b5d689e2c32ae974c6229ff785
+|==========================================================
+
+
+
+=== padLeft
 
 Prepends characters to the input String until it reaches the desired length.
 
@@ -809,7 +1004,7 @@ The following record path expression would prepend '@' characters to the input S
 
 
 
-=== PadRight
+=== padRight
 
 Appends characters to the input String until it reaches the desired length.
 
@@ -838,7 +1033,43 @@ The following record path expression would append '@' characters to the input St
 | `padRight(/name, 15, '@')` | john smith@@@@@
 |==========================================================
 
+=== uuid5
 
+Inserts a UUID v5 into the target field.
+
+There are two ways to use this function: with or without a namespace. Given this schema:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [
+    { "name": "input", "type": "string" },
+    { "name": "id_ns", "type": "string" }
+  ]
+}
+----
+
+and a record such as:
+
+----
+{
+  "input" : "john smith",
+  "id_ns": "02b317d3-7fec-421a-89c5-3ad0eb83c79e"
+}
+----
+
+There are two options for using this function:
+
+`uuid5(/input)`
+
+`uuid5(/input, /id_ns)`
+
+The first option will generate a simple UUID v5 that does not use a namespace in the generation process. The second will
+take the value of the supplied record path and use it as the namespace.
+
+Please note that the namespace must always be a valid UUID string. An empty string, another data type, etc. will result
+in an error. This is by design because the most common use case for UUID v5 is to uniquely identify records across data sets.
 
 [[filter_functions]]
 == Filter Functions

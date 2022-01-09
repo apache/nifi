@@ -247,10 +247,23 @@ SERVICEDESCRIPTOR
     fi
 }
 
+is_nonzero_integer() {
+
+    if [ "$1" -gt 0 ] 2>/dev/null; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 run() {
     BOOTSTRAP_CONF_DIR="${NIFI_HOME}/conf"
     BOOTSTRAP_CONF="${BOOTSTRAP_CONF_DIR}/bootstrap.conf";
     BOOTSTRAP_LIBS="${NIFI_HOME}/lib/bootstrap/*"
+
+    WAIT_FOR_INIT_DEFAULT_TIMEOUT=900
+    WAIT_FOR_INIT_SLEEP_TIME=2
+    WAIT_FOR_INIT_FEEDBACK_INTERVAL=10
 
     run_as_user=$(grep '^\s*run.as' "${BOOTSTRAP_CONF}" | cut -d'=' -f2)
     # If the run as user is the same as that starting the process, ignore this configuration
@@ -308,11 +321,17 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi $@"
+    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
+    run_nifi_cmd="${run_bootstrap_cmd} $@"
 
     if [ -n "${run_as_user}" ]; then
+      preserve_environment=$(grep '^\s*preserve.environment' "${BOOTSTRAP_CONF}" | cut -d'=' -f2 | tr '[:upper:]' '[:lower:]')
+      SUDO="sudo"
+      if [ "$preserve_environment" = "true" ]; then
+        SUDO="sudo -E"
+      fi
       # Provide SCRIPT_DIR and execute nifi-env for the run.as user command
-      run_nifi_cmd="sudo -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/nifi-env.sh' && ${run_nifi_cmd}\""
+      run_nifi_cmd="${SUDO} -u ${run_as_user} sh -c \"SCRIPT_DIR='${SCRIPT_DIR}' && . '${SCRIPT_DIR}/nifi-env.sh' && ${run_nifi_cmd}\""
     fi
 
     if [ "$1" = "run" ]; then
@@ -320,8 +339,99 @@ run() {
       run_nifi_cmd="exec ${run_nifi_cmd}"
     fi
 
+    if [ "$1" = "set-sensitive-properties-key" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesKey'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
+    if [ "$1" = "set-single-user-credentials" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.authentication.single.user.command.SetSingleUserCredentials'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
+    if [ "$1" = "stateless" ]; then
+        STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
+
+        shift # Remove 'stateless' argument so we can pass all the rest as $@
+
+        echo
+        echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
+        echo
+        echo "Java home (JAVA_HOME): ${JAVA_HOME}"
+        echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
+        echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
+        echo
+        run_nifi_cmd="'${JAVA}' ${BOOTSTRAP_LOG_PARAMS} '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow'"
+
+        eval "cd ${NIFI_HOME}"
+        # Our arguments may have spaces (especially for passing parameters). The eval command will strip those out. To avoid that, we need to use "$@" to get the quotes in the arguments, and then
+        # surround that by single-ticks in order to prevent eval from stripping the quotes out.
+        eval "${run_nifi_cmd}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
     if [ "$1" = "start" ]; then
         ( eval "cd ${NIFI_HOME} && ${run_nifi_cmd}" & )> /dev/null 1>&-
+
+        if [ "$2" = "--wait-for-init" ]; then
+
+            if is_nonzero_integer "$3" ; then
+                wait_timeout="$3"
+            else
+                wait_timeout=$WAIT_FOR_INIT_DEFAULT_TIMEOUT
+            fi
+
+            starttime=$(date +%s)
+            endtime=$(($starttime+$wait_timeout))
+            current_time=$starttime
+            time_since_feedback=0
+            not_running_counter=0
+
+            is_nifi_loaded="false" # 3 possible values: "true", "false", "not_running". "not_running" means NiFi has not been started.
+            while [ "$is_nifi_loaded" != "true" ]; do
+                time_at_previous_loop=$current_time
+
+                current_time=$(date +%s)
+                if [ "$current_time" -ge "$endtime" ]; then
+                  echo "Exited the script due to --wait-for-init timeout"
+                  break;
+                fi
+
+                time_since_feedback=$(($time_since_feedback+($current_time-$time_at_previous_loop)))
+                if [ "$time_since_feedback" -ge "$WAIT_FOR_INIT_FEEDBACK_INTERVAL" ]; then
+                  time_since_feedback=0
+                  echo "NiFi has not fully initialized yet..."
+                fi
+
+                is_nifi_loaded=$( eval "cd ${NIFI_HOME} && ${run_bootstrap_cmd} is_loaded" )
+
+                if [ "$is_nifi_loaded" = "not_running" ]; then
+                  not_running_counter=$(($not_running_counter+1))
+                  if [ "$not_running_counter" -ge 3 ]; then
+                    echo "NiFi is not running. Stopped waiting for it to initialize."
+                    break;
+                  fi
+                fi
+
+                sleep $WAIT_FOR_INIT_SLEEP_TIME
+            done
+            if [ "$is_nifi_loaded" = "true" ]; then
+              echo "NiFi initialized."
+              echo "Exiting startup script..."
+            fi
+        fi
     else
         eval "cd ${NIFI_HOME} && ${run_nifi_cmd}"
     fi
@@ -334,22 +444,6 @@ run() {
     echo
 }
 
-stateless(){
-    STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
-
-    init
-    shift
-
-    echo
-    echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
-    echo
-    echo "Java home (JAVA_HOME): ${JAVA_HOME}"
-    echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
-    echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
-    echo
-    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" ExtractNars
-    "${JAVA}" -cp "${NIFI_HOME}/lib/bootstrap/*" ${STATELESS_JAVA_OPTS} "org.apache.nifi.bootstrap.RunStatelessNiFi" "$@"
-}
 main() {
     init "$1"
     run "$@"
@@ -360,20 +454,17 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|dump|diagnostics|env)
+
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|stateless|set-sensitive-properties-key|set-single-user-credentials)
         main "$@"
         ;;
 
-    #Note: Use of this command is considered experimental. The commands and approach used may change from time to time.
-    stateless)
-        stateless "$@"
-        ;;
     restart)
         init
         run "stop"
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install|stateless}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|stateless|set-sensitive-properties-key|set-single-user-credentials}"
         ;;
 esac

@@ -28,5 +28,6 @@ public interface BaseAccumuloService extends ControllerService {
 
 
     AccumuloClient getClient();
+    void renewTgtIfNecessary();
 
 }

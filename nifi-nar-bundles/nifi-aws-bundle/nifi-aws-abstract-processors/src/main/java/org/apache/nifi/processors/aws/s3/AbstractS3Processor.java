@@ -16,33 +16,35 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.S3ClientOptions;
 import com.amazonaws.services.s3.model.AccessControlList;
+import com.amazonaws.services.s3.model.AmazonS3Exception;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.CanonicalGrantee;
 import com.amazonaws.services.s3.model.EmailAddressGrantee;
 import com.amazonaws.services.s3.model.Grantee;
 import com.amazonaws.services.s3.model.Owner;
 import com.amazonaws.services.s3.model.Permission;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
 
@@ -136,6 +138,21 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .required(false)
             .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();
+    public static final PropertyDescriptor USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
+            .name("use-chunked-encoding")
+            .displayName("Use Chunked Encoding")
+            .description("Enables / disables chunked encoding for upload requests. Set it to false only if your endpoint does not support chunked uploading.")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+    public static final PropertyDescriptor USE_PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
+            .name("use-path-style-access")
+            .displayName("Use Path Style Access")
+            .description("Path-style access can be enforced by setting this property to true. Set it to true if your endpoint does not support " +
+                    "virtual-hosted-style requests, only path-style requests.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
     /**
      * Create client using credentials provider. This is the preferred way for creating clients
@@ -155,17 +172,32 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             s3 = new AmazonS3Client(credentialsProvider, config);
         }
 
-        initalizeEndpointOverride(context, s3);
+        configureClientOptions(context, s3);
+
         return s3;
     }
 
-    private void initalizeEndpointOverride(final ProcessContext context, final AmazonS3Client s3) {
-        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
-        if(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty() == false){
-            final S3ClientOptions s3Options = new S3ClientOptions();
-            s3Options.setPathStyleAccess(true);
-            s3.setS3ClientOptions(s3Options);
+    private void configureClientOptions(final ProcessContext context, final AmazonS3Client s3) {
+        S3ClientOptions.Builder builder = S3ClientOptions.builder();
+
+        // disable chunked encoding if "Use Chunked Encoding" has been set to false, otherwise use the default (not disabled)
+        Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
+        if (useChunkedEncoding != null && !useChunkedEncoding) {
+            builder.disableChunkedEncoding();
         }
+
+        // use PathStyleAccess if "Use Path Style Access" has been set to true, otherwise use the default (false)
+        Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
+        if (usePathStyleAccess != null && usePathStyleAccess) {
+            builder.setPathStyleAccess(true);
+        }
+
+        // if ENDPOINT_OVERRIDE is set, use PathStyleAccess
+        if (!StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty()){
+            builder.setPathStyleAccess(true);
+        }
+
+        s3.setS3ClientOptions(builder.build());
     }
 
     private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
@@ -284,6 +316,24 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         }
 
         return acl;
+    }
+
+    protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
+        flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
+        if (e instanceof AmazonS3Exception) {
+            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
+        }
+        if (e instanceof AmazonServiceException) {
+            final AmazonServiceException ase = (AmazonServiceException) e;
+            flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorCode", ase.getErrorCode());
+            flowFile = putAttribute(session, flowFile, "s3.errorMessage", ase.getErrorMessage());
+        }
+        return flowFile;
+    }
+
+    private FlowFile putAttribute(final ProcessSession session, final FlowFile flowFile, final String key, final Object value) {
+        return (value == null) ? flowFile : session.putAttribute(flowFile, key, value.toString());
     }
 
     /**

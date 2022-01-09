@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -61,15 +63,64 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
             final Set<URL> instanceUrls,
             final Set<URL> additionalResourceUrls,
             final Set<File> narNativeLibDirs,
-            final ClassLoader parent
-    ) {
+            final ClassLoader parent) {
         super(combineURLs(instanceUrls, additionalResourceUrls), parent, initNativeLibDirList(narNativeLibDirs, additionalResourceUrls), identifier);
         this.identifier = identifier;
         this.instanceType = type;
-        this.instanceUrls = Collections.unmodifiableSet(
-                instanceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(instanceUrls));
-        this.additionalResourceUrls = Collections.unmodifiableSet(
-                additionalResourceUrls == null ? Collections.emptySet() : new LinkedHashSet<>(additionalResourceUrls));
+        this.instanceUrls = instanceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(instanceUrls));
+        this.additionalResourceUrls = additionalResourceUrls == null ? Collections.emptySet() : Collections.unmodifiableSet(new HashSet<>(additionalResourceUrls));
+    }
+
+    @Override
+    public void close() throws IOException {
+        super.close();
+
+        final ClassLoader parent = getParent();
+        if (parent instanceof SharedInstanceClassLoader) {
+            ((SharedInstanceClassLoader) parent).close();
+        }
+    }
+
+    /**
+     * Note: Normally URLClassLoader will only load resources that are inside JARs, or in directories, but many times we allow
+     * properties to specify specific files to add to the classpath. This allows those files to be found by checking the known
+     * URLs of the InstanceClassLoader, when the resource wasn't find in the parent hierarchy.
+     */
+    @Override
+    public URL findResource(String name) {
+        URL resourceUrl = super.findResource(name);
+
+        if (resourceUrl == null) {
+            resourceUrl = findResource(instanceUrls, name);
+        }
+
+        if (resourceUrl == null) {
+            resourceUrl = findResource(additionalResourceUrls, name);
+        }
+
+        return resourceUrl;
+    }
+
+    private URL findResource(final Set<URL> urls, final String name) {
+        if (urls == null || name == null) {
+            return null;
+        }
+
+        for (final URL url : urls) {
+            try {
+                final URI uri = url.toURI();
+                final File file = new File(uri);
+                if (name.equals(file.getName())) {
+                    logger.debug("Found resource '" + name + "' from URL '" + url.toExternalForm() + "'");
+                    return url;
+                }
+            } catch (URISyntaxException e) {
+                logger.error(e.getMessage(), e);
+                return null;
+            }
+        }
+
+        return null;
     }
 
     private static List<File> initNativeLibDirList(Set<File> narNativeLibDirs, Set<URL> additionalResourceUrls) {

@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 #create mapping
 PUT:user_details/:{ "mappings":{ "properties":{ "email":{"type":"keyword"},"phone":{"type": "keyword"},"accessKey":{"type": "keyword"}}}}
 PUT:messages/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
@@ -21,6 +22,7 @@ PUT:bulk_a/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
 PUT:bulk_b/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
 PUT:bulk_c/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
 PUT:error_handler:{ "mappings": { "properties": { "msg": { "type": "keyword" }, "intField": { "type": "integer" }}}}
+
 #add document
 POST:messages/_doc/1:{ "msg":"one" }
 POST:messages/_doc/2:{ "msg":"two" }
@@ -43,3 +45,6 @@ POST:user_details/_doc/2:{ "email": "jane.doe@company.com", "phone": "098-765-43
 POST:nested/_doc/1:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"No one should see this!","deepest":{"super_secret":"Got nothin to hide"}}}}
 POST:nested/_doc/2:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"Hello, world!","deepest":{"super_secret":"I could tell, but then I would have to kill you"}}}}
 POST:nested/_doc/3:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"Buongiorno, mondo!!","deepest":{"super_secret":"The sky is blue"}}}}
+
+# refresh all indices before testing
+POST:_refresh:{}

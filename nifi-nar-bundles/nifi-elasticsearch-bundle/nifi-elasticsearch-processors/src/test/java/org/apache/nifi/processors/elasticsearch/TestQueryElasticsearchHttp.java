@@ -104,10 +104,17 @@ public class TestQueryElasticsearchHttp {
 
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
-        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
-        runner.assertNotValid();
         runner.setProperty(QueryElasticsearchHttp.QUERY,
                 "source:Twitter AND identifier:\"${identifier}\"");
+        runner.removeProperty(QueryElasticsearchHttp.TYPE);
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "");
+        runner.assertNotValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "${type}");
+        runner.assertValid();
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "_doc");
         runner.assertValid();
         runner.setProperty(QueryElasticsearchHttp.PAGE_SIZE, "2");
         runner.assertValid();
@@ -359,6 +366,7 @@ public class TestQueryElasticsearchHttp {
         runner.setProperty(QueryElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+        runner.removeProperty(QueryElasticsearchHttp.TYPE);
         runner.setProperty(QueryElasticsearchHttp.QUERY, "${doc_id}");
 
         // Allow time for the controller service to fully initialize
@@ -446,6 +454,20 @@ public class TestQueryElasticsearchHttp {
         runAndVerifySuccess(true);
     }
 
+    @Test
+    public void testQueryElasticsearchOnTrigger_sourceIncludes() throws IOException {
+        QueryElasticsearchHttpTestProcessor p = new QueryElasticsearchHttpTestProcessor();
+        p.setExpectedParam("_source=test");
+        runner = TestRunners.newTestRunner(p);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(QueryElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(QueryElasticsearchHttp.TYPE, "status");
+        runner.setProperty(QueryElasticsearchHttp.QUERY, "source:Twitter");
+        runner.setProperty(QueryElasticsearchHttp.FIELDS, "test");
+        runAndVerifySuccess(true);
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
@@ -529,7 +551,7 @@ public class TestQueryElasticsearchHttp {
                 @Override
                 public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    assertTrue((expectedParam == null) || (realRequest.url().toString().endsWith(expectedParam)));
+                    assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
                     Response mockResponse = new Response.Builder()
                             .request(realRequest)
                             .protocol(Protocol.HTTP_1_1)

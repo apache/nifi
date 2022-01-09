@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
@@ -29,7 +30,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -45,6 +48,12 @@ public class TestUpdateRecord {
     private TestRunner runner;
     private MockRecordParser readerService;
     private MockRecordWriter writerService;
+
+    //Apparently pretty printing is not portable as these tests fail on windows
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() throws InitializationException {
@@ -103,6 +112,21 @@ public class TestUpdateRecord {
         runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0);
         out.assertContentEquals("header\n35,35\n");
+    }
+
+    @Test
+    public void testRecordPathReplacementWithFilterFunctionCall() {
+        runner.setProperty("/hasAge", "not(isEmpty(/age))");
+        runner.setProperty(UpdateRecord.REPLACEMENT_VALUE_STRATEGY, UpdateRecord.RECORD_PATH_VALUES.getValue());
+        runner.enqueue("");
+
+        readerService.addRecord("John Doe", 35);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(UpdateRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(UpdateRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals("header\nJohn Doe,35,true\n");
+
     }
 
     @Test

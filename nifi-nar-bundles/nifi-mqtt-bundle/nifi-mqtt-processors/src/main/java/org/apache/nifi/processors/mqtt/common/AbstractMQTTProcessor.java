@@ -23,6 +23,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_TRUE;
@@ -60,6 +62,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     protected ComponentLog logger;
     protected IMqttClient mqttClient;
     protected volatile String broker;
+    protected volatile String brokerUri;
     protected volatile String clientID;
     protected MqttConnectOptions connOpts;
     protected MemoryPersistence persistence = new MemoryPersistence();
@@ -116,14 +119,16 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp', 'ssl', 'ws' and 'wss' schemes are supported. In order to use 'ssl', the SSL Context " +
                     "Service property must be set.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(BROKER_VALIDATOR)
             .build();
 
 
     public static final PropertyDescriptor PROP_CLIENTID = new PropertyDescriptor.Builder()
             .name("Client ID")
-            .description("MQTT client ID to use")
-            .required(true)
+            .description("MQTT client ID to use. If not set, a UUID will be generated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -131,6 +136,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Username")
             .description("Username to use when connecting to the broker")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -271,7 +277,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         }
 
         try {
-            URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).getValue());
+            URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue());
             if (brokerURI.getScheme().equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
                 results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false).explanation("if the 'ssl' scheme is used in " +
                         "the broker URI, the SSL Context Service must be set.").build());
@@ -285,19 +291,38 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static Properties transformSSLContextService(SSLContextService sslContextService){
         Properties properties = new Properties();
-        properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
-        properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
-        properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
-        properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
-        properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
-        properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
-        properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        if (sslContextService.getSslAlgorithm() != null) {
+            properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
+        }
+        if (sslContextService.getKeyStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
+        }
+        if (sslContextService.getKeyStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
+        }
+        if (sslContextService.getKeyStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
+        }
+        if (sslContextService.getTrustStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
+        }
+        if (sslContextService.getTrustStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
+        }
+        if (sslContextService.getTrustStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        }
         return  properties;
     }
 
     protected void onScheduled(final ProcessContext context){
-        broker = context.getProperty(PROP_BROKER_URI).getValue();
-        clientID = context.getProperty(PROP_CLIENTID).getValue();
+        broker = context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue();
+        brokerUri = broker.endsWith("/") ? broker : broker + "/";
+        clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
+
+        if (clientID == null) {
+            clientID = UUID.randomUUID().toString();
+        }
 
         connOpts = new MqttConnectOptions();
         connOpts.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
@@ -322,7 +347,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if(usernameProp.isSet()) {
-            connOpts.setUserName(usernameProp.getValue());
+            connOpts.setUserName(usernameProp.evaluateAttributeExpressions().getValue());
             connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
         }
     }
@@ -357,7 +382,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
             session.rollback(true);

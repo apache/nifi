@@ -61,6 +61,7 @@
 
     var nfControllerServices;
     var nfParameterContexts;
+    var nfBackpressureDefaults;
 
     var config = {
         urls: {
@@ -105,7 +106,12 @@
                 'comments': $('#process-group-comments').val(),
                 'parameterContext': {
                     'id': $('#process-group-parameter-context-combo').combo('getSelectedOption').value
-                }
+                },
+                'flowfileConcurrency': $('#process-group-flowfile-concurrency-combo').combo('getSelectedOption').value,
+                'flowfileOutboundPolicy': $('#process-group-outbound-policy-combo').combo('getSelectedOption').value,
+                'defaultFlowFileExpiration': $('#process-group-default-flowfile-expiration').val(),
+                'defaultBackPressureObjectThreshold': $('#process-group-default-back-pressure-object-threshold').val(),
+                'defaultBackPressureDataSizeThreshold': $('#process-group-default-back-pressure-data-size-threshold').val()
             }
         };
 
@@ -165,6 +171,9 @@
         var setUnauthorizedText = function () {
             $('#read-only-process-group-name').text('Unauthorized');
             $('#read-only-process-group-comments').text('Unauthorized');
+            $('#read-only-process-group-default-flowfile-expiration').text('Unauthorized');
+            $('#read-only-process-group-default-back-pressure-object-threshold').text('Unauthorized');
+            $('#read-only-process-group-default-back-pressure-data-size-threshold').text('Unauthorized');
         };
 
         var setEditable = function (editable) {
@@ -212,6 +221,51 @@
                     // populate the process group settings
                     $('#process-group-name').removeClass('unset').val(processGroup.name);
                     $('#process-group-comments').removeClass('unset').val(processGroup.comments);
+                    $('#process-group-flowfile-concurrency-combo').removeClass('unset').combo({
+                        options: [{
+                                text: 'Single FlowFile Per Node',
+                                value: 'SINGLE_FLOWFILE_PER_NODE',
+                                description: 'Only a single FlowFile is to be allowed to enter the Process Group at a time on each node in the cluster. While that FlowFile may be split into many or '
+                                    + 'spawn many children, no additional FlowFiles will be allowed to enter the Process Group through a Local Input Port until the previous FlowFile '
+                                    + '- and all of its child/descendent FlowFiles - have been processed.'
+                            }, {
+                                text: 'Single Batch Per Node',
+                                value: "SINGLE_BATCH_PER_NODE",
+                                description: 'When an Input Port pulls a FlowFile into the Process Group, FlowFiles will continue to be ingested into the Process Group until all input queues '
+                                    + 'have been emptied. At that point, no additional FlowFiles will be allowed to enter the Process Group through a Local Input Port until the entire batch '
+                                    + 'of FlowFiles has been processed.'
+                            },{
+                                text: 'Unbounded',
+                                value: 'UNBOUNDED',
+                                description: 'The number of FlowFiles that can be processed concurrently is unbounded.'
+                            }],
+                        selectedOption: {
+                            value: processGroup.flowfileConcurrency
+                        }
+                    });
+
+                    $('#process-group-outbound-policy-combo').removeClass('unset').combo({
+                        options: [{
+                                text: 'Stream When Available',
+                                value: 'STREAM_WHEN_AVAILABLE',
+                                description: 'FlowFiles that are queued up to be transferred out of a Process Group by an Output Port will be transferred out '
+                                        + 'of the Process Group as soon as they are available.'
+                            }, {
+                                text: 'Batch Output',
+                                value: 'BATCH_OUTPUT',
+                                description: 'FlowFiles that are queued up to be transferred out of a Process Group by an Output Port will remain queued until '
+                                        + 'all FlowFiles in the Process Group are ready to be transferred out of the group. The FlowFiles will then be transferred '
+                                        + 'out of the group. This setting will be ignored if the FlowFile Concurrency is Unbounded.'
+                            }],
+                        selectedOption: {
+                            value: processGroup.flowfileOutboundPolicy
+                        }
+                    });
+
+                    $('#process-group-default-flowfile-expiration').removeClass('unset').val(processGroup.defaultFlowFileExpiration);
+                    $('#process-group-default-back-pressure-object-threshold').removeClass('unset').val(processGroup.defaultBackPressureObjectThreshold);
+                    $('#process-group-default-back-pressure-data-size-threshold').removeClass('unset').val(processGroup.defaultBackPressureDataSizeThreshold);
+
 
                     // populate the header
                     $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
@@ -228,8 +282,34 @@
                         $('#read-only-process-group-name').text(processGroup.name);
                         $('#read-only-process-group-comments').text(processGroup.comments);
 
+                        // Determine the user-friendly name for the selected FlowFile Concurrency
+                        var concurrencyName;
+                        if (processGroup.flowfileConcurrency == "UNBOUNDED") {
+                            concurrencyName = "Unbounded";
+                        } else if (processGroup.flowfileConcurrency == "SINGLE_FLOWFILE_PER_NODE") {
+                            concurrencyName = "Single FlowFile Per Node";
+                        } else if (processGroup.flowfileConcurrency == "SINGLE_BATCH_PER_NODE") {
+                            concurrencyName = "Single Batch Per Node";
+                        } else {
+                            concurrencyName = "Unknown";
+                        }
+
+                        $('#read-only-process-group-flowfile-concurrency').text(concurrencyName);
+
+                        var outboundPolicyName = processGroup.flowfileOutboundPolicy == "BATCH_OUTPUT" ? "Batch Output" : "Stream When Available";
+                        $('#read-only-process-group-outbound-policy').text(outboundPolicyName);
+
                         // populate the header
                         $('#process-group-configuration-header-text').text(processGroup.name + ' Configuration');
+
+                        // backpressure settings
+                        $('#process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
+                        $('#process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
+                        $('#process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
+
+                        $('#read-only-process-group-default-flowfile-expiration').text(processGroup.defaultFlowFileExpiration);
+                        $('#read-only-process-group-default-back-pressure-object-threshold').text(processGroup.defaultBackPressureObjectThreshold);
+                        $('#read-only-process-group-default-back-pressure-data-size-threshold').text(processGroup.defaultBackPressureDataSizeThreshold);
                     } else {
                         setUnauthorizedText();
                     }
@@ -459,6 +539,9 @@
         $('#process-group-id').text('');
         $('#process-group-name').val('');
         $('#process-group-comments').val('');
+        $('#process-group-default-flowfile-expiration').val('');
+        $('#process-group-default-back-pressure-object-threshold').val('');
+        $('#process-group-default-back-pressure-data-size-threshold').val('');
 
         // reset the header
         $('#process-group-configuration-header-text').text('Process Group Configuration');

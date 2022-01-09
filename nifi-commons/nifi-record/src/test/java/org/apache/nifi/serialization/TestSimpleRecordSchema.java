@@ -20,15 +20,17 @@ package org.apache.nifi.serialization;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestSimpleRecordSchema {
 
@@ -38,11 +40,7 @@ public class TestSimpleRecordSchema {
         fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType(), null, set("foo", "bar")));
         fields.add(new RecordField("goodbye", RecordFieldType.STRING.getDataType(), null, set("baz", "bar")));
 
-        try {
-            new SimpleRecordSchema(fields);
-            Assert.fail("Was able to create two fields with same alias");
-        } catch (final IllegalArgumentException expected) {
-        }
+        assertThrows(IllegalArgumentException.class, () -> new SimpleRecordSchema(fields));
     }
 
     @Test
@@ -51,11 +49,7 @@ public class TestSimpleRecordSchema {
         fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType(), null, set("foo", "bar")));
         fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType()));
 
-        try {
-            new SimpleRecordSchema(fields);
-            Assert.fail("Was able to create two fields with same name");
-        } catch (final IllegalArgumentException expected) {
-        }
+        assertThrows(IllegalArgumentException.class, () -> new SimpleRecordSchema(fields));
     }
 
     @Test
@@ -64,11 +58,7 @@ public class TestSimpleRecordSchema {
         fields.add(new RecordField("hello", RecordFieldType.STRING.getDataType(), null, set("foo", "bar")));
         fields.add(new RecordField("bar", RecordFieldType.STRING.getDataType()));
 
-        try {
-            new SimpleRecordSchema(fields);
-            Assert.fail("Was able to create two fields with conflicting names/aliases");
-        } catch (final IllegalArgumentException expected) {
-        }
+        assertThrows(IllegalArgumentException.class, () -> new SimpleRecordSchema(fields));
     }
 
     @Test
@@ -88,6 +78,24 @@ public class TestSimpleRecordSchema {
         secondSchema.setFields(personFields);
         assertTrue(schema.equals(secondSchema));
         assertTrue(secondSchema.equals(schema));
+    }
+
+    @Test
+    public void testFieldsArentCheckedInEqualsIfNameAndNamespaceMatch() {
+        final RecordField testField = new RecordField("test", RecordFieldType.STRING.getDataType());
+
+        final SimpleRecordSchema schema1 = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+        schema1.setSchemaName("name");
+        schema1.setSchemaNamespace("namespace");
+        schema1.setFields(Collections.singletonList(testField));
+
+        SimpleRecordSchema schema2 = Mockito.spy(new SimpleRecordSchema(SchemaIdentifier.EMPTY));
+        schema2.setSchemaName("name");
+        schema2.setSchemaNamespace("namespace");
+        schema2.setFields(Collections.singletonList(testField));
+
+        assertTrue(schema1.equals(schema2));
+        Mockito.verify(schema2, Mockito.never()).getFields();
     }
 
     private Set<String> set(final String... values) {

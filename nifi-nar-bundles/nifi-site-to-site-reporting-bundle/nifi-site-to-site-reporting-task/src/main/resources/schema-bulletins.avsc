@@ -9,6 +9,7 @@
 	{ "name" : "bulletinCategory", "type" : ["string", "null"] },
 	{ "name" : "bulletinGroupId", "type" : ["string", "null"] },
 	{ "name" : "bulletinGroupName", "type" : ["string", "null"] },
+	{ "name" : "bulletinGroupPath", "type" : ["string", "null"] },
 	{ "name" : "bulletinLevel", "type" : ["string", "null"] },
 	{ "name" : "bulletinMessage", "type" : ["string", "null"] },
 	{ "name" : "bulletinNodeAddress", "type" : ["string", "null"] },
@@ -16,6 +17,7 @@
 	{ "name" : "bulletinSourceId", "type" : ["string", "null"] },
 	{ "name" : "bulletinSourceName", "type" : ["string", "null"] },
 	{ "name" : "bulletinSourceType", "type" : ["string", "null"] },
-	{ "name" : "bulletinTimestamp", "type" : ["string", "null"], "doc" : "Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" }
+	{ "name" : "bulletinTimestamp", "type" : ["string", "null"], "doc" : "Format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" },
+	{ "name" : "bulletinFlowFileUuid", "type" : ["string", "null"] }
   ]
 }

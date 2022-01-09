@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.processor.Processor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class ComponentIdentifierLookup implements IdentifierLookup {
     private final FlowController flowController;
@@ -47,14 +48,15 @@ public class ComponentIdentifierLookup implements IdentifierLookup {
 
     @Override
     public List<String> getComponentTypes() {
-        final Set<Class> procClasses = flowController.getExtensionManager().getExtensions(Processor.class);
+        final Set<ExtensionDefinition> procDefinitions = flowController.getExtensionManager().getExtensions(Processor.class);
 
-        final List<String> componentTypes = new ArrayList<>(procClasses.size() + 2);
+        final List<String> componentTypes = new ArrayList<>(procDefinitions.size() + 2);
         componentTypes.add(ProvenanceEventRecord.REMOTE_INPUT_PORT_TYPE);
         componentTypes.add(ProvenanceEventRecord.REMOTE_OUTPUT_PORT_TYPE);
 
-        procClasses.stream()
-            .map(Class::getSimpleName)
+        procDefinitions.stream()
+            .map(ExtensionDefinition::getImplementationClassName)
+            .map(className -> className.contains(".") ? StringUtils.substringAfterLast(className, ".") : className)
             .forEach(componentTypes::add);
 
         return componentTypes;
@@ -62,10 +64,12 @@ public class ComponentIdentifierLookup implements IdentifierLookup {
 
     @Override
     public List<String> getQueueIdentifiers() {
-        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
+        Set<Connection> connectionSet = flowController.getFlowManager().findAllConnections();
+        List<String> identifiers = new ArrayList<>(connectionSet.size());
 
-        return rootGroup.findAllConnections().stream()
-            .map(Connection::getIdentifier)
-            .collect(Collectors.toList());
+        for (Connection c : connectionSet) {
+            identifiers.add(c.getIdentifier());
+        }
+        return identifiers;
     }
 }

@@ -26,11 +26,18 @@ import org.junit.Before;
 import java.util.Iterator;
 import java.util.UUID;
 
+import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_QUEUE_ENDPOINT_SUFFIX;
+
 public abstract class AbstractAzureQueueStorageIT extends AbstractAzureStorageIT {
 
     protected static final String TEST_QUEUE_NAME_PREFIX = "nifi-test-queue";
 
     protected CloudQueue cloudQueue;
+
+    @Override
+    protected String getDefaultEndpointSuffix() {
+        return DEFAULT_QUEUE_ENDPOINT_SUFFIX;
+    }
 
     @Before
     public void setUpAzureQueueStorageIT() throws Exception {

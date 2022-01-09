@@ -18,9 +18,7 @@ package org.apache.nifi.distributed.cache.server.map;
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -28,8 +26,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
 @CapabilityDescription("Provides a map (key/value) cache that can be accessed over a socket. Interaction with this service"
@@ -44,12 +42,13 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
+        final int maxReadSize = context.getProperty(MAX_READ_SIZE).asDataSize(DataUnit.B).intValue();
 
         final SSLContext sslContext;
         if (sslContextService == null) {
             sslContext = null;
         } else {
-            sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
+            sslContext = sslContextService.createContext();
         }
 
         final EvictionPolicy evictionPolicy;
@@ -70,14 +69,16 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
 
-            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir);
+            return createMapCacheServer(port, maxSize, sslContext, evictionPolicy, persistenceDir, maxReadSize);
         } catch (final Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir) throws IOException {
-        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
+    protected MapCacheServer createMapCacheServer(
+            final int port, final int maxSize, final SSLContext sslContext, final EvictionPolicy evictionPolicy,
+            final File persistenceDir, final int maxReadSize) throws IOException {
+        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
     }
 
 }

@@ -17,7 +17,6 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
-import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -31,11 +30,11 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_PATH;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 
 /**
- * Analyze a transit URI as a HDFS path.
- * <li>qualifiedName=/path/fileName@clusterName (example: /app/warehouse/hive/db/default@cl1)
- * <li>name=/path/fileName (example: /app/warehouse/hive/db/default)
+ * Analyze a transit URI as a HDFS path. Return file or directory path depending on FilesystemPathsLevel setting.
+ * <li>qualifiedName=/path[/fileName]@namespace (example: /app/warehouse/hive/db/default[/datafile]@ns1)
+ * <li>name=/path[/fileName] (example: /app/warehouse/hive/db/default[/datafile])
  */
-public class HDFSPath extends AbstractNiFiProvenanceEventAnalyzer {
+public class HDFSPath extends AbstractFileSystemPathAnalyzer {
 
     private static final String TYPE = "hdfs_path";
 
@@ -43,12 +42,16 @@ public class HDFSPath extends AbstractNiFiProvenanceEventAnalyzer {
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
         final Referenceable ref = new Referenceable(TYPE);
         final URI uri = parseUri(event.getTransitUri());
-        final String clusterName = context.getClusterResolver().fromHostNames(uri.getHost());
-        final String path = uri.getPath();
+        final String namespace = context.getNamespaceResolver().fromHostNames(uri.getHost());
+
+        final String path = getPath(context, uri);
+
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);
-        ref.set(ATTR_CLUSTER_NAME, clusterName);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(clusterName, path));
+        // The attribute 'clusterName' is in the 'hdfs_path' Atlas entity so it cannot be changed.
+        //  Using 'namespace' as value for lack of better solution.
+        ref.set(ATTR_CLUSTER_NAME, namespace);
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, path));
 
         return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
     }

@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.FlowFileFilter;
-
 import groovy.lang.Closure;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.ProcessSession;
 
 import java.util.List;
 

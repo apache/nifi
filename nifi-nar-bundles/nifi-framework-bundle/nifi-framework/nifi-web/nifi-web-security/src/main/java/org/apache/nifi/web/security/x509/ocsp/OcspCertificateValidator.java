@@ -20,9 +20,32 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.math.BigInteger;
+import java.net.URI;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import javax.security.auth.x500.X500Principal;
+import javax.ws.rs.ProcessingException;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.x509.ocsp.OcspStatus.ValidationStatus;
@@ -52,28 +75,6 @@ import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import javax.security.auth.x500.X500Principal;
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.net.URI;
-import java.security.KeyStore;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class OcspCertificateValidator {
 
@@ -107,7 +108,8 @@ public class OcspCertificateValidator {
 
                 // initialize the client
                 if (HTTPS.equalsIgnoreCase(validationAuthorityURI.getScheme())) {
-                    client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(properties));
+                    TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+                    client = WebUtils.createClient(clientConfig, SslContextFactory.createSslContext(tlsConfiguration));
                 } else {
                     client = WebUtils.createClient(clientConfig);
                 }
@@ -192,7 +194,7 @@ public class OcspCertificateValidator {
 
         // load the configured truststore
         try (final FileInputStream fis = new FileInputStream(truststorePath)) {
-            final KeyStore truststore = KeyStoreUtils.getTrustStore(KeyStore.getDefaultType());
+            final KeyStore truststore = KeyStoreUtils.getKeyStore(KeyStore.getDefaultType());
             truststore.load(fis, truststorePassword);
 
             TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());

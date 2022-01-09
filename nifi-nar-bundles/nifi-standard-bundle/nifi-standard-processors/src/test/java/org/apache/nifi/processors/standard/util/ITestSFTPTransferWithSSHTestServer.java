@@ -144,7 +144,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.REMOTE_PATH, DIR_2);
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -167,7 +167,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.IGNORE_DOTTED_FILES, "false");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(3, listing.size());
 
@@ -183,7 +183,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.RECURSIVE_SEARCH, "false");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
         }
@@ -196,7 +196,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.RECURSIVE_SEARCH, "true");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(4, listing.size());
         }
@@ -210,7 +210,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.FOLLOW_SYMLINK, "false");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
         }
@@ -224,7 +224,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.FOLLOW_SYMLINK, "true");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(4, listing.size());
         }
@@ -238,7 +238,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         // first listing is without batch size and shows 4 results
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(4, listing.size());
         }
@@ -247,7 +247,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.REMOTE_POLL_BATCH_SIZE, "2");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
         }
@@ -263,7 +263,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.FILE_FILTER_REGEX, fileFilterRegex);
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -282,7 +282,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.PATH_FILTER_REGEX, pathFilterRegex);
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -306,30 +306,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         properties.put(SFTPTransfer.RECURSIVE_SEARCH, "true");
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
-            transfer.getListing();
-        }
-    }
-
-    @Test
-    public void testGetInputStream() throws IOException {
-        final String filename = "./" + DIR_2 + "/" + FILE_1;
-        final Map<PropertyDescriptor, String> properties = createBaseProperties();
-
-        try(final SFTPTransfer transfer = createSFTPTransfer(properties);
-            final InputStream in = transfer.getInputStream(filename)) {
-            final String content = IOUtils.toString(in, StandardCharsets.UTF_8);
-            assertEquals("dir2 file1", content);
-        }
-    }
-
-    @Test(expected = FileNotFoundException.class)
-    public void testGetInputStreamWhenFileDoesNotExist() throws IOException {
-        final String filename = "./" + DIR_2 + "/DOES-NOT-EXIST";
-        final Map<PropertyDescriptor, String> properties = createBaseProperties();
-
-        try(final SFTPTransfer transfer = createSFTPTransfer(properties);
-            final InputStream in = transfer.getInputStream(filename)) {
-            IOUtils.toString(in, StandardCharsets.UTF_8);
+            transfer.getListing(true);
         }
     }
 
@@ -340,7 +317,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory has two files
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -350,7 +327,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             }
 
             // verify there are now zero files
-            final List<FileInfo> listingAfterDelete = transfer.getListing();
+            final List<FileInfo> listingAfterDelete = transfer.getListing(true);
             assertNotNull(listingAfterDelete);
             assertEquals(0, listingAfterDelete.size());
         }
@@ -363,7 +340,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory has two files
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -375,7 +352,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             }
 
             // verify there are now zero files
-            final List<FileInfo> listingAfterDelete = transfer.getListing();
+            final List<FileInfo> listingAfterDelete = transfer.getListing(true);
             assertNotNull(listingAfterDelete);
             assertEquals(0, listingAfterDelete.size());
         }
@@ -397,7 +374,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
 
@@ -405,7 +382,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
             // verify the directory no longer exists
             try {
-                transfer.getListing();
+                transfer.getListing(true);
                 Assert.fail("Should have thrown exception");
             } catch (FileNotFoundException e) {
                 // nothing to do, expected
@@ -431,7 +408,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
             try {
-                transfer.getListing();
+                transfer.getListing(true);
                 Assert.fail("Should have failed");
             } catch (FileNotFoundException e) {
                 // Nothing to do, expected
@@ -441,7 +418,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             transfer.ensureDirectoryExists(null, new File(absolutePath));
 
             // verify the directory now exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
         }
@@ -456,7 +433,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
             try {
-                transfer.getListing();
+                transfer.getListing(true);
                 Assert.fail("Should have failed");
             } catch (FileNotFoundException e) {
                 // Nothing to do, expected
@@ -466,7 +443,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             transfer.ensureDirectoryExists(null, new File(absolutePath));
 
             // verify the directory now exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
         }
@@ -479,7 +456,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory already exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -498,7 +475,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
             try {
-                transfer.getListing();
+                transfer.getListing(true);
                 Assert.fail("Should have failed");
             } catch (FileNotFoundException e) {
                 // Nothing to do, expected
@@ -508,7 +485,7 @@ public class ITestSFTPTransferWithSSHTestServer {
             transfer.ensureDirectoryExists(null, new File(absolutePath));
 
             // verify the directory now exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(0, listing.size());
         }
@@ -522,7 +499,7 @@ public class ITestSFTPTransferWithSSHTestServer {
 
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory already exists
-            final List<FileInfo> listing = transfer.getListing();
+            final List<FileInfo> listing = transfer.getListing(true);
             assertNotNull(listing);
             assertEquals(2, listing.size());
 
@@ -542,7 +519,7 @@ public class ITestSFTPTransferWithSSHTestServer {
         try(final SFTPTransfer transfer = createSFTPTransfer(properties)) {
             // verify the directory does not exist
             try {
-                transfer.getListing();
+                transfer.getListing(true);
                 Assert.fail("Should have failed");
             } catch (FileNotFoundException e) {
                 // Nothing to do, expected

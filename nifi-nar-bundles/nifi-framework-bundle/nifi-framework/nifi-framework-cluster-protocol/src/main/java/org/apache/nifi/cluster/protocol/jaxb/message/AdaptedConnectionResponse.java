@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
-import java.util.List;
-
-import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.cluster.protocol.ComponentRevision;
+import org.apache.nifi.cluster.protocol.ComponentRevisionSnapshot;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.util.List;
 
 /**
  */
@@ -35,7 +34,7 @@ public class AdaptedConnectionResponse {
     private int tryLaterSeconds;
     private String instanceId;
     private List<NodeConnectionStatus> nodeStatuses;
-    private List<ComponentRevision> componentRevisions;
+    private ComponentRevisionSnapshot componentRevisions;
 
     public AdaptedConnectionResponse() {
     }
@@ -94,11 +93,11 @@ public class AdaptedConnectionResponse {
         return this.nodeStatuses;
     }
 
-    public List<ComponentRevision> getComponentRevisions() {
+    public ComponentRevisionSnapshot getComponentRevisions() {
         return componentRevisions;
     }
 
-    public void setComponentRevisions(List<ComponentRevision> componentRevisions) {
+    public void setComponentRevisions(ComponentRevisionSnapshot componentRevisions) {
         this.componentRevisions = componentRevisions;
     }
 }

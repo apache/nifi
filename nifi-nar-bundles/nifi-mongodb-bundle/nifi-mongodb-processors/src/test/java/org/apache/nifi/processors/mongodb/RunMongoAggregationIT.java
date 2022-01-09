@@ -29,14 +29,15 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,7 @@ public class RunMongoAggregationIT {
     private Map<String, Integer> mappings;
     private Calendar now = Calendar.getInstance();
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(RunMongoAggregation.class);
         runner.setVariable("uri", MONGO_URI);
@@ -79,7 +80,7 @@ public class RunMongoAggregationIT {
         }
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         runner = null;
         mongoClient.getDatabase(DB_NAME).drop();
@@ -119,8 +120,8 @@ public class RunMongoAggregationIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
         for (MockFlowFile mff : flowFiles) {
             String val = mff.getAttribute(AGG_ATTR);
-            Assert.assertNotNull("Missing query attribute", val);
-            Assert.assertEquals("Value was wrong", val, queryInput);
+            Assertions.assertNotNull("Missing query attribute", val);
+            Assertions.assertEquals(val, queryInput, "Value was wrong");
         }
     }
 
@@ -181,7 +182,7 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<String>> read = mapper.readValue(raw, Map.class);
-            Assert.assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
+            Assertions.assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
         }
 
         runner.clearTransferState();
@@ -194,7 +195,7 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
-            Assert.assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
+            Assertions.assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
         }
     }
 
@@ -206,12 +207,12 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map read = mapper.readValue(raw, Map.class);
-            Assert.assertTrue("Value was not found", mappings.containsKey(read.get("_id")));
+            Assertions.assertTrue(mappings.containsKey(read.get("_id")), "Value was not found");
 
             String queryAttr = mockFlowFile.getAttribute(AGG_ATTR);
-            Assert.assertNotNull("Query attribute was null.", queryAttr);
-            Assert.assertTrue("Missing $project", queryAttr.contains("$project"));
-            Assert.assertTrue("Missing $group", queryAttr.contains("$group"));
+            Assertions.assertNotNull("Query attribute was null.", queryAttr);
+            Assertions.assertTrue(queryAttr.contains("$project"), "Missing $project");
+            Assertions.assertTrue(queryAttr.contains("$group"), "Missing $group");
         }
     }
 
@@ -235,5 +236,63 @@ public class RunMongoAggregationIT {
         runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
+    }
+
+    @Test
+    public void testExtendedJsonSupport() throws Exception {
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        //Let's put this a week from now to make sure that we're not getting too close to
+        //the creation date
+        Date nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000));
+
+        final String queryInput = "[\n" +
+            "  {\n" +
+            "    \"$match\": {\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + simpleDateFormat.format(nowish) + "\" } }\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"$group\": {\n" +
+            "      \"_id\": \"$val\",\n" +
+            "      \"doc_count\": {\n" +
+            "        \"$sum\": 1\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "]\n";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
+    }
+
+    @Test
+    public void testEmptyResponse() throws Exception {
+        final String queryInput = "[\n" +
+                "  {\n" +
+                "    \"$match\": {\n" +
+                "      \"val\": \"no_exists\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"$group\": {\n" +
+                "      \"_id\": \"null\",\n" +
+                "      \"doc_count\": {\n" +
+                "        \"$sum\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "]";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 1);
+        runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 0);
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 1);
     }
 }

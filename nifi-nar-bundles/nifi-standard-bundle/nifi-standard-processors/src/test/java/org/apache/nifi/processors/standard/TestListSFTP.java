@@ -14,74 +14,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.processors.standard;
 
-import com.github.stefanbirkner.fakesftpserver.rule.FakeSftpServerRule;
-
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
+import org.apache.nifi.processors.standard.util.SSHTestServer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Rule;
-import java.security.SecureRandom;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestListSFTP {
-    @Rule
-    public final FakeSftpServerRule sftpServer = new FakeSftpServerRule();
-    int port;
+    private static final String REMOTE_DIRECTORY = "/";
 
-    final String username = "nifi-sftp-user";
-    final String password = "Test test test chocolate";
+    private static final byte[] FILE_CONTENTS = String.class.getName().getBytes(StandardCharsets.UTF_8);
+
+    private TestRunner runner;
+
+    private SSHTestServer sshServer;
+
+    private String tempFileName;
 
     @Before
     public void setUp() throws Exception {
-        sftpServer.addUser(username, password);
-        port = sftpServer.getPort();
+        sshServer = new SSHTestServer();
+        sshServer.startServer();
 
+        writeTempFile();
 
-        sftpServer.putFile("/directory/smallfile.txt", "byte", StandardCharsets.UTF_8);
+        runner = TestRunners.newTestRunner(ListSFTP.class);
+        runner.setProperty(ListSFTP.HOSTNAME, sshServer.getHost());
+        runner.setProperty(ListSFTP.USERNAME, sshServer.getUsername());
+        runner.setProperty(SFTPTransfer.PASSWORD, sshServer.getPassword());
+        runner.setProperty(FTPTransfer.PORT, Integer.toString(sshServer.getSSHPort()));
+        runner.setProperty(ListSFTP.REMOTE_PATH, REMOTE_DIRECTORY);
+        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
 
-        sftpServer.putFile("/directory/file.txt", "a bit more content in this file", StandardCharsets.UTF_8);
-
-        byte[] bytes = new byte[120];
-        SecureRandom.getInstanceStrong().nextBytes(bytes);
-
-        sftpServer.putFile("/directory/file.bin", bytes);
+        runner.assertValid();
+        assertVerificationSuccess();
     }
 
     @After
     public void tearDown() throws Exception {
-        sftpServer.deleteAllFilesAndDirectories();
+        sshServer.stopServer();
     }
 
     @Test
-    public void basicFileList() throws InterruptedException {
-        TestRunner runner = TestRunners.newTestRunner(ListSFTP.class);
-        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
-        runner.setProperty(ListSFTP.USERNAME, username);
-        runner.setProperty(SFTPTransfer.PASSWORD, password);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
-        runner.setProperty(ListSFTP.REMOTE_PATH, "/directory/");
-
-        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
-        runner.assertValid();
-
-        // Ensure wait for enough lag time.
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
-
+    public void testRunFileFound() {
         runner.run();
 
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
-
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
         runner.assertAllFlowFilesContainAttribute("sftp.remote.host");
         runner.assertAllFlowFilesContainAttribute("sftp.remote.port");
         runner.assertAllFlowFilesContainAttribute("sftp.listing.user");
@@ -93,34 +92,34 @@ public class TestListSFTP {
         runner.assertAllFlowFilesContainAttribute( "filename");
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
-        retrievedFile.assertAttributeEquals("sftp.listing.user", username);
+        retrievedFile.assertAttributeEquals("sftp.listing.user", sshServer.getUsername());
+        retrievedFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), tempFileName);
     }
 
-
     @Test
-    public void sizeFilteredFileList() throws InterruptedException {
-        TestRunner runner = TestRunners.newTestRunner(ListSFTP.class);
-        runner.setProperty(ListSFTP.HOSTNAME, "localhost");
-        runner.setProperty(ListSFTP.USERNAME, username);
-        runner.setProperty(SFTPTransfer.PASSWORD, password);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(port));
-        runner.setProperty(ListSFTP.REMOTE_PATH, "/directory/");
-        runner.setProperty(ListFile.MIN_SIZE, "8B");
-        runner.setProperty(ListFile.MAX_SIZE, "100B");
-
-
-        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
-        runner.assertValid();
-
-        // Ensure wait for enough lag time.
-        Thread.sleep(AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS) * 2);
+    public void testRunFileNotFoundMinSizeFiltered() {
+        runner.setProperty(ListFile.MIN_SIZE, "1KB");
 
         runner.run();
 
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 0);
+    }
 
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).get(0);
-        //the only file between the limits
-        retrievedFile.assertAttributeEquals("filename", "file.txt");
+    private void assertVerificationSuccess() {
+        final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
+                .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
+        assertEquals(1, results.size());
+        final ConfigVerificationResult result = results.get(0);
+        assertEquals(Outcome.SUCCESSFUL, result.getOutcome());
+    }
+
+    private void writeTempFile() {
+        final File file = new File(sshServer.getVirtualFileSystemPath(), String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID()));
+        try {
+            Files.write(file.toPath(), FILE_CONTENTS);
+            tempFileName = file.getName();
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

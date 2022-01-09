@@ -17,4 +17,6 @@
     <requestHandler name="/select" class="solr.SearchHandler" />
     <requestHandler name="/update" class="solr.UpdateRequestHandler" />
 
+   <schemaFactory class="ClassicIndexSchemaFactory" />
+
 </config>

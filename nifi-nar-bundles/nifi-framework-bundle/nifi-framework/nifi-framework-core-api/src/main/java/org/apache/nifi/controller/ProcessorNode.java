@@ -24,8 +24,10 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -73,12 +75,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract Requirement getInputRequirement();
 
-    public abstract List<ActiveThreadInfo> getActiveThreads();
+    public abstract List<ActiveThreadInfo> getActiveThreads(ThreadDetails threadDetails);
 
     /**
      * Returns the number of threads that are still 'active' in this Processor but have been terminated
      * via {@link #terminate()}. To understand more about these threads, such as their stack traces and
-     * how long they have been active, one can use {@link #getActiveThreads()} and then filter the results
+     * how long they have been active, one can use {@link #getActiveThreads(ThreadDetails)} and then filter the results
      * to include only those {@link ActiveThreadInfo} objects for which the thread is terminated. For example:
      * {@code getActiveThreads().stream().filter(ActiveThreadInfo::isTerminated).collect(Collectors.toList());}
      *
@@ -137,6 +139,14 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 
+    public void verifyCanPerformVerification() {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot perform verification because the Processor is not stopped");
+        }
+    }
+
+    public abstract List<ConfigVerificationResult> verifyConfiguration(ProcessContext processContext, ComponentLog logger, Map<String, String> attributes, ExtensionManager extensionManager);
+
     public abstract void verifyCanTerminate();
 
     /**
@@ -164,7 +174,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * states such as STOPPING and STARTING.
      *
      * @return the physical state of this processor [DISABLED, STOPPED, RUNNING,
-     *         STARTIING, STOPIING]
+     *         STARTING, STOPPING]
      */
     public ScheduledState getPhysicalScheduledState() {
         return this.scheduledState.get();
@@ -198,6 +208,30 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract void start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
                                SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
+
+    /**
+     * Will run the {@link Processor} represented by this
+     * {@link ProcessorNode} once. This typically means invoking its
+     * operation that is annotated with @OnScheduled and then executing a
+     * callback provided by the {@link ProcessScheduler} to which typically
+     * initiates
+     * {@link Processor#onTrigger(ProcessContext, org.apache.nifi.processor.ProcessSessionFactory)}
+     * cycle and schedules the stopping of the processor right away.
+     * @param scheduler
+     *            implementation of {@link ScheduledExecutorService} used to
+     *            initiate processor <i>start</i> task
+     * @param administrativeYieldMillis
+     *            the amount of milliseconds to wait for administrative yield
+     * @param timeoutMillis the number of milliseconds to wait after triggering the Processor's @OnScheduled methods before timing out and considering
+* the startup a failure. This will result in the thread being interrupted and trying again.
+     * @param processContextFactory
+*            a factory for creating instances of {@link ProcessContext}
+     * @param schedulingAgentCallback
+*            the callback provided by the {@link ProcessScheduler} to
+*            execute upon successful start of the Processor
+     */
+    public abstract void runOnce(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
+                                 SchedulingAgentCallback schedulingAgentCallback);
 
     /**
      * Will stop the {@link Processor} represented by this {@link ProcessorNode}.
@@ -256,4 +290,11 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @return the desired state for this Processor
      */
     public abstract ScheduledState getDesiredState();
+
+    /**
+     * This method will be called once the processor's configuration has been restored (on startup, reload, e.g.)
+     *
+     * @param context The ProcessContext associated with the Processor configuration
+     */
+    public abstract void onConfigurationRestored(ProcessContext context);
 }

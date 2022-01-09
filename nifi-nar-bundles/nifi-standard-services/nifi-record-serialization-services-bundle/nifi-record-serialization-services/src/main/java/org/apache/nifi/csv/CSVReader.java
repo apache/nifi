@@ -52,8 +52,8 @@ import java.util.Map;
 
 @Tags({"csv", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses CSV-formatted data, returning each row in the CSV file as a separate record. "
-    + "This reader assumes that the first line in the content is the column names and all subsequent lines are "
-    + "the values. See Controller Service's Usage for further documentation.")
+    + "This reader allows for inferring a schema based on the first line of the CSV, if a 'header line' is present, or providing an explicit schema "
+    + "for interpreting the values. See Controller Service's Usage for further documentation.")
 public class CSVReader extends SchemaRegistryService implements RecordReaderFactory {
 
     private static final AllowableValue HEADER_DERIVED = new AllowableValue("csv-header-derived", "Use String Fields From Header",
@@ -101,6 +101,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
         properties.add(CSVUtils.CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
+        properties.add(CSVUtils.RECORD_SEPARATOR);
         properties.add(CSVUtils.FIRST_LINE_IS_HEADER);
         properties.add(CSVUtils.IGNORE_CSV_HEADER);
         properties.add(CSVUtils.QUOTE_CHAR);
@@ -109,6 +110,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.NULL_STRING);
         properties.add(CSVUtils.TRIM_FIELDS);
         properties.add(CSVUtils.CHARSET);
+        properties.add(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES);
         return properties;
     }
 
@@ -145,17 +147,17 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
 
-        CSVFormat csvFormat;
+        final CSVFormat format;
         if (this.csvFormat != null) {
-            csvFormat = this.csvFormat;
+            format = this.csvFormat;
         } else {
-            csvFormat = CSVUtils.createCSVFormat(context, variables);
+            format = CSVUtils.createCSVFormat(context, variables);
         }
 
-        if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
-        } else if(JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        if (APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
+            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        } else if (JACKSON_CSV.getValue().equals(csvParser)) {
+            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
         } else {
             throw new IOException("Parser not supported");
         }

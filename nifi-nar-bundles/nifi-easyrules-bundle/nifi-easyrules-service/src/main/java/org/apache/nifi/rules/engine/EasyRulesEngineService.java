@@ -19,38 +19,17 @@ package org.apache.nifi.rules.engine;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
-import org.apache.nifi.rules.ActionHandler;
-import org.apache.nifi.rules.Rule;
-import org.apache.nifi.rules.RulesFactory;
-import org.apache.nifi.rules.RulesMVELCondition;
-import org.apache.nifi.rules.RulesSPELCondition;
-import org.apache.nifi.util.StringUtils;
-import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
 import org.jeasy.rules.api.RuleListener;
-import org.jeasy.rules.api.Rules;
-import org.jeasy.rules.core.DefaultRulesEngine;
-import org.jeasy.rules.core.RuleBuilder;
+
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Implementation of RulesEngineService interface
@@ -60,124 +39,20 @@ import java.util.Set;
 @CapabilityDescription("Defines and execute the rules stored in NiFi or EasyRules file formats for a given set of facts. Supports " +
         "rules stored as JSON or YAML file types.")
 @Tags({ "rules","rules-engine","engine","actions","facts" })
-public class EasyRulesEngineService  extends AbstractControllerService implements RulesEngineService {
+public class EasyRulesEngineService  extends EasyRulesEngineProvider implements RulesEngineService {
 
-    static final AllowableValue YAML = new AllowableValue("YAML", "YAML", "YAML file configuration type.");
-    static final AllowableValue JSON = new AllowableValue("JSON", "JSON", "JSON file configuration type.");
-    static final AllowableValue NIFI = new AllowableValue("NIFI", "NIFI", "NiFi rules formatted file.");
-    static final AllowableValue MVEL = new AllowableValue("MVEL", "Easy Rules MVEL", "Easy Rules File format using MVFLEX Expression Language");
-    static final AllowableValue SPEL = new AllowableValue("SPEL", "Easy Rules SpEL", "Easy Rules File format using Spring Expression Language");
-
-    static final PropertyDescriptor RULES_FILE_PATH = new PropertyDescriptor.Builder()
-            .name("rules-file-path")
-            .displayName("Rules File Path")
-            .description("Path to location of rules file. Only one of Rules File or Rules Body may be used")
-            .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor RULES_BODY = new PropertyDescriptor.Builder()
-            .name("rules-body")
-            .displayName("Rules Body")
-            .description("Body of rules file to execute. Only one of Rules File or Rules Body may be used")
-            .required(false)
-            .addValidator(Validator.VALID)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    static final PropertyDescriptor RULES_FILE_TYPE = new PropertyDescriptor.Builder()
-            .name("rules-file-type")
-            .displayName("Rules File Type")
-            .description("File or Body type for rules definition. Supported types are YAML and JSON")
-            .required(true)
-            .allowableValues(JSON,YAML)
-            .defaultValue(JSON.getValue())
-            .build();
-
-    static final PropertyDescriptor RULES_FILE_FORMAT = new PropertyDescriptor.Builder()
-            .name("rules-file-format")
-            .displayName("Rules File Format")
-            .description("Format for rules. Supported formats are NiFi Rules, Easy Rules files with MVEL Expression Language" +
-                    " and Easy Rules files with Spring Expression Language.")
-            .required(true)
-            .allowableValues(NIFI,MVEL,SPEL)
-            .defaultValue(NIFI.getValue())
-            .build();
-
-    static final PropertyDescriptor IGNORE_CONDITION_ERRORS = new PropertyDescriptor.Builder()
-            .name("rules-ignore-condition-errors")
-            .displayName("Ignore Condition Errors")
-            .description("When set to true, rules engine will ignore errors for any rule that encounters issues " +
-                    "when compiling rule conditions (including syntax errors and/or missing facts). Rule will simply return as false " +
-                    "and engine will continue with execution.")
-            .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    protected List<PropertyDescriptor> properties;
-    protected volatile List<Rule> rules;
-    protected volatile String rulesFileFormat;
-    private boolean ignoreConditionErrors;
+    private volatile RulesEngine rulesEngine;
 
     @Override
-    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
-        super.init(config);
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(RULES_FILE_TYPE);
-        properties.add(RULES_FILE_PATH);
-        properties.add(RULES_BODY);
-        properties.add(RULES_FILE_FORMAT);
-        properties.add(IGNORE_CONDITION_ERRORS);
-        this.properties = Collections.unmodifiableList(properties);
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
-    }
-
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) throws InitializationException {
-        final String rulesFile = context.getProperty(RULES_FILE_PATH).getValue();
-        final String rulesBody = context.getProperty(RULES_BODY).getValue();
-        final String rulesFileType = context.getProperty(RULES_FILE_TYPE).getValue();
-        rulesFileFormat = context.getProperty(RULES_FILE_FORMAT).getValue();
-        ignoreConditionErrors = context.getProperty(IGNORE_CONDITION_ERRORS).asBoolean();
-        try{
-            if(StringUtils.isEmpty(rulesFile)){
-                rules = RulesFactory.createRulesFromString(rulesBody, rulesFileType, rulesFileFormat);
-            }else{
-                rules = RulesFactory.createRulesFromFile(rulesFile, rulesFileType, rulesFileFormat);
-            }
-        } catch (Exception fex){
-            throw new InitializationException(fex);
-        }
+        super.onEnabled(context);
+        EasyRulesEngine easyRulesEngine = (EasyRulesEngine) getRulesEngine();
+        List<RuleListener> ruleListeners = new ArrayList<>();
+        ruleListeners.add(new EasyRulesListener(getLogger()));
+        easyRulesEngine.setRuleListeners(ruleListeners);
+        rulesEngine = easyRulesEngine;
     }
-
-    /**
-     * Custom validation for ensuring exactly one of Script File or Script Body is populated
-     *
-     * @param validationContext provides a mechanism for obtaining externally
-     *                          managed values, such as property values and supplies convenience methods
-     *                          for operating on those values
-     * @return A collection of validation results
-     */
-    @Override
-    public Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Set<ValidationResult> results = new HashSet<>();
-
-        // Verify that exactly one of "script file" or "script body" is set
-        Map<PropertyDescriptor, String> propertyMap = validationContext.getProperties();
-        if (StringUtils.isEmpty(propertyMap.get(RULES_FILE_PATH)) == StringUtils.isEmpty(propertyMap.get(RULES_BODY))) {
-            results.add(new ValidationResult.Builder().subject("Rules Body or Rules File").valid(false).explanation(
-                    "exactly one of Rules File or Rules Body must be set").build());
-        }
-
-        return results;
-    }
-
 
     /**
      * Return the list of actions what should be executed for a given set of facts
@@ -186,43 +61,17 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
      */
     @Override
     public List<Action> fireRules(Map<String, Object> facts) {
-        final List<Action> actions = new ArrayList<>();
-        if (rules == null || facts == null || facts.isEmpty()) {
-            return null;
-        }else {
-            org.jeasy.rules.api.Rules easyRules = convertToEasyRules(rules, (action, eventFacts) ->
-                    actions.add(action));
-            Facts easyFacts = new Facts();
-            facts.forEach(easyFacts::put);
-            DefaultRulesEngine rulesEngine = new DefaultRulesEngine();
-            rulesEngine.registerRuleListener(new EasyRulesListener());
-            rulesEngine.fire(easyRules, easyFacts);
-            return actions;
+        return rulesEngine.fireRules(facts);
+    }
+
+    private static class EasyRulesListener implements RuleListener {
+
+        private ComponentLog logger;
+
+        EasyRulesListener(ComponentLog logger) {
+            this.logger = logger;
         }
-    }
 
-
-    protected Rules convertToEasyRules(List<Rule> rules, ActionHandler actionHandler) {
-        final Rules easyRules = new Rules();
-        rules.forEach(rule -> {
-            RuleBuilder ruleBuilder = new RuleBuilder();
-            Condition condition = rulesFileFormat.equalsIgnoreCase(SPEL.getValue())
-                                 ? new RulesSPELCondition(rule.getCondition(), ignoreConditionErrors): new RulesMVELCondition(rule.getCondition(), ignoreConditionErrors);
-            ruleBuilder.name(rule.getName())
-                    .description(rule.getDescription())
-                    .priority(rule.getPriority())
-                    .when(condition);
-            for (Action action : rule.getActions()) {
-                ruleBuilder.then(facts -> {
-                    actionHandler.execute(action, facts.asMap());
-                });
-            }
-            easyRules.register(ruleBuilder.build());
-        });
-        return easyRules;
-    }
-
-    private class EasyRulesListener implements RuleListener {
         @Override
         public boolean beforeEvaluate(org.jeasy.rules.api.Rule rule, Facts facts) {
             return true;
@@ -232,7 +81,6 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
         public void afterEvaluate(org.jeasy.rules.api.Rule rule, Facts facts, boolean b) {
 
         }
-
         @Override
         public void beforeExecute(org.jeasy.rules.api.Rule rule, Facts facts) {
 
@@ -240,13 +88,14 @@ public class EasyRulesEngineService  extends AbstractControllerService implement
 
         @Override
         public void onSuccess(org.jeasy.rules.api.Rule rule, Facts facts) {
-            getLogger().debug("Rules was successfully processed for: {}",new Object[]{rule.getName()});
+            logger.debug("Rules was successfully processed for: {}",new Object[]{rule.getName()});
         }
 
         @Override
         public void onFailure(org.jeasy.rules.api.Rule rule, Facts facts, Exception e) {
-            getLogger().warn("Rule execution failed for: {}", new Object[]{rule.getName()}, e);
+            logger.warn("Rule execution failed for: {}", new Object[]{rule.getName()}, e);
         }
     }
+
 
 }

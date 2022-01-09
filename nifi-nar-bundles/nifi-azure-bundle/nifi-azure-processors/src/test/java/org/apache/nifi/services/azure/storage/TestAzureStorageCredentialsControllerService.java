@@ -49,6 +49,21 @@ public class TestAzureStorageCredentialsControllerService {
     }
 
     @Test
+    public void testNotValidWithEmptyEndpointSuffix() {
+        configureAccountName();
+        configureAccountKey();
+        runner.setProperty(credentialsService, AzureStorageUtils.ENDPOINT_SUFFIX, "");
+        runner.assertNotValid(credentialsService);
+    }
+    @Test
+    public void testNotValidWithWhitespaceEndpointSuffix() {
+        configureAccountName();
+        configureAccountKey();
+        runner.setProperty(credentialsService, AzureStorageUtils.ENDPOINT_SUFFIX, " ");
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
     public void testValidWithAccountNameAndSasToken() {
         configureAccountName();
         configureSasToken();

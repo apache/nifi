@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2020 The Apache Software Foundation
+Copyright 2014-2021 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -204,11 +204,6 @@ The following binary components are provided under the Apache Software License v
       Apache Jakarta HttpClient
       Copyright 1999-2007 The Apache Software Foundation
 
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2016 The Apache Software Foundation
-
     (ASLv2) Apache Commons VFS
       The following NOTICE information applies:
         Apache Commons VFS
@@ -345,13 +340,13 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Framework
     The following NOTICE information applies:
-      Spring Framework 4.x,5.x.RELEASE
-      Copyright (c) 2002-2015 Pivotal, Inc.
+      Spring Framework 5
+      Copyright (c) 2002-2021 Pivotal, Inc.
 
   (ASLv2) Spring Security
     The following NOTICE information applies:
-          Spring Framework 4.0.3.RELEASE
-          Copyright (c) 2002-2015 Pivotal, Inc.
+          Spring Security 5
+          Copyright (c) 2002-2021 Pivotal, Inc.
 
   (ASLv2) Apache Flume
     The following NOTICE information applies:
@@ -426,6 +421,9 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache MINA Core
       Copyright 2004-2011 Apache MINA Project
+
+      Apache MINA Core 2.0.16
+      Copyright 2004-2016 Apache MINA Project
 
   (ASLv2) opencsv (net.sf.opencsv:opencsv:2.3)
 
@@ -918,7 +916,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Google Cloud Client Library for Java
     The following NOTICE information applies:
       Google Cloud Client Library for Java
-      Copyright 2016 Google Inc. All Rights Reserved.
+      Copyright 2016-2021 Google Inc. All Rights Reserved.
 
   (ASLv2) Guava
     The following NOTICE information applies:
@@ -978,6 +976,11 @@ The following binary components are provided under the Apache Software License v
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
 
+  (ASLv2) Geohash Java
+    The following NOTICE information applies:
+      Geohash Java
+      Copyright 2016 Silvio Heuberger and contributors
+
     (ASLv2) Apache XMLBeans
       The following NOTICE information applies:
         Portions of this software were originally based on the following:
@@ -1009,6 +1012,13 @@ The following binary components are provided under the Apache Software License v
 
       Since product implements StAX API, it has dependencies to StAX API
       classes.
+
+  (ASLv2) AWS SDK for Java 2.0
+      The following NOTICE information applies:
+        Copyright 2010-2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+        This product includes software developed by
+        Amazon Technologies, Inc (https://www.amazon.com/).
 
   (ASLv2) Amazon Web Services SDK
     The following NOTICE information applies:
@@ -1099,6 +1109,11 @@ The following binary components are provided under the Apache Software License v
       The following NOTICE information applies:
         Couchbase Java SDK
         Copyright 2014 Couchbase, Inc.
+
+    (ASLv2) Hazelcast
+      The following NOTICE information applies:
+        Core Hazelcast Module 4.0.1
+        Copyright (c) 2008-2020, Hazelcast, Inc. All Rights Reserved.
 
     (ASLv2) RxJava
       The following NOTICE information applies:
@@ -1511,14 +1526,6 @@ The following binary components are provided under the Apache Software License v
   	  * HOMEPAGE:
   	    * https://github.com/google/caliper
 
-  	This product optionally depends on 'Apache Commons Logging', a logging
-  	framework, which can be obtained at:
-
-  	  * LICENSE:
-  	    * license/LICENSE.commons-logging.txt (Apache License 2.0)
-  	  * HOMEPAGE:
-  	    * http://commons.apache.org/logging/
-
   	This product optionally depends on 'Apache Log4J', a logging framework, which
   	can be obtained at:
 
@@ -1823,7 +1830,7 @@ The following binary components are provided under the Apache Software License v
       Copyright 2008-2018 The Apache Software Foundation
 
   (ASLv2) sshj
-    The following NOTICE information applie:
+    The following NOTICE information applies:
 
       sshj - SSHv2 library for Java
       Copyright 2010-2012 sshj contributors
@@ -1833,6 +1840,124 @@ The following binary components are provided under the Apache Software License v
 
       - Apache MINA SSHD
       - Apache Commons-Net
+
+  (ASLv2) Nimbus Language Tags
+      The following NOTICE information applies:
+        Nimbus Language Tags
+        Copyright 2012-2016, Connect2id Ltd.
+
+  (ASLv2) Nimbus OAuth 2.0 SDK with OpenID Connect extensions
+    The following NOTICE information applies:
+      Nimbus OAuth 2.0 SDK with OpenID Connect extensions
+      Copyright 2012-2020, Connect2id Ltd and contributors.
+
+  (ASLv2) Okio
+    The following NOTICE information applies:
+      Okio
+      Copyright 2013 Square, Inc.
+
+  (ASLv2) Apache Qpid Proton-J
+    The following NOTICE information applies:
+      Apache Qpid Proton-J
+      Copyright 2012-2020 The Apache Software Foundation
+
+  (ASLv2) Retrofit
+    The following NOTICE information applies:
+      Retrofit
+      Copyright 2013 Square, Inc.
+
+  (ASLv2) RxJava
+    The following NOTICE information applies:
+      RxJava
+      Copyright (c) 2016-present, RxJava Contributors.
+
+  (ASLv2) ASM Based Accessors Helper Used By JSON Smart (net.minidev:accessors-smart:jar:1.2 - http://www.minidev.net/)
+    The following NOTICE information applies:
+      ASM Based Accessors Helper Used By JSON Smart 1.2
+      Copyright 2017, Uriel Chemouni
+
+  (ASLv2) Adapter: RxJava (com.squareup.retrofit2:adapter-rxjava:jar:2.6.2)
+    The following NOTICE information applies:
+      Adapter: RxJava 2.6.2
+      Copyright 2019, Jake Wharton
+
+  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
+    The following NOTICE information applies:
+      BCrypt Password Hashing Function 0.9.0
+      Copyright 2018 Patrick Favre-Bulle
+
+  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
+    The following NOTICE information applies:
+      Bytes Utility Library 1.3.0
+      Copyright 2017 Patrick Favre-Bulle
+
+  (ASLv2) Converter: Jackson (com.squareup.retrofit2:converter-jackson:jar:2.5.0)
+    The following NOTICE information applies:
+      Converter: Jackson 2.5.0
+      Copyright 2018, Jake Wharton
+
+  (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt - https://connect2id.com/products/nimbus-jose-jwt)
+    The following NOTICE information applies:
+      Nimbus JOSE+JWT
+      Copyright 2021, Connect2id Ltd.
+
+  (ASLv2) OkHttp Logging Interceptor (com.squareup.okhttp3:logging-interceptor:jar:3.12.2)
+    The following NOTICE information applies:
+      OkHttp Logging Interceptor 3.12.2
+      Copyright 2019 Square, Inc.
+
+  (ASLv2) OkHttp (com.squareup.okhttp3:okhttp:jar:3.12.6)
+    The following NOTICE information applies:
+      OkHttp 3.12.6
+      Copyright 2019 Square, Inc.
+
+  (ASLv2) OkHttp URLConnection (com.squareup.okhttp3:okhttp-urlconnection:jar:3.12.2)
+    The following NOTICE information applies:
+      OkHttp 3.12.2
+      Copyright 2019 Square, Inc.
+
+  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:jar:6.1.1 - https://github.com/FasterXML/woodstox)
+    The following NOTICE information applies:
+      Woodstox Core 6.1.1
+      Copyright 2015, FasterXML, LLC
+
+  (ASLv2) Non Blocking Reactive Foundation For The JVM (io.projectreactor:reactor-core:jar:3.3.5.RELEASE - https://github.com/reactor/reactor-core)
+    The following NOTICE information applies:
+      Non Blocking Reactive Foundation For The JVM
+      Copyright 2020, Project Reactor
+
+  (ASLv2) Reactive Streams Netty Driver (io.projectreactor.netty:reactor-netty:jar:0.9.7.RELEASE - https://github.com/reactor/reactor-netty)
+    The following NOTICE information applies:
+       Reactive Streams Netty Driver
+       Copyright 2020, Project Reactor
+
+  (ALSv2) smbj
+    The following NOTICE information applies:
+      Copyright (C)2016 - SMBJ Contributors
+
+  (ASLv2) asn-one
+    The following NOTICE information applies:
+      Copyright 2016 Jeroen van Erp <jeroen@hierynomus.com>
+
+  (ASLv2) Apache Ftplet API
+    The following NOTICE information applies:
+      Apache Ftplet API 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
+
+  (ASLv2) Apache FtpServer Core
+    The following NOTICE information applies:
+      Apache FtpServer Core 1.1.1
+      Copyright 2003-2017 The Apache Software Foundation
+
+  (ASLv2) Zip4j
+    The following NOTICE information applies:
+      Zip4j 2
+      Copyright 2021 Srikanth Reddy Lingala
+
+  (ASLv2) QuestDB (org.questdb:core:core-4.2.1.jar - https://github.com/questdb/questdb)
+    The following NOTICE information applies:
+      Copyright (c) 2014-2019 Appsicle
+      Copyright (c) 2019-2020 QuestDB
 
 ************************
 Common Development and Distribution License 1.1
@@ -1894,7 +2019,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.0.1 - http://jax-rs-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
-
+    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (com.sun.mail:javax.mail:jar:1.6.1)
 
 ************************
 Common Development and Distribution License 1.0
@@ -1923,11 +2048,11 @@ Eclipse Public License 1.0
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
     (EPL 1.0) Model-Driven Health Tools ( org.openehealth.ipf.oht.mdht ) https://projects.eclipse.org/proposals/model-driven-health-tools
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.eclipse.org/aspectj/)
-    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.9.6 - http://www.eclipse.org/aspectj/)
+    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.9.6 - http://www.eclipse.org/aspectj/)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
-    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.3 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.6 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.6 - http://logback.qos.ch/)
     (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete:9.1.9.0 - http://jruby.org).
     (EPL 1.0) Eclipse Paho MQTT Client (org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.0 - https://github.com/eclipse/paho.mqtt.java)
     (EPL 1.0) Eclipse Link (org.eclipse.persistence:eclipselink:2.5.2 - http://www.eclipse.org/eclipselink/)
@@ -1936,13 +2061,46 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0) JaCoCo Java Code Coverage Library ( org.jacoco ) http://www.eclemma.org/jacoco
     (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
 
+************************
+Eclipse Public License 2.0
+************************
+
+The following binary components are provided under the Eclipse Public License 2.0.
+
+    (EPL 2.0) Jakarta Mail API (jakarta.mail:jakarta.mail-api:jar:2.0.1)
+    (EPL 2.0) Jakarta Mail (com.sun.mail:jakarta.mail:jar:2.0.1)
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:2.0.1)
+    (EDL 1.0) Jakarta Activation (com.sun.activation:jakarta.activation:jar:2.0.1)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+    (EDL 1.0) JAXB (JSR 222) Reference Implementation (org.glassfish.jaxb:jaxb-runtime:jar:2.3.5)
+    (EDL 1.0) Istack Common Utility Code Runtime (com.sun.istack:istack-commons-runtime:jar:3.0.12)
+    (EDL 1.0) TXW2 Runtime (org.glassfish.jaxb:txw2:jar:2.3.5)
+
+************************
+The MIT License
+************************
+
+   (MIT) Azure SDK for Java
+     The following NOTICE information applies:
+       Copyright 2021 Microsoft Corporation or its affiliates. All Rights Reserved.
+
+       This product includes software developed by
+       Microsoft Corporation (https://www.microsoft.com/).
+
 *****************
 Mozilla Public License v2.0
 *****************
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:10.6 - http://www.saxonica.com/)
     (MPL 2.0) Rhino (org.mozilla:rhino:jar:1.7R5 - https://developer.mozilla.org/en-US/docs/Mozilla/Projects/Rhino/Download_Rhino)
 
 *****************
@@ -1975,6 +2133,7 @@ The following binary components are provided to the 'Public Domain'.  See projec
 The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
 
     (CC0v1.0) JSR166e for Twitter (com.twitter:jsr166e:jar:1.1.0 - https://github.com/twitter/jsr166e)
+    (CC0v1.0) Reactive Streams (org.reactivestreams:reactive-streams:jar:1.0.3 - http://www.reactive-streams.org/)
 
 ******************
 SIL OFL 1.1

@@ -112,19 +112,21 @@ public class StandardNarLoader implements NarLoader {
             // Call the DocGenerator for the classes that were loaded from each Bundle
             for (final Bundle bundle : loadedBundles) {
                 final BundleCoordinate bundleCoordinate = bundle.getBundleDetails().getCoordinate();
-                final Set<Class> extensions = extensionManager.getTypes(bundleCoordinate);
-                if (extensions.isEmpty()) {
+                final Set<ExtensionDefinition> extensionDefinitions = extensionManager.getTypes(bundleCoordinate);
+                if (extensionDefinitions.isEmpty()) {
                     LOGGER.debug("No documentation to generate for {} because no extensions were found",
                             new Object[]{bundleCoordinate.getCoordinate()});
                 } else {
                     LOGGER.debug("Generating documentation for {} extensions in {}",
-                            new Object[]{extensions.size(), bundleCoordinate.getCoordinate()});
-                    DocGenerator.documentConfigurableComponent(extensions, docsWorkingDir, extensionManager);
+                            new Object[]{extensionDefinitions.size(), bundleCoordinate.getCoordinate()});
+                    DocGenerator.documentConfigurableComponent(extensionDefinitions, docsWorkingDir, extensionManager);
                 }
             }
 
             LOGGER.debug("Loading custom UIs for extensions...");
-            extensionUiLoader.loadExtensionUis(loadedBundles);
+            if(extensionUiLoader != null) {
+                extensionUiLoader.loadExtensionUis(loadedBundles);
+            }
         }
 
         LOGGER.info("Finished NAR loading process!");
@@ -159,7 +161,7 @@ public class StandardNarLoader implements NarLoader {
                 return null;
             }
 
-            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir);
+            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true);
             NarUnpacker.mapExtension(unpackedExtension, coordinate, docsWorkingDir, extensionMapping);
             return unpackedExtension;
 

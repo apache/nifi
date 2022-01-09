@@ -22,13 +22,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -38,32 +35,6 @@ import kafka.consumer.ConsumerIterator;
 import kafka.message.MessageAndMetadata;
 
 public class TestGetKafka {
-
-    @BeforeClass
-    public static void configureLogging() {
-        System.setProperty("org.slf4j.simpleLogger.log.kafka", "INFO");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.kafka", "INFO");
-        BasicConfigurator.configure();
-    }
-
-    @Test
-    @Ignore("Intended only for local tests to verify functionality.")
-    public void testIntegrationLocally() {
-        final TestRunner runner = TestRunners.newTestRunner(GetKafka.class);
-        runner.setProperty(GetKafka.ZOOKEEPER_CONNECTION_STRING, "192.168.0.101:2181");
-        runner.setProperty(GetKafka.TOPIC, "testX");
-        runner.setProperty(GetKafka.KAFKA_TIMEOUT, "3 secs");
-        runner.setProperty(GetKafka.ZOOKEEPER_TIMEOUT, "3 secs");
-
-        runner.run(20, false);
-
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetKafka.REL_SUCCESS);
-        for (final MockFlowFile flowFile : flowFiles) {
-            System.out.println(flowFile.getAttributes());
-            System.out.println(new String(flowFile.toByteArray()));
-            System.out.println();
-        }
-    }
 
     @Test
     public void testWithDelimiter() {

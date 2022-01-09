@@ -144,6 +144,55 @@ public class TestFieldTypeInference {
         runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
     }
 
+    @Test
+    public void testToDataTypeWithMultipleComplexRecord() {
+        // GIVEN
+        String fieldName1 = "fieldName1";
+        String fieldName2 = "fieldName2";
+        String fieldName3 = "fieldName3";
+
+        List<DataType> dataTypes = Arrays.asList(
+            RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                new RecordField(fieldName1, RecordFieldType.INT.getDataType()),
+                new RecordField(fieldName2, RecordFieldType.STRING.getDataType())
+            ))),
+            RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+                new RecordField(fieldName1, RecordFieldType.INT.getDataType()),
+                new RecordField(fieldName3, RecordFieldType.BOOLEAN.getDataType())
+            )))
+        );
+
+        DataType expected = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(Arrays.asList(
+            new RecordField(fieldName1, RecordFieldType.INT.getDataType()),
+            new RecordField(fieldName2, RecordFieldType.STRING.getDataType()),
+            new RecordField(fieldName3, RecordFieldType.BOOLEAN.getDataType())
+        )));
+
+        // WHEN
+        // THEN
+        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
+    }
+
+    @Test
+    public void testToDataTypeWhenDecimal() {
+        // GIVEN
+        List<DataType> dataTypes = Arrays.asList(
+                RecordFieldType.DECIMAL.getDecimalDataType(10, 1),
+                RecordFieldType.DECIMAL.getDecimalDataType(10, 3),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 3),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 5),
+                RecordFieldType.DECIMAL.getDecimalDataType(7, 7),
+                RecordFieldType.FLOAT.getDataType(),
+                RecordFieldType.DOUBLE.getDataType()
+        );
+
+        DataType expected = RecordFieldType.DECIMAL.getDecimalDataType(10, 7);
+
+        // WHEN
+        // THEN
+        runWithAllPermutations(this::testToDataTypeShouldReturnSingleType, dataTypes, expected);
+    }
+
     private SimpleRecordSchema createRecordSchema(String fieldName, DataType fieldType) {
         return new SimpleRecordSchema(Arrays.asList(
                 new RecordField(fieldName, fieldType)

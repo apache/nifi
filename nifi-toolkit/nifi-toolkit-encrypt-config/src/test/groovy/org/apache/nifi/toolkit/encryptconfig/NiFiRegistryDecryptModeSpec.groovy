@@ -61,7 +61,7 @@ class NiFiRegistryDecryptModeSpec extends Specification {
 
         setup:
         NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
-        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128, "nifi-registry.properties")
         File outRegistryProperties1 = generateTmpFile()
 
         when: "run with args: -k <key> -r <file>"
@@ -81,7 +81,7 @@ class NiFiRegistryDecryptModeSpec extends Specification {
 
         setup:
         NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
-        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_PASSWORD_256)
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_PASSWORD_256, "nifi-registry.properties")
         File outRegistryProperties1 = generateTmpFile()
 
         when: "run with args: -p <password> -r <file>"
@@ -99,7 +99,7 @@ class NiFiRegistryDecryptModeSpec extends Specification {
 
         setup:
         NiFiRegistryDecryptMode tool = new NiFiRegistryDecryptMode()
-        def inRegistryProperties = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128)
+        def inRegistryProperties = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_PROTECTED_KEY_128, "nifi-registry.properties")
         def inBootstrap = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_KEY_128)
         File outRegistryProperties = generateTmpFile()
 

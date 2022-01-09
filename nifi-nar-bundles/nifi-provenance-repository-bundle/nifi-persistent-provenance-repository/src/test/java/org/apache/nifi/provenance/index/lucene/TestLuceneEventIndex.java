@@ -35,17 +35,18 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchTerms;
+import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.ArrayListEventStore;
 import org.apache.nifi.provenance.store.EventStore;
 import org.apache.nifi.provenance.store.StorageResult;
 import org.apache.nifi.util.Tuple;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -61,26 +62,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@DisabledOnOs(OS.WINDOWS)
+@Timeout(value = 5)
 public class TestLuceneEventIndex {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
-    @Rule
-    public TestName testName = new TestName();
-
-    @BeforeClass
-    public static void setLogger() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
-    }
-
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
+    @BeforeEach
+    public void setup() {
+        idGenerator.set(0L);
     }
 
     @Test
@@ -107,9 +102,8 @@ public class TestLuceneEventIndex {
 
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testGetMinimumIdToReindex() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -132,9 +126,8 @@ public class TestLuceneEventIndex {
         assertTrue(id >= 30000L);
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetPlaceholdersForLineage() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -154,7 +147,7 @@ public class TestLuceneEventIndex {
         List<LineageNode> nodes = Collections.emptyList();
         while (nodes.size() < 3) {
             final ComputeLineageSubmission submission = index.submitLineageComputation(1L, user, EventAuthorizer.DENY_ALL);
-            assertTrue(submission.getResult().awaitCompletion(5, TimeUnit.SECONDS));
+            assertTrue(submission.getResult().awaitCompletion(15, TimeUnit.SECONDS));
 
             nodes = submission.getResult().getNodes();
             Thread.sleep(25L);
@@ -169,85 +162,8 @@ public class TestLuceneEventIndex {
         }
     }
 
-    @Test(timeout = 60000)
-    public void testUnauthorizedEventsGetPlaceholdersForExpandChildren() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
-        final RepositoryConfiguration repoConfig = createConfig(1);
-        repoConfig.setDesiredIndexSize(1L);
-        final IndexManager indexManager = new StandardIndexManager(repoConfig);
-
-        final ArrayListEventStore eventStore = new ArrayListEventStore();
-        final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 3, EventReporter.NO_OP);
-        index.initialize(eventStore);
-
-        final ProvenanceEventRecord firstEvent = createEvent("4444");
-
-        final Map<String, String> previousAttributes = new HashMap<>();
-        previousAttributes.put("uuid", "4444");
-        final Map<String, String> updatedAttributes = new HashMap<>();
-        updatedAttributes.put("updated", "true");
-        final ProvenanceEventRecord fork = new StandardProvenanceEventRecord.Builder()
-                .setEventType(ProvenanceEventType.FORK)
-                .setAttributes(previousAttributes, updatedAttributes)
-                .addChildFlowFile("1234")
-                .setComponentId("component-1")
-                .setComponentType("unit test")
-                .setEventId(idGenerator.getAndIncrement())
-                .setEventTime(System.currentTimeMillis())
-                .setFlowFileEntryDate(System.currentTimeMillis())
-                .setFlowFileUUID("4444")
-                .setLineageStartDate(System.currentTimeMillis())
-                .setCurrentContentClaim("container", "section", "unit-test-id", 0L, 1024L)
-                .build();
-
-        index.addEvents(eventStore.addEvent(firstEvent).getStorageLocations());
-        index.addEvents(eventStore.addEvent(fork).getStorageLocations());
-
-        for (int i = 0; i < 3; i++) {
-            final ProvenanceEventRecord event = createEvent("1234");
-            final StorageResult storageResult = eventStore.addEvent(event);
-            index.addEvents(storageResult.getStorageLocations());
-        }
-
-        final NiFiUser user = createUser();
-
-        final EventAuthorizer allowForkEvents = new EventAuthorizer() {
-            @Override
-            public boolean isAuthorized(ProvenanceEventRecord event) {
-                return event.getEventType() == ProvenanceEventType.FORK;
-            }
-
-            @Override
-            public void authorize(ProvenanceEventRecord event) throws AccessDeniedException {
-            }
-        };
-
-        List<LineageNode> nodes = Collections.emptyList();
-        while (nodes.size() < 5) {
-            final ComputeLineageSubmission submission = index.submitExpandChildren(1L, user, allowForkEvents);
-            assertTrue(submission.getResult().awaitCompletion(5, TimeUnit.SECONDS));
-
-            nodes = submission.getResult().getNodes();
-            Thread.sleep(25L);
-        }
-
-        assertEquals(5, nodes.size());
-
-        assertEquals(1L, nodes.stream().filter(n -> n.getNodeType() == LineageNodeType.FLOWFILE_NODE).count());
-        assertEquals(4L, nodes.stream().filter(n -> n.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE).count());
-
-        final Map<ProvenanceEventType, List<LineageNode>> eventMap = nodes.stream()
-                .filter(n -> n.getNodeType() == LineageNodeType.PROVENANCE_EVENT_NODE)
-                .collect(Collectors.groupingBy(n -> ((ProvenanceEventLineageNode) n).getEventType()));
-
-        assertEquals(2, eventMap.size());
-        assertEquals(1, eventMap.get(ProvenanceEventType.FORK).size());
-        assertEquals(3, eventMap.get(ProvenanceEventType.UNKNOWN).size());
-    }
-
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetPlaceholdersForFindParents() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -302,7 +218,7 @@ public class TestLuceneEventIndex {
         List<LineageNode> nodes = Collections.emptyList();
         while (nodes.size() < 2) {
             final ComputeLineageSubmission submission = index.submitExpandParents(1L, user, allowJoinEvents);
-            assertTrue(submission.getResult().awaitCompletion(5, TimeUnit.SECONDS));
+            assertTrue(submission.getResult().awaitCompletion(15, TimeUnit.SECONDS));
 
             nodes = submission.getResult().getNodes();
             Thread.sleep(25L);
@@ -321,9 +237,8 @@ public class TestLuceneEventIndex {
         assertEquals("4444", eventMap.get(ProvenanceEventType.UNKNOWN).get(0).getFlowFileUuid());
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testUnauthorizedEventsGetFilteredForQuery() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -354,7 +269,7 @@ public class TestLuceneEventIndex {
         List<ProvenanceEventRecord> events = Collections.emptyList();
         while (events.size() < 2) {
             final QuerySubmission submission = index.submitQuery(query, authorizer, "unit test");
-            assertTrue(submission.getResult().awaitCompletion(5, TimeUnit.SECONDS));
+            assertTrue(submission.getResult().awaitCompletion(15, TimeUnit.SECONDS));
             events = submission.getResult().getMatchingEvents();
             Thread.sleep(25L);
         }
@@ -375,6 +290,16 @@ public class TestLuceneEventIndex {
             }
 
             @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.emptySet();
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
+                return Collections.emptySet();
+            }
+
+            @Override
             public NiFiUser getChain() {
                 return null;
             }
@@ -391,7 +316,7 @@ public class TestLuceneEventIndex {
         };
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void testExpiration() throws IOException {
         final RepositoryConfiguration repoConfig = createConfig(1);
         repoConfig.setDesiredIndexSize(1L);
@@ -404,14 +329,11 @@ public class TestLuceneEventIndex {
         events.add(createEvent());
 
         final EventStore eventStore = Mockito.mock(EventStore.class);
-        Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
-            @Override
-            public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) {
-                final Long eventId = invocation.getArgument(0);
-                assertEquals(0, eventId.longValue());
-                assertEquals(1, invocation.<Integer>getArgument(1).intValue());
-                return Collections.singletonList(events.get(0));
-            }
+        Mockito.doAnswer((Answer<List<ProvenanceEventRecord>>) invocation -> {
+            final Long eventId = invocation.getArgument(0);
+            assertEquals(0, eventId.longValue());
+            assertEquals(1, invocation.<Integer>getArgument(1).intValue());
+            return Collections.singletonList(events.get(0));
         }).when(eventStore).getEvents(Mockito.anyLong(), Mockito.anyInt());
 
         index.initialize(eventStore);
@@ -432,9 +354,8 @@ public class TestLuceneEventIndex {
         return new StorageSummary(eventId, "1.prov", "1", 1, 2L, 2L);
     }
 
-    @Test(timeout = 60000)
+    @Test
     public void addThenQueryWithEmptyQuery() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final RepositoryConfiguration repoConfig = createConfig();
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
 
@@ -459,7 +380,7 @@ public class TestLuceneEventIndex {
 
             final QueryResult result = submission.getResult();
             assertNotNull(result);
-            result.awaitCompletion(100, TimeUnit.MILLISECONDS);
+            result.awaitCompletion(4000, TimeUnit.MILLISECONDS);
 
             assertTrue(result.isFinished());
             assertNull(result.getError());
@@ -473,7 +394,7 @@ public class TestLuceneEventIndex {
         assertEquals(event, matchingEvents.get(0));
     }
 
-    @Test(timeout = 50000)
+    @Test
     public void testQuerySpecificField() throws InterruptedException {
         final RepositoryConfiguration repoConfig = createConfig();
         final IndexManager indexManager = new StandardIndexManager(repoConfig);
@@ -487,10 +408,63 @@ public class TestLuceneEventIndex {
 
         // Create a query that searches for the event with the FlowFile UUID equal to the first event's.
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event.getFlowFileUuid()));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event.getFlowFileUuid(), null));
 
         final ArrayListEventStore eventStore = new ArrayListEventStore();
         eventStore.addEvent(event);
+        index.initialize(eventStore);
+
+        // We don't know how long it will take for the event to be indexed, so keep querying until
+        // we get a result. The test will timeout after 5 seconds if we've still not succeeded.
+        List<ProvenanceEventRecord> matchingEvents = Collections.emptyList();
+        while (matchingEvents.isEmpty()) {
+            final QuerySubmission submission = index.submitQuery(query, EventAuthorizer.GRANT_ALL, "unit test user");
+            assertNotNull(submission);
+
+            final QueryResult result = submission.getResult();
+            assertNotNull(result);
+            result.awaitCompletion(4000, TimeUnit.MILLISECONDS);
+
+            assertTrue(result.isFinished());
+            assertNull(result.getError());
+
+            matchingEvents = result.getMatchingEvents();
+            assertNotNull(matchingEvents);
+            Thread.sleep(100L); // avoid crushing the CPU
+        }
+
+        assertEquals(1, matchingEvents.size());
+        assertEquals(event, matchingEvents.get(0));
+    }
+
+    @Test
+    public void testQueryInverseSpecificField() throws InterruptedException {
+        final List<SearchableField> searchableFields = new ArrayList<>();
+        searchableFields.add(SearchableFields.ComponentID);
+        searchableFields.add(SearchableFields.FlowFileUUID);
+
+        final RepositoryConfiguration repoConfig = createConfig();
+        repoConfig.setSearchableFields(searchableFields);
+
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
+
+        final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 2, EventReporter.NO_OP);
+
+        final ProvenanceEventRecord event1 = createEvent(System.currentTimeMillis(), "11111111-1111-1111-1111-111111111111", "component-1");
+        final ProvenanceEventRecord event2 = createEvent(System.currentTimeMillis(), "22222222-2222-2222-2222-222222222222", "component-2");
+
+        // add 2 events, one of which we *will not* query for.
+        index.addEvent(event1, new StorageSummary(event1.getEventId(), "1.prov", "1", 1, 2L, 2L));
+        index.addEvent(event2, new StorageSummary(event2.getEventId(), "1.prov", "1", 1, 2L, 2L));
+
+         // Create a query that searches for the event with the FlowFile UUID that is NOT equal to the first event's
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event1.getFlowFileUuid(), Boolean.TRUE));
+
+        final ArrayListEventStore eventStore = new ArrayListEventStore();
+        eventStore.addEvent(event1);
+        eventStore.addEvent(event2);
+
         index.initialize(eventStore);
 
         // We don't know how long it will take for the event to be indexed, so keep querying until
@@ -513,7 +487,7 @@ public class TestLuceneEventIndex {
         }
 
         assertEquals(1, matchingEvents.size());
-        assertEquals(event, matchingEvents.get(0));
+        assertEquals(event2, matchingEvents.get(0));
     }
 
     private RepositoryConfiguration createConfig() {
@@ -522,8 +496,7 @@ public class TestLuceneEventIndex {
 
     private RepositoryConfiguration createConfig(final int storageDirectoryCount) {
         final RepositoryConfiguration config = new RepositoryConfiguration();
-        final String unitTestName = testName.getMethodName();
-        final File storageDir = new File("target/storage/" + unitTestName + "/" + UUID.randomUUID().toString());
+        final File storageDir = new File("target/storage/" + getClass().getSimpleName() + "/" + UUID.randomUUID());
 
         for (int i = 0; i < storageDirectoryCount; i++) {
             config.addStorageDirectory(String.valueOf(i + 1), new File(storageDir, String.valueOf(i)));
@@ -552,15 +525,19 @@ public class TestLuceneEventIndex {
     }
 
     private ProvenanceEventRecord createEvent(final long timestamp, final String uuid) {
+        return createEvent(timestamp, uuid, "component-1");
+    }
+
+    private ProvenanceEventRecord createEvent(final long timestamp, final String uuid, final String componentId) {
         final Map<String, String> previousAttributes = new HashMap<>();
         previousAttributes.put("uuid", uuid);
         final Map<String, String> updatedAttributes = new HashMap<>();
         updatedAttributes.put("updated", "true");
 
-        final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
+        return new StandardProvenanceEventRecord.Builder()
                 .setEventType(ProvenanceEventType.CONTENT_MODIFIED)
                 .setAttributes(previousAttributes, updatedAttributes)
-                .setComponentId("component-1")
+                .setComponentId(componentId)
                 .setComponentType("unit test")
                 .setEventId(idGenerator.getAndIncrement())
                 .setEventTime(timestamp)
@@ -569,7 +546,5 @@ public class TestLuceneEventIndex {
                 .setLineageStartDate(timestamp)
                 .setCurrentContentClaim("container", "section", "unit-test-id", 0L, 1024L)
                 .build();
-
-        return event;
     }
 }

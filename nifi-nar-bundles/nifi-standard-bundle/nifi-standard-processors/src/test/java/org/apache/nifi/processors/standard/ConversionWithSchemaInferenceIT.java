@@ -41,7 +41,7 @@ public class ConversionWithSchemaInferenceIT extends AbstractConversionIT {
     public void testJsonToAvro() throws Exception {
         fromJson(jsonPostfix());
 
-        // JSON schema inference doesn't discern INT and FLOAT but uses LONG and DOUBLE instead.
+        // JSON schema inference doesn't discern FLOAT but uses DOUBLE instead.
         //  So the expected avro is a little bit different as the deserialized values also end up in
         //      Long and Double objects
         toAvro("with_schema.json.to.avro");

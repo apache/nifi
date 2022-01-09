@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageUri;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
@@ -49,16 +59,9 @@ import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
+import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -95,11 +98,13 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             LISTING_STRATEGY,
+            AbstractListProcessor.RECORD_WRITER,
             AzureStorageUtils.CONTAINER,
             AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.ACCOUNT_NAME,
             AzureStorageUtils.ACCOUNT_KEY,
             AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.ENDPOINT_SUFFIX,
             PROP_PREFIX,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
@@ -137,6 +142,11 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
+    protected String getListingContainerName(final ProcessContext context) {
+        return String.format("Azure Blob Storage Container [%s]", getPath(context));
+    }
+
+    @Override
     protected String getPath(final ProcessContext context) {
         return context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
     }
@@ -156,6 +166,11 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
+    protected RecordSchema getRecordSchema() {
+        return BlobInfo.getRecordSchema();
+    }
+
+    @Override
     protected String getDefaultTimePrecision() {
         // User does not have to choose one.
         // AUTO_DETECT can handle most cases, but it may incur longer latency
@@ -164,27 +179,24 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
-    protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
-        String prefix = context.getProperty(PROP_PREFIX).evaluateAttributeExpressions().getValue();
-        if (prefix == null) {
-            prefix = "";
-        }
+    protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
+        final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions().getValue();
+        final String prefix = Optional.ofNullable(context.getProperty(PROP_PREFIX).evaluateAttributeExpressions().getValue()).orElse("");
         final List<BlobInfo> listing = new ArrayList<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            final CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), null);
+            final CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
-            for (ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, operationContext)) {
+            for (final ListBlobItem blob : container.listBlobs(prefix, true, EnumSet.of(BlobListingDetails.METADATA), null, operationContext)) {
                 if (blob instanceof CloudBlob) {
-                    CloudBlob cloudBlob = (CloudBlob) blob;
-                    BlobProperties properties = cloudBlob.getProperties();
-                    StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
+                    final CloudBlob cloudBlob = (CloudBlob) blob;
+                    final BlobProperties properties = cloudBlob.getProperties();
+                    final StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
 
-                    Builder builder = new BlobInfo.Builder()
+                    final Builder builder = new BlobInfo.Builder()
                                               .primaryUri(uri.getPrimaryUri().toString())
                                               .blobName(cloudBlob.getName())
                                               .containerName(containerName)
@@ -206,12 +218,15 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                     listing.add(builder.build());
                 }
             }
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
             throw new IOException(ExceptionUtils.getRootCause(t));
         }
         return listing;
     }
 
-
-
+    // Unfiltered listing is not supported - must provide a prefix
+    @Override
+    protected Integer countUnfilteredListing(final ProcessContext context) {
+        return null;
+    }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.ldap.tenants;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.authorization.AuthorizerConfigurationContext;
 import org.apache.nifi.authorization.Group;
@@ -34,7 +35,9 @@ import org.apache.nifi.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.ldap.LdapsSocketFactory;
 import org.apache.nifi.ldap.ReferralStrategy;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -62,12 +65,6 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.SearchControls;
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -122,7 +119,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private NiFiProperties properties;
 
     private ScheduledExecutorService ldapSync;
-    private AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
+    private final AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
 
     private String userSearchBase;
     private SearchScope userSearchScope;
@@ -437,6 +434,11 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     @Override
     public Group getGroup(String identifier) throws AuthorizationAccessException {
         return tenants.get().getGroupsById().get(identifier);
+    }
+
+    @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return tenants.get().getGroupsByName().get(name);
     }
 
     @Override
@@ -824,47 +826,16 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore").getValue();
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password").getValue();
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type").getValue();
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth").getValue();
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol").getValue();
 
-        // create the ssl context
-        final SSLContext sslContext;
         try {
-            if (StringUtils.isBlank(rawKeystore) && StringUtils.isBlank(rawTruststore)) {
-                sslContext = null;
-            } else {
-                // ensure the protocol is specified
-                if (StringUtils.isBlank(rawProtocol)) {
-                    throw new AuthorizerCreationException("TLS - Protocol must be specified.");
-                }
-
-                if (StringUtils.isBlank(rawKeystore)) {
-                    sslContext = SslContextFactory.createTrustSslContext(rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, rawProtocol);
-                } else if (StringUtils.isBlank(rawTruststore)) {
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType, rawProtocol);
-                } else {
-                    // determine the client auth if specified
-                    final ClientAuth clientAuth;
-                    if (StringUtils.isBlank(rawClientAuth)) {
-                        clientAuth = ClientAuth.NONE;
-                    } else {
-                        try {
-                            clientAuth = ClientAuth.valueOf(rawClientAuth);
-                        } catch (final IllegalArgumentException iae) {
-                            throw new AuthorizerCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
-                                    rawClientAuth, StringUtils.join(ClientAuth.values(), ", ")));
-                        }
-                    }
-
-                    sslContext = SslContextFactory.createSslContext(rawKeystore, rawKeystorePassword.toCharArray(), rawKeystoreType,
-                            rawTruststore, rawTruststorePassword.toCharArray(), rawTruststoreType, clientAuth, rawProtocol);
-                }
-            }
-        } catch (final KeyStoreException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException | IOException e) {
-            throw new AuthorizerCreationException(e.getMessage(), e);
+            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
+                    rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
+            return SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            logger.error("Encountered an error configuring TLS for LDAP user group provider: {}", e.getLocalizedMessage());
+            throw new ProviderCreationException("Error configuring TLS for LDAP user group provider", e);
         }
-
-        return sslContext;
     }
 
 }

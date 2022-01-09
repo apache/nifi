@@ -24,6 +24,8 @@ import org.apache.commons.cli.Option;
 public enum CommandOption {
 
     // General
+    CONNECTION_TIMEOUT("cto", "connectionTimeout", "Timeout parameter for creating a connection to NiFi/Registry, specified in milliseconds", true),
+    READ_TIMEOUT("rto", "readTimeout", "Timeout parameter for reading from NiFi/Registry, specified in milliseconds", true),
     URL("u", "baseUrl", "The URL to execute the command against", true),
     INPUT_SOURCE("i", "input", "A local file to read as input contents, or a public URL to fetch", true, true),
     OUTPUT_FILE("o", "outputFile", "A file to write output to, must contain full path and filename", true, true),
@@ -93,6 +95,7 @@ public enum CommandOption {
 
     // NiFi - User/Group
     USER_NAME("un", "userName", "The name of a user", true),
+    USER_ID("ui", "userIdentifier", "The identifier of a user", true),
     UG_ID("ugid", "userGroupId", "The id of a user group", true),
     UG_NAME("ugn", "userGroupName", "The name of a user group", true),
     USER_NAME_LIST("unl", "userNameList", "The comma-separated user name list", true),
@@ -112,6 +115,8 @@ public enum CommandOption {
     PARAM_CONTEXT_ID("pcid", "paramContextId", "The id of a parameter context", true),
     PARAM_CONTEXT_NAME("pcn", "paramContextName", "The name of a parameter context", true),
     PARAM_CONTEXT_DESC("pcd", "paramContextDescription", "The description of a parameter context", true),
+    PARAM_CONTEXT_INCLUDE_INHERITED("pcin", "paramContextIncludeInherited", "Indicates that all inherited parameters should be included", false),
+    PARAM_CONTEXT_INHERITED_IDS("pcii", "paramContextInheritedIds", "A comma-separated list of parameter context IDs to inherit", true),
 
     PARAM_NAME("pn", "paramName", "The name of the parameter", true),
     PARAM_DESC("pd", "paramDescription", "The description of the parameter", true),
@@ -120,14 +125,26 @@ public enum CommandOption {
 
     // Security related
     KEYSTORE("ks", "keystore", "A keystore to use for TLS/SSL connections", true),
-    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used (JKS or PKCS12)", true),
+    KEYSTORE_TYPE("kst", "keystoreType", "The type of key store being used such as PKCS12", true),
     KEYSTORE_PASSWORD("ksp", "keystorePasswd", "The password of the keystore being used", true),
     KEY_PASSWORD("kp", "keyPasswd", "The key password of the keystore being used", true),
     TRUSTSTORE("ts", "truststore", "A truststore to use for TLS/SSL connections", true),
-    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used (JKS or PKCS12)", true),
+    TRUSTSTORE_TYPE("tst", "truststoreType", "The type of trust store being used such as PKCS12", true),
     TRUSTSTORE_PASSWORD("tsp", "truststorePasswd", "The password of the truststore being used", true),
     PROXIED_ENTITY("pe", "proxiedEntity", "The identity of an entity to proxy", true),
     PROTOCOL("pro", "protocol", "The security protocol to use, such as TLSv.1.2", true),
+
+    BASIC_AUTH_USER("bau", "basicAuthUsername", "The username for basic auth", true),
+    BASIC_AUTH_PASSWORD("bap", "basicAuthPassword", "The password for basic auth ", true),
+
+    BEARER_TOKEN("btk", "bearerToken", "The bearer token to be passed in the Authorization header of a request", true),
+
+    USERNAME("usr", "username", "The username for authentication when obtaining an access token", true),
+    PASSWORD("pwd", "password", "The password for authentication when obtaining an access token", true),
+
+    KERBEROS_PRINCIPAL("krbPr", "kerberosPrincipal", "The kerberos principal", true),
+    KERBEROS_KEYTAB("krbKt", "kerberosKeytab", "The keytab for a kerberos principal", true, true),
+    KERBEROS_PASSWORD("krbPw", "kerberosPassword", "The password for a kerberos principal", true),
 
     // Miscellaneous
     FORCE("force", "force", "Indicates to force a delete operation", false),

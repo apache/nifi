@@ -65,26 +65,70 @@ public class TestKerberosProperties {
         final ComponentLog log = Mockito.mock(ComponentLog.class);
         final Configuration config = new Configuration();
 
-        // no security enabled in config so doesn't matter what principal and keytab are
-        List<ValidationResult> results = KerberosProperties.validatePrincipalAndKeytab(
-                "test", config, null, null, log);
+        // no security enabled in config so doesn't matter what principal, keytab, and password are
+        List<ValidationResult> results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, null, null, null, log);
         Assert.assertEquals(0, results.size());
 
-        results = KerberosProperties.validatePrincipalAndKeytab(
-                "test", config, "principal", null, log);
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", null, null, log);
         Assert.assertEquals(0, results.size());
 
-        results = KerberosProperties.validatePrincipalAndKeytab(
-                "test", config, "principal", "keytab", log);
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", "keytab", null, log);
+        Assert.assertEquals(0, results.size());
+
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", null, "password", log);
+        Assert.assertEquals(0, results.size());
+
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", "keytab", "password", log);
         Assert.assertEquals(0, results.size());
 
         // change the config to have kerberos turned on
         config.set("hadoop.security.authentication", "kerberos");
         config.set("hadoop.security.authorization", "true");
 
-        results = KerberosProperties.validatePrincipalAndKeytab(
-                "test", config, null, null, log);
+        // security is enabled, no principal, keytab, or password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, null, null, null, log);
         Assert.assertEquals(2, results.size());
+
+        // security is enabled, keytab provided, no principal or password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, null, "keytab", null, log);
+        Assert.assertEquals(1, results.size());
+
+        // security is enabled, password provided, no principal or keytab provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, null, null, "password", log);
+        Assert.assertEquals(1, results.size());
+
+        // security is enabled, no principal provided, keytab and password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, null, "keytab", "password", log);
+        Assert.assertEquals(2, results.size());
+
+        // security is enabled, principal provided, no keytab or password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", null, null, log);
+        Assert.assertEquals(1, results.size());
+
+        // security is enabled, principal and keytab provided, no password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", "keytab", null, log);
+        Assert.assertEquals(0, results.size());
+
+        // security is enabled, no keytab provided, principal and password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", null, "password", log);
+        Assert.assertEquals(0, results.size());
+
+        // security is enabled, principal, keytab, and password provided
+        results = KerberosProperties.validatePrincipalWithKeytabOrPassword(
+                "test", config, "principal", "keytab", "password", log);
+        Assert.assertEquals(1, results.size());
     }
 
 }

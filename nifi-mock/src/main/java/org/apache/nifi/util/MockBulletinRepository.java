@@ -20,6 +20,7 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MockBulletinRepository implements BulletinRepository {
@@ -45,12 +46,17 @@ public class MockBulletinRepository implements BulletinRepository {
     @Override
     public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
         // TODO: Implement
-        return null;
+        return new ArrayList<Bulletin>();
     }
 
     @Override
     public List<Bulletin> findBulletinsForSource(String sourceId) {
         // TODO: Implement
+        return null;
+    }
+
+    @Override
+    public List<Bulletin> findBulletinsForSource(final String sourceId, final String groupId) {
         return null;
     }
 
@@ -76,5 +82,10 @@ public class MockBulletinRepository implements BulletinRepository {
     public List<Bulletin> findBulletinsForController(int max) {
         // TODO: Implement
         return null;
+    }
+
+    @Override
+    public long getMaxBulletinId() {
+        return -1L;
     }
 }

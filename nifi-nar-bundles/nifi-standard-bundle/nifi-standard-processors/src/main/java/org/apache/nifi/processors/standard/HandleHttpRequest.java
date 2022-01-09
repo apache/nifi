@@ -25,7 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
@@ -56,10 +56,7 @@ import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import com.google.common.base.Optional;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-
+import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.MultipartConfigElement;
@@ -72,7 +69,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.security.Principal;
 import java.security.cert.X509Certificate;
@@ -83,18 +79,26 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+import static javax.servlet.http.HttpServletResponse.SC_METHOD_NOT_ALLOWED;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
 @CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. "
-        + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
+        + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service. In case "
+        + " of a multipart request, one FlowFile is generated for each part.")
 @WritesAttributes({
     @WritesAttribute(attribute = HTTPUtils.HTTP_CONTEXT_ID, description = "An identifier that allows the HandleHttpRequest and HandleHttpResponse "
             + "to coordinate which FlowFile belongs to which HTTP Request/Response."),
@@ -112,6 +116,10 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.query.param.XXX", description = "Each of query parameters in the request will be added as an attribute, "
+            + "prefixed with \"http.query.param.\""),
+    @WritesAttribute(attribute = "http.param.XXX", description = "Form parameters in the request that are configured by \"Parameters to Attributes List\" will be added as an attribute, "
+        + "prefixed with \"http.param.\". Putting form parameters of large size is not recommended."),
     @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
@@ -119,7 +127,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\""),
-    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the mulipart request will be added as an "
+    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the multipart request will be added as an "
         + "attribute, prefixed with \"http.headers.multipart.\" For example, if the multipart request contains an HTTP Header named \"content-disposition\", then the value "
         + "will be added to an attribute named \"http.headers.multipart.content-disposition\""),
     @WritesAttribute(attribute = "http.multipart.size",
@@ -129,7 +137,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.multipart.name",
         description = "For requests with Content-Type \"multipart/form-data\", the part's name is recorded into this attribute"),
     @WritesAttribute(attribute = "http.multipart.filename",
-        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute"),
+        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute. "
+                    + "Files are stored temporarily at the default temporary-file directory specified in \"java.io.File\" Java Docs)"),
     @WritesAttribute(attribute = "http.multipart.fragments.sequence.number",
         description = "For requests with Content-Type \"multipart/form-data\", the part's index is recorded into this attribute. The index starts with 1."),
     @WritesAttribute(attribute = "http.multipart.fragments.total.number",
@@ -243,6 +252,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
+    public static final PropertyDescriptor PARAMETERS_TO_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("parameters-to-attributes")
+            .displayName("Parameters to Attributes List")
+            .description("A comma-separated list of HTTP parameters or form data to output as attributes")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
             .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
@@ -300,13 +317,16 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(CONTAINER_QUEUE_SIZE);
         descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
         descriptors.add(MULTIPART_READ_BUFFER_SIZE);
+        descriptors.add(PARAMETERS_TO_ATTRIBUTES);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     private volatile Server server;
-    private AtomicBoolean initialized = new AtomicBoolean(false);
+    private volatile boolean ready;
     private volatile BlockingQueue<HttpRequestContainer> containerQueue;
-    private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private final AtomicReference<Set<String>> parameterToAttributesReference = new AtomicReference<>(null);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -323,8 +343,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         initialized.set(false);
     }
 
-    private synchronized void initializeServer(final ProcessContext context) throws Exception {
-        if(initialized.get()){
+    synchronized void initializeServer(final ProcessContext context) throws Exception {
+        if (initialized.get()) {
             return;
         }
         runOnPrimary.set(context.getExecutionNode().equals(ExecutionNode.PRIMARY));
@@ -338,10 +358,10 @@ public class HandleHttpRequest extends AbstractProcessor {
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final boolean need;
         final boolean want;
-        if (CLIENT_NEED.equals(clientAuthValue)) {
+        if (CLIENT_NEED.getValue().equals(clientAuthValue)) {
             need = true;
             want = false;
-        } else if (CLIENT_WANT.equals(clientAuthValue)) {
+        } else if (CLIENT_WANT.getValue().equals(clientAuthValue)) {
             need = false;
             want = true;
         } else {
@@ -422,65 +442,57 @@ public class HandleHttpRequest extends AbstractProcessor {
             }
         }
 
+        final Set<String> parametersToMakeAttributes = new HashSet<>();
+        final String parametersToAttributesPropertyValue = context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue();
+        if (parametersToAttributesPropertyValue != null) {
+            for (final String paremeterName : parametersToAttributesPropertyValue.split(",")) {
+                final String trimmed = paremeterName.trim();
+                if (!trimmed.isEmpty()) {
+                    parametersToMakeAttributes.add(trimmed);
+                }
+            }
+            parameterToAttributesReference.set(parametersToMakeAttributes);
+        }
+
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
         final Pattern pathPattern = (pathRegex == null) ? null : Pattern.compile(pathRegex);
 
         server.setHandler(new AbstractHandler() {
             @Override
-            public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response)
-                    throws IOException, ServletException {
-
+            public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response) {
                 final String requestUri = request.getRequestURI();
-                if (!allowedMethods.contains(request.getMethod().toUpperCase())) {
-                    getLogger().info("Sending back METHOD_NOT_ALLOWED response to {}; method was {}; request URI was {}",
-                            new Object[]{request.getRemoteAddr(), request.getMethod(), requestUri});
-                    response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+                final String method = request.getMethod().toUpperCase();
+                if (!allowedMethods.contains(method)) {
+                    sendError(SC_METHOD_NOT_ALLOWED, "Method Not Allowed", request, response);
                     return;
                 }
 
                 if (pathPattern != null) {
-                    final URI uri;
-                    try {
-                        uri = new URI(requestUri);
-                    } catch (final URISyntaxException e) {
-                        throw new ServletException(e);
-                    }
-
+                    final URI uri = URI.create(requestUri);
                     if (!pathPattern.matcher(uri.getPath()).matches()) {
-                        getLogger().info("Sending back NOT_FOUND response to {}; request was {} {}",
-                                new Object[]{request.getRemoteAddr(), request.getMethod(), requestUri});
-                        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                        sendError(SC_NOT_FOUND, "Path Not Found", request, response);
                         return;
                     }
                 }
 
-                // If destination queues full, send back a 503: Service Unavailable.
                 if (context.getAvailableRelationships().isEmpty()) {
-                    getLogger().warn("Request from {} cannot be processed, processor downstream queue is full; responding with SERVICE_UNAVAILABLE",
-                            new Object[]{request.getRemoteAddr()});
-
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor queue is full");
+                    sendError(SC_SERVICE_UNAVAILABLE, "No Available Relationships", request, response);
+                    return;
+                } else if (!ready) {
+                    sendError(SC_SERVICE_UNAVAILABLE, "Server Not Ready", request, response);
                     return;
                 }
 
-                // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
-                // so it is not known to us. Should see if it can be added to the ProcessContext.
                 final AsyncContext async = baseRequest.startAsync();
-
                 // disable timeout handling on AsyncContext, timeout will be handled in HttpContextMap
                 async.setTimeout(0);
 
-                final boolean added = containerQueue.offer(new HttpRequestContainer(request, response, async));
-
+                final HttpRequestContainer container = new HttpRequestContainer(request, response, async);
+                final boolean added = containerQueue.offer(container);
                 if (added) {
-                    getLogger().debug("Added Http Request to queue for {} {} from {}",
-                            new Object[]{request.getMethod(), requestUri, request.getRemoteAddr()});
+                    getLogger().debug("Request Queued: Method [{}] URI [{}] Address [{}]", method, requestUri, request.getRemoteAddr());
                 } else {
-                    getLogger().warn("Request from {} cannot be processed, container queue is full; responding with SERVICE_UNAVAILABLE",
-                            new Object[]{request.getRemoteAddr()});
-
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Container queue is full");
-                    async.complete();
+                    sendError(SC_SERVICE_UNAVAILABLE, "Request Queue Full", container);
                 }
             }
         });
@@ -488,9 +500,12 @@ public class HandleHttpRequest extends AbstractProcessor {
         this.server = server;
         server.start();
 
-        getLogger().info("Server started and listening on port " + getPort());
+        for (final Connector connector : server.getConnectors()) {
+            getLogger().info("Started Connector {}", connector);
+        }
 
         initialized.set(true);
+        ready = true;
     }
 
     protected int getPort() {
@@ -507,54 +522,66 @@ public class HandleHttpRequest extends AbstractProcessor {
         return containerQueue.size();
     }
 
-    private SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth) {
-        final SslContextFactory sslFactory = new SslContextFactory();
+    private SslContextFactory createSslFactory(final SSLContextService sslContextService, final boolean needClientAuth, final boolean wantClientAuth) {
+        final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
-        sslFactory.setProtocol(sslService.getSslAlgorithm());
-
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
-        // not a client.  Server does not need to perform hostname verification on the client.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null.
-        sslFactory.setEndpointIdentificationAlgorithm(null);
-
-        if (sslService.isKeyStoreConfigured()) {
-            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
-            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
-            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
-        }
-
-        if (sslService.isTrustStoreConfigured()) {
-            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
-            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
-            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
-        }
+        final SSLContext sslContext = sslContextService.createContext();
+        sslFactory.setSslContext(sslContext);
 
         return sslFactory;
     }
 
-    @OnStopped
+    @OnUnscheduled
     public void shutdown() throws Exception {
-        if (server != null) {
-            getLogger().debug("Shutting down server");
-            server.stop();
-            server.destroy();
-            server.join();
-            clearInit();
-            getLogger().info("Shut down {}", new Object[]{server});
+        ready = false;
+
+        if (server == null) {
+            getLogger().debug("Server not configured");
+        } else {
+            if (server.isStopped()) {
+                getLogger().debug("Server Stopped {}", server);
+            } else {
+                for (final Connector connector : server.getConnectors()) {
+                    getLogger().debug("Stopping Connector {}", connector);
+                }
+
+                drainContainerQueue();
+                server.stop();
+                server.destroy();
+                server.join();
+                clearInit();
+
+                for (final Connector connector : server.getConnectors()) {
+                    getLogger().info("Stopped Connector {}", connector);
+                }
+            }
+        }
+    }
+
+    void drainContainerQueue() {
+        if (containerQueue.isEmpty()) {
+            getLogger().debug("No Pending Requests Queued");
+        } else {
+            final List<HttpRequestContainer> pendingContainers = new ArrayList<>();
+            containerQueue.drainTo(pendingContainers);
+            getLogger().warn("Pending Requests Queued [{}]", pendingContainers.size());
+            for (final HttpRequestContainer container : pendingContainers) {
+                sendError(SC_SERVICE_UNAVAILABLE, "Stopping Server", container);
+            }
         }
     }
 
     @OnPrimaryNodeStateChange
-    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
-        if (runOnPrimary.get() && newState.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
+    public void onPrimaryNodeChange(final PrimaryNodeState state) {
+        if (runOnPrimary.get() && state.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
+            getLogger().info("Server Shutdown Started: Primary Node State Changed [{}]", state);
             try {
                 shutdown();
-            } catch (final Exception shutdownException) {
-                getLogger().warn("Processor is configured to run only on Primary Node, but failed to shutdown HTTP server following revocation of primary node status due to {}",
-                        shutdownException);
+            } catch (final Exception e) {
+                getLogger().warn("Server Shutdown Failed: Primary Node State Changed [{}]", state, e);
             }
         }
     }
@@ -562,7 +589,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         try {
-            if(!initialized.get()) {
+            if (!initialized.get()) {
                 initializeServer(context);
             }
         } catch (Exception e) {
@@ -572,7 +599,7 @@ public class HandleHttpRequest extends AbstractProcessor {
                 // shutdown to release any resources allocated during the failed initialization
                 shutdown();
             } catch (final Exception shutdownException) {
-                getLogger().debug("Failed to shutdown following a failed initialization: " + shutdownException);
+                getLogger().debug("Server Shutdown Failed after Initialization Failed", shutdownException);
             }
 
             throw new ProcessException("Failed to initialize the server", e);
@@ -593,13 +620,14 @@ public class HandleHttpRequest extends AbstractProcessor {
         final long start = System.nanoTime();
         final HttpServletRequest request = container.getRequest();
 
-        if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains(MIME_TYPE__MULTIPART_FORM_DATA)) {
+        if (StringUtils.contains(request.getContentType(), MIME_TYPE__MULTIPART_FORM_DATA)) {
           final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
           final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          List<Part> parts = null;
           try {
-            List<Part> parts = ImmutableList.copyOf(request.getParts());
+            parts = Collections.unmodifiableList(new ArrayList<>(request.getParts()));
             int allPartsCount = parts.size();
             final String contextIdentifier = UUID.randomUUID().toString();
             for (int i = 0; i < allPartsCount; i++) {
@@ -608,40 +636,49 @@ public class HandleHttpRequest extends AbstractProcessor {
               try (OutputStream flowFileOut = session.write(flowFile)) {
                 StreamUtils.copy(part.getInputStream(), flowFileOut);
               } catch (IOException e) {
-                handleFlowContentStreamingError(session, container, request, Optional.of(flowFile), e);
+                handleFlowContentStreamingError(session, container, Optional.of(flowFile), e);
                 return;
               }
-              flowFile = savePartAttributes(context, session, part, flowFile, i, allPartsCount);
+              flowFile = savePartAttributes(session, part, flowFile, i, allPartsCount);
               flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
               if (i == 0) {
                 // each one of multipart comes from a single request, thus registering only once per loop.
-                boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+                boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
                 if (!requestRegistrationSuccess)
                   break;
               }
-              forwardFlowFile(context, session, container, start, request, flowFile);
+              forwardFlowFile(session, start, request, flowFile);
             }
           } catch (IOException | ServletException | IllegalStateException e) {
-            handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
-            return;
+            handleFlowContentStreamingError(session, container, Optional.empty(), e);
+          } finally {
+            if (parts != null) {
+              for (Part part : parts) {
+                try {
+                  part.delete();
+                } catch (Exception e) {
+                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                }
+              }
+            }
           }
         } else {
           FlowFile flowFile = session.create();
           try (OutputStream flowFileOut = session.write(flowFile)) {
             StreamUtils.copy(request.getInputStream(), flowFileOut);
           } catch (final IOException e) {
-            handleFlowContentStreamingError(session, container, request, Optional.of(flowFile), e);
+            handleFlowContentStreamingError(session, container, Optional.of(flowFile), e);
             return;
           }
           final String contextIdentifier = UUID.randomUUID().toString();
           flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
-          boolean requestRegistrationSuccess = registerRequest(context, session, container, start, request, flowFile);
+          boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
           if (requestRegistrationSuccess)
-            forwardFlowFile(context, session, container, start, request, flowFile);
+            forwardFlowFile(session, start, request, flowFile);
         }
     }
 
-    private FlowFile savePartAttributes(ProcessContext context, ProcessSession session, Part part, FlowFile flowFile, final int i, final int allPartsCount) {
+    private FlowFile savePartAttributes(ProcessSession session, Part part, FlowFile flowFile, final int i, final int allPartsCount) {
       final Map<String, String> attributes = new HashMap<>();
       for (String headerName : part.getHeaderNames()) {
         final String headerValue = part.getHeader(headerName);
@@ -690,11 +727,15 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.server.name", request.getServerName());
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
 
-          final Enumeration<String> paramEnumeration = request.getParameterNames();
-          while (paramEnumeration.hasMoreElements()) {
-              final String paramName = paramEnumeration.nextElement();
-              final String value = request.getParameter(paramName);
-              attributes.put("http.param." + paramName, value);
+          Set<String> parametersToAttributes = parameterToAttributesReference.get();
+          if (parametersToAttributes != null && !parametersToAttributes.isEmpty()){
+              final Enumeration<String> paramEnumeration = request.getParameterNames();
+              while (paramEnumeration.hasMoreElements()) {
+                  final String paramName = paramEnumeration.nextElement();
+                  if (parametersToAttributes.contains(paramName)){
+                    attributes.put("http.param." + paramName, request.getParameter(paramName));
+                }
+              }
           }
 
           final Cookie[] cookies = request.getCookies();
@@ -748,76 +789,53 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.principal.name", principal.getName());
       }
 
-      final X509Certificate certs[] = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-      final String subjectDn;
+      final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
       if (certs != null && certs.length > 0) {
           final X509Certificate cert = certs[0];
-          subjectDn = cert.getSubjectDN().getName();
+          final String subjectDn = cert.getSubjectDN().getName();
           final String issuerDn = cert.getIssuerDN().getName();
 
           putAttribute(attributes, HTTPUtils.HTTP_SSL_CERT, subjectDn);
           putAttribute(attributes, "http.issuer.dn", issuerDn);
-      } else {
-          subjectDn = null;
       }
 
       return session.putAllAttributes(flowFile, attributes);
     }
 
-    private void forwardFlowFile(final ProcessContext context, final ProcessSession session,
-        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
+    private void forwardFlowFile(final ProcessSession session, final long start, final HttpServletRequest request, final FlowFile flowFile) {
       final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-      String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
+      final String subjectDn = flowFile.getAttribute(HTTPUtils.HTTP_SSL_CERT);
       session.getProvenanceReporter().receive(flowFile, HTTPUtils.getURI(flowFile.getAttributes()),
           "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
       session.transfer(flowFile, REL_SUCCESS);
-      getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
+      getLogger().debug("Transferred {} to [{}] Remote Address [{}] ", flowFile, REL_SUCCESS, request.getRemoteAddr());
     }
 
 
     private boolean registerRequest(final ProcessContext context, final ProcessSession session,
-        HttpRequestContainer container, final long start, final HttpServletRequest request, FlowFile flowFile) {
+                                    final HttpRequestContainer container, final FlowFile flowFile) {
         final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
-        String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+        final String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
+        final HttpServletRequest request = container.getRequest();
         final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
-        if (registered)
-          return true;
-
-        getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
-            new Object[]{request.getRemoteAddr()});
-
-        try {
-          container.getResponse().sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "HttpContextMap is full");
-          container.getContext().complete();
-        } catch (final Exception e) {
-          getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
-              new Object[]{request.getRemoteAddr(), e});
+        if (registered) {
+            return true;
         }
 
         session.remove(flowFile);
+        sendError(SC_SERVICE_UNAVAILABLE, "Request Registration Failed", container);
         return false;
     }
 
-
-    protected void handleFlowContentStreamingError(final ProcessSession session, HttpRequestContainer container,
-        final HttpServletRequest request, Optional<FlowFile> flowFile, final Exception e) {
-      // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
-      // bad requests, the connection to the client is not closed. In order to address also these cases, we try
-      // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
-      // processed and makes it aware that the connection can be closed.
-      getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
-              new Object[]{request.getRemoteAddr(), e});
-      if (flowFile.isPresent())
-        session.remove(flowFile.get());
-
-      try {
-          HttpServletResponse response = container.getResponse();
-          response.sendError(HttpServletResponse.SC_BAD_REQUEST);
-          container.getContext().complete();
-      } catch (final IOException ioe) {
-          getLogger().warn("Failed to send HTTP response to {} due to {}",
-                  new Object[]{request.getRemoteAddr(), ioe});
-      }
+    protected void handleFlowContentStreamingError(final ProcessSession session, final HttpRequestContainer container, final Optional<FlowFile> flowFile, final Exception e) {
+        // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
+        // bad requests, the connection to the client is not closed. In order to address also these cases, we try
+        // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
+        // processed and makes it aware that the connection can be closed.
+        final HttpServletRequest request = container.getRequest();
+        getLogger().error("Stream Processing Failed: Method [{}] URI [{}] Address [{}]", request.getMethod(), request.getRequestURI(), request.getRemoteAddr(), e);
+        flowFile.ifPresent(session::remove);
+        sendError(SC_BAD_REQUEST, "Stream Processing Failed", container);
     }
 
     private void putAttribute(final Map<String, String> map, final String key, final Object value) {
@@ -836,8 +854,34 @@ public class HandleHttpRequest extends AbstractProcessor {
         map.put(key, value);
     }
 
-    private static class HttpRequestContainer {
+    private void sendError(final int statusCode, final String message, final HttpRequestContainer container) {
+        sendError(statusCode, message, container.getRequest(), container.getResponse());
+        final AsyncContext asyncContext = container.getContext();
+        try {
+            asyncContext.complete();
+        } catch (final RuntimeException e) {
+            final HttpServletRequest request = container.getRequest();
+            final String method = request.getMethod();
+            final String uri = request.getRequestURI();
+            final String remoteAddr = request.getRemoteAddr();
+            getLogger().error("Complete Request Failed: Method [{}] URI [{}] Address [{}]", method, uri, remoteAddr, e);
+        }
+    }
 
+    private void sendError(final int statusCode, final String message, final HttpServletRequest request, final HttpServletResponse response) {
+        final String method = request.getMethod();
+        final String uri = request.getRequestURI();
+        final String remoteAddr = request.getRemoteAddr();
+
+        try {
+            response.sendError(statusCode, message);
+            getLogger().warn("Send Error Completed: HTTP {} [{}] Method [{}] URI [{}] Address [{}]", statusCode, message, method, uri, remoteAddr);
+        } catch (final Exception e) {
+            getLogger().error("Send Error Failed: HTTP {} [{}] Method [{}] URI [{}] Address [{}]", statusCode, message, method, uri, remoteAddr, e);
+        }
+    }
+
+    private static class HttpRequestContainer {
         private final HttpServletRequest request;
         private final HttpServletResponse response;
         private final AsyncContext context;

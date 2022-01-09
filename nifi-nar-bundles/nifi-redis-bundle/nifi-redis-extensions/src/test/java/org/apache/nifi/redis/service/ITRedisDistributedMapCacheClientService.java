@@ -49,8 +49,10 @@ import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -168,6 +170,7 @@ public class ITRedisDistributedMapCacheClientService {
             final ByteArrayOutputStream out = new ByteArrayOutputStream();
             final Serializer<String> stringSerializer = new StringSerializer();
             final Deserializer<String> stringDeserializer = new StringDeserializer();
+            final Deserializer<String> stringDeserializerWithoutNullCheck = new StringDeserializerWithoutNullCheck();
 
             final AtomicDistributedMapCacheClient cacheClient = context.getProperty(REDIS_MAP_CACHE).asControllerService(AtomicDistributedMapCacheClient.class);
 
@@ -184,6 +187,10 @@ public class ITRedisDistributedMapCacheClientService {
                 // verify get returns the expected value we set above
                 final String retrievedValue = cacheClient.get(key, stringSerializer, stringDeserializer);
                 Assert.assertEquals(value, retrievedValue);
+
+                // verify get returns null for a key that doesn't exist
+                final String missingValue = cacheClient.get("does-not-exist", stringSerializer, stringDeserializerWithoutNullCheck);
+                Assert.assertEquals(null, missingValue);
 
                 // verify remove removes the entry and contains key returns false after
                 Assert.assertTrue(cacheClient.remove(key, stringSerializer));
@@ -238,6 +245,20 @@ public class ITRedisDistributedMapCacheClientService {
                 Assert.assertTrue(cacheClient.removeByPattern("test-redis-processor-*") >= numToDelete);
                 Assert.assertFalse(cacheClient.containsKey(key, stringSerializer));
 
+                Map<String, String> bulk = new HashMap<>();
+                bulk.put("bulk-1", "testing1");
+                bulk.put("bulk-2", "testing2");
+                bulk.put("bulk-3", "testing3");
+                bulk.put("bulk-4", "testing4");
+                bulk.put("bulk-5", "testing5");
+
+                cacheClient.putAll(bulk, stringSerializer, stringSerializer);
+                Assert.assertTrue(cacheClient.containsKey("bulk-1", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-2", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-3", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-4", stringSerializer));
+                Assert.assertTrue(cacheClient.containsKey("bulk-5", stringSerializer));
+
                 session.transfer(flowFile, REL_SUCCESS);
             } catch (final Exception e) {
                 getLogger().error("Routing to failure due to: " + e.getMessage(), e);
@@ -259,6 +280,13 @@ public class ITRedisDistributedMapCacheClientService {
         @Override
         public String deserialize(byte[] input) throws DeserializationException, IOException {
             return input == null ? null : new String(input, StandardCharsets.UTF_8);
+        }
+    }
+
+    private static class StringDeserializerWithoutNullCheck implements Deserializer<String> {
+        @Override
+        public String deserialize(byte[] input) throws DeserializationException, IOException {
+            return new String(input, StandardCharsets.UTF_8);
         }
     }
 }

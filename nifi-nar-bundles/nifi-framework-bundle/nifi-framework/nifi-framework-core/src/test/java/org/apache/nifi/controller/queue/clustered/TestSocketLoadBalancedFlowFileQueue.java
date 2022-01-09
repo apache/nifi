@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.MockFlowFileRecord;
@@ -361,12 +362,18 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     public void testRecoverSwapFiles() throws IOException {
+        long expectedMinLastQueueDate = Long.MAX_VALUE;
+        long expectedTotalLastQueueDate = 0L;
+
         for (int partitionIndex = 0; partitionIndex < 3; partitionIndex++) {
             final String partitionName = queue.getPartition(partitionIndex).getSwapPartitionName();
 
             final List<FlowFileRecord> flowFiles = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
-                flowFiles.add(new MockFlowFileRecord(100L));
+                FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+                flowFiles.add(newMockFlowFilerecord);
+                expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
+                expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();
             }
 
             swapManager.swapOut(flowFiles, queue, partitionName);
@@ -374,7 +381,10 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            flowFiles.add(new MockFlowFileRecord(100L));
+            FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+            flowFiles.add(newMockFlowFilerecord);
+            expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
+            expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();
         }
 
         swapManager.swapOut(flowFiles, queue, "other-partition");
@@ -383,6 +393,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(399L, swapSummary.getMaxFlowFileId().longValue());
         assertEquals(400, swapSummary.getQueueSize().getObjectCount());
         assertEquals(400 * 100L, swapSummary.getQueueSize().getByteCount());
+        assertEquals(expectedTotalLastQueueDate, swapSummary.getTotalLastQueueDate().longValue());
+        assertEquals(expectedMinLastQueueDate, swapSummary.getMinLastQueueDate().longValue());
     }
 
 
@@ -417,6 +429,33 @@ public class TestSocketLoadBalancedFlowFileQueue {
         }
     }
 
+    @Test
+    public void testOffloadAndReconnectKeepsQueueInCorrectOrder() {
+        // Simulate FirstNodePartitioner, which always selects the first node in the partition queue
+        queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(0));
+
+        QueuePartition firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+
+        final NodeIdentifier node1Identifier = nodeIds.get(0);
+        final NodeIdentifier node2Identifier = nodeIds.get(1);
+
+        // The local node partition starts out first
+        Assert.assertEquals("local", firstPartition.getSwapPartitionName());
+
+        // Simulate offloading the first node
+        clusterTopologyEventListener.onNodeStateChange(node1Identifier, NodeConnectionState.OFFLOADING);
+
+        // Now the remote partition for the second node should be returned
+        firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+        Assert.assertEquals(node2Identifier, firstPartition.getNodeIdentifier().get());
+
+        // Simulate reconnecting the first node
+        clusterTopologyEventListener.onNodeStateChange(node1Identifier, NodeConnectionState.CONNECTED);
+
+        // Now the local node partition is returned again
+        firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+        Assert.assertEquals("local", firstPartition.getSwapPartitionName());
+    }
 
     @Test(timeout = 30000)
     public void testChangeInClusterTopologyTriggersRebalanceOnlyOnRemovedNodeIfNecessary() throws InterruptedException {

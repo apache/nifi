@@ -27,7 +27,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -74,22 +74,26 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
     }
 
     @Override
-    public Set<AffectedComponentEntity> activateControllerServices(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> services,
-        final ControllerServiceState desiredState, final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
+    public Set<AffectedComponentEntity> activateControllerServices(final URI exampleUri, final String groupId, final Set<AffectedComponentEntity> servicesToUpdate,
+                                                                   final Set<AffectedComponentEntity> servicesRequiringDesiredState, final ControllerServiceState desiredState,
+                                                                   final Pause pause, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
-        final Map<String, Revision> serviceRevisions = services.stream()
+        final Map<String, Revision> serviceRevisions = servicesToUpdate.stream()
             .collect(Collectors.toMap(AffectedComponentEntity::getId, entity -> revisionManager.getRevision(entity.getId())));
 
-        final Map<String, AffectedComponentEntity> affectedServiceMap = services.stream()
+        final Map<String, AffectedComponentEntity> affectedServiceMap = servicesToUpdate.stream()
+            .collect(Collectors.toMap(AffectedComponentEntity::getId, Function.identity()));
+
+        final Map<String, AffectedComponentEntity> servicesToWaitFor = servicesRequiringDesiredState.stream()
             .collect(Collectors.toMap(AffectedComponentEntity::getId, Function.identity()));
 
         if (desiredState == ControllerServiceState.ENABLED) {
-            enableControllerServices(groupId, serviceRevisions, affectedServiceMap, pause, invalidComponentAction);
+            enableControllerServices(groupId, serviceRevisions, affectedServiceMap, servicesToWaitFor, pause, invalidComponentAction);
         } else {
-            disableControllerServices(groupId, serviceRevisions, affectedServiceMap, pause, invalidComponentAction);
+            disableControllerServices(groupId, serviceRevisions, affectedServiceMap, servicesToWaitFor, pause, invalidComponentAction);
         }
 
-        return services.stream()
+        return servicesRequiringDesiredState.stream()
             .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
@@ -217,10 +221,9 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 });
     }
 
+
     private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
                                               final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
-
-        final String desiredStateName = desiredState.name();
 
         updateAffectedProcessors(processorEntities, affectedComponents);
 
@@ -229,13 +232,27 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 continue;
             }
 
-            final ProcessorStatusDTO status = entity.getStatus();
+            final boolean desiredStateReached = isDesiredProcessorStateReached(entity, desiredState);
+            logger.debug("Processor[id={}, name={}] now has a state of {} with {} Active Threads, Validation Errors: {}; desired state = {}; invalid component action: {}; desired state reached = {}",
+                entity.getId(), entity.getComponent().getName(),  entity.getStatus().getRunStatus(), entity.getStatus().getAggregateSnapshot().getActiveThreadCount(),
+                entity.getComponent().getValidationErrors(), desiredState, invalidComponentAction, desiredStateReached);
 
-            if (ProcessorDTO.INVALID.equals(entity.getComponent().getValidationStatus())) {
+            if (desiredStateReached) {
+                continue;
+            }
+
+            // If the desired state is stopped and there are active threads, return false. We don't consider the validation status in this case.
+            if (desiredState == ScheduledState.STOPPED && entity.getStatus().getAggregateSnapshot().getActiveThreadCount() != 0) {
+                return false;
+            }
+
+            if (ProcessorRunStatusDetailsDTO.INVALID.equalsIgnoreCase(entity.getComponent().getValidationStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
-                        return false;
+                        break;
                     case SKIP:
+                        logger.debug("Processor[id={}, name={}] is invalid. Skipping over this processor when looking for Desired State of {} because Invalid Component Action = SKIP",
+                            entity.getId(), entity.getComponent().getName(), desiredState);
                         continue;
                     case FAIL:
                         final String action = desiredState == ScheduledState.RUNNING ? "start" : "stop";
@@ -243,22 +260,30 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 }
             }
 
-            final String runStatus = status.getAggregateSnapshot().getRunStatus();
-            final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
-            if (!stateMatches) {
-                return false;
-            }
-
-            if (desiredState == ScheduledState.STOPPED && status.getAggregateSnapshot().getActiveThreadCount() != 0) {
-                return false;
-            }
+            return false;
         }
 
         return true;
     }
 
+    private boolean isDesiredProcessorStateReached(final ProcessorEntity processorEntity, final ScheduledState desiredState) {
+        final String runStatus = processorEntity.getStatus().getRunStatus();
+        final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
 
-    private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices, final Pause pause,
+        if (!stateMatches) {
+            return false;
+        }
+
+        final Integer activeThreadCount = processorEntity.getStatus().getAggregateSnapshot().getActiveThreadCount();
+        if (desiredState == ScheduledState.STOPPED && activeThreadCount != 0) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
+                                          final Map<String, AffectedComponentEntity> servicesRequiringDesiredState, final Pause pause,
                                           final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
         if (serviceRevisions.isEmpty()) {
@@ -271,21 +296,29 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.ENABLED, affectedServices.keySet());
         serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
-        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.ENABLED, pause, invalidComponentAction);
+        waitForControllerServiceState(processGroupId, servicesRequiringDesiredState, ControllerServiceState.ENABLED, pause, invalidComponentAction);
     }
 
-    private void disableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices, final Pause pause,
+    private void disableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices,
+                                           final Map<String, AffectedComponentEntity> servicesToWaitFor, final Pause pause,
                                            final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
-        if (serviceRevisions.isEmpty()) {
+        if (serviceRevisions.isEmpty() && servicesToWaitFor.isEmpty()) {
+            logger.debug("No Controller Services to update or wait for state to become DISABLED");
             return;
         }
 
         logger.debug("Disabling Controller Services with ID's {} from Process Group {}", serviceRevisions.keySet(), processGroupId);
 
-        serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.DISABLED, affectedServices.keySet());
-        serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
-        waitForControllerServiceState(processGroupId, affectedServices, ControllerServiceState.DISABLED, pause, invalidComponentAction);
+        if (!affectedServices.isEmpty()) {
+            serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.DISABLED, affectedServices.keySet());
+        }
+
+        if (!serviceRevisions.isEmpty()) {
+            serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.DISABLED, serviceRevisions);
+        }
+
+        waitForControllerServiceState(processGroupId, servicesToWaitFor, ControllerServiceState.DISABLED, pause, invalidComponentAction);
     }
 
     static List<List<ControllerServiceNode>> determineEnablingOrder(final Map<String, ControllerServiceNode> serviceNodeMap) {
@@ -386,16 +419,25 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
             boolean allReachedDesiredState = true;
             for (final ControllerServiceEntity serviceEntity : serviceEntities) {
-                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
-                if (!affectedServices.containsKey(serviceDto.getId())) {
+                if (!affectedServices.containsKey(serviceEntity.getId())) {
                     continue;
                 }
 
+                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
+                final boolean desiredStateReached = desiredStateName.equals(serviceDto.getState());
+
                 final String validationStatus = serviceDto.getValidationStatus();
-                if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
+                logger.debug("ControllerService[id={}, name={}] now has a state of {} with a Validation Status of {}; desired state = {}; invalid component action is {}; desired state reached = {}",
+                    serviceDto.getId(), serviceDto.getName(), serviceDto.getState(), validationStatus, desiredState, invalidComponentAction, desiredStateReached);
+
+                if (desiredStateReached) {
+                    continue;
+                }
+
+                // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
+                if (ControllerServiceDTO.INVALID.equalsIgnoreCase(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
-                            allReachedDesiredState = false;
                             break;
                         case SKIP:
                             continue;
@@ -405,10 +447,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                     }
                 }
 
-                if (!desiredStateName.equals(serviceDto.getState())) {
-                    allReachedDesiredState = false;
-                    break;
-                }
+                allReachedDesiredState = false;
             }
 
             if (allReachedDesiredState) {

@@ -51,8 +51,7 @@
      */
     var config = {
         urls: {
-            templates: '../nifi-api/flow/templates',
-            downloadToken: '../nifi-api/access/download-token'
+            templates: '../nifi-api/flow/templates'
         }
     };
 
@@ -204,26 +203,7 @@
      * @param {object} templateEntity     The template
      */
     var downloadTemplate = function (templateEntity) {
-        nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
-            var parameters = {};
-
-            // conditionally include the download token
-            if (!nfCommon.isBlank(downloadToken)) {
-                parameters['access_token'] = downloadToken;
-            }
-
-            // open the url
-            if ($.isEmptyObject(parameters)) {
-                window.open(templateEntity.template.uri + '/download');
-            } else {
-                window.open(templateEntity.template.uri + '/download' + '?' + $.param(parameters));
-            }
-        }).fail(function () {
-            nfDialog.showOkDialog({
-                headerText: 'Download Template',
-                dialogContent: 'Unable to generate access token for downloading content.'
-            });
-        });
+        window.open(templateEntity.template.uri + '/download');
     };
 
     return {
@@ -351,7 +331,7 @@
             ];
 
             var templatesOptions = {
-                forceFitColumns: true,
+                autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
                 enableTextSelectionOnCells: true,
                 enableCellNavigation: false,
                 enableColumnReorder: false,

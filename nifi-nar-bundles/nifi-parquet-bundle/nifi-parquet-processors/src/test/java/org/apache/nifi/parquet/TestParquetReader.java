@@ -25,14 +25,20 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.parquet.hadoop.util.HadoopOutputFile;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -40,24 +46,26 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@DisabledOnOs({ OS.WINDOWS })
 public class TestParquetReader {
 
-    private Map<PropertyDescriptor,String> readerFactoryProperties;
-    private ConfigurationContext readerFactoryConfigContext;
+    private static final String PARQUET_PATH = "src/test/resources/TestParquetReader.parquet";
+    private static final String SCHEMA_PATH = "src/test/resources/avro/user.avsc";
 
     private ParquetReader parquetReaderFactory;
     private ComponentLog componentLog;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        readerFactoryProperties = new HashMap<>();
-        readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null);
+        Map<PropertyDescriptor, String> readerFactoryProperties = new HashMap<>();
+        ConfigurationContext readerFactoryConfigContext = new MockConfigurationContext(readerFactoryProperties, null);
 
         parquetReaderFactory = new ParquetReader();
         parquetReaderFactory.abstractStoreConfigContext(readerFactoryConfigContext);
@@ -67,7 +75,7 @@ public class TestParquetReader {
 
     @Test
     public void testReadUsers() throws IOException, MalformedRecordException {
-        final Schema schema = getSchema("src/test/resources/avro/user.avsc");
+        final Schema schema = getSchema();
         final File parquetFile = new File("target/TestParquetReader-testReadUsers-" + System.currentTimeMillis());
 
         // write some users to the parquet file...
@@ -98,8 +106,28 @@ public class TestParquetReader {
         }
     }
 
-    private Schema getSchema(final String schemaFilePath) throws IOException {
-        final File schemaFile = new File(schemaFilePath);
+    @Test
+    public void testReader() throws InitializationException, IOException  {
+        final TestRunner runner = TestRunners.newTestRunner(TestParquetProcessor.class);
+
+
+        final ParquetReader parquetReader = new ParquetReader();
+
+        runner.addControllerService("reader", parquetReader);
+        runner.enableControllerService(parquetReader);
+
+        runner.enqueue(Paths.get(PARQUET_PATH));
+
+        runner.setProperty(TestParquetProcessor.READER, "reader");
+        runner.setProperty(TestParquetProcessor.PATH, PARQUET_PATH);
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
+    }
+
+
+    private Schema getSchema() throws IOException {
+        final File schemaFile = new File(SCHEMA_PATH);
         final String schemaString = IOUtils.toString(new FileInputStream(schemaFile), StandardCharsets.UTF_8);
         return new Schema.Parser().parse(schemaString);
     }
@@ -108,12 +136,9 @@ public class TestParquetReader {
         final Configuration conf = new Configuration();
         final Path parquetPath = new Path(parquetFile.getPath());
 
-        final ParquetWriter<GenericRecord> writer =
-                AvroParquetWriter.<GenericRecord>builder(parquetPath)
+        return AvroParquetWriter.<GenericRecord>builder(HadoopOutputFile.fromPath(parquetPath, conf))
                         .withSchema(schema)
                         .withConf(conf)
                         .build();
-
-        return writer;
     }
 }

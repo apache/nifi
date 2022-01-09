@@ -31,6 +31,10 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.record.sink.MockRecordSinkService;
 import org.apache.nifi.record.sink.RecordSinkService;
+import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.BulletinFactory;
+import org.apache.nifi.reporting.BulletinQuery;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -38,18 +42,21 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.sql.util.QueryMetricsUtil;
 import org.apache.nifi.reporting.util.metrics.MetricNames;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.MockBulletinRepository;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.db.JdbcProperties;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,9 +65,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestQueryNiFiReportingTask {
@@ -70,7 +79,7 @@ public class TestQueryNiFiReportingTask {
     private MockRecordSinkService mockRecordSinkService;
     private ProcessGroupStatus status;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockRecordSinkService = new MockRecordSinkService();
         status = new ProcessGroupStatus();
@@ -160,6 +169,7 @@ public class TestQueryNiFiReportingTask {
         Map<String, Object> row = rows.get(0);
         assertEquals(3, row.size()); // Only projected 2 columns
         Object id = row.get("id");
+
         assertTrue(id instanceof String);
         assertEquals("nested", id);
         assertEquals(1001, row.get("queuedCount"));
@@ -206,6 +216,7 @@ public class TestQueryNiFiReportingTask {
         assertEquals(1, rows.size());
         Map<String, Object> row = rows.get(0);
         assertEquals(11, row.size());
+
         assertTrue(row.get(MetricNames.JVM_DAEMON_THREAD_COUNT.replace(".", "_")) instanceof Integer);
         assertTrue(row.get(MetricNames.JVM_HEAP_USAGE.replace(".", "_")) instanceof Double);
     }
@@ -264,6 +275,7 @@ public class TestQueryNiFiReportingTask {
         assertEquals(0L, row.get("eventId"));
         assertEquals("CREATE", row.get("eventType"));
         assertEquals(12L, row.get("entitySize"));
+
         assertNull(row.get("contentPath"));
         assertNull(row.get("previousContentPath"));
 
@@ -289,6 +301,37 @@ public class TestQueryNiFiReportingTask {
         // Verify the last row contents
         assertEquals(1000L, row.get("eventId"));
         assertEquals("DROP", row.get("eventType"));
+    }
+
+    @Test
+    public void testBulletinTable() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
+        properties.put(QueryMetricsUtil.QUERY, "select * from BULLETINS order by bulletinTimestamp asc");
+        reportingTask = initTask(properties);
+        reportingTask.onTrigger(context);
+
+        final List<Map<String, Object>> rows = mockRecordSinkService.getRows();
+        final String flowFileUuid = "testFlowFileUuid";
+        assertEquals(3, rows.size());
+        // Validate the first row
+        Map<String, Object> row = rows.get(0);
+        assertEquals(14, row.size());
+        assertNotNull(row.get("bulletinId"));
+        assertEquals("controller", row.get("bulletinCategory"));
+        assertEquals("WARN", row.get("bulletinLevel"));
+        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
+
+        // Validate the second row
+        row = rows.get(1);
+        assertEquals("processor", row.get("bulletinCategory"));
+        assertEquals("INFO", row.get("bulletinLevel"));
+
+        // Validate the third row
+        row = rows.get(2);
+        assertEquals("controller service", row.get("bulletinCategory"));
+        assertEquals("ERROR", row.get("bulletinLevel"));
+        assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
     }
 
     private MockQueryNiFiReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
@@ -323,6 +366,9 @@ public class TestQueryNiFiReportingTask {
 
         ConfigurationContext configContext = mock(ConfigurationContext.class);
         Mockito.when(configContext.getProperty(QueryMetricsUtil.RECORD_SINK)).thenReturn(pValue);
+
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION)).thenReturn(new MockPropertyValue("10"));
+        Mockito.when(configContext.getProperty(JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE)).thenReturn(new MockPropertyValue("0"));
         reportingTask.setup(configContext);
 
         MockProvenanceRepository provenanceRepository = new MockProvenanceRepository();
@@ -370,9 +416,48 @@ public class TestQueryNiFiReportingTask {
         }
 
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
+
+        MockBulletinRepository bulletinRepository = new MockQueryBulletinRepository();
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2", "testFlowFileUuid"));
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "INFO", "test bulletin 1", "testFlowFileUuid"));
+        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller service", "ERROR", "test bulletin 2", "testFlowFileUuid"));
+        Mockito.when(context.getBulletinRepository()).thenReturn(bulletinRepository);
+
         return reportingTask;
     }
 
     private static final class MockQueryNiFiReportingTask extends QueryNiFiReportingTask {
+    }
+
+    private static class MockQueryBulletinRepository extends MockBulletinRepository {
+
+        List<Bulletin> bulletinList;
+
+
+        public MockQueryBulletinRepository() {
+            bulletinList = new ArrayList<>();
+        }
+
+        @Override
+        public void addBulletin(Bulletin bulletin) {
+            bulletinList.add(bulletin);
+        }
+
+        @Override
+        public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
+            if (bulletinQuery.getSourceType().equals(ComponentType.PROCESSOR)) {
+                return Collections.singletonList(bulletinList.get(1));
+            } else if (bulletinQuery.getSourceType().equals(ComponentType.CONTROLLER_SERVICE)) {
+                return Collections.singletonList(bulletinList.get(2));
+            } else {
+                return Collections.emptyList();
+            }
+        }
+
+        @Override
+        public List<Bulletin> findBulletinsForController() {
+            return Collections.singletonList(bulletinList.get(0));
+        }
+
     }
 }

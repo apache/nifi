@@ -156,6 +156,7 @@ public class WriteCSVResult extends AbstractRecordSetWriter implements RecordSet
         switch (fieldType) {
             case BIGINT:
             case BYTE:
+            case DECIMAL:
             case DOUBLE:
             case FLOAT:
             case LONG:

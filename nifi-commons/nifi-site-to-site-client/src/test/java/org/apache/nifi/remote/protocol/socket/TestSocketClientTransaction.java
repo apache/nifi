@@ -23,7 +23,6 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
 import org.apache.nifi.remote.io.socket.SocketInput;
 import org.apache.nifi.remote.io.socket.SocketOutput;
@@ -31,7 +30,7 @@ import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,14 +44,14 @@ import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.createDataPack
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveTwoFlowFiles;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveWithInvalidChecksum;
+import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execReceiveZeroFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendButDestinationFull;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendOneFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendTwoFlowFiles;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendWithInvalidChecksum;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.execSendZeroFlowFile;
 import static org.apache.nifi.remote.protocol.SiteToSiteTestUtils.readContents;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,12 +92,14 @@ public class TestSocketClientTransaction {
         ByteArrayInputStream bis = new ByteArrayInputStream(serverResponseBos.toByteArray());
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
 
-        try {
-            SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
-            fail();
-        } catch (final NoContentException e) {
-            assertEquals("Remote side has no flowfiles to provide", e.getMessage());
-        }
+        SocketClientTransaction transaction = getClientTransaction(bis, bos, TransferDirection.RECEIVE);
+
+        execReceiveZeroFlowFile(transaction);
+
+        // Verify what client has sent.
+        DataInputStream sentByClient = new DataInputStream(new ByteArrayInputStream(bos.toByteArray()));
+        assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
+        assertEquals(-1, sentByClient.read());
     }
 
     @Test
@@ -123,7 +124,7 @@ public class TestSocketClientTransaction {
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
-        assertEquals("Checksum should be calculated at client", "3680976076", confirmResponse.getMessage());
+        assertEquals( "3680976076", confirmResponse.getMessage(), "Checksum should be calculated at client");
         Response completeResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.TRANSACTION_FINISHED, completeResponse.getCode());
         assertEquals(-1, sentByClient.read());
@@ -156,7 +157,7 @@ public class TestSocketClientTransaction {
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
-        assertEquals("Checksum should be calculated at client", "2969091230", confirmResponse.getMessage());
+        assertEquals("2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
         Response completeResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.TRANSACTION_FINISHED, completeResponse.getCode());
         assertEquals(-1, sentByClient.read());
@@ -187,7 +188,7 @@ public class TestSocketClientTransaction {
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
-        assertEquals("Checksum should be calculated at client", "2969091230", confirmResponse.getMessage());
+        assertEquals( "2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
         assertEquals(-1, sentByClient.read());
     }
 

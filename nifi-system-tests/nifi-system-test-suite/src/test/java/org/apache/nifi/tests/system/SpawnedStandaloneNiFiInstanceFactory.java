@@ -22,6 +22,8 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -38,6 +41,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertTrue;
 
 public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory {
+    private static final Logger logger = LoggerFactory.getLogger(SpawnedStandaloneNiFiInstanceFactory.class);
     private final InstanceConfiguration instanceConfig;
 
     public SpawnedStandaloneNiFiInstanceFactory(final InstanceConfiguration instanceConfig) {
@@ -78,13 +82,17 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        public String toString() {
+            return "RunNiFiInstance[dir=" + instanceDirectory + "]";
+        }
+
         @Override
-        public void start() {
+        public void start(final boolean waitForCompletion) {
             if (runNiFi != null) {
                 throw new IllegalStateException("NiFi has already been started");
             }
 
-            System.out.println("Starting instance " + instanceDirectory.getName());
+            logger.info("Starting NiFi [{}]", instanceDirectory.getName());
 
             try {
                 this.runNiFi = new RunNiFi(bootstrapConfigFile);
@@ -94,14 +102,17 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
             try {
                 runNiFi.start(false);
-                waitForStartup();
+
+                if (waitForCompletion) {
+                    waitForStartup();
+                }
             } catch (IOException e) {
                 throw new RuntimeException("Failed to start NiFi", e);
             }
         }
 
         public void createEnvironment() throws IOException {
-            System.out.println("Creating environment for instance " + instanceDirectory.getName());
+            logger.info("Creating environment for NiFi [{}]", instanceDirectory.getName());
 
             cleanup();
 
@@ -124,6 +135,30 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             // Copy truststore
             final File destinationTruststore = new File(destinationCertsDir, "truststore.jks");
             Files.copy(Paths.get("src/test/resources/truststore.jks"), destinationTruststore.toPath());
+
+            final File flowXmlGz = instanceConfiguration.getFlowXmlGz();
+            if (flowXmlGz != null) {
+                final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
+                Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+            }
+
+            // Write out any Property overrides
+            final Map<String, String> nifiPropertiesOverrides = instanceConfiguration.getNifiPropertiesOverrides();
+            if (nifiPropertiesOverrides != null && !nifiPropertiesOverrides.isEmpty()) {
+                final File destinationNifiProperties = new File(destinationConf, "nifi.properties");
+                final File sourceNifiProperties = new File(bootstrapConfigFile.getParentFile(), "nifi.properties");
+
+                final Properties nifiProperties = new Properties();
+                try (final InputStream fis = new FileInputStream(sourceNifiProperties)) {
+                    nifiProperties.load(fis);
+                }
+
+                nifiPropertiesOverrides.forEach(nifiProperties::setProperty);
+
+                try (final OutputStream fos = new FileOutputStream(destinationNifiProperties)) {
+                    nifiProperties.store(fos, null);
+                }
+            }
         }
 
         private void copyContents(final File dir, final File destinationDir) throws IOException {
@@ -148,6 +183,13 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             }
         }
 
+        @Override
+        public void setFlowXmlGz(final File flowXmlGz) throws IOException {
+            final File destinationConf = new File(instanceDirectory, "conf");
+            final File destinationFlowXmlGz = new File(destinationConf, "flow.xml.gz");
+            destinationFlowXmlGz.delete();
+            Files.copy(flowXmlGz.toPath(), destinationFlowXmlGz.toPath());
+        }
 
         private void waitForStartup() throws IOException {
             final NiFiClient client = createClient();
@@ -155,7 +197,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             while (true) {
                 try {
                     client.getFlowClient().getRootGroupId();
-                    System.out.println("Completed startup of instance " + instanceDirectory.getName());
+                    logger.info("Startup Completed NiFi [{}]", instanceDirectory.getName());
                     return;
                 } catch (final Exception e) {
                     try {
@@ -174,11 +216,11 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                 return;
             }
 
-            System.out.println("Stopping instance " + instanceDirectory.getName());
+            logger.info("Shutdown Started NiFi [{}]", instanceDirectory.getName());
 
             try {
                 runNiFi.stop();
-                System.out.println("Completed shutdown of instance " + instanceDirectory.getName());
+                logger.info("Shutdown Completed NiFi [{}]", instanceDirectory.getName());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to stop NiFi", e);
             } finally {
@@ -248,6 +290,26 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             final File propertiesFile = new File(configDir, "nifi.properties");
             try (final OutputStream fos = new FileOutputStream(propertiesFile)) {
                 currentProperties.store(fos, "");
+            }
+        }
+
+        @Override
+        public void quarantineTroubleshootingInfo(final File destinationDir, final Throwable cause) throws IOException {
+            final String[] dirsToCopy = new String[] { "conf", "logs" };
+            for (final String dirToCopy : dirsToCopy) {
+                copyContents(new File(getInstanceDirectory(), dirToCopy), new File(destinationDir, dirToCopy));
+            }
+
+            if (runNiFi == null) {
+                logger.warn("NiFi instance is not running so will not capture diagnostics for {}", getInstanceDirectory());
+            } else {
+                final File diagnosticsFile = new File(destinationDir, "diagnostics.txt");
+                runNiFi.diagnostics(diagnosticsFile, false);
+            }
+
+            final File causeFile = new File(destinationDir, "test-failure-stack-trace.txt");
+            try (final PrintWriter printWriter = new PrintWriter(causeFile)) {
+                cause.printStackTrace(printWriter);
             }
         }
 

@@ -16,27 +16,27 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
-import org.apache.nifi.registry.security.util.KeyStoreUtils;
-import org.apache.nifi.registry.security.util.KeystoreType;
-
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.security.KeyStore;
-import java.security.SecureRandom;
+import org.apache.nifi.registry.security.util.KeyStoreUtils;
+import org.apache.nifi.registry.security.util.KeystoreType;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
  * Configuration for a NiFiClient.
  */
 public class NiFiClientConfig {
 
-    public static final String DEFAULT_PROTOCOL = "TLSv1.2";
+    public static final String DEFAULT_PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
 
     private final String baseUrl;
     private final SSLContext sslContext;
@@ -104,7 +104,7 @@ public class NiFiClientConfig {
         if (truststoreFilename != null && truststorePass != null && truststoreType != null) {
             try {
                 // prepare the truststore
-                final KeyStore trustStore = KeyStoreUtils.getTrustStore(truststoreType.name());
+                final KeyStore trustStore = KeyStoreUtils.getKeyStore(truststoreType.name());
                 try (final InputStream trustStoreStream = new FileInputStream(new File(truststoreFilename))) {
                     trustStore.load(trustStoreStream, truststorePass.toCharArray());
                 }

@@ -41,13 +41,13 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Collections;
 import java.util.Arrays;
-import java.util.Set;
-import java.util.Map;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @SeeAlso({PutAzureQueueStorage.class})
@@ -94,7 +94,7 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
             .build();
 
     private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN,
+            AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, AzureStorageUtils.ACCOUNT_NAME, AzureStorageUtils.ACCOUNT_KEY, AzureStorageUtils.PROP_SAS_TOKEN, AzureStorageUtils.ENDPOINT_SUFFIX,
             QUEUE, AUTO_DELETE, BATCH_SIZE, VISIBILITY_TIMEOUT, AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     @Override
@@ -162,16 +162,17 @@ public class GetAzureQueueStorage extends AbstractAzureQueueStorage {
         }
 
         if(autoDelete) {
-            session.commit();
-
-            for (final CloudQueueMessage message : cloudQueueMessages) {
-                try {
-                    cloudQueue.deleteMessage(message);
-                } catch (StorageException e) {
-                    getLogger().error("Failed to delete the retrieved message with the id {} from the queue due to {}",
+            session.commitAsync(() -> {
+                for (final CloudQueueMessage message : cloudQueueMessages) {
+                    try {
+                        cloudQueue.deleteMessage(message);
+                    } catch (StorageException e) {
+                        getLogger().error("Failed to delete the retrieved message with the id {} from the queue due to {}",
                             new Object[] {message.getMessageId(), e});
+                    }
                 }
-            }
+
+            });
         }
 
     }

@@ -95,7 +95,7 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().send(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
+            session.getProvenanceReporter().invokeRemoteProcess(flowFile, blob.getSnapshotQualifiedUri().toString(), "Blob deleted");
         } catch ( StorageException | URISyntaxException e) {
             getLogger().error("Failed to delete the specified blob {} from Azure Storage. Routing to failure", new Object[]{blobPath}, e);
             flowFile = session.penalize(flowFile);

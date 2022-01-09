@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -31,6 +32,10 @@ public interface ProcessorClient {
 
     ProcessorEntity startProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
 
+    ProcessorEntity runProcessorOnce(String processorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    ProcessorEntity runProcessorOnce(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
+
     ProcessorEntity stopProcessor(String processorId, String clientId, long version) throws NiFiClientException, IOException;
 
     ProcessorEntity stopProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
@@ -42,4 +47,15 @@ public interface ProcessorClient {
     ProcessorEntity deleteProcessor(String processorId, String clientId, long version) throws NiFiClientException, IOException;
 
     ProcessorEntity deleteProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity submitConfigVerificationRequest(VerifyConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity getConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyConfigRequestEntity deleteConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    /**
+     * Indicates that mutable requests should indicate that the client has acknowledged that the node is disconnected.
+     */
+    void acknowledgeDisconnectedNode();
 }

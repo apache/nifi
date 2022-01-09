@@ -16,15 +16,8 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -35,8 +28,22 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 public class BatchingSessionFactory implements ProcessSessionFactory {
+    private static final Logger logger = LoggerFactory.getLogger(BatchingSessionFactory.class);
 
     private final HighThroughputSession highThroughputSession;
 
@@ -50,7 +57,7 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
     }
 
 
-    private class HighThroughputSession implements ProcessSession {
+    private static class HighThroughputSession implements ProcessSession {
         private final StandardProcessSession session;
 
         public HighThroughputSession(final StandardProcessSession session) {
@@ -60,6 +67,28 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public void commit() {
             session.checkpoint();
+        }
+
+        @Override
+        public void commitAsync() {
+            commit();
+        }
+
+        @Override
+        public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+            try {
+                commit();
+            } catch (final Throwable t) {
+                rollback();
+                logger.error("Failed to asynchronously commit session", t);
+                onFailure.accept(t);
+            }
+
+            try {
+                onSuccess.run();
+            } catch (final Throwable t) {
+                logger.error("Successfully committed session asynchronously but failed to trigger success callback", t);
+            }
         }
 
         @Override
@@ -250,6 +279,26 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public ProvenanceReporter getProvenanceReporter() {
             return session.getProvenanceReporter();
+        }
+
+        @Override
+        public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+            session.setState(state, scope);
+        }
+
+        @Override
+        public StateMap getState(final Scope scope) throws IOException {
+            return session.getState(scope);
+        }
+
+        @Override
+        public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+            return session.replaceState(oldValue, newValue, scope);
+        }
+
+        @Override
+        public void clearState(final Scope scope) {
+            session.clearState(scope);
         }
 
         @Override

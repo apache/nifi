@@ -17,40 +17,56 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
+import org.apache.nifi.components.validation.EnablingServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -65,10 +81,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public abstract class AbstractComponentNode implements ComponentNode {
+    private static final String PERFORM_VALIDATION_STEP_NAME = "Perform Validation";
     private static final Logger logger = LoggerFactory.getLogger(AbstractComponentNode.class);
 
     private final String id;
@@ -154,32 +172,60 @@ public abstract class AbstractComponentNode implements ComponentNode {
         return getAdditionalClasspathResources((Collection<PropertyDescriptor>) propertyDescriptors);
     }
 
-    private Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
-        final Set<String> modulePaths = new LinkedHashSet<>();
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
+        return getAdditionalClasspathResources(propertyDescriptors, this::getEffectivePropertyValue);
+    }
+
+    protected Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors, final Function<PropertyDescriptor, String> effectiveValueLookup) {
+        final Set<URL> additionalUrls = new LinkedHashSet<>();
+        final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
+
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
-                final PropertyConfiguration propertyConfiguration = getProperty(descriptor);
-                final String value = propertyConfiguration == null ? null : propertyConfiguration.getEffectiveValue(getParameterContext());
+                final String value = effectiveValueLookup.apply(descriptor);
 
                 if (!StringUtils.isEmpty(value)) {
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, getParameterLookup(), variableRegistry);
-                    modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
+                    final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
+                    additionalUrls.addAll(references.asURLs());
                 }
             }
         }
 
-        final Set<URL> additionalUrls = new LinkedHashSet<>();
-        try {
-            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
-            if (urls != null) {
-                additionalUrls.addAll(Arrays.asList(urls));
-            }
-        } catch (MalformedURLException mfe) {
-            getLogger().error("Error processing classpath resources for " + id + ": " + mfe.getMessage(), mfe);
-        }
         return additionalUrls;
     }
 
+    /**
+     * Determines if the given set of properties will result in a different classpath than the currently configured set of properties
+     * @param properties the properties to analyze
+     * @return <code>true</code> if the given set of properties will require a different classpath (and therefore a different classloader) than the currently
+     *         configured set of properties
+     */
+    protected boolean isClasspathDifferent(final Map<PropertyDescriptor, String> properties) {
+        // If any property in the given map modifies classpath and is different than the currently configured value,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String value = entry.getValue();
+            final String currentlyConfiguredValue = getEffectivePropertyValue(descriptor);
+
+            if (descriptor.isDynamicClasspathModifier() && !Objects.equals(value, currentlyConfiguredValue)) {
+                return true;
+            }
+        }
+
+        // If any property in the currently configured properties modifies classpath and is not in the given set of properties,
+        // the given properties will require a different classpath.
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamicClasspathModifier() && !properties.containsKey(descriptor)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     @Override
     public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {
@@ -191,10 +237,11 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             verifyCanUpdateProperties(properties);
 
-            // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
-            // update our counts easily.
-            final ParameterParser elAgnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
-            final ParameterParser elAwareParameterParser = new ExpressionLanguageAwareParameterParser();
+            // Determine the Classloader Isolation Key, if applicable, so we can determine whether or not the key changes by setting properties.
+            final String initialIsolationKey = determineClasloaderIsolationKey();
+
+            final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+            final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(this, properties);
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
@@ -215,33 +262,27 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
-                        final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
-
                         // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to to keep track of which parameters
                         // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
                         // that we can provide to the PropertyConfiguration, so that when compiling the Expression Language Expressions, we are able to keep the Parameter Reference within
                         // the Expression's text.
-                        final ParameterTokenList updatedValueReferences = elAgnosticParameterParser.parseTokens(updatedValue);
-                        final List<ParameterReference> parameterReferences = updatedValueReferences.toReferenceList();
+                        final PropertyConfiguration propertyConfiguration = configurationMap.get(entry.getKey());
+                        final List<ParameterReference> parameterReferences = propertyConfiguration.getParameterReferences();
                         for (final ParameterReference reference : parameterReferences) {
                             // increment count in map for this parameter
                             parameterReferenceCounts.merge(reference.getParameterName(), 1, (a, b) -> a == -1 ? null : a + b);
-                        }
-
-                        final PropertyConfiguration propertyConfiguration;
-                        final boolean supportsEL = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-                        if (supportsEL) {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences);
-                        } else {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences);
                         }
 
                         setProperty(entry.getKey(), propertyConfiguration, this.properties::get);
                     }
                 }
 
+                // Determine the updated Classloader Isolation Key, if applicable.
+                final String updatedIsolationKey = determineClasloaderIsolationKey();
+                final boolean classloaderIsolationKeyChanged = !Objects.equals(initialIsolationKey, updatedIsolationKey);
+
                 // if at least one property with dynamicallyModifiesClasspath(true) was set, then reload the component with the new urls
-                if (classpathChanged) {
+                if (classpathChanged || classloaderIsolationKeyChanged) {
                     logger.info("Updating classpath for " + this.componentType + " with the ID " + this.getIdentifier());
 
                     final Set<URL> additionalUrls = getAdditionalClasspathResources(getComponent().getPropertyDescriptors());
@@ -262,6 +303,18 @@ public abstract class AbstractComponentNode implements ComponentNode {
         } finally {
             lock.unlock();
         }
+    }
+
+    protected String determineClasloaderIsolationKey() {
+        final ConfigurableComponent component = getComponent();
+        if (!(component instanceof ClassloaderIsolationKeyProvider)) {
+            return null;
+        }
+
+        final ValidationContext validationContext = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(),
+            getParameterContext(), true);
+
+        return getClassLoaderIsolationKey(validationContext);
     }
 
     public void verifyCanUpdateProperties(final Map<String, String> properties) {
@@ -298,17 +351,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         }
                     }
                 }
-            } else {
-                final ParameterContext parameterContext = getParameterContext();
-                if (parameterContext != null) {
-                    for (final ParameterReference reference : referenceList) {
-                        final Optional<Parameter> parameter = parameterContext.getParameter(reference.getParameterName());
-                        if (parameter.isPresent() && parameter.get().getDescriptor().isSensitive()) {
-                            throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference Parameter '" + parameter.get().getDescriptor().getName()
-                                + "' because Sensitive Parameters may only be referenced by Sensitive Properties.");
-                        }
-                    }
-                }
             }
 
             if (descriptor.getControllerServiceDefinition() != null) {
@@ -320,6 +362,72 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
     }
 
+    protected List<ConfigVerificationResult> verifyConfig(final Map<PropertyDescriptor, String> propertyValues, final String annotationData, final ParameterContext parameterContext) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            final long startNanos = System.nanoTime();
+
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+            for (final Map.Entry<PropertyDescriptor, String> entry : propertyValues.entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                final String rawValue = entry.getValue();
+                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
+                descriptorToConfigMap.put(descriptor, propertyConfiguration);
+            }
+
+            final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, annotationData,
+                getProcessGroupIdentifier(), getIdentifier(), parameterContext, false);
+
+            final ValidationState validationState = performValidation(validationContext);
+            final ValidationStatus validationStatus = validationState.getStatus();
+
+            if (validationStatus == ValidationStatus.INVALID) {
+                for (final ValidationResult result : validationState.getValidationErrors()) {
+                    if (result.isValid()) {
+                        continue;
+                    }
+
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid: " + result.toString())
+                        .build());
+                }
+
+                if (results.isEmpty()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                        .outcome(Outcome.FAILED)
+                        .explanation("Component is invalid but provided no Validation Results to indicate why")
+                        .build());
+                }
+
+                logger.debug("{} is not valid with the given configuration. Will not attempt to perform any additional verification of configuration. Validation took {}. Reason not valid: {}",
+                    this, results, FormatUtils.formatNanos(System.nanoTime() - startNanos, false));
+                return results;
+            }
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Component Validation passed")
+                .build());
+        } catch (final Throwable t) {
+            logger.error("Failed to perform verification of component's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(PERFORM_VALIDATION_STEP_NAME)
+                .outcome(Outcome.FAILED)
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
+    }
+
     @Override
     public Set<String> getReferencedParameterNames() {
         return Collections.unmodifiableSet(parameterReferenceCounts.keySet());
@@ -328,6 +436,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public boolean isReferencingParameter() {
         return !parameterReferenceCounts.isEmpty();
+    }
+
+    @Override
+    public Set<String> getReferencedAttributeNames() {
+        final Set<String> referencedAttributes = new HashSet<>();
+
+        for (final PropertyDescriptor descriptor : getPropertyDescriptors()) {
+            final String effectiveValue = getEffectivePropertyValue(descriptor);
+            final Set<String> attributes = Query.prepareWithParametersPreEvaluated(effectiveValue).getExplicitlyReferencedAttributes();
+            referencedAttributes.addAll(attributes);
+        }
+
+        return referencedAttributes;
     }
 
     // Keep setProperty/removeProperty private so that all calls go through setProperties
@@ -341,19 +462,21 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final PropertyConfiguration oldConfiguration = properties.put(descriptor, propertyConfiguration);
         final String effectiveValue = propertyConfiguration.getEffectiveValue(getParameterContext());
 
-        if (!propertyConfiguration.equals(oldConfiguration)) {
-            if (descriptor.getControllerServiceDefinition() != null) {
-                if (oldConfiguration != null) {
-                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(effectiveValue);
-                    if (oldNode != null) {
-                        oldNode.removeReference(this, descriptor);
-                    }
+        // If the property references a Controller Service, we need to register this component & property descriptor as a reference.
+        // If it previously referenced a Controller Service, we need to also remove that reference.
+        // It is okay if the new & old values are the same - we just unregister the component/descriptor and re-register it.
+        if (descriptor.getControllerServiceDefinition() != null) {
+            if (oldConfiguration != null) {
+                final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
+                final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
+                if (oldNode != null) {
+                    oldNode.removeReference(this, descriptor);
                 }
+            }
 
-                final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(effectiveValue);
-                if (newNode != null) {
-                    newNode.addReference(this, descriptor);
-                }
+            final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(effectiveValue);
+            if (newNode != null) {
+                newNode.addReference(this, descriptor);
             }
         }
 
@@ -362,7 +485,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // allow the newly created component's internal state to be updated.
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
-                final String oldValue = oldConfiguration == null ? null : oldConfiguration.getEffectiveValue(getParameterContext());
+                final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
                 onPropertyModified(descriptor, oldValue, effectiveValue);
             } catch (final Exception e) {
                 // nothing really to do here...
@@ -438,24 +561,26 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public Map<PropertyDescriptor, String> getRawPropertyValues() {
-        return getPropertyValues(PropertyConfiguration::getRawValue);
+        return getPropertyValues((descriptor, config) -> config.getRawValue());
     }
 
     @Override
     public Map<PropertyDescriptor, String> getEffectivePropertyValues() {
-        return getPropertyValues(config -> config.getEffectiveValue(getParameterContext()));
+        return getPropertyValues((descriptor, config) -> getConfigValue(config, isResolveParameter(descriptor, config)));
     }
 
-    private Map<PropertyDescriptor, String> getPropertyValues(final Function<PropertyConfiguration, String> valueFunction) {
+    private Map<PropertyDescriptor, String> getPropertyValues(final BiFunction<PropertyDescriptor, PropertyConfiguration, String> valueFunction) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
             final List<PropertyDescriptor> supported = getComponent().getPropertyDescriptors();
 
             final Map<PropertyDescriptor, String> props = new LinkedHashMap<>();
             for (final PropertyDescriptor descriptor : supported) {
-                props.put(descriptor, null);
+                if (descriptor != null) {
+                    props.put(descriptor, descriptor.getDefaultValue());
+                }
             }
 
-            properties.forEach((descriptor, config) -> props.put(descriptor, valueFunction.apply(config)));
+            properties.forEach((descriptor, config) -> props.put(getPropertyDescriptor(descriptor.getName()), valueFunction.apply(descriptor, config)));
             return props;
         }
     }
@@ -496,7 +621,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
     private PropertyConfiguration createPropertyConfiguration(final String value, final boolean supportsEL) {
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final ParameterTokenList references = parser.parseTokens(value);
-        return new PropertyConfiguration(value, references, references.toReferenceList());
+        final VariableImpact variableImpact = Query.prepare(value).getVariableImpact();
+        return new PropertyConfiguration(value, references, references.toReferenceList(), variableImpact);
     }
 
     /**
@@ -515,7 +641,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
-        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls);
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
         if(!StringUtils.equals(additionalResourcesFingerprint, newFingerprint)) {
             setAdditionalResourcesFingerprint(newFingerprint);
             try {
@@ -558,7 +684,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public ValidationState performValidation(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final ParameterContext parameterContext) {
-        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext);
+        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext, true);
         return performValidation(validationContext);
     }
 
@@ -637,7 +763,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final ParameterContext parameterContext = getParameterContext();
         final boolean assignedToProcessGroup = getProcessGroupIdentifier() != null;
 
+        final ConfigurableComponent component = getComponent();
         for (final PropertyDescriptor propertyDescriptor : validationContext.getProperties().keySet()) {
+            // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
+            // component's functionality.
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(propertyDescriptor, component::getPropertyDescriptor);
+            if (!dependencySatisfied) {
+                continue;
+            }
+
             final Collection<String> referencedParameters = validationContext.getReferencedParameters(propertyDescriptor.getName());
 
             if (parameterContext == null && !referencedParameters.isEmpty()) {
@@ -654,20 +788,22 @@ public abstract class AbstractComponentNode implements ComponentNode {
             for (final String paramName : referencedParameters) {
                 if (!validationContext.isParameterDefined(paramName)) {
                     results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
-                        .build());
-
-                    continue;
+                            .subject(propertyDescriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
+                            .build());
                 }
-
-                if (!validationContext.isParameterSet(paramName)) {
-                    results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
-                        .build());
+                final Optional<Parameter> parameterRef = parameterContext.getParameter(paramName);
+                if (parameterRef.isPresent()) {
+                    final ParameterDescriptor parameterDescriptor = parameterRef.get().getDescriptor();
+                    if (parameterDescriptor.isSensitive() != propertyDescriptor.isSensitive()) {
+                        results.add(new ValidationResult.Builder()
+                                .subject(propertyDescriptor.getDisplayName())
+                                .valid(false)
+                                .explanation("The property '" + propertyDescriptor.getDisplayName() + "' cannot reference Parameter '" + parameterDescriptor.getName()
+                                        + "' because the Sensitivity of the parameter does not match the Sensitivity of the property.")
+                                .build());
+                    }
                 }
             }
         }
@@ -677,14 +813,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected final Collection<ValidationResult> validateReferencedControllerServices(final ValidationContext validationContext) {
         final Set<PropertyDescriptor> propertyDescriptors = validationContext.getProperties().keySet();
-        if (propertyDescriptors == null) {
-            return Collections.emptyList();
-        }
 
+        final ConfigurableComponent component = getComponent();
         final Collection<ValidationResult> validationResults = new ArrayList<>();
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.getControllerServiceDefinition() == null) {
                 // skip properties that aren't for a controller service
+                continue;
+            }
+
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(descriptor, component::getPropertyDescriptor);
+            if (!dependencySatisfied) {
                 continue;
             }
 
@@ -710,6 +849,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             if (!controllerServiceNode.isActive()) {
                 validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+            } else if (ControllerServiceState.ENABLING == controllerServiceNode.getState()) {
+                validationResults.add(new EnablingServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
             }
         }
 
@@ -723,6 +864,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (controllerServiceApiClass.equals(ControllerService.class)) {
             return null;
         }
+
         final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
         final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
 
@@ -735,26 +877,42 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
         final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
 
-        final Bundle controllerServiceBundle = extensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+        Bundle controllerServiceBundle = extensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+        final boolean matchesApiByBundleCoordinates;
         if (controllerServiceBundle == null) {
-            return createInvalidResult(serviceId, propertyName, "Unable to find bundle for coordinate " + controllerServiceNode.getBundleCoordinate());
+            final List<Bundle> possibleBundles = extensionManager.getBundles(controllerServiceNode.getControllerServiceImplementation().getClass().getName());
+            if (possibleBundles.size() != 1) {
+                return createInvalidResult(serviceId, propertyName, "Unable to find bundle for coordinate " + controllerServiceNode.getBundleCoordinate());
+            }
+
+            controllerServiceBundle = possibleBundles.get(0);
+            matchesApiByBundleCoordinates = false;
+        } else {
+            matchesApiByBundleCoordinates = matchesApiBundleCoordinates(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
         }
+
         final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
+        if (!matchesApiByBundleCoordinates) {
+            final Class<? extends ControllerService> controllerServiceImplClass = controllerServiceNode.getControllerServiceImplementation().getClass();
+            logger.debug("Comparing methods from service api '{}' against service implementation '{}'",
+                    new Object[]{controllerServiceApiClass.getCanonicalName(), controllerServiceImplClass.getCanonicalName()});
 
-        final boolean matchesApi = matchesApi(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
+            final ControllerServiceApiMatcher controllerServiceApiMatcher = new ControllerServiceApiMatcher();
+            final boolean matchesApi = controllerServiceApiMatcher.matches(controllerServiceApiClass, controllerServiceImplClass);
 
-        if (!matchesApi) {
-            final String controllerServiceType = controllerServiceNode.getComponentType();
-            final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+            if (!matchesApi) {
+                final String controllerServiceType = controllerServiceNode.getComponentType();
+                final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
 
-            final String explanation = new StringBuilder()
-                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
-                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
-                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
-                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
-                .toString();
+                final String explanation = new StringBuilder()
+                        .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                        .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                        .toString();
 
-            return createInvalidResult(serviceId, propertyName, explanation);
+                return createInvalidResult(serviceId, propertyName, explanation);
+            }
         }
 
         return null;
@@ -776,7 +934,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * @param requiredApiCoordinate the controller service API required by the processor
      * @return true if the controller service node has the require API as an ancestor, false otherwise
      */
-    private boolean matchesApi(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
+    private boolean matchesApiBundleCoordinates(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
         // start with the coordinate of the controller service for cases where the API and service are in the same bundle
         BundleCoordinate controllerServiceDependencyCoordinate = controllerServiceImplBundle.getBundleDetails().getCoordinate();
 
@@ -815,12 +973,110 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
 
-    private void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+    protected void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getComponent().getIdentifier())) {
             getComponent().onPropertyModified(descriptor, oldValue, newValue);
         }
     }
 
+    @Override
+    public void onParametersModified(final Map<String, ParameterUpdate> updatedParameters) {
+        // If the component doesn't reference any parameters, then there's nothing to be done.
+        if (!isReferencingParameter()) {
+            return;
+        }
+
+        final ParameterLookup previousParameterLookup = createParameterLookupForPreviousValues(updatedParameters);
+
+        // For any Property that references an updated Parameter, we need to call onPropertyModified().
+        // Additionally, we need to trigger validation to run if this component is affected by the parameter update.
+        boolean componentAffected = false;
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
+            final PropertyDescriptor propertyDescriptor = entry.getKey();
+            final PropertyConfiguration configuration = entry.getValue();
+
+            // Determine if this property is affected by the Parameter Update
+            boolean propertyAffected = false;
+            final List<ParameterReference> parameterReferences = configuration.getParameterReferences();
+            for (final ParameterReference reference : parameterReferences) {
+                final String referencedParamName = reference.getParameterName();
+                if (updatedParameters.containsKey(referencedParamName)) {
+                    propertyAffected = true;
+                    componentAffected = true;
+                    break;
+                }
+            }
+
+            if (propertyAffected) {
+                final String previousValue = configuration.getEffectiveValue(previousParameterLookup);
+                final String updatedValue = configuration.getEffectiveValue(getParameterContext());
+
+                // Check if the value of the property is truly affected. It's possible that we could have a property configured as something like "#{a}#{b}"
+                // Where parameter a = "abc-" and b = "cba". The update could change a to "abc" and b to "-cba". As a result, the property value previously was "abc-cba" and still is.
+                // In such a case, we should not call onPropertyModified.
+                final boolean propertyUpdated = !Objects.equals(previousValue, updatedValue);
+                if (propertyUpdated) {
+                    try {
+                        logger.debug("Parameter Context updated, resulting in property {} of {} changing. Calling onPropertyModified().", propertyDescriptor, this);
+                        onPropertyModified(propertyDescriptor, previousValue, updatedValue);
+                    } catch (final Exception e) {
+                        // nothing really to do here...
+                        logger.error("Failed to notify {} that property {} changed", this, propertyDescriptor, e);
+                    }
+                } else {
+                    logger.debug("Parameter Context updated, and property {} of {} does reference the updated Parameters. However, the overall property value remained unchanged so will not call " +
+                        "onPropertyModified().", propertyDescriptor, this);
+                }
+            }
+        }
+
+        // If this component is affected by the Parameter change, we need to re-validate
+        if (componentAffected) {
+            logger.debug("Configuration of {} changed due to an update to Parameter Context. Resetting validation state", this);
+            resetValidationState();
+        }
+    }
+
+    private ParameterLookup createParameterLookupForPreviousValues(final Map<String, ParameterUpdate> updatedParameters) {
+        final ParameterContext currentContext = getParameterContext();
+        return new ParameterLookup() {
+            @Override
+            public Optional<Parameter> getParameter(final String parameterName) {
+                final Optional<Parameter> optionalParameter = currentContext == null ? Optional.empty() : currentContext.getParameter(parameterName);
+
+                // Check if there's an update to the parameter. If not, just return the parameter as-is.
+                final ParameterUpdate parameterUpdate = updatedParameters.get(parameterName);
+                if (parameterUpdate == null) {
+                    return optionalParameter;
+                }
+
+                // There is an update to the parameter. We want to return the previous value of the Parameter.
+                final ParameterDescriptor parameterDescriptor;
+                if (optionalParameter.isPresent()) {
+                    parameterDescriptor = optionalParameter.get().getDescriptor();
+                } else {
+                    parameterDescriptor = new ParameterDescriptor.Builder()
+                        .name(parameterName)
+                        .description("")
+                        .sensitive(true)
+                        .build();
+                }
+
+                final Parameter updatedParameter = new Parameter(parameterDescriptor, parameterUpdate.getPreviousValue());
+                return Optional.of(updatedParameter);
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return (currentContext == null || currentContext.isEmpty()) && updatedParameters.isEmpty();
+            }
+
+            @Override
+            public long getVersion() {
+                return 0;
+            }
+        };
+    }
 
     @Override
     public ValidationStatus getValidationStatus() {
@@ -967,7 +1223,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return context;
             }
 
-            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext());
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext(), true);
 
             this.validationContext = context;
             logger.debug("Updating validation context to {}", context);
@@ -1008,6 +1264,40 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected void setAdditionalResourcesFingerprint(String additionalResourcesFingerprint) {
         this.additionalResourcesFingerprint = additionalResourcesFingerprint;
+    }
+
+    // Determine whether the property value should be evaluated in terms of the parameter context or not.
+    // If the sensitivity of the property does not match the sensitivity of the parameter, the literal value will be returned
+    //
+    // Examples when SensitiveParam value = 'abc' and MY_PROP is non-sensitive:
+    // SensitiveProp            --> 'abc'
+    // NonSensitiveProp         --> '#{SensitiveParam}'
+    // context.getProperty(MY_PROP).getValue(); '#{SensitiveParam}'
+    private boolean isResolveParameter(final PropertyDescriptor descriptor, final PropertyConfiguration config) {
+        boolean okToResolve = true;
+
+        final ParameterContext context = getParameterContext();
+        if (context == null) {
+            return false;
+        }
+        for (final ParameterReference reference : config.getParameterReferences()) {
+            final String parameterName = reference.getParameterName();
+            final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
+            if (optionalParameter.isPresent()) {
+                final boolean paramIsSensitive = optionalParameter.get().getDescriptor().isSensitive();
+                if (paramIsSensitive != descriptor.isSensitive()) {
+                    okToResolve = false;
+                    break;
+                }
+            }
+        }
+        return okToResolve;
+    }
+
+    // Evaluates the parameter value if it is ok to do so, otherwise return the raw "${param}" literal.
+    // This is done to prevent evaluation of a sensitive parameter when setting a non-sensitive property.
+    private String getConfigValue(final PropertyConfiguration config, final boolean okToResolve) {
+        return okToResolve ? config.getEffectiveValue(getParameterContext()) : config.getRawValue();
     }
 
     protected abstract ParameterContext getParameterContext();

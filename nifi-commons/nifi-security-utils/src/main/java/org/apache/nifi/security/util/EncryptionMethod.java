@@ -26,6 +26,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  */
 public enum EncryptionMethod {
 
+    // TODO: Reorder so keyed ciphers are first moving forward (default PD value, sorting, etc.)
     MD5_128AES("PBEWITHMD5AND128BITAES-CBC-OPENSSL", "BC", false, false),
     MD5_192AES("PBEWITHMD5AND192BITAES-CBC-OPENSSL", "BC", true, false),
     MD5_256AES("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", true, false),
@@ -48,7 +49,8 @@ public enum EncryptionMethod {
     SHA_TWOFISH("PBEWITHSHAANDTWOFISH-CBC", "BC", false, false),
     PGP("PGP", "BC", false, false),
     PGP_ASCII_ARMOR("PGP-ASCII-ARMOR", "BC", false, false),
-    // New encryption methods which used keyed encryption
+    // AES/CBC/NoPadding supported for decryption
+    AES_CBC_NO_PADDING("AES/CBC/NoPadding", "BC", false, true),
     AES_CBC("AES/CBC/PKCS7Padding", "BC", false, true),
     AES_CTR("AES/CTR/NoPadding", "BC", false, true),
     AES_GCM("AES/GCM/NoPadding", "BC", false, true);

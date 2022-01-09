@@ -23,7 +23,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.DecimalNode;
 
+import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
@@ -59,7 +61,16 @@ public class JsonSchemaInference extends HierarchicalSchemaInference<JsonNode> {
             if (jsonNode.isBigInteger()) {
                 return RecordFieldType.BIGINT.getDataType();
             }
-            return RecordFieldType.LONG.getDataType();
+            if (jsonNode.isLong()) {
+                return RecordFieldType.LONG.getDataType();
+            }
+            return RecordFieldType.INT.getDataType();
+        }
+
+        if (jsonNode.isBigDecimal()) {
+            final DecimalNode decimalNode = (DecimalNode) jsonNode;
+            final BigDecimal value = decimalNode.getDecimalValue();
+            return RecordFieldType.DECIMAL.getDecimalDataType(value.precision(), value.scale());
         }
 
         if (jsonNode.isFloatingPointNumber()) {

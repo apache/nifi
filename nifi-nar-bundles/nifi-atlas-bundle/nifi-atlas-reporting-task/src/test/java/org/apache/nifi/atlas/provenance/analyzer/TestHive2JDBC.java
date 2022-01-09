@@ -21,7 +21,7 @@ import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.NiFiProvenanceEventAnalyzerFactory;
-import org.apache.nifi.atlas.resolver.ClusterResolvers;
+import org.apache.nifi.atlas.resolver.NamespaceResolvers;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.junit.Test;
@@ -50,17 +50,17 @@ public class TestHive2JDBC {
     @Test
     public void testDatabaseLineage() {
         final String processorName = "PutHiveQL";
-        final String transitUri = "jdbc:hive2://0.example.com:10000/databaseA";
+        final String transitUri = "jdbc:hive2://0.example.com:10000/database_A";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
         when(record.getComponentType()).thenReturn(processorName);
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -70,8 +70,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_db", ref.getTypeName());
-        assertEquals("databaseA", ref.get(ATTR_NAME));
-        assertEquals("databaseA@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("database_a", ref.get(ATTR_NAME));
+        assertEquals("database_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -81,20 +81,20 @@ public class TestHive2JDBC {
     @Test
     public void testTableLineage() {
         final String processorName = "PutHiveQL";
-        final String transitUri = "jdbc:hive2://0.example.com:10000/databaseA";
+        final String transitUri = "jdbc:hive2://0.example.com:10000/database_A";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
         when(record.getComponentType()).thenReturn(processorName);
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
         // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
-        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("table_A1, table_A2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_B.table_B1");
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -103,8 +103,8 @@ public class TestHive2JDBC {
         assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
-        expectedInputRefs.put("databaseA.tableA1@cluster1", "tableA1");
-        expectedInputRefs.put("databaseA.tableA2@cluster1", "tableA2");
+        expectedInputRefs.put("database_a.table_a1@namespace1", "table_a1");
+        expectedInputRefs.put("database_a.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
             assertTrue(expectedInputRefs.containsKey(qName));
@@ -114,8 +114,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableB1", ref.get(ATTR_NAME));
-        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_b1", ref.get(ATTR_NAME));
+        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -131,14 +131,14 @@ public class TestHive2JDBC {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
         // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
-        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("table_A1, table_A2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_B.table_B1");
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -147,8 +147,8 @@ public class TestHive2JDBC {
         assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
-        expectedInputRefs.put("default.tableA1@cluster1", "tableA1");
-        expectedInputRefs.put("default.tableA2@cluster1", "tableA2");
+        expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
+        expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
             assertTrue(expectedInputRefs.containsKey(qName));
@@ -158,8 +158,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableB1", ref.get(ATTR_NAME));
-        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_b1", ref.get(ATTR_NAME));
+        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -174,14 +174,14 @@ public class TestHive2JDBC {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
         // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
-        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("table_A1, table_A2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_B.table_B1");
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(matches(".+\\.example\\.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -190,8 +190,8 @@ public class TestHive2JDBC {
         assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
-        expectedInputRefs.put("default.tableA1@cluster1", "tableA1");
-        expectedInputRefs.put("default.tableA2@cluster1", "tableA2");
+        expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
+        expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
             assertTrue(expectedInputRefs.containsKey(qName));
@@ -201,8 +201,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableB1", ref.get(ATTR_NAME));
-        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_b1", ref.get(ATTR_NAME));
+        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -219,14 +219,14 @@ public class TestHive2JDBC {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
         // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
-        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("table_A1, table_A2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_B.table_B1");
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"), eq("2.example.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"), eq("2.example.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -235,8 +235,8 @@ public class TestHive2JDBC {
         assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
-        expectedInputRefs.put("default.tableA1@cluster1", "tableA1");
-        expectedInputRefs.put("default.tableA2@cluster1", "tableA2");
+        expectedInputRefs.put("default.table_a1@namespace1", "table_a1");
+        expectedInputRefs.put("default.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
             assertTrue(expectedInputRefs.containsKey(qName));
@@ -246,8 +246,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableB1", ref.get(ATTR_NAME));
-        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_b1", ref.get(ATTR_NAME));
+        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
@@ -262,14 +262,14 @@ public class TestHive2JDBC {
         when(record.getTransitUri()).thenReturn(transitUri);
         when(record.getEventType()).thenReturn(ProvenanceEventType.SEND);
         // E.g. insert into databaseB.tableB1 select something from tableA1 a1 inner join tableA2 a2 where a1.id = a2.id
-        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("tableA1, tableA2");
-        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("databaseB.tableB1");
+        when(record.getAttribute(ATTR_INPUT_TABLES)).thenReturn("table_A1, table_A2");
+        when(record.getAttribute(ATTR_OUTPUT_TABLES)).thenReturn("database_B.table_B1");
 
-        final ClusterResolvers clusterResolvers = Mockito.mock(ClusterResolvers.class);
-        when(clusterResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"))).thenReturn("cluster1");
+        final NamespaceResolvers namespaceResolvers = Mockito.mock(NamespaceResolvers.class);
+        when(namespaceResolvers.fromHostNames(eq("0.example.com"), eq("1.example.com"))).thenReturn("namespace1");
 
         final AnalysisContext context = Mockito.mock(AnalysisContext.class);
-        when(context.getClusterResolver()).thenReturn(clusterResolvers);
+        when(context.getNamespaceResolver()).thenReturn(namespaceResolvers);
 
         final NiFiProvenanceEventAnalyzer analyzer = NiFiProvenanceEventAnalyzerFactory.getAnalyzer(processorName, transitUri, record.getEventType());
         assertNotNull(analyzer);
@@ -278,8 +278,8 @@ public class TestHive2JDBC {
         assertEquals(2, refs.getInputs().size());
         // QualifiedName : Name
         final Map<String, String> expectedInputRefs = new HashMap<>();
-        expectedInputRefs.put("some_database.tableA1@cluster1", "tableA1");
-        expectedInputRefs.put("some_database.tableA2@cluster1", "tableA2");
+        expectedInputRefs.put("some_database.table_a1@namespace1", "table_a1");
+        expectedInputRefs.put("some_database.table_a2@namespace1", "table_a2");
         for (Referenceable ref : refs.getInputs()) {
             final String qName = (String) ref.get(ATTR_QUALIFIED_NAME);
             assertTrue(expectedInputRefs.containsKey(qName));
@@ -289,8 +289,8 @@ public class TestHive2JDBC {
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
         assertEquals("hive_table", ref.getTypeName());
-        assertEquals("tableB1", ref.get(ATTR_NAME));
-        assertEquals("databaseB.tableB1@cluster1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("table_b1", ref.get(ATTR_NAME));
+        assertEquals("database_b.table_b1@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
 }

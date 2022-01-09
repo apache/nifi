@@ -17,9 +17,8 @@
 
 package org.apache.nifi.wali;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.wali.DummyRecord;
 import org.wali.DummyRecordSerde;
 import org.wali.SerDeFactory;
@@ -43,15 +42,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLengthDelimitedJournal {
     private final File journalFile = new File("target/testLengthDelimitedJournal/testJournal.journal");
@@ -60,7 +61,7 @@ public class TestLengthDelimitedJournal {
     private ObjectPool<ByteArrayDataOutputStream> streamPool;
     private static final int BUFFER_SIZE = 4096;
 
-    @Before
+    @BeforeEach
     public void setupJournal() throws IOException {
         Files.deleteIfExists(journalFile.toPath());
 
@@ -216,28 +217,14 @@ public class TestLengthDelimitedJournal {
 
             final DummyRecord thirdRecord = new DummyRecord("1", UpdateType.UPDATE);
             final RecordLookup<DummyRecord> lookup = key -> secondRecord;
-            try {
-                journal.update(Collections.singleton(thirdRecord), lookup);
-                Assert.fail("Expected IOException");
-            } catch (final IOException ioe) {
-                // expected
-            }
+            assertThrows(IOException.class, () -> journal.update(Collections.singleton(thirdRecord), lookup));
 
             serde.setThrowIOEAfterNSerializeEdits(-1);
 
             final Collection<DummyRecord> records = Collections.singleton(thirdRecord);
             for (int i = 0; i < 10; i++) {
-                try {
-                    journal.update(records, lookup);
-                    Assert.fail("Expected IOException");
-                } catch (final IOException expected) {
-                }
-
-                try {
-                    journal.fsync();
-                    Assert.fail("Expected IOException");
-                } catch (final IOException expected) {
-                }
+                assertThrows(IOException.class, () -> journal.update(records, lookup));
+                assertThrows(IOException.class, () -> journal.fsync());
             }
         }
     }
@@ -257,28 +244,14 @@ public class TestLengthDelimitedJournal {
 
             final DummyRecord thirdRecord = new DummyRecord("1", UpdateType.UPDATE);
             final RecordLookup<DummyRecord> lookup = key -> secondRecord;
-            try {
-                journal.update(Collections.singleton(thirdRecord), lookup);
-                Assert.fail("Expected OOME");
-            } catch (final OutOfMemoryError oome) {
-                // expected
-            }
+            assertThrows(OutOfMemoryError.class, () ->journal.update(Collections.singleton(thirdRecord), lookup));
 
             serde.setThrowOOMEAfterNSerializeEdits(-1);
 
             final Collection<DummyRecord> records = Collections.singleton(thirdRecord);
             for (int i = 0; i < 10; i++) {
-                try {
-                    journal.update(records, lookup);
-                    Assert.fail("Expected IOException");
-                } catch (final IOException expected) {
-                }
-
-                try {
-                    journal.fsync();
-                    Assert.fail("Expected IOException");
-                } catch (final IOException expected) {
-                }
+                assertThrows(IOException.class, () -> journal.update(records, lookup));
+                assertThrows(IOException.class, () -> journal.fsync());
             }
         }
     }
@@ -480,12 +453,12 @@ public class TestLengthDelimitedJournal {
         // the BADOS will sleep for 1 second before writing. This allwos other threads to trigger corruption in the repo in the meantime.
         final ByteArrayDataOutputStream pausingBados = new ByteArrayDataOutputStream(4096) {
             private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             public ByteArrayOutputStream getByteArrayOutputStream() {
                 // Pause only on the second iteration.
-                if (count++ == 1) {
+                if (count.getAndIncrement() == 1) {
                     try {
                         Thread.sleep(1000L);
                     } catch (final InterruptedException ie) {
@@ -503,11 +476,11 @@ public class TestLengthDelimitedJournal {
 
 
         final Supplier<ByteArrayDataOutputStream> badosSupplier = new Supplier<ByteArrayDataOutputStream>() {
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             public ByteArrayDataOutputStream get() {
-                if (count++ == 0) {
+                if (count.getAndIncrement() == 0) {
                     return pausingBados;
                 }
 
@@ -525,11 +498,11 @@ public class TestLengthDelimitedJournal {
         final Thread[] threads = new Thread[2];
 
         final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<DummyRecord>(journalFile, serdeFactory, corruptingStreamPool, 0L) {
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             protected void poison(final Throwable t)  {
-                if (count++ == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
+                if (count.getAndIncrement() == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
                     try {
                         Thread.sleep(3000L);
                     } catch (InterruptedException e) {

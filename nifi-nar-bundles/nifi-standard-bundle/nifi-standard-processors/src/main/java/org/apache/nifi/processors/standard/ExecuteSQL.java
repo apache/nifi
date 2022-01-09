@@ -41,10 +41,10 @@ import org.apache.nifi.processors.standard.sql.DefaultAvroSqlWriter;
 import org.apache.nifi.processors.standard.sql.SqlWriter;
 import org.apache.nifi.util.db.JdbcCommon;
 
-import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_PRECISION;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_SCALE;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
+import static org.apache.nifi.util.db.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 import static org.apache.nifi.util.db.AvroUtil.CodecType;
 
 @EventDriven
@@ -134,6 +134,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
         pds.add(FETCH_SIZE);
+        pds.add(AUTO_COMMIT);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -141,7 +142,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
         final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final String codec = context.getProperty(COMPRESSION_FORMAT).getValue();

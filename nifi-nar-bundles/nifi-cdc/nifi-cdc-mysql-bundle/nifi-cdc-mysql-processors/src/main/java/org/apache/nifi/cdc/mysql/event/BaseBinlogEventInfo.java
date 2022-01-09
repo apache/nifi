@@ -25,11 +25,17 @@ public class BaseBinlogEventInfo extends BaseEventInfo implements BinlogEventInf
 
     private String binlogFilename;
     private Long binlogPosition;
+    private String binlogGtidSet;
 
     public BaseBinlogEventInfo(String eventType, Long timestamp, String binlogFilename, Long binlogPosition) {
         super(eventType, timestamp);
         this.binlogFilename = binlogFilename;
         this.binlogPosition = binlogPosition;
+    }
+
+    public BaseBinlogEventInfo(String eventType, Long timestamp, String binlogGtidSet) {
+        super(eventType, timestamp);
+        this.binlogGtidSet = binlogGtidSet;
     }
 
     public String getBinlogFilename() {
@@ -38,5 +44,9 @@ public class BaseBinlogEventInfo extends BaseEventInfo implements BinlogEventInf
 
     public Long getBinlogPosition() {
         return binlogPosition;
+    }
+
+    public String getBinlogGtidSet() {
+        return binlogGtidSet;
     }
 }

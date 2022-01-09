@@ -37,7 +37,6 @@ import org.apache.nifi.provenance.lineage.EventNode;
 import org.apache.nifi.provenance.lineage.LineageEdge;
 import org.apache.nifi.provenance.lineage.LineageNode;
 import org.apache.nifi.reporting.EventAccess;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.state.MockStateManager;
@@ -76,8 +75,8 @@ import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_NIFI_UR
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_PASSWORD;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_URLS;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.ATLAS_USER;
+import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY;
 import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.LINEAGE_STRATEGY_COMPLETE_PATH;
-import static org.apache.nifi.atlas.reporting.ReportLineageToAtlas.NIFI_LINEAGE_STRATEGY;
 import static org.apache.nifi.atlas.reporting.SimpleProvenanceRecord.pr;
 import static org.apache.nifi.provenance.ProvenanceEventType.ATTRIBUTES_MODIFIED;
 import static org.apache.nifi.provenance.ProvenanceEventType.CREATE;
@@ -423,7 +422,7 @@ public class ITReportLineageToAtlas {
         }
     }
 
-    private void test(TestConfiguration tc) throws InitializationException, IOException {
+    private void test(TestConfiguration tc) throws Exception {
         final ReportLineageToAtlas reportingTask = new ReportLineageToAtlas();
         final MockComponentLog logger = new MockComponentLog("reporting-task-id", reportingTask);
 
@@ -778,7 +777,7 @@ public class ITReportLineageToAtlas {
     @Test
     public void testS2SSendComplete() throws Exception {
         final TestConfiguration tc = new TestConfiguration("S2SSend");
-        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+        tc.properties.put(LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
 
         testS2SSend(tc);
 
@@ -837,7 +836,7 @@ public class ITReportLineageToAtlas {
     @Test
     public void testS2SSendCompleteRAW() throws Exception {
         final TestConfiguration tc = new TestConfiguration("S2SSendRAW");
-        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+        tc.properties.put(LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
 
         testS2SSendRAW(tc);
 
@@ -1294,7 +1293,7 @@ public class ITReportLineageToAtlas {
     @Test
     public void testSimpleEventLevelCompletePath() throws Exception {
         final TestConfiguration tc = new TestConfiguration("SimpleEventLevel");
-        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+        tc.properties.put(LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
         final ProvenanceRecords prs = tc.provenanceRecords;
 
         String flowFileUUIDA = "A0000000-0000-0000";
@@ -1339,7 +1338,7 @@ public class ITReportLineageToAtlas {
     @Test
     public void testMergedEvents() throws Exception {
         final TestConfiguration tc = new TestConfiguration("MergedEvents");
-        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+        tc.properties.put(LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
         final ProvenanceRecords prs = tc.provenanceRecords;
         final String flowFileUUIDA = "A0000000-0000-0000";
         final String flowFileUUIDB = "B0000000-0000-0000";
@@ -1422,7 +1421,7 @@ public class ITReportLineageToAtlas {
     @Test
     public void testRecordAndDataSetLevel() throws Exception {
         final TestConfiguration tc = new TestConfiguration("RecordAndDataSetLevel");
-        tc.properties.put(NIFI_LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
+        tc.properties.put(LINEAGE_STRATEGY, LINEAGE_STRATEGY_COMPLETE_PATH.getValue());
         final ProvenanceRecords prs = tc.provenanceRecords;
 
         // Publish part

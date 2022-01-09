@@ -21,8 +21,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -32,85 +36,80 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockComponentLog;
-import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestParquetRecordSetWriter {
+
+    private static final String SCHEMA_PATH = "src/test/resources/avro/user.avsc";
+
+    private static final int USERS = 10;
 
     private ComponentLog componentLog;
     private ParquetRecordSetWriter recordSetWriterFactory;
 
-    @Before
+    @BeforeEach
     public void setup() {
         recordSetWriterFactory = new ParquetRecordSetWriter();
         componentLog = new MockComponentLog("1234", recordSetWriterFactory);
     }
 
     @Test
-    public void testWriteUsers() throws IOException, SchemaNotFoundException {
-        initRecordSetWriter("src/test/resources/avro/user.avsc");
-
-        // get the schema from the writer factory
+    public void testWriteUsers() throws IOException, SchemaNotFoundException, InitializationException {
+        initRecordSetWriter();
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
-
-        // write some records
-        final int numUsers = 10;
         final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
-
-        // write some records...
-        writeUsers(writeSchema, parquetFile, numUsers);
-
-        // read the records back in to verify
-        verifyParquetRecords(parquetFile, numUsers);
+        writeUsers(writeSchema, parquetFile);
+        verifyParquetRecords(parquetFile);
     }
 
     @Test
-    public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException {
-        initRecordSetWriter("src/test/resources/avro/user.avsc");
-
-        // get the schema from the writer factory
+    public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException, InitializationException {
+        initRecordSetWriter();
         final RecordSchema writeSchema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null);
         final RecordSchema writeSchemaWithOtherFormat = new SimpleRecordSchema(writeSchema.getFields(), null, "OTHER-FORMAT", SchemaIdentifier.EMPTY);
-
-        // write some records
-        final int numUsers = 10;
         final File parquetFile = new File("target/testWriterUsers-" + System.currentTimeMillis());
-
-        // write some records...
-        writeUsers(writeSchemaWithOtherFormat, parquetFile, numUsers);
-
-        // read the records back in to verify
-        verifyParquetRecords(parquetFile, numUsers);
+        writeUsers(writeSchemaWithOtherFormat, parquetFile);
+        verifyParquetRecords(parquetFile);
     }
 
-    private void initRecordSetWriter(final String schemaFile) throws IOException {
-        final ConfigurationContext configurationContext = getConfigurationContextWithSchema(schemaFile);
+    private void initRecordSetWriter() throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        // simulate enabling the service
-        recordSetWriterFactory.onEnabled(configurationContext);
-        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
-        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+        runner.addControllerService("writer", recordSetWriterFactory);
+
+        final File schemaFile = new File(SCHEMA_PATH);
+        final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
+        properties.forEach((k, v) -> runner.setProperty(recordSetWriterFactory, k, v));
+
+        runner.enableControllerService(recordSetWriterFactory);
     }
 
-    private void writeUsers(final RecordSchema writeSchema, final File parquetFile, final int numUsers) throws IOException {
+    private void writeUsers(final RecordSchema writeSchema, final File parquetFile) throws IOException {
         try(final OutputStream output = new FileOutputStream(parquetFile);
             final RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(componentLog, writeSchema, output, Collections.emptyMap())) {
-            for (int i = 0; i < numUsers; i++) {
+            for (int i = 0; i < USERS; i++) {
                 final Map<String, Object> userFields = new HashMap<>();
                 userFields.put("name", "user" + i);
                 userFields.put("favorite_number", i);
@@ -124,7 +123,7 @@ public class TestParquetRecordSetWriter {
         }
     }
 
-    private void verifyParquetRecords(final File parquetFile, final int expectedRecordCount) throws IOException {
+    private void verifyParquetRecords(final File parquetFile) throws IOException {
         final Configuration conf = new Configuration();
         final Path path = new Path(parquetFile.getPath());
         final InputFile inputFile = HadoopInputFile.fromPath(path, conf);
@@ -136,18 +135,12 @@ public class TestParquetRecordSetWriter {
             while(reader.read() != null) {
                 recordCount++;
             }
-            assertEquals(expectedRecordCount, recordCount);
+            assertEquals(USERS, recordCount);
         }
     }
 
-    private ConfigurationContext getConfigurationContextWithSchema(String schemaPath) throws IOException {
-        final File schemaFile = new File(schemaPath);
-        final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
-        return new MockConfigurationContext(properties, null);
-    }
-
     private Map<PropertyDescriptor,String> createPropertiesWithSchema(final File schemaFile) throws IOException {
-        return createPropertiesWithSchema(IOUtils.toString(schemaFile.toURI()));
+        return createPropertiesWithSchema(IOUtils.toString(schemaFile.toURI(), StandardCharsets.UTF_8));
     }
 
     private Map<PropertyDescriptor,String> createPropertiesWithSchema(final String schemaText) {

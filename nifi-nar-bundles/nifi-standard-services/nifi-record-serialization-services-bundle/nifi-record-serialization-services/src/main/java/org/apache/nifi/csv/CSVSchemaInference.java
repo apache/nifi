@@ -50,12 +50,20 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
         while (true) {
             final CSVRecordAndFieldNames recordAndFieldNames = recordSource.next();
             if (recordAndFieldNames == null) {
+                // If there are no records, assume the datatypes of all fields are strings
+                if (typeMap.isEmpty()) {
+                    if (recordSource instanceof CSVRecordSource) {
+                        CSVRecordSource csvRecordSource = (CSVRecordSource) recordSource;
+                        for (String fieldName : csvRecordSource.getFieldNames()) {
+                            typeMap.put(fieldName, new FieldTypeInference());
+                        }
+                    }
+                }
                 break;
             }
 
             inferSchema(recordAndFieldNames, typeMap);
         }
-
         return createSchema(typeMap);
     }
 
@@ -89,6 +97,11 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
             if (value.contains(".")) {
                 try {
                     final double doubleValue = Double.parseDouble(value);
+
+                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
+                        return RecordFieldType.DECIMAL.getDecimalDataType(value.length() - 1, value.length() - 1 - value.indexOf("."));
+                    }
+
                     if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
                         return RecordFieldType.DOUBLE.getDataType();
                     }

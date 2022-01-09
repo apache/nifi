@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.controller;
 
-import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.parameter.StandardParameterTokenList;
@@ -27,24 +28,30 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class PropertyConfiguration {
-    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList());
+    public static PropertyConfiguration EMPTY = new PropertyConfiguration(null, new StandardParameterTokenList(null, Collections.emptyList()), Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
 
     private final String rawValue;
     private final ParameterTokenList parameterTokenList;
     private final List<ParameterReference> parameterReferences;
+    private final VariableImpact variableImpact;
     private final AtomicReference<ComputedEffectiveValue> effectiveValue = new AtomicReference<>();
 
-    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList, final List<ParameterReference> parameterReferences) {
+    public PropertyConfiguration(final String rawValue, final ParameterTokenList tokenList, final List<ParameterReference> parameterReferences, final VariableImpact variableImpact) {
         this.rawValue = rawValue;
         this.parameterTokenList = tokenList;
         this.parameterReferences = parameterReferences;
+        this.variableImpact = variableImpact;
+    }
+
+    public VariableImpact getVariableImpact() {
+        return variableImpact;
     }
 
     public String getRawValue() {
         return rawValue;
     }
 
-    public String getEffectiveValue(final ParameterContext parameterContext) {
+    public String getEffectiveValue(final ParameterLookup parameterLookup) {
         if (rawValue == null) {
             return null;
         }
@@ -57,12 +64,12 @@ public class PropertyConfiguration {
         // cache the Effective Value because we may have a different Parameter Context. So, we cache a Tuple of
         // the Parameter Context and the effective value for that Parameter Context.
         final ComputedEffectiveValue computedEffectiveValue = effectiveValue.get();
-        if (computedEffectiveValue != null && computedEffectiveValue.matches(parameterContext)) {
+        if (computedEffectiveValue != null && computedEffectiveValue.matches(parameterLookup)) {
             return computedEffectiveValue.getValue();
         }
 
-        final String substituted = parameterTokenList.substitute(parameterContext);
-        final ComputedEffectiveValue updatedValue = new ComputedEffectiveValue(parameterContext, substituted);
+        final String substituted = parameterTokenList.substitute(parameterLookup);
+        final ComputedEffectiveValue updatedValue = new ComputedEffectiveValue(parameterLookup, substituted);
         effectiveValue.compareAndSet(computedEffectiveValue, updatedValue);
         return substituted;
     }
@@ -96,13 +103,13 @@ public class PropertyConfiguration {
 
 
     public static class ComputedEffectiveValue {
-        private final ParameterContext parameterContext;
+        private final ParameterLookup parameterLookup;
         private final long contextVersion;
         private final String value;
 
-        public ComputedEffectiveValue(final ParameterContext parameterContext, final String value) {
-            this.parameterContext = parameterContext;
-            this.contextVersion = parameterContext == null ? -1 : parameterContext.getVersion();
+        public ComputedEffectiveValue(final ParameterLookup parameterLookup, final String value) {
+            this.parameterLookup = parameterLookup;
+            this.contextVersion = parameterLookup == null ? -1 : parameterLookup.getVersion();
             this.value = value;
         }
 
@@ -110,16 +117,16 @@ public class PropertyConfiguration {
             return value;
         }
 
-        public boolean matches(final ParameterContext context) {
-            if (!Objects.equals(context, this.parameterContext)) {
+        public boolean matches(final ParameterLookup parameterLookup) {
+            if (!Objects.equals(parameterLookup, this.parameterLookup)) {
                 return false;
             }
 
-            if (context == null) {
+            if (parameterLookup == null) {
                 return true;
             }
 
-            return context.getVersion() == contextVersion;
+            return parameterLookup.getVersion() == contextVersion;
         }
     }
 }

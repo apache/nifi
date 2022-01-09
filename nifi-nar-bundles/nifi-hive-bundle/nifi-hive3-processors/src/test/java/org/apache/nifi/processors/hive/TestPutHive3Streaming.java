@@ -26,6 +26,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
@@ -47,20 +48,17 @@ import org.apache.hive.streaming.StubSerializationError;
 import org.apache.hive.streaming.StubStreamingIOFailure;
 import org.apache.hive.streaming.StubTransactionError;
 import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -76,7 +74,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -92,7 +92,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -105,19 +104,18 @@ import java.util.function.BiFunction;
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.KERBEROS_CREDENTIALS_SERVICE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -136,6 +134,11 @@ public class TestPutHive3Streaming {
     private UserGroupInformation ugi;
     private Schema schema;
 
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
+
     @Before
     public void setUp() throws Exception {
 
@@ -151,7 +154,7 @@ public class TestPutHive3Streaming {
         System.setProperty("java.security.krb5.kdc", "nifi.kdc");
 
         ugi = null;
-        processor = new MockPutHive3Streaming();
+        processor = new MockPutHive3Streaming(ugi);
         hiveConfigurator = mock(HiveConfigurator.class);
         hiveConf = new HiveConf();
         when(hiveConfigurator.getConfigurationFromFiles(anyString())).thenReturn(hiveConf);
@@ -262,14 +265,16 @@ public class TestPutHive3Streaming {
     }
 
     @Test
-    public void testUgiGetsCleared() throws Exception {
+    public void testUgiAndKerberosUserGetsCleared() throws Exception {
         configure(processor, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         processor.ugi = mock(UserGroupInformation.class);
+        processor.kerberosUserReference.set(mock(KerberosUser.class));
         runner.run();
         assertNull(processor.ugi);
+        assertNull(processor.kerberosUserReference.get());
     }
 
     @Test
@@ -279,14 +284,17 @@ public class TestPutHive3Streaming {
         KerberosCredentialsService kcs = new MockKerberosCredentialsService();
         runner.addControllerService("kcs", kcs);
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
+        runner.setProperty(kcs, MockKerberosCredentialsService.PRINCIPAL, "test");
+        runner.setProperty(kcs, MockKerberosCredentialsService.KEYTAB, "src/test/resources/core-site-security.xml");
         runner.enableControllerService(kcs);
         ugi = mock(UserGroupInformation.class);
-        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        when(hiveConfigurator.authenticate(eq(hiveConf), any(KerberosUser.class))).thenReturn(ugi);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHive3Streaming.DB_NAME, "default");
         runner.setProperty(PutHive3Streaming.TABLE_NAME, "users");
         runner.enqueue(new byte[0]);
         runner.run();
+        verify(hiveConfigurator, times(1)).authenticate(eq(hiveConf), any(KerberosUser.class));
     }
 
     @Test(expected = AssertionError.class)
@@ -298,8 +306,10 @@ public class TestPutHive3Streaming {
         runner.setProperty(PutHive3Streaming.HIVE_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml, src/test/resources/hive-site-security.xml");
 
         hiveConf.set(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION, SecurityUtil.KERBEROS);
-        KerberosCredentialsService kcs = new MockKerberosCredentialsService(null, null);
+        KerberosCredentialsService kcs = new MockKerberosCredentialsService();
         runner.addControllerService("kcs", kcs);
+        runner.setProperty(kcs, MockKerberosCredentialsService.PRINCIPAL, "test");
+        runner.setProperty(kcs, MockKerberosCredentialsService.KEYTAB, "src/test/resources/core-site-security.xml");
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
         runner.enableControllerService(kcs);
         runner.assertNotValid();
@@ -376,10 +386,7 @@ public class TestPutHive3Streaming {
         runner.run();
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
-        assertThat(
-                runner.getLogger().getErrorMessages(),
-                hasItem(hasProperty("msg", containsString("Exception while trying to stream {} to hive - routing to failure")))
-        );
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -413,10 +420,7 @@ public class TestPutHive3Streaming {
         runner.run();
 
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
-        assertThat(
-                runner.getLogger().getErrorMessages(),
-                hasItem(hasProperty("msg", containsString("Failed to create {} for {} - routing to failure")))
-        );
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -487,10 +491,7 @@ public class TestPutHive3Streaming {
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
         runner.assertTransferCount(PutHive3Streaming.REL_RETRY, 0);
-        assertThat(
-                runner.getLogger().getErrorMessages(),
-                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
-        );
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -603,10 +604,7 @@ public class TestPutHive3Streaming {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutHive3Streaming.REL_FAILURE).get(0);
         assertEquals("0", flowFile.getAttribute(HIVE_STREAMING_RECORD_COUNT_ATTR));
         assertEquals("default.users", flowFile.getAttribute(ATTR_OUTPUT_TABLES));
-        assertThat(
-                runner.getLogger().getErrorMessages(),
-                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
-        );
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -660,10 +658,7 @@ public class TestPutHive3Streaming {
 
         runner.assertTransferCount(PutHive3Streaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHive3Streaming.REL_FAILURE, 1);
-        assertThat(
-                runner.getLogger().getErrorMessages(),
-                hasItem(hasProperty("msg", containsString("Exception while processing {} - routing to failure")))
-        );
+        assertFalse(runner.getLogger().getErrorMessages().isEmpty());
     }
 
     @Test
@@ -1122,8 +1117,12 @@ public class TestPutHive3Streaming {
                 new FieldSchema("scale", serdeConstants.DOUBLE_TYPE_NAME, "")
         );
 
+        private MockPutHive3Streaming(UserGroupInformation ugi) {
+            this.ugi = ugi;
+        }
+
         @Override
-        StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader) throws StreamingException {
+        StreamingConnection makeStreamingConnection(HiveOptions options, RecordReader reader, int recordsPerTransaction) throws StreamingException {
 
             // Test here to ensure the 'hive.metastore.uris' property matches the options.getMetastoreUri() value (if it is set)
             String userDefinedMetastoreURI = options.getMetaStoreURI();
@@ -1135,7 +1134,7 @@ public class TestPutHive3Streaming {
                 throw new StubConnectionError("Unit Test - Connection Error");
             }
 
-            HiveRecordWriter hiveRecordWriter = new HiveRecordWriter(reader, getLogger());
+            HiveRecordWriter hiveRecordWriter = new HiveRecordWriter(reader, getLogger(), 0);
             if (generatePermissionsFailure) {
                 throw new StreamingException("Permission denied");
             }
@@ -1168,6 +1167,11 @@ public class TestPutHive3Streaming {
 
         public void setGeneratePermissionsFailure(boolean generatePermissionsFailure) {
             this.generatePermissionsFailure = generatePermissionsFailure;
+        }
+
+        @Override
+        UserGroupInformation getUgi() {
+            return ugi;
         }
     }
 
@@ -1295,60 +1299,6 @@ public class TestPutHive3Streaming {
         @Override
         public PartitionInfo createPartitionIfNotExists(List<String> list) throws StreamingException {
             return null;
-        }
-    }
-
-    private static class MockKerberosCredentialsService implements KerberosCredentialsService, ControllerService {
-
-        private String keytab = "src/test/resources/fake.keytab";
-        private String principal = "test@REALM.COM";
-
-        public MockKerberosCredentialsService() {
-        }
-
-        public MockKerberosCredentialsService(String keytab, String principal) {
-            this.keytab = keytab;
-            this.principal = principal;
-        }
-
-        @Override
-        public String getKeytab() {
-            return keytab;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return principal;
-        }
-
-        @Override
-        public void initialize(ControllerServiceInitializationContext context) throws InitializationException {
-
-        }
-
-        @Override
-        public Collection<ValidationResult> validate(ValidationContext context) {
-            return Collections.EMPTY_LIST;
-        }
-
-        @Override
-        public PropertyDescriptor getPropertyDescriptor(String name) {
-            return null;
-        }
-
-        @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-
-        }
-
-        @Override
-        public List<PropertyDescriptor> getPropertyDescriptors() {
-            return null;
-        }
-
-        @Override
-        public String getIdentifier() {
-            return "kcs";
         }
     }
 }

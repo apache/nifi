@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>WindowsEventLogReader</title>
+
+        <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This controller service is used to parse Windows Event Log events in the form of XML input (possibly from ConsumeWindowsEventLog or ParseEvtx).
+         </p>
+         <h2>Input XML Example:</h2>
+         <p>
+        <pre>
+&lt;Event xmlns=&quot;https://schemas.microsoft.com/win/2004/08/events/event&quot;&gt;
+  &lt;System&gt;
+    &lt;Provider Name=&quot;Service Control Manager&quot; Guid=&quot;{555908d1-a6d7-4695-8e1e-26931d2012f4}&quot; EventSourceName=&quot;Service Control Manager&quot;/&gt;
+    &lt;EventID Qualifiers=&quot;16384&quot;&gt;7036&lt;/EventID&gt;
+    &lt;Version&gt;0&lt;/Version&gt;
+    &lt;Level&gt;4&lt;/Level&gt;
+    &lt;Task&gt;0&lt;/Task&gt;
+    &lt;Opcode&gt;0&lt;/Opcode&gt;
+    &lt;Keywords&gt;0x8080000000000000&lt;/Keywords&gt;
+    &lt;TimeCreated SystemTime=&quot;2016-06-10T22:28:53.905233700Z&quot;/&gt;
+    &lt;EventRecordID&gt;34153&lt;/EventRecordID&gt;
+    &lt;Correlation/&gt;
+    &lt;Execution ProcessID=&quot;684&quot; ThreadID=&quot;3504&quot;/&gt;
+    &lt;Channel&gt;System&lt;/Channel&gt;
+    &lt;Computer&gt;WIN-O05CNUCF16M.hdf.local&lt;/Computer&gt;
+    &lt;Security/&gt;
+  &lt;/System&gt;
+  &lt;EventData&gt;
+    &lt;Data Name=&quot;param1&quot;&gt;Smart Card Device Enumeration Service&lt;/Data&gt;
+    &lt;Data&gt;param2&lt;/Data&gt;
+    &lt;Binary&gt;5300630044006500760069006300650045006E0075006D002F0034000000&lt;/Binary&gt;
+  &lt;/EventData&gt;
+&lt;/Event&gt;
+             </pre>
+         </p>
+    <h2>Output example (using ConvertRecord with JsonRecordSetWriter</h2>
+    <p>
+        <pre>
+[ {
+  "System" : {
+    "Provider" : {
+      "Guid" : "{555908d1-a6d7-4695-8e1e-26931d2012f4}",
+      "Name" : "Service Control Manager"
+    },
+    "EventID" : 7036,
+    "Version" : 0,
+    "Level" : 4,
+    "Task" : 0,
+    "Opcode" : 0,
+    "Keywords" : "0x8080000000000000",
+    "TimeCreated" : {
+      "SystemTime" : "2016-06-10T22:28:53.905233700Z"
+    },
+    "EventRecordID" : 34153,
+    "Correlation" : null,
+    "Execution" : {
+      "ThreadID" : 3504,
+      "ProcessID" : 684
+    },
+    "Channel" : "System",
+    "Computer" : "WIN-O05CNUCF16M.hdf.local",
+    "Security" : null
+  },
+  "EventData" : {
+    "param1" : "Smart Card Device Enumeration Service",
+    "param2" : "5300630044006500760069006300650045006E0075006D002F0034000000"
+  }
+} ]
+        </pre>
+    </p>
+  </body>
+</html>

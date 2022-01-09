@@ -33,7 +33,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
-                'lodash-core'],
+                'lodash'],
             function ($,
                       Slick,
                       nfCommon,
@@ -74,7 +74,7 @@
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
             recuire('nf.ParameterContexts'),
-            require('lodash-core'));
+            require('lodash'));
     } else {
         factory(root.$,
             root.Slick,
@@ -105,6 +105,7 @@
                   _) {
 
     var groupId = null;
+    var propertyVerificationCallback = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -293,11 +294,11 @@
                     });
 
                 // create the button panel
-                var stringCheckPanel = $('<div class="string-check-container">');
+                var stringCheckPanel = $('<div class="string-check-container" />');
                 stringCheckPanel.appendTo(wrapper);
 
                 // build the custom checkbox
-                isEmpty = $('<div class="nf-checkbox string-check"/>')
+                isEmpty = $('<div class="nf-checkbox string-check" />')
                     .on('change', function (event, args) {
                         // if we are setting as an empty string, disable the editor
                         if (args.isChecked) {
@@ -953,7 +954,7 @@
                         });
 
                         // create the input field
-                        $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
+                        $('<textarea hidefocus rows="5" readonly="readonly" />').css({
                             'height': '80px',
                             'resize': 'both',
                             'width': cellNode.width() + 'px',
@@ -1246,6 +1247,17 @@
     };
 
     var initPropertiesTable = function (table, options) {
+        // function for closing the dialog
+        var closeDialog = function () {
+            // close the dialog
+            var dialog = table.closest('.dialog');
+            if (dialog.hasClass('modal')) {
+                dialog.modal('hide');
+            } else {
+                dialog.hide();
+            }
+        }
+
         // function for formatting the property name
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
             var nameWidthOffset = 30;
@@ -1280,6 +1292,7 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
+            var valueWidthOffset = 0;
             if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
@@ -1310,7 +1323,20 @@
                         if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
-                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                            valueWidthOffset = 10;
+
+                            // check for multi-line
+                            if (nfCommon.isMultiLine(value)) {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            } else {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            }
+
+                            // check for leading or trailing whitespace
+                            if (nfCommon.hasLeadTrailWhitespace(value)) {
+                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                                valueWidthOffset = 20;
+                            }
                         }
                     }
                 }
@@ -1323,10 +1349,11 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
+            var contentValue = content.find('.ellipsis-white-space-pre');
+            contentValue.attr('title', contentValue.text()).width(columnDef.width - 10 - valueWidthOffset);
 
             // return the appropriate markup
-            return $('<div/>').append(content).html();
+            return $('<div />').append(content).html();
         };
 
         var propertyColumns = [
@@ -1386,7 +1413,7 @@
             }
 
             if (referencesParam && canReadParamContext) {
-                markup += '<div title="Go to parameter" class="goto-to-parameter pointer fa fa-long-arrow-right"></div>';
+                markup += '<div title="Go to parameter" class="go-to-parameter pointer fa fa-long-arrow-right"></div>';
             }
 
             if (options.readOnly !== true) {
@@ -1412,7 +1439,7 @@
             });
 
         var propertyConfigurationOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1510,12 +1537,7 @@
                 dataType: 'json'
             }).done(function (controllerServiceEntity) {
                 // close the dialog
-                var dialog = table.closest('.dialog');
-                if (dialog.hasClass('modal')) {
-                    dialog.modal('hide');
-                } else {
-                    dialog.hide();
-                }
+                closeDialog();
 
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
@@ -1616,7 +1638,7 @@
                                 propertyData.updateItem(property.id, updatedItem);
                             });
                     }
-                } else if (target.hasClass('goto-to-parameter')) {
+                } else if (target.hasClass('go-to-parameter')) {
                     var parameterContext;
                     if (_.isFunction(options.getParameterContext)) {
                         parameterContext = options.getParameterContext(groupId);
@@ -1627,6 +1649,9 @@
                             var paramRefsRegex = /#{([a-zA-Z0-9-_. ]+)}/;
                             var result = property.value.match(paramRefsRegex);
                             if (!_.isEmpty(result) && result.length === 2) {
+                                // close the dialog since we are sending the user to the parameter context
+                                closeDialog();
+
                                 var parameterName = result[1];
                                 nfParameterContexts.showParameterContext(parameterContext.id, null, parameterName);
                             }
@@ -1650,8 +1675,82 @@
         });
 
         if (options.readOnly !== true) {
+            propertyGrid.onBeforeEditCell.subscribe(function (e, args) {
+                nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
+            });
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
                 setTimeout(function() {
+                    var propertyData = propertyGrid.getData();
+
+                    // Get the default properties object
+                    var descriptors = table.data('descriptors');
+
+                    // Get the rows from the table
+                    var items = propertyData.getItems();
+
+                    // Loop over each row
+                    $.each(items, function (id, item) {
+                        // Get the property descriptor object
+                        var descriptor = descriptors[item.property];
+                        var dependent = false;
+
+                        // Check if descriptor is a dynamic property
+                        if (!descriptor.dynamic) {
+                            var hidden = false;
+
+                            // Check for dependencies
+                            if (descriptor.dependencies.length > 0) {
+                                // Loop over each dependency
+                                $.each(descriptor.dependencies, function (i, dependency) {
+                                    // It is sufficient to have found a single instance of not meeting the
+                                    // requirement for a dependent value in order to hide a property
+                                    if (hidden) {
+                                        return false;
+                                    }
+                                    // Check the row's dependent values against all other row's current values to determine hidden state
+                                    $.each(items, function (k, property) {
+                                        if (property.property === dependency.propertyName) {
+                                            dependent = true;
+                                            if (property.hidden === false) {
+                                                // Get the current property value to compare with the dependent value
+                                                var propertyValue = property.value;
+
+                                                // Test the dependentValues array against the current value of the property
+                                                // If not, then mark the current property hidden attribute is true
+                                                if (propertyValue != null) {
+                                                    if (dependency.hasOwnProperty("dependentValues")) {
+                                                        hidden = !dependency.dependentValues.includes(propertyValue);
+                                                    }
+                                                } else {
+                                                    hidden = true;
+                                                }
+                                            } else {
+                                                hidden = true;
+                                            }
+                                            if (hidden) {
+                                                // It is sufficient to have found a single instance of not meeting the
+                                                // requirement for a dependent value in order to hide a property
+                                                return false;
+                                            }
+                                        }
+                                    })
+                                });
+                            }
+                        } else {
+                            hidden = item.hidden;
+                        }
+
+                        propertyData.beginUpdate();
+                        propertyData.updateItem(id, $.extend(item, {
+                            hidden: hidden,
+                            dependent: dependent
+                        }));
+                        propertyData.endUpdate();
+
+                        // Reset hidden property
+                        hidden = false;
+                    });
+
                     propertyGrid.resizeCanvas();
                 }, 50);
             });
@@ -1682,15 +1781,26 @@
                 var propertyHistory = history[property];
 
                 // format the tooltip
-                var tooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
+                var propertyTooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
 
-                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(propertyTooltip)) {
                     infoIcon.qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
-                            content: tooltip
+                            content: propertyTooltip
                         }));
                 }
+            }
+
+            var whitespaceIcon = $(this).find('div.fa-info');
+            if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
+                var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
+
+                whitespaceIcon.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: whitespaceTooltip
+                    }));
             }
         });
     };
@@ -1702,6 +1812,22 @@
             var editController = propertyGrid.getEditController();
             editController.commitCurrentEdit();
         }
+    };
+
+    var marshalProperties = function (table) {
+        var properties = {};
+        var propertyGrid = table.data('gridInstance');
+        var propertyData = propertyGrid.getData();
+        $.each(propertyData.getItems(), function () {
+            if (this.hidden === true && !(this.dependent === true)) {
+                // hidden properties were removed by the user, clear the value
+                properties[this.property] = null;
+            } else if (this.value !== this.previousValue) {
+                // the value has changed
+                properties[this.property] = this.value;
+            }
+        });
+        return properties;
     };
 
     /**
@@ -1724,7 +1850,7 @@
      * @param {type} history
      */
     var loadProperties = function (table, properties, descriptors, history) {
-        // save the descriptors and history
+        // save the original descriptors and history
         table.data({
             'descriptors': descriptors,
             'history': history
@@ -1764,16 +1890,63 @@
                     }
                 }
 
+                var hidden = false;
+                var dependent = false;
+
+                // Check for dependencies
+                if (descriptor.dependencies.length > 0) {
+                    $.each(descriptor.dependencies, function (i, dependency) {
+                        // It is sufficient to have found a single instance of not meeting the
+                        // requirement for a dependent value in order to hide a property
+                        if (hidden) {
+                            return false;
+                        }
+
+                        // Get the rows from the table
+                        var items = propertyData.getItems();
+
+                        // Get the item's hidden attribute to compare. If item.hidden=true, hidden = true.
+                        $.each(items, function (k, property) {
+                            if (property.property === dependency.propertyName) {
+                                dependent = true;
+                                if (property.hidden === false) {
+                                    // Get the property value by propertyName
+                                    var propertyValue = properties[dependency.propertyName];
+
+                                    // Test the dependentValues against the current value of the property
+                                    // If not, then mark the current property hidden attribute is true
+                                    if (propertyValue != null) {
+                                        if (dependency.hasOwnProperty("dependentValues")) {
+                                            hidden = !dependency.dependentValues.includes(propertyValue);
+                                        }
+                                    } else {
+                                        hidden = true;
+                                    }
+                                } else {
+                                    hidden = true;
+                                }
+                                if (hidden) {
+                                    return false;
+                                }
+                            }
+                        })
+                    });
+                }
+
                 // add the row
                 propertyData.addItem({
                     id: i++,
-                    hidden: false,
+                    hidden: hidden,
+                    dependent: dependent,
                     property: name,
                     displayName: displayName,
                     previousValue: value,
                     value: value,
                     type: type
                 });
+
+                // Reset hidden property
+                hidden = false;
             });
 
             propertyData.endUpdate();
@@ -1801,7 +1974,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
+        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
@@ -1827,7 +2000,8 @@
          *      return $.Deferred(function (deferred) {
          *          deferred.resolve();
          *      }).promise;
-         *   }
+         *   },
+         *   propertyVerificationCallback: function () {}
          * }
          *
          * @argument {object} options The options for the tag cloud
@@ -1927,7 +2101,7 @@
                                         }
 
                                         // add a row for the new property
-                                        var id = propertyData.getLength();
+                                        var id = propertyData.getItems().length;
                                         propertyData.addItem({
                                             id: id,
                                             hidden: false,
@@ -1998,7 +2172,7 @@
                         newPropertyDialog.on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
 
                         // build the control to open the new property dialog
-                        var addProperty = $('<div class="add-property"></div>').appendTo(header);
+                        var addProperty = $('<div class="add-property" title="Add Property"></div>').appendTo(header);
                         $('<button class="button fa fa-plus"></button>').on('click', function () {
                             // close all fields currently being edited
                             saveRow(table);
@@ -2012,6 +2186,21 @@
                             // set the initial focus
                             newPropertyNameField.focus();
                         }).appendTo(addProperty);
+
+                        // build the control to trigger verification
+                        var verifyProperties = $('<div class="verify-properties hidden" title="Verify Properties"></div>').appendTo(header);
+                        $('<button class="button fa fa-check-circle-o"></button>').on('click', function () {
+                            // close all fields currently being edited
+                            saveRow(table);
+
+                            // invoke the verification callback with the current properties
+                            propertyVerificationCallback(marshalProperties(table));
+                        }).appendTo(verifyProperties);
+
+                        // if there is a verification callback registered show the verify button
+                        propertyVerificationCallback = options.propertyVerificationCallback;
+                        var supportsVerification = typeof propertyVerificationCallback === 'function';
+                        verifyProperties.toggleClass('hidden', !supportsVerification);
                     }
                     $('<div class="clear"></div>').appendTo(header);
 
@@ -2138,18 +2327,7 @@
             this.each(function () {
                 // get the property grid data
                 var table = $(this).find('div.property-table');
-                var propertyGrid = table.data('gridInstance');
-                var propertyData = propertyGrid.getData();
-                $.each(propertyData.getItems(), function () {
-                    if (this.hidden === true) {
-                        // hidden properties were removed by the user, clear the value
-                        properties[this.property] = null;
-                    } else if (this.value !== this.previousValue) {
-                        // the value has changed
-                        properties[this.property] = this.value;
-                    }
-                });
-
+                properties = marshalProperties(table);
                 return false;
             });
 
@@ -2157,11 +2335,24 @@
         },
 
         /**
-         * Sets the current group id.
+         * Sets the current group id. This is used to indicate where inline Controller Services are created
+         * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {
                 groupId = currentGroupId;
+            });
+        },
+
+        /**
+         * Sets the property verification callback.
+         */
+        setPropertyVerificationCallback: function (currentPropertyVerificationCallback) {
+            return this.each(function () {
+                propertyVerificationCallback = currentPropertyVerificationCallback;
+
+                var supportsVerification = typeof currentPropertyVerificationCallback === 'function';
+                $(this).find('div.verify-properties').toggleClass('hidden', !supportsVerification);
             });
         }
     };

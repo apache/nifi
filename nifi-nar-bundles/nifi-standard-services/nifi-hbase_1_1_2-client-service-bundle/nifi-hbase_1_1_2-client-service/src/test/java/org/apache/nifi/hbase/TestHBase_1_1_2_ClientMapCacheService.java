@@ -41,6 +41,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -111,6 +113,69 @@ public class TestHBase_1_1_2_ClientMapCacheService {
         verify(table, times(1)).put(capture.capture());
 
         verifyPut(row, columnFamily, columnQualifier, content, capture.getValue());
+    }
+
+    @Test
+    public void testPutAll() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+
+        // Mock an HBase Table so we can verify the put operations later
+        final Table table = Mockito.mock(Table.class);
+        when(table.getName()).thenReturn(TableName.valueOf(tableName));
+
+        // create the controller service and link it to the test processor
+        final MockHBaseClientService service = configureHBaseClientService(runner, table);
+        runner.assertValid(service);
+
+        final HBaseClientService hBaseClientService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CLIENT_SERVICE)
+                .asControllerService(HBaseClientService.class);
+
+        final DistributedMapCacheClient cacheService = configureHBaseCacheService(runner, hBaseClientService);
+        runner.assertValid(cacheService);
+
+        // try to put a single cell
+        final DistributedMapCacheClient hBaseCacheService = runner.getProcessContext().getProperty(TestProcessor.HBASE_CACHE_SERVICE)
+                .asControllerService(DistributedMapCacheClient.class);
+
+        Map<String, String> putz = new HashMap<>();
+        List<String> content = new ArrayList<>();
+        List<String> rows = new ArrayList<>();
+        for (int x = 1; x <= 5; x++) {
+            putz.put(String.format("row-%d", x), String.format("content-%d", x));
+            content.add(String.format("content-%d", x));
+            rows.add(String.format("row-%d", x));
+        }
+
+        hBaseCacheService.putAll( putz, stringSerializer, stringSerializer);
+
+        // verify only one call to put was made
+        ArgumentCaptor<List> capture = ArgumentCaptor.forClass(List.class);
+        verify(table, times(1)).put(capture.capture());
+
+        List<Put> captured = capture.getValue();
+
+
+        for (int x = 0; x < 5; x++) {
+            Put put = captured.get(x);
+
+            String row = new String(put.getRow());
+            assertTrue(rows.contains(row));
+
+            NavigableMap<byte [], List<Cell>> familyCells = put.getFamilyCellMap();
+            assertEquals(1, familyCells.size());
+
+            Map.Entry<byte[], List<Cell>> entry = familyCells.firstEntry();
+            assertEquals(columnFamily, new String(entry.getKey()));
+            assertEquals(1, entry.getValue().size());
+
+            Cell cell = entry.getValue().get(0);
+            String contentString = new String(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());
+            assertEquals(columnQualifier, new String(cell.getQualifierArray(), cell.getQualifierOffset(), cell.getQualifierLength()));
+            assertTrue(content.contains(contentString));
+
+            content.remove(contentString);
+            rows.remove(row);
+        }
     }
 
     @Test

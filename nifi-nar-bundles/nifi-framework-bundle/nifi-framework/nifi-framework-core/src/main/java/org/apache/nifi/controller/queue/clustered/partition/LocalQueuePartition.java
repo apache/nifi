@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.processor.FlowFileFilter;
 
@@ -46,8 +47,11 @@ public interface LocalQueuePartition extends QueuePartition {
      * Returns a single FlowFile with the highest priority that is available in the partition, or <code>null</code> if no FlowFile is available
      *
      * @param expiredRecords a Set of FlowFileRecord's to which any expired records that are encountered should be added
+     * @param pollStrategy strategy of polling
      * @return a single FlowFile with the highest priority that is available in the partition, or <code>null</code> if no FlowFile is available
      */
+    FlowFileRecord poll(Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
+
     FlowFileRecord poll(Set<FlowFileRecord> expiredRecords);
 
     /**
@@ -55,8 +59,11 @@ public interface LocalQueuePartition extends QueuePartition {
      *
      * @param maxResults the maximum number of FlowFiles to return
      * @param expiredRecords a Set of FlowFileRecord's to which any expired records that are encountered should be added
+     * @param pollStrategy strategy of polling
      * @return a List of FlowFiles (possibly empty) with the highest priority FlowFiles that are available in the partition
      */
+    List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
+
     List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords);
 
     /**
@@ -64,8 +71,11 @@ public interface LocalQueuePartition extends QueuePartition {
      *
      * @param filter the filter to determine whether or not a given FlowFile should be returned
      * @param expiredRecords a Set of FlowFileRecord's to which any expired records that are encountered should be added
+     * @param pollStrategy strategy of polling
      * @return a List of FlowFiles (possibly empty) with FlowFiles that matched the given filter
      */
+    List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy);
+
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 
     /**

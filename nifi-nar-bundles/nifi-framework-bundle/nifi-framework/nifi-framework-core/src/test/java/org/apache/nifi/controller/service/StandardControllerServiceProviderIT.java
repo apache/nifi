@@ -17,6 +17,15 @@
 
 package org.apache.nifi.controller.service;
 
+import static org.junit.Assert.assertTrue;
+
+import java.beans.PropertyDescriptor;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
@@ -42,16 +51,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import java.beans.PropertyDescriptor;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-
-import static org.junit.Assert.assertTrue;
 
 public class StandardControllerServiceProviderIT {
     private static Bundle systemBundle;
@@ -85,7 +84,7 @@ public class StandardControllerServiceProviderIT {
     @BeforeClass
     public static void setNiFiProps() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestStandardControllerServiceProvider.class.getResource("/conf/nifi.properties").getFile());
-        niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        niFiProperties = NiFiProperties.createBasicNiFiProperties(null);
 
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
@@ -130,16 +129,12 @@ public class StandardControllerServiceProviderIT {
     }
 
     public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) throws InterruptedException, ExecutionException {
-        final FlowController controller = Mockito.mock(FlowController.class);
-
-        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+        final ProcessGroup procGroup = new MockProcessGroup(flowManager);
 
         Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
-        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
-        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null);
+        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
 
         // build a graph of controller services with dependencies as such:
         //

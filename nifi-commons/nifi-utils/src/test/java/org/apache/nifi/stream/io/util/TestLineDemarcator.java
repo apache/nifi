@@ -17,8 +17,8 @@
 package org.apache.nifi.stream.io.util;
 
 import org.apache.nifi.stream.io.RepeatingInputStream;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -100,8 +100,9 @@ public class TestLineDemarcator {
     }
 
     @Test
-    @Ignore("Intended only for manual testing. While this can take a while to run, it can be very helpful for manual testing before and after a change to the class. However, we don't want this to " +
-        "run in automated tests because we have no way to compare from one run to another, so it will only slow down automated tests.")
+    @Disabled("Intended only for manual testing. While this can take a while to run, it can be very helpful for manual testing before " +
+            "and after a change to the class. However, we don't want this to run in automated tests because we have no way to compare " +
+            "from one run to another, so it will only slow down automated tests.")
     public void testPerformance() throws IOException {
         final String lines = "The\nquick\nbrown\nfox\njumped\nover\nthe\nlazy\ndog.\r\n\n";
         final byte[] bytes = lines.getBytes(StandardCharsets.UTF_8);

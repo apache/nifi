@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -81,6 +82,10 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = ConsumeJMS.JMS_MESSAGETYPE, description = "The JMS message type, can be TextMessage, BytesMessage, ObjectMessage, MapMessage or StreamMessage)."),
         @WritesAttribute(attribute = "other attributes", description = "Each message property is written to an attribute.")
 })
+@DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
+        description = "Additional configuration property for the Connection Factory. It can be used when the Connection Factory is being configured via the 'JNDI *' or the 'JMS *'" +
+                "properties of the processor. For more information, see the Additional Details page.",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     public static final String JMS_MESSAGETYPE = "jms.messagetype";
@@ -101,6 +106,15 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     public static final String JMS_SOURCE_DESTINATION_NAME = "jms.source.destination";
 
+    static final PropertyDescriptor MESSAGE_SELECTOR = new PropertyDescriptor.Builder()
+            .name("Message Selector")
+            .displayName("Message Selector")
+            .description("The JMS Message Selector to filter the messages that the processor will receive")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor ACKNOWLEDGEMENT_MODE = new PropertyDescriptor.Builder()
             .name("Acknowledgement Mode")
             .description("The JMS Acknowledgement Mode. Using Auto Acknowledge can cause messages to be lost on restart of NiFi but may provide "
@@ -112,6 +126,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     static final PropertyDescriptor DURABLE_SUBSCRIBER = new PropertyDescriptor.Builder()
             .name("Durable subscription")
+            .displayName("Durable Subscription")
             .description("If destination is Topic if present then make it the consumer durable. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createDurableConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
@@ -122,6 +137,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .build();
     static final PropertyDescriptor SHARED_SUBSCRIBER = new PropertyDescriptor.Builder()
             .name("Shared subscription")
+            .displayName("Shared Subscription")
             .description("If destination is Topic if present then make it the consumer shared. " +
                          "@see https://docs.oracle.com/javaee/7/api/javax/jms/Session.html#createSharedConsumer-javax.jms.Topic-java.lang.String-")
             .required(false)
@@ -161,21 +177,26 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     private final static Set<Relationship> relationships;
 
-    private final static List<PropertyDescriptor> thisPropertyDescriptors;
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(propertyDescriptors);
-        _propertyDescriptors.remove(MESSAGE_BODY);
-        _propertyDescriptors.remove(ALLOW_ILLEGAL_HEADER_CHARS);
-        _propertyDescriptors.remove(ATTRIBUTES_AS_HEADERS_REGEX);
+
+        _propertyDescriptors.add(CF_SERVICE);
+        _propertyDescriptors.add(DESTINATION);
+        _propertyDescriptors.add(DESTINATION_TYPE);
+        _propertyDescriptors.add(MESSAGE_SELECTOR);
+        _propertyDescriptors.add(USER);
+        _propertyDescriptors.add(PASSWORD);
+        _propertyDescriptors.add(CLIENT_ID);
+        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         // change the validator on CHARSET property
-        _propertyDescriptors.remove(CHARSET);
-        PropertyDescriptor CHARSET_WITH_EL_VALIDATOR_PROPERTY = new PropertyDescriptor.Builder().fromPropertyDescriptor(CHARSET)
+        PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(CHARSET)
                 .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
                 .build();
-        _propertyDescriptors.add(CHARSET_WITH_EL_VALIDATOR_PROPERTY);
+        _propertyDescriptors.add(charsetWithELValidatorProperty);
 
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
@@ -183,7 +204,11 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
         _propertyDescriptors.add(TIMEOUT);
         _propertyDescriptors.add(ERROR_QUEUE);
-        thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+
+        _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
+        _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
+
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
@@ -239,37 +264,55 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
         final boolean durable = isDurableSubscriber(context);
         final boolean shared = isShared(context);
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
+        final String messageSelector = context.getProperty(MESSAGE_SELECTOR).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
         try {
-            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, messageSelector, charset, new ConsumerCallback() {
                 @Override
                 public void accept(final JMSResponse response) {
                     if (response == null) {
                         return;
                     }
 
-                    FlowFile flowFile = processSession.create();
-                    flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+                    try {
+                        FlowFile flowFile = processSession.create();
+                        flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
 
-                    final Map<String, String> jmsHeaders = response.getMessageHeaders();
-                    final Map<String, String> jmsProperties = response.getMessageProperties();
+                        final Map<String, String> jmsHeaders = response.getMessageHeaders();
+                        final Map<String, String> jmsProperties = response.getMessageProperties();
 
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                    flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+                        flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
 
-                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                    processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
-                    processSession.transfer(flowFile, REL_SUCCESS);
-                    processSession.commit();
+                        processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                        processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
+                        processSession.transfer(flowFile, REL_SUCCESS);
+
+                        processSession.commitAsync(() -> acknowledge(response), throwable -> response.reject());
+                    } catch (final Throwable t) {
+                        response.reject();
+                        throw t;
+                    }
                 }
             });
         } catch(Exception e) {
             consumer.setValid(false);
+            context.yield();
             throw e; // for backward compatibility with exception handling in flows
         }
     }
+
+    private void acknowledge(final JMSResponse response) {
+        try {
+            response.acknowledge();
+        } catch (final Exception e) {
+            getLogger().error("Failed to acknowledge JMS Message that was received", e);
+            throw new ProcessException(e);
+        }
+    }
+
 
     /**
      * Will create an instance of {@link JMSConsumer}
@@ -292,7 +335,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return thisPropertyDescriptors;
+        return propertyDescriptors;
     }
 
     /**

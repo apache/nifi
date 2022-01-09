@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.util.file.monitor;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
@@ -28,7 +27,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSynchronousFileWatcher {
 
@@ -36,7 +36,7 @@ public class TestSynchronousFileWatcher {
     public void testIt() throws UnsupportedEncodingException, IOException, InterruptedException {
         final Path path = Paths.get("target/1.txt");
         Files.copy(new ByteArrayInputStream("Hello, World!".getBytes("UTF-8")), path, StandardCopyOption.REPLACE_EXISTING);
-        final UpdateMonitor monitor = new MD5SumMonitor();
+        final UpdateMonitor monitor = new DigestUpdateMonitor();
 
         final SynchronousFileWatcher watcher = new SynchronousFileWatcher(path, monitor, 10L);
         assertFalse(watcher.checkAndReset());

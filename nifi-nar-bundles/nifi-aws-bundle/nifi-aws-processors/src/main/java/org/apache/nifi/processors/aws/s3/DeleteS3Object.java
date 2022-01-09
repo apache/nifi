@@ -29,6 +29,8 @@ import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -41,6 +43,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 
 @SupportsBatching
+@WritesAttributes({
+        @WritesAttribute(attribute = "s3.exception", description = "The class name of the exception thrown during processor execution"),
+        @WritesAttribute(attribute = "s3.additionalDetails", description = "The S3 supplied detail from the failed operation"),
+        @WritesAttribute(attribute = "s3.statusCode", description = "The HTTP error code (if available) from the failed operation"),
+        @WritesAttribute(attribute = "s3.errorCode", description = "The S3 moniker of the failed operation"),
+        @WritesAttribute(attribute = "s3.errorMessage", description = "The S3 exception message from the failed operation")})
 @SeeAlso({PutS3Object.class, FetchS3Object.class, ListS3.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -92,7 +100,8 @@ public class DeleteS3Object extends AbstractS3Processor {
                 s3.deleteVersion(r);
             }
         } catch (final AmazonServiceException ase) {
-            getLogger().error("Failed to delete S3 Object for {}; routing to failure", new Object[]{flowFile, ase});
+            flowFile = extractExceptionDetails(ase, session, flowFile);
+            getLogger().error("Failed to delete S3 Object for {}; routing to failure", flowFile, ase);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -100,6 +109,6 @@ public class DeleteS3Object extends AbstractS3Processor {
 
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
+        getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
     }
 }

@@ -27,29 +27,41 @@ public final class BulletinFactory {
 
     private static final AtomicLong currentId = new AtomicLong(0);
 
+    private BulletinFactory() {
+    }
+
     public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message) {
-        final ComponentType type;
-        switch (connectable.getConnectableType()) {
-            case REMOTE_INPUT_PORT:
-            case REMOTE_OUTPUT_PORT:
-                type = ComponentType.REMOTE_PROCESS_GROUP;
-                break;
-            case INPUT_PORT:
-                type = ComponentType.INPUT_PORT;
-                break;
-            case OUTPUT_PORT:
-                type = ComponentType.OUTPUT_PORT;
-                break;
-            case PROCESSOR:
-            default:
-                type = ComponentType.PROCESSOR;
-                break;
-        }
+        final ComponentType type = getComponentType(connectable);
 
         final ProcessGroup group = connectable.getProcessGroup();
         final String groupId = connectable.getProcessGroupIdentifier();
         final String groupName = group == null ? null : group.getName();
-        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message);
+        final String groupPath = buildGroupPath(group);
+        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, null);
+    }
+
+    public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message, final String flowFileUUID) {
+        final ComponentType type = getComponentType(connectable);
+
+        final ProcessGroup group = connectable.getProcessGroup();
+        final String groupId = connectable.getProcessGroupIdentifier();
+        final String groupName = group == null ? null : group.getName();
+        final String groupPath = buildGroupPath(group);
+        return BulletinFactory.createBulletin(groupId, groupName, connectable.getIdentifier(), type, connectable.getName(), category, severity, message, groupPath, flowFileUUID);
+    }
+
+    private static String buildGroupPath(ProcessGroup group) {
+        if(group == null) {
+            return null;
+        } else {
+            String path = group.getName();
+            ProcessGroup parent = group.getParent();
+            while(parent != null) {
+                path = parent.getName() + " / " + path;
+                parent = parent.getParent();
+            }
+            return path;
+        }
     }
 
     public static Bulletin createBulletin(final String groupId, final String sourceId, final ComponentType sourceType, final String sourceName,
@@ -79,6 +91,22 @@ public final class BulletinFactory {
         return bulletin;
     }
 
+    public static Bulletin createBulletin(final String groupId, final String groupName, final String sourceId, final ComponentType sourceType,
+            final String sourceName, final String category, final String severity, final String message, final String groupPath, final String flowFileUUID) {
+        final Bulletin bulletin = new ComponentBulletin(currentId.getAndIncrement());
+        bulletin.setGroupId(groupId);
+        bulletin.setGroupName(groupName);
+        bulletin.setGroupPath(groupPath);
+        bulletin.setSourceId(sourceId);
+        bulletin.setSourceType(sourceType);
+        bulletin.setSourceName(sourceName);
+        bulletin.setCategory(category);
+        bulletin.setLevel(severity);
+        bulletin.setMessage(message);
+        bulletin.setFlowFileUuid(flowFileUUID);
+        return bulletin;
+    }
+
     public static Bulletin createBulletin(final String category, final String severity, final String message) {
         final Bulletin bulletin = new SystemBulletin(currentId.getAndIncrement());
         bulletin.setCategory(category);
@@ -86,5 +114,26 @@ public final class BulletinFactory {
         bulletin.setMessage(message);
         bulletin.setSourceType(ComponentType.FLOW_CONTROLLER);
         return bulletin;
+    }
+
+    private static ComponentType getComponentType(final Connectable connectable) {
+        final ComponentType type;
+        switch (connectable.getConnectableType()) {
+            case REMOTE_INPUT_PORT:
+            case REMOTE_OUTPUT_PORT:
+                type = ComponentType.REMOTE_PROCESS_GROUP;
+                break;
+            case INPUT_PORT:
+                type = ComponentType.INPUT_PORT;
+                break;
+            case OUTPUT_PORT:
+                type = ComponentType.OUTPUT_PORT;
+                break;
+            case PROCESSOR:
+            default:
+                type = ComponentType.PROCESSOR;
+                break;
+        }
+        return type;
     }
 }

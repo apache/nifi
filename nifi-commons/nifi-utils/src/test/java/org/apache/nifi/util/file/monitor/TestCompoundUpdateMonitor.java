@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.util.file.monitor;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,15 +25,17 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.UUID;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCompoundUpdateMonitor {
 
     @Test
     public void test() throws IOException {
         final UpdateMonitor lastModified = new LastModifiedMonitor();
-        final MD5SumMonitor md5 = new MD5SumMonitor();
-        final CompoundUpdateMonitor compound = new CompoundUpdateMonitor(lastModified, md5);
+        final DigestUpdateMonitor updateMonitor = new DigestUpdateMonitor();
+        final CompoundUpdateMonitor compound = new CompoundUpdateMonitor(lastModified, updateMonitor);
 
         final File file = new File("target/" + UUID.randomUUID().toString());
         if (file.exists()) {

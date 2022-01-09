@@ -19,30 +19,28 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hive-bundle</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive3-nar</artifactId>
-    <version>1.12.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-        <!-- Need to override hadoop.version here, for Hive and hadoop-client transitive dependencies -->
-        <hadoop.version>${hive3.hadoop.version}</hadoop.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hive-services-api-nar</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hive3-processors</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
@@ -69,6 +67,10 @@
             </activation>
             <dependencies>
                 <dependency>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>jcl-over-slf4j</artifactId>
+                </dependency>
+                <dependency>
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-azure</artifactId>
                     <version>${hadoop.version}</version>
@@ -80,6 +82,10 @@
                         <exclusion>
                             <groupId>com.fasterxml.jackson.core</groupId>
                             <artifactId>jackson-core</artifactId>
+                        </exclusion>
+                        <exclusion>
+                            <groupId>commons-logging</groupId>
+                            <artifactId>commons-logging</artifactId>
                         </exclusion>
                     </exclusions>
                 </dependency>
@@ -107,6 +113,70 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-cloud-storage</artifactId>
                     <version>${hadoop.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                    </exclusions>
+                </dependency>
+            </dependencies>
+        </profile>
+        <!-- Includes hadoop-ozone for o3fs:// file system -->
+        <profile>
+            <id>include-hadoop-ozone</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-client</artifactId>
+                    <version>${ozone.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                      <exclusion>
+                          <groupId>org.apache.logging.log4j</groupId>
+                          <artifactId>log4j-core</artifactId>
+                      </exclusion>
+                    </exclusions>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-filesystem</artifactId>
+                    <version>${ozone.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <!-- Includes hadoop-gcp for accessing HDFS with an gcs:// filesystem -->
+        <profile>
+            <id>include-hadoop-gcp</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>gcs-connector</artifactId>
+                    <version>hadoop3-${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>util</artifactId>
+                    <version>${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>util-hadoop</artifactId>
+                    <version>hadoop3-${gcs.version}</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.google.cloud.bigdataoss</groupId>
+                    <artifactId>gcsio</artifactId>
+                    <version>${gcs.version}</version>
                 </dependency>
             </dependencies>
         </profile>

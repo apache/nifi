@@ -66,11 +66,9 @@ available:
 - a "tarball" (tar.gz) that is tailored more to Linux
 - a zip file that is more applicable for Windows users
 
-Mac OS X users may also use the tarball or can install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
+macOS users may also use the tarball or can install via link:https://brew.sh[Homebrew^] by simply running the command `brew install nifi` from the command line terminal.
 
-NOTE: NiFi requires Java 8 or 11. It is recommended that you have installed one of these Java versions prior to installing NiFi via Homebrew. Homebrew is aware NiFi depends on Java but not the specific supported versions, so it may prompt to install an incompatible JDK as part of its NiFi install. 
-
-For users who are not running OS X or do not have Homebrew installed, after downloading the version of NiFi that you
+For users who are not running macOS or do not have Homebrew installed, after downloading the version of NiFi that you
 would like to use, simply extract the archive to the location that you wish to run the application from.
 
 For information on how to configure the instance of NiFi (for example, to configure security, data storage
@@ -91,20 +89,24 @@ This will launch NiFi and leave it running in the foreground. To shut down NiFi,
 was launched and hold the Ctrl key while pressing C.
 
 
-=== For Linux/Mac OS X users
+=== For Linux/macOS users
 
-For Linux and OS X users, use a Terminal window to navigate to the directory where NiFi was installed.
+For Linux and macOS users, use a Terminal window to navigate to the directory where NiFi was installed.
 To run NiFi in the foreground, run `bin/nifi.sh run`. This will leave the application running until
 the user presses Ctrl-C. At that time, it will initiate shutdown of the application.
 
 To run NiFi in the background, instead run `bin/nifi.sh start`. This will initiate the application to
 begin running. To check the status and see if NiFi is currently running, execute the command `bin/nifi.sh status`. NiFi can be shutdown by executing the command `bin/nifi.sh stop`.
 
+Issuing `bin/nifi.sh start` executes the `nifi.sh` script that starts NiFi in the background and then exits. If you want `nifi.sh` to wait for NiFi to finish scheduling all components before
+exiting, use the `--wait-for-init` flag with an optional timeout specified in seconds: `bin/nifi.sh start --wait-for-init 120`. If the timeout is not provided, the default timeout of 15 minutes will
+be used.
+
 If NiFi was installed with Homebrew, run the commands `nifi start` or `nifi stop` from anywhere in your file system to start or stop NiFi.
 
 === Installing as a Service
 
-Currently, installing NiFi as a service is supported only for Linux and Mac OS X users. To install the application
+Currently, installing NiFi as a service is supported only for Linux and macOS users. To install the application
 as a service, navigate to the installation directory in a Terminal window and execute the command `bin/nifi.sh install`
 to install the service with the default name `nifi`. To specify a custom name for the service, execute the command
 with an optional second argument that is the name of the service. For example, to install NiFi as a service with the
@@ -117,13 +119,35 @@ and `sudo service nifi stop`. Additionally, the running status can be checked vi
 
 == I Started NiFi. Now What?
 
-Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
-To get started, open a web browser and navigate to link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]. The port can be changed by
-editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8080.
+The default installation generates a random username and password, writing the generated values to the application log.
+The application log is located in `logs/nifi-app.log` under the installation directory. The log file will contain lines
+with `Generated Username [USERNAME]` and `Generated Password [PASSWORD]` indicating the credentials needed for access.
+Search the application log for those lines and record the generated values in a secure location.
 
+The following command can be used to change the username and password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
+
+Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
+To get started, open a web browser and navigate to link:https://localhost:8443/nifi[`https://localhost:8443/nifi`^]. The port can be changed by
+editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8443.
+
+The web browser will display a warning message indicating a potential security risk due to the self-signed
+certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load
+the interface is an option for development installations. The self-signed certificate will expire after 60 days.
+Production deployments should provision a certificate from a trusted authority and update the NiFi keystore and truststore configuration.
+
+Accessing NiFi after accepting the self-signed certificate will display the login screen.
+
+image:nifi-login.png["Login"]
+
+Using the generated credentials, enter the generated username in the `User` field
+and the generated password in the `Password` field, then select `LOG IN` to access the system.
 This will bring up the User Interface, which at this point is a blank canvas for orchestrating a dataflow:
 
-image:new-flow.png["New Flow"]
+image:nifi-flow-authenticated.png["New Flow Authenticated"]
 
 The UI has multiple tools to create and manage your first dataflow:
 

@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import net.schmizz.keepalive.KeepAlive;
-import net.schmizz.keepalive.KeepAliveProvider;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.connection.ConnectionException;
-import net.schmizz.sshj.connection.ConnectionImpl;
+import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.RemoteFile;
@@ -30,58 +27,89 @@ import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
-import net.schmizz.sshj.transport.TransportException;
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
-import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
-import net.schmizz.sshj.userauth.method.AuthMethod;
-import net.schmizz.sshj.userauth.method.AuthPassword;
-import net.schmizz.sshj.userauth.method.AuthPublickey;
-import net.schmizz.sshj.userauth.password.PasswordFinder;
-import net.schmizz.sshj.userauth.password.PasswordUtils;
 import net.schmizz.sshj.xfer.FilePermission;
 import net.schmizz.sshj.xfer.LocalSourceFile;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.ssh.PatchedSFTPEngine;
+import org.apache.nifi.processors.standard.ssh.SSHClientProvider;
+import org.apache.nifi.processors.standard.ssh.StandardSSHClientProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.stream.io.StreamUtils;
 
-import javax.net.SocketFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
-import java.net.Proxy;
-import java.net.Socket;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-
-import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
+import java.util.stream.Collectors;
 
 public class SFTPTransfer implements FileTransfer {
+    private static final SSHClientProvider SSH_CLIENT_PROVIDER = new StandardSSHClientProvider();
+
+    private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES;
+    private static final Set<String> DEFAULT_CIPHER_NAMES;
+    private static final Set<String> DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES;
+    private static final Set<String> DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES;
+
+    static {
+        DefaultConfig defaultConfig = new DefaultConfig();
+
+        DEFAULT_KEY_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyAlgorithms().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_CIPHER_NAMES = Collections.unmodifiableSet(defaultConfig.getCipherFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = Collections.unmodifiableSet(defaultConfig.getMACFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyExchangeFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+    }
+
+    /**
+     * Converts a set of names into an alphabetically ordered comma separated value list.
+     *
+     * @param factorySetNames The set of names
+     * @return An alphabetically ordered comma separated value list of names
+     */
+    private static String convertFactorySetToString(Set<String> factorySetNames) {
+        return factorySetNames
+                .stream()
+                .sorted()
+                .collect(Collectors.joining(", "));
+    }
 
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
         .name("Private Key Path")
         .description("The fully qualified path to the Private Key file")
         .required(false)
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
@@ -98,7 +126,7 @@ public class SFTPTransfer implements FileTransfer {
                 " otherwise, if 'Strict Host Key Checking' property is applied (set to true)" +
                 " then uses the 'known_hosts' and 'known_hosts2' files from ~/.ssh directory" +
                 " else no host key file will be used")
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .required(false)
         .build();
     public static final PropertyDescriptor STRICT_HOST_KEY_CHECKING = new PropertyDescriptor.Builder()
@@ -118,12 +146,50 @@ public class SFTPTransfer implements FileTransfer {
         .build();
     public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Send Keep Alive On Timeout")
-        .description("Indicates whether or not to send a single Keep Alive message when SSH socket times out")
+        .description("Send a Keep Alive message every 5 seconds up to 5 times for an overall timeout of 25 seconds.")
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
         .build();
 
+    public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Algorithms Allowed")
+            .displayName("Key Algorithms Allowed")
+            .description("A comma-separated list of Key Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_KEY_ALGORITHM_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Ciphers Allowed")
+            .displayName("Ciphers Allowed")
+            .description("A comma-separated list of Ciphers allowed for SFTP connections. Leave unset to allow all. Available options are: " + convertFactorySetToString(DEFAULT_CIPHER_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Message Authentication Codes Allowed")
+            .displayName("Message Authentication Codes Allowed")
+            .description("A comma-separated list of Message Authentication Codes allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Exchange Algorithms Allowed")
+            .displayName("Key Exchange Algorithms Allowed")
+            .description("A comma-separated list of Key Exchange Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     /**
      * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link SFTPClient#ls(String)} before calling
@@ -179,7 +245,7 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public List<FileInfo> getListing() throws IOException {
+    public List<FileInfo> getListing(final boolean applyFilters) throws IOException {
         final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
 
@@ -193,11 +259,12 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final List<FileInfo> listing = new ArrayList<>(1000);
-        getListing(path, depth, maxResults, listing);
+        getListing(path, depth, maxResults, listing, applyFilters);
         return listing;
     }
 
-    private void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing) throws IOException {
+    protected void getListing(final String path, final int depth, final int maxResults, final List<FileInfo> listing,
+                              final boolean applyFilters) throws IOException {
         if (maxResults < 1 || listing.size() >= maxResults) {
             return;
         }
@@ -262,8 +329,8 @@ public class SFTPTransfer implements FileTransfer {
                 }
 
                 // if is not a directory and is not a link and it matches FILE_FILTER_REGEX - then let's add it
-                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && isPathMatch) {
-                    if (pattern == null || pattern.matcher(entryFilename).matches()) {
+                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && (!applyFilters || isPathMatch)) {
+                    if (pattern == null || !applyFilters || pattern.matcher(entryFilename).matches()) {
                         listing.add(newFileInfo(entry, path));
                     }
                 }
@@ -295,7 +362,7 @@ public class SFTPTransfer implements FileTransfer {
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
             try {
-                getListing(newFullForwardPath, depth + 1, maxResults, listing);
+                getListing(newFullForwardPath, depth + 1, maxResults, listing, applyFilters);
             } catch (final IOException e) {
                 logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
             }
@@ -346,19 +413,22 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    public InputStream getInputStream(final String remoteFileName) throws IOException {
-        return getInputStream(remoteFileName, null);
-    }
-
-    @Override
-    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final SFTPClient sftpClient = getSFTPClient(flowFile);
+    public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
+        final SFTPClient sftpClient = getSFTPClient(origFlowFile);
+        RemoteFile rf = null;
+        RemoteFile.ReadAheadRemoteFileInputStream rfis = null;
+        FlowFile resultFlowFile;
         try {
-            // The client has 'get' methods for downloading a file, but they don't offer a way to get access to an InputStream so
-            // this code is what the SFTPTransfer Downloader does to get a stream for the remote file contents
-            final RemoteFile rf = sftpClient.open(remoteFileName);
-            final RemoteFile.ReadAheadRemoteFileInputStream rfis = rf.new ReadAheadRemoteFileInputStream(16);
-            return rfis;
+            rf = sftpClient.open(remoteFileName);
+            rfis = rf.new ReadAheadRemoteFileInputStream(16);
+            final InputStream in = rfis;
+            resultFlowFile = session.write(origFlowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    StreamUtils.copy(in, out);
+                }
+            });
+            return resultFlowFile;
         } catch (final SFTPException e) {
             switch (e.getStatusCode()) {
                 case NO_SUCH_FILE:
@@ -368,17 +438,22 @@ public class SFTPTransfer implements FileTransfer {
                 default:
                     throw new IOException("Failed to obtain file content for " + remoteFileName, e);
             }
+        } finally {
+            if(rf != null){
+                try{
+                    rf.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
+            if(rfis != null){
+                try{
+                    rfis.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
         }
-    }
-
-    @Override
-    public void flush() throws IOException {
-        // nothing needed here
-    }
-
-    @Override
-    public boolean flush(final FlowFile flowFile) throws IOException {
-        return true;
     }
 
     @Override
@@ -451,10 +526,10 @@ public class SFTPTransfer implements FileTransfer {
         if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
-        logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        logger.debug("Remote Directory {} does not exist; creating it", remoteDirectory);
         try {
             sftpClient.mkdir(remoteDirectory);
-            logger.debug("Created {}", new Object[] {remoteDirectory});
+            logger.debug("Created {}", remoteDirectory);
         } catch (final SFTPException e) {
             throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + getMessage(e), e);
         }
@@ -467,18 +542,6 @@ public class SFTPTransfer implements FileTransfer {
             return e.getMessage();
         }
     }
-
-    private static KeepAliveProvider NO_OP_KEEP_ALIVE = new KeepAliveProvider() {
-        @Override
-        public KeepAlive provide(final ConnectionImpl connection) {
-            return new KeepAlive(connection, "no-op-keep-alive") {
-                @Override
-                protected void doKeepAlive() throws TransportException, ConnectionException {
-                    // do nothing;
-                }
-            };
-        }
-    };
 
     protected SFTPClient getSFTPClient(final FlowFile flowFile) throws IOException {
         // If the client is already initialized then compare the host that the client is connected to with the current
@@ -495,119 +558,9 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
-        // Initialize a new SSHClient...
-
-        // If use keep-alive is set then set the provider which sends max of 5 keep-alives, otherwise set the no-op provider
-        final DefaultConfig sshClientConfig = new DefaultConfig();
-        final boolean useKeepAliveOnTimeout = ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean();
-        if (useKeepAliveOnTimeout) {
-            sshClientConfig.setKeepAliveProvider(KeepAliveProvider.KEEP_ALIVE);
-        } else {
-            sshClientConfig.setKeepAliveProvider(NO_OP_KEEP_ALIVE);
-        }
-
-        final SSHClient sshClient = new SSHClient(sshClientConfig);
-
-        // Create a Proxy if the config was specified, proxy will be null if type was NO_PROXY
-        final Proxy proxy;
-        final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(ctx, createComponentProxyConfigSupplier(ctx));
-        switch (proxyConfig.getProxyType()) {
-            case HTTP:
-            case SOCKS:
-                proxy = proxyConfig.createProxy();
-                break;
-            default:
-                proxy = null;
-                break;
-        }
-
-        // If a proxy was specified, configure the client to use a SocketFactory that creates Sockets using the proxy
-        if (proxy != null) {
-            sshClient.setSocketFactory(new SocketFactory() {
-                @Override
-                public Socket createSocket() {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(String s, int i) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(String s, int i, InetAddress inetAddress, int i1) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(InetAddress inetAddress, int i) {
-                    return new Socket(proxy);
-                }
-
-                @Override
-                public Socket createSocket(InetAddress inetAddress, int i, InetAddress inetAddress1, int i1) {
-                    return new Socket(proxy);
-                }
-            });
-        }
-
-        // If strict host key checking is false, add a HostKeyVerifier that always returns true
-        final boolean strictHostKeyChecking = ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean();
-        if (!strictHostKeyChecking) {
-            sshClient.addHostKeyVerifier(new PromiscuousVerifier());
-        }
-
-        // Load known hosts file if specified, otherwise load default
-        final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
-        if (hostKeyVal != null) {
-            sshClient.loadKnownHosts(new File(hostKeyVal));
-            // Load default known_hosts file only when 'Strict Host Key Checking' property is enabled
-        } else if (strictHostKeyChecking) {
-            sshClient.loadKnownHosts();
-        }
-
-        // Enable compression on the client if specified in properties
-        final PropertyValue compressionValue = ctx.getProperty(FileTransfer.USE_COMPRESSION);
-        if (compressionValue != null && "true".equalsIgnoreCase(compressionValue.getValue())) {
-            sshClient.useCompression();
-        }
-
-        // Configure connection timeout
-        final int connectionTimeoutMillis = ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        sshClient.setTimeout(connectionTimeoutMillis);
-
-        // Connect to the host and port
-        final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final int port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue();
-        sshClient.connect(hostname, port);
-
-        // Setup authentication methods...
-        final List<AuthMethod> authMethods = new ArrayList<>();
-
-        // Add public-key auth if a private key is specified
-        final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        if (privateKeyFile != null) {
-            final String privateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
-            final KeyProvider keyProvider = privateKeyPassphrase == null ? sshClient.loadKeys(privateKeyFile) : sshClient.loadKeys(privateKeyFile, privateKeyPassphrase);
-            final AuthMethod publicKeyAuth = new AuthPublickey(keyProvider);
-            authMethods.add(publicKeyAuth);
-        }
-
-        // Add password auth if a password is specified
-        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
-        if (password != null) {
-            final PasswordFinder passwordFinder = PasswordUtils.createOneOff(password.toCharArray());
-            final AuthMethod passwordAuth = new AuthPassword(passwordFinder);
-            authMethods.add(passwordAuth);
-        }
-
-        // Authenticate...
-        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
-        sshClient.auth(username, authMethods);
-
-        // At this point we are connected and can create a new SFTPClient which means everything is good
-        this.sshClient = sshClient;
-        this.sftpClient = sshClient.newSFTPClient();
+        final Map<String, String> attributes = flowFile == null ? Collections.emptyMap() : flowFile.getAttributes();
+        this.sshClient = SSH_CLIENT_PROVIDER.getClient(ctx, attributes);
+        this.sftpClient = new SFTPClient(new PatchedSFTPEngine(sshClient).init());
         this.closed = false;
 
         // Configure timeout for sftp operations
@@ -618,9 +571,10 @@ public class SFTPTransfer implements FileTransfer {
         try {
             this.homeDir = sftpClient.canonicalize("");
         } catch (IOException e) {
+            this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
-            logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
+            logger.debug("Failed to retrieve home directory due to {}", e.getMessage());
         }
 
         return sftpClient;
@@ -664,7 +618,6 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
 
@@ -711,7 +664,7 @@ public class SFTPTransfer implements FileTransfer {
         }
         final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
-        int perms = 0;
+        int perms;
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
         if (permissions == null || permissions.trim().isEmpty()) {
             sftpClient.getFileTransfer().setPreserveAttributes(false); //We will accept whatever the default permissions are of the destination
@@ -743,7 +696,7 @@ public class SFTPTransfer implements FileTransfer {
 
                 sftpClient.setattr(tempPath, modifiedAttributes);
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {tempPath, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", tempPath, lastModifiedTime, e);
             }
         }
 
@@ -752,7 +705,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chown(tempPath, Integer.parseInt(owner));
             } catch (final Exception e) {
-                logger.error("Failed to set owner on {} to {} due to {}", new Object[] {tempPath, owner, e});
+                logger.error("Failed to set owner on {} to {} due to {}", tempPath, owner, e);
             }
         }
 
@@ -761,7 +714,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chgrp(tempPath, Integer.parseInt(group));
             } catch (final Exception e) {
-                logger.error("Failed to set group on {} to {} due to {}", new Object[] {tempPath, group, e});
+                logger.error("Failed to set group on {} to {} due to {}", tempPath, group, e);
             }
         }
 
@@ -839,5 +792,4 @@ public class SFTPTransfer implements FileTransfer {
         }
         return number;
     }
-
 }

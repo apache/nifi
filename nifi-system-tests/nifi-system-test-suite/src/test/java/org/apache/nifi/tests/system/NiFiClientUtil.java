@@ -17,21 +17,27 @@
 package org.apache.nifi.tests.system;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
 import org.apache.nifi.web.api.dto.FlowFileSummaryDTO;
+import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
@@ -41,11 +47,16 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VariableDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
@@ -66,19 +77,29 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProvenanceEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
+import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +115,29 @@ public class NiFiClientUtil {
     public NiFiClientUtil(final NiFiClient client, final String nifiVersion) {
         this.nifiClient = client;
         this.nifiVersion = nifiVersion;
+    }
+
+    private ProcessorClient getProcessorClient() {
+        final ProcessorClient client = nifiClient.getProcessorClient();
+        client.acknowledgeDisconnectedNode();
+        return client;
+    }
+
+    private ConnectionClient getConnectionClient() {
+        final ConnectionClient client = nifiClient.getConnectionClient();
+        client.acknowledgeDisconnectedNode();
+        return client;
+    }
+
+    public void startProcessor(final ProcessorEntity currentEntity) throws NiFiClientException, IOException {
+        currentEntity.setDisconnectedNodeAcknowledged(true);
+        getProcessorClient().startProcessor(currentEntity);
+    }
+
+    public void stopProcessor(final ProcessorEntity currentEntity) throws NiFiClientException, IOException, InterruptedException {
+        currentEntity.setDisconnectedNodeAcknowledged(true);
+        getProcessorClient().stopProcessor(currentEntity);
+        waitForStoppedProcessor(currentEntity.getId());
     }
 
     public ProcessorEntity createProcessor(final String simpleTypeName) throws NiFiClientException, IOException {
@@ -122,12 +166,17 @@ public class NiFiClientUtil {
         final ProcessorEntity entity = new ProcessorEntity();
         entity.setComponent(dto);
         entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
 
-        return nifiClient.getProcessorClient().createProcessor(processGroupId, entity);
+        return getProcessorClient().createProcessor(processGroupId, entity);
     }
 
     public ControllerServiceEntity createControllerService(final String simpleTypeName) throws NiFiClientException, IOException {
-        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, "root", NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+        return createControllerService(simpleTypeName, "root");
+    }
+
+    public ControllerServiceEntity createControllerService(final String simpleTypeName, final String groupId) throws NiFiClientException, IOException {
+        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, groupId, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
     }
 
     public ControllerServiceEntity createControllerService(final String type, final String processGroupId, final String bundleGroupId, final String artifactId, final String version)
@@ -144,8 +193,81 @@ public class NiFiClientUtil {
         final ControllerServiceEntity entity = new ControllerServiceEntity();
         entity.setComponent(dto);
         entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
+
+        if (processGroupId == null) {
+            return nifiClient.getControllerClient().createControllerService(entity);
+        }
 
         return nifiClient.getControllerServicesClient().createControllerService(processGroupId, entity);
+    }
+
+    public BundleDTO getTestBundle() {
+        return new BundleDTO(NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ReportingTaskEntity createReportingTask(final String type) throws NiFiClientException, IOException {
+        return createReportingTask(NiFiSystemIT.TEST_REPORTING_TASK_PACKAGE + "." + type, getTestBundle());
+    }
+
+    public ReportingTaskEntity createReportingTask(final String type, final BundleDTO bundle) throws NiFiClientException, IOException {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setBundle(bundle);
+        dto.setType(type);
+
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getControllerClient().createReportingTask(entity);
+    }
+
+    public ReportingTaskEntity updateReportingTaskProperties(final ReportingTaskEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ReportingTaskDTO taskDto = new ReportingTaskDTO();
+        taskDto.setProperties(properties);
+        taskDto.setId(currentEntity.getId());
+
+        final ReportingTaskEntity updatedEntity = new ReportingTaskEntity();
+        updatedEntity.setRevision(currentEntity.getRevision());
+        updatedEntity.setComponent(taskDto);
+        updatedEntity.setId(currentEntity.getId());
+        updatedEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getReportingTasksClient().updateReportingTask(updatedEntity);
+
+    }
+
+    public ReportingTaskEntity startReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
+        return activateReportingTask(reportingTask, "RUNNING");
+    }
+
+    public ReportingTaskEntity stopReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
+        return activateReportingTask(reportingTask, "STOPPED");
+    }
+
+    public void stopReportingTasks() throws NiFiClientException, IOException {
+        final ReportingTasksEntity tasksEntity = nifiClient.getFlowClient().getReportingTasks();
+        for (final ReportingTaskEntity taskEntity : tasksEntity.getReportingTasks()) {
+            stopReportingTask(taskEntity);
+        }
+    }
+
+    public ReportingTaskEntity activateReportingTask(final ReportingTaskEntity reportingTask, final String state) throws NiFiClientException, IOException {
+        final ReportingTaskRunStatusEntity runStatusEntity = new ReportingTaskRunStatusEntity();
+        runStatusEntity.setState(state);
+        runStatusEntity.setRevision(reportingTask.getRevision());
+        runStatusEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getReportingTasksClient().activateReportingTask(reportingTask.getId(), runStatusEntity);
+    }
+
+    public void deleteReportingTasks() throws NiFiClientException, IOException {
+        final ReportingTasksEntity tasksEntity = nifiClient.getFlowClient().getReportingTasks();
+        for (final ReportingTaskEntity taskEntity : tasksEntity.getReportingTasks()) {
+            taskEntity.setDisconnectedNodeAcknowledged(true);
+            nifiClient.getReportingTasksClient().deleteReportingTask(taskEntity);
+        }
     }
 
     public ParameterEntity createParameterEntity(final String name, final String description, final boolean sensitive, final String value) {
@@ -161,10 +283,16 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList());
+    }
+
+    public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
+                                                               final List<ParameterContextReferenceEntity> inheritedParameterContexts) {
         final ParameterContextDTO contextDto = new ParameterContextDTO();
         contextDto.setName(name);
         contextDto.setDescription(description);
         contextDto.setParameters(parameters);
+        contextDto.setInheritedParameterContexts(inheritedParameterContexts);
 
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setComponent(contextDto);
@@ -202,8 +330,15 @@ public class NiFiClientUtil {
         return nifiClient.getProcessGroupClient().updateProcessGroup(processGroup);
     }
 
-    public ParameterContextEntity createParameterContext(final String contextName, final String parameterName, final String parameterValue) throws NiFiClientException, IOException {
-        return createParameterContext(contextName, Collections.singletonMap(parameterName, parameterValue));
+    public ParameterContextEntity createParameterContext(final String contextName, final String parameterName, final String parameterValue, final boolean sensitive)
+            throws NiFiClientException, IOException {
+
+        final Set<ParameterEntity> parameterEntities = new HashSet<>();
+        parameterEntities.add(createParameterEntity(parameterName, null, sensitive, parameterValue));
+
+        final ParameterContextEntity contextEntity = createParameterContextEntity(contextName, null, parameterEntities);
+        final ParameterContextEntity createdContextEntity = nifiClient.getParamContextClient().createParamContext(contextEntity);
+        return createdContextEntity;
     }
 
     public ParameterContextEntity createParameterContext(final String contextName, final Map<String, String> parameters) throws NiFiClientException, IOException {
@@ -232,13 +367,30 @@ public class NiFiClientUtil {
         while (true) {
             final ParameterContextUpdateRequestEntity entity = nifiClient.getParamContextClient().getParamContextUpdateRequest(contextId, requestId);
             if (entity.getRequest().isComplete()) {
-                return;
+                if (entity.getRequest().getFailureReason() == null) {
+                    return;
+                }
+
+                throw new RuntimeException("Parameter Context Update failed: " + entity.getRequest().getFailureReason());
             }
 
             Thread.sleep(100L);
         }
     }
 
+    public ControllerServiceEntity updateControllerServiceProperties(final ControllerServiceEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ControllerServiceDTO serviceDto = new ControllerServiceDTO();
+        serviceDto.setProperties(properties);
+        serviceDto.setId(currentEntity.getId());
+
+        final ControllerServiceEntity updatedEntity = new ControllerServiceEntity();
+        updatedEntity.setRevision(currentEntity.getRevision());
+        updatedEntity.setComponent(serviceDto);
+        updatedEntity.setId(currentEntity.getId());
+        updatedEntity.setDisconnectedNodeAcknowledged(true);
+
+        return nifiClient.getControllerServicesClient().updateControllerService(updatedEntity);
+    }
 
     public ProcessorEntity updateProcessorExecutionNode(final ProcessorEntity currentEntity, final ExecutionNode executionNode) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
@@ -249,6 +401,12 @@ public class NiFiClientUtil {
     public ProcessorEntity updateProcessorProperties(final ProcessorEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setProperties(properties);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
+    public ProcessorEntity updateProcessorRunDuration(final ProcessorEntity currentEntity, final int runDuration) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setRunDurationMillis((long) runDuration);
         return updateProcessorConfig(currentEntity, config);
     }
 
@@ -267,8 +425,9 @@ public class NiFiClientUtil {
         updatedEntity.setRevision(currentEntity.getRevision());
         updatedEntity.setComponent(processorDto);
         updatedEntity.setId(currentEntity.getId());
+        updatedEntity.setDisconnectedNodeAcknowledged(true);
 
-        return nifiClient.getProcessorClient().updateProcessor(updatedEntity);
+        return getProcessorClient().updateProcessor(updatedEntity);
     }
 
     public ProcessorEntity setAutoTerminatedRelationships(final ProcessorEntity currentEntity, final String autoTerminatedRelationship) throws NiFiClientException, IOException {
@@ -291,7 +450,7 @@ public class NiFiClientUtil {
 
     public void waitForValidStatus(final String processorId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
         while (true) {
-            final ProcessorEntity entity = nifiClient.getProcessorClient().getProcessor(processorId);
+            final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String validationStatus = entity.getComponent().getValidationStatus();
             if (expectedStatus.equals(validationStatus)) {
                 return;
@@ -315,9 +474,13 @@ public class NiFiClientUtil {
 
     public void waitForProcessorState(final String processorId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
         while (true) {
-            final ProcessorEntity entity = nifiClient.getProcessorClient().getProcessor(processorId);
+            final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String state = entity.getComponent().getState();
-            if (!expectedState.equals(state)) {
+
+            // We've reached the desired state if the state equal the expected state, OR if we expect stopped and the state is disabled (because disabled implies stopped)
+            final boolean desiredStateReached = expectedState.equals(state) || ("STOPPED".equalsIgnoreCase(expectedState) && "DISABLED".equalsIgnoreCase(state));
+
+            if (!desiredStateReached) {
                 Thread.sleep(10L);
                 continue;
             }
@@ -334,10 +497,24 @@ public class NiFiClientUtil {
         }
     }
 
+    public ControllerServiceEntity updateControllerService(final ControllerServiceEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ControllerServiceDTO dto = new ControllerServiceDTO();
+        dto.setProperties(properties);
+        dto.setId(currentEntity.getId());
+
+        final ControllerServiceEntity entity = new ControllerServiceEntity();
+        entity.setId(currentEntity.getId());
+        entity.setComponent(dto);
+        entity.setRevision(currentEntity.getRevision());
+
+        return nifiClient.getControllerServicesClient().updateControllerService(entity);
+    }
+
     public ControllerServiceEntity enableControllerService(final ControllerServiceEntity entity) throws NiFiClientException, IOException {
         final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
         runStatusEntity.setState("ENABLED");
         runStatusEntity.setRevision(entity.getRevision());
+        runStatusEntity.setDisconnectedNodeAcknowledged(true);
 
         return nifiClient.getControllerServicesClient().activateControllerService(entity.getId(), runStatusEntity);
     }
@@ -346,6 +523,7 @@ public class NiFiClientUtil {
         final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
         runStatusEntity.setState("DISABLED");
         runStatusEntity.setRevision(entity.getRevision());
+        runStatusEntity.setDisconnectedNodeAcknowledged(true);
 
         return nifiClient.getControllerServicesClient().activateControllerService(entity.getId(), runStatusEntity);
     }
@@ -374,12 +552,23 @@ public class NiFiClientUtil {
         return counterValues;
     }
 
+    public ScheduleComponentsEntity startProcessGroupComponents(final String groupId) throws NiFiClientException, IOException {
+        final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
+        scheduleComponentsEntity.setId(groupId);
+        scheduleComponentsEntity.setState("RUNNING");
+        scheduleComponentsEntity.setDisconnectedNodeAcknowledged(true);
+        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents(groupId, scheduleComponentsEntity);
+
+        return scheduleEntity;
+    }
+
     public ScheduleComponentsEntity stopProcessGroupComponents(final String groupId) throws NiFiClientException, IOException {
         final ScheduleComponentsEntity scheduleComponentsEntity = new ScheduleComponentsEntity();
-        scheduleComponentsEntity.setId("root");
+        scheduleComponentsEntity.setId(groupId);
         scheduleComponentsEntity.setState("STOPPED");
-        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents("root", scheduleComponentsEntity);
-        waitForProcessorsStopped("root");
+        scheduleComponentsEntity.setDisconnectedNodeAcknowledged(true);
+        final ScheduleComponentsEntity scheduleEntity = nifiClient.getFlowClient().scheduleProcessGroupComponents(groupId, scheduleComponentsEntity);
+        waitForProcessorsStopped(groupId);
 
         return scheduleEntity;
     }
@@ -397,7 +586,27 @@ public class NiFiClientUtil {
         }
 
         for (final ProcessGroupEntity group : rootFlowDTO.getProcessGroups()) {
-            waitForProcessorsStopped(group.getId());
+            waitForProcessorsStopped(group.getComponent());
+        }
+    }
+
+    private void waitForProcessorsStopped(final ProcessGroupDTO group) throws IOException, NiFiClientException {
+        final FlowSnippetDTO groupContents = group.getContents();
+        if (groupContents == null) {
+            return;
+        }
+
+        for (final ProcessorDTO processor : groupContents.getProcessors()) {
+            try {
+                waitForStoppedProcessor(processor.getId());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NiFiClientException("Interrupted while waiting for Processor with ID " + processor.getId() + " to stop");
+            }
+        }
+
+        for (final ProcessGroupDTO child : groupContents.getProcessGroups()) {
+            waitForProcessorsStopped(child);
         }
     }
 
@@ -414,15 +623,47 @@ public class NiFiClientUtil {
         }
     }
 
-    public ActivateControllerServicesEntity disableControllerServices(final String groupId) throws NiFiClientException, IOException {
+    public ActivateControllerServicesEntity disableControllerServices(final String groupId, final boolean recurse) throws NiFiClientException, IOException {
         final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
         activateControllerServicesEntity.setId(groupId);
         activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
+        activateControllerServicesEntity.setDisconnectedNodeAcknowledged(true);
 
         final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
         waitForControllerSerivcesDisabled(groupId);
 
+        if (recurse) {
+            final ProcessGroupFlowEntity groupEntity = nifiClient.getFlowClient().getProcessGroup(groupId);
+            final FlowDTO flowDto = groupEntity.getProcessGroupFlow().getFlow();
+            for (final ProcessGroupEntity childGroupEntity : flowDto.getProcessGroups()) {
+                final String childGroupId = childGroupEntity.getId();
+                disableControllerServices(childGroupId, recurse);
+            }
+        }
+
         return activateControllerServices;
+    }
+
+    public void disableControllerLevelServices() throws NiFiClientException, IOException {
+        final ControllerServicesEntity services = nifiClient.getFlowClient().getControllerServices();
+
+        final Map<String, RevisionDTO> revisions = new HashMap<>();
+
+        for (final ControllerServiceEntity service : services.getControllerServices()) {
+            final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
+            runStatusEntity.setDisconnectedNodeAcknowledged(true);
+            runStatusEntity.setRevision(service.getRevision());
+            runStatusEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
+            nifiClient.getControllerServicesClient().activateControllerService(service.getId(), runStatusEntity);
+        }
+    }
+
+    public void deleteControllerLevelServices() throws NiFiClientException, IOException {
+        final ControllerServicesEntity services = nifiClient.getFlowClient().getControllerServices();
+        for (final ControllerServiceEntity service : services.getControllerServices()) {
+            service.setDisconnectedNodeAcknowledged(true);
+            nifiClient.getControllerServicesClient().deleteControllerService(service);
+        }
     }
 
     public void waitForControllerSerivcesDisabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
@@ -437,13 +678,13 @@ public class NiFiClientUtil {
         while (true) {
             final List<ControllerServiceEntity> nonDisabledServices = getControllerServicesNotInState(groupId, desiredState, serviceIdsOfInterest);
             if (nonDisabledServices.isEmpty()) {
-                System.out.println(String.format("All Controller Services in Process Group %s now have desired state of %s", groupId, desiredState));
+                logger.info("Process Group [{}] Controller Services have desired state [{}]", groupId, desiredState);
                 return;
             }
 
             final ControllerServiceEntity entity = nonDisabledServices.get(0);
-            System.out.println(String.format("Controller Service with ID %s and type %s has a State of %s while waiting for state of %s; will wait 500 millis and check again", entity.getId(),
-                entity.getComponent().getType(), entity.getComponent().getState(), desiredState));
+            logger.info("Controller Service ID [{}] Type [{}] State [{}] waiting for State [{}]: sleeping for 500 ms before retrying", entity.getId(),
+                    entity.getComponent().getType(), entity.getComponent().getState(), desiredState);
 
             try {
                 Thread.sleep(500L);
@@ -475,39 +716,68 @@ public class NiFiClientUtil {
                 emptyQueue(connectionEntity.getId());
             }
 
-            nifiClient.getConnectionClient().deleteConnection(connectionEntity);
+            connectionEntity.setDisconnectedNodeAcknowledged(true);
+            getConnectionClient().deleteConnection(connectionEntity);
         }
 
         // Delete all processors
         for (final ProcessorEntity processorEntity : flowDto.getProcessors()) {
-            nifiClient.getProcessorClient().deleteProcessor(processorEntity);
+            processorEntity.setDisconnectedNodeAcknowledged(true);
+            getProcessorClient().deleteProcessor(processorEntity);
         }
 
         // Delete all Controller Services
         final ControllerServicesEntity servicesEntity = nifiClient.getFlowClient().getControllerServices(groupId);
         for (final ControllerServiceEntity serviceEntity : servicesEntity.getControllerServices()) {
+            serviceEntity.setDisconnectedNodeAcknowledged(true);
             nifiClient.getControllerServicesClient().deleteControllerService(serviceEntity);
         }
 
         // Delete all RPG's
         for (final RemoteProcessGroupEntity rpgEntity : flowDto.getRemoteProcessGroups()) {
+            rpgEntity.setDisconnectedNodeAcknowledged(true);
             nifiClient.getRemoteProcessGroupClient().deleteRemoteProcessGroup(rpgEntity);
         }
 
         // Delete all Input Ports
         for (final PortEntity port : flowDto.getInputPorts()) {
+            port.setDisconnectedNodeAcknowledged(true);
             nifiClient.getInputPortClient().deleteInputPort(port);
         }
 
         // Delete all Output Ports
         for (final PortEntity port : flowDto.getOutputPorts()) {
+            port.setDisconnectedNodeAcknowledged(true);
             nifiClient.getOutputPortClient().deleteOutputPort(port);
         }
 
         // Recurse
         for (final ProcessGroupEntity childGroupEntity : flowDto.getProcessGroups()) {
+            childGroupEntity.setDisconnectedNodeAcknowledged(true);
             deleteAll(childGroupEntity.getId());
         }
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination) throws NiFiClientException, IOException {
+        if ("OUTPUT_PORT".equals(source.getPortType()) && "INPUT_PORT".equals(destination.getPortType())) {
+            throw new IllegalArgumentException("In order to connect an Output Port to an Input Port, the Process Group ID must be specified");
+        }
+
+        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final String connectionGroupId) throws NiFiClientException, IOException {
+        final ConnectableDTO sourceDto = createConnectableDTO(source);
+        final ConnectableDTO destinationDto = createConnectableDTO(destination);
+        return createConnection(sourceDto, destinationDto, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()), connectionGroupId);
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination) throws NiFiClientException, IOException {
+        return createConnection(source, destination, Collections.singleton(AbstractPort.PORT_RELATIONSHIP.getName()));
+    }
+
+    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final String relationship) throws NiFiClientException, IOException {
+        return createConnection(source, destination, Collections.singleton(relationship));
     }
 
     public ConnectionEntity createConnection(final ProcessorEntity source, final ProcessorEntity destination, final String relationship) throws NiFiClientException, IOException {
@@ -522,27 +792,46 @@ public class NiFiClientUtil {
         return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
     }
 
+    public ConnectionEntity createConnection(final ProcessorEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final PortEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
+    }
+
+    public ConnectionEntity createConnection(final PortEntity source, final ProcessorEntity destination, final Set<String> relationships) throws NiFiClientException, IOException {
+        return createConnection(createConnectableDTO(source), createConnectableDTO(destination), relationships);
+    }
+
     public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final Set<String> relationships) throws NiFiClientException, IOException {
+        final String connectionGroupId = "OUTPUT_PORT".equals(source.getType()) ? destination.getGroupId() : source.getGroupId();
+        return createConnection(source, destination, relationships, connectionGroupId);
+    }
+
+    public ConnectionEntity createConnection(final ConnectableDTO source, final ConnectableDTO destination, final Set<String> relationships, final String connectionGroupId)
+                throws NiFiClientException, IOException {
         final ConnectionDTO connectionDto = new ConnectionDTO();
         connectionDto.setSelectedRelationships(relationships);
         connectionDto.setDestination(destination);
         connectionDto.setSource(source);
-        connectionDto.setParentGroupId(source.getGroupId());
+        connectionDto.setParentGroupId(connectionGroupId);
 
         final ConnectionEntity connectionEntity = new ConnectionEntity();
         connectionEntity.setComponent(connectionDto);
 
         connectionEntity.setDestinationGroupId(destination.getGroupId());
         connectionEntity.setDestinationId(destination.getId());
-        connectionEntity.setDestinationType("PROCESSOR");
+        connectionEntity.setDestinationType(destination.getType());
 
         connectionEntity.setSourceGroupId(source.getGroupId());
         connectionEntity.setSourceId(source.getId());
-        connectionEntity.setDestinationType("PROCESSOR");
+        connectionEntity.setSourceType(source.getType());
 
         connectionEntity.setRevision(createNewRevision());
+        connectionEntity.setDisconnectedNodeAcknowledged(true);
 
-        return nifiClient.getConnectionClient().createConnection(source.getGroupId(), connectionEntity);
+        return getConnectionClient().createConnection(connectionGroupId, connectionEntity);
     }
 
     public ConnectableDTO createConnectableDTO(final ProcessorEntity processor) {
@@ -590,11 +879,11 @@ public class NiFiClientUtil {
         updatedEntity.setId(connectionEntity.getId());
         updatedEntity.setRevision(connectionEntity.getRevision());
 
-        return nifiClient.getConnectionClient().updateConnection(updatedEntity);
+        return getConnectionClient().updateConnection(updatedEntity);
     }
 
     public DropRequestEntity emptyQueue(final String connectionId) throws NiFiClientException, IOException {
-        final ConnectionClient connectionClient = nifiClient.getConnectionClient();
+        final ConnectionClient connectionClient = getConnectionClient();
 
         DropRequestEntity requestEntity = connectionClient.emptyQueue(connectionId);
         try {
@@ -665,16 +954,16 @@ public class NiFiClientUtil {
 
     public ListingRequestEntity performQueueListing(final String connectionId) throws NiFiClientException, IOException {
         try {
-            ListingRequestEntity listingRequestEntity = nifiClient.getConnectionClient().listQueue(connectionId);
+            ListingRequestEntity listingRequestEntity = getConnectionClient().listQueue(connectionId);
             while (listingRequestEntity.getListingRequest().getFinished() != Boolean.TRUE) {
                 Thread.sleep(10L);
 
-                listingRequestEntity = nifiClient.getConnectionClient().getListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
+                listingRequestEntity = getConnectionClient().getListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
             }
 
             // Delete the listing. Return the previously obtained listing, not the one from the deletion, because the listing request that is returned from deleting the listing does not contain the
             // FlowFile Summaries.
-            nifiClient.getConnectionClient().deleteListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
+            getConnectionClient().deleteListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
             return listingRequestEntity;
         } catch (final InterruptedException e) {
             Assert.fail("Failed to obtain connection status");
@@ -693,9 +982,40 @@ public class NiFiClientUtil {
         final String uuid = flowFileSummary.getUuid();
         final String nodeId = flowFileSummary.getClusterNodeId();
 
-        final FlowFileEntity flowFileEntity = nifiClient.getConnectionClient().getFlowFile(connectionId, uuid, nodeId);
+        final FlowFileEntity flowFileEntity = getConnectionClient().getFlowFile(connectionId, uuid, nodeId);
         flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
         return flowFileEntity;
+    }
+
+    public String getFlowFileContentAsUtf8(final String connectionId, final int flowFileIndex) throws NiFiClientException, IOException {
+        final byte[] contents = getFlowFileContentAsByteArray(connectionId, flowFileIndex);
+        return new String(contents, StandardCharsets.UTF_8);
+    }
+
+    public byte[] getFlowFileContentAsByteArray(final String connectionId, final int flowFileIndex) throws NiFiClientException, IOException {
+        try (final InputStream in = getFlowFileContent(connectionId, flowFileIndex);
+             final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+
+            StreamUtils.copy(in, baos);
+            return baos.toByteArray();
+        }
+    }
+
+    public InputStream getFlowFileContent(final String connectionId, final int flowFileIndex) throws NiFiClientException, IOException {
+        final ListingRequestEntity listing = performQueueListing(connectionId);
+        final List<FlowFileSummaryDTO> flowFileSummaries = listing.getListingRequest().getFlowFileSummaries();
+        if (flowFileIndex >= flowFileSummaries.size()) {
+            throw new IllegalArgumentException("Cannot retrieve FlowFile with index " + flowFileIndex + " because queue only has " + flowFileSummaries.size() + " FlowFiles");
+        }
+
+        final FlowFileSummaryDTO flowFileSummary = flowFileSummaries.get(flowFileIndex);
+        final String uuid = flowFileSummary.getUuid();
+        final String nodeId = flowFileSummary.getClusterNodeId();
+
+        final FlowFileEntity flowFileEntity = getConnectionClient().getFlowFile(connectionId, uuid, nodeId);
+        flowFileEntity.getFlowFile().setClusterNodeId(nodeId);
+
+        return getConnectionClient().getFlowFileContent(connectionId, uuid, nodeId);
     }
 
     public VariableRegistryUpdateRequestEntity updateVariableRegistry(final ProcessGroupEntity processGroup, final Map<String, String> variables) throws NiFiClientException, IOException {
@@ -751,4 +1071,178 @@ public class NiFiClientUtil {
         final ProcessGroupEntity childGroup = nifiClient.getProcessGroupClient().createProcessGroup(parentGroupId, childGroupEntity);
         return childGroup;
     }
+
+    public PortEntity createInputPort(final String name, final String groupId) throws NiFiClientException, IOException {
+        final PortDTO component = new PortDTO();
+        component.setName(name);
+        component.setParentGroupId(groupId);
+
+        final PortEntity inputPortEntity = new PortEntity();
+        inputPortEntity.setRevision(createNewRevision());
+        inputPortEntity.setComponent(component);
+
+        return nifiClient.getInputPortClient().createInputPort(groupId, inputPortEntity);
+    }
+
+    public PortEntity createOutputPort(final String name, final String groupId) throws NiFiClientException, IOException {
+        final PortDTO component = new PortDTO();
+        component.setName(name);
+        component.setParentGroupId(groupId);
+
+        final PortEntity outputPortEntity = new PortEntity();
+        outputPortEntity.setRevision(createNewRevision());
+        outputPortEntity.setComponent(component);
+
+        return nifiClient.getOutputPortClient().createOutputPort(groupId, outputPortEntity);
+    }
+
+    public ProvenanceEntity queryProvenance(final Map<SearchableField, ProvenanceSearchValueDTO> searchTerms, final Long startTime, final Long endTime) throws NiFiClientException, IOException {
+        final Map<String, ProvenanceSearchValueDTO> searchTermsAsStrings = searchTerms.entrySet().stream()
+            .collect(Collectors.toMap(entry -> entry.getKey().getSearchableFieldName(), Map.Entry::getValue));
+
+        final ProvenanceRequestDTO requestDto = new ProvenanceRequestDTO();
+        requestDto.setSearchTerms(searchTermsAsStrings);
+        requestDto.setSummarize(false);
+        requestDto.setStartDate(startTime == null ? null : new Date(startTime));
+        requestDto.setEndDate(endTime == null ? null : new Date(endTime));
+        requestDto.setMaxResults(1000);
+
+        final ProvenanceDTO dto = new ProvenanceDTO();
+        dto.setRequest(requestDto);
+        dto.setSubmissionTime(new Date());
+
+        final ProvenanceEntity entity = new ProvenanceEntity();
+        entity.setProvenance(dto);
+
+        ProvenanceEntity responseEntity = nifiClient.getProvenanceClient().submitProvenanceQuery(entity);
+
+        try {
+            responseEntity = waitForComplete(responseEntity);
+        } catch (final InterruptedException ie) {
+            Assert.fail("Interrupted while waiting for Provenance Query to complete");
+        }
+
+        nifiClient.getProvenanceClient().deleteProvenanceQuery(responseEntity.getProvenance().getId());
+        return responseEntity;
+    }
+
+    public ProvenanceEntity waitForComplete(final ProvenanceEntity entity) throws InterruptedException, NiFiClientException, IOException {
+        ProvenanceEntity current = entity;
+        while (current.getProvenance().isFinished() != Boolean.TRUE) {
+            Thread.sleep(100L);
+            current = nifiClient.getProvenanceClient().getProvenanceQuery(entity.getProvenance().getId());
+        }
+
+        return current;
+    }
+
+    public List<ConfigVerificationResultDTO> verifyProcessorConfig(final String processorId, final Map<String, String> properties) throws InterruptedException, IOException, NiFiClientException {
+        return verifyProcessorConfig(processorId, properties, Collections.emptyMap());
+    }
+
+    public List<ConfigVerificationResultDTO> verifyProcessorConfig(final String processorId, final Map<String, String> properties, final Map<String, String> attributes)
+                    throws NiFiClientException, IOException, InterruptedException {
+        final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
+        requestDto.setComponentId(processorId);
+        requestDto.setProperties(properties);
+        requestDto.setAttributes(attributes);
+
+        final VerifyConfigRequestEntity verificationRequest = new VerifyConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConfigRequestEntity results = nifiClient.getProcessorClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getProcessorClient().getConfigVerificationRequest(processorId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getProcessorClient().deleteConfigVerificationRequest(processorId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public List<ConfigVerificationResultDTO> verifyControllerServiceConfig(final String serviceId, final Map<String, String> properties)
+                    throws InterruptedException, IOException,NiFiClientException {
+        return verifyControllerServiceConfig(serviceId, properties, Collections.emptyMap());
+    }
+
+    public List<ConfigVerificationResultDTO> verifyControllerServiceConfig(final String serviceId, final Map<String, String> properties, final Map<String, String> attributes)
+                    throws NiFiClientException, IOException, InterruptedException {
+
+        final ControllerServiceDTO serviceDto = new ControllerServiceDTO();
+        serviceDto.setProperties(properties);
+        serviceDto.setId(serviceId);
+
+        final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
+        requestDto.setComponentId(serviceId);
+        requestDto.setAttributes(attributes);
+        requestDto.setProperties(properties);
+
+        final VerifyConfigRequestEntity verificationRequest = new VerifyConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConfigRequestEntity results = nifiClient.getControllerServicesClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getControllerServicesClient().getConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getControllerServicesClient().deleteConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+    public List<ConfigVerificationResultDTO> verifyReportingTaskConfig(final String taskId, final Map<String, String> properties)
+                throws InterruptedException, IOException,NiFiClientException {
+
+        final VerifyConfigRequestDTO requestDto = new VerifyConfigRequestDTO();
+        requestDto.setComponentId(taskId);
+        requestDto.setProperties(properties);
+
+        final VerifyConfigRequestEntity verificationRequest = new VerifyConfigRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConfigRequestEntity results = nifiClient.getReportingTasksClient().submitConfigVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = nifiClient.getReportingTasksClient().getConfigVerificationRequest(taskId, results.getRequest().getRequestId());
+        }
+
+        nifiClient.getReportingTasksClient().deleteConfigVerificationRequest(taskId, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
+
+
+    public ReportingTaskEntity createReportingTask(final String type, final String bundleGroupId, final String artifactId, final String version)
+                throws NiFiClientException, IOException {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setType(type);
+
+        final BundleDTO bundle = new BundleDTO();
+        bundle.setGroup(bundleGroupId);
+        bundle.setArtifact(artifactId);
+        bundle.setVersion(version);
+        dto.setBundle(bundle);
+
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+
+        return nifiClient.getControllerClient().createReportingTask(entity);
+    }
+
+    public ReportingTaskEntity updateReportingTask(final ReportingTaskEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+        dto.setProperties(properties);
+        dto.setId(currentEntity.getId());
+
+        final ReportingTaskEntity entity = new ReportingTaskEntity();
+        entity.setId(currentEntity.getId());
+        entity.setComponent(dto);
+        entity.setRevision(currentEntity.getRevision());
+
+        return nifiClient.getReportingTasksClient().updateReportingTask(entity);
+    }
+
 }
