@@ -51,6 +51,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.ListableEntityWrapper;
+import org.apache.nifi.processor.util.list.ListedEntity;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -635,6 +636,9 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                     }
 
                     pageNr = currentPageNr;
+
+                    final ListedEntity listedEntity = new ListedEntity(listableBlob.getTimestamp(), listableBlob.getSize());
+                    alreadyListedEntities.put(listableBlob.getIdentifier(), listedEntity);
                 }
 
                 writer.finishListing();
