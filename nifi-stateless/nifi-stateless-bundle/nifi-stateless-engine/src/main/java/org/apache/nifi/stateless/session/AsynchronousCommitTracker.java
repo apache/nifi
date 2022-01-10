@@ -43,7 +43,6 @@ public class AsynchronousCommitTracker {
     private int flowFilesProduced = 0;
     private long bytesProduced = 0L;
     private boolean progressMade = false;
-    private final Stack<List<Connectable>> previouslyReadyStack = new Stack<>();
 
     public void addConnectable(final Connectable connectable) {
         // this.ready is a LinkedHashSet that is responsible for ensuring that when a Connectable is added,
@@ -64,26 +63,24 @@ public class AsynchronousCommitTracker {
         }
     }
 
-    /**
-     * Returns a List of components that may be ready to be triggered. Note that one or more components may be returned in the List
-     * that are not truly ready to be triggered, according to {@link #isReady(Connectable)}.
-     *
-     * @return the List of components that may be ready to be triggered, in the order that they should be triggered.
-     */
-    public List<Connectable> getReady() {
-        if (ready.isEmpty()) {
-            if (previouslyReadyStack.isEmpty()) {
-                return Collections.emptyList();
-            }
 
-            final List<Connectable> previouslyReady = previouslyReadyStack.pop();
-            ready.addAll(previouslyReady);
-            return previouslyReady;
+    public Connectable getNextReady() {
+        if (ready.isEmpty()) {
+            return null;
         }
 
-        final List<Connectable> connectables = new ArrayList<>(ready);
-        Collections.reverse(connectables);
-        return connectables;
+        Connectable last = null;
+        for (final Connectable connectable : ready) {
+            last = connectable;
+        }
+
+        return last;
+    }
+
+    public List<Connectable> getReady() {
+        final List<Connectable> reversed = new ArrayList<>(ready);
+        Collections.reverse(reversed);
+        return reversed;
     }
 
     /**
@@ -93,7 +90,7 @@ public class AsynchronousCommitTracker {
      * @return <code>true</code> if any component is expected to be ready to trigger, <code>false</code> otherwise
      */
     public boolean isAnyReady() {
-        final boolean anyReady = !ready.isEmpty() || !previouslyReadyStack.isEmpty();
+        final boolean anyReady = !ready.isEmpty();
         logger.debug("{} Any components ready = {}, list={}", this, anyReady, ready);
         return anyReady;
     }
@@ -117,12 +114,17 @@ public class AsynchronousCommitTracker {
             return false;
         }
 
-        if (isDataQueued(connectable) || (connectable.isTriggerWhenEmpty() && isDataHeld(connectable))) {
+        if (isDataQueued(connectable)) {
             logger.debug("{} {} is ready because it has data queued", this, connectable);
             return true;
         }
 
-        logger.debug("{} {} is not ready because it has no data queued", this, connectable);
+        if (connectable.isTriggerWhenEmpty() && isDataHeld(connectable)) {
+            logger.debug("{} {} is ready because it is triggered when its input queue is empty and has unacknowledged data", this, connectable);
+            return true;
+        }
+
+        logger.debug("{} {} is not ready because it has no data queued or held (or has no data queued and is not to be triggered when input queue is empty)", this, connectable);
         ready.remove(connectable);
         return false;
     }
@@ -230,22 +232,6 @@ public class AsynchronousCommitTracker {
         this.flowFilesProduced = 0;
         this.bytesProduced = 0L;
         this.progressMade = false;
-    }
-
-    /**
-     * Takes the set of components that are currently considered ready to run and 'shelves' them,
-     * clearing the set of ready components. This allows the flow to be triggered from the beginning
-     * without losing the collection of components that are ready to be run.
-     *
-     * Once all components that are ready to be run have completed, these shelves components will then be made available
-     * as ready components once again.
-     */
-    public void shelveReadyComponents() {
-        if (!ready.isEmpty()) {
-            final List<Connectable> readyCopy = new ArrayList<>(ready);
-            previouslyReadyStack.push(readyCopy);
-            this.ready.clear();
-        }
     }
 
     public boolean isProgress() {

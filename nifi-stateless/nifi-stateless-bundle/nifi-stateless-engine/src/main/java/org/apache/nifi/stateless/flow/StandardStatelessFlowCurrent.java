@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -63,33 +62,29 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         try {
             boolean completionReached = false;
             while (!completionReached) {
-                tracker.shelveReadyComponents();
                 triggerRootConnectables();
 
-                NextConnectable nextConnectable = NextConnectable.NEXT_READY;
-                while (tracker.isAnyReady() && nextConnectable == NextConnectable.NEXT_READY) {
-                    // Get the list of components that are currently ready to be triggered
-                    final List<Connectable> next = tracker.getReady();
-                    logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+                while (tracker.isAnyReady()) {
+                    final Connectable connectable = tracker.getNextReady();
+                    logger.debug("The next ready component to be triggered: {}", connectable);
 
-                    for (final Connectable connectable : next) {
-                        // Continually trigger the given component as long as it is ready to be triggered
-                        nextConnectable = triggerWhileReady(connectable);
+                    // Continually trigger the given component as long as it is ready to be triggered
+                    final NextConnectable nextConnectable = triggerWhileReady(connectable);
 
-                        // If there's nothing left to do, return
-                        if (nextConnectable == NextConnectable.NONE) {
-                            return;
-                        }
-
-                        // If next connectable is whatever is ready, just continue loop
-                        if (nextConnectable == NextConnectable.NEXT_READY) {
-                            continue;
-                        }
-
-                        // Otherwise, we need to break out of this loop so that we can trigger root connectables or complete dataflow
-                        break;
+                    // If there's nothing left to do, return
+                    if (nextConnectable == NextConnectable.NONE) {
+                        return;
                     }
+
+                    // If next connectable is whatever is ready, just continue loop
+                    if (nextConnectable == NextConnectable.NEXT_READY) {
+                        continue;
+                    }
+
+                    // Otherwise, we need to break out of this loop so that we can trigger root connectables or complete dataflow
+                    break;
                 }
+
 
                 // We have reached completion if the tracker does not know of any components ready to be triggered AND
                 // we have no data queued in the flow (with the exception of Output Ports).
