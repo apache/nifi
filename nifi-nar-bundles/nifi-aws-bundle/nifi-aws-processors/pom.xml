@@ -58,6 +58,18 @@
             <artifactId>aws-java-sdk-sts</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-textract</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-polly</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-rekognition</artifactId>
+        </dependency>
+        <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
             <version>1.9.4</version>
@@ -117,6 +129,8 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/mock-aws-credentials.properties</exclude>
+                        <exclude>src/main/resources/docs/org.apache.nifi.processors.aws.polly.FetchSpeechSynthesisResults/speech-synthesis-dataflow.png</exclude>
+                        <exclude>src/main/resources/docs/org.apache.nifi.processors.aws.polly.StartSpeechSynthesisTask/speech-synthesis-dataflow.png</exclude>
                     </excludes>
                 </configuration>
             </plugin>

@@ -30,4 +30,8 @@ org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream
 org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream
 org.apache.nifi.processors.aws.cloudwatch.PutCloudWatchMetric
 org.apache.nifi.processors.aws.wag.InvokeAWSGatewayApi
-
+org.apache.nifi.processors.aws.textract.InvokeTextract
+org.apache.nifi.processors.aws.textract.StartTextractJob
+org.apache.nifi.processors.aws.textract.FetchTextractResults
+org.apache.nifi.processors.aws.polly.StartSpeechSynthesisTask
+org.apache.nifi.processors.aws.polly.FetchSpeechSynthesisResults

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>InvokeTextract</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+<body>
+
+<h2>Using AWS Textract with NiFi</h2>
+
+<p>
+    The AWS Textract service allows the user to send images (jpg, png, tiff) files or PDF files to AWS and receive back
+    information about the text (printed or handwritten) that is contained within the document. The responses contain information not only about
+    the actual text encountered but depending on the types of processing configured may also indicate geometries such as bounding
+    rectangles, etc. of where the text was located. Additionally, the text is broken down per-word to indicate confidence thresholds, etc.
+    This can be very verbose output and is provided in the JSON format.
+</p>
+
+<p>
+    There are two ways in which a document can be sent to Textract, depending on the use case.
+</p>
+
+<h4>Synchronous Processing</h4>
+<p>
+    The first option is to use the Synchronous Processing option. This is accomplished using the InvokeTextract processor. When using this
+    Processor, the contents of the FlowFile must be a jpg, png, or tiff file. PDF files are not supported. The maximum size of the image
+    is 5 or 10 MB, depending on the Action being performed (Analyze ID, Detect Text, etc.). Processing typically takes a few seconds and
+    will occupy the Processor's thread as it waits for a response from the Textract service. This processor will send the original FlowFile
+    to the 'original' relationship and send the results to a new FlowFile on the 'analysis' relationship.
+</p>
+
+<h4>Asynchronous Processing</h4>
+<p>
+    The second option is to use the Asynchronous Processing option. In this approach, a Textract job is triggered to start by using the
+    StartTextractJob processor. In this case, the contents of the FlowFile are not sent to Textract. Rather, the StartTextractJob processor
+    must provide the name of an S3 Bucket and the name of an object within that S3 Bucket. Textract will then process the contents of that object/file.
+    When using this approach, the user is able to specify a PDF file, in additional to jpg, png, and tiff files. PDF files may be up to 500 MB in size.
+</p>
+
+<p>
+    Because this is expected to be a long-running asynchronous process, the Processor does not wait for the results. Instead, the Processor
+    receives a Job Identifier (JobID) for the Textract job and adds it as a FlowFile attribute. Once the job completes, the results can be retrieved
+    either by fetching the JSON object that Textract writes to the configured S3 Destination bucket, OR by using the FetchTextractResults
+    processor.
+</p>
+
+<p>
+    This, then, begs the question: how do we know when the processing completes? There are two ways to determine this. Firstly, when a job is
+    started, Textract requires that an SNS topic be provided to which it can put a notification when it completes. This SNS topic can be monitored
+    (either by configuring a Lambda to run in order to process it, or by configuring the SNS topic to put its messages on an SQS queue and then consuming
+    from the SQS queue). One option here would be to configure the SNS topic to send its messages to SQS and then configure NiFi's GetSQS Processor to poll
+    that SQS queue in order to receive the notifications. Alternatively, we can simply ignore the notifications and occasionally poll to see if the results
+    have completed. To do this, we can simply use the FetchTextractResults processor and create a self-loop for the 'in progress' relationship (i.e., create
+    a relationship where the FetchTextractResults is both the source and the destination). If Textract is not finished processing the job when the FlowFile is
+    processed, the FlowFile will be penalized for the configured amount of time and routed to the 'in progress' relationship. For example, if the Penalty Duration
+    for FetchTextractResults is set to "30 secs" (the default), and the job is not complete, the FlowFile will be routed to the 'in progress' relationship again and
+    will not be retried for 30 seconds. This allows us to constantly retry every 30 seconds until the job has completed.
+</p>
+
+<p>
+    Typically, the asynchronous method takes longer. That is, it has a higher latency. However, because it's performed asynchronously, it is
+    easier to configure the Processor to process more jobs concurrently, resulting in higher throughput. Additionally, it allows for larger documents
+    to be processed. As a result, it is the preferred method when possible.
+</p>
+
+</body>
+</html>

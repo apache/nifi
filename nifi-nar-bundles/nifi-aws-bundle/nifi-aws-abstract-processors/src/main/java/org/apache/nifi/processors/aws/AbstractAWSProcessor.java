@@ -301,6 +301,10 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
      */
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
+    protected boolean isInitializeRegionAndEndpoint() {
+        return true;
+    }
+
     protected Region getRegionAndInitializeEndpoint(final ProcessContext context, final AmazonWebServiceClient client) {
         final Region region;
         // if the processor supports REGION, get the configured region.
@@ -308,7 +312,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final String regionValue = context.getProperty(REGION).getValue();
             if (regionValue != null) {
                 region = Region.getRegion(Regions.fromName(regionValue));
-                if (client != null) {
+                if (client != null && isInitializeRegionAndEndpoint()) {
                     client.setRegion(region);
                 }
             } else {
@@ -320,25 +324,28 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
-            final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
+        if (isInitializeRegionAndEndpoint()) {
+            if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+                final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
-            if (!urlstr.isEmpty()) {
-                getLogger().info("Overriding endpoint with {}", urlstr);
+                if (!urlstr.isEmpty()) {
+                    getLogger().info("Overriding endpoint with {}", urlstr);
 
-                if (urlstr.endsWith(VPCE_ENDPOINT_SUFFIX)) {
-                    // handling vpce endpoints
-                    // falling back to the configured region if the parse fails
-                    // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
-                    String regionValue = parseRegionForVPCE(urlstr, region.getName());
-                    client.setEndpoint(urlstr, client.getServiceName(), regionValue);
-                } else {
-                    // handling non-vpce custom endpoints where the AWS library can parse the region out
-                    // e.g. https://sqs.{region}.***.***.***.gov
-                    client.setEndpoint(urlstr);
+                    if (urlstr.endsWith(VPCE_ENDPOINT_SUFFIX)) {
+                        // handling vpce endpoints
+                        // falling back to the configured region if the parse fails
+                        // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+                        String regionValue = parseRegionForVPCE(urlstr, region.getName());
+                        client.setEndpoint(urlstr, client.getServiceName(), regionValue);
+                    } else {
+                        // handling non-vpce custom endpoints where the AWS library can parse the region out
+                        // e.g. https://sqs.{region}.***.***.***.gov
+                        client.setEndpoint(urlstr);
+                    }
                 }
             }
         }
+
         return region;
     }
 

@@ -16,28 +16,6 @@
  */
 package org.apache.nifi.processors.aws.lambda;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.lambda.AWSLambdaClient;
 import com.amazonaws.services.lambda.model.InvalidParameterValueException;
@@ -51,6 +29,27 @@ import com.amazonaws.services.lambda.model.ResourceNotFoundException;
 import com.amazonaws.services.lambda.model.TooManyRequestsException;
 import com.amazonaws.services.lambda.model.UnsupportedMediaTypeException;
 import com.amazonaws.util.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"amazon", "aws", "lambda", "put"})
@@ -71,59 +70,16 @@ import com.amazonaws.util.Base64;
     })
 public class PutLambda extends AbstractAWSLambdaProcessor {
 
-    /**
-     * Lambda result function error message
-     */
     public static final String AWS_LAMBDA_RESULT_FUNCTION_ERROR = "aws.lambda.result.function.error";
-
-    /**
-     * Lambda response status code
-     */
     public static final String AWS_LAMBDA_RESULT_STATUS_CODE = "aws.lambda.result.status.code";
-
-    /**
-     * Lambda response log tail (4kb)
-     */
     public static final String AWS_LAMBDA_RESULT_LOG = "aws.lambda.result.log";
-
-    /**
-     * Lambda payload in response
-     */
     public static final String AWS_LAMBDA_RESULT_PAYLOAD = "aws.lambda.result.payload";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_MESSAGE = "aws.lambda.exception.message";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_CAUSE = "aws.lambda.exception.cause";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_ERROR_CODE = "aws.lambda.exception.error.code";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_REQUEST_ID = "aws.lambda.exception.request.id";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_STATUS_CODE = "aws.lambda.exception.status.code";
-
-    /**
-     * Lambda exception field
-     */
     public static final String AWS_LAMBDA_EXCEPTION_ERROR_TYPE = "aws.lambda.exception.error.type";
-
-    /**
-     * Max request body size
-     */
     public static final long MAX_REQUEST_SIZE = 6 * 1000 * 1000;
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
@@ -137,14 +93,12 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
         final String functionName = context.getProperty(AWS_LAMBDA_FUNCTION_NAME).getValue();
-
         final String qualifier = context.getProperty(AWS_LAMBDA_FUNCTION_QUALIFIER).getValue();
 
         // Max size of message is 6 MB
@@ -161,14 +115,14 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFile, baos);
 
-            InvokeRequest invokeRequest = new InvokeRequest()
+            final InvokeRequest invokeRequest = new InvokeRequest()
                 .withFunctionName(functionName)
                 .withLogType(LogType.Tail).withInvocationType(InvocationType.RequestResponse)
                 .withPayload(ByteBuffer.wrap(baos.toByteArray()))
                 .withQualifier(qualifier);
             long startTime = System.nanoTime();
 
-            InvokeResult result = client.invoke(invokeRequest);
+            final InvokeResult result = client.invoke(invokeRequest);
 
             flowFile = session.putAttribute(flowFile, AWS_LAMBDA_RESULT_STATUS_CODE, result.getStatusCode().toString());
 
@@ -188,31 +142,23 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
                 final long totalTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime);
                 session.getProvenanceReporter().send(flowFile, functionName, totalTimeMillis);
             }
-        } catch (final InvalidRequestContentException
-            | InvalidParameterValueException
-            | RequestTooLargeException
-            | ResourceNotFoundException
-            | UnsupportedMediaTypeException unrecoverableException) {
-                getLogger().error("Failed to invoke lambda {} with unrecoverable exception {} for flow file {}",
-                    new Object[]{functionName, unrecoverableException, flowFile});
-                flowFile = populateExceptionAttributes(session, flowFile, unrecoverableException);
-                session.transfer(flowFile, REL_FAILURE);
+        } catch (final InvalidRequestContentException | InvalidParameterValueException | RequestTooLargeException | ResourceNotFoundException | UnsupportedMediaTypeException unrecoverableException) {
+            getLogger().error("Failed to invoke lambda {} with unrecoverable exception {} for flow file {}", functionName, unrecoverableException, flowFile);
+            flowFile = populateExceptionAttributes(session, flowFile, unrecoverableException);
+            session.transfer(flowFile, REL_FAILURE);
         } catch (final TooManyRequestsException retryableServiceException) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}, therefore penalizing flowfile",
-                new Object[]{functionName, retryableServiceException, flowFile});
+            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}, therefore penalizing flowfile", functionName, retryableServiceException, flowFile);
             flowFile = populateExceptionAttributes(session, flowFile, retryableServiceException);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } catch (final AmazonServiceException unrecoverableServiceException) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {} sending to fail",
-                new Object[]{functionName, unrecoverableServiceException, flowFile});
+            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {} sending to fail", functionName, unrecoverableServiceException, flowFile);
             flowFile = populateExceptionAttributes(session, flowFile, unrecoverableServiceException);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         } catch (final Exception exception) {
-            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}",
-                new Object[]{functionName, exception, flowFile});
+            getLogger().error("Failed to invoke lambda {} with exception {} for flow file {}", functionName, exception, flowFile);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
@@ -225,17 +171,18 @@ public class PutLambda extends AbstractAWSLambdaProcessor {
      * @param exception exception thrown during invocation
      * @return FlowFile the updated flow file
      */
-    private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile,
-            final AmazonServiceException exception) {
-        Map<String,String> attributes = new HashMap<>();
+    private FlowFile populateExceptionAttributes(final ProcessSession session, FlowFile flowFile, final AmazonServiceException exception) {
+        final Map<String,String> attributes = new HashMap<>();
         attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
         attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_CODE, exception.getErrorCode());
         attributes.put(AWS_LAMBDA_EXCEPTION_REQUEST_ID, exception.getRequestId());
         attributes.put(AWS_LAMBDA_EXCEPTION_STATUS_CODE, Integer.toString(exception.getStatusCode()));
-        if ( exception.getCause() != null )
+        if (exception.getCause() != null && exception.getCause() != exception) {
             attributes.put(AWS_LAMBDA_EXCEPTION_CAUSE, exception.getCause().getMessage());
+        }
         attributes.put(AWS_LAMBDA_EXCEPTION_ERROR_TYPE, exception.getErrorType().toString());
         attributes.put(AWS_LAMBDA_EXCEPTION_MESSAGE, exception.getErrorMessage());
+
         flowFile = session.putAllAttributes(flowFile, attributes);
         return flowFile;
     }
