@@ -35,6 +35,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -50,6 +52,8 @@ import static org.mockito.Mockito.when;
 public class TestFlowResource {
     private static final String LABEL_VALUE = TestFlowResource.class.getSimpleName();
 
+    private static final String OTHER_LABEL_VALUE = JmxJvmMetrics.class.getSimpleName();
+
     private static final String THREAD_COUNT_NAME = "nifi_jvm_thread_count";
 
     private static final String HEAP_USAGE_NAME = "nifi_jvm_heap_usage";
@@ -57,6 +61,10 @@ public class TestFlowResource {
     private static final String HEAP_USED_NAME = "nifi_jvm_heap_used";
 
     private static final String HEAP_STARTS_WITH_PATTERN = "nifi_jvm_heap.*";
+
+    private static final String THREAD_COUNT_LABEL = String.format("nifi_jvm_thread_count{instance=\"%s\"", LABEL_VALUE);
+
+    private static final String THREAD_COUNT_OTHER_LABEL = String.format("nifi_jvm_thread_count{instance=\"%s\"", OTHER_LABEL_VALUE);
 
     @InjectMocks
     private FlowResource resource = new FlowResource();
@@ -131,6 +139,25 @@ public class TestFlowResource {
         final String output = getResponseOutput(response);
 
         assertTrue(output.contains(LABEL_VALUE), "Label Value not found");
+        assertFalse(output.contains(OTHER_LABEL_VALUE), "Other Label Value not filtered");
+    }
+
+    @Test
+    public void testGetFlowMetricsPrometheusSampleNameAndSampleLabelValue() throws IOException {
+        final List<CollectorRegistry> registries = getCollectorRegistries();
+        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, LABEL_VALUE);
+
+        assertNotNull(response);
+        assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
+
+        final String output = getResponseOutput(response);
+
+        assertTrue(output.contains(THREAD_COUNT_NAME), "Thread Count name not found");
+        assertTrue(output.contains(THREAD_COUNT_LABEL), "Thread Count with label not found");
+        assertTrue(output.contains(THREAD_COUNT_OTHER_LABEL), "Thread Count with other label not found");
+        assertTrue(output.contains(HEAP_USAGE_NAME), "Heap Usage name not found");
     }
 
     private String getResponseOutput(final Response response) throws IOException {
@@ -138,12 +165,13 @@ public class TestFlowResource {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         streamingOutput.write(outputStream);
         final byte[] outputBytes = outputStream.toByteArray();
-        return new String(outputBytes);
+        return new String(outputBytes, StandardCharsets.UTF_8);
     }
 
     private List<CollectorRegistry> getCollectorRegistries() {
         final JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
         final CollectorRegistry jvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), LABEL_VALUE);
-        return Collections.singletonList(jvmCollectorRegistry);
+        final CollectorRegistry otherJvmCollectorRegistry = PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), OTHER_LABEL_VALUE);
+        return Arrays.asList(jvmCollectorRegistry, otherJvmCollectorRegistry);
     }
 }

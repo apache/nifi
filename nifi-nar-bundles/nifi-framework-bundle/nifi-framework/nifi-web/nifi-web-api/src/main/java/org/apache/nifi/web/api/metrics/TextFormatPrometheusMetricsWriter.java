@@ -34,8 +34,6 @@ import java.util.regex.Pattern;
  * Prometheus Metrics Writer supporting Prometheus Text Version 0.0.4 with optional filtering
  */
 public class TextFormatPrometheusMetricsWriter implements PrometheusMetricsWriter {
-    private static final Pattern INCLUDE_ALL_PATTERN = Pattern.compile(".*");
-
     private final Pattern sampleNamePattern;
 
     private final Pattern sampleLabelValuePattern;
@@ -46,8 +44,8 @@ public class TextFormatPrometheusMetricsWriter implements PrometheusMetricsWrite
             final String sampleName,
             final String sampleLabelValue
     ) {
-        this.sampleNamePattern = StringUtils.isBlank(sampleName) ? INCLUDE_ALL_PATTERN : Pattern.compile(sampleName);
-        this.sampleLabelValuePattern = StringUtils.isBlank(sampleLabelValue) ? INCLUDE_ALL_PATTERN : Pattern.compile(sampleLabelValue);
+        this.sampleNamePattern = StringUtils.isBlank(sampleName) ? null : Pattern.compile(sampleName);
+        this.sampleLabelValuePattern = StringUtils.isBlank(sampleLabelValue) ? null : Pattern.compile(sampleLabelValue);
         this.filteringDisabled = StringUtils.isAllBlank(sampleName, sampleLabelValue);
     }
 

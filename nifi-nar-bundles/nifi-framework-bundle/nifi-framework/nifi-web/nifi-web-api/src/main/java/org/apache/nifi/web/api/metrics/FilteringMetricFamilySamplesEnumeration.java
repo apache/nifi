@@ -19,7 +19,6 @@ package org.apache.nifi.web.api.metrics;
 import io.prometheus.client.Collector;
 
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -41,8 +40,8 @@ public class FilteringMetricFamilySamplesEnumeration implements Enumeration<Coll
      * Filtering Metric Family Samples Enumeration with required properties
      *
      * @param metricFamilySamples Metric Family Samples to be filtered
-     * @param sampleNamePattern Pattern used to match against Sample.name field
-     * @param sampleLabelValuePattern Pattern used to matching against Sample.labelValues field
+     * @param sampleNamePattern Pattern used to match against Sample.name field supports null values
+     * @param sampleLabelValuePattern Pattern used to matching against Sample.labelValues field supports null values
      */
     public FilteringMetricFamilySamplesEnumeration(
             final Enumeration<Collector.MetricFamilySamples> metricFamilySamples,
@@ -50,8 +49,8 @@ public class FilteringMetricFamilySamplesEnumeration implements Enumeration<Coll
             final Pattern sampleLabelValuePattern
     ) {
         this.metricFamilySamples = Objects.requireNonNull(metricFamilySamples);
-        this.sampleNamePattern = Objects.requireNonNull(sampleNamePattern, "Sample Name Pattern required");
-        this.sampleLabelValuePattern = Objects.requireNonNull(sampleLabelValuePattern, "Sample Label Values Pattern required");
+        this.sampleNamePattern = sampleNamePattern;
+        this.sampleLabelValuePattern = sampleLabelValuePattern;
         setNextElement();
     }
 
@@ -87,7 +86,7 @@ public class FilteringMetricFamilySamplesEnumeration implements Enumeration<Coll
         nextElement = null;
         while (metricFamilySamples.hasMoreElements()) {
             final Collector.MetricFamilySamples possibleNextElement = metricFamilySamples.nextElement();
-            filterSamples(possibleNextElement);
+            possibleNextElement.samples.removeIf(this::isSampleNotMatched);
             if (possibleNextElement.samples.size() == 0) {
                 continue;
             }
@@ -96,24 +95,36 @@ public class FilteringMetricFamilySamplesEnumeration implements Enumeration<Coll
         }
     }
 
-    private void filterSamples(final Collector.MetricFamilySamples element) {
-        final Iterator<Collector.MetricFamilySamples.Sample> iterator = element.samples.iterator();
-        samples: while (iterator.hasNext()) {
-            final Collector.MetricFamilySamples.Sample sample = iterator.next();
+    private boolean isSampleNotMatched(final Collector.MetricFamilySamples.Sample sample) {
+        boolean notMatched = false;
 
-            final Matcher sampleNameMatcher = sampleNamePattern.matcher(sample.name);
-            if (!sampleNameMatcher.matches()) {
-                iterator.remove();
-                continue;
-            }
-
-            for (final String labelValue : sample.labelValues) {
-                final Matcher sampleLabelValueMatcher = sampleLabelValuePattern.matcher(labelValue);
-                if (sampleLabelValueMatcher.matches()) {
-                    continue samples;
-                }
-            }
-            iterator.remove();
+        if (sampleNamePattern == null) {
+            notMatched = isSampleLabelValueNotMatched(sample);
+        } else if (sampleLabelValuePattern == null) {
+            notMatched = isSampleNameNotMatched(sample);
+        } else if (isSampleNameNotMatched(sample) && isSampleLabelValueNotMatched(sample)) {
+            notMatched = true;
         }
+
+        return notMatched;
+    }
+
+    private boolean isSampleNameNotMatched(final Collector.MetricFamilySamples.Sample sample) {
+        final Matcher sampleNameMatcher = sampleNamePattern.matcher(sample.name);
+        return !sampleNameMatcher.matches();
+    }
+
+    private boolean isSampleLabelValueNotMatched(final Collector.MetricFamilySamples.Sample sample) {
+        boolean notMatched = true;
+
+        for (final String labelValue : sample.labelValues) {
+            final Matcher sampleLabelValueMatcher = sampleLabelValuePattern.matcher(labelValue);
+            if (sampleLabelValueMatcher.matches()) {
+                notMatched = false;
+                break;
+            }
+        }
+
+        return notMatched;
     }
 }
