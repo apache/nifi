@@ -14,27 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.event;
-
-import org.apache.nifi.processor.util.listen.event.StandardEvent;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-
-import java.nio.channels.SocketChannel;
+package org.apache.nifi.processors.beats.frame;
 
 /**
- * A Beat event which adds the transaction number to the StandardEvent.
+ * Metadata keys for Beats message.
  */
-public class BeatsEvent extends StandardEvent<SocketChannel> {
+public interface BeatsMetadata {
 
-    private final int seqNumber;
-
-    public BeatsEvent(final String sender, final byte[] data, final ChannelResponder<SocketChannel> responder, final int seqNumber) {
-        super(sender, data, responder);
-        this.seqNumber = seqNumber;
-    }
-
-    public int getSeqNumber() {
-        return seqNumber;
-    }
-
+    String SEQNUMBER_KEY = "beats.sequencenumber";
+    String SENDER_KEY = "sender";
 }
