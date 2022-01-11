@@ -18,10 +18,10 @@ package org.apache.nifi.registry.security.authorization;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
-import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.scheme.StandardProtectionScheme;
 import org.apache.nifi.registry.extension.ExtensionClassLoader;
 import org.apache.nifi.registry.extension.ExtensionCloseable;
 import org.apache.nifi.registry.extension.ExtensionManager;
@@ -517,7 +517,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     "detected and configured during the bootstrap startup sequence. Contact the system administrator.");
         }
         try {
-            final SensitivePropertyProvider sensitivePropertyProvider = sensitivePropertyProviderFactory.getProvider(PropertyProtectionScheme.fromIdentifier(encryptionScheme));
+            final SensitivePropertyProvider sensitivePropertyProvider = sensitivePropertyProviderFactory.getProvider(new StandardProtectionScheme(encryptionScheme));
             return sensitivePropertyProvider.unprotect(cipherText, sensitivePropertyProviderFactory.getPropertyContext(groupIdentifier, propertyName));
         } catch (final IllegalArgumentException e) {
             throw new SensitivePropertyProtectionException(String.format("Authorizer configuration XML was protected using %s, which is not supported. " +

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -186,11 +185,6 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
     }
 
     @Override
-    public Set<String> getProtectionSchemes() {
-        return propertyProtectionDelegate.getProtectionSchemes();
-    }
-
-    @Override
     public boolean isPropertySensitive(final String key) {
         return propertyProtectionDelegate.isPropertySensitive(key);
     }
@@ -208,11 +202,6 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
     @Override
     public void addSensitivePropertyProvider(final SensitivePropertyProvider sensitivePropertyProvider) {
         propertyProtectionDelegate.addSensitivePropertyProvider(sensitivePropertyProvider);
-    }
-
-    @Override
-    public Map<String, SensitivePropertyProvider> getSensitivePropertyProviders() {
-        return propertyProtectionDelegate.getSensitivePropertyProviders();
     }
 
     /**
@@ -237,14 +226,6 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
 
     @Override
     public String toString() {
-        final Set<String> providers = getSensitivePropertyProviders().keySet();
-        return new StringBuilder("ProtectedNiFiProperties instance with ")
-                .append(size()).append(" properties (")
-                .append(getProtectedPropertyKeys().size())
-                .append(" protected) and ")
-                .append(providers.size())
-                .append(" sensitive property providers: ")
-                .append(StringUtils.join(providers, ", "))
-                .toString();
+        return String.format("%s Size [%d]", getClass().getSimpleName(), size());
     }
 }

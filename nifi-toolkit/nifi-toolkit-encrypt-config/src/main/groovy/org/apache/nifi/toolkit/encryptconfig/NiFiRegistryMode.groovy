@@ -22,11 +22,11 @@ import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
 import org.apache.nifi.properties.BootstrapProperties
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.apache.nifi.properties.PropertyProtectionScheme
-import org.apache.nifi.properties.ProtectedPropertyContext
+import org.apache.nifi.properties.scheme.ProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProviderFactory
+import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -44,6 +44,8 @@ class NiFiRegistryMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryMode.class)
 
+    private static final StandardProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
+
     CliBuilder cli
     boolean verboseEnabled
 
@@ -59,7 +61,7 @@ class NiFiRegistryMode implements ToolMode {
                 try {
                     NiFiRegistryBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
                 } catch (final IOException e) {
-                    throw new SensitivePropertyProtectionException(e.getCause(), e)
+                    throw new SensitivePropertyProtectionException("Loading Bootstrap Properties failed", e)
                 }
             }
         }
@@ -210,7 +212,7 @@ class NiFiRegistryMode implements ToolMode {
         cli.S(longOpt: 'protectionScheme',
                 args: 1,
                 argName: 'protectionScheme',
-                "Selects the protection scheme for encrypted properties.  Valid values are: [${PropertyProtectionScheme.values().join(", ")}] (default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()})")
+                String.format("Selects the protection scheme for encrypted properties. Default is AES_GCM. Valid values: %s", PROTECTION_SCHEME_RESOLVER.supportedProtectionSchemes))
 
         // Options for the old password or key, if running the tool to migrate keys
         cli._(longOpt: 'oldPassword',
@@ -224,7 +226,7 @@ class NiFiRegistryMode implements ToolMode {
         cli.H(longOpt: 'oldProtectionScheme',
                 args: 1,
                 argName: 'protectionScheme',
-                "The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()}.")
+                "The old protection scheme to use during encryption migration (see --protectionScheme for possible values). Default is AES_GCM.")
 
         // Options for output bootstrap.conf file
         cli.b(longOpt: 'bootstrapConf',
@@ -278,9 +280,9 @@ class NiFiRegistryMode implements ToolMode {
         boolean usingPassword
         boolean usingBootstrapKey
 
-        PropertyProtectionScheme protectionScheme
+        ProtectionScheme protectionScheme
         String encryptionKey
-        PropertyProtectionScheme oldProtectionScheme
+        ProtectionScheme oldProtectionScheme
         String decryptionKey
 
         SensitivePropertyProvider encryptionProvider
@@ -371,7 +373,7 @@ class NiFiRegistryMode implements ToolMode {
         private void determineProtectionScheme() {
 
             if (rawOptions.S) {
-                protectionScheme = PropertyProtectionScheme.valueOf(rawOptions.S)
+                protectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme(rawOptions.S)
             } else {
                 protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
             }
@@ -379,7 +381,7 @@ class NiFiRegistryMode implements ToolMode {
         private void determineOldProtectionScheme() {
 
             if (rawOptions.H) {
-                oldProtectionScheme = PropertyProtectionScheme.valueOf(rawOptions.H)
+                oldProtectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme(rawOptions.H)
             } else {
                 oldProtectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
             }
