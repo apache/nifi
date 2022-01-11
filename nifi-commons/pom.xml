@@ -37,7 +37,14 @@
         <module>nifi-property-encryptor</module>
         <module>nifi-property-utils</module>
         <module>nifi-properties</module>
-        <module>nifi-sensitive-property-provider</module>
+        <module>nifi-property-protection-api</module>
+        <module>nifi-property-protection-aws</module>
+        <module>nifi-property-protection-azure</module>
+        <module>nifi-property-protection-cipher</module>
+        <module>nifi-property-protection-factory</module>
+        <module>nifi-property-protection-gcp</module>
+        <module>nifi-property-protection-hashicorp</module>
+        <module>nifi-property-protection-shared</module>
         <module>nifi-record</module>
         <module>nifi-record-path</module>
         <module>nifi-repository-encryption</module>

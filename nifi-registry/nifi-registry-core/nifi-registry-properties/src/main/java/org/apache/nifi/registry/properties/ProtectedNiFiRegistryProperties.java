@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.properties;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.ApplicationPropertiesProtector;
 import org.apache.nifi.properties.ProtectedProperties;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
@@ -175,11 +174,6 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     }
 
     @Override
-    public Set<String> getProtectionSchemes() {
-        return propertyProtectionDelegate.getProtectionSchemes();
-    }
-
-    @Override
     public boolean isPropertySensitive(final String key) {
         return propertyProtectionDelegate.isPropertySensitive(key);
     }
@@ -200,20 +194,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     }
 
     @Override
-    public Map<String, SensitivePropertyProvider> getSensitivePropertyProviders() {
-        return propertyProtectionDelegate.getSensitivePropertyProviders();
-    }
-
-    @Override
     public String toString() {
-        final Set<String> providers = getSensitivePropertyProviders().keySet();
-        return new StringBuilder("ProtectedNiFiRegistryProperties instance with ")
-                .append(size()).append(" properties (")
-                .append(getProtectedPropertyKeys().size())
-                .append(" protected) and ")
-                .append(providers.size())
-                .append(" sensitive property providers: ")
-                .append(StringUtils.join(providers, ", "))
-                .toString();
+        return String.format("%s Size [%d]", getClass().getSimpleName(), size());
     }
 }
