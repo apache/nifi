@@ -14,12 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.event;
+package org.apache.nifi.processors.beats.netty;
+
+import org.apache.nifi.processor.util.listen.event.NetworkEventFactory;
+import org.apache.nifi.processors.beats.frame.BeatsMetadata;
+
+import java.util.Map;
 
 /**
- * Metadata keys for event.
+ * An EventFactory implementation to create BeatsMessages.
  */
-public interface BeatsMetadata {
+public class BeatsMessageFactory implements NetworkEventFactory<BeatsMessage> {
 
-    String SEQNUMBER_KEY = "beats.sequencenumber";
+    @Override
+    public BeatsMessage create(final byte[] data, final Map<String, String> metadata) {
+        final int sequenceNumber = Integer.valueOf(metadata.get(BeatsMetadata.SEQNUMBER_KEY));
+        final String sender = metadata.get(BeatsMetadata.SENDER_KEY);
+        return new BeatsMessage(sender, data, sequenceNumber);
+    }
 }

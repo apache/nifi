@@ -24,44 +24,47 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.event.transport.EventException;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FlowFileAttributeKey;
+import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
-import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-import org.apache.nifi.processor.util.listen.response.ChannelResponse;
-import org.apache.nifi.processors.beats.event.BeatsEvent;
-import org.apache.nifi.processors.beats.event.BeatsEventFactory;
-import org.apache.nifi.processors.beats.frame.BeatsEncoder;
-import org.apache.nifi.processors.beats.handler.BeatsSocketChannelHandlerFactory;
-import org.apache.nifi.processors.beats.response.BeatsChannelResponse;
-import org.apache.nifi.processors.beats.response.BeatsResponse;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.listen.EventBatcher;
+import org.apache.nifi.processor.util.listen.FlowFileEventBatch;
+import org.apache.nifi.processor.util.listen.ListenerProperties;
+import org.apache.nifi.processors.beats.netty.BeatsMessage;
+import org.apache.nifi.processors.beats.netty.BeatsMessageServerFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"listen", "beats", "tcp", "logs"})
@@ -75,7 +78,7 @@ import java.util.concurrent.BlockingQueue;
     @WritesAttribute(attribute = "mime.type", description = "The mime.type of the content which is application/json")
 })
 @SeeAlso(classNames = {"org.apache.nifi.processors.standard.ParseSyslog"})
-public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent> {
+public class ListenBeats extends AbstractProcessor {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("SSL_CONTEXT_SERVICE")
@@ -96,13 +99,40 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         .defaultValue(ClientAuth.REQUIRED.name())
         .build();
 
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Messages received successfully will be sent out this relationship.")
+            .build();
+
+    protected List<PropertyDescriptor> descriptors;
+    protected Set<Relationship> relationships;
+    protected volatile int port;
+    protected volatile BlockingQueue<BeatsMessage> events;
+    protected volatile BlockingQueue<BeatsMessage> errorEvents;
+    protected volatile EventServer eventServer;
+    protected volatile byte[] messageDemarcatorBytes;
+    protected volatile EventBatcher<BeatsMessage> eventBatcher;
+
     @Override
-    protected List<PropertyDescriptor> getAdditionalProperties() {
-        return Arrays.asList(
-            MAX_CONNECTIONS,
-            SSL_CONTEXT_SERVICE,
-            CLIENT_AUTH
-        );
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(ListenerProperties.NETWORK_INTF_NAME);
+        descriptors.add(ListenerProperties.PORT);
+        descriptors.add(ListenerProperties.RECV_BUFFER_SIZE);
+        descriptors.add(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE);
+        // Deprecated
+        descriptors.add(ListenerProperties.MAX_SOCKET_BUFFER_SIZE);
+        descriptors.add(ListenerProperties.CHARSET);
+        descriptors.add(ListenerProperties.MAX_BATCH_SIZE);
+        descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
+        descriptors.add(ListenerProperties.WORKER_THREADS);
+        descriptors.add(SSL_CONTEXT_SERVICE);
+        descriptors.add(CLIENT_AUTH);
+        this.descriptors = Collections.unmodifiableList(descriptors);
+
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        this.relationships = Collections.unmodifiableSet(relationships);
     }
 
     @Override
@@ -111,13 +141,12 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
 
         final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
 
-        if (sslContextService != null && sslContextService.isTrustStoreConfigured() == false) {
+        if (sslContextService != null && !sslContextService.isTrustStoreConfigured()) {
             results.add(new ValidationResult.Builder()
-                .explanation("The context service must have a truststore  configured for the beats forwarder client to work correctly")
+                .explanation("SSL Context Service requires a truststore for the Beats forwarder client to work correctly")
                 .valid(false).subject(SSL_CONTEXT_SERVICE.getName()).build());
         }
 
-        // Validate CLIENT_AUTH
         final String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
         if (sslContextService != null && StringUtils.isBlank(clientAuth)) {
             results.add(new ValidationResult.Builder()
@@ -128,87 +157,103 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
         return results;
     }
 
-    private volatile BeatsEncoder beatsEncoder;
-
-
     @Override
-    @OnScheduled
-    public void onScheduled(ProcessContext context) throws IOException {
-        super.onScheduled(context);
-        // wanted to ensure charset was already populated here
-        beatsEncoder = new BeatsEncoder();
+    public final Set<Relationship> getRelationships() {
+        return this.relationships;
     }
 
     @Override
-    protected ChannelDispatcher createDispatcher(final ProcessContext context, final BlockingQueue<BeatsEvent> events) throws IOException {
-        final EventFactory<BeatsEvent> eventFactory = new BeatsEventFactory();
-        final ChannelHandlerFactory<BeatsEvent, AsyncChannelDispatcher> handlerFactory = new BeatsSocketChannelHandlerFactory<>();
+    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return descriptors;
+    }
 
-        final int maxConnections = context.getProperty(MAX_CONNECTIONS).asInteger();
-        final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) throws IOException {
+        final int workerThreads = context.getProperty(ListenerProperties.WORKER_THREADS).asInteger();
+        final int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
+        final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
+        port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
+        events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        errorEvents = new LinkedBlockingQueue<>();
+        final String msgDemarcator = getMessageDemarcator(context);
+        messageDemarcatorBytes = msgDemarcator.getBytes(charset);
 
-        // initialize the buffer pool based on max number of connections and the buffer size
-        final ByteBufferSource byteBufferSource = new ByteBufferPool(maxConnections, bufferSize);
+        final NettyEventServerFactory eventFactory = new BeatsMessageServerFactory(getLogger(), address, port, charset, events);
 
-        // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
-        SSLContext sslContext = null;
-        ClientAuth clientAuth = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createContext();
-            clientAuth = ClientAuth.valueOf(clientAuthValue);
-
+            ClientAuth clientAuth = ClientAuth.valueOf(clientAuthValue);
+            SSLContext sslContext = sslContextService.createContext();
+            eventFactory.setSslContext(sslContext);
+            eventFactory.setClientAuth(clientAuth);
         }
 
-        // if we decide to support SSL then get the context and pass it in here
-        return new SocketChannelDispatcher<>(eventFactory, handlerFactory, byteBufferSource, events,
-            getLogger(), maxConnections, sslContext, clientAuth, charSet);
-    }
+        eventFactory.setSocketReceiveBuffer(bufferSize);
+        eventFactory.setWorkerThreads(workerThreads);
+        eventFactory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
 
-
-    @Override
-    protected String getBatchKey(BeatsEvent event) {
-        return event.getSender();
-    }
-
-    protected void respond(final BeatsEvent event, final BeatsResponse beatsResponse) {
-        final ChannelResponse response = new BeatsChannelResponse(beatsEncoder, beatsResponse);
-
-        final ChannelResponder responder = event.getResponder();
-        responder.addResponse(response);
         try {
-            responder.respond();
-        } catch (IOException e) {
-            getLogger().error("Error sending response for transaction {} due to {}",
-                new Object[]{event.getSeqNumber(), e.getMessage()}, e);
+            eventServer = eventFactory.getEventServer();
+        } catch (EventException e) {
+            getLogger().error("Failed to bind to [{}:{}]", address, port, e);
         }
     }
 
-    protected void postProcess(final ProcessContext context, final ProcessSession session, final List<BeatsEvent> events) {
-        // first commit the session so we guarantee we have all the events successfully
-        // written to FlowFiles and transferred to the success relationship
-        session.commitAsync(() -> {
-            // respond to each event to acknowledge successful receipt
-            for (final BeatsEvent event : events) {
-                respond(event, BeatsResponse.ok(event.getSeqNumber()));
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+        EventBatcher<BeatsMessage> eventBatcher = getEventBatcher();
+
+        final int batchSize = context.getProperty(ListenerProperties.MAX_BATCH_SIZE).asInteger();
+        Map<String, FlowFileEventBatch<BeatsMessage>> batches = eventBatcher.getBatches(session, batchSize, messageDemarcatorBytes);
+        processEvents(session, batches);
+    }
+
+    @OnStopped
+    public void stopped() {
+        if (eventServer != null) {
+            eventServer.shutdown();
+        }
+        eventBatcher = null;
+    }
+
+    private void processEvents(final ProcessSession session, final Map<String, FlowFileEventBatch<BeatsMessage>> batches) {
+        for (Map.Entry<String, FlowFileEventBatch<BeatsMessage>> entry : batches.entrySet()) {
+            FlowFile flowFile = entry.getValue().getFlowFile();
+            final List<BeatsMessage> events = entry.getValue().getEvents();
+
+            if (flowFile.getSize() == 0L || events.size() == 0) {
+                session.remove(flowFile);
+                getLogger().debug("No data written to FlowFile from batch {}; removing FlowFile", entry.getKey());
+                continue;
             }
-        });
+
+            final Map<String,String> attributes = getAttributes(entry.getValue());
+            flowFile = session.putAllAttributes(flowFile, attributes);
+
+            getLogger().debug("Transferring {} to success", flowFile);
+            session.transfer(flowFile, REL_SUCCESS);
+            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
+
+            // the sender and command will be the same for all events based on the batch key
+            final String transitUri = getTransitUri(entry.getValue());
+            session.getProvenanceReporter().receive(flowFile, transitUri);
+
+        }
+        session.commitAsync();
     }
 
-    @Override
-    protected String getTransitUri(FlowFileEventBatch batch) {
-        final String sender = batch.getEvents().get(0).getSender();
+    protected String getTransitUri(FlowFileEventBatch<BeatsMessage> batch) {
+        final List<BeatsMessage> events = batch.getEvents();
+        final String sender = events.get(0).getSender();
         final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-        final String transitUri = new StringBuilder().append("beats").append("://").append(senderHost).append(":")
-            .append(port).toString();
-        return transitUri;
+        return String.format("beats://%s:%d", senderHost, port);
     }
 
-    @Override
-    protected Map<String, String> getAttributes(FlowFileEventBatch batch) {
-        final List<BeatsEvent> events = batch.getEvents();
+    protected Map<String, String> getAttributes(FlowFileEventBatch<BeatsMessage> batch) {
+        final List<BeatsMessage> events = batch.getEvents();
         // the sender and command will be the same for all events based on the batch key
         final String sender = events.get(0).getSender();
         final int numAttributes = events.size() == 1 ? 5 : 4;
@@ -222,6 +267,24 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
             attributes.put(beatsAttributes.SEQNUMBER.key(), String.valueOf(events.get(0).getSeqNumber()));
         }
         return attributes;
+    }
+
+    private String getMessageDemarcator(final ProcessContext context) {
+        return context.getProperty(ListenerProperties.MESSAGE_DELIMITER)
+                .getValue()
+                .replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
+    }
+
+    private EventBatcher<BeatsMessage> getEventBatcher() {
+        if (eventBatcher == null) {
+            eventBatcher = new EventBatcher<BeatsMessage>(getLogger(), events, errorEvents) {
+                @Override
+                protected String getBatchKey(BeatsMessage event) {
+                    return event.getSender();
+                }
+            };
+        }
+        return eventBatcher;
     }
 
     public enum beatsAttributes implements FlowFileAttributeKey {
