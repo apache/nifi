@@ -170,13 +170,13 @@ public class NiFiPropertiesLoader {
         if (protectedNiFiProperties.hasProtectedKeys()) {
             Security.addProvider(new BouncyCastleProvider());
             getSensitivePropertyProviderFactory()
-                    .getSupportedSensitivePropertyProviders()
+                    .getSupportedProviders()
                     .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
         }
         NiFiProperties props = protectedNiFiProperties.getUnprotectedProperties();
         if (protectedNiFiProperties.hasProtectedKeys()) {
             getSensitivePropertyProviderFactory()
-                    .getSupportedSensitivePropertyProviders()
+                    .getSupportedProviders()
                     .forEach(SensitivePropertyProvider::cleanUp);
         }
         return props;
