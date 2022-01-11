@@ -25,7 +25,6 @@ import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processors.standard.relp.event.RELPMessage;
 import org.apache.nifi.processors.standard.relp.frame.RELPEncoder;
@@ -196,7 +195,7 @@ public class TestListenRELP {
 
         MockListenRELP mockListenRELP = new MockListenRELP(mockEvents);
         runner = TestRunners.newTestRunner(mockListenRELP);
-        runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(NetworkUtils.availablePort()));
+        runner.setProperty(ListenerProperties.PORT, Integer.toString(NetworkUtils.availablePort()));
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "10");
 
         runner.run();
@@ -206,7 +205,7 @@ public class TestListenRELP {
 
     private void run(final List<RELPFrame> frames, final int flowFiles, final SSLContext sslContext) throws Exception {
         final int port = NetworkUtils.availablePort();
-        runner.setProperty(AbstractListenEventBatchingProcessor.PORT, Integer.toString(port));
+        runner.setProperty(ListenerProperties.PORT, Integer.toString(port));
         // Run Processor and start Dispatcher without shutting down
         runner.run(1, false, true);
         final byte[] relpMessages = getRELPMessages(frames);

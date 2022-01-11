@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.beats.frame;
 
+import org.apache.nifi.logging.ComponentLog;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -25,7 +27,6 @@ import java.nio.charset.Charset;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.zip.InflaterInputStream;
-import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Decodes a Beats frame by maintaining a state based on each byte that has been processed. This class
@@ -178,7 +179,7 @@ public class BeatsDecoder {
         // 'compressed' frame type: 1D{k,v}{k,v}1D{k,v}{k,v}1D{k,v}{k,v}"
         //
         // Therefore, instead of calling process method again, just iterate over each of
-        // the frames and split them so they can be processed by BeatsFrameHandler
+        // the frames and split them so they can be processed
 
         while (currentData.hasRemaining()) {
 

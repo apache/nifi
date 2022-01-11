@@ -14,24 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.event;
+package org.apache.nifi.processors.beats.netty;
 
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
-
-import java.util.Map;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 /**
- * An EventFactory implementation to create BeatEvents.
+ * A Beats message which adds a sequence number to the ByteArrayMessage.
  */
-public class BeatsEventFactory implements EventFactory<BeatsEvent> {
+public class BeatsMessage extends ByteArrayMessage {
 
-    @Override
-    public BeatsEvent create(final byte[] data, final Map<String, String> metadata, final ChannelResponder responder) {
-        final String sender = metadata.get(EventFactory.SENDER_KEY);
-        final int seqNumber = Integer.valueOf(metadata.get(BeatsMetadata.SEQNUMBER_KEY));
+    private final int seqNumber;
 
-        return new BeatsEvent(sender, data, responder, seqNumber);
+    public BeatsMessage(final String sender, final byte[] data, final int seqNumber) {
+        super(data, sender);
+        this.seqNumber = seqNumber;
     }
 
+    public int getSeqNumber() {
+        return seqNumber;
+    }
 }
