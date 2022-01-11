@@ -1066,42 +1066,75 @@
                 if (selection.size() === 1) {
                     var selectionData = selection.datum();
                     var revision = nfClient.getRevision(selectionData);
+					
+					if (nfCanvasUtils.isProcessGroup(selection) === true) {
 
-                    $.ajax({
-                        type: 'DELETE',
-                        url: selectionData.uri + '?' + $.param({
-                            'version': revision.version,
-                            'clientId': revision.clientId,
-                            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
-                        }),
-                        dataType: 'json'
-                    }).done(function (response) {
-                        // remove the component/connection in question
-                        nfCanvasUtils.getComponentByType(selectionData.type).remove(selectionData.id);
+							nfDialog.showYesNoDialog({
+									 headerText: 'Delete',
+									 dialogContent: 'Are you sure you want to delete this process group?',
+									 noText: 'Cancel',
+									 yesText: 'Yes',
+									 yesHandler: function () {
+										 $.ajax({
+													type: 'DELETE',
+													url: selectionData.uri + '?' + $.param({
+															'version': revision.version,
+															'clientId': revision.clientId,
+															'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+													}),
+													dataType: 'json'
+											}).done(function (response) {
+													// remove the component in question
+															nfCanvasUtils.getComponentByType(selectionData.type).remove(selectionData.id);
 
-                        // if the selection is a connection, reload the source and destination accordingly
-                        if (nfCanvasUtils.isConnection(selection) === false) {
-                            var connections = nfConnection.getComponentConnections(selectionData.id);
-                            if (connections.length > 0) {
-                                var ids = [];
-                                $.each(connections, function (_, connection) {
-                                    ids.push(connection.id);
-                                });
+															// update URL deep linking params
+															nfCanvasUtils.setURLParameters();
 
-                                // remove the corresponding connections
-                                nfConnection.remove(ids);
-                            }
-                        }
+															// refresh the birdseye
+															nfBirdseye.refresh();
+															// inform Angular app values have changed
+															nfNgBridge.digest();
+												}).fail(nfErrorHandler.handleAjaxError);
+									 }
+							 });
+					} else {
 
-                        // update URL deep linking params
-                        nfCanvasUtils.setURLParameters();
+							$.ajax({
+								type: 'DELETE',
+								url: selectionData.uri + '?' + $.param({
+									'version': revision.version,
+									'clientId': revision.clientId,
+									'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+								}),
+								dataType: 'json'
+							}).done(function (response) {
+								// remove the component/connection in question
+								nfCanvasUtils.getComponentByType(selectionData.type).remove(selectionData.id);
 
-                        // refresh the birdseye
-                        nfBirdseye.refresh();
-                        // inform Angular app values have changed
-                        nfNgBridge.digest();
-                    }).fail(nfErrorHandler.handleAjaxError);
-                } else {
+								// if the selection is a connection, reload the source and destination accordingly
+								if (nfCanvasUtils.isConnection(selection) === false) {
+									var connections = nfConnection.getComponentConnections(selectionData.id);
+									if (connections.length > 0) {
+										var ids = [];
+										$.each(connections, function (_, connection) {
+											ids.push(connection.id);
+										});
+
+										// remove the corresponding connections
+										nfConnection.remove(ids);
+									}
+								}
+
+								// update URL deep linking params
+								nfCanvasUtils.setURLParameters();
+
+								// refresh the birdseye
+								nfBirdseye.refresh();
+								// inform Angular app values have changed
+								nfNgBridge.digest();
+							}).fail(nfErrorHandler.handleAjaxError);
+                }
+			} else {
                     var parentGroupId = nfCanvasUtils.getGroupId();
 
                     // create a snippet for the specified component and link to the data flow
