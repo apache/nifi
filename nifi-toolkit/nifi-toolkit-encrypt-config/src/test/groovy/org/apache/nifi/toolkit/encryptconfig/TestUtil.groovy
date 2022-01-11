@@ -17,8 +17,8 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.scheme.StandardProtectionScheme
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
 
@@ -312,7 +312,7 @@ class TestUtil {
         assert populatedSensitiveProperties.size() == protectedSensitiveProperties.size()
 
         SensitivePropertyProvider spp = org.apache.nifi.properties.StandardSensitivePropertyProviderFactory.withKey(expectedKey)
-                .getProvider(PropertyProtectionScheme.AES_GCM)
+                .getProvider(new StandardProtectionScheme("aes/gcm"))
 
         protectedSensitiveProperties.each {
             String value = it.text()

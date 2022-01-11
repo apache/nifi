@@ -35,10 +35,6 @@ public class NiFiRegistryPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
 
-    private static final String APPLICATION_PATH = "nifi.registry";
-
-    private static final String RELATIVE_PATH = "conf/nifi-registry.properties";
-
     private String keyHex;
 
     // Future enhancement: allow for external registration of new providers
@@ -111,8 +107,7 @@ public class NiFiRegistryPropertiesLoader {
             rawProperties.load(reader);
             final NiFiRegistryProperties innerProperties = new NiFiRegistryProperties(rawProperties);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
-            ProtectedNiFiRegistryProperties protectedNiFiRegistryProperties = new ProtectedNiFiRegistryProperties(innerProperties);
-            return protectedNiFiRegistryProperties;
+            return new ProtectedNiFiRegistryProperties(innerProperties);
         } catch (final IOException ioe) {
             logger.error("Cannot load properties file due to " + ioe.getLocalizedMessage());
             throw new RuntimeException("Cannot load properties file due to " + ioe.getLocalizedMessage(), ioe);
@@ -132,7 +127,7 @@ public class NiFiRegistryPropertiesLoader {
         if (protectedNiFiProperties.hasProtectedKeys()) {
             Security.addProvider(new BouncyCastleProvider());
             getSensitivePropertyProviderFactory()
-                    .getSupportedSensitivePropertyProviders()
+                    .getSupportedProviders()
                     .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
         }
 

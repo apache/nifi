@@ -68,7 +68,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-sensitive-property-provider</artifactId>
+            <artifactId>nifi-property-protection-factory</artifactId>
             <version>1.16.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

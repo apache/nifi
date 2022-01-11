@@ -89,17 +89,6 @@ class PropertiesEncryptor {
                     "Usually this means a decryption password / key was not provided to the tool.")
         }
 
-        String supportedDecryptionScheme = decryptionProvider.getIdentifierKey()
-        if (supportedDecryptionScheme) {
-            propertiesToDecrypt.entrySet().each { entry ->
-                if (!supportedDecryptionScheme.equals(entry.getValue())) {
-                    throw new IllegalStateException("Decryption capability not supported by this tool. " +
-                            "This tool supports ${supportedDecryptionScheme}, but this properties file contains " +
-                            "${entry.getKey()} protected by ${entry.getValue()}")
-                }
-            }
-        }
-
         Properties unprotectedProperties = new Properties()
 
         for (String propertyName : properties.stringPropertyNames()) {

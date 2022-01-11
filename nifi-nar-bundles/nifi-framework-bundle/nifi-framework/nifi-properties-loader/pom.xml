@@ -48,7 +48,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-sensitive-property-provider</artifactId>
+            <artifactId>nifi-property-protection-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-protection-factory</artifactId>
         </dependency>
     </dependencies>
     <build>
