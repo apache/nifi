@@ -49,7 +49,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
  * by its logical name ({@link System#loadLibrary(String)} / {@link Runtime#loadLibrary(String)} calls).
  * For loading a native library by its absolute path, see {@link LoadNativeLibAspect}.
  */
-public abstract class AbstractNativeLibHandlingClassLoader extends URLClassLoader implements OSUtil {
+public abstract class AbstractNativeLibHandlingClassLoader extends IsolatingClassLoader implements OSUtil {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 

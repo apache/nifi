@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.IsolatingClassLoader;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
@@ -50,31 +51,31 @@ import java.util.regex.Pattern;
 public class StatelessBootstrap {
     private static final Logger logger = LoggerFactory.getLogger(StatelessBootstrap.class);
     private static final Pattern STATELESS_NAR_PATTERN = Pattern.compile("nifi-stateless-nar-.*\\.nar-unpacked");
-    private final ClassLoader statelessClassLoader;
+    private final ClassLoader engineClassLoader;
     private final StatelessEngineConfiguration engineConfiguration;
 
-    private StatelessBootstrap(final ClassLoader statelessClassLoader, final StatelessEngineConfiguration engineConfiguration) {
-        this.statelessClassLoader = statelessClassLoader;
+    private StatelessBootstrap(final ClassLoader engineClassLoader, final StatelessEngineConfiguration engineConfiguration) {
+        this.engineClassLoader = engineClassLoader;
         this.engineConfiguration = engineConfiguration;
     }
 
     public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition)
                 throws IOException, StatelessConfigurationException {
-        final StatelessDataflowFactory<T> dataflowFactory = getSingleInstance(statelessClassLoader, StatelessDataflowFactory.class);
+        final StatelessDataflowFactory<T> dataflowFactory = getSingleInstance(engineClassLoader, StatelessDataflowFactory.class);
         final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition);
         return dataflow;
     }
 
     public DataflowDefinition<?> parseDataflowDefinition(final File flowDefinitionFile, final List<ParameterOverride> parameterOverrides)
                 throws StatelessConfigurationException, IOException {
-        final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(statelessClassLoader, DataflowDefinitionParser.class);
+        final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(engineClassLoader, DataflowDefinitionParser.class);
         final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionFile, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
 
     public DataflowDefinition<?> parseDataflowDefinition(final Map<String, String> flowDefinitionProperties, final List<ParameterOverride> parameterOverrides)
                 throws StatelessConfigurationException, IOException {
-        final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(statelessClassLoader, DataflowDefinitionParser.class);
+        final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(engineClassLoader, DataflowDefinitionParser.class);
         final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
@@ -83,7 +84,7 @@ public class StatelessBootstrap {
         return bootstrap(engineConfiguration, ClassLoader.getSystemClassLoader());
     }
 
-    public static StatelessBootstrap bootstrap(final StatelessEngineConfiguration engineConfiguration, final ClassLoader rootClassLoader) throws IOException {
+    public static StatelessBootstrap bootstrap(final StatelessEngineConfiguration engineConfiguration, final ClassLoader embeddingClassLoader) throws IOException {
         final File narDirectory = engineConfiguration.getNarDirectory();
         final File workingDirectory = engineConfiguration.getWorkingDirectory();
         final File narExpansionDirectory = new File(workingDirectory, "nar");
@@ -126,13 +127,14 @@ public class StatelessBootstrap {
         }
 
         logger.info("Creating Stateless Bootstrap with the following URLs in the classpath: {}", Arrays.asList(urls));
-        if (rootClassLoader instanceof URLClassLoader) {
-            logger.info("Additionally, Root ClassLoader has the following URLs available: {}", Arrays.asList(((URLClassLoader) rootClassLoader).getURLs()));
+        if (embeddingClassLoader instanceof URLClassLoader) {
+            logger.info("Additionally, Embedding ClassLoader has the following URLs available: {}", Arrays.asList(((URLClassLoader) embeddingClassLoader).getURLs()));
         }
 
-        final URLClassLoader statelessClassLoader = new URLClassLoader(urls, rootClassLoader);
-        Thread.currentThread().setContextClassLoader(statelessClassLoader);
-        return new StatelessBootstrap(statelessClassLoader, engineConfiguration);
+        final ClassLoader rootClassLoader = new StatelessIsolatingRootClassLoader(embeddingClassLoader);
+        final ClassLoader engineClassLoader = new IsolatingClassLoader(urls, rootClassLoader);
+        Thread.currentThread().setContextClassLoader(engineClassLoader);
+        return new StatelessBootstrap(engineClassLoader, engineConfiguration);
     }
 
     private static File locateStatelessNarWorkingDirectory(final File workingDirectory) throws IOException {

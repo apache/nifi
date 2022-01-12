@@ -42,6 +42,7 @@ import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.extensions.FileSystemExtensionRepository;
 import org.apache.nifi.extensions.NexusExtensionClient;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.IsolatingClassLoader;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.parameter.ParameterContextManager;
@@ -83,7 +84,6 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -119,8 +119,9 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
-            final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory());
-            final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
+            final ClassLoader extensionClassLoader = createExtensionClassLoader(engineConfiguration.getNarDirectory());
+            final ExtensionDiscoveringManager extensionManager =
+                    ExtensionDiscovery.discover(extensionsWorkingDir, extensionClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
 
             flowFileEventRepo = new RingBufferEventRepository(5);
 
@@ -306,17 +307,31 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         return "nexus".equalsIgnoreCase(type.trim());
     }
 
-    private ClassLoader createSystemClassLoader(final File narDirectory) throws StatelessConfigurationException {
-        final ClassLoader systemClassLoader = StatelessDataflowFactory.class.getClassLoader();
+    private ClassLoader createExtensionClassLoader(final File narDirectory) throws StatelessConfigurationException {
+        ClassLoader extensionClassLoader = null;
+
+        final ClassLoader engineClassLoader = getClass().getClassLoader();
+        if (engineClassLoader instanceof IsolatingClassLoader) {
+            final IsolatingClassLoader isolatingClassLoader = (IsolatingClassLoader) engineClassLoader;
+            if (isolatingClassLoader.isIsolating()) {
+                extensionClassLoader = isolatingClassLoader.getRootClassLoader();
+            }
+        }
+
+        if (extensionClassLoader == null) {
+            logger.warn("Stateless engine is running in non-isolated mode.");
+            extensionClassLoader = StatelessDataflowFactory.class.getClassLoader();
+        }
+
         final int javaMajorVersion = getJavaMajorVersion();
         if (javaMajorVersion >= 11) {
             // If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
             // TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
             // JAXB/activation/annotation will be added as an actual dependency via pom.xml.
-            return createJava11OrLaterSystemClassLoader(javaMajorVersion, narDirectory, systemClassLoader);
+            return createJava11OrLaterSystemClassLoader(javaMajorVersion, narDirectory, extensionClassLoader);
         }
 
-        return systemClassLoader;
+        return extensionClassLoader;
     }
 
     private ClassLoader createJava11OrLaterSystemClassLoader(final int javaMajorVersion, final File narDirectory, final ClassLoader parentClassLoader) throws StatelessConfigurationException {
@@ -324,13 +339,13 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
         final File java11Dir = new File(narDirectory, "java11");
         if (!java11Dir.exists()) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
+            throw new StatelessConfigurationException("Could not create Extension ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
                 "at " + java11Dir.getAbsolutePath());
         }
 
         final File[] java11JarFiles = java11Dir.listFiles(filename -> filename.getName().toLowerCase().endsWith(".jar"));
         if (java11JarFiles == null || java11JarFiles.length == 0) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
+            throw new StatelessConfigurationException("Could not create Extension ClassLoader because Java version is " + javaMajorVersion + " but could not find the requisite Java 11 libraries " +
                 "at " + java11Dir.getAbsolutePath());
         }
 
@@ -339,10 +354,10 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 java11JarFileUrls.add(file.toURI().toURL());
             }
         } catch (final Exception e) {
-            throw new StatelessConfigurationException("Could not create System-level ClassLoader", e);
+            throw new StatelessConfigurationException("Could not create Extension ClassLoader", e);
         }
 
-        final ClassLoader classLoader = new URLClassLoader(java11JarFileUrls.toArray(new URL[0]), parentClassLoader);
+        final ClassLoader classLoader = new IsolatingClassLoader(java11JarFileUrls.toArray(new URL[0]), parentClassLoader);
         return classLoader;
     }
 
