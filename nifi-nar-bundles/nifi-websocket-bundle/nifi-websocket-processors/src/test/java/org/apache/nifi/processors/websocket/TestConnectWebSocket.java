@@ -44,7 +44,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -52,7 +51,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 
-public class TestConnectWebSocket extends TestListenWebSocket {
+class TestConnectWebSocket extends TestListenWebSocket {
 
     @Test
     public void testSuccess() throws Exception {
@@ -126,7 +125,7 @@ public class TestConnectWebSocket extends TestListenWebSocket {
     }
 
     @Test
-    public void testDynamicUrlsParsedFromFlowFileAndAbleToConnect() throws InitializationException {
+    void testDynamicUrlsParsedFromFlowFileAndAbleToConnect() throws InitializationException {
         // Start websocket server
         final int port = NetworkUtils.availablePort();
         TestRunner webSocketListener = getListenWebSocket(port);
@@ -162,9 +161,6 @@ public class TestConnectWebSocket extends TestListenWebSocket {
 
         final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ConnectWebSocket.REL_CONNECTED);
         assertEquals(1, flowFilesForRelationship.size());
-
-        final AssertionError assertionError = assertThrows(AssertionError.class, () -> runner.run(1));
-        assertTrue(assertionError.getCause().getLocalizedMessage().contains("Failed to renew session and connect to WebSocket service"));
 
         runner.stop();
         webSocketListener.stop();
