@@ -48,7 +48,9 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 @TriggerSerially
 @CapabilityDescription("Acts as a WebSocket client endpoint to interact with a remote WebSocket server." +
         " FlowFiles are transferred to downstream relationships according to received message types" +
-        " as WebSocket client configured with this processor receives messages from remote WebSocket server.")
+        " as WebSocket client configured with this processor receives messages from remote WebSocket server." +
+        " If a new flowfile is passed to the processor, the previous sessions will be closed and any data being" +
+        " sent will be aborted.")
 @WritesAttributes({
         @WritesAttribute(attribute = ATTR_WS_CS_ID, description = "WebSocket Controller Service id."),
         @WritesAttribute(attribute = ATTR_WS_SESSION_ID, description = "Established WebSocket session id."),
