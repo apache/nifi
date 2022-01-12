@@ -371,51 +371,11 @@
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi-registry/nifi-registry-${project.version}/lib</directory>
-                                        </mapping>
-                                        <!--
-                                            The lib/shared mapping includes the common dependencies between the registry
-                                            application (lib) and registry bootstrap (lib/bootstrap).
-
-                                            The lib/bootstrap mapping then excludes what was in lib/shared and includes
-                                            the other dependencies needed for the registry bootstrap.
-
-                                            The lib mapping excludes what was in lib/shared and excluded the bootstrap module,
-                                            and would bring in everything else from the lib directory of a non RPM build.
-                                            -->
-                                        <mapping>
-                                            <directory>/opt/nifi-registry/nifi-registry-${project.version}/lib</directory>
-                                            <dependency>
-                                                <excludes>
-                                                    <exclude>org.apache.commons:commons-lang3</exclude>
-                                                    <exclude>org.apache.nifi.registry:nifi-registry-utils</exclude>
-                                                    <exclude>org.apache.nifi.registry:nifi-registry-bootstrap</exclude>
-                                                    <exclude>org.apache.nifi.registry:nifi-registry-docs</exclude>
-                                                </excludes>
-                                            </dependency>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi-registry/nifi-registry-${project.version}/lib/bootstrap</directory>
-                                            <dependency>
-                                                <includes>
-                                                    <include>org.slf4j:slf4j-api</include>
-                                                    <include>ch.qos.logback:logback-classic</include>
-                                                    <include>ch.qos.logback:logback-core</include>
-                                                    <include>org.apache.nifi.registry:nifi-registry-bootstrap</include>
-                                                </includes>
-                                                <excludes>
-                                                    <exclude>org.apache.commons:commons-lang3</exclude>
-                                                    <exclude>org.apache.nifi.registry:nifi-registry-utils</exclude>
-                                                </excludes>
-                                            </dependency>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi-registry/nifi-registry-${project.version}/lib/shared</directory>
-                                            <dependency>
-                                                <includes>
-                                                    <include>org.apache.commons:commons-lang3</include>
-                                                    <include>org.apache.nifi.registry:nifi-registry-utils</include>
-                                                </includes>
-                                            </dependency>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-registry-${project.version}-bin/nifi-registry-${project.version}/lib</location>
+                                                </source>
+                                            </sources>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi-registry/nifi-registry-${project.version}/docs</directory>
