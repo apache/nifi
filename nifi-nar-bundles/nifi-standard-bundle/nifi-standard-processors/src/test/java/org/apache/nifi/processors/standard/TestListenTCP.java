@@ -100,6 +100,7 @@ public class TestListenTCP {
     @Test
     public void testRunBatching() throws Exception {
         runner.setProperty(ListenerProperties.MAX_BATCH_SIZE, "3");
+        runner.setProperty(ListenTCP.POOL_RECV_BUFFERS, "False");
 
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");

@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.BufferAllocator;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
@@ -106,13 +107,11 @@ public class ListenTCP extends AbstractProcessor {
             .required(false)
             .build();
 
-    // Deprecated
     protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
             .name("pool-receive-buffers")
             .displayName("Pool Receive Buffers")
-            .description(
-                    "This property is deprecated and no longer used.")
-            .required(false)
+            .description("Enable or disable pooling of buffers that the processor uses for handling bytes received on socket connections. The framework allocates buffers as needed during processing.")
+            .required(true)
             .defaultValue("True")
             .allowableValues("True", "False")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -146,7 +145,6 @@ public class ListenTCP extends AbstractProcessor {
         descriptors.add(ListenerProperties.MESSAGE_DELIMITER);
         // Deprecated
         descriptors.add(MAX_RECV_THREAD_POOL_SIZE);
-        // Deprecated
         descriptors.add(POOL_RECV_BUFFERS);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
@@ -163,8 +161,8 @@ public class ListenTCP extends AbstractProcessor {
         int bufferSize = context.getProperty(ListenerProperties.RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         int socketBufferSize = context.getProperty(ListenerProperties.MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
-        Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
+        final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
+        final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
         port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
         events = new LinkedBlockingQueue<>(context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger());
         errorEvents = new LinkedBlockingQueue<>();
@@ -180,6 +178,10 @@ public class ListenTCP extends AbstractProcessor {
             eventFactory.setSslContext(sslContext);
             eventFactory.setClientAuth(clientAuth);
         }
+
+        final boolean poolReceiveBuffers = context.getProperty(POOL_RECV_BUFFERS).asBoolean();
+        final BufferAllocator bufferAllocator = poolReceiveBuffers ? BufferAllocator.POOLED : BufferAllocator.UNPOOLED;
+        eventFactory.setBufferAllocator(bufferAllocator);
 
         eventFactory.setSocketReceiveBuffer(socketBufferSize);
         eventFactory.setWorkerThreads(workerThreads);
