@@ -185,26 +185,25 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
         }
 
         if (!isProcessorRegisteredToService()) {
-            try {
-                registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService, context));
-            } catch (IOException | WebSocketConfigurationException e) {
-                // Deregister processor if it failed so that it can retry next onTrigger.
-                deregister();
-                context.yield();
-                throw new ProcessException("Failed to register processor to WebSocket service due to: " + e, e);
-            }
-
-        } else if (context.hasIncomingConnection()) {
-            try {
-                onWebSocketServiceReady(webSocketService, context);
-            } catch (IOException e) {
-                deregister();
-                context.yield();
-                throw new ProcessException("Failed to renew session and connect to WebSocket service due to: " + e, e);
-            }
+            register(context);
+        } else if (webSocketService instanceof WebSocketClientService && context.hasIncomingConnection()) {
+            // Deregister processor to close previous sessions when flowfile is provided.
+            deregister();
+            register(context);
         }
 
         context.yield();//nothing really to do here since handling WebSocket messages is done at ControllerService.
+    }
+
+    private void register(ProcessContext context) {
+        try {
+            registerProcessorToService(context, webSocketService -> onWebSocketServiceReady(webSocketService, context));
+        } catch (IOException | WebSocketConfigurationException e) {
+            // Deregister processor if it failed so that it can retry next onTrigger.
+            deregister();
+            context.yield();
+            throw new ProcessException("Failed to register processor to WebSocket service due to: " + e, e);
+        }
     }
 
 
