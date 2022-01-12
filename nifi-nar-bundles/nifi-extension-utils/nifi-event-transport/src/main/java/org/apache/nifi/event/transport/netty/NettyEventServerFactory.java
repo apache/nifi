@@ -19,6 +19,7 @@ package org.apache.nifi.event.transport.netty;
 import io.netty.bootstrap.AbstractBootstrap;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
@@ -29,6 +30,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
+import org.apache.nifi.event.transport.configuration.BufferAllocator;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
@@ -67,6 +69,8 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     private Duration shutdownQuietPeriod = ShutdownQuietPeriod.DEFAULT.getDuration();
 
     private Duration shutdownTimeout = ShutdownTimeout.DEFAULT.getDuration();
+
+    private BufferAllocator bufferAllocator = BufferAllocator.POOLED;
 
     public NettyEventServerFactory(final InetAddress address, final int port, final TransportProtocol protocol) {
         this.address = address;
@@ -138,6 +142,15 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     }
 
     /**
+     * Set Buffer Allocator option overriding the default POOLED configuration
+     *
+     * @param bufferAllocator Buffer Allocator
+     */
+    public void setBufferAllocator(final BufferAllocator bufferAllocator) {
+        this.bufferAllocator = Objects.requireNonNull(bufferAllocator, "Buffer Allocator required");
+    }
+
+    /**
      * Get Event Server with Channel bound to configured address and port number
      *
      * @return Event Sender
@@ -158,6 +171,9 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
         }
         if (socketKeepAlive != null) {
             bootstrap.option(ChannelOption.SO_KEEPALIVE, socketKeepAlive);
+        }
+        if (BufferAllocator.UNPOOLED == bufferAllocator) {
+            bootstrap.option(ChannelOption.ALLOCATOR, UnpooledByteBufAllocator.DEFAULT);
         }
     }
 
