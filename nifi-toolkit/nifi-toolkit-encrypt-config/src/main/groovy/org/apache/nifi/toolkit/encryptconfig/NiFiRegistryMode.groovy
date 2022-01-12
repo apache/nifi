@@ -23,7 +23,6 @@ import org.apache.commons.cli.Options
 import org.apache.nifi.properties.BootstrapProperties
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.scheme.ProtectionScheme
-import org.apache.nifi.properties.scheme.ProtectionSchemeResolver
 import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProviderFactory
@@ -45,7 +44,7 @@ class NiFiRegistryMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryMode.class)
 
-    private static final ProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
+    private static final StandardProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
 
     CliBuilder cli
     boolean verboseEnabled
@@ -213,7 +212,7 @@ class NiFiRegistryMode implements ToolMode {
         cli.S(longOpt: 'protectionScheme',
                 args: 1,
                 argName: 'protectionScheme',
-                "Selects the protection scheme for encrypted properties.  (default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.path})")
+                String.format("Selects the protection scheme for encrypted properties. Default is AES_GCM. Valid values: %s", PROTECTION_SCHEME_RESOLVER.supportedProtectionSchemes))
 
         // Options for the old password or key, if running the tool to migrate keys
         cli._(longOpt: 'oldPassword',

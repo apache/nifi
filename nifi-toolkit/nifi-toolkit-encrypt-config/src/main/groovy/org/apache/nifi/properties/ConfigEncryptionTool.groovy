@@ -32,7 +32,6 @@ import org.apache.nifi.encrypt.PropertyEncryptorFactory
 import org.apache.nifi.flow.encryptor.FlowEncryptor
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
 import org.apache.nifi.properties.scheme.ProtectionScheme
-import org.apache.nifi.properties.scheme.ProtectionSchemeResolver
 import org.apache.nifi.properties.scheme.StandardProtectionScheme
 import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
@@ -132,7 +131,8 @@ class ConfigEncryptionTool {
     private static final String NEW_FLOW_PROVIDER_ARG = "newFlowProvider"
     private static final String TRANSLATE_CLI_ARG = "translateCli"
 
-    private static final String PROTECTION_SCHEME_DESC = "Selects the protection scheme for encrypted properties. Default is AES_GCM"
+    private static final StandardProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
+    private static final String PROTECTION_SCHEME_DESC = String.format("Selects the protection scheme for encrypted properties. Default is AES_GCM. Valid values: %s", PROTECTION_SCHEME_RESOLVER.supportedProtectionSchemes)
 
     // Static holder to avoid re-generating the options object multiple times in an invocation
     private static Options staticOptions
@@ -198,8 +198,6 @@ class ConfigEncryptionTool {
 
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
-
-    private static final ProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
 
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
 

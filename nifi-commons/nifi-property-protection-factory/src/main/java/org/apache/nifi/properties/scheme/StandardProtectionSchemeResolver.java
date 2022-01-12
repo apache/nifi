@@ -19,7 +19,9 @@ package org.apache.nifi.properties.scheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
  * Standard implementation of Protection Scheme Resolver using Property Protection Scheme enumeration
@@ -38,5 +40,11 @@ public class StandardProtectionSchemeResolver implements ProtectionSchemeResolve
                 .filter(propertyProtectionScheme -> propertyProtectionScheme.toString().equals(scheme))
                 .findFirst()
                 .orElseThrow(() -> new SensitivePropertyProtectionException(String.format("Protection Scheme [%s] not supported", scheme)));
+    }
+
+    public List<String> getSupportedProtectionSchemes() {
+        return Arrays.stream(PropertyProtectionScheme.values())
+                .map(PropertyProtectionScheme::toString)
+                .collect(Collectors.toList());
     }
 }
