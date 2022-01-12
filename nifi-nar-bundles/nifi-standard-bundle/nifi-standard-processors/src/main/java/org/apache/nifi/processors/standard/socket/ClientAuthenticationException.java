@@ -14,14 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.ssh;
+package org.apache.nifi.processors.standard.socket;
 
 /**
- * Client Connect Exception for connection failures during SSH Client configuration
+ * Client Authentication Exception for authentication failures during Client configuration
  */
-public class ClientConnectException extends ClientConfigurationException {
+public class ClientAuthenticationException extends ClientConfigurationException {
 
-    public ClientConnectException(final String message, final Throwable cause) {
+    public ClientAuthenticationException(final String message) {
+        super(message);
+    }
+
+    public ClientAuthenticationException(final String message, final Throwable cause) {
         super(message, cause);
     }
 }
