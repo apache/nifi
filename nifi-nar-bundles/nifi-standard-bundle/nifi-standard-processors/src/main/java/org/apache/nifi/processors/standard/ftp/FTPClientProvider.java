@@ -14,16 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.standard.ssh;
+package org.apache.nifi.processors.standard.ftp;
 
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.nifi.context.PropertyContext;
+
+import java.util.Map;
 
 /**
- * Client Configuration Exception for specific failures during SSH Client configuration
+ * FTP Client Provider for abstracting initial connection configuration of FTP Client instances
  */
-public class ClientConfigurationException extends ProcessException {
-
-    public ClientConfigurationException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+public interface FTPClientProvider {
+    /**
+     * Get configured FTP Client using context properties and attributes
+     *
+     * @param context Property Context
+     * @param attributes FlowFile attributes for property expression evaluation
+     * @return Configured FTP Client
+     */
+    FTPClient getClient(PropertyContext context, final Map<String, String> attributes);
 }

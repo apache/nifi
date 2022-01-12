@@ -34,6 +34,9 @@ import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processors.standard.socket.ClientAuthenticationException;
+import org.apache.nifi.processors.standard.socket.ClientConfigurationException;
+import org.apache.nifi.processors.standard.socket.ClientConnectException;
 import org.apache.nifi.processors.standard.socket.SocketFactoryProvider;
 import org.apache.nifi.processors.standard.socket.StandardSocketFactoryProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
