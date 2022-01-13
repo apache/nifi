@@ -33,7 +33,7 @@ public class ParameterProviderEntity extends ComponentEntity implements Permissi
     private PermissionsDTO operatePermissions;
 
     /**
-     * @return reporting task that is being serialized
+     * @return parameter provider that is being serialized
      */
     @Override
     public ParameterProviderDTO getComponent() {
