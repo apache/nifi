@@ -76,7 +76,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             config.fileType = FileType.properties  // disables auto-detection, which is still experimental
 
             if (options.S) {
-                config.protectionScheme = PROTECTION_SCHEME_RESOLVER((String) options.S)
+                config.protectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme((String) options.S)
             }
 
             // one of [-p, -k, -b]
