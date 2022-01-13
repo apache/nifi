@@ -697,7 +697,7 @@ public class StandardServiceFacade implements ServiceFacade {
 
         final SortedSet<ExtensionRepoGroup> repoGroups = extensionService.getExtensionRepoGroups(bucket);
         linkService.populateFullLinks(repoGroups, baseUri);
-        return extensionService.getExtensionRepoGroups(bucket);
+        return repoGroups;
     }
 
     @Override

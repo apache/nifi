@@ -30,7 +30,7 @@
     </modules>
 
     <properties>
-        <aws-java-sdk-version>2.5.9</aws-java-sdk-version>
+        <aws-java-sdk-version>2.17.106</aws-java-sdk-version>
     </properties>
 
     <dependencyManagement>
