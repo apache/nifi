@@ -22,8 +22,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.event.transport.EventSender;
-import org.apache.nifi.event.transport.configuration.TransportProtocol;
-import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -52,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * A base class for processors that send data to an external system using TCP or UDP.
  */
-public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryProcessor {
+public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
@@ -164,7 +162,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     private List<PropertyDescriptor> descriptors;
 
     protected volatile String transitUri;
-    protected EventSender eventSender;
+    protected EventSender<T> eventSender;
 
     protected final BlockingQueue<FlowFileMessageBatch> completeBatches = new LinkedBlockingQueue<>();
     protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<>());
@@ -229,23 +227,20 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         }
     }
 
-    /**
-     * Sub-classes construct a transit uri for provenance events. Called from @OnScheduled
-     * method of this class.
-     *
-     * @param context the current context
-     *
-     * @return the transit uri
-     */
-    protected abstract String createTransitUri(final ProcessContext context);
+    protected String createTransitUri(ProcessContext context) {
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
+        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        final String protocol = getProtocol(context);
+        return String.format("%s://%s:%s", protocol, host, port);
+    }
 
-    protected EventSender<?> getEventSender(final ProcessContext context) {
+    protected EventSender<T> getEventSender(final ProcessContext context) {
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final String protocol = getProtocol(context);
         final boolean singleEventPerConnection = context.getProperty(CONNECTION_PER_FLOWFILE).getValue() != null ? context.getProperty(CONNECTION_PER_FLOWFILE).asBoolean() : false;
 
-        final NettyEventSenderFactory factory = getNettyEventSenderFactory(hostname, port, protocol);
+        final NettyEventSenderFactory<T> factory = getNettyEventSenderFactory(hostname, port, protocol);
         factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
@@ -473,7 +468,5 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         return context.getProperty(PROTOCOL).getValue();
     }
 
-    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
-        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
-    }
+    protected abstract NettyEventSenderFactory<T> getNettyEventSenderFactory(String hostname, int port, String protocol);
 }

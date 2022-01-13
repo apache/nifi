@@ -32,11 +32,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -53,16 +51,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ListenTCP.class, PutUDP.class})
 @Tags({ "remote", "egress", "put", "tcp" })
 @SupportsBatching
-public class PutTCP extends AbstractPutEventProcessor {
-
-    @Override
-    protected String createTransitUri(final ProcessContext context) {
-        final String protocol = TCP_VALUE.getValue();
-        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
-
-        return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
-    }
+public class PutTCP extends AbstractPutEventProcessor<InputStream> {
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
@@ -81,28 +70,27 @@ public class PutTCP extends AbstractPutEventProcessor {
             return;
         }
 
+        final StopWatch stopWatch = new StopWatch(true);
         try {
-            StopWatch stopWatch = new StopWatch(true);
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    InputStream event = in;
+            session.read(flowFile, inputStream -> {
+                InputStream inputStreamEvent = inputStream;
 
-                    String delimiter = getOutgoingMessageDelimiter(context, flowFile);
-                    if (delimiter != null) {
-                        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
-                        event = new DelimitedInputStream(in, delimiter.getBytes(charSet));
-                    }
-
-                    eventSender.sendEvent(event);
+                final String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+                if (delimiter != null) {
+                    final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                    inputStreamEvent = new DelimitedInputStream(inputStream, delimiter.getBytes(charSet));
                 }
+
+                eventSender.sendEvent(inputStreamEvent);
             });
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (Exception e) {
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", flowFile, e);
+            session.commitAsync();
+        } catch (final Exception e) {
+            getLogger().error("Send Failed {}", flowFile, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.commitAsync();
             context.yield();
         }
     }
@@ -113,7 +101,7 @@ public class PutTCP extends AbstractPutEventProcessor {
     }
 
     @Override
-    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
-        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+    protected NettyEventSenderFactory<InputStream> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP);
     }
 }
