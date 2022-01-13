@@ -26,6 +26,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,6 +37,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -44,7 +49,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -54,7 +58,7 @@ import org.apache.nifi.stream.io.util.NonThreadSafeCircularBuffer;
         "Delimiter is provided, then this processor will read messages from the incoming FlowFile based on the " +
         "delimiter, and send each message to Splunk. If a Message Delimiter is not provided then the content of " +
         "the FlowFile will be sent directly to Splunk as if it were a single message.")
-public class PutSplunk extends AbstractPutEventProcessor {
+public class PutSplunk extends AbstractPutEventProcessor<byte[]> {
 
     public static final char NEW_LINE_CHAR = '\n';
 
@@ -98,14 +102,6 @@ public class PutSplunk extends AbstractPutEventProcessor {
     }
 
     @Override
-    protected String createTransitUri(ProcessContext context) {
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
-        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final String protocol = context.getProperty(PROTOCOL).getValue().toLowerCase();
-        return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
-    }
-
-    @Override
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         // first complete any batches from previous executions
         FlowFileMessageBatch batch;
@@ -140,22 +136,19 @@ public class PutSplunk extends AbstractPutEventProcessor {
         }
     }
 
+    @Override
+    protected NettyEventSenderFactory<byte[]> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+    }
+
     /**
      * Send the entire FlowFile as a single message.
      */
     private void processSingleMessage(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        // copy the contents of the FlowFile to the ByteArrayOutputStream
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int)flowFile.getSize() + 1);
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.copy(in, baos);
-            }
-        });
+        byte[] buf = readFlowFile(session, flowFile);
 
         // if TCP and we don't end in a new line then add one
         final String protocol = context.getProperty(PROTOCOL).getValue();
-        byte[] buf = baos.toByteArray();
         if (protocol.equals(TCP_VALUE.getValue()) && buf[buf.length - 1] != NEW_LINE_CHAR) {
             final byte[] updatedBuf = new byte[buf.length + 1];
             System.arraycopy(buf, 0, updatedBuf, 0, buf.length);
@@ -278,6 +271,14 @@ public class PutSplunk extends AbstractPutEventProcessor {
             return message;
         } else {
             return Arrays.copyOfRange(baos.toByteArray(), 0, length);
+        }
+    }
+
+    private byte[] readFlowFile(final ProcessSession session, final FlowFile flowFile) {
+        try (InputStream inputStream = session.read(flowFile)) {
+            return IOUtils.toByteArray(inputStream);
+        } catch (final IOException e) {
+            throw new ProcessException("Read FlowFile Failed", e);
         }
     }
 }
