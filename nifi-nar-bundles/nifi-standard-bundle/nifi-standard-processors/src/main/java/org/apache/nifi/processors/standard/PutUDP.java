@@ -16,22 +16,24 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -43,23 +45,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ListenUDP.class, PutTCP.class})
 @Tags({ "remote", "egress", "put", "udp" })
 @SupportsBatching
-public class PutUDP extends AbstractPutEventProcessor {
-
-    /**
-     * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form UDP://host:port where the host and port values are taken from the configured property values.
-     *
-     * @param context - the current process context.
-     *
-     * @return The URI value as a String.
-     */
-    @Override
-    protected String createTransitUri(final ProcessContext context) {
-        final String protocol = UDP_VALUE.getValue();
-        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
-
-        return protocol + "://" + host + ":" + port;
-    }
+public class PutUDP extends AbstractPutEventProcessor<byte[]> {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
@@ -69,17 +55,18 @@ public class PutUDP extends AbstractPutEventProcessor {
             return;
         }
 
+        final StopWatch stopWatch = new StopWatch(true);
         try {
-            StopWatch stopWatch = new StopWatch(true);
             final byte[] content = readContent(session, flowFile);
             eventSender.sendEvent(content);
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
-        } catch (Exception e) {
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[]{flowFile}, e);
+        } catch (final Exception e) {
+            getLogger().error("Send Failed {}", flowFile, e);
             session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.commitAsync();
             context.yield();
         }
     }
@@ -89,12 +76,14 @@ public class PutUDP extends AbstractPutEventProcessor {
         return UDP_VALUE.getValue();
     }
 
-    private byte[] readContent(final ProcessSession session, final FlowFile flowFile) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize());
-        try (final InputStream in = session.read(flowFile)) {
-            StreamUtils.copy(in, baos);
-        }
+    @Override
+    protected NettyEventSenderFactory<byte[]> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.UDP);
+    }
 
-        return baos.toByteArray();
+    private byte[] readContent(final ProcessSession session, final FlowFile flowFile) throws IOException {
+        try (final InputStream inputStream = session.read(flowFile)) {
+            return IOUtils.toByteArray(inputStream);
+        }
     }
 }
