@@ -29,8 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
-import com.google.common.base.Splitter;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -190,7 +190,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
+            Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),"|");
             Assert.assertEquals(headersMap,properties);
         }
     }
@@ -259,7 +259,7 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = Splitter.on("|").withKeyValueSeparator("=").split(headers);
+            Map<String, String> properties = convertStringToMap(headers,"|");
             Assert.assertEquals(headersMap,properties);
         }
     }
@@ -289,11 +289,22 @@ public class ConsumeAMQPTest {
             successFF.assertAttributeEquals("amqp$routingKey", "key1");
             successFF.assertAttributeEquals("amqp$exchange", "myExchange");
             String headers = successFF.getAttribute("amqp$headers");
-            Map<String, String> properties = Splitter.on(",").withKeyValueSeparator("=").split(headers.substring(1,headers.length()-1));
+            Map<String, String> properties = convertStringToMap(headers.substring(1,headers.length()-1),",");
             Assert.assertEquals(headersMap,properties);
         }
     }
 
+
+    private Map<String,String> convertStringToMap(String map,String splitCharacter){
+        Map<String, String> headers = new HashMap<>();
+        String[] pairs = map.split(Pattern.quote(String.valueOf(splitCharacter)));
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=", 2);
+            Assert.assertEquals(2,keyValue.length);
+            headers.put(keyValue[0].trim(), keyValue[1].trim());
+        }
+        return headers;
+    }
     private TestRunner initTestRunner(ConsumeAMQP proc) {
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(ConsumeAMQP.BROKERS, "injvm:5672");

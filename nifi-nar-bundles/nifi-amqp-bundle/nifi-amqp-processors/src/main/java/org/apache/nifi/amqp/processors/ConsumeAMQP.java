@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import com.google.common.base.Joiner;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.Envelope;
@@ -218,7 +217,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         if (headers == null) {
             return null;
         }
-        String headerString = Joiner.on(valueSeparatorForHeaders).withKeyValueSeparator("=").join(headers);
+        String headerString = convertMapToString(headers,valueSeparatorForHeaders);
 
         if (!removeCurlyBraces) {
             StringBuilder stringBuilder = new StringBuilder();
@@ -226,6 +225,19 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             headerString = stringBuilder.toString();
         }
         return headerString;
+    }
+
+    public static String convertMapToString(Map<String, Object> headers,Character valueSeparatorForHeaders) {
+        StringBuilder stringBuilder = new StringBuilder();
+        boolean notFirst = false;
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (notFirst) {
+                stringBuilder.append(valueSeparatorForHeaders);
+            }
+            stringBuilder.append(entry.getKey()).append("=").append(entry.getValue().toString());
+            notFirst = true;
+        }
+        return stringBuilder.toString();
     }
 
     @Override
