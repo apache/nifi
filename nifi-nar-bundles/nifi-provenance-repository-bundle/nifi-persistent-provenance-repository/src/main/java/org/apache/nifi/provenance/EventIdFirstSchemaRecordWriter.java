@@ -28,6 +28,8 @@ import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
+import org.apache.nifi.stream.io.SyncFileOutputStream;
+import org.apache.nifi.stream.io.SyncOutputStreamBuilder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -76,7 +78,12 @@ public class EventIdFirstSchemaRecordWriter extends CompressableRecordWriter {
 
     public EventIdFirstSchemaRecordWriter(final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
         final int uncompressedBlockSize, final IdentifierLookup idLookup) throws IOException {
-        super(file, idGenerator, writer, compressed, uncompressedBlockSize);
+        this(SyncFileOutputStream::new, file, idGenerator, writer, compressed, uncompressedBlockSize, idLookup);
+    }
+
+    public EventIdFirstSchemaRecordWriter(final SyncOutputStreamBuilder builder, final File file, final AtomicLong idGenerator, final TocWriter writer, final boolean compressed,
+        final int uncompressedBlockSize, final IdentifierLookup idLookup) throws IOException {
+        super(builder, file, idGenerator, writer, compressed, uncompressedBlockSize);
 
         this.idLookup = idLookup;
         componentIdMap = idLookup.invertComponentIdentifiers();

@@ -121,10 +121,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
     @Override
     public synchronized void initialize(final EventReporter eventReporter, final Authorizer authorizer, final ProvenanceAuthorizableFactory resourceFactory,
         final IdentifierLookup idLookup) throws IOException {
-        final RecordWriterFactory recordWriterFactory = (file, idGenerator, compressed, createToc) -> {
-            final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
-            return new EventIdFirstSchemaRecordWriter(file, idGenerator, tocWriter, compressed, BLOCK_SIZE, idLookup);
-        };
+        final RecordWriterFactory recordWriterFactory = newRecordWriterFactory(config.getMaxEventFileCapacity(), BLOCK_SIZE, idLookup);
 
         final EventFileManager fileManager = new EventFileManager();
         final RecordReaderFactory recordReaderFactory = (file, logs, maxChars) -> {
@@ -137,6 +134,13 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
         };
 
        init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
+    }
+
+    protected RecordWriterFactory newRecordWriterFactory(final long maxEventFileCapacity, final int uncompressedBlockSize, final IdentifierLookup idLookup) {
+        return (file, idGenerator, compressed, createToc) -> {
+            final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
+            return new EventIdFirstSchemaRecordWriter(file, idGenerator, tocWriter, compressed, uncompressedBlockSize, idLookup);
+        };
     }
 
     synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,
