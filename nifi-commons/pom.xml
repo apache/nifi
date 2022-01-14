@@ -34,6 +34,7 @@
         <module>nifi-logging-utils</module>
         <module>nifi-metrics</module>
         <module>nifi-parameter</module>
+        <module>nifi-pmem</module>
         <module>nifi-property-encryptor</module>
         <module>nifi-property-utils</module>
         <module>nifi-properties</module>
