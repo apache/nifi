@@ -19,6 +19,9 @@ package org.apache.nifi.wali;
 
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.SyncBufferedOutputStream;
+import org.apache.nifi.stream.io.SyncFileOutputStream;
+import org.apache.nifi.stream.io.SyncOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
@@ -67,8 +70,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private final int maxInHeapSerializationBytes;
 
     private SerDe<T> serde;
-    private FileOutputStream fileOut;
-    private BufferedOutputStream bufferedOut;
+    private SyncOutputStream syncOut;
 
     private long currentTransactionId;
     private int transactionCount;
@@ -132,12 +134,15 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
     private synchronized OutputStream getOutputStream() throws FileNotFoundException {
-        if (fileOut == null) {
-            fileOut = new FileOutputStream(journalFile);
-            bufferedOut = new BufferedOutputStream(fileOut);
+        if (syncOut == null) {
+            syncOut = newSyncOutputStream(journalFile);
         }
 
-        return bufferedOut;
+        return syncOut;
+    }
+
+    protected SyncOutputStream newSyncOutputStream(File journalFile) throws FileNotFoundException {
+        return new SyncBufferedOutputStream(new SyncFileOutputStream(journalFile));
     }
 
     @Override
@@ -365,8 +370,8 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         logger.error("Marking Write-Ahead journal file {} as poisoned due to {}", journalFile, t, t);
 
         try {
-            if (fileOut != null) {
-                fileOut.close();
+            if (syncOut != null) {
+                syncOut.getWrappedStream().close();
             }
 
             closed = true;
@@ -380,8 +385,8 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         checkState();
 
         try {
-            if (fileOut != null) {
-                fileOut.getChannel().force(false);
+            if (syncOut != null) {
+                syncOut.sync();
             }
         } catch (final IOException ioe) {
             poison(ioe);
@@ -397,12 +402,12 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         closed = true;
 
         try {
-            if (fileOut != null) {
+            if (syncOut != null) {
                 if (!isPoisoned()) {
-                    fileOut.write(JOURNAL_COMPLETE);
+                    syncOut.getWrappedStream().write(JOURNAL_COMPLETE);
                 }
 
-                fileOut.close();
+                syncOut.getWrappedStream().close();
             }
         } catch (final IOException ioe) {
             poison(ioe);

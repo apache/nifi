@@ -29,6 +29,8 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.apache.nifi.wali.SnapshotCapture;
+import org.apache.nifi.wali.pmem.PmemEncryptedSequentialAccessWriteAheadLog;
+import org.apache.nifi.wali.pmem.PmemSequentialAccessWriteAheadLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.MinimalLockingWriteAheadLog;
@@ -93,6 +95,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
     static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
+    static final String PMEM_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.pmem.PmemSequentialAccessWriteAheadLog";
+    static final String PMEM_ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.pmem.PmemEncryptedSequentialAccessWriteAheadLog";
     private static final String MINIMAL_LOCKING_WALI = "org.wali.MinimalLockingWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
     private static final int DEFAULT_CACHE_SIZE = 10_000_000;
@@ -206,7 +210,21 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
      * @return true if this implementation is sequential access
      */
     private static boolean isSequentialAccessWAL(String walImplementation) {
-        return walImplementation.equals(SEQUENTIAL_ACCESS_WAL) || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL);
+        return walImplementation.equals(SEQUENTIAL_ACCESS_WAL)
+                || walImplementation.equals(ENCRYPTED_SEQUENTIAL_ACCESS_WAL)
+                || walImplementation.equals(PMEM_SEQUENTIAL_ACCESS_WAL)
+                || walImplementation.equals(PMEM_ENCRYPTED_SEQUENTIAL_ACCESS_WAL);
+    }
+
+    /**
+     * Returns true if the provided implementation is a access write ahead log on PMEM (plaintext or encrypted).
+     *
+     * @param walImplementation the implementation to check
+     * @return true if this implementation is on PMEM
+     */
+    private static boolean isPmemWAL(String walImplementation) {
+        return walImplementation.equals(PMEM_SEQUENTIAL_ACCESS_WAL)
+                || walImplementation.equals(PMEM_ENCRYPTED_SEQUENTIAL_ACCESS_WAL);
     }
 
     @Override
@@ -220,12 +238,22 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final boolean encryptionConfigured = Integer.toString(EncryptionProtocol.VERSION_1.getVersionNumber()).equals(version);
         final String implementation = nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION);
 
-        if (EncryptedSequentialAccessWriteAheadLog.class.getName().equals(implementation) || encryptionConfigured) {
-            logger.info("Creating Encrypted FlowFile Repository [{}]", EncryptedSequentialAccessWriteAheadLog.class.getName());
+        if (isEncryptedWAL(implementation) || encryptionConfigured) {
+            logger.info("Creating Encrypted FlowFile Repository [{}]", implementation);
             return new EncryptedRepositoryRecordSerdeFactory(claimManager, nifiProperties, fieldCache);
         } else {
             return new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache);
         }
+    }
+
+    private static boolean isEncryptedWAL(String walImplementation) {
+        if (EncryptedSequentialAccessWriteAheadLog.class.getName().equals(walImplementation)) {
+            return true;
+        }
+        if (PmemEncryptedSequentialAccessWriteAheadLog.class.getName().equals(walImplementation)) {
+            return true;
+        }
+        return false;
     }
 
     public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory, final FieldCache fieldCache) throws IOException {
@@ -245,7 +273,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         // The specified implementation can be plaintext or encrypted; the only difference is the serde factory
         if (isSequentialAccessWAL(walImplementation)) {
             // TODO: May need to instantiate ESAWAL for clarity?
-            wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
+            if (isPmemWAL(walImplementation)) {
+                wal = new PmemSequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
+            } else {
+                wal = new SequentialAccessWriteAheadLog<>(flowFileRepositoryPaths.get(0), serdeFactory, this);
+            }
         } else if (walImplementation.equals(MINIMAL_LOCKING_WALI)) {
             final SortedSet<Path> paths = flowFileRepositoryPaths.stream()
                     .map(File::toPath)

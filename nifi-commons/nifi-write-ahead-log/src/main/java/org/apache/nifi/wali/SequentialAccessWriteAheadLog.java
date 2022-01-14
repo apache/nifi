@@ -305,7 +305,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
                 journalFile = new File(journalsDirectory, nextTransactionId + ".journal");
             }
 
-            journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, nextTransactionId);
+            journal = newWriteAheadJournal(journalFile, serdeFactory, streamPool, nextTransactionId);
             journal.writeHeader();
 
             logger.debug("Created new Journal starting with Transaction ID {}", nextTransactionId);
@@ -317,7 +317,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         snapshot.writeSnapshot(snapshotCapture);
 
         for (final File existingJournal : existingJournals) {
-            final WriteAheadJournal journal = new LengthDelimitedJournal<>(existingJournal, serdeFactory, streamPool, nextTransactionId);
+            final WriteAheadJournal journal = newWriteAheadJournal(existingJournal, serdeFactory, streamPool, nextTransactionId);
             journal.dispose();
         }
 
@@ -329,6 +329,9 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         return snapshotCapture.getRecords().size();
     }
 
+    protected WriteAheadJournal<T> newWriteAheadJournal(File journalFile, SerDeFactory<T> serdeFactory, ObjectPool<ByteArrayDataOutputStream> streamPool, long initialTransactionId) {
+        return new LengthDelimitedJournal<T>(journalFile, serdeFactory, streamPool, initialTransactionId);
+    }
 
     @Override
     public void shutdown() throws IOException {
