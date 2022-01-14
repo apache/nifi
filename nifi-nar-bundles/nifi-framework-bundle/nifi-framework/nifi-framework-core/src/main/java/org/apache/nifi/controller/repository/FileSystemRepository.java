@@ -651,7 +651,8 @@ public class FileSystemRepository implements ContentRepository {
             // and when we call create(), it will remove it from the Queue, which means that no other
             // thread will get the same Claim until we've finished writing to it.
             final File file = getPath(resourceClaim).toFile();
-            ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(new FileOutputStream(file, true), file.length());
+            final OutputStream underlyingStream = underlyingResourceClaimOutputStream(file, maxAppendableClaimLength);
+            ByteCountingOutputStream claimStream = new SynchronizedByteCountingOutputStream(underlyingStream, file.length());
             writableClaimStreams.put(resourceClaim, claimStream);
 
             incrementClaimantCount(resourceClaim, true);
@@ -665,6 +666,10 @@ public class FileSystemRepository implements ContentRepository {
 
         final StandardContentClaim scc = new StandardContentClaim(resourceClaim, resourceOffset);
         return scc;
+    }
+
+    protected OutputStream underlyingResourceClaimOutputStream(File file, long softLimit) throws IOException {
+        return new FileOutputStream(file, true);
     }
 
     @Override
@@ -986,7 +991,7 @@ public class FileSystemRepository implements ContentRepository {
         final ByteCountingOutputStream bcos = claimStream;
 
         // TODO: Refactor OS implementation out (deduplicate methods, etc.)
-        final OutputStream out = new ContentRepositoryOutputStream(scc, bcos, initialLength);
+        final OutputStream out = newContentRepositoryOutputStream(scc, bcos, initialLength);
 
         LOG.debug("Writing to {}", out);
         if (LOG.isTraceEnabled()) {
@@ -994,6 +999,10 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         return out;
+    }
+
+    protected OutputStream newContentRepositoryOutputStream(StandardContentClaim scc, ByteCountingOutputStream bcos, int initialLength) {
+        return new ContentRepositoryOutputStream(scc, bcos, initialLength);
     }
 
     public static StandardContentClaim validateContentClaimForWriting(ContentClaim claim) {
@@ -1981,12 +1990,16 @@ public class FileSystemRepository implements ContentRepository {
             bcos.flush();
         }
 
+        protected synchronized void sync() throws IOException {
+            ((FileOutputStream) bcos.getWrappedStream()).getFD().sync();
+        }
+
         @Override
         public synchronized void close() throws IOException {
             closed = true;
 
             if (alwaysSync) {
-                ((FileOutputStream) bcos.getWrappedStream()).getFD().sync();
+                sync();
             }
 
             if (scc.getLength() < 0) {

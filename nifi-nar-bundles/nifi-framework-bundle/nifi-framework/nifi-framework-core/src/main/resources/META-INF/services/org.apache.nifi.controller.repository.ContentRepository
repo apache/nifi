@@ -15,3 +15,4 @@
 org.apache.nifi.controller.repository.FileSystemRepository
 org.apache.nifi.controller.repository.VolatileContentRepository
 org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
+org.apache.nifi.controller.repository.pmem.PmemFileSystemRepository
