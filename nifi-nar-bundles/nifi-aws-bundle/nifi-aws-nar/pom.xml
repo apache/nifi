@@ -46,10 +46,6 @@
             <artifactId>nifi-aws-parameter-value-providers</artifactId>
             <version>1.16.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-        </dependency>
     </dependencies>
 
 

@@ -13,7 +13,8 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -229,7 +230,7 @@
                 <es.int.version>6.8.23</es.int.version>
                 <es.int.type.name>_doc</es.int.type.name>
                 <es.int.script.name>setup-6.script</es.int.script.name>
-                <es.int.path.conf />
+                <es.int.path.conf/>
             </properties>
         </profile>
         <profile>
@@ -241,8 +242,8 @@
             <properties>
                 <es.int.version>7.10.2</es.int.version>
                 <es.int.script.name>setup-7.script</es.int.script.name>
-                <es.int.type.name />
-                <es.int.path.conf />
+                <es.int.type.name/>
+                <es.int.path.conf/>
             </properties>
         </profile>
         <profile>
