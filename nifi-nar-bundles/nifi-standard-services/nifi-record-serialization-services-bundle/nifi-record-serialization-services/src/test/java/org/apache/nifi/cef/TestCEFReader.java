@@ -159,7 +159,7 @@ public class TestCEFReader {
 
         // then
         thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(1, Collections.singletonMap("invalid", "Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|"));
+        thenAssertFieldIsSet(1, "invalid", "Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|");
     }
 
     @Test
@@ -319,10 +319,8 @@ public class TestCEFReader {
         runner.assertNotValid(reader);
     }
 
-    private void thenAssertFieldsAre(final int number, final Map<String, Object>... fieldGroups) {
-        final Map<String, Object> expectedFields = new HashMap<>();
-        Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
-        TestCEFUtil.thenAssertFieldsAre(processor.getRecords().get(number), expectedFields);
+    private void thenAssertFieldIsSet(final int number, final String name, final String value) {
+        Assert.assertEquals(value, processor.getRecords().get(number).getValue(name));
     }
 
     private void thenAssertFieldsAre(final Map<String, Object>... fieldGroups) {

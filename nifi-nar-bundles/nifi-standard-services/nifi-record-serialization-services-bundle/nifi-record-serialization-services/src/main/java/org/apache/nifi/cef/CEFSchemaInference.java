@@ -41,16 +41,19 @@ final class CEFSchemaInference implements SchemaInferenceEngine<CommonEvent> {
     private final boolean includeCustomExtensions;
     private final CEFCustomExtensionTypeResolver typeResolver;
     private final String rawMessageField;
+    private final String invalidField;
 
     CEFSchemaInference(
             final boolean includeExtensions,
             final boolean includeCustomExtensions,
             final CEFCustomExtensionTypeResolver typeResolver,
-            final String rawMessageField) {
+            final String rawMessageField,
+            final String invalidField) {
         this.includeExtensions = includeExtensions;
         this.includeCustomExtensions = includeCustomExtensions;
         this.typeResolver = typeResolver;
         this.rawMessageField = rawMessageField;
+        this.invalidField = invalidField;
     }
 
     @Override
@@ -90,6 +93,10 @@ final class CEFSchemaInference implements SchemaInferenceEngine<CommonEvent> {
 
             if (rawMessageField != null) {
                 fields.add(new RecordField(rawMessageField, RecordFieldType.STRING.getDataType()));
+            }
+
+            if (invalidField != null) {
+                fields.add(new RecordField(invalidField, RecordFieldType.STRING.getDataType()));
             }
 
             return new SimpleRecordSchema(fields);

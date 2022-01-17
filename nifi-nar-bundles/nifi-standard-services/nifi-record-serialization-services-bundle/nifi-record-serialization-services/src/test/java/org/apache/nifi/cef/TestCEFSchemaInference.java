@@ -266,6 +266,19 @@ public class TestCEFSchemaInference {
         thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
+    @Test
+    public void testInferBasedOnHeaderFieldsWithInvalid() throws Exception {
+        // given
+        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        givenTestSubjectWithInvalidField();
+
+        // when
+        whenInferSchema();
+
+        // then
+        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields(), Collections.singletonList(new RecordField("invalid", RecordFieldType.STRING.getDataType())));
+    }
+
     private void givenIncludeExtensions() {
         this.includeExtensions = true;
     }
@@ -276,7 +289,11 @@ public class TestCEFSchemaInference {
     }
 
     private void givenTestSubject() {
-        this.testSubject = new CEFSchemaInference(includeExtensions, includeCustomExtensions, typeResolver, rawMessageField);
+        this.testSubject = new CEFSchemaInference(includeExtensions, includeCustomExtensions, typeResolver, rawMessageField, null);
+    }
+
+    private void givenTestSubjectWithInvalidField() {
+        this.testSubject = new CEFSchemaInference(includeExtensions, includeCustomExtensions, typeResolver, rawMessageField, "invalid");
     }
 
     private void givenRawMessageField(final String rawMessageField) {

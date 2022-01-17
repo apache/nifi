@@ -22,11 +22,9 @@ import com.fluenda.parcefone.parser.CEFParser;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -113,9 +111,7 @@ final class CEFRecordReader implements RecordReader {
             logger.debug("Event parsing resulted no event");
 
             if (invalidField != null && !invalidField.isEmpty()) {
-                final RecordField field = new RecordField(invalidField, RecordFieldType.STRING.getDataType());
-                final RecordSchema failureSchema = new SimpleRecordSchema(Collections.singletonList(field));
-                return new MapRecord(failureSchema, Collections.singletonMap(invalidField, line));
+                return new MapRecord(schema, Collections.singletonMap(invalidField, line));
             } else {
                 throw new MalformedRecordException("The following line could not be parsed by the CEF parser: " + line);
             }

@@ -179,6 +179,10 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
                 builder.withRawMessage(rawMessageField);
             }
 
+            if (invalidField != null) {
+                builder.withInvalidField(invalidField);
+            }
+
             final boolean failFast = invalidField == null || invalidField.isEmpty();
             final CEFSchemaInference inference = builder.build();
             return SchemaInferenceUtil.getSchemaAccessStrategy(

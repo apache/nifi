@@ -18,12 +18,18 @@ package org.apache.nifi.cef;
 
 final class CEFSchemaInferenceBuilder {
     private String rawMessageField = null;
+    private String invalidField = null;
     private boolean includeExtensions = false;
     private boolean includeCustomExtensions = false;
     private CEFCustomExtensionTypeResolver dataTypeResolver = CEFCustomExtensionTypeResolver.SKIPPING_RESOLVER;
 
     CEFSchemaInferenceBuilder withRawMessage(final String rawMessageField) {
         this.rawMessageField = rawMessageField;
+        return this;
+    }
+
+    CEFSchemaInferenceBuilder withInvalidField(final String invalidField) {
+        this.invalidField = invalidField;
         return this;
     }
 
@@ -40,6 +46,6 @@ final class CEFSchemaInferenceBuilder {
     }
 
     CEFSchemaInference build() {
-        return new CEFSchemaInference(includeExtensions, includeCustomExtensions, dataTypeResolver, rawMessageField);
+        return new CEFSchemaInference(includeExtensions, includeCustomExtensions, dataTypeResolver, rawMessageField, invalidField);
     }
 }
