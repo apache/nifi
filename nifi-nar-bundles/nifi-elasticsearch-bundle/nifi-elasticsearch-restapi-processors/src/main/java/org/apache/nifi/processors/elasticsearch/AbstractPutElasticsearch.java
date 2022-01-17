@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 public abstract class AbstractPutElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -64,6 +65,13 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         .required(true)
         .build();
 
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All flowfiles that succeed in being transferred into Elasticsearch go here. " +
+                    "Documents received by the Elasticsearch _bulk API may still result in errors on the Elasticsearch side. " +
+                    "The Elasticsearch response will need to be examined to determine whether any Document(s)/Record(s) resulted in errors.")
+            .build();
+
     static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
             IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
             IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
@@ -73,6 +81,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     ));
 
     boolean logErrors;
+    boolean notFoundIsSuccessful;
     ObjectMapper errorMapper;
 
     volatile ElasticSearchClientService clientService;
@@ -148,15 +157,26 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
         }
     }
 
-    List<Integer> findElasticsearchErrorIndices(final IndexOperationResponse response) {
-        final List<Integer> indices = new ArrayList<>(response.getItems().size());
-        for (int index = 0; index < response.getItems().size(); index++) {
-            final Map<String, Object> current = response.getItems().get(index);
-            if (!current.isEmpty()) {
-                final String key = current.keySet().stream().findFirst().orElse(null);
-                @SuppressWarnings("unchecked") final Map<String, Object> inner = (Map<String, Object>) current.get(key);
-                if (inner != null && inner.containsKey("error")) {
-                    indices.add(index);
+    Predicate<Map<String, Object>> isElasticsearchError() {
+        return inner -> inner.containsKey("error");
+    }
+
+    Predicate<Map<String, Object>> isElasticsearchNotFound() {
+        return inner -> inner.containsKey("result") && "not_found".equals(inner.get("result"));
+    }
+
+    @SafeVarargs
+    final List<Integer> findElasticsearchResponseIndices(final IndexOperationResponse response, final Predicate<Map<String, Object>>... responseItemFilter) {
+        final List<Integer> indices = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
+        if (response.getItems() != null) {
+            for (int index = 0; index < response.getItems().size(); index++) {
+                final Map<String, Object> current = response.getItems().get(index);
+                if (!current.isEmpty()) {
+                    final String key = current.keySet().stream().findFirst().orElse(null);
+                    @SuppressWarnings("unchecked") final Map<String, Object> inner = (Map<String, Object>) current.get(key);
+                    if (inner != null && Arrays.stream(responseItemFilter).anyMatch(p -> p.test(inner))) {
+                        indices.add(index);
+                    }
                 }
             }
         }
