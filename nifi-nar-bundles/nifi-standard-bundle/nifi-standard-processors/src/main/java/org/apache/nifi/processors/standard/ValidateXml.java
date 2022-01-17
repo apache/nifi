@@ -175,26 +175,14 @@ public class ValidateXml extends AbstractProcessor {
                     String xml = flowFile.getAttribute(context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
                     ByteArrayInputStream bais = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
 
-                    if (validator != null) {
-                        // If schema is provided, validator will be non-null
-                        validator.validate(new StreamSource(bais));
-                    } else {
-                        // Only verify that the XML is well-formed; no schema check
-                        docBuilder.parse(bais);
-                    }
+                    validate(validator, docBuilder, bais);
                 } else {
                     // If XML source attribute is not set, validate flowfile content
                     session.read(flowFile, new InputStreamCallback() {
                         @Override
                         public void process(final InputStream in) throws IOException {
                             try {
-                                if (validator != null) {
-                                    // If schema is provided, validator will be non-null
-                                    validator.validate(new StreamSource(in));
-                                } else {
-                                    // Only verify that the XML is well-formed; no schema check
-                                    docBuilder.parse(in);
-                                }
+                                validate(validator, docBuilder, in);
                             } catch (final IllegalArgumentException | SAXException e) {
                                 valid.set(false);
                                 exception.set(e);
@@ -227,6 +215,16 @@ public class ValidateXml extends AbstractProcessor {
                 session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             }
+        }
+    }
+
+    private void validate(final Validator validator, final DocumentBuilder docBuilder, final InputStream in) throws IllegalArgumentException, SAXException, IOException {
+        if (validator != null) {
+            // If schema is provided, validator will be non-null
+            validator.validate(new StreamSource(in));
+        } else {
+            // Only verify that the XML is well-formed; no schema check
+            docBuilder.parse(in);
         }
     }
 }
