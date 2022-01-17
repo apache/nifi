@@ -20,6 +20,7 @@ package org.apache.nifi.processors.elasticsearch
 import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
+import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Assert
@@ -57,6 +58,7 @@ class PutElasticsearchJsonTest {
         runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_DOCUMENTS, "false")
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "false")
         runner.setProperty(PutElasticsearchJson.CLIENT_SERVICE, "clientService")
+        runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true")
         runner.enableControllerService(clientService)
 
         runner.assertValid()
@@ -95,6 +97,12 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, retry)
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 0)
+
+        Assert.assertEquals(success,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == null
+                }).count()
+        )
     }
 
     @Test
@@ -203,6 +211,7 @@ class PutElasticsearchJsonTest {
         runner.setProperty(PutElasticsearchJson.OUTPUT_ERROR_DOCUMENTS, "true")
         runner.setProperty(PutElasticsearchJson.LOG_ERROR_RESPONSES, "true")
         runner.setProperty(PutElasticsearchJson.BATCH_SIZE, "100")
+        runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "true")
 
         clientService.response = IndexOperationResponse.fromJsonResponse(MockBulkLoadClientService.SAMPLE_ERROR_RESPONSE)
 
@@ -210,8 +219,32 @@ class PutElasticsearchJsonTest {
                 [ id: "1", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
                 [ id: "2", field1: 'value1', field2: '20' ],
-                [ id: "3", field1: 'value1', field2: '20abcd' ]
+                [ id: "3", field1: 'value1', field2: 'not_found' ],
+                [ id: "4", field1: 'value1', field2: '20abcd' ]
         ]
+
+        for (final def val : values) {
+            runner.enqueue(prettyPrint(toJson(val)))
+        }
+        runner.assertValid()
+        runner.run()
+
+        runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 4)
+        runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("20abcd"))
+        Assert.assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
+                }).count()
+        )
+
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchJson.NOT_FOUND_IS_SUCCESSFUL, "false")
 
         for (final def val : values) {
             runner.enqueue(prettyPrint(toJson(val)))
@@ -222,8 +255,14 @@ class PutElasticsearchJsonTest {
         runner.assertTransferCount(PutElasticsearchJson.REL_SUCCESS, 3)
         runner.assertTransferCount(PutElasticsearchJson.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchJson.REL_FAILURE, 0)
-        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 1)
-        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("20abcd"))
+        runner.assertTransferCount(PutElasticsearchJson.REL_FAILED_DOCUMENTS, 2)
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[0].getContent(), containsString("not_found"))
+        assertThat(runner.getFlowFilesForRelationship(PutElasticsearchJson.REL_FAILED_DOCUMENTS)[1].getContent(), containsString("20abcd"))
+        Assert.assertEquals(2,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error" == e.getDetails()
+                }).count()
+        )
     }
 
     @Test

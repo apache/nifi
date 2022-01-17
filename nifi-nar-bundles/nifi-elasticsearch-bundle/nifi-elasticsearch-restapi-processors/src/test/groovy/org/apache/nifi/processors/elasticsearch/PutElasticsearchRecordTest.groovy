@@ -24,11 +24,13 @@ import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.json.JsonRecordSetWriter
 import org.apache.nifi.json.JsonTreeReader
 import org.apache.nifi.processors.elasticsearch.mock.MockBulkLoadClientService
+import org.apache.nifi.provenance.ProvenanceEventType
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.RecordReaderFactory
 import org.apache.nifi.serialization.record.MockRecordParser
 import org.apache.nifi.serialization.record.MockSchemaRegistry
 import org.apache.nifi.serialization.record.RecordFieldType
+import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
@@ -73,10 +75,12 @@ class PutElasticsearchRecordTest {
         ]
     ]))
 
-    static final String flowFileContents = prettyPrint(toJson([
+    static final List<Map<String, String>> flowFileContentMaps = [
             [ msg: "Hello, world", from: "john.smith" ],
             [ msg: "Hi, back at ya!", from: "jane.doe" ]
-    ]))
+    ]
+
+    static final String flowFileContents = prettyPrint(toJson(flowFileContentMaps))
 
     @Before
     void setup() {
@@ -100,6 +104,7 @@ class PutElasticsearchRecordTest {
         runner.setProperty(PutElasticsearchRecord.TYPE, "test_type")
         runner.setProperty(PutElasticsearchRecord.AT_TIMESTAMP, "test_timestamp")
         runner.setProperty(PutElasticsearchRecord.CLIENT_SERVICE, "clientService")
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true")
         runner.enableControllerService(registry)
         runner.enableControllerService(reader)
         runner.enableControllerService(clientService)
@@ -136,6 +141,20 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, retry)
         runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, success)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+
+        if (success > 0) {
+            runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESS).forEach({ ff ->
+                ff.assertAttributeEquals("elasticsearch.put.success.count", "0")
+                ff.assertAttributeEquals("elasticsearch.put.error.count", "0")
+            })
+
+            Assert.assertEquals(success,
+                    runner.getProvenanceEvents().stream().filter({
+                        e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [0 error(s), 0 success(es)]"
+                    }).count()
+            )
+        }
     }
 
     @Test
@@ -196,10 +215,16 @@ class PutElasticsearchRecordTest {
 
     @Test
     void simpleTestWithMockReader() {
-        reader = new MockRecordParser()
-        runner.addControllerService("mockReader", reader)
+        MockRecordParser mockReader = new MockRecordParser()
+        mockReader.addSchemaField("msg", RecordFieldType.STRING)
+        mockReader.addSchemaField("from", RecordFieldType.STRING)
+        mockReader.addRecord("foo", "bar")
+        mockReader.addRecord("biz", "baz")
+
+        runner.addControllerService("mockReader", mockReader)
         runner.setProperty(PutElasticsearchRecord.RECORD_READER, "mockReader")
-        runner.enableControllerService(reader)
+        runner.enableControllerService(mockReader)
+
         basicTest(0, 0, 1)
     }
 
@@ -293,6 +318,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -347,6 +373,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -388,6 +415,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -426,6 +454,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -447,6 +476,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
     }
 
     @Test
@@ -522,6 +552,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
 
         runner.clearTransferState()
 
@@ -575,6 +606,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
     }
 
     @Test
@@ -597,6 +629,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 1)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
     }
 
     @Test
@@ -606,6 +639,7 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
     }
 
     @Test
@@ -615,7 +649,8 @@ class PutElasticsearchRecordTest {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY)
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_REGISTRY, "registry")
         runner.enableControllerService(writer)
-        runner.setProperty(PutElasticsearchRecord.ERROR_RECORD_WRITER, "writer")
+        runner.setProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER, "writer")
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "true")
 
         def newSchema = prettyPrint(toJson([
             type: "record",
@@ -631,7 +666,8 @@ class PutElasticsearchRecordTest {
             [ id: "1", field1: 'value1', field2: '20' ],
             [ id: "2", field1: 'value1', field2: '20' ],
             [ id: "2", field1: 'value1', field2: '20' ],
-            [ id: "3", field1: 'value1', field2: '20abcd' ]
+            [ id: "3", field1: 'value1', field2: 'not_found' ],
+            [ id: "4", field1: 'value1', field2: '20abcd' ]
         ]
 
         clientService.response = IndexOperationResponse.fromJsonResponse(MockBulkLoadClientService.SAMPLE_ERROR_RESPONSE)
@@ -646,8 +682,64 @@ class PutElasticsearchRecordTest {
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
         runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
 
-        def errorFF = runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
-        assert errorFF.getAttribute(PutElasticsearchRecord.ATTR_RECORD_COUNT) == "1"
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "1")
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "4")
+
+        Assert.assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
+                }).count()
+        )
+
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.setProperty(PutElasticsearchRecord.NOT_FOUND_IS_SUCCESSFUL, "false")
+        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
+        runner.assertValid()
+        runner.run()
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 1)
+
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_FAILED_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "2")
+        runner.getFlowFilesForRelationship(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS)[0]
+                .assertAttributeEquals(PutElasticsearchRecord.ATTR_RECORD_COUNT, "3")
+
+        Assert.assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [2 error(s), 3 success(es)]"
+                }).count()
+        )
+
+
+        runner.clearTransferState()
+        runner.clearProvenanceEvents()
+
+        runner.removeProperty(PutElasticsearchRecord.RESULT_RECORD_WRITER)
+        runner.enqueue(prettyPrint(toJson(values)), [ 'schema.name': 'errorTest' ])
+        runner.assertValid()
+        runner.run()
+
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESS, 1)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILURE, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_RETRY, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_FAILED_RECORDS, 0)
+        runner.assertTransferCount(PutElasticsearchRecord.REL_SUCCESSFUL_RECORDS, 0)
+
+        Assert.assertEquals(1,
+                runner.getProvenanceEvents().stream().filter({
+                    e -> ProvenanceEventType.SEND == e.getEventType() && e.getDetails() == "1 Elasticsearch _bulk operation batch(es) [1 error(s), 4 success(es)]"
+                }).count()
+        )
     }
 }
