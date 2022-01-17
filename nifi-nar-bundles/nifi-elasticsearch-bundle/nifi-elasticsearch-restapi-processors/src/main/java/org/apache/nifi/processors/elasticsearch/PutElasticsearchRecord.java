@@ -45,6 +45,7 @@ import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -57,6 +58,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,17 +67,24 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "put", "index", "record"})
 @CapabilityDescription("A record-aware Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the documents.")
+        @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the documents."),
+        @WritesAttribute(attribute = "elasticsearch.put.error.count", description = "The number of records that generated errors in the Elasticsearch _bulk API."),
+        @WritesAttribute(attribute = "elasticsearch.put.success.count", description = "The number of records that were successfully processed by the Elasticsearch _bulk API.")
 })
 @DynamicProperty(
         name = "The name of a URL query parameter to add",
@@ -86,6 +96,16 @@ import java.util.Set;
         resource = SystemResource.MEMORY,
         description = "The Batch of Records will be stored in memory until the bulk operation is performed.")
 public class PutElasticsearchRecord extends AbstractPutElasticsearch {
+    static final Relationship REL_FAILED_RECORDS = new Relationship.Builder()
+            .name("errors").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
+                    "that resulted in an \"error\" (within Elasticsearch) will be routed here.")
+            .autoTerminateDefault(true).build();
+
+    static final Relationship REL_SUCCESSFUL_RECORDS = new Relationship.Builder()
+            .name("successful_records").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
+                    "that did not result in an \"error\" (within Elasticsearch) will be routed here.")
+            .autoTerminateDefault(true).build();
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
         .name("put-es-record-reader")
         .displayName("Record Reader")
@@ -182,15 +202,28 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
 
-    static final PropertyDescriptor ERROR_RECORD_WRITER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RESULT_RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("put-es-record-error-writer")
-        .displayName("Error Record Writer")
+        .displayName("Result Record Writer")
         .description("If this configuration property is set, the response from Elasticsearch will be examined for failed records " +
-                "and the failed records will be written to a record set with this record writer service and sent to the \"errors\" " +
-                "relationship.")
+                "and the failed records will be written to a record set with this record writer service and sent to the \"" +
+                REL_FAILED_RECORDS.getName() + "\" relationship. Successful records will be written to a record set" +
+                "with this record writer service and sent to the \"" + REL_SUCCESSFUL_RECORDS.getName() + "\" relationship.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .addValidator(Validator.VALID)
         .required(false)
+        .build();
+
+    static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
+        .name("put-es-record-not_found-is-error")
+        .displayName("Treat \"Not Found\" as Error")
+        .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
+                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(false)
+        .dependsOn(RESULT_RECORD_WRITER)
         .build();
 
     static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
@@ -230,18 +263,13 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .required(false)
         .build();
 
-    static final Relationship REL_FAILED_RECORDS = new Relationship.Builder()
-            .name("errors").description("If an Error Record Writer is set, any record that failed to process the way it was " +
-                    "configured will be sent to this relationship as part of a failed record set.")
-            .autoTerminateDefault(true).build();
-
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
         INDEX_OP, INDEX, TYPE, AT_TIMESTAMP, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, RETAIN_ID_FIELD,
         INDEX_OP_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH, AT_TIMESTAMP_RECORD_PATH, RETAIN_AT_TIMESTAMP_FIELD,
-        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, ERROR_RECORD_WRITER
+        DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT, LOG_ERROR_RESPONSES, RESULT_RECORD_WRITER, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
+        REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS, REL_SUCCESSFUL_RECORDS
     )));
 
     private RecordPathCache recordPathCache;
@@ -268,7 +296,9 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
 
         this.readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         this.recordPathCache = new RecordPathCache(16);
-        this.writerFactory = context.getProperty(ERROR_RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        this.writerFactory = context.getProperty(RESULT_RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
+        this.notFoundIsSuccessful = context.getProperty(NOT_FOUND_IS_SUCCESSFUL).asBoolean();
 
         this.dateFormat = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions().getValue();
         if (this.dateFormat == null) {
@@ -312,7 +342,14 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         final boolean retainTimestamp = context.getProperty(RETAIN_AT_TIMESTAMP_FIELD).evaluateAttributeExpressions(input).asBoolean();
 
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger();
-        final List<FlowFile> badRecords = new ArrayList<>();
+        final List<FlowFile> resultRecords = new ArrayList<>();
+
+        final AtomicLong erroredRecords = new AtomicLong(0);
+        final AtomicLong successfulRecords = new AtomicLong(0);
+        final StopWatch stopWatch = new StopWatch(true);
+        final Set<String> indices = new HashSet<>();
+        final Set<String> types = new HashSet<>();
+        int batches = 0;
 
         try (final InputStream inStream = session.read(input);
             final RecordReader reader = readerFactory.createRecordReader(input, inStream, getLogger())) {
@@ -323,7 +360,11 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             Record record;
             while ((record = recordSet.next()) != null) {
                 final String idx = getFromRecordPath(record, iPath, index, false);
+                indices.add(idx);
                 final String t = getFromRecordPath(record, tPath, type, false);
+                if (StringUtils.isNotBlank(t)) {
+                    types.add(t);
+                }
                 final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(getFromRecordPath(record, ioPath, indexOp, false));
                 final String id = getFromRecordPath(record, path, null, retainId);
                 final Object timestamp = getTimestampFromRecordPath(record, atPath, atTimestamp, retainTimestamp);
@@ -338,23 +379,14 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
                 originals.add(record);
 
                 if (operationList.size() == batchSize || !recordSet.isAnotherRecord()) {
-                    final BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
-                    final FlowFile bad = indexDocuments(bundle, context, session, input);
-                    if (bad != null) {
-                        badRecords.add(bad);
-                    }
-
-                    operationList.clear();
-                    originals.clear();
+                    operate(operationList, originals, reader, context, session, input, resultRecords, erroredRecords, successfulRecords);
+                    batches++;
                 }
             }
 
             if (!operationList.isEmpty()) {
-                final BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
-                final FlowFile bad = indexDocuments(bundle, context, session, input);
-                if (bad != null) {
-                    badRecords.add(bad);
-                }
+                operate(operationList, originals, reader, context, session, input, resultRecords, erroredRecords, successfulRecords);
+                batches++;
             }
         } catch (final ElasticsearchException ese) {
             final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
@@ -362,65 +394,132 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
             getLogger().error(msg, ese);
             final Relationship rel = ese.isElastic() ? REL_RETRY : REL_FAILURE;
             transferFlowFilesOnException(ese, rel, session, true, input);
-            removeBadRecordFlowFiles(badRecords, session);
+            removeResultRecordFlowFiles(resultRecords, session);
             return;
         } catch (final IOException | SchemaNotFoundException ex) {
             getLogger().warn("Could not log Elasticsearch operation errors nor determine which documents errored.", ex);
-            final Relationship rel = writerFactory != null ? REL_FAILED_RECORDS : REL_FAILURE;
-            transferFlowFilesOnException(ex, rel, session, true, input);
-            removeBadRecordFlowFiles(badRecords, session);
+            transferFlowFilesOnException(ex, REL_FAILURE, session, true, input);
+            removeResultRecordFlowFiles(resultRecords, session);
             return;
         } catch (final Exception ex) {
             getLogger().error("Could not index documents.", ex);
             transferFlowFilesOnException(ex, REL_FAILURE, session, false, input);
             context.yield();
-            removeBadRecordFlowFiles(badRecords, session);
+            removeResultRecordFlowFiles(resultRecords, session);
             return;
         }
+
+        stopWatch.stop();
+        session.getProvenanceReporter().send(
+                input,
+                clientService.getTransitUrl(String.join(",", indices), types.isEmpty() ? null : String.join(",", types)),
+                String.format(Locale.getDefault(), "%d Elasticsearch _bulk operation batch(es) [%d error(s), %d success(es)]", batches, erroredRecords.get(), successfulRecords.get()),
+                stopWatch.getDuration(TimeUnit.MILLISECONDS)
+        );
+
+        input = session.putAllAttributes(input, new HashMap<String, String>() {{
+            put("elasticsearch.put.error.count", String.valueOf(erroredRecords.get()));
+            put("elasticsearch.put.success.count", String.valueOf(successfulRecords.get()));
+        }});
+
         session.transfer(input, REL_SUCCESS);
     }
 
-    private void removeBadRecordFlowFiles(final List<FlowFile> bad, final ProcessSession session) {
-        for (final FlowFile badFlowFile : bad) {
-            session.remove(badFlowFile);
-        }
+    private void operate(final List<IndexOperationRequest> operationList, final List<Record> originals, final RecordReader reader,
+                         final ProcessContext context, final ProcessSession session, final FlowFile input,
+                         final List<FlowFile> resultRecords, final AtomicLong erroredRecords, final AtomicLong successfulRecords)
+            throws IOException, SchemaNotFoundException, MalformedRecordException {
 
-        bad.clear();
+        final BulkOperation bundle = new BulkOperation(operationList, originals, reader.getSchema());
+        final ResponseDetails responseDetails = indexDocuments(bundle, context, session, input);
+
+        if (responseDetails.getErrored() != null) {
+            resultRecords.add(responseDetails.getErrored());
+        }
+        erroredRecords.getAndAdd(responseDetails.getErrorCount());
+
+        if (responseDetails.getSucceeded() != null) {
+            resultRecords.add(responseDetails.getSucceeded());
+        }
+        successfulRecords.getAndAdd(responseDetails.getSuccessCount());
+
+        operationList.clear();
+        originals.clear();
     }
 
-    private FlowFile indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
+    private void removeResultRecordFlowFiles(final List<FlowFile> results, final ProcessSession session) {
+        for (final FlowFile flowFile : results) {
+            session.remove(flowFile);
+        }
+
+        results.clear();
+    }
+
+    private ResponseDetails indexDocuments(final BulkOperation bundle, final ProcessContext context, final ProcessSession session, final FlowFile input) throws IOException, SchemaNotFoundException {
         final IndexOperationResponse response = clientService.bulk(bundle.getOperationList(), getUrlQueryParameters(context, input));
+
+        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
         if (response.hasErrors()) {
             logElasticsearchDocumentErrors(response);
+            errorItemFilters.add(isElasticsearchError());
+        }
 
-            if (writerFactory != null) {
-                FlowFile errorFF = session.create(input);
-                try {
-                    int added = 0;
-                    try (final OutputStream os = session.write(errorFF);
-                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), bundle.getSchema(), os, errorFF )) {
+        if (writerFactory != null && !notFoundIsSuccessful) {
+            errorItemFilters.add(isElasticsearchNotFound());
+        }
 
-                        writer.beginRecordSet();
-                        for (final int index : findElasticsearchErrorIndices(response)) {
-                            writer.write(bundle.getOriginalRecords().get(index));
-                            added++;
+        @SuppressWarnings("unchecked")
+        final List<Integer> errorIndices = findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]));
+        final int numErrors = errorIndices.size();
+        final int numSuccessful = response.getItems() == null ? 0 : response.getItems().size() - numErrors;
+        FlowFile errorFF = null;
+        FlowFile successFF = null;
+
+        if (writerFactory != null) {
+            try {
+                successFF = session.create(input);
+                errorFF = session.create(input);
+
+                try (final OutputStream errorOutputStream = session.write(errorFF);
+                     final RecordSetWriter errorWriter = writerFactory.createWriter(getLogger(), bundle.getSchema(), errorOutputStream, errorFF);
+                     final OutputStream successOutputStream = session.write(successFF);
+                     final RecordSetWriter successWriter = writerFactory.createWriter(getLogger(), bundle.getSchema(), successOutputStream, successFF)) {
+
+                    errorWriter.beginRecordSet();
+                    successWriter.beginRecordSet();
+                    for (int o = 0; o < bundle.getOriginalRecords().size(); o++) {
+                        if (errorIndices.contains(o)) {
+                            errorWriter.write(bundle.getOriginalRecords().get(o));
+                        } else {
+                            successWriter.write(bundle.getOriginalRecords().get(o));
                         }
-                        writer.finishRecordSet();
                     }
-
-                    errorFF = session.putAttribute(errorFF, ATTR_RECORD_COUNT, String.valueOf(added));
-
-                    session.transfer(errorFF, REL_FAILED_RECORDS);
-
-                    return errorFF;
-                } catch (final IOException | SchemaNotFoundException ex) {
-                    getLogger().error("Unable to write error records", ex);
-                    session.remove(errorFF);
-                    throw ex;
+                    errorWriter.finishRecordSet();
+                    successWriter.finishRecordSet();
                 }
+
+                if (numErrors > 0) {
+                    errorFF = session.putAttribute(errorFF, ATTR_RECORD_COUNT, String.valueOf(numErrors));
+                    session.transfer(errorFF, REL_FAILED_RECORDS);
+                } else {
+                    session.remove(errorFF);
+                }
+
+                if (numSuccessful > 0) {
+                    successFF = session.putAttribute(successFF, ATTR_RECORD_COUNT, String.valueOf(numSuccessful));
+                    session.transfer(successFF, REL_SUCCESSFUL_RECORDS);
+                } else {
+                    session.remove(successFF);
+                }
+            } catch (final IOException | SchemaNotFoundException ex) {
+                getLogger().error("Unable to write error/successful records", ex);
+                session.remove(errorFF);
+                session.remove(successFF);
+                throw ex;
             }
         }
-        return null;
+
+        return new ResponseDetails(successFF, numSuccessful, errorFF, numErrors);
     }
 
     private void formatDateTimeFields(final Map<String, Object> contentMap, final Record record) {
@@ -554,5 +653,35 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         return DataTypeUtils.isLongTypeCompatible(stringValue)
                 ? DataTypeUtils.toLong(stringValue, fieldName)
                 : stringValue;
+    }
+
+    private static class ResponseDetails {
+        final FlowFile errored;
+        final FlowFile succeeded;
+        final int errorCount;
+        final int successCount;
+
+        ResponseDetails(final FlowFile succeeded, final int successCount, final FlowFile errored, final int errorCount) {
+            this.succeeded = succeeded;
+            this.successCount = successCount;
+            this.errored = errored;
+            this.errorCount = errorCount;
+        }
+
+        public FlowFile getSucceeded() {
+            return succeeded;
+        }
+
+        public FlowFile getErrored() {
+            return errored;
+        }
+
+        public int getErrorCount() {
+            return errorCount;
+        }
+
+        public int getSuccessCount() {
+            return successCount;
+        }
     }
 }

@@ -24,6 +24,7 @@ import org.apache.nifi.elasticsearch.IndexOperationRequest
 import org.apache.nifi.elasticsearch.IndexOperationResponse
 import org.apache.nifi.elasticsearch.SearchResponse
 import org.apache.nifi.elasticsearch.UpdateOperationResponse
+import org.apache.nifi.util.StringUtils
 
 class AbstractMockElasticsearchClient extends AbstractControllerService implements ElasticSearchClientService {
     boolean throwRetriableError
@@ -96,6 +97,6 @@ class AbstractMockElasticsearchClient extends AbstractControllerService implemen
 
     @Override
     String getTransitUrl(String index, String type) {
-        return null
+        return String.format("http://localhost:9200/%s/%s", index, StringUtils.isNotBlank(type) ? type : "")
     }
 }

@@ -102,10 +102,27 @@ class MockBulkLoadClientService extends AbstractMockElasticsearchClient {
       }
     },
     {
+      "delete": {
+        "_index": "test",
+        "_type" : "_doc",
+        "_id": "4",
+        "_version": 1,
+        "result": "not_found",
+        "_shards": {
+          "total": 2,
+          "successful": 1,
+          "failed": 0
+        },
+        "_seq_no" : 1,
+        "_primary_term" : 2,
+        "status": 404
+      }
+    },
+    {
       "index" : {
         "_index" : "test",
         "_type" : "_doc",
-        "_id" : "4",
+        "_id" : "5",
         "status" : 400,
         "error" : {
           "type" : "mapper_parsing_exception",
