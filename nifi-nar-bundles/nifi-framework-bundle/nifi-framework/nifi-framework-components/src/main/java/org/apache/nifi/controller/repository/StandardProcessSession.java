@@ -309,15 +309,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             final FlowFileRecord currentFlowFile = record.getOriginal();
-            int retryCounts = 0;
+            int retryCount = 0;
             if (currentFlowFile != null) {
-                String retryCountsString = currentFlowFile.getAttribute("retryCounts");
-                if (retryCountsString != null) {
-                    retryCounts = Integer.parseInt(retryCountsString);
+                String retryCountString = currentFlowFile.getAttribute("retryCount");
+                if (retryCountString != null) {
+                    retryCount = Integer.parseInt(retryCountString);
                 }
             }
 
-            if (isRetryNeeded(processorNode, record, currentFlowFile, retryCounts, uuidsToRecords)) {
+            if (isRetryNeeded(processorNode, record, currentFlowFile, retryCount, uuidsToRecords)) {
 
                 final boolean isProcessorYielding = processorNode.getBackoffMechanism().equals(BackoffMechanism.YIELD_PROCESSOR);
                 final long maxBackoffPeriod = Math.round(FormatUtils.getPreciseTimeDuration(processorNode.getMaxBackoffPeriod(), TimeUnit.MILLISECONDS));
@@ -329,12 +329,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     penalizationTime = processorNode.getPenalizationPeriod(TimeUnit.MILLISECONDS);
                 }
 
-                final long backoffTime = calculateBackoffTime(retryCounts, maxBackoffPeriod, penalizationTime);
-                retryCounts++;
+                final long backoffTime = calculateBackoffTime(retryCount, maxBackoffPeriod, penalizationTime);
+                retryCount++;
 
-                adjustProcessorStatistics(record, relationship, uuidsToRecords);
-                final FlowFileRecord updatedRecord = updateFlowFileRecord(record, uuidsToRecords, retryCounts, currentFlowFile);
-                clearEvents(currentFlowFile);
+                adjustConnectableStatsForRetry(record, relationship, uuidsToRecords);
+                final FlowFileRecord updatedRecord = updateFlowFileRecord(record, uuidsToRecords, retryCount, currentFlowFile);
+                clearProvenanceEventsForRetry(currentFlowFile);
 
                 if (isProcessorYielding) {
                     processorNode.yield(backoffTime, TimeUnit.MILLISECONDS);
@@ -368,7 +368,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
                     FlowFileRecord currRec = record.getCurrent();
                     StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
-                    builder.removeAttributes("retryCounts");
+                    builder.removeAttributes("retryCount");
 
                     record.setDestination(finalDestination.getFlowFileQueue());
                     record.setWorking(builder.build(), false);
@@ -409,19 +409,20 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     private boolean isRetryNeeded(final ProcessorNode processorNode, final StandardRepositoryRecord record, final FlowFileRecord currentFlowFile,
-                                  final int retryCounts, final Map<String, StandardRepositoryRecord> uuidsToRecords) {
+                                  final int retryCount, final Map<String, StandardRepositoryRecord> uuidsToRecords) {
         if (currentFlowFile == null || processorNode == null || processorNode.getRetriedRelationships().isEmpty()) {
             return false;
         }
 
-        if (processorNode.isRetriedRelationship(record.getTransferRelationship())) {
-            return retryCounts < processorNode.getRetryCounts();
+        if (processorNode.isRelationshipRetried(record.getTransferRelationship())) {
+            return retryCount < processorNode.getRetryCount();
         }
 
-        if (forkEventBuilders.get(currentFlowFile) != null) {
-            for (String uuid : forkEventBuilders.get(currentFlowFile).getChildFlowFileIds()) {
-                if (processorNode.isRetriedRelationship(uuidsToRecords.get(uuid).getTransferRelationship())) {
-                    return retryCounts < processorNode.getRetryCounts();
+        final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(currentFlowFile);
+        if (eventBuilder != null) {
+            for (String uuid : eventBuilder.getChildFlowFileIds()) {
+                if (processorNode.isRelationshipRetried(uuidsToRecords.get(uuid).getTransferRelationship())) {
+                    return retryCount < processorNode.getRetryCount();
                 }
             }
         }
@@ -430,11 +431,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private FlowFileRecord updateFlowFileRecord(final StandardRepositoryRecord record,
                                                 final Map<String, StandardRepositoryRecord> uuidsToRecords,
-                                                final int retryCounts, final FlowFileRecord flowFileRecord) {
+                                                final int retryCount, final FlowFileRecord flowFileRecord) {
 
         removeTemporaryClaim(record);
-        if (forkEventBuilders.get(flowFileRecord) != null) {
-            for (String uuid : forkEventBuilders.get(flowFileRecord).getChildFlowFileIds()) {
+        final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(flowFileRecord);
+
+        if (eventBuilder != null) {
+            for (String uuid : eventBuilder.getChildFlowFileIds()) {
                 final StandardRepositoryRecord childRecord = uuidsToRecords.get(uuid);
                 removeTemporaryClaim(childRecord);
                 createdFlowFiles.remove(uuid);
@@ -446,15 +449,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         record.setTransferRelationship(null);
         record.setDestination(record.getOriginalQueue());
 
-        builder.addAttribute("retryCounts", String.valueOf(retryCounts));
+        builder.addAttribute("retryCount", String.valueOf(retryCount));
         record.getUpdatedAttributes().clear();
         final FlowFileRecord newFile = builder.build();
         record.setWorking(newFile, false);
         return newFile;
     }
 
-    private void adjustProcessorStatistics(final StandardRepositoryRecord record, final Relationship relationship,
-                                           final Map<String, StandardRepositoryRecord> uuidsToRecords) {
+    private void adjustConnectableStatsForRetry(final StandardRepositoryRecord record, final Relationship relationship,
+                                                final Map<String, StandardRepositoryRecord> uuidsToRecords) {
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
         final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(record.getOriginal());
@@ -474,7 +477,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         contentSizeOut -= (record.getCurrent().getSize() + contentSize) * multiplier;
     }
 
-    private void clearEvents(final FlowFileRecord flowFileRecord) {
+    private void clearProvenanceEventsForRetry(final FlowFileRecord flowFileRecord) {
         Set<ProvenanceEventRecord> events = provenanceReporter.getEvents().stream()
                 .filter(event -> event.getFlowFileUuid().equals(flowFileRecord.getAttribute(CoreAttributes.UUID.key())))
                 .collect(Collectors.toSet());
@@ -486,15 +489,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         forkEventBuilders.remove(flowFileRecord);
     }
 
-    private long calculateBackoffTime(int retryCounts, final long maxBackoffPeriod, final long penalizationTime) {
-        if (retryCounts == 0) {
-            return penalizationTime;
+    private long calculateBackoffTime(int retryCount, final long maxBackoffPeriod, final long penalizationTime) {
+        long current = penalizationTime;
+        for (int i = 1; i <= retryCount; i++) {
+                current = current * 2;
         }
-        long current = calculateBackoffTime(--retryCounts, maxBackoffPeriod, penalizationTime) * 2;
-        if (current >= maxBackoffPeriod) {
-            return maxBackoffPeriod;
-        }
-        return current;
+        return Math.max(current, maxBackoffPeriod);
     }
 
     @Override
@@ -2146,14 +2146,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public FlowFile penalize(FlowFile flowFile) {
-        verifyTaskActive();
-
-        flowFile = validateRecordState(flowFile);
-        final StandardRepositoryRecord record = getRecord(flowFile);
-        final long expirationEpochMillis = System.currentTimeMillis() + context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS);
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder().fromFlowFile(record.getCurrent()).penaltyExpirationTime(expirationEpochMillis).build();
-        record.setWorking(newFile, false);
-        return newFile;
+        return penalize(flowFile, context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
     }
 
     public FlowFile penalize(FlowFile flowFile, long period, TimeUnit timeUnit) {

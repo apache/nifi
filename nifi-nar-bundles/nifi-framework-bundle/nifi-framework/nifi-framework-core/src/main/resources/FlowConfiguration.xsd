@@ -147,7 +147,7 @@
             <!-- Indicates that a relationship with the given name can be auto-terminated -->
             <xs:element name="autoTerminatedRelationship" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
 
-            <xs:element name="retryCounts" type="xs:nonNegativeInteger" minOccurs="0" maxOccurs="1" />
+            <xs:element name="retryCount" type="xs:nonNegativeInteger" minOccurs="0" maxOccurs="1" />
 
             <xs:element name="retriedRelationships" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
 

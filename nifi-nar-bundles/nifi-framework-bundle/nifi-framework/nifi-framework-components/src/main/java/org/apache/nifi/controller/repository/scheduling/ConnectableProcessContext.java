@@ -290,12 +290,12 @@ public class ConnectableProcessContext implements ProcessContext {
 
 
     @Override
-    public boolean isRetriedRelationship(Relationship relationship) {
+    public boolean isRelationshipRetried(Relationship relationship) {
         return false;
     }
 
     @Override
-    public int getRetryCounts() {
+    public int getRetryCount() {
         return 0;
     }
 }

@@ -2827,12 +2827,11 @@ public class StandardProcessSessionIT {
         FlowFile ff1 = session.get();
         assertNotNull(ff1);
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         FlowFile ff2 = session.get();
         assertNotNull(ff2);
-        assertEquals("1", ff2.getAttribute("retryCounts"));
+        assertEquals("1", ff2.getAttribute("retryCount"));
     }
 
     @Test
@@ -2851,19 +2850,17 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         assertNotNull(ff1);
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         final FlowFile ff2 = session.get();
         assertNotNull(ff2);
-        assertEquals("1", ff2.getAttribute("retryCounts"));
+        assertEquals("1", ff2.getAttribute("retryCount"));
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         final FlowFile ff3 = session.get();
         assertNotNull(ff3);
-        assertNull(ff3.getAttribute("retryCounts"));
+        assertNull(ff3.getAttribute("retryCount"));
     }
 
     @Test
@@ -2883,7 +2880,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         assertNotNull(ff1);
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         assertTrue(flowFileQueue.getFlowFile(ff1.getAttribute(CoreAttributes.UUID.key())).isPenalized());
@@ -2906,7 +2902,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         assertNotNull(ff1);
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         verify(processor).yield(anyLong(), eq(TimeUnit.MILLISECONDS));
@@ -2936,7 +2931,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         assertNotNull(ff1);
         session.transfer(flowFileRecord, relationship);
-        session.checkpoint();
         session.commit();
 
         final RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(0L);
@@ -2976,7 +2970,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff2 = session.create(ff1);
         session.transfer(ff1, relationship);
         session.transfer(ff2, relationship);
-        session.checkpoint();
         session.commit();
 
         final List<ProvenanceEventRecord> provEvents = provenanceRepo.getEvents(0L, 1000);
@@ -3007,7 +3000,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         final FlowFile modified = session.write(ff1, (in, out) -> out.write(replacementContent));
         session.transfer(modified, relationship);
-        session.checkpoint();
         session.commit();
 
         assertEquals(1, contentRepo.getClaimantCount(originalClaim));
@@ -3037,7 +3029,6 @@ public class StandardProcessSessionIT {
         final FlowFile ff1 = session.get();
         final FlowFile modified = session.write(ff1, (in, out) -> out.write(replacementContent));
         session.transfer(modified, relationship);
-        session.checkpoint();
         session.commit();
 
         final FlowFile ff2 = session.get();
@@ -3045,12 +3036,12 @@ public class StandardProcessSessionIT {
         assertEquals(originalClaim, ((FlowFileRecord) ff2).getContentClaim());
     }
 
-    public void configureRetry(final Connectable connectable, final int retryCounts, final BackoffMechanism backoffMechanism,
+    public void configureRetry(final Connectable connectable, final int retryCount, final BackoffMechanism backoffMechanism,
                                final String maxBackoffPeriod, final long penalizationPeriod) {
         Processor proc = mock(Processor.class);
         when(((ProcessorNode) connectable).getProcessor()).thenReturn( proc);
-        when(((ProcessorNode) connectable).isRetriedRelationship(any())).thenReturn(true);
-        when(((ProcessorNode) connectable).getRetryCounts()).thenReturn(retryCounts);
+        when(((ProcessorNode) connectable).isRelationshipRetried(any())).thenReturn(true);
+        when(((ProcessorNode) connectable).getRetryCount()).thenReturn(retryCount);
         when(((ProcessorNode) connectable).getBackoffMechanism()).thenReturn(backoffMechanism);
         when(((ProcessorNode) connectable).getMaxBackoffPeriod()).thenReturn(maxBackoffPeriod);
         when(((ProcessorNode) connectable).getRetriedRelationships()).thenReturn(Collections.singleton(FAKE_RELATIONSHIP.getName()));

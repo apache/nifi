@@ -581,12 +581,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
     }
 
     @Override
-    public int getRetryCounts() {
+    public int getRetryCount() {
         return 0;
     }
 
     @Override
-    public boolean isRetriedRelationship(Relationship relationship) {
+    public boolean isRelationshipRetried(Relationship relationship) {
         return false;
     }
 }

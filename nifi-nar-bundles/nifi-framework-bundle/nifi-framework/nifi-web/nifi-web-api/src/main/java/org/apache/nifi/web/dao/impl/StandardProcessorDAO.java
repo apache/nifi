@@ -155,7 +155,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final Long runDurationMillis = config.getRunDurationMillis();
             final String bulletinLevel = config.getBulletinLevel();
             final Set<String> undefinedRelationshipsToTerminate = config.getAutoTerminatedRelationships();
-            final Integer retryCounts = config.getRetryCounts();
+            final Integer retryCount = config.getRetryCount();
             final Set<String> retriedRelationships = config.getRetriedRelationships();
             final String backoffMechanism = config.getBackoffMechanism();
             final String maxBackoffPeriod = config.getMaxBackoffPeriod();
@@ -201,8 +201,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.setProperties(configProperties);
                 }
 
-                if (isNotNull(retryCounts)) {
-                    processor.setRetryCounts(retryCounts);
+                if (isNotNull(retryCount)) {
+                    processor.setRetryCount(retryCount);
                 }
 
                 if (isNotNull(retriedRelationships)) {
@@ -449,7 +449,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getSchedulingStrategy(),
                     configDTO.getExecutionNode(),
                     configDTO.getYieldDuration(),
-                    configDTO.getRetryCounts(),
+                    configDTO.getRetryCount(),
                     configDTO.getBackoffMechanism(),
                     configDTO.getMaxBackoffPeriod(),
                     configDTO.getRetriedRelationships())) {

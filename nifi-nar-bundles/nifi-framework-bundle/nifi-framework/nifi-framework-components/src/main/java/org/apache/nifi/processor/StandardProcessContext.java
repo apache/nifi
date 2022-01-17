@@ -349,12 +349,12 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
-    public boolean isRetriedRelationship(Relationship relationship) {
-        return procNode.isRetriedRelationship(relationship);
+    public boolean isRelationshipRetried(Relationship relationship) {
+        return procNode.isRelationshipRetried(relationship);
     }
 
     @Override
-    public int getRetryCounts() {
-        return procNode.getRetryCounts();
+    public int getRetryCount() {
+        return procNode.getRetryCount();
     }
 }

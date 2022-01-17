@@ -515,7 +515,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addTextElement(element, "schedulingStrategy", processor.getSchedulingStrategy().name());
         addTextElement(element, "executionNode", processor.getExecutionNode().name());
         addTextElement(element, "runDurationNanos", processor.getRunDuration(TimeUnit.NANOSECONDS));
-        addTextElement(element, "retryCounts", processor.getRetryCounts());
+        addTextElement(element, "retryCount", processor.getRetryCount());
         addTextElement(element, "backoffMechanism", processor.getBackoffMechanism().name());
         addTextElement(element, "maxBackoffPeriod", processor.getMaxBackoffPeriod());
 

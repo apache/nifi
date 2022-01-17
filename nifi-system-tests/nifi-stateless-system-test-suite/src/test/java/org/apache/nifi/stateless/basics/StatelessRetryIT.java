@@ -49,7 +49,7 @@ public class StatelessRetryIT extends StatelessSystemIT {
         //Create a CountFlowFiles processor and configure 2 retries
         final VersionedProcessor countFlowFiles = flowBuilder.createSimpleProcessor("CountFlowFiles");
         countFlowFiles.setMaxBackoffPeriod("1 ms");
-        countFlowFiles.setRetryCounts(RETRY_COUNTS);
+        countFlowFiles.setRetryCount(RETRY_COUNTS);
         countFlowFiles.setBackoffMechanism("PENALIZE_FLOWFILE");
         countFlowFiles.setRetriedRelationships(Collections.singleton("success"));
         countFlowFiles.setPenaltyDuration("1 ms");

@@ -499,10 +499,10 @@ public class FlowFromDOMFactory {
         configDto.setYieldDuration(getString(element, "yieldPeriod"));
         configDto.setBulletinLevel(getString(element, "bulletinLevel"));
         configDto.setLossTolerant(getBoolean(element, "lossTolerant"));
-        if (getString(element, "retryCounts") != null) {
-            configDto.setRetryCounts(getInt(element, "retryCounts"));
+        if (getString(element, "retryCount") != null) {
+            configDto.setRetryCount(getInt(element, "retryCount"));
         } else {
-            configDto.setRetryCounts(0);
+            configDto.setRetryCount(0);
         }
         configDto.setMaxBackoffPeriod(getString(element, "maxBackoffPeriod"));
         configDto.setBackoffMechanism(getString(element, "backoffMechanism"));

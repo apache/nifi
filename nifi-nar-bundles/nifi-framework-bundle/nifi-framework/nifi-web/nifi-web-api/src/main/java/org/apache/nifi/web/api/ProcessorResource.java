@@ -839,7 +839,7 @@ public class ProcessorResource extends ApplicationResource {
 
         final ProcessorConfigDTO processorConfig = requestProcessorDTO.getConfig();
         if (processorConfig != null) {
-            if (processorConfig.getRetryCounts() != null && processorConfig.getRetryCounts() < 0) {
+            if (processorConfig.getRetryCount() != null && processorConfig.getRetryCount() < 0) {
                 throw new IllegalArgumentException("Retry Counts should not be less than zero.");
             }
 
@@ -853,14 +853,6 @@ public class ProcessorResource extends ApplicationResource {
 
             if (processorConfig.getMaxBackoffPeriod() != null && !FormatUtils.TIME_DURATION_PATTERN.matcher(processorConfig.getMaxBackoffPeriod()).matches()) {
                 throw new IllegalArgumentException("Max Backoff Period should be specified as time, for example 5 mins");
-            }
-
-            if (processorConfig.getRetriedRelationships() != null && processorConfig.getAutoTerminatedRelationships() != null) {
-                for (String relationship : processorConfig.getAutoTerminatedRelationships()) {
-                    if (processorConfig.getRetriedRelationships().stream().anyMatch(rel -> rel.equals(relationship))) {
-                        throw new IllegalArgumentException("Auto terminated relationship " + relationship + " can not be retried");
-                    }
-                }
             }
         }
 

@@ -1590,10 +1590,10 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             processor.setMaxBackoffPeriod(proposed.getMaxBackoffPeriod());
             processor.setRetriedRelationships(proposed.getRetriedRelationships());
 
-            if (proposed.getRetryCounts() != null) {
-                processor.setRetryCounts(proposed.getRetryCounts());
+            if (proposed.getRetryCount() != null) {
+                processor.setRetryCount(proposed.getRetryCount());
             } else {
-                processor.setRetryCounts(0);
+                processor.setRetryCount(0);
             }
 
             if (proposed.getBackoffMechanism() != null) {

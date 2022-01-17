@@ -164,7 +164,13 @@ public interface ProcessContext extends PropertyContext, ClusterContext {
      */
     String getName();
 
-    boolean isRetriedRelationship(Relationship relationship);
+    /**
+     * @return the configured relationships to be retried of this processor
+     */
+    boolean isRelationshipRetried(Relationship relationship);
 
-    int getRetryCounts();
+    /**
+     * @return the actual value of the retry counter of this processor
+     */
+    int getRetryCount();
 }

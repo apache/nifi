@@ -52,7 +52,7 @@ public class ProcessorConfigDTO {
     private Map<String, String> defaultSchedulingPeriod;
 
     //retry configurations
-    private Integer retryCounts;
+    private Integer retryCount;
     private Set<String> retriedRelationships;
     private String backoffMechanism;
     private String maxBackoffPeriod;
@@ -317,12 +317,12 @@ public class ProcessorConfigDTO {
     @ApiModelProperty(
             value = "Overall number of retries."
     )
-    public Integer getRetryCounts() {
-        return retryCounts;
+    public Integer getRetryCount() {
+        return retryCount;
     }
 
-    public void setRetryCounts(Integer retryCounts) {
-        this.retryCounts = retryCounts;
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
     }
 
     @ApiModelProperty(

@@ -428,8 +428,8 @@ public class ProcessorAuditor extends NiFiAuditor {
                 values.put(EXECUTION_NODE, processor.getExecutionNode().name());
             }
 
-            if (newConfig.getRetryCounts() != null) {
-                values.put(RETRY_COUNTS, String.valueOf(processor.getRetryCounts()));
+            if (newConfig.getRetryCount() != null) {
+                values.put(RETRY_COUNTS, String.valueOf(processor.getRetryCount()));
             }
 
             if (newConfig.getRetriedRelationships() != null) {

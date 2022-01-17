@@ -1232,7 +1232,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             procNode.setPenalizationPeriod(config.getPenaltyDuration());
             procNode.setYieldPeriod(config.getYieldDuration());
             procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
-            procNode.setRetryCounts(config.getRetryCounts());
+            procNode.setRetryCount(config.getRetryCount());
             procNode.setRetriedRelationships(config.getRetriedRelationships());
 
             if (config.getBackoffMechanism() != null) {

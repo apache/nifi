@@ -127,6 +127,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = DEFAULT_PENALIZATION_PERIOD;
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicReference<ProcessorDetails> processorRef;
     private final AtomicReference<String> identifier;
@@ -157,10 +158,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final int hashCode;
     private volatile boolean hasActiveThreads = false;
 
-    private final AtomicInteger retryCounts;
-    private final AtomicReference<Set<String>> retriedRelationships;
-    private final AtomicReference<BackoffMechanism> backoffMechanism;
-    private final AtomicReference<String> maxBackoffPeriod;
+    private volatile int retryCount;
+    private volatile Set<String> retriedRelationships;
+    private volatile BackoffMechanism backoffMechanism;
+    private volatile String maxBackoffPeriod;
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
@@ -207,10 +208,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         executionNode = isExecutionNodeRestricted() ? ExecutionNode.PRIMARY : ExecutionNode.ALL;
         this.hashCode = new HashCodeBuilder(7, 67).append(identifier).toHashCode();
 
-        retryCounts = new AtomicInteger(0);
-        retriedRelationships = new AtomicReference<>(new HashSet<>());
-        backoffMechanism = new AtomicReference<>(BackoffMechanism.PENALIZE_FLOWFILE);
-        maxBackoffPeriod = new AtomicReference<>("0 sec");
+        retryCount = 0;
+        retriedRelationships = new HashSet<>();
+        backoffMechanism = BackoffMechanism.PENALIZE_FLOWFILE;
+        maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
 
         try {
             if (processorDetails.getProcClass().isAnnotationPresent(DefaultSchedule.class)) {
@@ -1874,55 +1875,71 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public int getRetryCounts() {
-        return retryCounts.get();
+    public int getRetryCount() {
+        return retryCount;
     }
 
     @Override
-    public synchronized void setRetryCounts(int retryCounts) {
-        this.retryCounts.set(retryCounts);
+    public void setRetryCount(Integer retryCount) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+        }
+        this.retryCount = (retryCount == null) ? 0 : retryCount;
     }
 
     @Override
     public Set<String> getRetriedRelationships() {
-        if (retriedRelationships.get() == null) {
-            return new HashSet<>();
+        return retriedRelationships;
+    }
+
+    @Override
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
-        return retriedRelationships.get();
+        this.retriedRelationships = (retriedRelationships == null) ? Collections.emptySet() : new HashSet<>(retriedRelationships);
     }
 
     @Override
-    public synchronized void setRetriedRelationships(Set<String> retriedRelationships) {
-        this.retriedRelationships.set(retriedRelationships);
-    }
-
-    @Override
-    public boolean isRetriedRelationship(final Relationship relationship) {
-        if (this.retriedRelationships.get() == null || relationship == null) {
+    public boolean isRelationshipRetried(final Relationship relationship) {
+        if (relationship == null) {
             return false;
         } else {
-            return this.retriedRelationships.get().contains(relationship.getName());
+            return this.retriedRelationships.contains(relationship.getName());
         }
     }
 
     @Override
     public BackoffMechanism getBackoffMechanism() {
-        return backoffMechanism.get();
+        return backoffMechanism;
     }
 
     @Override
-    public synchronized void setBackoffMechanism(BackoffMechanism backoffMechanism) {
-        this.backoffMechanism.set(backoffMechanism);
+    public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+        }
+        this.backoffMechanism = (backoffMechanism == null) ? BackoffMechanism.PENALIZE_FLOWFILE : backoffMechanism;
     }
 
     @Override
     public String getMaxBackoffPeriod() {
-        return maxBackoffPeriod.get();
+        return maxBackoffPeriod;
     }
 
     @Override
-    public synchronized void setMaxBackoffPeriod(String maxBackoffPeriod) {
-        this.maxBackoffPeriod.set(maxBackoffPeriod);
+    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
+        }
+        if (maxBackoffPeriod == null) {
+            maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
+        }
+        final long backoffNanos = FormatUtils.getTimeDuration(maxBackoffPeriod, TimeUnit.NANOSECONDS);
+        if (backoffNanos < 0) {
+            throw new IllegalArgumentException("Max Backoff Period must be positive");
+        }
+        this.maxBackoffPeriod = maxBackoffPeriod;
     }
     private void monitorAsyncTask(final Future<?> taskFuture, final Future<?> monitoringFuture, final long completionTimestamp) {
         if (taskFuture.isDone()) {

@@ -44,7 +44,7 @@ public class VersionedProcessor extends VersionedComponent
     private Set<String> autoTerminatedRelationships;
     private ScheduledState scheduledState;
 
-    private Integer retryCounts;
+    private Integer retryCount;
     private Set<String> retriedRelationships;
     private String backoffMechanism;
     private String maxBackoffPeriod;
@@ -212,12 +212,12 @@ public class VersionedProcessor extends VersionedComponent
     @ApiModelProperty(
             value = "Overall number of retries."
     )
-    public Integer getRetryCounts() {
-        return retryCounts;
+    public Integer getRetryCount() {
+        return retryCount;
     }
 
-    public void setRetryCounts(Integer retryCounts) {
-        this.retryCounts = retryCounts;
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
     }
 
     @ApiModelProperty(

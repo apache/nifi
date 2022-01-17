@@ -3155,6 +3155,7 @@ public final class DtoFactory {
             relationshipDTO.setDescription(rel.getDescription());
             relationshipDTO.setName(rel.getName());
             relationshipDTO.setAutoTerminate(node.isAutoTerminated(rel));
+            relationshipDTO.setRetry(node.isRelationshipRetried(rel));
             relationships.add(relationshipDTO);
         }
 
@@ -3997,7 +3998,7 @@ public final class DtoFactory {
        dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
        dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
        dto.setRetriedRelationships(procNode.getRetriedRelationships());
-       dto.setRetryCounts(procNode.getRetryCounts());
+       dto.setRetryCount(procNode.getRetryCount());
 
         return dto;
     }
@@ -4231,7 +4232,7 @@ public final class DtoFactory {
         copy.setLossTolerant(original.isLossTolerant());
         copy.setBackoffMechanism(original.getBackoffMechanism());
         copy.setMaxBackoffPeriod(original.getMaxBackoffPeriod());
-        copy.setRetryCounts(original.getRetryCounts());
+        copy.setRetryCount(original.getRetryCount());
         copy.setRetriedRelationships(original.getRetriedRelationships());
 
         return copy;
