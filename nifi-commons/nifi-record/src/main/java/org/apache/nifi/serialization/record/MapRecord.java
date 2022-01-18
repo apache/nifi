@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -297,7 +298,35 @@ public class MapRecord implements Record {
             return false;
         }
         final MapRecord other = (MapRecord) obj;
-        return schema.equals(other.schema) && values.equals(other.values);
+        return schema.equals(other.schema) && valuesEqual(values, other.values);
+    }
+
+    private boolean valuesEqual(final Map<String, Object> thisValues, final Map<String, Object> otherValues) {
+        if (thisValues == null || otherValues == null) {
+            return false;
+        }
+
+        if (thisValues.size() != otherValues.size()) {
+            return false;
+        }
+
+        for (final Map.Entry<String, Object> entry : thisValues.entrySet()) {
+            final Object thisValue = entry.getValue();
+            final Object otherValue = otherValues.get(entry.getKey());
+            if (Objects.equals(thisValue, otherValue)) {
+                continue;
+            }
+
+            if (thisValue instanceof Object[] && otherValue instanceof Object[]) {
+                if (!Arrays.equals((Object[]) thisValue, (Object[]) otherValue)) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     @Override

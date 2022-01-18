@@ -1,0 +1,37 @@
+[{
+  "purchase": {
+    "customer": {
+      "loyaltyId": 48202,
+      "firstName": "John",
+      "lastName": "Doe"
+    },
+    "total": 48.28,
+    "items": [
+      {
+        "itemDescription": "book",
+        "price": 24.14,
+        "quantity": 2
+      }
+    ]
+  }
+}, {
+  "purchase": {
+    "customer": {
+      "loyaltyId": 5512,
+      "firstName": "Jane",
+      "lastName": "Doe"
+    },
+    "total": 121.44,
+    "items": [
+      {
+        "itemDescription": "book",
+        "price": 28.15,
+        "quantity": 4
+      }, {
+        "itemDescription": "inkpen",
+        "price": 4.42,
+        "quantity": 2
+      }
+    ]
+  }
+}]
