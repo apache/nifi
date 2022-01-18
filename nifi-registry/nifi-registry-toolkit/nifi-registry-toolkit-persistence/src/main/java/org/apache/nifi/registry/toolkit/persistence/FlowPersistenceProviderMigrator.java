@@ -82,7 +82,8 @@ public class FlowPersistenceProviderMigrator {
             System.exit(PARSE_EXCEPTION);
         }
 
-        NiFiRegistryProperties fromProperties = NiFiRegistry.initializeProperties(NiFiRegistry.getMasterKeyProvider());
+        NiFiRegistryProperties fromProperties = NiFiRegistry.initializeProperties(
+                NiFiRegistry.getMasterKeyProvider(), NiFiRegistry.createSensitivePropertiesProviderClassLoader());
 
         DataSource dataSource = new DataSourceFactory(fromProperties).getDataSource();
         DatabaseMetadataService fromMetadataService = new DatabaseMetadataService(new JdbcTemplate(dataSource));
