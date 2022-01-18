@@ -171,11 +171,8 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
 
     @Override
     public long getAverageLineageMillis() {
-        if (flowFilesOut == 0 && flowFilesRemoved == 0) {
-            return 0L;
-        }
-
-        return aggregateLineageMillis / (flowFilesOut + flowFilesRemoved);
+        final int flowFileCount = flowFilesOut + flowFilesRemoved;
+        return flowFileCount == 0 ? 0L : aggregateLineageMillis / flowFileCount;
     }
 
     public void setAggregateLineageMillis(long lineageMilliseconds) {

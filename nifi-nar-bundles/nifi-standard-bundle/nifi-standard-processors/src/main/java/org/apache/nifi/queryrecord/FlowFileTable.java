@@ -45,6 +45,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 
+import java.io.Closeable;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -54,7 +55,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class FlowFileTable extends AbstractTable implements QueryableTable, TranslatableTable {
+public class FlowFileTable extends AbstractTable implements QueryableTable, TranslatableTable, Closeable {
 
     private final RecordReaderFactory recordReaderFactory;
     private final ComponentLog logger;

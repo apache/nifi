@@ -947,6 +947,11 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     }
 
     @Override
+    public void migrate(final ProcessSession newOwner) {
+        session.migrate(newOwner);
+    }
+
+    @Override
     public void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles) {
         flowFiles = unwrap(flowFiles);
         session.migrate(newOwner, flowFiles);
