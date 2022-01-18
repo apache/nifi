@@ -83,17 +83,6 @@
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
-                <div class="settings-right">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Automatically terminate relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
-                        </div>
-                        <div class="setting-field">
-                            <div id="auto-terminate-relationship-names"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div id="processor-scheduling-tab-content" class="configuration-tab">
                 <div class="settings-left">
@@ -221,6 +210,48 @@
                 <div id="processor-properties-verification-results" class="verification-results">
                     <div class="verification-results-header">Verification Results</div>
                     <div id="processor-properties-verification-results-listing" class="verification-results-listing"></div>
+                </div>
+            </div>
+            <div id="processor-relationships-tab-content" class="configuration-tab">
+                <div class="settings-left">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Automatically terminate / retry relationships
+                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate or retry FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="auto-terminate-relationship-names"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Retry Settings
+                        </div>
+                    </div>
+                    <div class="retry-count-setting setting">
+                        <div class="setting-name">Number of retry attempts</div>
+                        <div class="setting-field">
+                            <input type="text" id="retry-attempt-count" class="small-setting-input">
+                        </div>
+                    </div>
+                    <div class="backoff-policy-setting setting">
+                        <div class="setting-name">Backoff Policy</div>
+                        <div class="setting-field">
+                            <input type="radio" id="penalizeFlowFile" name="backoffPolicy" value="PENALIZE_FLOWFILE" style="display: inline-block;">
+                            <label for="penalizeFlowFile" style="display: inline-block;">penalize flow file</label>
+
+                            <input type="radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR" style="display: inline-block;">
+                            <label for="yieldEntireProcessor" style="display: inline-block;">yield entire processor</label>
+                        </div>
+                    </div>
+                    <div class="max-backoff-setting setting">
+                        <div class="setting-name">Max Backoff Period</div>
+                        <div class="setting-field">
+                            <input type="text" id="max-backoff-period" class="small-setting-input">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="processor-comments-tab-content" class="configuration-tab">

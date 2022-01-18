@@ -173,8 +173,29 @@
             relationshipCheckbox.addClass('checkbox-unchecked');
         }
 
+        // build terminate checkbox element
+        var terminateCheckbox = $('<div class="processor-terminate-relationship nf-checkbox"></div>');
+        var terminateLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('terminate');
+        if (relationship.autoTerminate === true) {
+            terminateCheckbox.addClass('checkbox-checked');
+        } else {
+            terminateCheckbox.addClass('checkbox-unchecked');
+        }
+        var terminateCheckboxBundle = $('<div class="processor-terminate-relationship-container"></div>').append(terminateCheckbox).append(terminateLabel);
+
+        // build the retry checkbox element
+        var retryCheckbox = $('<div class="processor-retry-relationship nf-checkbox"></div>');
+        var retryLabel = $('<div class="retry-name nf-checkbox-label ellipsis"></div>').text('retry');
+        if (relationship.retry === true) {
+            retryCheckbox.addClass('checkbox-checked');
+        } else {
+            retryCheckbox.addClass('checkbox-unchecked');
+        }
+        var retryCheckboxBundle = $('<div class="processor-retry-relationship-container"></div>').append(retryCheckbox).append(retryLabel);
+
         // build the relationship container element
-        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipCheckbox).append(relationshipLabel).append(relationshipValue).appendTo('#auto-terminate-relationship-names');
+        var relationshipContainerHeading = $('<div></div>').text(relationship.name);
+        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipContainerHeading).append(terminateCheckboxBundle).append(retryCheckboxBundle).append(relationshipValue).appendTo('#auto-terminate-relationship-names');
         if (!nfCommon.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
@@ -194,7 +215,7 @@
 
         // consider auto terminated relationships
         var autoTerminatedChanged = false;
-        var autoTerminated = marshalRelationships();
+        var autoTerminated = marshalAutoTerminateRelationships();
         $.each(details.relationships, function (i, relationship) {
             if (relationship.autoTerminate === true) {
                 // relationship was auto terminated but is no longer selected
@@ -211,6 +232,28 @@
             }
         });
         if (autoTerminatedChanged) {
+            return true;
+        }
+
+        // consider retried relationships
+        var retriedChanged = false;
+        var retried = marshalRetriedRelationships();
+        $.each(details.relationships, function (i, relationship) {
+            if (relationship.retry === true) {
+                // relationship was retried but is no longer selected
+                if ($.inArray(relationship.name, retried) === -1) {
+                    retriedChanged = true;
+                    return false;
+                }
+            } else if (relationship.retry === false) {
+                // relationship was not retried but is now selected
+                if ($.inArray(relationship.name, retried) >= 0) {
+                    retriedChanged = true;
+                    return false;
+                }
+            }
+        });
+        if (retriedChanged) {
             return true;
         }
 
@@ -333,7 +376,11 @@
         }
 
         // relationships
-        processorConfigDto['autoTerminatedRelationships'] = marshalRelationships();
+        processorConfigDto['autoTerminatedRelationships'] = marshalAutoTerminateRelationships();
+        processorConfigDto['retriedRelationships'] = marshalRetriedRelationships();
+        processorConfigDto['retryCount'] = $('#retry-attempt-count').val();
+        processorConfigDto['backoffMechanism'] = $("input:radio[name ='backoffPolicy']:checked").val();
+        processorConfigDto['maxBackoffPeriod'] = $('#max-backoff-period').val();
 
         // properties
         var properties = $('#processor-properties').propertytable('marshalProperties');
@@ -367,7 +414,7 @@
     /**
      * Marshals the relationships that will be auto terminated.
      **/
-    var marshalRelationships = function () {
+    var marshalAutoTerminateRelationships = function () {
         // get all available relationships
         var availableRelationships = $('#auto-terminate-relationship-names');
         var selectedRelationships = [];
@@ -377,7 +424,7 @@
             var relationship = $(relationshipElement);
 
             // get each relationship and its corresponding checkbox
-            var relationshipCheck = relationship.children('div.processor-relationship');
+            var relationshipCheck = relationship.children('div.processor-terminate-relationship-container').children('div.processor-terminate-relationship');
 
             // see if this relationship has been selected
             if (relationshipCheck.hasClass('checkbox-checked')) {
@@ -387,6 +434,27 @@
 
         return selectedRelationships;
     };
+
+    var marshalRetriedRelationships = function () {
+        // get all available relationships
+        var availableRelationships = $('#auto-terminate-relationship-names');
+        var selectedRelationships = [];
+
+        // go through each relationship to determine which are selected
+        $.each(availableRelationships.children(), function (i, relationshipElement) {
+            var relationship = $(relationshipElement);
+
+            // get each relationship and its corresponding checkbox
+            var relationshipCheck = relationship.children('div.processor-retry-relationship-container').children('div.processor-retry-relationship');
+
+            // see if this relationship has been selected
+            if (relationshipCheck.hasClass('checkbox-checked')) {
+                selectedRelationships.push(relationship.children('span.relationship-name-value').text());
+            }
+        });
+
+        return selectedRelationships;
+    }
 
     /**
      * Validates the specified details.
@@ -552,6 +620,9 @@
                 }, {
                     name: 'Properties',
                     tabContentId: 'processor-properties-tab-content'
+                }, {
+                    name: 'Automatic Actions',
+                    tabContentId: 'processor-relationships-tab-content'
                 }, {
                     name: 'Comments',
                     tabContentId: 'processor-comments-tab-content'
@@ -867,6 +938,22 @@
                         });
                     } else {
                         $('#auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.backoffMechanism)) {
+                        if (processor.config.backoffMechanism === 'PENALIZE_FLOWFILE') {
+                            $('.backoff-policy-setting #penalizeFlowFile').prop("checked", true);
+                        } else if (processor.config.backoffMechanism === 'YIELD_PROCESSOR') {
+                            $('.backoff-policy-setting #yieldEntireProcessor').prop("checked", true);
+                        }
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.maxBackoffPeriod)) {
+                        $('.max-backoff-setting #max-backoff-period').val(processor.config.maxBackoffPeriod);
+                    }
+
+                    if (nfCommon.isDefinedAndNotNull(processor.config.retryCount)) {
+                        $('.retry-count-setting #retry-attempt-count').val(processor.config.retryCount);
                     }
 
                     var buttons = [{
