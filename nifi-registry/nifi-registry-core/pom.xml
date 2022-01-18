@@ -28,6 +28,7 @@
     <description>The core modules of NiFi Registry.</description>
     <modules>
         <module>nifi-registry-properties</module>
+	<module>nifi-registry-properties-loader</module>
         <module>nifi-registry-utils</module>
         <module>nifi-registry-data-model</module>
         <module>nifi-registry-flow-diff</module>
