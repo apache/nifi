@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -189,7 +190,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
 
         final int binsMigrated = migrateBins(context, flowFilesBinned == 0);
-        final int binsProcessed = processBins(context);
+        final int binsProcessed = processBins(context, sessionFactory);
         //If we accomplished nothing then let's yield
         if (flowFilesBinned == 0 && binsMigrated == 0 && binsProcessed == 0) {
             context.yield();
@@ -206,7 +207,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         // if we have created all of the bins that are allowed, go ahead and remove the oldest one. If we don't do
         // this, then we will simply wait for it to expire because we can't get any more FlowFiles into the
         // bins. So we may as well expire it now.
-        if (added == 0 && binManager.getBinCount() >= context.getProperty(MAX_BIN_COUNT).asInteger()) {
+        if (added == 0 && binManager.getBinCount() > context.getProperty(MAX_BIN_COUNT).asInteger()) {
             final Bin bin = binManager.removeOldestBin();
             if (bin != null) {
                 added++;
@@ -218,11 +219,15 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         return added;
     }
 
-    private int processBins(final ProcessContext context) {
+    protected Queue<Bin> getReadyBins() {
+        return readyBins;
+    }
+
+    protected int processBins(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         final ComponentLog logger = getLogger();
         int processedBins = 0;
         Bin bin;
-        while ((bin = readyBins.poll()) != null) {
+        while (isScheduled() && (bin = readyBins.poll()) != null) {
             BinProcessingResult binProcessingResult;
             try {
                 binProcessingResult = this.processBin(bin, context);
@@ -299,39 +304,54 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
-        binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
-
-        if (context.getProperty(MAX_BIN_AGE).isSet()) {
-            binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue());
-        } else {
-            binManager.setMaxBinAge(Integer.MAX_VALUE);
-        }
-
-        if (context.getProperty(MAX_SIZE).isSet()) {
-            binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
-        } else {
-            binManager.setMaximumSize(Long.MAX_VALUE);
-        }
-
-        binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).asInteger());
-
-        if (context.getProperty(MAX_ENTRIES).isSet()) {
-            binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger().intValue());
-        } else {
-            binManager.setMaximumEntries(Integer.MAX_VALUE);
-        }
+        binManager.setMinimumSize(getMinBytes(context));
+        binManager.setMaximumSize(getMaxBytes(context));
+        binManager.setMaxBinAge(getMaxBinAgeSeconds(context));
+        binManager.setMinimumEntries(getMinEntries(context));
+        binManager.setMaximumEntries(getMaxEntries(context));
 
         this.setUpBinManager(binManager, context);
+    }
+
+    protected int getMaxBinAgeSeconds(final PropertyContext context) {
+        if (context.getProperty(MAX_BIN_AGE).isSet()) {
+            return context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue();
+        }
+
+        return Integer.MAX_VALUE;
+    }
+
+    protected long getMinBytes(final PropertyContext context) {
+        return context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
+    }
+
+    protected long getMaxBytes(final PropertyContext context) {
+        if (context.getProperty(MAX_SIZE).isSet()) {
+            return context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue();
+        }
+        return Long.MAX_VALUE;
+    }
+
+    protected int getMinEntries(final PropertyContext context) {
+        return context.getProperty(MIN_ENTRIES).asInteger();
+    }
+
+    protected int getMaxEntries(final PropertyContext context) {
+        if (context.getProperty(MAX_ENTRIES).isSet()) {
+            return context.getProperty(MAX_ENTRIES).asInteger();
+        }
+
+        return Integer.MAX_VALUE;
     }
 
     @Override
     protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
-        final long minBytes = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
-        final Double maxBytes = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
+        final long minBytes = getMinBytes(context);
+        final long maxBytes = getMaxBytes(context);
 
-        if (maxBytes != null && maxBytes.longValue() < minBytes) {
+        if (maxBytes < minBytes) {
             problems.add(
                     new ValidationResult.Builder()
                     .subject(MIN_SIZE.getName())
@@ -342,19 +362,17 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             );
         }
 
-        final Long min = context.getProperty(MIN_ENTRIES).asLong();
-        final Long max = context.getProperty(MAX_ENTRIES).asLong();
+        final int minEntries = getMinEntries(context);
+        final int maxEntries = getMaxEntries(context);
 
-        if (min != null && max != null) {
-            if (min > max) {
-                problems.add(
-                        new ValidationResult.Builder().subject(MIN_ENTRIES.getName())
-                        .input(context.getProperty(MIN_ENTRIES).getValue())
-                        .valid(false)
-                        .explanation("Min Entries must be less than or equal to Max Entries")
-                        .build()
-                );
-            }
+        if (minEntries > maxEntries) {
+            problems.add(
+                    new ValidationResult.Builder().subject(MIN_ENTRIES.getName())
+                    .input(context.getProperty(MIN_ENTRIES).getValue())
+                    .valid(false)
+                    .explanation("Min Entries must be less than or equal to Max Entries")
+                    .build()
+            );
         }
 
         Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);

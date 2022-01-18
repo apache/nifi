@@ -1,0 +1,14 @@
+[
+  {
+    "customerDetails": {
+      "id": 48202,
+      "phone": "555-555-5555",
+      "email": "john.doe@nifi.apache.org"
+    }
+  }, {
+    "customerDetails": {
+      "id": 5512,
+      "phone": "555-555-5511",
+      "email": "jane.doe@nifi.apache.org"
+    }
+}]

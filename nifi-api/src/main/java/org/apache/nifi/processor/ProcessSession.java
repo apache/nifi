@@ -268,11 +268,16 @@ public interface ProcessSession {
      * newly added attribute) will be migrated, not the outdated version of the FlowFile that <code>flowFile1</code> points to.
      * </p>
      *
-     * @param newOwner the ProcessSession that is to become the new owner of all FlowFiles
-     *            that currently belong to {@code this}.
+     * @param newOwner the ProcessSession that is to become the new owner of the given FlowFiles
      * @param flowFiles the FlowFiles to migrate
      */
     void migrate(ProcessSession newOwner, Collection<FlowFile> flowFiles);
+
+    /**
+     * Migrates all FlowFiles to the given new owner as described in {@link #migrate(ProcessSession, Collection)}
+     * @param newOwner the ProcessSession that is to become the new owner of all FlowFiles
+     */
+    void migrate(ProcessSession newOwner);
 
     /**
      * Adjusts counter data for the given counter name and takes care of

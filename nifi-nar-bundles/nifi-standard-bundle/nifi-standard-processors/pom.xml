@@ -644,6 +644,12 @@
                         <exclude>src/test/resources/TestValidateRecord/int-maps-schema.avsc</exclude>
                         <exclude>src/test/resources/TestValidateRecord/int-maps-data.json</exclude>
                         <exclude>src/test/resources/TestValidateRecord/array-and-map-with-null-element.avro</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-enrichment.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/insert-original.json</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-enrichment.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-expected.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-original.csv</exclude>
+                        <exclude>src/test/resources/TestJoinEnrichment/left-outer-join-rename-expected.csv</exclude>
                     </excludes>
                 </configuration>
             </plugin>
