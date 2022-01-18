@@ -2257,6 +2257,17 @@
          */
         getCanvasOffset: function () {
             return nfCanvas.CANVAS_OFFSET;
+        },
+
+        /**
+         * Executes the specified action with the optional selection.
+         *
+         * @param {string} action
+         * @param {selection} selection
+         */
+        executeAction: function (action, selection) {
+            // execute the action
+            nfActions[action](selection);
         }
     };
     return nfCanvasUtils;
