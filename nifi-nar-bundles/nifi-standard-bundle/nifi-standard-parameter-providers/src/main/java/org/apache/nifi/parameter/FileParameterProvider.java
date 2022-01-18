@@ -130,7 +130,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         if (!context.getProperty(GROUPED_PARAMETER_DIRECTORIES).isSet() && !context.getProperty(UNGROUPED_PARAMETER_DIRECTORIES).isSet()) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(GROUPED_PARAMETER_DIRECTORIES.getDisplayName())
-                    .explanation(String.format("At least one of '%s' or '%s' is required", GROUPED_PARAMETER_DIRECTORIES.getDisplayName(), UNGROUPED_PARAMETER_DIRECTORIES.getDisplayName()))
+                    .explanation(String.format("at least one of '%s' or '%s' is required", GROUPED_PARAMETER_DIRECTORIES.getDisplayName(), UNGROUPED_PARAMETER_DIRECTORIES.getDisplayName()))
                     .valid(false)
                     .build());
         }

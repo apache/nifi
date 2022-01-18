@@ -195,7 +195,7 @@ public interface AuthorizableLookup {
     /**
      * Get the authorizable ParameterProvider.
      *
-     * @param id reporting task id
+     * @param id parameter provider id
      * @return authorizable
      */
     ComponentAuthorizable getParameterProvider(String id);
