@@ -53,6 +53,19 @@
             </includes>
         </dependencySet>
 
+        <!-- Write out the sensitive property providers to its own dir -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/spp</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-properties-loader</include>
+            </includes>
+        </dependencySet>
+
         <!-- Write out the libs for java11 to its own dir -->
         <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
         <dependencySet>
@@ -83,6 +96,7 @@
                 <exclude>nifi-registry-docs</exclude>
                 <exclude>nifi-registry-ranger-assembly</exclude>
                 <exclude>nifi-registry-aws-assembly</exclude>
+                <exclude>nifi-registry-properties-loader</exclude>
 
                 <!-- Exclude any jaxb dependencies because they will be in lib/java11 -->
                 <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
