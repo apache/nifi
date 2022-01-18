@@ -1428,6 +1428,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
+    public void migrate(final ProcessSession newOwner) {
+        final List<FlowFile> allFlowFiles = new ArrayList<>();
+
+        for (final StandardRepositoryRecord repositoryRecord : records.values()) {
+            allFlowFiles.add(repositoryRecord.getCurrent());
+        }
+
+        migrate(newOwner, allFlowFiles);
+    }
+
+    @Override
     public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {
         verifyTaskActive();
 
