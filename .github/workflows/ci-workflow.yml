@@ -104,7 +104,7 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: Disk Usage (post-build)
+      - name: Post Disk Usage
         run: df
 
   macos-build-jp:
@@ -163,7 +163,7 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: Disk Usage (post-build)
+      - name: Post Disk Usage
         run: df
 
   windows-build:
@@ -227,5 +227,5 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: Disk Usage (post-build)
+      - name: Post Disk Usage
         run: df
