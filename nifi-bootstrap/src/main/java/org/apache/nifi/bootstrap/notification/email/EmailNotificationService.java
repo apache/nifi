@@ -25,16 +25,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Map.Entry;
 
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.Message.RecipientType;
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Authenticator;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.PasswordAuthentication;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
+import jakarta.mail.Message.RecipientType;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
 import org.apache.nifi.bootstrap.notification.AbstractNotificationService;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationFailedException;
@@ -272,20 +272,18 @@ public class EmailNotificationService extends AbstractNotificationService {
      */
     private Session createMailSession(final Properties properties) {
         String authValue = properties.getProperty("mail.smtp.auth");
-        Boolean auth = Boolean.valueOf(authValue);
+        final boolean auth = Boolean.parseBoolean(authValue);
 
         /*
          * Conditionally create a password authenticator if the 'auth' parameter is set.
          */
-        final Session mailSession = auth ? Session.getInstance(properties, new Authenticator() {
+        return auth ? Session.getInstance(properties, new Authenticator() {
             @Override
             public PasswordAuthentication getPasswordAuthentication() {
                 String username = properties.getProperty("mail.smtp.user"), password = properties.getProperty("mail.smtp.password");
                 return new PasswordAuthentication(username, password);
             }
         }) : Session.getInstance(properties); // without auth
-
-        return mailSession;
     }
 
 }
