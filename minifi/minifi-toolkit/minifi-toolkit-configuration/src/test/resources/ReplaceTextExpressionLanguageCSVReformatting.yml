@@ -64,7 +64,7 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key:
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    algorithm: NIFI_PBKDF2_AES_GCM_256
 Processors:
 - name: Generate Empty File
   id: e626f756-f018-4670-8802-c8f8e459e15d
