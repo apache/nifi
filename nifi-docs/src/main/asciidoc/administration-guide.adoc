@@ -3322,7 +3322,7 @@ For example, to provide two additional locations to act as part of the content r
 +
 Providing three total locations, including  `nifi.content.repository.directory.default`.
 |`nifi.content.repository.archive.max.retention.period`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then
-this property specifies the maximum amount of time to keep the archived data. The default value is `12 hours`.
+this property specifies the maximum amount of time to keep the archived data. The default value is `7 days`.
 |`nifi.content.repository.archive.max.usage.percentage`|If archiving is enabled (see `nifi.content.repository.archive.enabled` below), then this property must have a value that indicates the content repository disk usage percentage at which archived data begins to be removed. If the archive is empty and content repository disk usage is above this percentage, then archiving is temporarily disabled. Archiving will resume when disk usage is below this percentage. The default value is `50%`.
 |`nifi.content.repository.archive.backpressure.percentage`| This property is used to control the content repository disk usage percentage at which backpressure is applied to the processes writing to the content repository. Once this percentage is reached, the content repository will refuse any additional writes. Writes will be refused until the archive delete process has brought the content repository disk usage percentage below `nifi.content.repository.archive.max.usage.percentage`. +
  +
