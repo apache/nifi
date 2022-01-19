@@ -517,8 +517,7 @@ Some properties for processors are marked as _sensitive_ and should be encrypted
 *Property*   | *Description*
 ------------ | -------------
 `key`        | This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
-`algorithm`  | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
-`provider`   | The sensitive property provider. The default value is `BC`.
+`algorithm`  | The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
 
 ## <a id="processors-2" href="#processors-2">Processors</a>
 
@@ -729,7 +728,7 @@ Security can be configured in two ways for instances via:
 *bootstrap.conf Property*               | *config.yml Property* | *Description*
 --------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------
 `nifi.minifi.sensitive.props.key`       | `key`                 | This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length, although the recommended minimum length is 10 characters. Be aware that once this password is set and one or more sensitive processor properties have been configured, this password should not be changed.
-`nifi.minifi.sensitive.props.algorithm` | `algorithm`           | The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
+`nifi.minifi.sensitive.props.algorithm` | `algorithm`           | The algorithm used to encrypt sensitive properties. The default value is `NIFI_PBKDF2_AES_GCM_256`.
 
 # <a id="running-as-a-windows-service" href="#running-as-a-windows-service">Running as a Windows Service</a>
 
@@ -802,8 +801,7 @@ Security Properties:
     ssl protocol: TLS
     Sensitive Props:
         key:
-        algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-        provider: BC
+        algorithm: NIFI_PBKDF2_AES_GCM_256
 
 Processors:
     - name: TailFile
@@ -899,8 +897,7 @@ Security Properties:
     ssl protocol: TLS
     Sensitive Props:
         key:
-        algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-        provider: BC
+        algorithm: NIFI_PBKDF2_AES_GCM_256
 
 Processors:
     - name: TailAppLog

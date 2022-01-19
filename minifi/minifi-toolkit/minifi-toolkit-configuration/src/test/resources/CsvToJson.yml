@@ -64,7 +64,7 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key:
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    algorithm: NIFI_PBKDF2_AES_GCM_256
 Processors:
 - name: ExtractText
   id: 5f0ec33c-0a07-4305-a3a9-9a3ba0548ac6

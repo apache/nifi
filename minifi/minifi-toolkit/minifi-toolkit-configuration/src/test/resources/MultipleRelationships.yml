@@ -64,7 +64,7 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key:
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    algorithm: NIFI_PBKDF2_AES_GCM_256
 Processors:
 - name: GenerateFlowFile
   id: 7c755ed6-0157-1000-0000-000000000000
