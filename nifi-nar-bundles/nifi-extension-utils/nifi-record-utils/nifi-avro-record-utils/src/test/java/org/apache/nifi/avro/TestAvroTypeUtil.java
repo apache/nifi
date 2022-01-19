@@ -123,6 +123,27 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testAvroDefaultValueWithFieldInSchemaButNotRecord() throws IOException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("color", RecordFieldType.STRING.getDataType()));
+        final RecordSchema personSchema = new SimpleRecordSchema(fields);
+
+        final org.apache.nifi.serialization.record.Record record = new MapRecord(personSchema, Collections.singletonMap("name", "John Doe"));
+        final Schema avroSchema = SchemaBuilder.record("person").namespace("nifi")
+            .fields()
+            .requiredString("name")
+            .name("color").type().stringType().stringDefault("blue")
+            .endRecord();
+
+        final GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(record, avroSchema);
+        assertEquals("John Doe", avroRecord.get("name"));
+        assertEquals("blue", avroRecord.get("color"));
+
+    }
+
+
+    @Test
     public void testCreateAvroSchemaPrimitiveTypes() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("int", RecordFieldType.INT.getDataType()));
@@ -625,6 +646,7 @@ public class TestAvroTypeUtil {
         assertTrue(field4.aliases().contains("  __ Another ONE!!"));
     }
 
+    @Test
     public void testListToArrayConversion() {
         final Charset charset = Charset.forName("UTF-8");
         Object o = AvroTypeUtil.convertToAvroObject(Collections.singletonList("Hello"), Schema.createArray(Schema.create(Type.STRING)), charset);

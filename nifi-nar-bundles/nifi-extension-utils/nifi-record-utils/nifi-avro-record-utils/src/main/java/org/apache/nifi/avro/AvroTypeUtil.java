@@ -626,8 +626,7 @@ public class AvroTypeUtil {
                 continue;
             }
 
-            final Optional<RecordField> recordField = recordSchema.getField(field.name());
-            if (!recordField.isPresent() && rec.get(field.name()) == null) {
+            if (rec.get(field.name()) == null) {
                 rec.put(field.name(), field.defaultVal());
             }
         }
