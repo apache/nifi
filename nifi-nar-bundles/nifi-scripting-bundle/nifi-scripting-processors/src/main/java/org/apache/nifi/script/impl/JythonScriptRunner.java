@@ -38,7 +38,7 @@ public class JythonScriptRunner extends BaseScriptRunner {
         // Add prefix for import sys and all jython modules
         String prefix = "import sys\n"
                 + Arrays.stream(modulePaths).map((modulePath) -> "sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")")
-                .collect(Collectors.joining("\n"));
+                .collect(Collectors.joining("\n")) + "\n";
         compiledScript = ((Compilable) engine).compile(prefix + scriptBody);
     }
 
