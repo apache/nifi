@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.web.api.metrics;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.prometheus.client.Collector;
 import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.exporter.common.TextFormat;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -29,22 +31,39 @@ import java.util.Collection;
 import java.util.Enumeration;
 
 /**
- * Prometheus Metrics Writer supporting Prometheus Text Version 0.0.4 with optional filtering
+ * Prometheus Metrics Writer with Json output format and optional filtering
  */
-public class TextFormatPrometheusMetricsWriter extends AbstractPrometheusMetricsWriter {
+public class JsonFormatPrometheusMetricsWriter extends AbstractPrometheusMetricsWriter {
+    private final String rootFieldName;
 
-    public TextFormatPrometheusMetricsWriter(final String sampleName, final String sampleLabelValue) {
+    public JsonFormatPrometheusMetricsWriter(final String sampleName, final String sampleLabelValue, final String rootFieldName) {
         super(sampleName, sampleLabelValue);
+        this.rootFieldName = rootFieldName == null ? "samples" : rootFieldName;
     }
 
     @Override
     public void write(final Collection<CollectorRegistry> registries, final OutputStream outputStream) throws IOException {
-        try (final Writer writer = new BufferedWriter(new OutputStreamWriter(outputStream))) {
+        JsonFactory factory = new JsonFactory();
+        try (final Writer writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        final JsonGenerator generator = factory.createGenerator(writer)) {
+            generator.setCodec(new ObjectMapper());
+            generator.writeStartObject();
+            generator.writeFieldName(rootFieldName);
+            generator.writeStartArray();
             for (final CollectorRegistry collectorRegistry : registries) {
                 final Enumeration<Collector.MetricFamilySamples> samples = getSamples(collectorRegistry);
-                TextFormat.write004(writer, samples);
-                writer.flush();
+                while (samples.hasMoreElements()) {
+                    final Collector.MetricFamilySamples samples2 = samples.nextElement();
+                    for (Collector.MetricFamilySamples.Sample sample : samples2.samples) {
+                        generator.writeObject(sample);
+                        generator.flush();
+                    }
+                    generator.flush();
+                }
             }
+            generator.writeEndArray();
+            generator.writeEndObject();
+            generator.flush();
         }
     }
 }

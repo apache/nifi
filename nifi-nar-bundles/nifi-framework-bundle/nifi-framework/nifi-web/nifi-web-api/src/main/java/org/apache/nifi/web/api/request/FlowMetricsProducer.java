@@ -20,7 +20,8 @@ package org.apache.nifi.web.api.request;
  * Flow Metrics Producers supported
  */
 public enum FlowMetricsProducer {
-    PROMETHEUS("prometheus");
+    PROMETHEUS("prometheus"),
+    JSON("json");
 
     private final String producer;
 
