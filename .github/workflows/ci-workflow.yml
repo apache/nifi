@@ -55,6 +55,7 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           cat /proc/cpuinfo
           cat /proc/meminfo
           df
@@ -103,7 +104,7 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: System Information (after)
+      - name: Disk Usage (post-build)
         run: df
 
   macos-build-jp:
@@ -113,6 +114,7 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           top -l 1 | grep PhysMem
           sysctl machdep.cpu
           df
@@ -161,7 +163,7 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: System Information (after)
+      - name: Disk Usage (post-build)
         run: df
 
   windows-build:
@@ -225,5 +227,5 @@ jobs:
             ./**/target/surefire-reports/*.xml
           retention-days: 3
         if: failure()
-      - name: System Information (after)
+      - name: Disk Usage (post-build)
         run: df
