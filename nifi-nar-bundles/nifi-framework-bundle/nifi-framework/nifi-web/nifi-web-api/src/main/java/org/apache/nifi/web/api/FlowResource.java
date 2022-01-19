@@ -111,6 +111,7 @@ import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
+import org.apache.nifi.web.api.metrics.JsonFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.PrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
@@ -428,7 +429,11 @@ public class FlowResource extends ApplicationResource {
             @ApiParam(
                     value = "Regular Expression Pattern to be applied against the sample label value field"
             )
-            @QueryParam("sampleLabelValue") final String sampleLabelValue
+            @QueryParam("sampleLabelValue") final String sampleLabelValue,
+            @ApiParam(
+                    value = "Name of the first field of JSON object. Applicable for JSON producer only."
+            )
+            @QueryParam("rootFieldName") final String rootFieldName
     ) {
 
         authorizeFlow();
@@ -442,6 +447,16 @@ public class FlowResource extends ApplicationResource {
                 prometheusMetricsWriter.write(registries, outputStream);
             });
             return generateOkResponse(response).type(TextFormat.CONTENT_TYPE_004).build();
+
+        } else if (FlowMetricsProducer.JSON.getProducer().equals(producer)) {
+            final StreamingOutput output = outputStream -> {
+                final JsonFormatPrometheusMetricsWriter jsonPrometheusMetricsWriter = new JsonFormatPrometheusMetricsWriter(sampleName, sampleLabelValue, rootFieldName);
+                jsonPrometheusMetricsWriter.write(registries, outputStream);
+            };
+            return generateOkResponse(output)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .build();
+
         } else {
             throw new ResourceNotFoundException("The specified producer is missing or invalid.");
         }
