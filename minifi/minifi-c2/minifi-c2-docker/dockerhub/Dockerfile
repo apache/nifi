@@ -22,7 +22,7 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=50
-ARG MINIFI_C2_VERSION=1.15.3
+ARG MINIFI_C2_VERSION=1.16.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV MINIFI_C2_BASE_DIR /opt/minifi-c2
