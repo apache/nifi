@@ -55,8 +55,10 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           cat /proc/cpuinfo
           cat /proc/meminfo
+          df
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Cache Maven Dependencies
@@ -93,6 +95,17 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-ubuntu-en
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df
 
   macos-build-jp:
     timeout-minutes: 120
@@ -101,8 +114,10 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           top -l 1 | grep PhysMem
           sysctl machdep.cpu
+          df
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Cache Maven Dependencies
@@ -139,6 +154,17 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-macos-jp
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df
 
   windows-build:
     timeout-minutes: 120
@@ -148,6 +174,7 @@ jobs:
       - name: System Information
         run: |
           systeminfo
+          df
       - name: Setup Git
         run:  |
           git config --global core.autocrlf false
@@ -191,3 +218,14 @@ jobs:
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-windows-fr
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df
