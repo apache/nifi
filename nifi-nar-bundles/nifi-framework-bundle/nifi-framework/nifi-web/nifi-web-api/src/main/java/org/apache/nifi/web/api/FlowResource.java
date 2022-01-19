@@ -33,7 +33,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
@@ -103,6 +102,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
+import org.apache.nifi.web.api.entity.RuntimeManifestEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -115,6 +115,7 @@ import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
 import org.apache.nifi.web.api.metrics.JsonFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.PrometheusMetricsWriter;
+import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
@@ -1359,7 +1360,7 @@ public class FlowResource extends ApplicationResource {
     @ApiOperation(
             value = "Retrieves the runtime manifest for this NiFi instance.",
             notes = NON_GUARANTEED_ENDPOINT,
-            response = RuntimeManifest.class,
+            response = RuntimeManifestEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
             }
@@ -1381,10 +1382,11 @@ public class FlowResource extends ApplicationResource {
         }
 
         // create response entity
-        final RuntimeManifest runtimeManifest = serviceFacade.getRuntimeManifest();
+        final RuntimeManifestEntity entity = new RuntimeManifestEntity();
+        entity.setRuntimeManifest(serviceFacade.getRuntimeManifest());
 
         // generate the response
-        return generateOkResponse(runtimeManifest).build();
+        return generateOkResponse(entity).build();
     }
 
     /**

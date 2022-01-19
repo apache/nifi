@@ -19,11 +19,11 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 @ApiModel
 public class RuntimeManifest implements Serializable {
@@ -104,18 +104,17 @@ public class RuntimeManifest implements Serializable {
             return false;
         }
 
-        RuntimeManifest that = (RuntimeManifest) o;
+        final RuntimeManifest that = (RuntimeManifest) o;
 
-        return new EqualsBuilder()
-            .append(identifier, that.identifier)
-            .isEquals();
+        return Objects.equals(identifier, that.identifier)
+                && Objects.equals(agentType, that.agentType)
+                && Objects.equals(version, that.version)
+                && Objects.equals(buildInfo, that.buildInfo);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .append(identifier)
-            .toHashCode();
+        return Objects.hash(identifier, agentType, version, buildInfo);
     }
 
     @Override

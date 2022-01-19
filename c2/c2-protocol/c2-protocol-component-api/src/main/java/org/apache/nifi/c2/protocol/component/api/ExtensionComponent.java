@@ -19,11 +19,11 @@ package org.apache.nifi.c2.protocol.component.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
  * A component provided by an extension bundle
@@ -97,19 +97,13 @@ public class ExtensionComponent extends DefinedType {
             return false;
         }
 
-        ExtensionComponent that = (ExtensionComponent) o;
-
-        return new EqualsBuilder()
-            .appendSuper(super.equals(o))
-            .append(buildInfo, that.buildInfo)
-            .isEquals();
+        final ExtensionComponent that = (ExtensionComponent) o;
+        return super.equals(o) && Objects.equals(buildInfo, that.buildInfo);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-            .appendSuper(super.hashCode())
-            .append(buildInfo)
-            .toHashCode();
+        return Objects.hash(super.hashCode(), buildInfo);
     }
+
 }

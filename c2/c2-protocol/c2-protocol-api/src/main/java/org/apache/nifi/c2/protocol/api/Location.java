@@ -19,9 +19,9 @@ package org.apache.nifi.c2.protocol.api;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+
 import java.io.Serializable;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import java.util.Objects;
 
 @ApiModel
 public class Location implements Serializable {
@@ -59,19 +59,13 @@ public class Location implements Serializable {
             return false;
         }
 
-        Location location = (Location) o;
-
-        return new EqualsBuilder()
-                .append(latitude, location.latitude)
-                .append(longitude, location.longitude)
-                .isEquals();
+        final Location location = (Location) o;
+        return Objects.equals(latitude, location.latitude) && Objects.equals(longitude, location.longitude);
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(latitude)
-                .append(longitude)
-                .toHashCode();
+        return Objects.hash(latitude, longitude);
     }
+
 }
