@@ -936,17 +936,6 @@ The following binary components are provided under the Apache Software License v
      The following NOTICE information applies:
        Copyright 2011 JsonPath authors
 
-  (ASLv2) Kite SDK
-    The following NOTICE information applies:
-      This product includes software developed by Cloudera, Inc.
-      (http://www.cloudera.com/).
-
-      This product includes software developed at
-      The Apache Software Foundation (http://www.apache.org/).
-
-      This product includes software developed by
-      Saxonica (http://www.saxonica.com/).
-
   (ASLv2) MongoDB Java Driver
     The following NOTICE information applies:
       Copyright (C) 2008-2013 10gen, Inc.
