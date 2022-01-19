@@ -220,8 +220,7 @@ truststore password:
 ssl protocol: TLS
 Sensitive Props:
 key:
-algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
-provider: BC
+algorithm: NIFI_PBKDF2_AES_GCM_256
 ```
 
 # Managing MiNiFi

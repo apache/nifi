@@ -31,7 +31,7 @@ public class SensitivePropsSchema extends BaseSchema implements WritableSchema {
     public static final String SENSITIVE_PROPS_KEY_KEY = "key";
     public static final String SENSITIVE_PROPS_ALGORITHM_KEY = "algorithm";
 
-    public static final String DEFAULT_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL";
+    private static final String DEFAULT_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
 
     private String key;
     private String algorithm = DEFAULT_ALGORITHM;
