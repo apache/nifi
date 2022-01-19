@@ -103,6 +103,7 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         pds.add(WHERE_CLAUSE);
         pds.add(SQL_QUERY);
         pds.add(MAX_VALUE_COLUMN_NAMES);
+        pds.add(INITIAL_LOAD_STRATEGY);
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
