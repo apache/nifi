@@ -17,15 +17,18 @@
 #
 
 FROM openjdk:8-jre-alpine
-MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG MINIFI_VERSION=0.5.0
+ARG MINIFI_VERSION=1.15.3
+ARG MIRROR=https://archive.apache.org/dist
 
 ENV MINIFI_BASE_DIR /opt/minifi
-ENV MINIFI_HOME $MINIFI_BASE_DIR/minifi-current
-ENV MINIFI_BINARY_URL https://archive.apache.org/dist/nifi/minifi/$MINIFI_VERSION/minifi-$MINIFI_VERSION-bin.tar.gz
+ENV MINIFI_HOME ${MINIFI_BASE_DIR}/minifi-current
+ENV MINIFI_BINARY_PATH nifi/${MINIFI_VERSION}/minifi-${MINIFI_VERSION}-bin.tar.gz
+ENV MINIFI_BINARY_URL ${MIRROR}/${MINIFI_BINARY_PATH}
 
 # Setup MiNiFi user
 RUN addgroup -g $GID minifi || groupmod -n minifi `getent group $GID | cut -d: -f1`
