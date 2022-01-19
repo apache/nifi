@@ -17,16 +17,18 @@
 #
 
 FROM openjdk:8-jre-alpine
-LABEL maintainer "Apache NiFi <dev@nifi.apache.org>"
+LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_TOOLKIT_VERSION=1.5.0
+ARG NIFI_TOOLKIT_VERSION=1.15.3
 ARG MIRROR=https://archive.apache.org/dist
 
-ENV NIFI_TOOLKIT_BASE_DIR=/opt/nifi-toolkit
-ENV NIFI_TOOLKIT_HOME=${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION} \
-    NIFI_TOOLKIT_BINARY_URL=${MIRROR}/nifi/${NIFI_TOOLKIT_VERSION}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz
+ENV NIFI_TOOLKIT_BASE_DIR /opt/nifi-toolkit
+ENV NIFI_TOOLKIT_HOME ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}
+ENV NIFI_TOOLKIT_BINARY_PATH nifi/${NIFI_TOOLKIT_VERSION}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz
+ENV NIFI_TOOLKIT_BINARY_URL ${MIRROR}/${NIFI_TOOLKIT_BINARY_PATH}
 
 ADD sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
 
