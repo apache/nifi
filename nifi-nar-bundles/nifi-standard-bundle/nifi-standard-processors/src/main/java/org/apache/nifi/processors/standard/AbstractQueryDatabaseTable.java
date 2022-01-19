@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
@@ -49,6 +51,7 @@ import java.sql.Statement;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,6 +60,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 
@@ -141,6 +145,20 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .allowableValues(TRANSACTION_NONE,TRANSACTION_READ_COMMITTED, TRANSACTION_READ_UNCOMMITTED, TRANSACTION_REPEATABLE_READ, TRANSACTION_SERIALIZABLE)
             .build();
 
+    public static final AllowableValue INITIAL_LOAD_STRATEGY_ALL_ROWS = new AllowableValue("Start at Beginning", "Start at Beginning", "Loads all existing rows from the database table.");
+    public static final AllowableValue INITIAL_LOAD_STRATEGY_NEW_ROWS = new AllowableValue("Start at Current Maximum Values", "Start at Current Maximum Values", "Loads only the newly " +
+            "inserted or updated rows based on the maximum value(s) of the column(s) configured in the '" + MAX_VALUE_COLUMN_NAMES.getDisplayName() + "' property.");
+
+    public static final PropertyDescriptor INITIAL_LOAD_STRATEGY = new PropertyDescriptor.Builder()
+            .name("initial-load-strategy")
+            .displayName("Initial Load Strategy")
+            .description("How to handle existing rows in the database table when the processor is started for the first time (or its state has been cleared). The property will be ignored, " +
+                    "if any '" + INITIAL_MAX_VALUE_PROP_START + "*' dynamic property has also been configured.")
+            .required(true)
+            .allowableValues(INITIAL_LOAD_STRATEGY_ALL_ROWS, INITIAL_LOAD_STRATEGY_NEW_ROWS)
+            .defaultValue(INITIAL_LOAD_STRATEGY_ALL_ROWS.getValue())
+            .build();
+
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
@@ -161,6 +179,24 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                 .dynamic(true)
                 .build();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final boolean maxValueColumnNames = validationContext.getProperty(MAX_VALUE_COLUMN_NAMES).isSet();
+        final String initialLoadStrategy = validationContext.getProperty(INITIAL_LOAD_STRATEGY).getValue();
+        if (!maxValueColumnNames && initialLoadStrategy.equals(INITIAL_LOAD_STRATEGY_NEW_ROWS.getValue())) {
+            results.add(new ValidationResult.Builder().valid(false)
+                    .subject(INITIAL_LOAD_STRATEGY.getDisplayName())
+                    .input(INITIAL_LOAD_STRATEGY_NEW_ROWS.getDisplayName())
+                    .explanation(String.format("'%s' strategy can only be used when '%s' property is also configured",
+                            INITIAL_LOAD_STRATEGY_NEW_ROWS.getDisplayName(), MAX_VALUE_COLUMN_NAMES.getDisplayName()))
+                    .build());
+        }
+
+        return results;
     }
 
     @OnScheduled
@@ -191,7 +227,9 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         final String columnNames = context.getProperty(COLUMN_NAMES).evaluateAttributeExpressions().getValue();
         final String sqlQuery = context.getProperty(SQL_QUERY).evaluateAttributeExpressions().getValue();
         final String maxValueColumnNames = context.getProperty(MAX_VALUE_COLUMN_NAMES).evaluateAttributeExpressions().getValue();
+        final String initialLoadStrategy = context.getProperty(INITIAL_LOAD_STRATEGY).getValue();
         final String customWhereClause = context.getProperty(WHERE_CLAUSE).evaluateAttributeExpressions().getValue();
+        final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
         final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
         final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
@@ -241,6 +279,36 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
         List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                 ? null
                 : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
+
+        if (maxValueColumnNameList != null && statePropertyMap.isEmpty() && initialLoadStrategy.equals(INITIAL_LOAD_STRATEGY_NEW_ROWS.getValue())) {
+            final String columnsClause = maxValueColumnNameList.stream()
+                    .map(columnName -> String.format("MAX(%s) %s", columnName, columnName))
+                    .collect(Collectors.joining(", "));
+
+            final String selectMaxQuery = dbAdapter.getSelectStatement(tableName, columnsClause, null, null, null, null);
+
+            try (final Connection con = dbcpService.getConnection(Collections.emptyMap());
+                 final Statement st = con.createStatement()) {
+
+                if (transIsolationLevel != null) {
+                    con.setTransactionIsolation(transIsolationLevel);
+                }
+
+                st.setQueryTimeout(queryTimeout); // timeout in seconds
+
+                try (final ResultSet resultSet = st.executeQuery(selectMaxQuery)) {
+                    if (resultSet.next()) {
+                        final MaxValueResultSetRowCollector maxValCollector = new MaxValueResultSetRowCollector(tableName, statePropertyMap, dbAdapter);
+                        maxValCollector.processRow(resultSet);
+                        maxValCollector.applyStateChanges();
+                    }
+                }
+            } catch (final Exception e) {
+                logger.error("Unable to execute SQL select query {} due to {}", new Object[]{selectMaxQuery, e});
+                context.yield();
+            }
+        }
+
         final String selectQuery = getQuery(dbAdapter, tableName, sqlQuery, columnNames, maxValueColumnNameList, customWhereClause, statePropertyMap);
         final StopWatch stopWatch = new StopWatch(true);
         final String fragmentIdentifier = UUID.randomUUID().toString();
@@ -271,7 +339,6 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 // Ignore and use default JDBC URL. This shouldn't happen unless the driver doesn't implement getMetaData() properly
             }
 
-            final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
             st.setQueryTimeout(queryTimeout); // timeout in seconds
             if (logger.isDebugEnabled()) {
                 logger.debug("Executing query {}", new Object[] { selectQuery });
