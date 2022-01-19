@@ -22,7 +22,7 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_REGISTRY_VERSION=1.15.3
+ARG NIFI_REGISTRY_VERSION=1.16.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
