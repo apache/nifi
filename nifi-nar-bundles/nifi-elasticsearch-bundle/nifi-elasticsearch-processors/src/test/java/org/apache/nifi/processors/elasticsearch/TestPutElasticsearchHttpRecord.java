@@ -25,14 +25,11 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -40,7 +37,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -826,79 +822,6 @@ public class TestPutElasticsearchHttpRecord {
         protected OkHttpClient getClient() {
             return client;
         }
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Integration test section below
-    //
-    // The tests below are meant to run on real ES instances, and are thus @Ignored during normal test execution.
-    // However if you wish to execute them as part of a test phase, comment out the @Ignored line for each
-    // desired test.
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Tests basic ES functionality against a local or test ES cluster
-     */
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        runner.enqueue("{\"id\": 28039652140}");
-
-        runner.enqueue(new byte[0]);
-        runner.run(1, true, true);
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
-        assertNotNull(provEvents);
-        assertEquals(1, provEvents.size());
-        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
-    }
-
-    @Test
-    @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws InitializationException {
-        System.out.println("Starting test " + new Object() {
-        }.getClass().getEnclosingMethod().getName());
-        final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
-
-        final RecordReaderFactory reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
-        runner.enableControllerService(reader);
-        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
-
-        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
-        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
-        runner.assertValid();
-
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 100; i++) {
-            long newId = 28039652140L + i;
-            final String newStrId = Long.toString(newId);
-            sb.append("{\"id\": ").append(newStrId).append("}\n");
-        }
-        runner.enqueue(sb.toString().getBytes());
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
-        final String content = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0).getContent();
-        assertEquals(sb.toString(), content);
     }
 
     @Test(expected = AssertionError.class)
