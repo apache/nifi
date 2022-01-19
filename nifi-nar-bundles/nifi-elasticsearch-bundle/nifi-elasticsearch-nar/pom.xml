@@ -23,7 +23,6 @@ language governing permissions and limitations under the License. -->
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-        <lucene.version>5.3.1</lucene.version>
     </properties>
 
     <dependencies>
@@ -38,5 +37,4 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-elasticsearch-processors</artifactId>
         </dependency>
     </dependencies>
-
 </project>
