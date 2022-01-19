@@ -155,6 +155,9 @@ public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
+    private static final String RUNTIME_MANIFEST_IDENTIFIER = "nifi";
+    private static final String RUNTIME_TYPE = "nifi";
+
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
@@ -598,8 +601,8 @@ public class ControllerFacade implements Authorizable {
         buildInfo.setTimestamp(frameworkBuildDate == null ? null : frameworkBuildDate.getTime());
 
         final RuntimeManifestBuilder manifestBuilder = new StandardRuntimeManifestBuilder()
-                .identifier("nifi")
-                .runtimeType("nifi")
+                .identifier(RUNTIME_MANIFEST_IDENTIFIER)
+                .runtimeType(RUNTIME_TYPE)
                 .version(buildInfo.getVersion())
                 .schedulingDefaults(SchedulingDefaultsFactory.getNifiSchedulingDefaults())
                 .buildInfo(buildInfo);
@@ -628,7 +631,7 @@ public class ControllerFacade implements Authorizable {
             extensionManifest.setVersion(bundleDetails.getCoordinate().getVersion());
             return Optional.of(extensionManifest);
         } catch (final IOException e) {
-            logger.error("Unable to load extension manifest for: " + bundleDetails.getCoordinate(), e);
+            logger.error("Unable to load extension manifest for bundle [{}]", bundleDetails.getCoordinate(), e);
             return Optional.empty();
         }
     }
