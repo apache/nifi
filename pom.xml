@@ -622,7 +622,6 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory" />
                         <argLine combine.children="append">-Xmx1g
                             -Djava.net.preferIPv4Stack=true
                             -Duser.language=${user.language}
