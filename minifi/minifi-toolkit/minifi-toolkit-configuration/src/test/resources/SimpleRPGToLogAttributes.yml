@@ -64,7 +64,7 @@ Security Properties:
   ssl protocol: ''
   Sensitive Props:
     key:
-    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    algorithm: NIFI_PBKDF2_AES_GCM_256
 Processors:
 - id: 6b97126a-015a-1000-0000-000000000000
   name: LogAttribute
