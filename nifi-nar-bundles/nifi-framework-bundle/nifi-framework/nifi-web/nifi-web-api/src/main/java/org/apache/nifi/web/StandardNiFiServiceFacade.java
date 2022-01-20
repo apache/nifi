@@ -4848,7 +4848,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(parameterProvider));
         final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(parameterProvider.getIdentifier()));
         final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        return entityFactory.createParameterProviderEntity(dtoFactory.createParameterProviderDto(parameterProvider, revisionManager, parameterContextDAO), 
+        return entityFactory.createParameterProviderEntity(dtoFactory.createParameterProviderDto(parameterProvider, revisionManager, parameterContextDAO),
                 revision, permissions, operatePermissions, bulletinEntities);
     }
 
