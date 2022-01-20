@@ -16,9 +16,14 @@
  */
 package org.apache.nifi.web.api;
 
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-import io.prometheus.client.Collector;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
@@ -41,11 +46,11 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -72,7 +77,7 @@ public class TestFlowResource {
     private static final String HEAP_STARTS_WITH_PATTERN = "nifi_jvm_heap.*";
     private static final String THREAD_COUNT_LABEL = String.format("nifi_jvm_thread_count{instance=\"%s\"", LABEL_VALUE);
     private static final String THREAD_COUNT_OTHER_LABEL = String.format("nifi_jvm_thread_count{instance=\"%s\"", OTHER_LABEL_VALUE);
-    private static final String FIRST_FIELD_NAME = "beans";
+    private static final String ROOT_FIELD_NAME = "beans";
     private static final String SAMPLE_NAME_JVM = ".*jvm.*";
     private static final String SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP = "RootProcessGroup";
     private static final String SAMPLE_LABEL_VALUES_PROCESS_GROUP = "ProcessGroup";
@@ -178,16 +183,16 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, null, FIRST_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, null, ROOT_FIELD_NAME);
 
         assertNotNull(response);
         assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getMediaType());
 
-        final Map<String, List<Collector.MetricFamilySamples.Sample>> metrics = convertJsonResponseToMap(response);
+        final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
         assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(FIRST_FIELD_NAME));
+        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
-        final List<Collector.MetricFamilySamples.Sample> registryList = metrics.get(FIRST_FIELD_NAME);
+        final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertThat(registryList, hasSize(9));
 
         final Map<String, Long> result = getResult(registryList);
@@ -201,15 +206,15 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, null, FIRST_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, null, ROOT_FIELD_NAME);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
-        final Map<String, List<Collector.MetricFamilySamples.Sample>> metrics = convertJsonResponseToMap(response);
+        final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
         assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(FIRST_FIELD_NAME));
+        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
-        final List<Collector.MetricFamilySamples.Sample> registryList = metrics.get(FIRST_FIELD_NAME);
+        final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertThat(registryList, hasSize(3));
 
         final Map<String, Long> result = getResult(registryList);
@@ -221,15 +226,15 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, FIRST_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, ROOT_FIELD_NAME);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
-        final Map<String, List<Collector.MetricFamilySamples.Sample>> metrics = convertJsonResponseToMap(response);
+        final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
         assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(FIRST_FIELD_NAME));
+        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
-        final List<Collector.MetricFamilySamples.Sample> registryList = metrics.get(FIRST_FIELD_NAME);
+        final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertThat(registryList, hasSize(2));
 
         final Map<String, Long> result = getResult(registryList);
@@ -241,15 +246,15 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, FIRST_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
-        final Map<String, List<Collector.MetricFamilySamples.Sample>> metrics = convertJsonResponseToMap(response);
+        final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
         assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(FIRST_FIELD_NAME));
+        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
-        final List<Collector.MetricFamilySamples.Sample> registryList = metrics.get(FIRST_FIELD_NAME);
+        final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertThat(registryList, hasSize(2));
 
         final Map<String, Long> result = getResult(registryList);
@@ -261,15 +266,15 @@ public class TestFlowResource {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
         when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, FIRST_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
-        final Map<String, List<Collector.MetricFamilySamples.Sample>> metrics = convertJsonResponseToMap(response);
+        final Map<String, List<Sample>> metrics = convertJsonResponseToMap(response);
         assertThat(metrics.keySet(), hasSize(1));
-        assertThat(metrics, hasKey(FIRST_FIELD_NAME));
+        assertThat(metrics, hasKey(ROOT_FIELD_NAME));
 
-        final List<Collector.MetricFamilySamples.Sample> registryList = metrics.get(FIRST_FIELD_NAME);
+        final List<Sample> registryList = metrics.get(ROOT_FIELD_NAME);
         assertThat(registryList, hasSize(5));
 
         final Map<String, Long> result = getResult(registryList);
@@ -292,20 +297,26 @@ public class TestFlowResource {
         return Arrays.asList(jvmCollectorRegistry, otherJvmCollectorRegistry);
     }
 
-    private Map<String, List<Collector.MetricFamilySamples.Sample>> convertJsonResponseToMap(final Response response) throws IOException {
+    private Map<String, List<Sample>> convertJsonResponseToMap(final Response response) throws IOException {
+        final TypeReference<HashMap<String, List<Sample>>> typeReference = new TypeReference<HashMap<String, List<Sample>>>() {};
+        final ObjectMapper mapper = new ObjectMapper();
+        final SimpleModule module = new SimpleModule();
+
+        module.addDeserializer(Sample.class, new SampleDeserializer());
+        mapper.registerModule(module);
+
         final String json = getResponseOutput(response);
-        final Type type = new TypeToken<Map<String, List<Collector.MetricFamilySamples.Sample>>>() {}.getType();
-        return new Gson().fromJson(json, type);
+        return mapper.readValue(json, typeReference);
     }
 
-    private Map<String, Long> getResult(final List<Collector.MetricFamilySamples.Sample> registries) {
+    private Map<String, Long> getResult(final List<Sample> registries) {
         return registries.stream()
                 .collect(Collectors.groupingBy(
                         sample -> getResultKey(sample),
                         Collectors.counting()));
     }
 
-    private String getResultKey(final Collector.MetricFamilySamples.Sample sample) {
+    private String getResultKey(final Sample sample) {
         return sample.labelNames.contains(COMPONENT_TYPE_LABEL) ? sample.labelValues.get(COMPONENT_TYPE_VALUE_INDEX) : SAMPLE_NAME_JVM;
     }
 
@@ -365,5 +376,25 @@ public class TestFlowResource {
                 "nodeAddress", "category", "sourceName", "sourceId", "level");
 
         return bulletinMetricsRegistry.getRegistry();
+    }
+
+    private static class SampleDeserializer extends StdDeserializer<Sample> {
+        protected SampleDeserializer() {
+            super(Sample.class);
+        }
+
+        @Override
+        public Sample deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+            final JsonNode node = jsonParser.getCodec().readTree(jsonParser);
+
+            final String name = node.get("name").asText();
+            final List<String> labelNames = new ArrayList<>();
+            node.get("labelNames").elements().forEachRemaining(e -> labelNames.add(e.asText()));
+            final List<String> labelValues = new ArrayList<>();
+            node.get("labelValues").elements().forEachRemaining(e -> labelValues.add(e.asText()));
+            final double value = node.get("value").asDouble();
+
+            return new Sample(name, labelNames, labelValues, value);
+        }
     }
 }

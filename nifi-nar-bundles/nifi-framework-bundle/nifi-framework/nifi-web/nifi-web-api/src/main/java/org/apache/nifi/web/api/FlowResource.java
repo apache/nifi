@@ -433,7 +433,7 @@ public class FlowResource extends ApplicationResource {
             @ApiParam(
                     value = "Name of the first field of JSON object. Applicable for JSON producer only."
             )
-            @QueryParam("firstFieldName") final String firstFieldName
+            @QueryParam("rootFieldName") final String rootFieldName
     ) {
 
         authorizeFlow();
@@ -450,7 +450,7 @@ public class FlowResource extends ApplicationResource {
 
         } else if (FlowMetricsProducer.JSON.getProducer().equals(producer)) {
             final StreamingOutput output = outputStream -> {
-                final JsonFormatPrometheusMetricsWriter jsonPrometheusMetricsWriter = new JsonFormatPrometheusMetricsWriter(sampleName, sampleLabelValue, firstFieldName);
+                final JsonFormatPrometheusMetricsWriter jsonPrometheusMetricsWriter = new JsonFormatPrometheusMetricsWriter(sampleName, sampleLabelValue, rootFieldName);
                 jsonPrometheusMetricsWriter.write(registries, outputStream);
             };
             return generateOkResponse(output)
