@@ -80,9 +80,9 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 11
         uses: actions/setup-java@v2
         with:
@@ -139,9 +139,9 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 8
         uses: actions/setup-java@v2
         with:
@@ -204,9 +204,9 @@ jobs:
           path: |
             ${{ steps.npm-cache-directory.outputs.directory }}
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 8
         uses: actions/setup-java@v2
         with:

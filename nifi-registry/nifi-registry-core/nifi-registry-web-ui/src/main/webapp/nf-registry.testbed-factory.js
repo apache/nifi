@@ -23,8 +23,6 @@ import {
 import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MomentModule } from 'angular2-moment';
-
-import 'hammerjs';
 import NfRegistryRoutes from 'nf-registry.routes';
 import { APP_BASE_HREF } from '@angular/common';
 import { FdsCoreModule } from '@nifi-fds/core';

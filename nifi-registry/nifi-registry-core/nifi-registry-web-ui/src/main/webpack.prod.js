@@ -31,6 +31,13 @@ module.exports = merge(commonConfig, {
     // Tells webpack to use its built-in optimizations accordingly
     mode: 'production',
 
+    stats: {
+        assets: true,
+        entrypoints: true,
+        chunks: true,
+        modules: true
+    },
+
     // Source maps
     devtool: 'source-map',
 

@@ -16,8 +16,10 @@
  */
 
 module.exports = {
+    "customSyntax": "postcss-scss",
     "extends": "stylelint-config-standard",
     "rules": {
+        "alpha-value-notation": null,
         "indentation": null,
         "at-rule-no-unknown": [true, {
             "ignoreAtRules": ["/include/", "/mixin/"]
@@ -26,6 +28,7 @@ module.exports = {
         "selector-type-no-unknown": [true, {
             "ignoreTypes": ["/mat-/", "/flow-designer-/", "/fds-/", "/td-/"]
         }],
-        "font-family-no-missing-generic-family-keyword": null
+        "font-family-no-missing-generic-family-keyword": null,
+        "string-quotes": "single"
     }
 };

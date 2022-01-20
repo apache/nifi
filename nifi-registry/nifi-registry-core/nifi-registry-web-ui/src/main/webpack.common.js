@@ -32,8 +32,7 @@ module.exports = {
 
         // SCSS files
         'nf-registry.style.min': [
-            path.resolve(__dirname, 'webapp/theming/nf-registry.scss'),
-            path.resolve(__dirname, 'node_modules/@nifi-fds/core/common/styles/flow-design-system.scss')
+            path.resolve(__dirname, 'webapp/theming/nf-registry.scss')
         ]
     },
 

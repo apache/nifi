@@ -21,7 +21,7 @@ import { Component } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import NfRegistryAddPolicyToBucket from 'components/administration/workflow/dialogs/add-policy-to-bucket/nf-registry-add-policy-to-bucket';
 import NfRegistryEditBucketPolicy from 'components/administration/workflow/dialogs/edit-bucket-policy/nf-registry-edit-bucket-policy';
 import { switchMap } from 'rxjs/operators';
@@ -130,7 +130,7 @@ NfRegistryManageBucket.prototype = {
                                     });
                                 }
                             });
-                            self.sortBuckets(self.bucketPoliciesColumns.find(bucketPoliciesColumn => bucketPoliciesColumn.active === true));
+                            self.sortBuckets(self.bucketPoliciesColumns.find((bucketPoliciesColumn) => bucketPoliciesColumn.active === true));
                         }
                     }
                 } else if (response[0].status === 404) {
@@ -358,9 +358,15 @@ NfRegistryManageBucket.prototype = {
                                 policy.userGroups = policy.userGroups.filter(function (group) {
                                     return (group.identity !== userOrGroup.identity);
                                 });
-                                self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                    policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                    function (response) {
+                                self.nfRegistryApi.putPolicyActionResource(
+                                    policy.identifier,
+                                    policy.action,
+                                    policy.resource,
+                                    policy.users,
+                                    policy.userGroups,
+                                    policy.revision
+                                ).subscribe(
+                                    function () {
                                         // policy removed!!!...now update the view
                                         self.nfRegistryApi.getPolicies().subscribe(function (response) {
                                             self.userPerms = {};
@@ -464,7 +470,7 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {
@@ -524,7 +530,7 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {
@@ -584,7 +590,7 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {

@@ -17,8 +17,6 @@
 
 import 'core-js';
 import 'zone.js';
-import 'hammerjs';
-
 import $ from 'jquery';
 import NfRegistryModule from 'nf-registry.module';
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
@@ -28,9 +26,6 @@ import { enableProdMode, TRANSLATIONS, TRANSLATIONS_FORMAT, LOCALE_ID } from '@a
 import 'font-awesome/fonts/fontawesome-webfont.woff2';
 import 'font-awesome/fonts/fontawesome-webfont.woff';
 import 'font-awesome/fonts/fontawesome-webfont.ttf';
-import '@covalent/core/common/styles/font/MaterialIcons-Regular.woff2';
-import '@covalent/core/common/styles/font/MaterialIcons-Regular.woff';
-import '@covalent/core/common/styles/font/MaterialIcons-Regular.ttf';
 import 'images/registry-logo-web-app.svg';
 import 'images/registry-background-logo.svg';
 

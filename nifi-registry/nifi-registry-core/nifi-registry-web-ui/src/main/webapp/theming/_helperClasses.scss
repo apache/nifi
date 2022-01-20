@@ -16,9 +16,13 @@
  */
 
 .fa-rotate-45 {
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-transform: rotate(45deg);
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -moz-transform: rotate(45deg);
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -ms-transform: rotate(45deg);
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -o-transform: rotate(45deg);
     transform: rotate(45deg);
 }
@@ -37,8 +41,11 @@
     text-overflow: ellipsis;
     display: block !important;
     user-select: text !important;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -moz-user-select: text !important;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -webkit-user-select: text !important;
+    /* stylelint-disable-next-line property-no-vendor-prefix */
     -ms-user-select: text !important;
 }
 

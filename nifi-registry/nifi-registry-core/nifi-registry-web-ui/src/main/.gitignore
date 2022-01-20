@@ -18,6 +18,7 @@
 /tmp
 /out-tsc
 /assets
+/.cache-loader-coverage
 nf-registry.*.min.*
 vendor.min.*
 index.html

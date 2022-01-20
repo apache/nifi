@@ -21,7 +21,7 @@ import { Component } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import NfRegistryAddUserToGroups from 'components/administration/users/dialogs/add-user-to-groups/nf-registry-add-user-to-groups';
 import { switchMap } from 'rxjs/operators';
 
@@ -88,7 +88,7 @@ NfRegistryManageUser.prototype = {
                     self.nfRegistryService.sidenav.open();
                     self.nfRegistryService.user = response;
                     self.username = response.identity;
-                    self.sortGroups(self.userGroupsColumns.find(userGroupsColumn => userGroupsColumn.active === true));
+                    self.sortGroups(self.userGroupsColumns.find((userGroupsColumn) => userGroupsColumn.active === true));
                 } else if (response.status === 404) {
                     self.router.navigateByUrl('administration/users');
                 } else if (response.status === 409) {
@@ -144,8 +144,14 @@ NfRegistryManageUser.prototype = {
                                 } else {
                                     // resource exists, let's update it
                                     policy.users.push(self.nfRegistryService.user);
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
                                         function (response) {
                                             // can manage buckets privileges updated!!!...now update the view
                                             response.users.forEach(function (user) {
@@ -178,9 +184,15 @@ NfRegistryManageUser.prototype = {
                                     policy.users = policy.users.filter(function (user) {
                                         return (user.identifier !== self.nfRegistryService.user.identifier);
                                     });
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                        function (response) {
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
+                                        function () {
                                             // can manage buckets privileges updated!!!...now update the view
                                             self.nfRegistryApi.getUser(self.nfRegistryService.user.identifier).subscribe(function (response) {
                                                 self.nfRegistryService.user = response;
@@ -228,8 +240,14 @@ NfRegistryManageUser.prototype = {
                                 } else {
                                     // resource exists, let's update it
                                     policy.users.push(self.nfRegistryService.user);
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
                                         function (response) {
                                             // can manage tenants privileges updated!!!...now update the view
                                             response.users.forEach(function (user) {
@@ -262,9 +280,15 @@ NfRegistryManageUser.prototype = {
                                     policy.users = policy.users.filter(function (user) {
                                         return (user.identifier !== self.nfRegistryService.user.identifier);
                                     });
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                        function (response) {
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
+                                        function () {
                                             // can manage tenants privileges updated!!!...now update the view
                                             self.nfRegistryApi.getUser(self.nfRegistryService.user.identifier).subscribe(function (response) {
                                                 self.nfRegistryService.user = response;
@@ -312,8 +336,14 @@ NfRegistryManageUser.prototype = {
                                 } else {
                                     // resource exists, let's update it
                                     policy.users.push(self.nfRegistryService.user);
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
                                         function (response) {
                                             // can manage policies privileges updated!!!...now update the view
                                             response.users.forEach(function (user) {
@@ -346,9 +376,15 @@ NfRegistryManageUser.prototype = {
                                     policy.users = policy.users.filter(function (user) {
                                         return (user.identifier !== self.nfRegistryService.user.identifier);
                                     });
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                        function (response) {
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
+                                        function () {
                                             // can manage policies privileges updated!!!...now update the view
                                             self.nfRegistryApi.getUser(self.nfRegistryService.user.identifier).subscribe(function (response) {
                                                 self.nfRegistryService.user = response;
@@ -396,8 +432,14 @@ NfRegistryManageUser.prototype = {
                                 } else {
                                     // resource exists, let's update it
                                     policy.users.push(self.nfRegistryService.user);
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
                                         function (response) {
                                             // can manage proxy privileges updated!!!...now update the view
                                             response.users.forEach(function (user) {
@@ -430,9 +472,15 @@ NfRegistryManageUser.prototype = {
                                     policy.users = policy.users.filter(function (user) {
                                         return (user.identifier !== self.nfRegistryService.user.identifier);
                                     });
-                                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                        function (response) {
+                                    self.nfRegistryApi.putPolicyActionResource(
+                                        policy.identifier,
+                                        policy.action,
+                                        policy.resource,
+                                        policy.users,
+                                        policy.userGroups,
+                                        policy.revision
+                                    ).subscribe(
+                                        function () {
                                             // administrator privileges updated!!!...now update the view
                                             self.nfRegistryApi.getUser(self.nfRegistryService.user.identifier).subscribe(function (response) {
                                                 self.nfRegistryService.user = response;
@@ -637,7 +685,7 @@ NfRegistryManageUser.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getUser(self.nfRegistryService.user.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {

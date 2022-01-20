@@ -175,7 +175,11 @@ module.exports = {
             },
             {
                 // Compile Sass to CSS
-                loader: 'sass-loader'
+                loader: 'sass-loader',
+                options: {
+                    // Prefer `dart-sass`
+                    implementation: require("sass"),
+                },
             }
         ]
     },
