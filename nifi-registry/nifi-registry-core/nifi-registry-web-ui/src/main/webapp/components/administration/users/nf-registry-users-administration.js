@@ -20,7 +20,7 @@ import { Component } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import nfRegistryAnimations from 'nf-registry.animations';
 import NfStorage from 'services/nf-storage.service';
 import NfRegistryCreateNewGroup from 'components/administration/users/dialogs/create-new-group/nf-registry-create-new-group';
@@ -62,7 +62,7 @@ NfRegistryUsersAdministration.prototype = {
         this.nfRegistryService.inProgress = true;
         this.$subscription = this.route.params
             .pipe(
-                switchMap(function (params) {
+                switchMap(function () {
                     self.nfRegistryService.adminPerspective = 'users';
                     return forkJoin(
                         self.nfRegistryApi.getUsers(),

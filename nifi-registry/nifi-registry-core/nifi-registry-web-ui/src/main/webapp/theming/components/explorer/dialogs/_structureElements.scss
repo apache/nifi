@@ -201,8 +201,8 @@ input#upload-versioned-flow-file-field {
     color: $light-gray;
 }
 
-input[type=text]#flow-version-definition-input,
-input[type=text]#new-flow-definition-input {
+input[type='text']#flow-version-definition-input,
+input[type='text']#new-flow-definition-input {
     padding-right: 125px;
     width: 373px;
     text-overflow: ellipsis;
@@ -210,8 +210,8 @@ input[type=text]#new-flow-definition-input {
 }
 
 body[fds] .fds-primary-dropdown-button-menu.fds-primary-dropdown-button-menu .mat-menu-item:focus:not([disabled]) {
-    color: rgba(0, 0, 0, 0.87);
-    background-color: rgba(0, 0, 0, 0.04);
+    color: rgba(0 0 0 / 87%);
+    background-color: rgba(0 0 0 / 4%);
 }
 
 body[fds] .fds-primary-dropdown-button-menu.fds-primary-dropdown-button-menu .mat-menu-item:hover:not([disabled]) {

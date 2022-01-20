@@ -374,7 +374,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.12.0</version>
+                <version>${frontend.mvn.plugin.version}</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -395,7 +395,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--silent ci</arguments>
+                            <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>

@@ -17,7 +17,7 @@
 
 import { Component } from '@angular/core';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { FdsSnackBarService } from '@nifi-fds/core';
 
 /**

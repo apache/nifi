@@ -165,11 +165,9 @@
                                         <include>roboto-fontface/LICENSE*</include>
                                         <!-- covalent -->
                                         <include>@covalent/core/common/platform.css</include>
-                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular.woff2</include>
-                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular.ttf</include>
+                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular-v48.woff2</include>
                                         <include>@covalent/core/README.md</include>
                                         <!-- FDS -->
-                                        <include>@nifi-fds/core/common/styles/css/*</include>
                                         <include>@nifi-fds/core/LICENSE</include>
                                         <include>@nifi-fds/core/NOTICE</include>
                                         <include>@nifi-fds/core/README.md</include>
@@ -220,7 +218,7 @@
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
-                <version>1.5</version>
+                <version>${frontend.mvn.plugin.version}</version>
                 <configuration>
                     <installDirectory>${frontend.working.dir}</installDirectory>
                 </configuration>
@@ -248,7 +246,7 @@
                         </goals>
                         <phase>initialize</phase>
                         <configuration>
-                            <arguments>--silent ci</arguments>
+                            <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
@@ -367,88 +365,6 @@
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>development-mode</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-                <property>
-                    <name>env</name>
-                    <value>dev</value>
-                </property>
-            </activation>
-            <properties>
-                <npm.bundle.script>build:webapp:bundle:development</npm.bundle.script>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-resources-plugin</artifactId>
-                        <executions>
-                            <!--
-                                Stage client side node_modules dependencies for inclusion in .war.
-                            -->
-                            <execution>
-                                <id>copy-development-mode-client-side-deps</id>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${frontend.assets}</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>${frontend.working.dir}/node_modules</directory>
-                                            <filtering>false</filtering>
-                                            <includes>
-                                                <include>@nifi-fds/**/*</include>
-                                                <include>@angular/**/*</include>
-                                                <include>hammerjs/**/*</include>
-                                                <include>@covalent/**/*</include>
-                                                <include>rxjs/**/*</include>
-                                                <include>moment/**/*</include>
-                                                <include>angular2-moment/**/*</include>
-                                                <include>zone.js/**/*</include>
-                                                <include>core-js/**/*</include>
-                                                <include>superagent/**/*</include>
-                                                <include>querystring/**/*</include>
-                                                <include>tslib/**/*</include>
-                                                <include>jquery/**/*</include>
-                                                <include>roboto-fontface/**/*</include>
-                                            </includes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <!--
-                        Speed up build time by excluding node, npm, and any node_modules from `mvn clean` since the front-end-maven plugin uses these
-                        directories as cache.
-                    -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-clean-plugin</artifactId>
-                        <version>3.0.0</version>
-                        <configuration>
-                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
-                            <filesets>
-                                <fileset>
-                                    <directory>${project.build.directory}</directory>
-                                    <includes>
-                                        <include>**</include>
-                                    </includes>
-                                    <excludes>
-                                        <exclude>frontend-working-directory/node/**/*</exclude>
-                                        <exclude>frontend-working-directory/node_modules/**/*</exclude>
-                                    </excludes>
-                                </fileset>
-                            </filesets>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
