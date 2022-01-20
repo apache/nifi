@@ -38,10 +38,15 @@ env:
     -P include-grpc
     -P skip-nifi-bin-assembly
   MAVEN_PROJECTS: >-
-    -pl -nifi-toolkit/nifi-toolkit-assembly
-    -pl -nifi-registry/nifi-registry-assembly
     -pl -minifi/minifi-assembly
+    -pl -minifi/minifi-c2/minifi-c2-assembly
+    -pl -minifi/minifi-toolkit/minifi-toolkit-assembly
+    -pl -nifi-registry/nifi-registry-assembly
+    -pl -nifi-registry/nifi-registry-toolkit/nifi-registry-toolkit-assembly
+    -pl -nifi-stateless/nifi-stateless-assembly
     -pl -nifi-system-tests
+    -pl -nifi-system-tests/nifi-system-test-suite
+    -pl -nifi-toolkit/nifi-toolkit-assembly
 
 concurrency:
   group: ${{ github.ref }}
