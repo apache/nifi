@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroupKey;
 import org.apache.nifi.parameter.ParameterSensitivity;
+
+import java.util.Objects;
 
 public class ParameterProviderUsageReference {
 
@@ -27,8 +30,8 @@ public class ParameterProviderUsageReference {
     private final ParameterSensitivity sensitivity;
 
     public ParameterProviderUsageReference(final ParameterContext parameterContext, final ParameterSensitivity sensitivity) {
-        this.parameterContext = parameterContext;
-        this.sensitivity = sensitivity;
+        this.parameterContext = Objects.requireNonNull(parameterContext, "Parameter Context is required");
+        this.sensitivity = Objects.requireNonNull(sensitivity, "Sensitivity is required");
     }
 
     public ParameterContext getParameterContext() {
@@ -50,5 +53,25 @@ public class ParameterProviderUsageReference {
 
         return groupKey.getSensitivity() == sensitivity
                 && (groupKey.getGroupName() == null || groupKey.getGroupName().equalsIgnoreCase(parameterContext.getName()));
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj instanceof ParameterProviderUsageReference) {
+            final ParameterProviderUsageReference other = (ParameterProviderUsageReference) obj;
+            return parameterContext.getName().equals(other.getParameterContext().getName())
+                    && sensitivity == other.sensitivity;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(getClass().getName())
+                .append(getParameterContext().getName())
+                .append(sensitivity)
+                .toHashCode();
     }
 }

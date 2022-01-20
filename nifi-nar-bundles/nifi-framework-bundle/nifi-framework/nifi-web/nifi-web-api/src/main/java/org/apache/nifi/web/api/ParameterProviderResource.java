@@ -107,6 +107,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -732,21 +733,19 @@ public class ParameterProviderResource extends AbstractParameterResource {
 
         final ParameterProviderEntity parameterProviderEntity = serviceFacade.getParameterProvider(fetchParametersEntity.getId());
 
-        final Collection<ParameterProviderReferencingComponentEntity> references = parameterProviderEntity.getComponent().getReferencingParameterContexts();
+        final Collection<ParameterProviderReferencingComponentEntity> references = Optional.ofNullable(parameterProviderEntity.getComponent().getReferencingParameterContexts())
+                .orElse(Collections.emptySet());
 
         final Set<AffectedComponentEntity> affectedComponents = new HashSet<>();
         final Collection<ParameterContextDTO> referencingParameterContextDtos = new HashSet<>();
-        if (references != null) {
-            references.forEach(referencingEntity -> {
-                final String parameterContextId = referencingEntity.getComponent().getId();
-                final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
-                parameterContextEntity.getComponent().getParameters().stream()
-                        .filter(dto -> Boolean.TRUE.equals(dto.getParameter().getProvided()))
-                        .forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
-                referencingParameterContextDtos.add(parameterContextEntity.getComponent());
-            });
-
-        }
+        references.forEach(referencingEntity -> {
+            final String parameterContextId = referencingEntity.getComponent().getId();
+            final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
+            parameterContextEntity.getComponent().getParameters().stream()
+                    .filter(dto -> Boolean.TRUE.equals(dto.getParameter().getProvided()))
+                    .forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
+            referencingParameterContextDtos.add(parameterContextEntity.getComponent());
+        });
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(fetchParametersEntity.getRevision(), fetchParametersEntity.getId());
