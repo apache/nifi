@@ -70,7 +70,6 @@ language governing permissions and limitations under the License. -->
                             <formats>
                                 <format>dir</format>
                                 <format>zip</format>
-                                <format>tar.gz</format>
                             </formats>
                         </configuration>
                     </execution>
@@ -1101,6 +1100,44 @@ language governing permissions and limitations under the License. -->
                     <type>nar</type>
                 </dependency>
             </dependencies>
+        </profile>
+        <profile>
+            <id>targz</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <executions>
+                    <execution>
+                        <id>make shared resource</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <finalName>nifi-${project.version}</finalName>
+                            <attach>false</attach>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                            <formats>
+                                <format>tar.gz</format>
+                            </formats>
+                        </configuration>
+                    </execution>
+                    </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
         <profile>
             <id>rpm</id>
