@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 
@@ -46,8 +47,9 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
-    private Set<ParameterProviderReferencingComponentEntity> referencingComponents;
     private Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups;
+    private Set<AffectedComponentEntity> referencingComponents;
+    private Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts;
 
     private String customUiUrl;
     private String annotationData;
@@ -67,6 +69,24 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @ApiModelProperty("The set of all components in the flow that are referencing Parameters provided by this provider")
+    public Set<AffectedComponentEntity> getReferencingComponents() {
+        return referencingComponents;
+    }
+
+    public void setReferencingComponents(final Set<AffectedComponentEntity> referencingComponents) {
+        this.referencingComponents = referencingComponents;
+    }
+
+    public void setReferencingParameterContexts(final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts) {
+        this.referencingParameterContexts = referencingParameterContexts;
+    }
+
+    @ApiModelProperty(value = "The Parameter Contexts that reference this Parameter Provider", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
+    public Set<ParameterProviderReferencingComponentEntity> getReferencingParameterContexts() {
+        return referencingParameterContexts;
     }
 
     /**
@@ -237,20 +257,6 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     public void setCustomUiUrl(String customUiUrl) {
         this.customUiUrl = customUiUrl;
-    }
-
-    /**
-     * @return all ParameterContexts referencing this parameter provider
-     */
-    @ApiModelProperty(
-            value = "All parameter contexts referencing this parameter provider."
-    )
-    public Set<ParameterProviderReferencingComponentEntity> getReferencingComponents() {
-        return referencingComponents;
-    }
-
-    public void setReferencingComponents(final Set<ParameterProviderReferencingComponentEntity> referencingComponents) {
-        this.referencingComponents = referencingComponents;
     }
 
     /**

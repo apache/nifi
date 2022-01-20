@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -51,6 +52,7 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
@@ -68,6 +70,7 @@ import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEnt
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
@@ -725,6 +728,23 @@ public class ParameterProviderResource extends AbstractParameterResource {
         } else if (isDisconnectedFromCluster()) {
             verifyDisconnectedNodeModification(fetchParametersEntity.isDisconnectedNodeAcknowledged());
         }
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final ParameterProviderEntity parameterProviderEntity = serviceFacade.getParameterProvider(fetchParametersEntity.getId());
+
+        final Collection<ParameterProviderReferencingComponentEntity> references = parameterProviderEntity.getComponent().getReferencingParameterContexts();
+
+        final Set<AffectedComponentEntity> affectedComponents = new HashSet<>();
+        final Collection<ParameterContextDTO> referencingParameterContextDtos = new HashSet<>();
+        if (references != null) {
+            references.forEach(referencingEntity -> {
+                final String parameterContextId = referencingEntity.getComponent().getId();
+                final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
+                parameterContextEntity.getComponent().getParameters().forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
+                referencingParameterContextDtos.add(parameterContextEntity.getComponent());
+            });
+
+        }
 
         // handle expects request (usually from the cluster manager)
         final Revision requestRevision = getRevision(fetchParametersEntity.getRevision(), fetchParametersEntity.getId());
@@ -735,18 +755,40 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 lookup -> {
                     // authorize parameter provider
                     final ComponentAuthorizable authorizable = lookup.getParameterProvider(fetchParametersEntity.getId());
-                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
-                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.READ, user);
+                    authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
+
+                    references.forEach(reference -> lookup.getParameterContext(reference.getComponent().getId()).authorize(authorizer, RequestAction.READ, user));
+                    // Verify READ permission for user, for every component that is currently referenced by relevant parameter contexts
+                    referencingParameterContextDtos.forEach(parameterContextDto -> authorizeReferencingComponents(parameterContextDto.getId(), lookup, user));
                 },
                 () -> serviceFacade.verifyCanFetchParameters(fetchParametersEntity.getId()),
                 (revision, parameterProviderFetchEntity) -> {
                     // fetch the parameters
                     final ParameterProviderEntity entity = serviceFacade.fetchParameters(parameterProviderFetchEntity.getId());
+                    if (!affectedComponents.isEmpty()) {
+                        entity.getComponent().setReferencingComponents(affectedComponents);
+                    }
                     populateRemainingParameterProviderEntityContent(entity);
 
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private void authorizeReferencingComponents(final String parameterContextId, final AuthorizableLookup lookup, final NiFiUser user) {
+        final ParameterContextEntity context = serviceFacade.getParameterContext(parameterContextId, false, NiFiUserUtils.getNiFiUser());
+
+        for (final ParameterEntity parameterEntity : context.getComponent().getParameters()) {
+            final ParameterDTO dto = parameterEntity.getParameter();
+            if (dto == null) {
+                continue;
+            }
+
+            for (final AffectedComponentEntity affectedComponent : dto.getReferencingComponents()) {
+                parameterUpdateManager.authorizeAffectedComponent(affectedComponent, lookup, user, true, false);
+            }
+        }
     }
 
     @POST
@@ -1328,6 +1370,18 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 new StandardUpdateStep("Updating Parameter Contexts"),
                 new StandardUpdateStep("Re-Enabling Affected Controller Services"),
                 new StandardUpdateStep("Restarting Affected Processors"));
+    }
+
+    private Collection<ProvidedParameterNameGroup> getProvidedParameterNames(final ParameterProviderEntity entity) {
+        final Collection<ProvidedParameterNameGroup> providedParameterNames = new ArrayList<>();
+
+        if (entity != null && entity.getComponent() != null && entity.getComponent().getFetchedParameterNameGroups() != null) {
+            for (final ProvidedParameterNameGroupEntity parameterNameGroup : entity.getComponent().getFetchedParameterNameGroups()) {
+                providedParameterNames.add(new ProvidedParameterNameGroup(parameterNameGroup.getGroupName(),
+                        ParameterSensitivity.valueOf(parameterNameGroup.getSensitivity()), parameterNameGroup.getParameterNames()));
+            }
+        }
+        return providedParameterNames;
     }
 
     private Collection<ProvidedParameterNameGroup> getProvidedParameterNames(final ParameterProviderParameterApplicationEntity applicationEntity) {

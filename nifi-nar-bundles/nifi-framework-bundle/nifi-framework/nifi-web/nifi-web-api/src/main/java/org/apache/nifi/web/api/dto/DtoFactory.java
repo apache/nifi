@@ -80,6 +80,7 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
+import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -232,6 +233,7 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -1647,7 +1649,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ParameterProviderDTO createParameterProviderDto(final ParameterProviderNode parameterProviderNode) {
+    public ParameterProviderDTO createParameterProviderDto(final ParameterProviderNode parameterProviderNode, final RevisionManager revisionManager,
+                                                           final ParameterContextLookup parameterContextLookup) {
         final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
         final List<Bundle> compatibleBundles = extensionManager.getBundles(parameterProviderNode.getCanonicalClassName()).stream().filter(bundle -> {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
@@ -1716,6 +1719,22 @@ public final class DtoFactory {
 
         final ValidationStatus validationStatus = parameterProviderNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
         dto.setValidationStatus(validationStatus.name());
+
+        final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts = new HashSet<>();
+        for (final ParameterProviderUsageReference reference : parameterProviderNode.getReferences()) {
+            final ParameterContext parameterContext = reference.getParameterContext();
+            final ParameterProviderReferencingComponentDTO referenceDto = new ParameterProviderReferencingComponentDTO();
+            referenceDto.setName(parameterContext.getName());
+            referenceDto.setId(parameterContext.getIdentifier());
+            final ParameterProviderReferencingComponentEntity referenceEntity = new ParameterProviderReferencingComponentEntity();
+            referenceEntity.setId(parameterContext.getIdentifier());
+            referenceEntity.setComponent(referenceDto);
+
+            referencingParameterContexts.add(referenceEntity);
+        }
+        if (!referencingParameterContexts.isEmpty()) {
+            dto.setReferencingParameterContexts(referencingParameterContexts);
+        }
 
         // add the validation errors
         final Collection<ValidationResult> validationErrors = parameterProviderNode.getValidationErrors();
