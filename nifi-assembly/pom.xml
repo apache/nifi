@@ -1082,7 +1082,7 @@ language governing permissions and limitations under the License. -->
             </dependencies>
         </profile>
         <profile>
-            <id>tar-gz</id>
+            <id>build-tar-gz</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
