@@ -26,13 +26,11 @@ import java.io.IOException;
 
 public class SNMPManagerFactory {
 
-    private static final String LOCALHOST = "127.0.0.1";
-
     public Snmp createSnmpManagerInstance(final SNMPConfiguration configuration) {
-        final String managerAddress = LOCALHOST + "/" + configuration.getManagerPort();
+        final int port = configuration.getManagerPort();
         final Snmp snmpManager;
         try {
-            snmpManager = new Snmp(new DefaultUdpTransportMapping(new UdpAddress(managerAddress)));
+            snmpManager = new Snmp(new DefaultUdpTransportMapping(new UdpAddress(port)));
             snmpManager.listen();
         } catch (IOException e) {
             throw new ProcessException(e);
