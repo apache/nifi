@@ -740,7 +740,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
             references.forEach(referencingEntity -> {
                 final String parameterContextId = referencingEntity.getComponent().getId();
                 final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
-                parameterContextEntity.getComponent().getParameters().forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
+                parameterContextEntity.getComponent().getParameters().stream()
+                        .filter(dto -> Boolean.TRUE.equals(dto.getParameter().getProvided()))
+                        .forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
                 referencingParameterContextDtos.add(parameterContextEntity.getComponent());
             });
 
