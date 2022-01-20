@@ -823,6 +823,22 @@
                         }
 
                         // default prevented in nf-universal-capture.js
+                    } else if (evt.keyCode === 27) {
+                        // esc
+                        var contextMenuVisible = $('#context-menu').is(':visible');
+                        // if context menu is visible, then hide it
+                        if (contextMenuVisible) {
+                            nfContextMenu.hide();
+                            return;
+                        }
+
+                        var cancellables = $('.cancellable');
+                        var isAnyCancellableVisible = cancellables.length
+                            && cancellables.toArray().some(function (c) { return $(c).is(':visible'); });
+                        // if no cancellable (modals, etc.) and context menu is visible, then leave current process group
+                        if (!isAnyCancellableVisible && !contextMenuVisible && nfCanvasUtils.getParentGroupId() !== null) {
+                            nfActions['leaveGroup']();
+                        }
                     }
                 }
             });
