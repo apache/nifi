@@ -162,16 +162,7 @@
      * @argument {object} relationship      The relationship
      */
     var createRelationshipOption = function (relationship) {
-        var relationshipLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text(relationship.name);
         var relationshipValue = $('<span class="relationship-name-value hidden"></span>').text(relationship.name);
-
-        // build the relationship checkbox element
-        var relationshipCheckbox = $('<div class="processor-relationship nf-checkbox"></div>');
-        if (relationship.autoTerminate === true) {
-            relationshipCheckbox.addClass('checkbox-checked');
-        } else {
-            relationshipCheckbox.addClass('checkbox-unchecked');
-        }
 
         // build terminate checkbox element
         var terminateCheckbox = $('<div class="processor-terminate-relationship nf-checkbox"></div>');
@@ -935,6 +926,22 @@
                     if (!nfCommon.isEmpty(processor.relationships)) {
                         $.each(processor.relationships, function (i, relationship) {
                             createRelationshipOption(relationship);
+                        });
+
+                        // set initial disabled value for retry controls
+                        var setRetryControlsDisabledState = (function() {
+                            var isEnabled = $('#auto-terminate-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
+                            if (isEnabled) {
+                                $('#processor-relationships-tab-content .settings-right input').prop("disabled", false);
+                            } else {
+                                $('#processor-relationships-tab-content .settings-right input').prop("disabled", true);
+                            }
+                        });
+                        setRetryControlsDisabledState();
+
+                        // disble retry controls if no retry checkboxes are checked
+                        $('#auto-terminate-relationship-names').on('change', 'div.nf-checkbox.processor-retry-relationship', function () {
+                            setRetryControlsDisabledState();
                         });
                     } else {
                         $('#auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
