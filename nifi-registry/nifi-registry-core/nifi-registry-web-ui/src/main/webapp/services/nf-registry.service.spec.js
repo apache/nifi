@@ -29,7 +29,6 @@ import NfRegistryImportVersionedFlow
 import NfRegistryImportNewFlow
     from '../components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
 
-
 describe('NfRegistry Service isolated unit tests', function () {
     let nfRegistryService;
 

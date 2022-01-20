@@ -395,7 +395,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>--silent ci</arguments>
+                            <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>

@@ -18,7 +18,7 @@
 import { Component } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialogRef } from '@angular/material';
+import { MatDialogRef } from '@angular/material/dialog';
 import { NfRegistryLoginAuthGuard } from 'services/nf-registry.auth-guard.service';
 import { Router } from '@angular/router';
 

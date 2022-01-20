@@ -28,7 +28,8 @@ describe('NfRegistryAddUser Component isolated unit tests', function () {
     beforeEach(function () {
         nfRegistryService = new NfRegistryService();
         nfRegistryApi = new NfRegistryApi();
-        comp = new NfRegistryAddUser(nfRegistryApi,
+        comp = new NfRegistryAddUser(
+            nfRegistryApi,
             nfRegistryService,
             {
                 openCoaster: function () {
@@ -37,7 +38,8 @@ describe('NfRegistryAddUser Component isolated unit tests', function () {
             {
                 close: function () {
                 }
-            });
+            }
+        );
 
         // Spy
         spyOn(nfRegistryApi, 'addUser').and.callFake(function () {

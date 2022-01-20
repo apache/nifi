@@ -165,11 +165,9 @@
                                         <include>roboto-fontface/LICENSE*</include>
                                         <!-- covalent -->
                                         <include>@covalent/core/common/platform.css</include>
-                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular.woff2</include>
-                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular.ttf</include>
+                                        <include>@covalent/core/common/styles/font/MaterialIcons-Regular-v48.woff2</include>
                                         <include>@covalent/core/README.md</include>
                                         <!-- FDS -->
-                                        <include>@nifi-fds/core/common/styles/css/*</include>
                                         <include>@nifi-fds/core/LICENSE</include>
                                         <include>@nifi-fds/core/NOTICE</include>
                                         <include>@nifi-fds/core/README.md</include>
@@ -248,7 +246,7 @@
                         </goals>
                         <phase>initialize</phase>
                         <configuration>
-                            <arguments>--silent ci</arguments>
+                            <arguments>run ci</arguments>
                             <workingDirectory>${frontend.working.dir}</workingDirectory>
                         </configuration>
                     </execution>
