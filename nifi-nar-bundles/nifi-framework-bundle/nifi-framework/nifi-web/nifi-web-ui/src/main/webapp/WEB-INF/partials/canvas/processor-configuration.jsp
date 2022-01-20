@@ -220,7 +220,7 @@
                             <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate or retry FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
                         </div>
                         <div class="setting-field">
-                            <div id="auto-terminate-relationship-names"></div>
+                            <div id="auto-action-relationship-names"></div>
                         </div>
                     </div>
                 </div>

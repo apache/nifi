@@ -186,7 +186,7 @@
 
         // build the relationship container element
         var relationshipContainerHeading = $('<div></div>').text(relationship.name);
-        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipContainerHeading).append(terminateCheckboxBundle).append(retryCheckboxBundle).append(relationshipValue).appendTo('#auto-terminate-relationship-names');
+        var relationshipContainerElement = $('<div class="processor-relationship-container"></div>').append(relationshipContainerHeading).append(terminateCheckboxBundle).append(retryCheckboxBundle).append(relationshipValue).appendTo('#auto-action-relationship-names');
         if (!nfCommon.isBlank(relationship.description)) {
             var relationshipDescription = $('<div class="relationship-description"></div>').text(relationship.description);
             relationshipContainerElement.append(relationshipDescription);
@@ -206,7 +206,7 @@
 
         // consider auto terminated relationships
         var autoTerminatedChanged = false;
-        var autoTerminated = marshalAutoTerminateRelationships();
+        var autoTerminated = marshalRelationships('terminate');
         $.each(details.relationships, function (i, relationship) {
             if (relationship.autoTerminate === true) {
                 // relationship was auto terminated but is no longer selected
@@ -228,7 +228,7 @@
 
         // consider retried relationships
         var retriedChanged = false;
-        var retried = marshalRetriedRelationships();
+        var retried = marshalRelationships('retry');
         $.each(details.relationships, function (i, relationship) {
             if (relationship.retry === true) {
                 // relationship was retried but is no longer selected
@@ -367,8 +367,8 @@
         }
 
         // relationships
-        processorConfigDto['autoTerminatedRelationships'] = marshalAutoTerminateRelationships();
-        processorConfigDto['retriedRelationships'] = marshalRetriedRelationships();
+        processorConfigDto['autoTerminatedRelationships'] = marshalRelationships('terminate');
+        processorConfigDto['retriedRelationships'] = marshalRelationships('retry');
         processorConfigDto['retryCount'] = $('#retry-attempt-count').val();
         processorConfigDto['backoffMechanism'] = $("input:radio[name ='backoffPolicy']:checked").val();
         processorConfigDto['maxBackoffPeriod'] = $('#max-backoff-period').val();
@@ -403,11 +403,11 @@
     };
 
     /**
-     * Marshals the relationships that will be auto terminated.
+     * Marshals the relationships that will be auto terminated and retried
      **/
-    var marshalAutoTerminateRelationships = function () {
+    var marshalRelationships = function(action) {
         // get all available relationships
-        var availableRelationships = $('#auto-terminate-relationship-names');
+        var availableRelationships = $('#auto-action-relationship-names');
         var selectedRelationships = [];
 
         // go through each relationship to determine which are selected
@@ -415,28 +415,7 @@
             var relationship = $(relationshipElement);
 
             // get each relationship and its corresponding checkbox
-            var relationshipCheck = relationship.children('div.processor-terminate-relationship-container').children('div.processor-terminate-relationship');
-
-            // see if this relationship has been selected
-            if (relationshipCheck.hasClass('checkbox-checked')) {
-                selectedRelationships.push(relationship.children('span.relationship-name-value').text());
-            }
-        });
-
-        return selectedRelationships;
-    };
-
-    var marshalRetriedRelationships = function () {
-        // get all available relationships
-        var availableRelationships = $('#auto-terminate-relationship-names');
-        var selectedRelationships = [];
-
-        // go through each relationship to determine which are selected
-        $.each(availableRelationships.children(), function (i, relationshipElement) {
-            var relationship = $(relationshipElement);
-
-            // get each relationship and its corresponding checkbox
-            var relationshipCheck = relationship.children('div.processor-retry-relationship-container').children('div.processor-retry-relationship');
+            var relationshipCheck = relationship.children('div.processor-' + action + '-relationship-container').children('div.processor-' + action + '-relationship');
 
             // see if this relationship has been selected
             if (relationshipCheck.hasClass('checkbox-checked')) {
@@ -631,7 +610,7 @@
                     $('#processor-properties').propertytable('saveRow');
 
                     // show the border around the processor relationships if necessary
-                    var processorRelationships = $('#auto-terminate-relationship-names');
+                    var processorRelationships = $('#auto-action-relationship-names');
                     if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
@@ -645,7 +624,7 @@
                 handler: {
                     close: function () {
                         // empty the relationship list
-                        $('#auto-terminate-relationship-names').css('border-width', '0').empty();
+                        $('#auto-action-relationship-names').css('border-width', '0').empty();
 
                         // cancel any active edits and clear the table
                         $('#processor-properties').propertytable('cancelEdit').propertytable('clear');
@@ -930,7 +909,7 @@
 
                         // set initial disabled value for retry controls
                         var setRetryControlsDisabledState = (function() {
-                            var isEnabled = $('#auto-terminate-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
+                            var isEnabled = $('#auto-action-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
                             if (isEnabled) {
                                 $('#processor-relationships-tab-content .settings-right input').prop("disabled", false);
                             } else {
@@ -940,11 +919,11 @@
                         setRetryControlsDisabledState();
 
                         // disble retry controls if no retry checkboxes are checked
-                        $('#auto-terminate-relationship-names').on('change', 'div.nf-checkbox.processor-retry-relationship', function () {
+                        $('#auto-action-relationship-names').on('change', 'div.nf-checkbox.processor-retry-relationship', function () {
                             setRetryControlsDisabledState();
                         });
                     } else {
-                        $('#auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
+                        $('#auto-action-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
                     }
 
                     if (nfCommon.isDefinedAndNotNull(processor.config.backoffMechanism)) {
@@ -1125,7 +1104,7 @@
                     $('#processor-configuration div.relationship-name').ellipsis();
 
                     // show the border if necessary
-                    var processorRelationships = $('#auto-terminate-relationship-names');
+                    var processorRelationships = $('#auto-action-relationship-names');
                     if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
                         processorRelationships.css('border-width', '1px');
                     }
