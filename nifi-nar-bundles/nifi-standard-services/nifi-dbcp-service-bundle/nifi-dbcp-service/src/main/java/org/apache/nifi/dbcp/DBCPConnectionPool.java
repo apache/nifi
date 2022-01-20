@@ -81,28 +81,28 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
+     * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MIN_IDLE = "0";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
+     * Copied from {@link GenericObjectPoolConfig#DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_IDLE = "8";
     /**
-     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.7.0
+     * Copied from private variable {@link BasicDataSource#maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
+     * Copied from {@link GenericObjectPoolConfig#DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
+     * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
     private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
     /**
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
+     * Copied from {@link GenericObjectPoolConfig#DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
     private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
 
@@ -180,7 +180,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .name("Validation-query")
         .displayName("Validation query")
         .description("Validation query used to validate connections before returning them. "
-            + "When connection is invalid, it get's dropped and new valid connection will be returned. "
+            + "When connection is invalid, it gets dropped and new valid connection will be returned. "
             + "Note!! Using validation might have some performance penalty.")
         .required(false)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -190,8 +190,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
             .displayName("Minimum Idle Connections")
             .name("dbcp-min-idle-conns")
-            .description("The minimum number of connections that can remain idle in the pool, without extra ones being " +
-                    "created, or zero to create none.")
+            .description("The minimum number of connections that can remain idle in the pool without extra ones being " +
+                "created. Set to or zero to allow no idle connections.")
             .defaultValue(DEFAULT_MIN_IDLE)
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -201,8 +201,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
             .displayName("Max Idle Connections")
             .name("dbcp-max-idle-conns")
-            .description("The maximum number of connections that can remain idle in the pool, without extra ones being " +
-                    "released, or negative for no limit.")
+            .description("The maximum number of connections that can remain idle in the pool without extra ones being " +
+                "released. Set to any negative value to allow unlimited idle connections.")
             .defaultValue(DEFAULT_MAX_IDLE)
             .required(false)
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
@@ -319,8 +319,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         properties = Collections.unmodifiableList(props);
     }
 
-    private volatile BasicDataSource dataSource;
-    private volatile KerberosUser kerberosUser;
+    protected volatile BasicDataSource dataSource;
+    protected volatile KerberosUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -414,11 +414,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
+        final String dburl = getUrl(context);
 
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
@@ -486,7 +486,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         });
     }
 
-    private Driver getDriver(final String driverName, final String url) {
+    protected String getUrl(ConfigurationContext context) {
+        return context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
+    }
+
+    protected Driver getDriver(final String driverName, final String url) {
         final Class<?> clazz;
 
         try {
@@ -511,7 +515,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         }
     }
 
-    private Long extractMillisWithInfinite(PropertyValue prop) {
+    protected Long extractMillisWithInfinite(PropertyValue prop) {
         return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
@@ -571,7 +575,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     @Override
     public String toString() {
-        return "DBCPConnectionPool[id=" + getIdentifier() + "]";
+        return this.getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
     }
 
     BasicDataSource getDataSource() {
