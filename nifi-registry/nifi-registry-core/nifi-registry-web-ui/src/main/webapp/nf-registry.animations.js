@@ -32,10 +32,12 @@ NfAnimations.prototype = {
      * Fade animation
      */
     fadeAnimation: ngAnimate.trigger('routeAnimation', [
-        ngAnimate.state('*',
+        ngAnimate.state(
+            '*',
             ngAnimate.style({
                 opacity: 1
-            })),
+            })
+        ),
         ngAnimate.transition(':enter', [
             ngAnimate.style({
                 opacity: 0
@@ -53,11 +55,13 @@ NfAnimations.prototype = {
      * Slide in from the left animation
      */
     slideInLeftAnimation: ngAnimate.trigger('routeAnimation', [
-        ngAnimate.state('*',
+        ngAnimate.state(
+            '*',
             ngAnimate.style({
                 opacity: 1,
                 transform: 'translateX(0)'
-            })),
+            })
+        ),
         ngAnimate.transition(':enter', [
             ngAnimate.style({
                 opacity: 0,
@@ -77,11 +81,13 @@ NfAnimations.prototype = {
      * Slide in from the top animation
      */
     slideInDownAnimation: ngAnimate.trigger('routeAnimation', [
-        ngAnimate.state('*',
+        ngAnimate.state(
+            '*',
             ngAnimate.style({
                 opacity: 1,
                 transform: 'translateY(0)'
-            })),
+            })
+        ),
         ngAnimate.transition(':enter', [
             ngAnimate.style({
                 opacity: 0,
@@ -101,8 +107,10 @@ NfAnimations.prototype = {
      * Fly in/out animation
      */
     flyInOutAnimation: ngAnimate.trigger('flyInOut', [
-        ngAnimate.state('in',
-            ngAnimate.style({transform: 'translateX(0)'})),
+        ngAnimate.state(
+            'in',
+            ngAnimate.style({transform: 'translateX(0)'})
+        ),
         ngAnimate.transition('void => *', [
             ngAnimate.style({transform: 'translateX(100%)'}),
             ngAnimate.animate('0.4s 0.1s ease-in')
@@ -114,8 +122,10 @@ NfAnimations.prototype = {
      * Fly in/out animation
      */
     fadeInOutAnimation: ngAnimate.trigger('fadeInOut', [
-        ngAnimate.state('in',
-            ngAnimate.style({opacity: 1})),
+        ngAnimate.state(
+            'in',
+            ngAnimate.style({opacity: 1})
+        ),
         ngAnimate.transition('void => *', [
             ngAnimate.style({opacity: 0}),
             ngAnimate.animate('0.5s 0.1s ease-in')

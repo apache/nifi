@@ -91,7 +91,8 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
         <maven.surefire.arguments />
-        <node.version>v12.22.2</node.version>
+        <node.version>v16.13.2</node.version>
+        <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
         <project.build.outputTimestamp>10</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
