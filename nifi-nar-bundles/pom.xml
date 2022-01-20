@@ -110,6 +110,7 @@
         <module>nifi-hashicorp-vault-bundle</module>
         <module>nifi-stateless-processor-bundle</module>
         <module>nifi-geohash-bundle</module>
+        <module>nifi-snowflake-bundle</module>
     </modules>
 
     <build>
