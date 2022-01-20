@@ -1,4 +1,6 @@
 import traceback
+# There is no Apache header on this file in order to reproduce the issue in NIFI-9596
+#  where the first line gets appended to the last line of the additional modules
 from callbacks import Compress, Decompress
 from org.apache.nifi.processor import Processor
 from org.apache.nifi.processor import Relationship
