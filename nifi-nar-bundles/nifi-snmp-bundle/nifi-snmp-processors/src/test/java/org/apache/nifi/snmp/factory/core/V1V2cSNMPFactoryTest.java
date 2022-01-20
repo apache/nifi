@@ -25,7 +25,7 @@ import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
 
-import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
+import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -46,7 +46,7 @@ public class V1V2cSNMPFactoryTest {
         final Target target = snmpFactory.createTargetInstance(snmpConfiguration);
 
         assertThat(target, instanceOf(CommunityTarget.class));
-        assertEquals(DEFAULT_HOST + "/" + targetPort, target.getAddress().toString());
+        assertEquals(LOCALHOST + "/" + targetPort, target.getAddress().toString());
         assertEquals(RETRIES, target.getRetries());
         assertEquals(1, target.getSecurityLevel());
         assertEquals(StringUtils.EMPTY, target.getSecurityName().toString());
@@ -62,7 +62,7 @@ public class V1V2cSNMPFactoryTest {
         final Snmp snmpManager = snmpFactory.createSnmpManagerInstance(snmpConfiguration);
 
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
-        assertEquals(DEFAULT_HOST + "/" + managerPort, address);
+        assertEquals("0.0.0.0" + "/" + managerPort, address);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class V1V2cSNMPFactoryTest {
         return new SNMPConfiguration.Builder()
                 .setRetries(RETRIES)
                 .setManagerPort(managerPort)
-                .setTargetHost(DEFAULT_HOST)
+                .setTargetHost(LOCALHOST)
                 .setTargetPort(targetPort)
                 .setSecurityLevel(SecurityLevel.noAuthNoPriv.name())
                 .build();

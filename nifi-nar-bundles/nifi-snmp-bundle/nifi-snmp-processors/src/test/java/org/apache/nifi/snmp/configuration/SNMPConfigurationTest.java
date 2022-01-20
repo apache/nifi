@@ -21,7 +21,7 @@ import org.junit.Test;
 import org.snmp4j.mp.SnmpConstants;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.COMMUNITY_STRING;
-import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
+import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
@@ -42,7 +42,7 @@ public class SNMPConfigurationTest {
     public void testMembersAreSetCorrectly() {
         final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
                 .setManagerPort(MANAGER_PORT)
-                .setTargetHost(DEFAULT_HOST)
+                .setTargetHost(LOCALHOST)
                 .setTargetPort(TARGET_PORT)
                 .setRetries(RETRIES)
                 .setTimeoutInMs(TIMEOUT_IN_MS)
@@ -57,7 +57,7 @@ public class SNMPConfigurationTest {
                 .build();
 
         assertEquals(MANAGER_PORT, snmpConfiguration.getManagerPort());
-        assertEquals(DEFAULT_HOST, snmpConfiguration.getTargetHost());
+        assertEquals(LOCALHOST, snmpConfiguration.getTargetHost());
         assertEquals(TARGET_PORT, snmpConfiguration.getTargetPort());
         assertEquals(RETRIES, snmpConfiguration.getRetries());
         assertEquals(TIMEOUT_IN_MS, snmpConfiguration.getTimeoutInMs());

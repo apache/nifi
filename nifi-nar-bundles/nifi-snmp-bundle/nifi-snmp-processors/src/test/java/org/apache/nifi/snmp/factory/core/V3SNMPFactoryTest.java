@@ -28,7 +28,7 @@ import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
-import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.DEFAULT_HOST;
+import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PASSPHRASE;
@@ -56,7 +56,7 @@ public class V3SNMPFactoryTest {
         final Target target = snmpFactory.createTargetInstance(snmpConfiguration);
 
         assertThat(target, instanceOf(UserTarget.class));
-        assertEquals(DEFAULT_HOST + "/" + targetPort, target.getAddress().toString());
+        assertEquals(LOCALHOST + "/" + targetPort, target.getAddress().toString());
         assertEquals(RETRIES, target.getRetries());
         assertEquals(EXPECTED_SECURITY_LEVEL, target.getSecurityLevel());
         assertEquals(SECURITY_NAME, target.getSecurityName().toString());
@@ -73,7 +73,7 @@ public class V3SNMPFactoryTest {
 
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
-        assertEquals(DEFAULT_HOST + "/" + managerPort, address);
+        assertEquals("0.0.0.0" + "/" + managerPort, address);
         assertTrue(usm.hasUser(null, new OctetString("SHAAES128")));
     }
 
@@ -93,7 +93,7 @@ public class V3SNMPFactoryTest {
         return new SNMPConfiguration.Builder()
                 .setRetries(RETRIES)
                 .setManagerPort(managerPort)
-                .setTargetHost(DEFAULT_HOST)
+                .setTargetHost(LOCALHOST)
                 .setTargetPort(targetPort)
                 .setSecurityLevel(SecurityLevel.authPriv.name())
                 .setSecurityName(SECURITY_NAME)
