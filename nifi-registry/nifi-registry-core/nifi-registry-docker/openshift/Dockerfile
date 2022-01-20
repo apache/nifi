@@ -22,17 +22,17 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1001
 ARG GID=0
-ARG NIFI_REGISTRY_VERSION=1.15.2
+ARG NIFI_REGISTRY_VERSION=1.16.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME=${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
+ENV NIFI_REGISTRY_BINARY_PATH nifi/${NIFI_REGISTRY_VERSION}/nifi-registry-${NIFI_REGISTRY_VERSION}-bin.tar.gz
+ENV NIFI_REGISTRY_BINARY_URL ${MIRROR}/${NIFI_REGISTRY_BINARY_PATH}
 
 #Bugfix https://issues.redhat.com/browse/OPENJDK-335
 ENV NSS_WRAPPER_PASSWD=
 ENV NSS_WRAPPER_GROUP=
-
-ARG NIFI_REGISTRY_BINARY_URL=nifi/nifi-registry/nifi-registry-${NIFI_REGISTRY_VERSION}/nifi-registry-${NIFI_REGISTRY_VERSION}-bin.tar.gz
 
 ADD sh/ ${NIFI_REGISTRY_BASE_DIR}/scripts/
 
@@ -62,7 +62,7 @@ EXPOSE 18080 18443
 
 WORKDIR ${NIFI_REGISTRY_HOME}
 
-#OpenShift specific fixes
+#OpenShift specific permission fixes
 RUN ${NIFI_REGISTRY_BASE_DIR}/scripts/fix-permissions.sh ${NIFI_REGISTRY_BASE_DIR}
 
 # Apply configuration and start NiFi Registry

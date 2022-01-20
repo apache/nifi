@@ -15,12 +15,12 @@
 
 #!/bin/bash
 
-DOCKER_UID=1000
+DOCKER_UID=1001
 if [ -n "$1" ]; then
   DOCKER_UID="$1"
 fi
 
-DOCKER_GID=1000
+DOCKER_GID=0
 if [ -n "$2" ]; then
   DOCKER_GID="$2"
 fi
