@@ -898,7 +898,6 @@ Security Properties:
     Sensitive Props:
         key:
         algorithm: NIFI_PBKDF2_AES_GCM_256
-        provider: BC
 
 Processors:
     - name: TailAppLog
