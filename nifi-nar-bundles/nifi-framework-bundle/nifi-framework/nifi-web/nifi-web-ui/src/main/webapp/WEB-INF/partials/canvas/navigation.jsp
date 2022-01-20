@@ -60,6 +60,12 @@
                      ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.zoomActualSize();">
                     <button><div class="graph-control-action-icon icon icon-zoom-actual"></div></button>
                 </div>
+                <div class="button-spacer-large">&nbsp;</div>
+                <div id="naviagte-leave-group" class="action-button right" title="Leave group"
+                     ng-if="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.isNotRootGroup()"
+                     ng-click="appCtrl.serviceProvider.graphControlsCtrl.navigateCtrl.leaveGroup();">
+                    <button><div class="graph-control-action-icon fa fa-level-up"></div></button>
+                </div>
                 <div class="clear"></div>
             </div>
             <div id="birdseye"></div>
