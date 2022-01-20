@@ -184,6 +184,10 @@ div.action-button {
     float: left;
 }
 
+div.action-button.right {
+    float: right;
+}
+
 #operate-delete button {
     width: inherit;
     padding: 0 7px;

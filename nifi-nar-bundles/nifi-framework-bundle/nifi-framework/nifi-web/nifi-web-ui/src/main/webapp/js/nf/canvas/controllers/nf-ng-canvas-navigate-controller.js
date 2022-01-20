@@ -75,6 +75,22 @@
                     nfCanvasUtils.actualSizeCanvas();
                 }, 0);
             };
+
+            /**
+             * Leaves current process group.
+             */
+            this.leaveGroup = function () {
+                $timeout(function () {
+                    nfCanvasUtils.executeAction('leaveGroup');
+                }, 0);
+            };
+
+            /**
+             * Returns true if the current Process Group is not the root.
+             */
+            this.isNotRootGroup = function () {
+                return nfCanvasUtils.getParentGroupId() !== null;
+            };
         }
 
         NavigateCtrl.prototype = {
