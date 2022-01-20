@@ -20,7 +20,7 @@ import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 
 public interface SNMPConfigurationFactory {
 
-    String DEFAULT_HOST = "127.0.0.1";
+    String LOCALHOST = "127.0.0.1";
     String COMMUNITY_STRING = "public";
 
     SNMPConfiguration createSnmpGetSetConfiguration(int agentPort);

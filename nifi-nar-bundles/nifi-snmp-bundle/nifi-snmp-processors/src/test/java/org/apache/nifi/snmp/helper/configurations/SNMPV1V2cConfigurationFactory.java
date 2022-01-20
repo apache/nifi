@@ -29,7 +29,7 @@ public class SNMPV1V2cConfigurationFactory implements SNMPConfigurationFactory {
     @Override
     public SNMPConfiguration createSnmpGetSetConfiguration(final int agentPort) {
         return SNMPConfiguration.builder()
-                .setTargetHost(DEFAULT_HOST)
+                .setTargetHost(LOCALHOST)
                 .setTargetPort(String.valueOf(agentPort))
                 .setCommunityString(COMMUNITY_STRING)
                 .setVersion(snmpVersion)
