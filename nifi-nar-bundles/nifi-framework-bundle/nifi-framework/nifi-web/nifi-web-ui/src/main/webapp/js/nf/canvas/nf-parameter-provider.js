@@ -137,7 +137,6 @@
         return parameterProviderEntity;
     };
 
-    //TODO - what kind of validations do I need?
     /**
      * Validates the specified details.
      *
@@ -376,7 +375,7 @@
                     handler: {
                         click: function () {
                             deferred.resolve();
-                            close();
+                            closeModal('#fetch-parameters-dialog');
                         }
                     }
                 }]);
@@ -414,7 +413,7 @@
                                 updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
                             }
 
-                            close();
+                            closeModal('#fetch-parameters-dialog');
                         }
                     }
                 }]);
@@ -467,6 +466,9 @@
 
                     // update the progress/steps
                     populateFetchParametersUpdateStep(updateRequest.updateSteps, cancelled, errored);
+
+                    // show update steps
+                    $('#fetch-parameters-update-status-container').show();
 
                     // if this request was cancelled, remove the update request
                     if (cancelled) {
@@ -551,39 +553,6 @@
         $('#fetch-parameters-id').text(parameterProviderEntity.id);
         $('#fetch-parameters-name').text(nfCommon.getComponentName(parameterProviderEntity));
 
-        //TODO: do I need the readOnly or canWrite part?
-
-        // var canWrite = _.get(parameterProviderEntity, 'permissions.canWrite', false);
-
-        // // if specifically asked to open in read only mode, set canWrite to false to trigger that behavior
-        // if (_.defaultTo(readOnly, false)) {
-        //     canWrite = false;
-        // }
-
-       //  var currentParameterProviderEntity = parameterProviderEntity;
-       //  var fetchParametersDialog = $('#fetch-parameters-dialog');
-
-        // if (canWrite) {
-        //     fetchParametersDialog.removeClass('read-only');
-        //     fetchParametersDialog.addClass('edit-mode');
-        //     $('#fetch-parameters-name').val(parameterProviderEntity.component.name);
-        // } else {
-        //     fetchParametersDialog.removeClass('edit-mode');
-        //     fetchParametersDialog.addClass('read-only');
-        //     $('#read-only-parameter-provider-name')
-        //         .prop('title', parameterContextEntity.component.name)
-        //         .text(parameterContextEntity.component.name);
-        //     $('#parameter-context-description-read-only').text(parameterContextEntity.component.description);
-        // }
-
-        // // show the parameter context id
-        // if ($('#parameter-context-id-setting').hasClass('hidden')) {
-        //     $('#parameter-context-id-setting').removeClass('hidden');
-        // }
-        // $('#parameter-context-id-field')
-        //     .prop('title', parameterContextEntity.id)
-        //     .text(parameterContextEntity.id);
-
         // get the reference container
         var referencingComponentsContainer = $('#fetch-parameters-referencing-components');
 
@@ -597,6 +566,9 @@
             updatedParameterProviderEntity = response;
 
             populateFetchParametersListing(updatedParameterProviderEntity.component.fetchedParameterNameGroups);
+
+            // show the parameters listing
+            $('#fetch-parameters-usage-container').show();
 
             // build the button model
             var buttons = [{
@@ -619,7 +591,9 @@
                     text: '#004849'
                 },
                 handler: {
-                    click: closeModal
+                    click: function () {
+                        closeModal('#fetch-parameters-dialog');
+                    }
                 }
             }];
 
@@ -801,9 +775,11 @@
 
     /**
      * Used to handle closing a modal dialog
+     *
+     * * @param {string} dialog the dialog to close
      */
-    var closeModal = function () {
-        $(this).modal('hide');
+    var closeModal = function (dialog) {
+        $(dialog).modal('hide');
     };
 
     /**
@@ -1035,10 +1011,13 @@
                         // reset visibility
                         $('#fetch-parameters-progress-container').hide();
                         $('#fetch-parameters-progress li.referencing-component').show();
+                        $('#fetch-parameters-update-status-container').hide();
 
                         // clear the dialog
                         $('#fetch-parameters-id').text('');
                         $('#fetch-parameters-name').text('');
+                        $('#fetch-parameters-listing').empty();
+                        $('#fetch-parameters-update-steps').empty();
 
                         // bulletins
                         $('#fetch-parameters-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
@@ -1142,7 +1121,7 @@
                                 nfControllerService.reloadReferencedServices(getControllerServicesTable(), response.component);
 
                                 // close the details panel
-                                $('#parameter-provider-configuration').modal('hide');
+                                closeModal('#parameter-provider-configuration');
                             });
                         }
                     }
@@ -1156,7 +1135,7 @@
                         },
                         handler: {
                             click: function () {
-                                $('#parameter-provider-configuration').modal('hide');
+                                closeModal('#parameter-provider-configuration');
                             }
                         }
                     }];
@@ -1175,7 +1154,7 @@
                             click: function () {
                                 var openCustomUi = function () {
                                     // reset state and close the dialog manually to avoid hiding the faded background
-                                    $('#parameter-provider-configuration').modal('hide');
+                                    closeModal('#parameter-provider-configuration');
 
                                     // close the settings dialog since the custom ui is also opened in the shell
                                     $('#shell-close-button').click();
@@ -1302,7 +1281,7 @@
                     handler: {
                         click: function () {
                             // hide the dialog
-                            parameterProviderDialog.modal('hide');
+                            closeModal('#parameter-provider-configuration');
                         }
                     }
                 }];
@@ -1320,7 +1299,7 @@
                         handler: {
                             click: function () {
                                 // reset state and close the dialog manually to avoid hiding the faded background
-                                parameterProviderDialog.modal('hide');
+                                closeModal('#parameter-provider-configuration');
 
                                 // close the settings dialog since the custom ui is also opened in the shell
                                 $('#shell-close-button').click();
