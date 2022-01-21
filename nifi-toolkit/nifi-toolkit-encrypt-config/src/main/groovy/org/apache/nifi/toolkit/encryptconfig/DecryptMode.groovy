@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.internal.OptionAccessor
 import groovy.cli.commons.CliBuilder
-import groovy.cli.commons.OptionAccessor
+
 import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.scheme.ProtectionScheme

@@ -17,8 +17,10 @@
 package org.apache.nifi.properties
 
 import groovy.io.GroovyPrintWriter
-import groovy.util.slurpersupport.GPathResult
+
+import groovy.xml.XmlSlurper
 import groovy.xml.XmlUtil
+import groovy.xml.slurpersupport.GPathResult
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
