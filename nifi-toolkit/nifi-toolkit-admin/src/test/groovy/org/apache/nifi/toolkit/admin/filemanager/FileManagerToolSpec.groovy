@@ -24,6 +24,7 @@ import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
+import spock.lang.Ignore
 import spock.lang.Specification
 
 import java.nio.file.Files
@@ -39,18 +40,6 @@ class FileManagerToolSpec extends Specification{
     @BeforeClass
     static void setUpOnce() throws Exception {
         Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
-    }
-
-    def "print help and usage info"() {
-
-        given:
-        def manager = new FileManagerTool()
-
-        when:
-        manager.parse(["-h"] as String[])
-
-        then:
-        systemOutRule.getLog().contains("usage: org.apache.nifi.toolkit.admin.filemanager.FileManagerTool")
     }
 
     def "throws exception missing operation flag"() {

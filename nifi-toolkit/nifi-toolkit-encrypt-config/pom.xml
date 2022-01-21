@@ -144,6 +144,11 @@
             <artifactId>groovy-all</artifactId>
             <type>pom</type>
         </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-cli-commons</artifactId>
+            <version>${nifi.groovy.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
