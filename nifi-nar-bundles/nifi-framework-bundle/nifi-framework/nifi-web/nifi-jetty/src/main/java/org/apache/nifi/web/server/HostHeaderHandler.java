@@ -351,7 +351,7 @@ public class HostHeaderHandler extends ScopedHandler {
      *
      * @param networkInterfaces the map of properties to bindings
      *                          ({@code ["nifi.web.http.network.interface.first":"eth0"]})
-     * @return
+     * @return Not Defined status
      */
     static boolean isNotDefined(Map<String, String> networkInterfaces) {
         return networkInterfaces == null || networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty();

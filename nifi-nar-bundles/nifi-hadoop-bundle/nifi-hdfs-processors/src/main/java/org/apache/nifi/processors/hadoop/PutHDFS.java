@@ -550,7 +550,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
      * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
      * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
      * @param t The throwable to inspect for the cause.
-     * @return
+     * @return Throwable Cause
      */
     private <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
         Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();

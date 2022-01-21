@@ -69,7 +69,7 @@ public class SecureNiFiConfigUtil {
      * This would indicate that the user intends to auto-generate a keystore and truststore, rather than
      * using their existing kestore and truststore.
      * @param nifiProperties The nifi properties
-     * @return
+     * @return HTTPS Security Configured status
      */
     private static boolean isHttpsSecurityConfiguredWithEmptyPasswords(final Properties nifiProperties) {
         if (StringUtils.isEmpty(nifiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT, StringUtils.EMPTY))) {

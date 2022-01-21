@@ -57,7 +57,7 @@ public class EasyRulesEngineService  extends EasyRulesEngineProvider implements 
     /**
      * Return the list of actions what should be executed for a given set of facts
      * @param facts a Map of key and facts values, as objects, that should be evaluated by the rules engine
-     * @return
+     * @return List of Actions
      */
     @Override
     public List<Action> fireRules(Map<String, Object> facts) {
