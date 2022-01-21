@@ -113,7 +113,7 @@ public class HashiCorpVaultProperties {
          * Set the Vault URI (e.g., http://localhost:8200).  If using https protocol, the KeyStore and TrustStore
          * properties are expected to also be set.
          * @param uri Vault's URI
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setUri(String uri) {
             this.uri = uri;
@@ -123,7 +123,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the path to the keyStore.
          * @param keyStore Path to the keyStore
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setKeyStore(String keyStore) {
             this.keyStore = keyStore;
@@ -133,7 +133,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets keyStore type (e.g., JKS, PKCS12).
          * @param keyStoreType KeyStore type
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setKeyStoreType(String keyStoreType) {
             this.keyStoreType = keyStoreType;
@@ -143,7 +143,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the keyStore password.
          * @param keyStorePassword KeyStore password
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setKeyStorePassword(String keyStorePassword) {
             this.keyStorePassword = keyStorePassword;
@@ -153,7 +153,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the path to the trustStore.
          * @param trustStore Path to the trustStore
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setTrustStore(String trustStore) {
             this.trustStore = trustStore;
@@ -163,7 +163,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the trustStore type (e.g., JKS, PKCS12).
          * @param trustStoreType TrustStore type
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setTrustStoreType(String trustStoreType) {
             this.trustStoreType = trustStoreType;
@@ -173,7 +173,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the trustStore passsword.
          * @param trustStorePassword TrustStore password
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setTrustStorePassword(String trustStorePassword) {
             this.trustStorePassword = trustStorePassword;
@@ -188,7 +188,7 @@ public class HashiCorpVaultProperties {
          *     https://docs.spring.io/spring-vault/docs/2.3.1/reference/html/#vault.core.environment-vault-configuration</a>
          * @param authPropertiesFilename The filename of a properties file containing Spring Vault authentication
          *                               properties
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setAuthPropertiesFilename(String authPropertiesFilename) {
             this.authPropertiesFilename = authPropertiesFilename;
@@ -198,7 +198,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets an optional comma-separated list of enabled TLS cipher suites.
          * @param enabledTlsCipherSuites Enabled TLS cipher suites (only these will be enabled)
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setEnabledTlsCipherSuites(String enabledTlsCipherSuites) {
             this.enabledTlsCipherSuites = enabledTlsCipherSuites;
@@ -208,7 +208,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets an optional comma-separated list of enabled TLS protocols.
          * @param enabledTlsProtocols Enabled TLS protocols (only these will be enabled)
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setEnabledTlsProtocols(String enabledTlsProtocols) {
             this.enabledTlsProtocols = enabledTlsProtocols;
@@ -218,7 +218,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the connection timeout for the HTTP client, using the standard NiFi duration format (e.g., 5 secs)
          * @param connectionTimeout Connection timeout (default is 5 secs)
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setConnectionTimeout(String connectionTimeout) {
             this.connectionTimeout = connectionTimeout;
@@ -228,7 +228,7 @@ public class HashiCorpVaultProperties {
         /**
          * Sets the read timeout for the HTTP client, using the standard NiFi duration format (e.g., 15 secs).
          * @param readTimeout Read timeout (default is 15 secs)
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultPropertiesBuilder setReadTimeout(String readTimeout) {
             this.readTimeout = readTimeout;
@@ -237,7 +237,7 @@ public class HashiCorpVaultProperties {
 
         /**
          * Build the VaultProperties.
-         * @return
+         * @return Builder
          */
         public HashiCorpVaultProperties build() {
             return new HashiCorpVaultProperties(uri, keyStore, keyStoreType, keyStorePassword, trustStore, trustStoreType,

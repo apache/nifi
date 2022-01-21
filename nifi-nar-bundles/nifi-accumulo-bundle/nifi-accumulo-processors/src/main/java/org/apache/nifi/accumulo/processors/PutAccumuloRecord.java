@@ -432,7 +432,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
      * @param columnQualifier column qualifier from which to extract the visibility or to execute an expression against
      * @param flowFile flow file being written
      * @param context process context
-     * @return
+     * @return Visibility
      */
     public static String produceVisibility(String columnFamily, String columnQualifier, FlowFile flowFile, ProcessContext context) {
         if (org.apache.commons.lang3.StringUtils.isNotEmpty(columnFamily)) {

@@ -63,7 +63,7 @@ public class EasyRulesEngine implements RulesEngine {
      * Return the list of actions what should be executed for a given set of facts
      *
      * @param facts a Map of key and facts values, as objects, that should be evaluated by the rules engine
-     * @return
+     * @return List of Actions
      */
     @Override
     public List<Action> fireRules(Map<String, Object> facts) {
@@ -81,7 +81,7 @@ public class EasyRulesEngine implements RulesEngine {
      * Return a Map with Rule as a key and Boolean as a value indicating that the rule's conditions were met
      *
      * @param facts Map of keys and values contains facts to evaluate against rules
-     * @return
+     * @return Map of Rules
      */
     @Override
     public Map<Rule, Boolean> checkRules(Map<String, Object> facts) {

@@ -19,7 +19,7 @@ on: [push, pull_request]
 
 env:
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx2g
+    -Xmx3g
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
