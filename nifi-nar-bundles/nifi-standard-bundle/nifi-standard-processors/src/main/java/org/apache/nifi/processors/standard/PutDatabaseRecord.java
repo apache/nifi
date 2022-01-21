@@ -603,14 +603,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
             throw new IllegalArgumentException(format("Cannot process %s because Table Name is null or empty", flowFile));
         }
 
-        // Always get the primary keys if Update Keys is empty. Otherwise if we have an Insert statement first, the table will be
-        // cached but the primary keys will not be retrieved, causing future UPDATE statements to not have primary keys available
-        final boolean includePrimaryKeys = updateKeys == null;
-
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
             try {
-                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys, log);
+                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, updateKeys, log);
                 getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
                 return schema;
             } catch (SQLException e) {
@@ -1189,12 +1185,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 }
             }
 
-            // Set the WHERE clause based on the Update Key values
-            sqlBuilder.append(" WHERE ");
             AtomicInteger whereFieldCount = new AtomicInteger(0);
-
             for (int i = 0; i < fieldCount; i++) {
-
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
 
@@ -1207,14 +1199,17 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                         if (whereFieldCount.getAndIncrement() > 0) {
                             sqlBuilder.append(" AND ");
+                        } else if (i == 0) {
+                            // Set the WHERE clause based on the Update Key values
+                            sqlBuilder.append(" WHERE ");
                         }
 
                         if (settings.escapeColumnNames) {
                             sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                    .append(normalizedColName)
+                                    .append(desc.getColumnName())
                                     .append(tableSchema.getQuotedIdentifierString());
                         } else {
-                            sqlBuilder.append(normalizedColName);
+                            sqlBuilder.append(desc.getColumnName());
                         }
                         sqlBuilder.append(" = ?");
                         includedColumns.add(i);
@@ -1363,10 +1358,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     getLogger().warn(missingColMessage);
                 }
             }
-            // Optionally quote the name before returning
-            if (settings.escapeColumnNames) {
-                normalizedKeyColumnName = quoteString + normalizedKeyColumnName + quoteString;
-            }
             normalizedKeyColumnNames.add(normalizedKeyColumnName);
         }
 
@@ -1419,7 +1410,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                       final boolean translateColumnNames, final boolean includePrimaryKeys, ComponentLog log) throws SQLException {
+                                       final boolean translateColumnNames, final String updateKeys, ComponentLog log) throws SQLException {
             final DatabaseMetaData dmd = conn.getMetaData();
 
             try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -1455,13 +1446,18 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 }
 
                 final Set<String> primaryKeyColumns = new HashSet<>();
-                if (includePrimaryKeys) {
+                if (updateKeys == null) {
                     try (final ResultSet pkrs = dmd.getPrimaryKeys(catalog, schema, tableName)) {
 
                         while (pkrs.next()) {
                             final String colName = pkrs.getString("COLUMN_NAME");
                             primaryKeyColumns.add(normalizeColumnName(colName, translateColumnNames));
                         }
+                    }
+                } else {
+                    // Parse the Update Keys field and normalize the column names
+                    for (final String updateKey : updateKeys.split(",")) {
+                        primaryKeyColumns.add(normalizeColumnName(updateKey.trim(), translateColumnNames));
                     }
                 }
 
