@@ -510,6 +510,18 @@ public class NiFiProperties extends ApplicationProperties {
         }
     }
 
+    public Long getLongProperty(final String propertyName, final Long defaultValue) {
+        final String value = getProperty(propertyName);
+        if (value == null || value.trim().isEmpty()) {
+            return defaultValue;
+        }
+
+        try {
+            return Long.parseLong(value.trim());
+        } catch (final Exception e) {
+            return defaultValue;
+        }
+    }
 
     public String getAdministrativeYieldDuration() {
         return getProperty(ADMINISTRATIVE_YIELD_DURATION, DEFAULT_ADMINISTRATIVE_YIELD_DURATION);

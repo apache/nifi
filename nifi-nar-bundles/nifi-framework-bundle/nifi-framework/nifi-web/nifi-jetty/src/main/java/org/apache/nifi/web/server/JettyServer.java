@@ -31,6 +31,8 @@ import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.flow.resource.ExternalResourceProviderService;
+import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
@@ -143,6 +145,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private static final RequestFilterProvider REQUEST_FILTER_PROVIDER = new StandardRequestFilterProvider();
     private static final RequestFilterProvider REST_API_REQUEST_FILTER_PROVIDER = new RestApiRequestFilterProvider();
+    private static final String NAR_PROVIDER_PREFIX = "nifi.nar.library.provider.";
+    private static final String NAR_PROVIDER_POLL_INTERVAL_PROPERTY = "nifi.nar.library.poll.interval";
+    private static final String NAR_PROVIDER_CONFLICT_RESOLUTION = "nifi.nar.library.conflict.resolution";
+    private static final String NAR_PROVIDER_RESTRAIN_PROPERTY = "nifi.nar.library.restrain.startup";
+
+    private static final int DOS_FILTER_REJECT_REQUEST = -1;
 
     private static final FileFilter WAR_FILTER = pathname -> {
         final String nameToTest = pathname.getName().toLowerCase();
@@ -160,6 +168,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private Set<Bundle> bundles;
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
+    private ExternalResourceProviderService narProviderService;
     private DiagnosticsFactory diagnosticsFactory;
     private SslContextFactory.Server sslContextFactory;
     private DecommissionTask decommissionTask;
@@ -1004,6 +1013,27 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // Generate docs for extensions
             DocGenerator.generate(props, extensionManager, extensionMapping);
 
+            // Additionally loaded NARs and collected flow resources must be in place before starting the flows
+            final NarLoader narLoader = new StandardNarLoader(
+                    props.getExtensionsWorkingDirectory(),
+                    props.getComponentDocumentationWorkingDirectory(),
+                    NarClassLoadersHolder.getInstance(),
+                    extensionManager,
+                    extensionMapping,
+                    this);
+
+            narAutoLoader = new NarAutoLoader(props, narLoader);
+            narAutoLoader.start();
+
+            narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager, props, NAR_PROVIDER_PREFIX)
+                    .targetDirectoryProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)
+                    .conflictResolutionStrategy(NAR_PROVIDER_CONFLICT_RESOLUTION, "org.apache.nifi.flow.resource.DoNotReplaceResolutionStrategy")
+                    .resourceFilter(descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar"))
+                    .pollIntervalProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY)
+                    .restrainingStartup(NAR_PROVIDER_RESTRAIN_PROPERTY, true)
+                    .build();
+            narProviderService.start();
+
             // start the server
             server.start();
 
@@ -1096,17 +1126,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     throw new Exception("Unable to load flow due to: " + e); // cannot wrap the exception as they are not defined in a classloader accessible to the caller
                 }
             }
-
-            final NarLoader narLoader = new StandardNarLoader(
-                    props.getExtensionsWorkingDirectory(),
-                    props.getComponentDocumentationWorkingDirectory(),
-                    NarClassLoadersHolder.getInstance(),
-                    extensionManager,
-                    extensionMapping,
-                    this);
-
-            narAutoLoader = new NarAutoLoader(props, narLoader, extensionManager);
-            narAutoLoader.start();
 
             // dump the application url after confirming everything started successfully
             dumpUrls();
@@ -1248,6 +1267,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         } catch (Exception e) {
             logger.warn("Failed to stop NAR auto-loader", e);
         }
+
+        try {
+            if (narProviderService != null) {
+                narProviderService.stop();
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to stop NAR provider", e);
+        }
+
     }
 
     /**
