@@ -19,8 +19,10 @@ package org.apache.nifi.toolkit.encryptconfig.util
 import org.apache.nifi.toolkit.encryptconfig.TestUtil
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import spock.lang.Ignore
 import spock.lang.Specification
 
+@Ignore
 class BootstrapUtilSpec extends Specification {
     private static final Logger logger = LoggerFactory.getLogger(BootstrapUtilSpec.class)
 

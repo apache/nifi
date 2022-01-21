@@ -19,10 +19,9 @@ package org.apache.nifi.toolkit.admin.configmigrator
 
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.SystemUtils
-import org.junit.Assume
-import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.SystemOutRule
+import spock.lang.IgnoreIf
 import spock.lang.Specification
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 
@@ -37,11 +36,7 @@ class ConfigMigratorSpec extends Specification{
     @Rule
     public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
-    }
-
+    @IgnoreIf({os.windows})
     def "get rules directory name"(){
 
         setup:
@@ -61,6 +56,7 @@ class ConfigMigratorSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "get script rule name"(){
 
         setup:
@@ -77,6 +73,7 @@ class ConfigMigratorSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "parse argument and migrate property config successfully"(){
 
         setup:
@@ -112,6 +109,7 @@ class ConfigMigratorSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "parse argument and move over configs due to no rules successfully"(){
 
         setup:
@@ -147,6 +145,7 @@ class ConfigMigratorSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "parse arguments and migrate property config successfully with override"(){
 
         setup:

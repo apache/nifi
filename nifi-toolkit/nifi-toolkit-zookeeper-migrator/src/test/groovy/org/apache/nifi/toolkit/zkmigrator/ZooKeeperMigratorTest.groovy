@@ -44,15 +44,6 @@ class ZooKeeperMigratorTest extends Specification {
         noExceptionThrown()
     }
 
-    @Ignore
-    def "Test jaas conf on command line"() {
-        when:
-        ZooKeeperMigratorMain.main(['-r', '-z', 'localhost:2181/path', '-k', 'jaas.conf'] as String[])
-
-        then:
-        noExceptionThrown()
-    }
-
     def "Receive from open ZooKeeper"() {
         given:
         def server = new TestingServer()
