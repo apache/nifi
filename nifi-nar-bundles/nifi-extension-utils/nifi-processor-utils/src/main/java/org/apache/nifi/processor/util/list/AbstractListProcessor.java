@@ -969,7 +969,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
      * If TARGET_SYSTEM_TIMESTAMP_PRECISION is supported as a valid Processor property,
      * then PRECISION_AUTO_DETECT will be the default value when not specified by a user.
      *
-     * @return
+     * @return Default Time Precision
      */
     protected String getDefaultTimePrecision() {
         return TARGET_SYSTEM_TIMESTAMP_PRECISION.getDefaultValue();

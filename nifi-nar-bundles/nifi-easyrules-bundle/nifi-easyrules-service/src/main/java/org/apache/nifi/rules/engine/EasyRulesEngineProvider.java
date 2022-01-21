@@ -27,7 +27,7 @@ public class EasyRulesEngineProvider extends AbstractEasyRulesEngineController i
 
     /**
      * Returns a rules engine instance
-     * @return
+     * @return Rules Engine
      */
     @Override
     public RulesEngine getRulesEngine() {
