@@ -27,6 +27,7 @@
         <module>nifi-bootstrap-utils</module>
         <module>nifi-data-provenance-utils</module>
         <module>nifi-expression-language</module>
+        <module>nifi-external-resource-utils</module>
         <module>nifi-flowfile-packager</module>
         <module>nifi-flow-encryptor</module>
         <module>nifi-hl7-query-language</module>

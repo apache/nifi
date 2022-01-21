@@ -21,7 +21,13 @@ import java.util.Map;
 
 /**
  * Contains necessary information for extensions of NAR auto loader functionality.
+ *
+ * @deprecated {@code org.apache.nifi.flow.resource.ExternalResourceProviderInitializationContext} replaces this interface. External resource as
+ * concept includes NARs from external sources but not limited to them. In order to have greater flexibility, the focus of future
+ * implementations and improvements is suggested to be on the external resource approach. Existing implementations at the point of introducing
+ * external resource concept support both interface families for compatibility reasons.
  */
+@Deprecated
 public interface NarProviderInitializationContext {
 
     /**

@@ -506,10 +506,10 @@ public class NiFiProperties extends ApplicationProperties {
         try {
             return Integer.parseInt(value.trim());
         } catch (final Exception e) {
+            logger.warn("Configured value is invalid, falling back to default value", e);
             return defaultValue;
         }
     }
-
 
     public String getAdministrativeYieldDuration() {
         return getProperty(ADMINISTRATIVE_YIELD_DURATION, DEFAULT_ADMINISTRATIVE_YIELD_DURATION);

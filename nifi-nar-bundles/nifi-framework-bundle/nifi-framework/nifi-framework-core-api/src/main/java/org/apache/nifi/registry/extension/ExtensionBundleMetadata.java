@@ -41,4 +41,9 @@ public interface ExtensionBundleMetadata {
      */
     String getVersion();
 
+    /**
+     * @return timestamp of the bundle
+     */
+    long getTimestamp();
+
 }

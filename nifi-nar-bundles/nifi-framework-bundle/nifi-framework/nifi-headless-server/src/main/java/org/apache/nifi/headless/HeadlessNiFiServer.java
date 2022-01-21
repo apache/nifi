@@ -176,7 +176,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     new ExtensionMapping(), // Mapping is for documentation which is for the UI, not headless
                     null); // UI Loader is for documentation which is for the UI, not headless
 
-            narAutoLoader = new NarAutoLoader(props, narLoader, extensionManager);
+            narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();
             logger.info("Flow loaded successfully.");
         } catch (Exception e) {

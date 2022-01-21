@@ -30,7 +30,7 @@ public class NiFiRegistryExtensionBundleMetadata extends AbstractExtensionBundle
     private final String bundleIdentifier;
 
     private NiFiRegistryExtensionBundleMetadata(final Builder builder) {
-        super(builder.registryIdentifier, builder.group, builder.artifact, builder.version);
+        super(builder.registryIdentifier, builder.group, builder.artifact, builder.version, builder.timestamp);
         this.bundleIdentifier = Validate.notBlank(builder.bundleIdentifier);
     }
 
@@ -76,6 +76,7 @@ public class NiFiRegistryExtensionBundleMetadata extends AbstractExtensionBundle
         private String artifact;
         private String version;
         private String bundleIdentifier;
+        private long timestamp;
 
         public Builder registryIdentifier(final String registryIdentifier) {
             this.registryIdentifier = registryIdentifier;
@@ -99,6 +100,11 @@ public class NiFiRegistryExtensionBundleMetadata extends AbstractExtensionBundle
 
         public Builder bundleIdentifier(final String bundleIdentifier) {
             this.bundleIdentifier = bundleIdentifier;
+            return this;
+        }
+
+        public Builder timestamp(final long timestamp) {
+            this.timestamp = timestamp;
             return this;
         }
 
