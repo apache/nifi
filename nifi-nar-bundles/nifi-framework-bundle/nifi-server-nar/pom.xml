@@ -42,7 +42,6 @@
             <artifactId>nifi-framework-nar-loading-utils</artifactId>
             <version>1.17.0-SNAPSHOT</version>
         </dependency>
-
         <!-- Dependencies provided by nifi-framework-nar -->
         <dependency>
             <groupId>org.apache.nifi</groupId>

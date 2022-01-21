@@ -31,6 +31,7 @@
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-headless-server-nar</module>
+        <module>nifi-framework-external-resource-utils</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -73,6 +74,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
+                <version>1.17.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-external-resource-utils</artifactId>
                 <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>

@@ -29,12 +29,14 @@ public class AbstractExtensionBundleMetadata implements ExtensionBundleMetadata 
     private final String group;
     private final String artifact;
     private final String version;
+    private final long timestamp;
 
-    public AbstractExtensionBundleMetadata(final String registryIdentifier, final String group, final String artifact, final String version) {
+    public AbstractExtensionBundleMetadata(final String registryIdentifier, final String group, final String artifact, final String version, final long timestamp) {
         this.registryIdentifier = Validate.notBlank(registryIdentifier);
         this.group = Validate.notBlank(group);
         this.artifact = Validate.notBlank(artifact);
         this.version = Validate.notBlank(version);
+        this.timestamp = timestamp;
     }
 
     @Override
@@ -55,6 +57,11 @@ public class AbstractExtensionBundleMetadata implements ExtensionBundleMetadata 
     @Override
     public String getVersion() {
         return version;
+    }
+
+    @Override
+    public long getTimestamp() {
+        return timestamp;
     }
 
     @Override

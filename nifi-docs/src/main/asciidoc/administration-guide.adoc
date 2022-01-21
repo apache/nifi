@@ -4131,7 +4131,16 @@ Custom properties can also be configured in the NiFi UI.  See the <<user-guide.a
 [[nar_provider_properties]]
 === NAR Provider Properties
 
-These properties allow configuring one or more NAR providers. A NAR provider retrieves NARs from an external source and copies them to the directory specified by `nifi.nar.library.autoload.directory`.
+These properties are used for all the configured providers.
+
+|====
+|*Property*|*Description*
+|`nifi.nar.library.poll.interval`|The interval between polls. The default value is `5 min`.
+|`nifi.nar.library.conflict.resolution`|The name of the conflict resolution strategy to use. The default is `IGNORE`.
+|`nifi.nar.library.restrain.startup`|If true, the provider restrains NiFi from startup until the first successful resource fetch.
+|====
+
+The following properties allow configuring one or more NAR providers. A NAR provider retrieves NARs from an external source and copies them to the directory specified by `nifi.nar.library.autoload.directory`.
 
 Each NAR provider property follows the format `nifi.nar.library.provider.<identifier>.<property-name>` and each provider must have at least one property named `implementation`.
 
@@ -4141,7 +4150,7 @@ The HDFS NAR provider retrieves NARs using the Hadoop FileSystem API. This can b
 
 |====
 |*Property*|*Description*
-|`nifi.nar.library.provider.hdfs.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.nar.hadoop.HDFSNarProvider`.
+|`nifi.nar.library.provider.hdfs.implementation`| The fully qualified class name of the implementation class which is `org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider`.
 |`nifi.nar.library.provider.hdfs.resources`| The comma separated list of configuration resources, such as `core-site.xml`.
 |`nifi.nar.library.provider.hdfs.storage.location`| The optional storage location, such as `hdfs://hdfs-location`. If not specified, the `defaultFs` from `core-site.xml` will be used.
 |`nifi.nar.library.provider.hdfs.source.directory`| The directory within the storage location where NARs are located.
@@ -4448,24 +4457,41 @@ Ensure that the file has appropriate permissions for the nifi user and group.
 
 Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
 
+[[nar-providers]]
 === NAR Providers
 
-NiFi supports fetching NAR files for the autoloading feature from external sources. This can be achieved by using NAR Providers. A NAR Provider serves as a connector between an external data store
-and NiFi.
+NiFi supports fetching NAR files for the autoloading feature from external sources. This can be achieved by using External Resource Providers.
 
-When configured, a NAR Provider polls the external source for available NAR files and offers them to the framework. The framework then fetches new NAR files and copies them to
+An External Resource Provider serves as a connector between an external data source and NiFi.
+
+When configured, an External Resource Provider polls the external source for available NAR files and offers them to the framework. The framework then fetches new NAR files and copies them to
 the `nifi.nar.library.autoload.directory` for autoloading.
 
-NAR Provider can be configured by adding the `nifi.nar.library.provider.<providerName>.implementation` property with value containing the proper implementation class. Some implementations might need
+By default, the polling will happen every 5 minutes. It is possible to change this frequency by specifying the property `nifi.nar.library.poll.interval`.
+
+By default NAR files will be downloaded if no file with the same name exists in the folder defined by `nifi.nar.library.autoload.directory`. By setting the `nifi.nar.library.conflict.resolution` other conflict resolution strategies might be applied. Currently, the following strategies are supported:
+
+|===
+| Name      |  Description
+| IGNORE    |  Will not replace files: if a file exists in the directory with the same name, it will not be downloaded again.
+| REPLACE   |  Will replace a file in the target directory if there is an available file in the source but with newer modification date.
+|===
+
+Until the first External Resource collection succeeds for every provider, the service prevents NiFi from finishing startup. In order to override this behaviour, the `nifi.nar.library.restrain.startup` needs to be declared.
+
+With value `true` the service prevents NiFi from starting up until the execution succeeds, with `false` it does not. The default value is `true` in case of the property is not set.
+
+An External Resource Provider can be configured by adding the `nifi.nar.library.provider.<providerName>.implementation` property with value containing the proper implementation class. Some implementations might need
 further properties. These are defined by the implementation and must be prefixed with `nifi.nar.library.provider.<providerName>.`.
 
-The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based NAR provider.
+The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based providers.
 
-==== HDFS NAR Provider
+==== HDFS External Resource Provider
 
-This implementation is capable of downloading NAR files from an HDFS file system.
+This implementation is capable of downloading files from an HDFS file system.
 
-The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSNarProvider`. The following further properties are defined by the provider:
+The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider`.
+The following additional properties are defined by the provider:
 
 [options="header"]
 |===
@@ -4480,13 +4506,15 @@ The value of the `nifi.nar.library.provider.<providerName>.implementation` must 
 
 Example configuration:
 
-   nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider
    nifi.nar.library.provider.hdfs1.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs1.source.directory=/customNars
 
-   nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider
    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
+
+NOTE: For backward compatibility reasons, `org.apache.nifi.nar.hadoop.HDFSNarProvider` is still an accepted implementation, but it is suggested to use 'org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider' instead. Features introduced with the External Resource Provider might not work with this implementation!
 
 == NiFi diagnostics
 

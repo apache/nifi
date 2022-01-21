@@ -23,7 +23,13 @@ import java.util.Collection;
 /**
  * Represents an external source where the NAR files might be acquired from. Used by the NAR auto loader functionality
  * in order to poll an external source for new NAR files to load.
+ *
+ * @deprecated {@code org.apache.nifi.flow.resource.ExternalResourceProvider} replaces this interface. External resource as
+ * concept includes NARs from external sources but not limited to them. In order to have greater flexibility, the focus of future
+ * implementations and improvements is suggested to be on the external resource approach. Existing implementations at the point of introducing
+ * external resource concept support both interface families for compatibility reasons.
  */
+@Deprecated
 public interface NarProvider {
     /**
      * Initializes the NAR Provider based on the given set of properties.
