@@ -51,7 +51,7 @@ public class BeatsMessageChannelHandler extends SimpleChannelInboundHandler<Beat
             BeatsChannelResponse successResponse = new BeatsChannelResponse(encoder, BeatsResponse.ok(msg.getSeqNumber()));
             ctx.writeAndFlush(Unpooled.wrappedBuffer(successResponse.toByteArray()));
         } else {
-            LOGGER.error("Beats Queue Full: Failed Beats Message Sender [{}] Sequence Number [{}]", msg.getSender(), msg.getSeqNumber());
+            LOGGER.warn("Beats Queue Full: Failed Beats Message Sender [{}] Sequence Number [{}]", msg.getSender(), msg.getSeqNumber());
         }
     }
 }

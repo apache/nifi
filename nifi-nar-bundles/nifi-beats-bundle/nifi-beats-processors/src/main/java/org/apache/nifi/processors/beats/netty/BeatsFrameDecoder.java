@@ -56,9 +56,7 @@ public class BeatsFrameDecoder extends ByteToMessageDecoder {
 
             // decode the bytes and once we find the end of a frame, handle the frame
             if (decoder.process(currByte)) {
-
                 final List<BeatsFrame> frames = decoder.getFrames();
-
                 for (BeatsFrame frame : frames) {
                     logger.debug("Received Beats Frame Sender [{}] Transaction [{}] Frame Type [{}]",
                             senderSocket, frame.getSeqNumber(), frame.getFrameType());
