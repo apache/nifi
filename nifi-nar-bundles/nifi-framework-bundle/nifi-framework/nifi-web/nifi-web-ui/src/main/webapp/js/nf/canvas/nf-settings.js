@@ -2066,12 +2066,15 @@
             var canWrite = dataContext.permissions.canWrite;
             var canRead = dataContext.permissions.canRead;
 
+            var hasErrors = !nfCommon.isEmpty(dataContext.component.validationErrors);
+
             if (canRead && canWrite) {
                 markup += '<div title="Edit" class="pointer edit-parameter-provider fa fa-pencil"></div>';
-            }
 
-            //TODO: add FETCH and APPLY & FETCH buttons in Actions column
-            markup += '<div title="Fetch" class="pointer fetch-parameter-provider fa fa-arrow-circle-down"></div>';
+                if (!hasErrors) {
+                    markup += '<div title="Fetch Parameters" class="pointer fetch-parameter-provider fa fa-arrow-circle-down"></div>';
+                }
+            }
 
             if (canRead && canWrite && nfCommon.canModifyController()) {
                 markup += '<div title="Remove" class="pointer delete-parameter-provider fa fa-trash"></div>';
