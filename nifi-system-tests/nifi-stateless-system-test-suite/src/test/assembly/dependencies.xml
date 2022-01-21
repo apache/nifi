@@ -29,11 +29,9 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
 
             <excludes>
-                <exclude>nifi-stateless-api</exclude>
-                <exclude>nifi-framework-api</exclude>
-                <exclude>nifi-stateless-bootstrap</exclude>
                 <exclude>jackson-core</exclude>
                 <exclude>jackson-databind</exclude>
+
                 <!-- TODO: remove these once minimum Java version is 11 -->
                 <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
                 <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
