@@ -45,7 +45,7 @@ public class BeatsMessageServerFactory extends NettyEventServerFactory {
                                      final Charset charset,
                                      final BlockingQueue<BeatsMessage> events) {
         super(address, port, TransportProtocol.TCP);
-        final BeatsMessageChannelHandler beatsChannelHandler = new BeatsMessageChannelHandler(events);
+        final BeatsMessageChannelHandler beatsChannelHandler = new BeatsMessageChannelHandler(events, log);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
 
         setHandlerSupplier(() -> Arrays.asList(

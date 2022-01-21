@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.beats.netty;
+package org.apache.nifi.processors.beats.frame;
 
-import org.apache.nifi.processor.util.listen.event.NetworkEventFactory;
-import org.apache.nifi.processors.beats.frame.BeatsMetadata;
-
-import java.util.Map;
-
-/**
- * An EventFactory implementation to create BeatsMessages.
- */
-public class BeatsMessageFactory implements NetworkEventFactory<BeatsMessage> {
-
-    @Override
-    public BeatsMessage create(final byte[] data, final Map<String, String> metadata) {
-        final int sequenceNumber = Integer.valueOf(metadata.get(BeatsMetadata.SEQNUMBER_KEY));
-        final String sender = metadata.get(BeatsMetadata.SENDER_KEY);
-        return new BeatsMessage(sender, data, sequenceNumber);
-    }
+public final class BeatsFrameType {
+    public static final byte WINDOWSIZE = 0x57;
+    public static final byte DATA = 0x44;
+    public static final byte COMPRESSED = 0x43;
+    public static final byte ACK = 0x41;
+    public static final byte JSON = 0x4a;
 }

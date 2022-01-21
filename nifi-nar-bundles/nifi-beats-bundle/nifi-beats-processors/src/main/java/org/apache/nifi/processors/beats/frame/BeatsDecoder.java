@@ -53,8 +53,6 @@ public class BeatsDecoder {
     static final int COMPRESSED_MIN_LENGTH = MIN_FRAME_HEADER_LENGTH + 4; // 32 bit unsigned + payload
     static final int JSON_MIN_LENGTH = MIN_FRAME_HEADER_LENGTH + 8; // 32 bit unsigned sequence number + 32 bit unsigned payload length
 
-    public static final byte FRAME_WINDOWSIZE = 0x57, FRAME_DATA = 0x44, FRAME_COMPRESSED = 0x43, FRAME_ACK = 0x41, FRAME_JSON = 0x4a;
-
     /**
      * @param charset the charset to decode bytes from the frame
      */
@@ -104,11 +102,11 @@ public class BeatsDecoder {
 
                     // At one stage, the data sent to processPAYLOAD will be represente a complete frame, so we check before returning true
 
-                    if (frameBuilder.frameType == FRAME_WINDOWSIZE && currState == BeatsState.COMPLETE) {
+                    if (frameBuilder.frameType == BeatsFrameType.WINDOWSIZE && currState == BeatsState.COMPLETE) {
                         return true;
-                    } else if (frameBuilder.frameType == FRAME_COMPRESSED && currState == BeatsState.COMPLETE) {
+                    } else if (frameBuilder.frameType == BeatsFrameType.COMPRESSED && currState == BeatsState.COMPLETE) {
                         return true;
-                    } else if (frameBuilder.frameType == FRAME_JSON && currState == BeatsState.COMPLETE) {
+                    } else if (frameBuilder.frameType == BeatsFrameType.JSON && currState == BeatsState.COMPLETE) {
                         return true;
                     } else {
                         break;
@@ -139,7 +137,7 @@ public class BeatsDecoder {
         }
         try {
             // Once compressed frames are expanded, they must be devided into individual frames
-            if (currState == BeatsState.COMPLETE && frameBuilder.frameType == FRAME_COMPRESSED) {
+            if (currState == BeatsState.COMPLETE && frameBuilder.frameType == BeatsFrameType.COMPRESSED) {
                 logger.debug("Frame is compressed, will iterate to decode", new Object[]{});
 
                 // Zero currBytes, currState and frameBuilder prior to iteration over
@@ -188,7 +186,7 @@ public class BeatsDecoder {
             internalFrameBuilder.version = currentData.get();
             internalFrameBuilder.frameType = currentData.get();
             switch (internalFrameBuilder.frameType) {
-                case FRAME_JSON:
+                case BeatsFrameType.JSON:
 
                     internalFrameBuilder.seqNumber = (int) (currentData.getInt() & 0x00000000ffffffffL);
                     currentData.mark();
@@ -241,7 +239,7 @@ public class BeatsDecoder {
     private void processPAYLOAD(final byte b) {
         currBytes.write(b);
         switch (decodedFrameType) {
-            case FRAME_WINDOWSIZE: //'W'
+            case BeatsFrameType.WINDOWSIZE: //'W'
                 if (currBytes.size() < WINDOWSIZE_LENGTH ) {
                     logger.trace("Beats currBytes contents are {}", new Object[] {currBytes.toString()});
                     break;
@@ -258,7 +256,7 @@ public class BeatsDecoder {
                     logger.debug("Saw a packet I should not have seen. Packet contents were {}", new Object[] {currBytes.toString()});
                     break;
                 }
-            case FRAME_COMPRESSED: //'C'
+            case BeatsFrameType.COMPRESSED: //'C'
                 if (currBytes.size() < COMPRESSED_MIN_LENGTH) {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Beats currBytes contents are {}", new Object[] {currBytes.toString()});
@@ -301,7 +299,7 @@ public class BeatsDecoder {
                     }
                     break;
                 }
-            case FRAME_JSON: // 'J́'
+            case BeatsFrameType.JSON: // 'J́'
                 // Because Beats can disable compression, sometimes, JSON data will be received outside a compressed
                 // stream (i.e. 0x43). Instead of processing it here, we defer its processing to went getFrames is
                 // called

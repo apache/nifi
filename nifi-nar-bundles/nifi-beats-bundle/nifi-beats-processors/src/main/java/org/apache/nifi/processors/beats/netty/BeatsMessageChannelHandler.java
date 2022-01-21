@@ -20,11 +20,10 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.response.BeatsChannelResponse;
 import org.apache.nifi.processors.beats.response.BeatsResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
 
@@ -34,12 +33,13 @@ import java.util.concurrent.BlockingQueue;
 @ChannelHandler.Sharable
 public class BeatsMessageChannelHandler extends SimpleChannelInboundHandler<BeatsMessage> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(BeatsMessageChannelHandler.class);
+    private final ComponentLog LOGGER;
     private final BlockingQueue<BeatsMessage> events;
     private final BeatsEncoder encoder;
 
-    public BeatsMessageChannelHandler(BlockingQueue<BeatsMessage> events) {
+    public BeatsMessageChannelHandler(BlockingQueue<BeatsMessage> events, ComponentLog componentLog) {
         this.events = events;
+        this.LOGGER = componentLog;
         this.encoder = new BeatsEncoder();
     }
 
@@ -48,10 +48,10 @@ public class BeatsMessageChannelHandler extends SimpleChannelInboundHandler<Beat
         LOGGER.debug("Beats Message Received Length [{}] Remote Address [{}] ", msg.getMessage().length, msg.getSender());
         if (events.offer(msg)) {
             LOGGER.debug("Event Queued: Beats Message Sender [{}] Sequence Number [{}]", msg.getSender(), msg.getSeqNumber());
-            ctx.writeAndFlush(Unpooled.wrappedBuffer(new BeatsChannelResponse(encoder, BeatsResponse.ok(msg.getSeqNumber())).toByteArray()));
+            BeatsChannelResponse successResponse = new BeatsChannelResponse(encoder, BeatsResponse.ok(msg.getSeqNumber()));
+            ctx.writeAndFlush(Unpooled.wrappedBuffer(successResponse.toByteArray()));
         } else {
-            LOGGER.debug("Beats Queue Full: Failed Beats Message Sender [{}] Sequence Number [{}]", msg.getSender(), msg.getSeqNumber());
-            // TODO: Not sure if there's a way to respond with an error in Beats protocol..
+            LOGGER.error("Beats Queue Full: Failed Beats Message Sender [{}] Sequence Number [{}]", msg.getSender(), msg.getSeqNumber());
         }
     }
 }

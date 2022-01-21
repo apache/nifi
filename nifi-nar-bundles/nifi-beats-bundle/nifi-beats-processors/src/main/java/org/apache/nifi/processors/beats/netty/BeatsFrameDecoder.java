@@ -21,10 +21,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.listen.event.EventFactoryUtil;
-import org.apache.nifi.processors.beats.frame.BeatsMetadata;
 import org.apache.nifi.processors.beats.frame.BeatsDecoder;
-import org.apache.nifi.processors.beats.frame.BeatsEncoder;
 import org.apache.nifi.processors.beats.frame.BeatsFrame;
+import org.apache.nifi.processors.beats.frame.BeatsFrameType;
+import org.apache.nifi.processors.beats.frame.BeatsMetadata;
 
 import java.nio.charset.Charset;
 import java.util.List;
@@ -36,17 +36,12 @@ import java.util.Map;
 public class BeatsFrameDecoder extends ByteToMessageDecoder {
 
     private Charset charset;
-    private BeatsDecoder decoder;
     private final ComponentLog logger;
-    private final BeatsEncoder encoder;
     private final BeatsMessageFactory messageFactory;
-
-    public static final byte FRAME_WINDOWSIZE = 0x57, FRAME_DATA = 0x44, FRAME_COMPRESSED = 0x43, FRAME_ACK = 0x41, FRAME_JSON = 0x4a;
 
     public BeatsFrameDecoder(final ComponentLog logger, final Charset charset) {
         this.charset = charset;
         this.logger = logger;
-        this.encoder = new BeatsEncoder();
         this.messageFactory = new BeatsMessageFactory();
     }
 
@@ -54,7 +49,7 @@ public class BeatsFrameDecoder extends ByteToMessageDecoder {
     protected void decode(final ChannelHandlerContext ctx, final ByteBuf in, final List<Object> out) throws Exception {
         final int total = in.readableBytes();
         final String senderSocket = ctx.channel().remoteAddress().toString();
-        this.decoder = new BeatsDecoder(charset, logger);
+        final BeatsDecoder decoder = new BeatsDecoder(charset, logger);
 
         for (int i = 0; i < total; i++) {
             byte currByte = in.readByte();
@@ -65,29 +60,22 @@ public class BeatsFrameDecoder extends ByteToMessageDecoder {
                 final List<BeatsFrame> frames = decoder.getFrames();
 
                 for (BeatsFrame frame : frames) {
-                    logger.debug("Received Beats frame with transaction {} and frame type {}",
-                            frame.getSeqNumber(), frame.getFrameType());
+                    logger.debug("Received Beats Frame Sender [{}] Transaction [{}] Frame Type [{}]",
+                            senderSocket, frame.getSeqNumber(), frame.getFrameType());
                     // Ignore the WINDOW SIZE type frames as they contain no payload.
-                    if (frame.getFrameType() != 0x57) {
+                    if (frame.getFrameType() != BeatsFrameType.WINDOWSIZE) {
                         handle(frame, senderSocket, out);
                     }
                 }
             }
         }
-        logger.debug("Done processing buffer");
     }
 
     private void handle(final BeatsFrame frame, final String sender, final List<Object> out) {
         final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
         metadata.put(BeatsMetadata.SEQNUMBER_KEY, String.valueOf(frame.getSeqNumber()));
 
-        /* If frameType is a JSON , parse the frame payload into a JsonElement so that all JSON elements but "message"
-        are inserted into the event metadata.
-
-        As per above, the "message" element gets added into the body of the event
-        */
-        if (frame.getFrameType() == FRAME_JSON) {
-            // queue the raw event blocking until space is available
+        if (frame.getFrameType() == BeatsFrameType.JSON) {
             final BeatsMessage event = messageFactory.create(frame.getPayload(), metadata);
             out.add(event);
         }
