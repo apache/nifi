@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationContext;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -32,7 +33,7 @@ import java.util.Set;
 /**
  * A facade at front of {@code NiFiProperties} for auto loader extensions. Also limits the scope of the reachable properties.
  */
-public class PropertyBasedNarProviderInitializationContext implements NarProviderInitializationContext {
+public class PropertyBasedNarProviderInitializationContext implements NarProviderInitializationContext, ExternalResourceProviderInitializationContext {
     private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
     static final String BASIC_PREFIX = "nifi.nar.library.provider.";
 
@@ -53,6 +54,11 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
 
     @Override
     public SSLContext getNiFiSSLContext() {
+        return sslContext;
+    }
+
+    @Override
+    public SSLContext getSSLContext() {
         return sslContext;
     }
 

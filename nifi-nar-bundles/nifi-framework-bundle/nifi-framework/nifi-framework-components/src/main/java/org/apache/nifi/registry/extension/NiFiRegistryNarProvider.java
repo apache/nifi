@@ -16,18 +16,14 @@
  */
 package org.apache.nifi.registry.extension;
 
+import org.apache.nifi.flow.resource.ImmutableExternalResourceDescriptor;
+import org.apache.nifi.flow.resource.NarProviderAdapterInitializationContext;
 import org.apache.nifi.nar.NarProvider;
 import org.apache.nifi.nar.NarProviderInitializationContext;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,66 +35,23 @@ import java.util.stream.Collectors;
  *   nifi.nar.library.provider.nifi-registry.url=http://localhost:18080
  *
  */
-public class NiFiRegistryNarProvider implements NarProvider {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(NiFiRegistryNarProvider.class);
-
-    private static final String NIFI_REGISTRY_CLIENT_ID = "nifi-registry-nar-provider";
-    private static final String NIFI_REGISTRY_CLIENT_NAME = "NiFi Registry NAR Provider";
-
-    static final String URL_PROPERTY = "url";
-
-    private volatile NiFiRegistryExtensionRegistry extensionRegistry;
-    private volatile boolean initialized = false;
+@Deprecated
+public class NiFiRegistryNarProvider extends NiFiRegistryExternalResourceProvider implements NarProvider {
 
     @Override
-    public void initialize(final NarProviderInitializationContext initializationContext) {
-        final String url = initializationContext.getProperties().get(URL_PROPERTY);
-        if (StringUtils.isBlank(url)) {
-            throw new IllegalArgumentException("NiFiRegistryNarProvider requires a `url` property");
-        }
-
-        final SSLContext sslContext = initializationContext.getNiFiSSLContext();
-        if (url.startsWith("https") && sslContext == null) {
-            throw new IllegalStateException("NiFi TLS properties must be specified in order to connect to NiFi Registry via https");
-        }
-
-        extensionRegistry = new NiFiRegistryExtensionRegistry(NIFI_REGISTRY_CLIENT_ID, url, NIFI_REGISTRY_CLIENT_NAME, sslContext);
-        initialized = true;
+    public void initialize(final NarProviderInitializationContext context) {
+        initialize(new NarProviderAdapterInitializationContext(context));
     }
 
     @Override
     public Collection<String> listNars() throws IOException {
-        if (!initialized) {
-            LOGGER.error("Provider is not initialized");
-        }
-
-        try {
-            final Set<NiFiRegistryExtensionBundleMetadata> bundleMetadata = extensionRegistry.getExtensionBundleMetadata(null);
-            return bundleMetadata.stream().map(bm -> bm.toLocationString()).collect(Collectors.toSet());
-        } catch (final ExtensionRegistryException ere) {
-            LOGGER.error("Unable to retrieve listing of NARs from NiFi Registry at [{}]", extensionRegistry.getURL(), ere);
-            return Collections.emptySet();
-        }
+        // Only NARs will be listed due to the filter in {@code HDFSNarProviderInitializationContext}
+        return listResources().stream().map(d -> d.getLocation()).collect(Collectors.toList());
     }
 
     @Override
-    public InputStream fetchNarContents(final String location) throws IOException {
-        if (!initialized) {
-            LOGGER.error("Provider is not initialized");
-        }
-
-        final NiFiRegistryExtensionBundleMetadata bundleMetadata = NiFiRegistryExtensionBundleMetadata.fromLocationString(location)
-                .registryIdentifier(extensionRegistry.getIdentifier())
-                .build();
-
-        LOGGER.debug("Fetching NAR contents for bundleIdentifier [{}] and version [{}]",
-                bundleMetadata.getBundleIdentifier(), bundleMetadata.getVersion());
-
-        try {
-            return extensionRegistry.getExtensionBundleContent(null, bundleMetadata);
-        } catch (ExtensionRegistryException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+    public InputStream fetchNarContents(String location) throws IOException {
+        // Nar provider does not support modification time based fetch
+        return fetchExternalResource(new ImmutableExternalResourceDescriptor(location, System.currentTimeMillis()));
     }
 }
