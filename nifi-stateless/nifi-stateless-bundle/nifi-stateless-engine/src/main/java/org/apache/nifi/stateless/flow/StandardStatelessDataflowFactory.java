@@ -92,7 +92,8 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
 
     @Override
-    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition)
+    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition,
+                                            final ClassLoader extensionRootClassLoader)
                     throws IOException, StatelessConfigurationException {
         final long start = System.currentTimeMillis();
 
@@ -119,7 +120,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final NarClassLoaders narClassLoaders = new NarClassLoaders();
             final File extensionsWorkingDir = new File(narExpansionDirectory, "extensions");
-            final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory());
+            final ClassLoader systemClassLoader = createSystemClassLoader(engineConfiguration.getNarDirectory(), extensionRootClassLoader);
             final ExtensionDiscoveringManager extensionManager = ExtensionDiscovery.discover(extensionsWorkingDir, systemClassLoader, narClassLoaders, engineConfiguration.isLogExtensionDiscovery());
 
             flowFileEventRepo = new RingBufferEventRepository(5);
@@ -306,17 +307,16 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         return "nexus".equalsIgnoreCase(type.trim());
     }
 
-    private ClassLoader createSystemClassLoader(final File narDirectory) throws StatelessConfigurationException {
-        final ClassLoader systemClassLoader = StatelessDataflowFactory.class.getClassLoader();
+    private ClassLoader createSystemClassLoader(final File narDirectory, final ClassLoader extensionRootClassLoader) throws StatelessConfigurationException {
         final int javaMajorVersion = getJavaMajorVersion();
         if (javaMajorVersion >= 11) {
             // If running on Java 11 or greater, add the JAXB/activation/annotation libs to the classpath.
             // TODO: Once the minimum Java version requirement of NiFi is 11, this processing should be removed.
             // JAXB/activation/annotation will be added as an actual dependency via pom.xml.
-            return createJava11OrLaterSystemClassLoader(javaMajorVersion, narDirectory, systemClassLoader);
+            return createJava11OrLaterSystemClassLoader(javaMajorVersion, narDirectory, extensionRootClassLoader);
         }
 
-        return systemClassLoader;
+        return extensionRootClassLoader;
     }
 
     private ClassLoader createJava11OrLaterSystemClassLoader(final int javaMajorVersion, final File narDirectory, final ClassLoader parentClassLoader) throws StatelessConfigurationException {
