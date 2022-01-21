@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
-
+import groovy.test.GroovyTestCase
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider

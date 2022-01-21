@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.properties
 
+import groovy.test.GroovyLogTestCase
+import groovy.test.GroovyShellTestCase
+import groovy.test.GroovyTestCase
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
@@ -54,7 +57,7 @@ import java.security.KeyException
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class ConfigEncryptionToolTest extends GroovyTestCase {
+class ConfigEncryptionToolTest extends GroovyLogTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionToolTest.class)
 
     @Rule

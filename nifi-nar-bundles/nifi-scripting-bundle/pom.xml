@@ -31,7 +31,7 @@
     </modules>
 
     <properties>
-        <scripting.groovy.version>2.5.14</scripting.groovy.version>
+        <scripting.groovy.version>3.0.8</scripting.groovy.version>
     </properties>
 
     <dependencyManagement>
