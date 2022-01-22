@@ -79,6 +79,12 @@ public interface StatelessDataflow {
 
     boolean isFlowFileQueued();
 
+    /**
+     *
+     * @return True if there are any processors in the dataflow with the {@link org.apache.nifi.annotation.behavior.Stateful} annotation
+     */
+    boolean isStateful();
+
     void purge();
 
     Map<String, String> getComponentStates(Scope scope);

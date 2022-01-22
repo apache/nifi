@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.flow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -521,6 +522,26 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
+    @Override
+    public boolean isStateful() {
+        return isStateful(rootGroup);
+    }
+
+    private boolean isStateful(final ProcessGroup processGroup) {
+        boolean isStateful = processGroup.getProcessors().stream()
+                .filter(processorNode -> processorNode.getProcessor().getClass().getAnnotation(Stateful.class) != null)
+                .findAny()
+                .isPresent();
+
+        if (isStateful) {
+            return true;
+        }
+
+        return processGroup.getProcessGroups().stream()
+                .filter(childGroup -> isStateful(childGroup))
+                .findAny()
+                .isPresent();
+    }
 
     @Override
     public Set<String> getInputPortNames() {
