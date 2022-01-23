@@ -368,4 +368,74 @@ class TestFlattenJson {
             assert parsed.first.second.third[0] == ["one", "two", "three", "four", "five"]
         }
     }
+
+    @Test
+    void testFlattenWithIgnoreReservedCharacters() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "first": [
+                        "second.third": "Hello",
+                        "fourth"      : "World"
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true")
+
+        baseTest(testRunner, json, 2) { parsed ->
+            Assert.assertEquals("Separator not applied.", parsed["first.second.third"], "Hello")
+            Assert.assertEquals("Separator not applied.", parsed["first.fourth"], "World")
+        }
+    }
+
+    @Test
+    void testFlattenRecordSetWithIgnoreReservedCharacters() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                [
+                        "first": [
+                                "second_third": "Hello"
+                        ]
+                ],
+                [
+                        "first": [
+                                "second_third": "World"
+                        ]
+                ]
+        ]))
+        testRunner.setProperty(FlattenJson.SEPARATOR, "_")
+        testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true")
+
+        def expected = ["Hello", "World"]
+        baseTest(testRunner, json, 2) { parsed ->
+            Assert.assertTrue("Not a list", parsed instanceof List)
+            0.upto(parsed.size() - 1) {
+                Assert.assertEquals("Missing values.", parsed[it]["first_second_third"], expected[it])
+            }
+        }
+    }
+
+    @Test
+    void testFlattenModeNormalWithIgnoreReservedCharacters() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                [
+                        "first": [
+                                "second_third": "Hello"
+                        ]
+                ],
+                [
+                        "first": [
+                                "second_third": "World"
+                        ]
+                ]
+        ]))
+        testRunner.setProperty(FlattenJson.SEPARATOR, "_")
+        testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true")
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
+
+        baseTest(testRunner, json, 2) { parsed ->
+            Assert.assertEquals("Separator not applied.", "Hello", parsed["[0]_first_second_third"])
+            Assert.assertEquals("Separator not applied.", "World", parsed["[1]_first_second_third"])
+        }
+    }
 }
