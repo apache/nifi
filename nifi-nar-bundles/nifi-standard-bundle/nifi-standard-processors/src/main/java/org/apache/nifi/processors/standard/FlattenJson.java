@@ -123,6 +123,17 @@ public class FlattenJson extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
+    public static final PropertyDescriptor IGNORE_RESERVED_CHARACTERS = new PropertyDescriptor.Builder()
+            .name("ignore-reserved-characters")
+            .displayName("Ignore Reserved Characters")
+            .description("If true, reserved characters in keys will be ignored")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor.Builder()
             .name("flatten-json-return-type")
             .displayName("Return Type")
@@ -171,6 +182,7 @@ public class FlattenJson extends AbstractProcessor {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(SEPARATOR);
         props.add(FLATTEN_MODE);
+        props.add(IGNORE_RESERVED_CHARACTERS);
         props.add(RETURN_TYPE);
         props.add(CHARACTER_SET);
         props.add(PRETTY_PRINT);
@@ -207,6 +219,7 @@ public class FlattenJson extends AbstractProcessor {
         final String returnType = context.getProperty(RETURN_TYPE).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final PrintMode printMode = context.getProperty(PRETTY_PRINT).asBoolean() ? PrintMode.PRETTY : PrintMode.MINIMAL;
+        final boolean ignoreReservedCharacters = context.getProperty(IGNORE_RESERVED_CHARACTERS).asBoolean();
 
         try {
             final StringBuilder contents = new StringBuilder();
@@ -214,12 +227,13 @@ public class FlattenJson extends AbstractProcessor {
 
             final String resultedJson;
             if (returnType.equals(RETURN_TYPE_FLATTEN)) {
-                resultedJson = new JsonFlattener(contents.toString())
-                        .withFlattenMode(flattenMode)
-                        .withSeparator(separator)
-                        .withStringEscapePolicy(() -> StringEscapeUtils.ESCAPE_JSON)
-                        .withPrintMode(printMode)
-                        .flatten();
+                final JsonFlattener jsonFlattener = new JsonFlattener(contents.toString())
+                    .withFlattenMode(flattenMode)
+                    .withSeparator(separator)
+                    .withStringEscapePolicy(() -> StringEscapeUtils.ESCAPE_JSON)
+                    .withPrintMode(printMode);
+                setIgnoreReservedCharacters(ignoreReservedCharacters, jsonFlattener);
+                resultedJson = jsonFlattener.flatten();
             } else {
                 resultedJson = new JsonUnflattener(contents.toString())
                         .withFlattenMode(flattenMode)
@@ -246,6 +260,12 @@ public class FlattenJson extends AbstractProcessor {
             return FlattenMode.KEEP_PRIMITIVE_ARRAYS;
         } else {
             return FlattenMode.KEEP_ARRAYS;
+        }
+    }
+
+    private void setIgnoreReservedCharacters(final boolean ignoreReservedCharacters, final JsonFlattener jsonFlattener) {
+        if (ignoreReservedCharacters) {
+            jsonFlattener.ignoreReservedCharacters();
         }
     }
 }
