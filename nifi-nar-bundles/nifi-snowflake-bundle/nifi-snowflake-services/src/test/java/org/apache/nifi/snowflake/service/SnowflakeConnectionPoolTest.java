@@ -46,11 +46,11 @@ public class SnowflakeConnectionPoolTest {
     public static final String SNOWFLAKE_PASSWORD = "???";
     public static final String TABLE_NAME = "test_db.public.test_table";
 
-    private static final String SERVICE_ID = SnowflakeConnectionPool.class.getName();
+    private static final String SERVICE_ID = SnowflakeComputingConnectionPool.class.getName();
 
     private TestRunner runner;
 
-    private SnowflakeConnectionPool service;
+    private SnowflakeComputingConnectionPool service;
 
     @Test
     void testReadSnowflakeTable() throws Exception {
@@ -75,7 +75,7 @@ public class SnowflakeConnectionPoolTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new SnowflakeConnectionPool();
+        service = new SnowflakeComputingConnectionPool();
         runner = TestRunners.newTestRunner(new AbstractSessionFactoryProcessor() {
             @Override
             public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
@@ -83,8 +83,8 @@ public class SnowflakeConnectionPoolTest {
         });
         runner.addControllerService(SERVICE_ID, service);
 
-        runner.setProperty(service, SnowflakeConnectionPool.SNOWFLAKE_URL, SNOWFLAKE_URL);
-        runner.setProperty(service, SnowflakeConnectionPool.SNOWFLAKE_USER, SNOWFLAKE_USER);
-        runner.setProperty(service, SnowflakeConnectionPool.SNOWFLAKE_PASSWORD, SNOWFLAKE_PASSWORD);
+        runner.setProperty(service, SnowflakeComputingConnectionPool.SNOWFLAKE_URL, SNOWFLAKE_URL);
+        runner.setProperty(service, SnowflakeComputingConnectionPool.SNOWFLAKE_USER, SNOWFLAKE_USER);
+        runner.setProperty(service, SnowflakeComputingConnectionPool.SNOWFLAKE_PASSWORD, SNOWFLAKE_PASSWORD);
     }
 }

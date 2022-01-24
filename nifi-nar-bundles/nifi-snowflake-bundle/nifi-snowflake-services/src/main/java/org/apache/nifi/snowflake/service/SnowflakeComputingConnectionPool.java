@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
         description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
-public class SnowflakeConnectionPool extends AbstractControllerService implements DBCPService {
+public class SnowflakeComputingConnectionPool extends AbstractControllerService implements DBCPService {
     /**
      * Property Name Prefix for Sensitive Dynamic Properties
      */
