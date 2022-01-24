@@ -60,7 +60,7 @@
         <!-- Needed this dependency to resolve the taglib inside documentation.jsp, otherwise an error is encountered
                 "The absolute uri: http://java.sun.com/jsp/jstl/core cannot be resolved" -->
         <dependency>
-            <groupId>javax.servlet.jsp.jstl</groupId>
+            <groupId>javax.servlet</groupId>
             <artifactId>jstl</artifactId>
             <version>1.2</version>
         </dependency>
