@@ -1534,7 +1534,10 @@
             $.ajax({
                 type: 'GET',
                 url: '../nifi-api/controller-services/' + encodeURIComponent(property.value),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (controllerServiceEntity) {
                 // close the dialog
                 closeDialog();

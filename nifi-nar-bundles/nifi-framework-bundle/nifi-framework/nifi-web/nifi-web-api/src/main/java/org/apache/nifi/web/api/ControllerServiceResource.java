@@ -64,6 +64,7 @@ import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEnt
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,7 +179,9 @@ public class ControllerServiceResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller-services/{uuid}")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -194,7 +197,8 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -208,10 +212,14 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // get the controller service
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
+        if (uiOnly) {
+            SnippetUtils.stripNonUiRelevantFields(entity);
+        }
         populateRemainingControllerServiceEntityContent(entity);
 
         return generateOkResponse(entity).build();
     }
+
 
     /**
      * Returns the descriptor for the specified property.

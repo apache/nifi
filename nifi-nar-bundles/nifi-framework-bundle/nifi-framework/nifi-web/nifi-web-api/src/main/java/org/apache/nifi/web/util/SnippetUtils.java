@@ -44,6 +44,7 @@ import org.apache.nifi.web.api.dto.ComponentDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
@@ -57,6 +58,8 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.slf4j.Logger;
@@ -1012,6 +1015,35 @@ public final class SnippetUtils {
                 component.getPosition().setX(component.getPosition().getX() - smallestX);
                 component.getPosition().setY(component.getPosition().getY() - smallestY);
             }
+        }
+    }
+
+    public static void stripNonUiRelevantFields(final ControllerServiceEntity serviceEntity) {
+        final ControllerServiceDTO dto = serviceEntity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities == null) {
+            return;
+        }
+
+        referencingEntities.forEach(SnippetUtils::stripNonUiRelevantFields);
+    }
+
+    public static void stripNonUiRelevantFields(final ControllerServiceReferencingComponentEntity entity) {
+        final ControllerServiceReferencingComponentDTO dto = entity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        dto.setDescriptors(null);
+        dto.setProperties(null);
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities != null) {
+            referencingEntities.forEach(SnippetUtils::stripNonUiRelevantFields);
         }
     }
 

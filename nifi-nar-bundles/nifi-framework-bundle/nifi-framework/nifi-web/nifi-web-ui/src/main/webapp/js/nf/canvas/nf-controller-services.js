@@ -1228,7 +1228,10 @@
         return $.ajax({
             type: 'GET',
             url: controllerServicesUri,
-            dataType: 'json'
+            dataType: 'json',
+            data: {
+                uiOnly: true
+            }
         }).done(function (response) {
             var services = [];
             $.each(response.controllerServices, function (_, service) {
