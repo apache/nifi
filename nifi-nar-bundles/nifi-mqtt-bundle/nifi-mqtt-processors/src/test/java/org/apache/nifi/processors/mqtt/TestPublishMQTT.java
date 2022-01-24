@@ -24,16 +24,11 @@ import org.apache.nifi.util.TestRunners;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPublishMQTT extends TestPublishMqttCommon {
 
@@ -46,8 +41,7 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         assertEquals(topic, mqttQueueMessage.getTopic());
     }
 
-
-    public MqttTestClient mqttTestClient;
+    private MqttTestClient mqttTestClient;
 
     public class UnitTestablePublishMqtt extends PublishMQTT {
 
@@ -62,30 +56,13 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
     }
 
-    @Before
-    public void init() throws IOException {
+    @BeforeEach
+    public void init() {
         UnitTestablePublishMqtt proc = new UnitTestablePublishMqtt();
         testRunner = TestRunners.newTestRunner(proc);
         testRunner.setProperty(PublishMQTT.PROP_BROKER_URI, "tcp://localhost:1883");
         testRunner.setProperty(PublishMQTT.PROP_RETAIN, "false");
         topic = "testTopic";
         testRunner.setProperty(PublishMQTT.PROP_TOPIC, topic);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        final File folder =  new File("./target");
-        final File[] files = folder.listFiles( new FilenameFilter() {
-            @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
-                return name.matches( "moquette_store.mapdb.*" );
-            }
-        } );
-        for ( final File file : files ) {
-            if ( !file.delete() ) {
-                System.err.println( "Can't remove " + file.getAbsolutePath() );
-            }
-        }
     }
 }

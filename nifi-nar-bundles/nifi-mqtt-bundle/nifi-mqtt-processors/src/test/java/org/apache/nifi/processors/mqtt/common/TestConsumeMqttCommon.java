@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
-import io.moquette.proto.messages.AbstractMessage;
-import io.moquette.proto.messages.PublishMessage;
-import io.moquette.server.Server;
-
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
@@ -34,12 +30,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -50,20 +47,26 @@ import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_RETAINED_ATTRIBUTE_
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.QOS_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.TOPIC_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TestConsumeMqttCommon {
 
     public int PUBLISH_WAIT_MS = 1000;
     public static final String THIS_IS_NOT_JSON = "ThisIsNotAJSON";
 
-    public Server MQTT_server;
     public TestRunner testRunner;
     public String broker;
 
-    public abstract void internalPublish(PublishMessage publishMessage);
+    private static final String STRING_MESSAGE = "testMessage";
+    private static final String JSON_PAYLOAD = "{\"name\":\"Apache NiFi\"}";
+
+    private static final int MOST_ONE = 0;
+    private static final int LEAST_ONE = 1;
+    private static final int EXACTLY_ONCE = 2;
+
+    public abstract void internalPublish(MqttMessage message, String topicName);
 
     @Test
     public void testClientIDConfiguration() {
@@ -85,7 +88,7 @@ public abstract class TestConsumeMqttCommon {
     }
 
     @Test
-    public void testLastWillConfig() throws Exception {
+    public void testLastWillConfig() {
         testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_MESSAGE, "lastWill message");
         testRunner.assertNotValid();
         testRunner.setProperty(ConsumeMQTT.PROP_LAST_WILL_TOPIC, "lastWill topic");
@@ -111,14 +114,7 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.EXACTLY_ONCE);
-        testMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, EXACTLY_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -155,14 +151,7 @@ public abstract class TestConsumeMqttCommon {
 
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.EXACTLY_ONCE);
-        testMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, EXACTLY_ONCE);
 
         consumeMQTT.onScheduled(testRunner.getProcessContext());
         reconnect(consumeMQTT, testRunner.getProcessContext());
@@ -202,14 +191,7 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.LEAST_ONE);
-        testMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, LEAST_ONE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -245,14 +227,7 @@ public abstract class TestConsumeMqttCommon {
 
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.LEAST_ONE);
-        testMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, LEAST_ONE);
 
         consumeMQTT.onScheduled(testRunner.getProcessContext());
         reconnect(consumeMQTT, testRunner.getProcessContext());
@@ -292,14 +267,7 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        testMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, MOST_ONE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
@@ -344,6 +312,7 @@ public abstract class TestConsumeMqttCommon {
 
         Field f = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         f.setAccessible(true);
+        @SuppressWarnings("unchecked")
         LinkedBlockingQueue<MQTTQueueMessage> queue = (LinkedBlockingQueue<MQTTQueueMessage>) f.get(consumeMQTT);
         queue.add(testMessage);
 
@@ -371,13 +340,6 @@ public abstract class TestConsumeMqttCommon {
 
         testRunner.assertValid();
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.EXACTLY_ONCE);
-        testMessage.setRetainFlag(false);
-
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
         reconnect(consumeMQTT, testRunner.getProcessContext());
@@ -386,8 +348,8 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        internalPublish(testMessage);
-        internalPublish(testMessage);
+        publishMessage(STRING_MESSAGE, EXACTLY_ONCE);
+        publishMessage(STRING_MESSAGE, EXACTLY_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
         consumeMQTT.onUnscheduled(testRunner.getProcessContext());
@@ -439,36 +401,22 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        testMessage.setRetainFlag(false);
-
-        PublishMessage badMessage = new PublishMessage();
-        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
-        badMessage.setTopicName("testTopic");
-        badMessage.setDupFlag(false);
-        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        badMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
-        internalPublish(badMessage);
-        internalPublish(testMessage);
+        publishMessage(JSON_PAYLOAD, MOST_ONE);
+        publishMessage(THIS_IS_NOT_JSON, MOST_ONE);
+        publishMessage(JSON_PAYLOAD, MOST_ONE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
         testRunner.run(1, false, false);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        assertTrue(flowFiles.size() == 1);
+        assertEquals(1, flowFiles.size());
         assertEquals("[{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false},"
                 + "{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false}]",
                 new String(flowFiles.get(0).toByteArray()));
 
         List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
-        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
 
         // clean runner by removing records reader/writer
@@ -489,23 +437,9 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        testMessage.setRetainFlag(false);
-
-        PublishMessage badMessage = new PublishMessage();
-        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
-        badMessage.setTopicName("testTopic");
-        badMessage.setDupFlag(false);
-        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        badMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
-        internalPublish(badMessage);
-        internalPublish(testMessage);
+        publishMessage(JSON_PAYLOAD, MOST_ONE);
+        publishMessage(THIS_IS_NOT_JSON, MOST_ONE);
+        publishMessage(JSON_PAYLOAD, MOST_ONE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
         Thread.sleep(PUBLISH_WAIT_MS);
@@ -520,7 +454,7 @@ public abstract class TestConsumeMqttCommon {
                 new String(flowFiles.get(0).toByteArray()));
 
         List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
-        assertTrue(badFlowFiles.size() == 0);
+        assertEquals(0, badFlowFiles.size());
 
         // clean runner by removing message demarcator
         testRunner.removeProperty(ConsumeMQTT.MESSAGE_DEMARCATOR);
@@ -552,34 +486,20 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage testMessage = new PublishMessage();
-        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
-        testMessage.setTopicName("testTopic");
-        testMessage.setDupFlag(false);
-        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        testMessage.setRetainFlag(false);
-
-        PublishMessage badMessage = new PublishMessage();
-        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
-        badMessage.setTopicName("testTopic");
-        badMessage.setDupFlag(false);
-        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        badMessage.setRetainFlag(false);
-
-        internalPublish(testMessage);
-        internalPublish(badMessage);
-        internalPublish(testMessage);
+        publishMessage(JSON_PAYLOAD, LEAST_ONE);
+        publishMessage(THIS_IS_NOT_JSON, LEAST_ONE);
+        publishMessage(JSON_PAYLOAD, LEAST_ONE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
         testRunner.run(1, false, false);
 
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
-        assertTrue(flowFiles.size() == 1);
+        assertEquals(1, flowFiles.size());
         assertEquals("[{\"name\":\"Apache NiFi\"},{\"name\":\"Apache NiFi\"}]", new String(flowFiles.get(0).toByteArray()));
 
         List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
-        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
 
         // clean runner by removing records reader/writer
@@ -613,21 +533,14 @@ public abstract class TestConsumeMqttCommon {
 
         assertTrue(isConnected(consumeMQTT));
 
-        PublishMessage badMessage = new PublishMessage();
-        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
-        badMessage.setTopicName("testTopic");
-        badMessage.setDupFlag(false);
-        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
-        badMessage.setRetainFlag(false);
-
-        internalPublish(badMessage);
+        publishMessage(THIS_IS_NOT_JSON, EXACTLY_ONCE);
 
         Thread.sleep(PUBLISH_WAIT_MS);
 
         testRunner.run(1, false, false);
 
         List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
-        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(1, badFlowFiles.size());
         assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
 
         // clean runner by removing records reader/writer
@@ -643,12 +556,13 @@ public abstract class TestConsumeMqttCommon {
     }
 
 
-    public static void reconnect(ConsumeMQTT processor, ProcessContext context) throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public static void reconnect(ConsumeMQTT processor, ProcessContext context) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         Method method = ConsumeMQTT.class.getDeclaredMethod("initializeClient", ProcessContext.class);
         method.setAccessible(true);
         method.invoke(processor, context);
     }
 
+    @SuppressWarnings("unchecked")
     public static BlockingQueue<MQTTQueueMessage> getMqttQueue(ConsumeMQTT consumeMQTT) throws IllegalAccessException, NoSuchFieldException {
         Field mqttQueueField = ConsumeMQTT.class.getDeclaredField("mqttQueue");
         mqttQueueField.setAccessible(true);
@@ -668,5 +582,14 @@ public abstract class TestConsumeMqttCommon {
         if (count > 0) {
             assertEquals(ProvenanceEventType.RECEIVE, provenanceEvents.get(0).getEventType());
         }
+    }
+
+    private void publishMessage(final String payload, final int qos) {
+        final MqttMessage message = new MqttMessage();
+        message.setPayload(payload.getBytes(StandardCharsets.UTF_8));
+        message.setQos(qos);
+        message.setRetained(false);
+
+        internalPublish(message, "testTopic");
     }
 }
