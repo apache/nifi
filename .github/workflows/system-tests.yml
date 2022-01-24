@@ -16,9 +16,9 @@
 name: system-tests
 
 on:
-  # Run every day at 00:00
+  # Run every day at 22:00 (UTC)
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 22 * * *"
 
 env:
   DEFAULT_MAVEN_OPTS: >-
@@ -46,6 +46,7 @@ env:
 
 jobs:
   ubuntu:
+    if: github.repository_owner == 'apache'
     timeout-minutes: 120
     runs-on: ubuntu-latest
     name: Ubuntu Java 11
@@ -90,6 +91,7 @@ jobs:
           retention-days: 7
 
   macos:
+    if: github.repository_owner == 'apache'
     timeout-minutes: 120
     runs-on: macos-latest
     name: MacOS Java 8
