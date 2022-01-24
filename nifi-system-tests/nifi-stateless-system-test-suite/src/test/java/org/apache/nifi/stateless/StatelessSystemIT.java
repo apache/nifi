@@ -62,7 +62,7 @@ public class StatelessSystemIT {
     public TestName name = new TestName();
 
     @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
 
     @Before
