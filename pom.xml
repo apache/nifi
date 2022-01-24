@@ -149,16 +149,6 @@
             </snapshots>
         </repository>
         <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-        <repository>
             <id>Shibboleth</id>
             <name>Shibboleth</name>
             <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
