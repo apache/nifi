@@ -60,7 +60,27 @@ if (!locale || locale === 'en-us') {
         }
         bootstrapModule();
     }).fail(function () {
-        bootstrapModule();
+        // was this a country specific locale? if so, try to get the generic version of the language
+        const localeTokens = locale.split('-');
+        if (localeTokens.length === 2) {
+            translationFile = 'locale/messages.' + localeTokens[0] + '.xlf';
+            $.ajax({
+                url: translationFile,
+                dataType: 'text'
+            }).done(function (translations) {
+                // add providers if translation file for locale is loaded
+                if (translations) {
+                    providers.push({provide: TRANSLATIONS, useValue: translations});
+                    providers.push({provide: TRANSLATIONS_FORMAT, useValue: 'xlf'});
+                    providers.push({provide: LOCALE_ID, useValue: localeTokens[0]});
+                }
+                bootstrapModule();
+            }).fail(function () {
+                bootstrapModule();
+            });
+        } else {
+            bootstrapModule();
+        }
     });
 }
 
