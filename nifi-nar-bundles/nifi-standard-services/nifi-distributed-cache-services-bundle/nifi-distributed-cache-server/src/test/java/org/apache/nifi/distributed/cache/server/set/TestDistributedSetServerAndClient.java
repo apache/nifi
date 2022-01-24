@@ -60,7 +60,9 @@ public class TestDistributedSetServerAndClient {
 
     @BeforeEach
     public void setRunner() throws InitializationException, IOException {
-        FileUtils.cleanDirectory(dataFile);
+        if (dataFile.exists()) {
+            FileUtils.cleanDirectory(dataFile);
+        }
 
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
