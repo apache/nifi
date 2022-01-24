@@ -21,6 +21,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.DistributedSetCacheClientService;
 import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
@@ -51,7 +52,7 @@ public class DistributedSetCacheTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        final String port = DistributedSetCacheServer.PORT.getDefaultValue();
+        final String port = Integer.toString(NetworkUtils.getAvailableTcpPort());
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
 
         server = new DistributedSetCacheServer();
