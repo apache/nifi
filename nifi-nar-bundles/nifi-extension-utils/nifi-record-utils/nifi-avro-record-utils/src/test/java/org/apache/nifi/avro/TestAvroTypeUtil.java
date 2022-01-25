@@ -139,9 +139,25 @@ public class TestAvroTypeUtil {
         final GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(record, avroSchema);
         assertEquals("John Doe", avroRecord.get("name"));
         assertEquals("blue", avroRecord.get("color"));
-
     }
 
+    @Test
+    public void testAvroDefaultedLong() throws IOException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema personSchema = new SimpleRecordSchema(fields);
+
+        final org.apache.nifi.serialization.record.Record record = new MapRecord(personSchema, Collections.singletonMap("name", "John Doe"));
+        final Schema avroSchema = SchemaBuilder.record("person").namespace("nifi")
+            .fields()
+            .requiredString("name")
+            .name("number").type().longType().longDefault(0)
+            .endRecord();
+
+        final GenericRecord avroRecord = AvroTypeUtil.createAvroRecord(record, avroSchema);
+        assertEquals("John Doe", avroRecord.get("name"));
+        assertEquals(0L, avroRecord.get("number"));
+    }
 
     @Test
     public void testCreateAvroSchemaPrimitiveTypes() {
