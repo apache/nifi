@@ -18,11 +18,9 @@
 package org.apache.nifi.cdc.postgresql.event;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -121,7 +119,7 @@ public class Reader {
         ByteBuffer buffer;
         try {
             buffer = this.replicationStream.readPending();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             throw new SQLException("Failed to read pending events. " + e.getMessage(), e);
         }
 
@@ -143,7 +141,7 @@ public class Reader {
         try {
             message = Decode.decodeLogicalReplicationBuffer(buffer, this.includeBeginCommit,
                     this.includeAllMetadata);
-        } catch (UnsupportedEncodingException | ParseException e) {
+        } catch (Exception e) {
             throw new IOException("Failed to decode event buffer. " + e.getMessage(), e);
         }
 

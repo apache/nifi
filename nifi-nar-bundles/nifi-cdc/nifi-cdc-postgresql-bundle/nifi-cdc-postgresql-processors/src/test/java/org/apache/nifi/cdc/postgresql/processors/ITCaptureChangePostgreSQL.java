@@ -38,7 +38,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.util.PSQLException;
 
@@ -101,6 +103,8 @@ import org.postgresql.util.PSQLException;
  *
  * These configurations requires the restart of PostgreSQL service.
  */
+
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ITCaptureChangePostgreSQL {
 
         // Change it!

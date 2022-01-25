@@ -84,8 +84,11 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 @Tags({ "sql", "jdbc", "cdc", "postgresql" })
 
 @CapabilityDescription("Retrieves Change Data Capture (CDC) events from a PostgreSQL database. Works for PostgreSQL version 10+. "
-        + "Events include INSERT, UPDATE and DELETE operations and are output as individual flow files ordered by the time at which the operation occurred. "
-        + "This processor use a Logical Replication Connection to stream data and a SQL Connection to query system views.")
+        + "Events include INSERT, UPDATE, and DELETE operations and are output as individual flow files ordered by the time at which the operation occurred. "
+        + "This processor uses Replication Connection to stream data. By default, an existing Logical Replication Slot with the specified name will be used or, "
+        + "if none exists, a new one will be created. In the case of an existing slot, make sure that pgoutput is the output plugin. "
+        + "This processor also uses SQL Connection to query system views. "
+        + "Furthermore, a Publication in PostgreSQL database should already exist.")
 
 @Stateful(scopes = Scope.CLUSTER, description = "The last received Log Sequence Number (LSN) from Replication Slot is stored by this processor, "
         + "such that it can continue from the same location if restarted.")
@@ -162,7 +165,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
             .name("cdc-postgresql-user")
             .displayName("Username")
-            .description("Username to access the PostgreSQL database.")
+            .description("Username to access the PostgreSQL database. Must be a superuser.")
             .required(true).addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -191,8 +194,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             .name("cdc-postgresql-publication")
             .displayName("Publication Name")
             .description(
-                    "A PostgreSQL Publication is essentially a group of tables whose data changes are intended to be replicated through logical replication."
-                            + "It should be created in the database before the Processor starts.")
+                    "A group of tables whose data changes are intended to be replicated through Logical Replication. "
+                            + "It should be created in the database before the processor starts.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -202,7 +205,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             .name("cdc-postgresql-slot-name")
             .displayName("Replication Slot Name")
             .description(
-                    "A unique, cluster-wide identifier for the PostgreSQL Replication Slot.")
+                    "A unique, cluster-wide identifier for the PostgreSQL Replication Slot. "
+                            + "If it already exists, make sure that pgoutput is the output plugin.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -211,7 +215,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
     public static final PropertyDescriptor DROP_SLOT_IF_EXISTS = new PropertyDescriptor.Builder()
             .name("cdc-postgresql-drop-slot-if-exists")
             .displayName("Drop if exists replication slot?")
-            .description("Drop Replication Slot in PostgreSQL database if it already exists every Processor starts.")
+            .description(
+                    "Drop the Replication Slot in PostgreSQL database if it already exists every processor starts.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -246,8 +251,8 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             .name("cdc-postgresql-start-lsn")
             .displayName("Start Log Sequence Number (LSN)")
             .description(
-                    "Specifies a start Log Sequence Number (LSN) to use if this Processor's State does not have a current "
-                            + "sequence identifier. If a LSN is present in the Processor's State, this property is ignored.")
+                    "Specifies a start Log Sequence Number (LSN) to use if this processor's state does not have a current "
+                            + "sequence identifier. If a LSN is present in the processor's state, this property is ignored.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .build();
