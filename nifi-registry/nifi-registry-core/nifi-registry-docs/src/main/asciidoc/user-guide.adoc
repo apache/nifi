@@ -483,4 +483,4 @@ An example of using `curl` to download `my-processors-1.0.0.nar` by id and versi
 
 === Additional Actions
 
-For additional actions that can be performed related to bundles, please consult the link:rest-api.html[REST API documentation].
+For additional actions that can be performed related to bundles, please consult the link:../rest-api/index.html[REST API documentation].

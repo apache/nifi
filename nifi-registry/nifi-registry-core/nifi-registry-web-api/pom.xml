@@ -94,8 +94,6 @@
                                             <jsonPath>${swagger.source.dir}/security-definitions.json</jsonPath>
                                         </securityDefinition>
                                     </securityDefinitions>
-                                    <templatePath>classpath:/templates/index.html.hbs</templatePath>
-                                    <outputPath>${docs.dir}/rest-api/index.html</outputPath>
                                     <swaggerDirectory>${swagger.generated.dir}</swaggerDirectory>
                                 </apiSource>
                             </apiSources>
@@ -119,6 +117,25 @@
                                     <directory>src/main/resources/images</directory>
                                 </resource>
                             </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.swagger.codegen.v3</groupId>
+                <artifactId>swagger-codegen-maven-plugin</artifactId>
+                <version>3.0.31</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${swagger.generated.dir}/swagger.json</inputSpec>
+                            <output>${docs.dir}/rest-api</output>
+                            <language>html</language>
+                            <templateDirectory>src/main/resources/templates</templateDirectory>
                         </configuration>
                     </execution>
                 </executions>
@@ -184,65 +201,6 @@
                                     </copy>
                                 </sequential>
                             </target>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Generates asciidoc files from swagger.json -->
-            <plugin>
-                <groupId>io.github.swagger2markup</groupId>
-                <artifactId>swagger2markup-maven-plugin</artifactId>
-                <version>1.3.3</version>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>convertSwagger2markup</goal>
-                        </goals>
-                        <configuration>
-                            <swaggerInput>${swagger.generated.dir}/swagger.json</swaggerInput>
-                            <outputDir>${asciidoc.generated.dir}</outputDir>
-                            <config>
-                                <swagger2markup.markupLanguage>ASCIIDOC</swagger2markup.markupLanguage>
-                                <swagger2markup.pathsGroupedBy>TAGS</swagger2markup.pathsGroupedBy>
-                                <swagger2markup.generatedExamplesEnabled>true</swagger2markup.generatedExamplesEnabled>
-                            </config>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Generates rest-api.html from rest-api.adoc and places it in docs dir within WAR -->
-            <plugin>
-                <groupId>org.asciidoctor</groupId>
-                <artifactId>asciidoctor-maven-plugin</artifactId>
-                <version>1.5.8</version>
-                <configuration>
-                    <sourceDirectory>${asciidoc.source.dir}</sourceDirectory>
-                    <sourceDocumentName>rest-api.adoc</sourceDocumentName>
-                    <attributes>
-                        <doctype>article</doctype>
-                        <toc />
-                        <toclevels>3</toclevels>
-                        <numbered />
-                        <hardbreaks />
-                        <sectlinks />
-                        <sectanchors />
-                        <revnumber>${project.version}</revnumber>
-                        <organization>Apache NiFi</organization>
-                        <generated>${asciidoc.generated.dir}</generated>
-                    </attributes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>output-html</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>process-asciidoc</goal>
-                        </goals>
-                        <configuration>
-                            <backend>html5</backend>
-                            <outputDirectory>${docs.dir}/rest-api</outputDirectory>
-                            <outputFile>rest-api.html</outputFile>
                         </configuration>
                     </execution>
                 </executions>
