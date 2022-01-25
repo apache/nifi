@@ -19,12 +19,10 @@ package org.apache.nifi.toolkit.admin.filemanager
 import org.apache.commons.cli.ParseException
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.SystemUtils
-import org.junit.Assume
-import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
-import spock.lang.Ignore
+import spock.lang.IgnoreIf
 import spock.lang.Specification
 
 import java.nio.file.Files
@@ -37,11 +35,7 @@ class FileManagerToolSpec extends Specification{
     @Rule
     public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
-    }
-
+    @IgnoreIf({os.windows})
     def "throws exception missing operation flag"() {
 
         given:
@@ -55,6 +49,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -o option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing upgrade file for install"() {
 
         given:
@@ -68,6 +63,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -i option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing install directory for install"() {
 
         given:
@@ -81,6 +77,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -d option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing current directory when moving repositories for install"() {
 
         given:
@@ -94,7 +91,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -c option: Moving repositories requires current nifi directory"
     }
 
-
+    @IgnoreIf({os.windows})
     def "throws exception if missing backup directory for backup"() {
 
         given:
@@ -108,6 +105,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -b option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing current dir for backup"() {
 
         given:
@@ -121,6 +119,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -c option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing rollback directory for restore"() {
 
         given:
@@ -134,6 +133,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -r option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing backup directory for restore"() {
 
         given:
@@ -147,6 +147,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -b option"
     }
 
+    @IgnoreIf({os.windows})
     def "throws exception if missing current directory when wanting to move repositories during install"() {
 
         given:
@@ -160,7 +161,7 @@ class FileManagerToolSpec extends Specification{
         e.message == "Missing -c option: Moving repositories requires current nifi directory"
     }
 
-
+    @IgnoreIf({os.windows})
     def "move directory from src to target"(){
 
         setup:
@@ -185,6 +186,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "move zookeeper from src to target"(){
 
         setup:
@@ -212,6 +214,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "move repositories from src to target"(){
 
         setup:
@@ -253,6 +256,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "backup nifi installation successfully"(){
 
         setup:
@@ -300,6 +304,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "restore nifi installation successfully"(){
 
         setup:
@@ -371,6 +376,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "extract compressed tar file successfully"(){
 
         setup:
@@ -393,6 +399,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "extract zip file successfully"(){
 
         setup:
@@ -416,6 +423,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "install nifi with existing installation successfully"(){
         setup:
         def File tmpDir = setupTmpDir()
@@ -452,6 +460,7 @@ class FileManagerToolSpec extends Specification{
 
     }
 
+    @IgnoreIf({os.windows})
     def "install nifi without existing installation successfully"(){
         setup:
         def File tmpDir = setupTmpDir()
