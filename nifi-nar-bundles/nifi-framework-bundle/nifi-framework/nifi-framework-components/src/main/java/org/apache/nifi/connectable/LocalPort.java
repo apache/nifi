@@ -125,10 +125,10 @@ public class LocalPort extends AbstractPort {
     }
 
     private void triggerOutputPort(final ProcessContext context, final ProcessSession session) {
-        final DataValve dataValve = getProcessGroup().getDataValve(this);
-
         final boolean shouldTransfer = isTransferDataOut();
         if (shouldTransfer) {
+            final DataValve dataValve = getProcessGroup().getDataValve(this);
+
             if (!dataValve.tryOpenFlowOutOfGroup(getProcessGroup())) {
                 logger.trace("{} will not transfer data out of Process Group because Data Valve prevents data from flowing out of the Process Group", this);
                 context.yield();
@@ -137,9 +137,16 @@ public class LocalPort extends AbstractPort {
 
             try {
                 transferUnboundedConcurrency(context, session);
-            } finally {
+            } catch (final Throwable t) {
                 dataValve.closeFlowOutOfGroup(getProcessGroup());
+                throw t;
             }
+
+            session.commitAsync(() -> {
+                dataValve.closeFlowOutOfGroup(getProcessGroup());
+            }, cause -> {
+                dataValve.closeFlowOutOfGroup(getProcessGroup());
+            });
         } else {
             context.yield();
         }
@@ -155,8 +162,6 @@ public class LocalPort extends AbstractPort {
         }
 
         try {
-            logger.trace("{} obtained claim for FlowFileGate", this);
-
             final FlowFileConcurrency flowFileConcurrency = getProcessGroup().getFlowFileConcurrency();
             switch (flowFileConcurrency) {
                 case UNBOUNDED:
@@ -169,10 +174,17 @@ public class LocalPort extends AbstractPort {
                     transferInputBatch(session);
                     break;
             }
-        } finally {
+        } catch (final Throwable t) {
             flowFileGate.releaseClaim(this);
-            logger.trace("{} released claim for FlowFileGate", this);
+            throw t;
         }
+
+        // Commit the session and then release the FlowFile Gate, regardless of whether or not the session commit succeeds.
+        session.commitAsync(() -> {
+            flowFileGate.releaseClaim(this);
+        }, cause -> {
+            flowFileGate.releaseClaim(this);
+        });
     }
 
     private boolean isTransferDataOut() {

@@ -18,20 +18,30 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Port;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SingleBatchFlowFileGate implements FlowFileGate {
+    private static final Logger logger = LoggerFactory.getLogger(SingleBatchFlowFileGate.class);
 
     @Override
     public boolean tryClaim(final Port port) {
         final ProcessGroup processGroup = port.getProcessGroup();
         final DataValve dataValve = processGroup.getDataValve(port);
-        return dataValve.tryOpenFlowIntoGroup(processGroup);
+        final boolean opened = dataValve.tryOpenFlowIntoGroup(processGroup);
+        if (opened) {
+            logger.debug("Claim obtained for {}", port);
+        }
+
+        return opened;
     }
 
     @Override
     public void releaseClaim(final Port port) {
         final ProcessGroup processGroup = port.getProcessGroup();
         final DataValve dataValve = processGroup.getDataValve(port);
+
+        logger.debug("Claim released for {}", port);
         dataValve.closeFlowIntoGroup(processGroup);
     }
 }

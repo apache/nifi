@@ -17,20 +17,31 @@
 
 package org.apache.nifi.tests.system.pg;
 
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
+    private static final Logger logger = LoggerFactory.getLogger(BatchFlowBetweenGroupsIT.class);
 
     @Test
     public void testSingleConcurrencyAndBatchOutputToBatchInputOutput() throws NiFiClientException, IOException, InterruptedException {
@@ -133,5 +144,48 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
 
         // Wait for count from CountEvents to equal 25
         waitForQueueCount(outputPortToCountEvents.getId(), 25);
+
+        getClientUtil().emptyQueue(outputPortToCountEvents.getId());
+        getClientUtil().stopProcessGroupComponents(processGroupA.getId());
+        getClientUtil().stopProcessGroupComponents(processGroupB.getId());
+    }
+
+    private Map<String, QueueSize> getAllQueueSizes(final String groupId, final boolean recursive) throws NiFiClientException, IOException {
+        final Set<String> connectionIds = getConnectionIds(groupId, recursive);
+        final Map<String, QueueSize> queueSizes = new HashMap<>(connectionIds.size());
+
+        for (final String connectionId : connectionIds) {
+            final QueueSize queueSize = getClientUtil().getQueueSize(connectionId);
+            final ConnectionEntity entity = getNifiClient().getConnectionClient().getConnection(connectionId);
+            final ConnectionDTO dto = entity.getComponent();
+            final String sourceName = dto.getSource().getName();
+            final String destName = dto.getDestination().getName();
+            final Set<String> relationships = dto.getSelectedRelationships();
+            final String description = connectionId + " (" + sourceName + " -> " + destName + " via " + relationships + ")";
+            queueSizes.put(description, queueSize);
+        }
+
+        return queueSizes;
+    }
+
+    private Set<String> getConnectionIds(final String groupId, final boolean recursive) throws NiFiClientException, IOException {
+        final Set<String> connectionIds = new HashSet<>();
+        getConnectionIds(groupId, connectionIds, recursive);
+        return connectionIds;
+    }
+
+    private void getConnectionIds(final String groupId, final Set<String> connectionIds, final boolean recursive) throws NiFiClientException, IOException {
+        final ProcessGroupFlowEntity flowEntity = getNifiClient().getFlowClient().getProcessGroup(groupId);
+        final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
+
+        for (final ConnectionEntity connectionEntity : flowDto.getConnections()) {
+            connectionIds.add(connectionEntity.getId());
+        }
+
+        if (recursive) {
+            for (final ProcessGroupEntity childGroup : flowDto.getProcessGroups()) {
+                getConnectionIds(childGroup.getId(), connectionIds, recursive);
+            }
+        }
     }
 }

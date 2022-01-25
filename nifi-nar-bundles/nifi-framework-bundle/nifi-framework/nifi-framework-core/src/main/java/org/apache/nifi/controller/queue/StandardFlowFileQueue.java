@@ -110,14 +110,24 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     @Override
     public void put(final FlowFileRecord file) {
-        queue.put(file);
+        writeLock.lock();
+        try {
+            queue.put(file);
+        } finally {
+            writeLock.unlock("put");
+        }
 
         eventListener.triggerDestinationEvent();
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> files) {
-        queue.putAll(files);
+        writeLock.lock();
+        try {
+            queue.putAll(files);
+        } finally {
+            writeLock.unlock("putAll");
+        }
 
         eventListener.triggerDestinationEvent();
     }
@@ -127,27 +137,48 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         // First check if we have any records Pre-Fetched.
         final long expirationMillis = getFlowFileExpiration(TimeUnit.MILLISECONDS);
-        return queue.poll(expiredRecords, expirationMillis, pollStrategy);
+
+        writeLock.lock();
+        try {
+            return queue.poll(expiredRecords, expirationMillis, pollStrategy);
+        } finally {
+            writeLock.unlock("poll(Set, PollStrategy)");
+        }
     }
 
 
     @Override
     public List<FlowFileRecord> poll(int maxResults, final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
-        return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        writeLock.lock();
+        try {
+            return queue.poll(maxResults, expiredRecords, getFlowFileExpiration(TimeUnit.MILLISECONDS), pollStrategy);
+        } finally {
+            writeLock.unlock("poll(int, Set)");
+        }
     }
 
 
 
     @Override
     public void acknowledge(final FlowFileRecord flowFile) {
-        queue.acknowledge(flowFile);
+        writeLock.lock();
+        try {
+            queue.acknowledge(flowFile);
+        } finally {
+            writeLock.unlock("acknowledge(FlowFileRecord)");
+        }
 
         eventListener.triggerSourceEvent();
     }
 
     @Override
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
-        queue.acknowledge(flowFiles);
+        writeLock.lock();
+        try {
+            queue.acknowledge(flowFiles);
+        } finally {
+            writeLock.unlock("acknowledge(Collection)");
+        }
 
         eventListener.triggerSourceEvent();
     }

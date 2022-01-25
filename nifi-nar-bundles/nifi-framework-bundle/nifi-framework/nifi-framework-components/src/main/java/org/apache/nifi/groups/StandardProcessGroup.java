@@ -122,6 +122,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -4117,26 +4118,39 @@ public final class StandardProcessGroup implements ProcessGroup {
     private boolean isDataQueued(final Predicate<Connection> connectionFilter) {
         readLock.lock();
         try {
+            final List<FlowFileQueue> relevantQueues = new ArrayList<>();
             for (final Connection connection : this.connections.values()) {
                 // If the connection doesn't pass the filter, just skip over it.
                 if (!connectionFilter.test(connection)) {
                     continue;
                 }
 
-                final boolean queueEmpty = connection.getFlowFileQueue().isEmpty();
-                if (!queueEmpty) {
-                    return true;
-                }
+                relevantQueues.add(connection.getFlowFileQueue());
             }
 
-            for (final ProcessGroup child : this.processGroups.values()) {
-                // Check if the child Process Group has any data enqueued. Note that we call #isDataQueued here and NOT
-                // #isDataQueeudForProcesing. I.e., regardless of whether this is called from #isDataQueued or #isDataQueuedForProcessing,
-                // for child groups, we only call #isDataQueued. This is because if data is queued up for the Output Port of a child group,
-                // it is still considered to be data that is being processed by this Process Group.
-                if (child.isDataQueued()) {
-                    return true;
+            relevantQueues.sort(Comparator.comparing(FlowFileQueue::getIdentifier));
+            relevantQueues.forEach(FlowFileQueue::lock);
+
+            try {
+                for (final FlowFileQueue queue : relevantQueues) {
+                    final boolean queueEmpty = queue.isEmpty();
+                    if (!queueEmpty) {
+                        return true;
+                    }
                 }
+
+                for (final ProcessGroup child : this.processGroups.values()) {
+                    // Check if the child Process Group has any data enqueued. Note that we call #isDataQueued here and NOT
+                    // #isDataQueeudForProcesing. I.e., regardless of whether this is called from #isDataQueued or #isDataQueuedForProcessing,
+                    // for child groups, we only call #isDataQueued. This is because if data is queued up for the Output Port of a child group,
+                    // it is still considered to be data that is being processed by this Process Group.
+                    if (child.isDataQueued()) {
+                        return true;
+                    }
+                }
+            } finally {
+                Collections.reverse(relevantQueues);
+                relevantQueues.forEach(FlowFileQueue::unlock);
             }
 
             return false;

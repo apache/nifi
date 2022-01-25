@@ -18,10 +18,13 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Port;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class SingleConcurrencyFlowFileGate implements FlowFileGate {
+    private static final Logger logger = LoggerFactory.getLogger(SingleConcurrencyFlowFileGate.class);
     private final AtomicBoolean claimed = new AtomicBoolean(false);
 
     public SingleConcurrencyFlowFileGate() {
@@ -40,6 +43,7 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
         final boolean empty = !port.getProcessGroup().isDataQueued();
         if (empty) {
             // Process Group is empty so return true indicating that the claim is now held.
+            logger.debug("Claim obtained for {}", port);
             return true;
         }
 
@@ -51,6 +55,7 @@ public class SingleConcurrencyFlowFileGate implements FlowFileGate {
 
     @Override
     public void releaseClaim(final Port port) {
+        logger.debug("Claim released for {}", port);
         claimed.set(false);
     }
 }

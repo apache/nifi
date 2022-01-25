@@ -31,7 +31,7 @@ package org.apache.nifi.groups;
  * <p>
  *   In order to accomplish this, an Output Port whose Process Group has a FlowFile Outbound Policy of Batch Output should not transfer
  *   data out of a Process Group unless first opening the valve via a call to {@link #tryOpenFlowOutOfGroup(ProcessGroup)} with a return
- *   value of <code>true</code>. Once the valve is open, the Input Port MUST call {@link #closeFlowOutOfGroup(ProcessGroup)} after transferring
+ *   value of <code>true</code>. Once the valve is open, the Output Port MUST call {@link #closeFlowOutOfGroup(ProcessGroup)} after transferring
  *   data in order to ensure that the destination Process Group is able to ingest the data.
  * </p>
  *
