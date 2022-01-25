@@ -56,6 +56,41 @@
         }
     };
 
+    /**
+     * Return user entity from the dataset of the users table
+     * @param userId 
+     * @returns user
+     */
+    var getUserById = function (userId) {
+        var usersGrid = $('#users-table').data('gridInstance');
+        var usersData = usersGrid.getData();
+        return usersData.getItemById('user_' + userId);
+    }
+
+    /**
+     * Return group entity from the dataset of the users table
+     * @param groupId 
+     * @returns group
+     */
+    var getGroupById = function (groupId) {
+        var usersGrid = $('#users-table').data('gridInstance');
+        var usersData = usersGrid.getData();
+        return usersData.getItemById('group_' + groupId);
+    }
+
+    /**
+     * Selects a row in the users table
+     * @param {user | group} type 
+     * @param id 
+     */
+    var selectRow = function (type, id) {
+        var usersGrid = $('#users-table').data('gridInstance');
+        var usersData = usersGrid.getData();
+        var row = usersData.getRowById(type + '_' + id);
+        usersGrid.setSelectedRows([row]);
+        usersGrid.scrollRowIntoView(row);
+    }
+
     var initUserDeleteDialog = function () {
         $('#user-delete-dialog').modal({
             headerText: 'Delete Account',
@@ -68,12 +103,13 @@
                 },
                 handler: {
                     click: function () {
-                        var userId = $('#user-id-delete-dialog').val();
+                        // delete dialog contains the extended id
+                        var extendedUserId = $('#user-extended-id-delete-dialog').val();
 
                         // get the user
                         var usersGrid = $('#users-table').data('gridInstance');
                         var usersData = usersGrid.getData();
-                        var user = usersData.getItemById(userId);
+                        var user = usersData.getItemById(extendedUserId);
                         var revision = nfClient.getRevision(user);
 
                         // update the user
@@ -107,7 +143,7 @@
             handler: {
                 close: function () {
                     // clear the current user
-                    $('#user-id-delete-dialog').val('');
+                    $('#user-extended-id-delete-dialog').val('');
                     $('#user-name-delete-dialog').text('');
                 }
             }
@@ -237,9 +273,6 @@
      * @param selectedGroups
      */
     var createUser = function (newUserEntity, selectedGroups) {
-        // get the grid and data
-        var usersGrid = $('#users-table').data('gridInstance');
-        var usersData = usersGrid.getData();
 
         // create the user
         var userXhr = $.ajax({
@@ -256,16 +289,14 @@
 
             var xhrs = [];
             $.each(selectedGroups, function (_, selectedGroup) {
-                var groupEntity = usersData.getItemById(selectedGroup.id)
+                var groupEntity = getGroupById(selectedGroup.id)
                 xhrs.push(addUserToGroup(groupEntity, userEntity));
             });
 
             $.when.apply(window, xhrs).always(function () {
                 nfUsersTable.loadUsersTable().done(function () {
                     // select the new user
-                    var row = usersData.getRowById(userEntity.id);
-                    usersGrid.setSelectedRows([row]);
-                    usersGrid.scrollRowIntoView(row);
+                    selectRow('user', userEntity.id);
                 });
             }).fail(nfErrorHandler.handleAjaxError);
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
@@ -279,10 +310,7 @@
      * @param selectedGroups
      */
     var updateUser = function (userId, userIdentity, selectedGroups) {
-        // get the grid and data
-        var usersGrid = $('#users-table').data('gridInstance');
-        var usersData = usersGrid.getData();
-        var userEntity = usersData.getItemById(userId);
+        var userEntity = getUserById(userId);
 
         var updatedUserEntity = {
             'revision': nfClient.getRevision(userEntity),
@@ -333,11 +361,11 @@
             // update each group
             var xhrs = [];
             $.each(groupsAdded, function (_, group) {
-                var groupEntity = usersData.getItemById(group.id);
+                var groupEntity = getGroupById(group.id);
                 xhrs.push(addUserToGroup(groupEntity, updatedUserEntity))
             });
             $.each(groupsRemoved, function (_, group) {
-                var groupEntity = usersData.getItemById(group.id);
+                var groupEntity = getGroupById(group.id);
                 xhrs.push(removeUserFromGroup(groupEntity, updatedUserEntity));
             });
 
@@ -363,23 +391,21 @@
         }).done(function (groupEntity) {
             $('#user-dialog').modal('hide');
             nfUsersTable.loadUsersTable().done(function () {
-                // add the user
-                var usersGrid = $('#users-table').data('gridInstance');
-                var usersData = usersGrid.getData();
-
-                // select the new user
-                var row = usersData.getRowById(groupEntity.id);
-                usersGrid.setSelectedRows([row]);
-                usersGrid.scrollRowIntoView(row);
+                // select the new group
+                selectRow('group', groupEntity.id);
             });
         }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
     };
 
+    /**
+     * Updates the specified group.
+     *
+     * @param groupId
+     * @param groupIdentity
+     * @param selectedUsers
+     */
     var updateGroup = function (groupId, groupIdentity, selectedUsers) {
-        // get the grid and data
-        var usersGrid = $('#users-table').data('gridInstance');
-        var usersData = usersGrid.getData();
-        var groupEntity = usersData.getItemById(groupId);
+        var groupEntity = getGroupById(groupId);
 
         var updatedGroupoEntity = {
             'revision': nfClient.getRevision(groupEntity),
@@ -897,7 +923,7 @@
         var usersData = new Slick.Data.DataView({
             inlineFilters: false
         });
-        usersData.setItems([]);
+        usersData.setItems([], 'extendedId');
         usersData.setFilterArgs({
             searchString: getFilterText(),
             property: $('#users-filter-type').combo('getSelectedOption').value
@@ -1237,7 +1263,8 @@
      */
     var deleteUser = function (user) {
         // populate the users info
-        $('#user-id-delete-dialog').val(user.id);
+        // extended id must be used to get the proper entity in initUserDeleteDialog.handler
+        $('#user-extended-id-delete-dialog').val(user.extendedId);
         $('#user-identity-delete-dialog').text(user.component.identity);
 
         // show the dialog
@@ -1354,20 +1381,24 @@
 
                 // add each user
                 $.each(usersResponse.users, function (_, user) {
+                    // id must be extended with type to avoid conflict with groups in some cases
                     users.push($.extend({
+                        extendedId: 'user_' + user.id,
                         type: 'user'
                     }, user));
                 });
 
                 // add each group
                 $.each(groupsResponse.userGroups, function (_, group) {
+                    // id must be extended with type to avoid conflict with users in some cases
                     users.push($.extend({
+                        extendedId: 'group_' + group.id,
                         type: 'group'
                     }, group));
                 });
 
                 // set the rows
-                usersData.setItems(users);
+                usersData.setItems(users, 'extendedId');
 
                 // end the update
                 usersData.endUpdate();

@@ -15,7 +15,7 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="user-delete-dialog" class="hidden">
     <div class="dialog-content">
-        <input type="hidden" id="user-id-delete-dialog"/>
+        <input type="hidden" id="user-extended-id-delete-dialog"/>
         Are you sure you want to delete the account for '<span id="user-identity-delete-dialog"></span>'?
     </div>
 </div>
