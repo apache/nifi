@@ -622,12 +622,16 @@ public class AvroTypeUtil {
         // see if the Avro schema has any fields that aren't in the RecordSchema, and if those fields have a default
         // value then we want to populate it in the GenericRecord being produced
         for (final Field field : avroSchema.getFields()) {
-            if (field.defaultVal() == null) {
+            final Object defaultValue = field.defaultVal();
+            if (defaultValue == null || defaultValue == JsonProperties.NULL_VALUE) {
                 continue;
             }
 
             if (rec.get(field.name()) == null) {
-                rec.put(field.name(), field.defaultVal());
+                // The default value may not actually be the proper value for Avro. For example, the schema may indicate that we need a long but provide a default value of 0.
+                // To address this, we need to ensure that the value that we set is correct based on the Avro schema, so we need to call convertToAvroObject even on the default value.
+                final Object normalized = convertToAvroObject(defaultValue, field.schema());
+                rec.put(field.name(), normalized);
             }
         }
 
