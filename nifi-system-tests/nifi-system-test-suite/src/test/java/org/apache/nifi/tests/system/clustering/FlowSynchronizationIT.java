@@ -683,7 +683,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         connection.setDisconnectedNodeAcknowledged(true);
 
         // Delete the CountFlowFiles processor, and countB and countC services, disable A.
-        getNifiClient().getProcessorClient().stopProcessor(countFlowFiles);
+        getClientUtil().stopProcessor(countFlowFiles);
         getNifiClient().getConnectionClient().deleteConnection(connection);
         getNifiClient().getProcessorClient().deleteProcessor(countFlowFiles);
         getClientUtil().disableControllerServices("root", true);
