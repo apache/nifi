@@ -28,10 +28,10 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.dbcp.DBCPValidator;
+import org.apache.nifi.dbcp.DBCPConnectionPool;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -43,9 +43,9 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -65,36 +65,7 @@ import java.util.stream.Collectors;
         description = "Snowflake JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
 @RequiresInstanceClassLoading
-public class SnowflakeComputingConnectionPool extends AbstractControllerService implements DBCPService {
-    /**
-     * Property Name Prefix for Sensitive Dynamic Properties
-     */
-    protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
-    /*
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
-     */
-    private static final String DEFAULT_MIN_IDLE = "0";
-    /*
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
-     */
-    private static final String DEFAULT_MAX_IDLE = "8";
-    /*
-     * Copied from private variable {@link BasicDataSource.maxConnLifetimeMillis} in Commons-DBCP 2.7.0
-     */
-    private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
-    /*
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
-     */
-    private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
-    /*
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
-     * and converted from 1800000L to "1800000 millis" to "30 mins"
-     */
-    private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
-    /*
-     * Copied from {@link GenericObjectPoolConfig.DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
-     */
-    private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
+public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
         .displayName("Snowflake URL")
@@ -127,109 +98,57 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
         .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.VALIDATION_QUERY)
         .displayName("Validation query")
         .name("validation-query")
-        .description("Validation query used to validate connections before returning them. "
-            + "When connection is invalid, it gets dropped and new valid connection will be returned. "
-            + "Note!! Using validation might have some performance penalty.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MAX_WAIT_TIME)
         .displayName("Max Wait Time")
         .name("max-wait-time")
-        .description("The maximum amount of time that the pool will wait (when there are no available connections) "
-            + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
-        .defaultValue("500 millis")
-        .required(true)
-        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .sensitive(false)
         .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MAX_TOTAL_CONNECTIONS)
         .displayName("Max Total Connections")
         .name("max-total-connections")
-        .description("The maximum number of active connections that can be allocated from this pool at the same time, "
-            + " or negative for no limit.")
-        .defaultValue("8")
-        .required(true)
-        .addValidator(StandardValidators.INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .sensitive(false)
         .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MIN_IDLE)
         .displayName("Minimum Idle Connections")
         .name("snowflake-min-idle-conns")
-        .description("The minimum number of connections that can remain idle in the pool without extra ones being " +
-            "created. Set to or zero to allow no idle connections.")
-        .defaultValue(DEFAULT_MIN_IDLE)
-        .required(false)
-        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MAX_IDLE)
         .displayName("Max Idle Connections")
         .name("snowflake-max-idle-conns")
-        .description("The maximum number of connections that can remain idle in the pool without extra ones being " +
-            "released. Set to any negative value to allow unlimited idle connections.")
-        .defaultValue(DEFAULT_MAX_IDLE)
-        .required(false)
-        .addValidator(StandardValidators.INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MAX_CONN_LIFETIME)
         .displayName("Max Connection Lifetime")
         .name("snowflake-max-conn-lifetime")
-        .description("The maximum lifetime in milliseconds of a connection. After this time is exceeded the " +
-            "connection will fail the next activation, passivation or validation test. A value of zero or less " +
-            "means the connection has an infinite lifetime.")
-        .defaultValue(DEFAULT_MAX_CONN_LIFETIME)
-        .required(false)
-        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.EVICTION_RUN_PERIOD)
         .displayName("Time Between Eviction Runs")
         .name("snowflake-time-between-eviction-runs")
-        .description("The number of milliseconds to sleep between runs of the idle connection evictor thread. When " +
-            "non-positive, no idle connection evictor thread will be run.")
-        .defaultValue(DEFAULT_EVICTION_RUN_PERIOD)
-        .required(false)
-        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME)
         .displayName("Minimum Evictable Idle Time")
         .name("snowflake-min-evictable-idle-time")
-        .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for eviction.")
-        .defaultValue(DEFAULT_MIN_EVICTABLE_IDLE_TIME)
-        .required(false)
-        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME)
         .displayName("Soft Minimum Evictable Idle Time")
-        .name("dbcp-soft-min-evictable-idle-time")
-        .description("The minimum amount of time a connection may sit idle in the pool before it is eligible for " +
-            "eviction by the idle connection evictor, with the extra condition that at least a minimum number of" +
-            " idle connections remain in the pool. When the not-soft version of this option is set to a positive" +
-            " value, it is examined first by the idle connection evictor: when idle connections are visited by " +
-            "the evictor, idle time is first compared against it (without considering the number of idle " +
-            "connections in the pool) and then against this soft option, including the minimum idle connections " +
-            "constraint.")
-        .defaultValue(DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME)
-        .required(false)
-        .addValidator(DBCPValidator.CUSTOM_TIME_PERIOD_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .name("snowflake-soft-min-evictable-idle-time")
         .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -277,6 +196,11 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
         return builder.build();
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        return Collections.emptyList();
+    }
+
     /**
      * Configures connection pool by creating an instance of the
      * {@link BasicDataSource} based on configuration provided with
@@ -313,7 +237,7 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
 
         dataSource = new BasicDataSource();
 
-        dataSource.setDriver(getDriver(connectionString));
+        dataSource.setDriver(getDriver(SnowflakeDriver.class.getName(), connectionString));
 
         dataSource.setUrl(connectionString);
         dataSource.setUsername(user);
@@ -350,13 +274,22 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
         });
     }
 
-    private Driver getDriver(final String url) {
+    protected Driver getDriver(final String driverName, final String url) {
+        final Class<?> clazz;
+
+        try {
+            clazz = Class.forName(driverName);
+        } catch (final ClassNotFoundException e) {
+            throw new ProcessException("Driver class " + driverName +  " is not found", e);
+        }
+
         try {
             return DriverManager.getDriver(url);
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             try {
-                DriverManager.registerDriver(SnowflakeDriver.class.newInstance());
+                final Driver driver = (Driver) clazz.newInstance();
+                DriverManager.registerDriver(driver);
                 return DriverManager.getDriver(url);
             } catch (final SQLException e2) {
                 throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
@@ -366,13 +299,8 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
         }
     }
 
-    private Long extractMillisWithInfinite(PropertyValue prop) {
-        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
-    }
-
     /**
      * Shutdown pool, close all open connections.
-     * *
      *
      * @throws SQLException if there is an error while closing open connections
      */
@@ -390,8 +318,8 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
     @Override
     public Connection getConnection() throws ProcessException {
         try {
-            final Connection con = dataSource.getConnection();
-            return con;
+            final Connection connection = dataSource.getConnection();
+            return connection;
         } catch (final SQLException e) {
             throw new ProcessException(e);
         }
@@ -400,9 +328,5 @@ public class SnowflakeComputingConnectionPool extends AbstractControllerService 
     @Override
     public String toString() {
         return this.getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
-    }
-
-    BasicDataSource getDataSource() {
-        return dataSource;
     }
 }
