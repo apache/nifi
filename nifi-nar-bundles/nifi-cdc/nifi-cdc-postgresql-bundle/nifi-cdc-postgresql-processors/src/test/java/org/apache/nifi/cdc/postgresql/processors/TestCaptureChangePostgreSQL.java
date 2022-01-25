@@ -41,7 +41,6 @@ import org.junit.Test;
  */
 public class TestCaptureChangePostgreSQL {
 
-    private static final String DRIVER_LOCATION = "/Users/davy.machado/Documents/SOFTWARES/LIBS/postgresql-42.3.1.jar";
     private static final String DRIVER_NAME = "org.postgresql.Driver";
     private static final String HOST = "localhost";
     private static final String PORT = "5432";
@@ -66,8 +65,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testRequiredProperties() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
-        runner.assertNotValid();
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.assertNotValid();
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -90,7 +87,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testCDCBeginCommitNotIncludedAllMetadataNotIncluded() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -119,7 +115,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testCDCBeginCommitIncludedAllMetadataNotIncluded() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -132,6 +127,8 @@ public class TestCaptureChangePostgreSQL {
 
         runner.setProperty(CaptureChangePostgreSQL.INCLUDE_BEGIN_COMMIT, "true");
         runner.setProperty(CaptureChangePostgreSQL.INCLUDE_ALL_METADATA, "false");
+
+        runner.setValidateExpressionUsage(false);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 3); // Expected 3 flow files (BEGIN,
@@ -164,7 +161,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testCDCBeginCommitIncludedAllMetadataIncluded() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -220,7 +216,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testState() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -244,7 +239,6 @@ public class TestCaptureChangePostgreSQL {
 
     @Test
     public void testDataProvenance() {
-        runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);

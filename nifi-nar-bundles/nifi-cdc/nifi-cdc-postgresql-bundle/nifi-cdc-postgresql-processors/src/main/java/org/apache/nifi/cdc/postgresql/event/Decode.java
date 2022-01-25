@@ -19,6 +19,7 @@ package org.apache.nifi.cdc.postgresql.event;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -139,7 +140,7 @@ public class Decode {
                     buffer.get(bytes_O);
 
                     /* (String) Name of the origin. */
-                    message.put("originName", new String(bytes_O, "UTF-8"));
+                    message.put("originName", new String(bytes_O, StandardCharsets.UTF_8));
                 }
                 return message;
 
@@ -155,7 +156,7 @@ public class Decode {
                 buffer.position(0);
                 byte[] bytes_R = new byte[buffer.capacity()];
                 buffer.get(bytes_R);
-                String string_R = new String(bytes_R, "UTF-8");
+                String string_R = new String(bytes_R, StandardCharsets.UTF_8);
 
                 /* ASCII 0 = Null */
                 int firstStringEnd = string_R.indexOf(0, position);
@@ -242,7 +243,7 @@ public class Decode {
                     buffer.position(0);
                     byte[] bytes_Y = new byte[buffer.capacity()];
                     buffer.get(bytes_Y);
-                    String string_Y = new String(bytes_Y, "UTF-8");
+                    String string_Y = new String(bytes_Y, StandardCharsets.UTF_8);
 
                     /* (String) Namespace (empty string for pg_catalog). */
                     message.put("namespaceName", string_Y.substring(position, string_Y.indexOf(0, position)));
@@ -437,10 +438,10 @@ public class Decode {
                  * Numeric types are not quoted.
                  */
                 if (column.getDataTypeName().startsWith("int")) {
-                    data.put(column.getName(), Long.parseLong(new String(bytes, "UTF-8")));
+                    data.put(column.getName(), Long.parseLong(new String(bytes, StandardCharsets.UTF_8)));
                 } else {
                     /* (ByteN) The value of the column, in text format. */
-                    data.put(column.getName(), new String(bytes, "UTF-8"));
+                    data.put(column.getName(), new String(bytes, StandardCharsets.UTF_8));
                 }
 
             } else { /* dataFormat = 'n' (NULL value) or 'u' (unchanged TOASTED value) */
