@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.Call;
 import okhttp3.OkHttpClient;
@@ -613,6 +614,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
     private VersionedFlowSnapshot readVersionedFlowSnapshot(final InputStream in) throws IOException {
         final ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         final VersionedFlowSnapshot snapshot = objectMapper.readValue(in, VersionedFlowSnapshot.class);
 
