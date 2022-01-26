@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.flow.resource;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ReplaceWithNewerResolutionStrategyTest {
 
     private static final String RESOURCE_NAME = "resource.json";
@@ -52,7 +52,7 @@ public class ReplaceWithNewerResolutionStrategyTest {
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
     }
 
     @Test
@@ -65,7 +65,7 @@ public class ReplaceWithNewerResolutionStrategyTest {
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
     }
 
     @Test
@@ -79,7 +79,7 @@ public class ReplaceWithNewerResolutionStrategyTest {
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
-        Assert.assertFalse(result);
+        Assertions.assertFalse(result);
     }
 
     @Test
@@ -93,7 +93,7 @@ public class ReplaceWithNewerResolutionStrategyTest {
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
-        Assert.assertFalse(result);
+        Assertions.assertFalse(result);
     }
 
     @Test
@@ -107,6 +107,6 @@ public class ReplaceWithNewerResolutionStrategyTest {
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
     }
 }

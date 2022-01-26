@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.flow.resource;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.HashSet;
@@ -28,25 +28,20 @@ public class CompositeExternalResourceProviderServiceTest {
 
     @Test
     public void testWorkerThreadIsManagedCorrectly() {
-        // given
         final String threadName = Thread.currentThread().getName();
         final TestExternalResourceProviderWorker worker = new TestExternalResourceProviderWorker();
         final Set<ExternalResourceProviderWorker> workers = new HashSet<>();
         workers.add(worker);
 
-        // when
         final CompositeExternalResourceProviderService testSubject = new CompositeExternalResourceProviderService("testService", workers, new CountDownLatch(0));
         testSubject.start();
 
-        // then
-        Assert.assertTrue(worker.isRunning());
+        Assertions.assertTrue(worker.isRunning());
 
-        // when
         testSubject.stop();
 
-        // then
-        Assert.assertFalse(worker.isRunning());
-        Assert.assertNotEquals(threadName, worker.threadName);
+        Assertions.assertFalse(worker.isRunning());
+        Assertions.assertNotEquals(threadName, worker.threadName);
     }
 
     private static class TestExternalResourceProviderWorker implements ExternalResourceProviderWorker {
@@ -82,7 +77,7 @@ public class CompositeExternalResourceProviderServiceTest {
                     Thread.sleep(10);
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    Assert.fail();
+                    Assertions.fail();
                     stopped = true;
                 }
             }

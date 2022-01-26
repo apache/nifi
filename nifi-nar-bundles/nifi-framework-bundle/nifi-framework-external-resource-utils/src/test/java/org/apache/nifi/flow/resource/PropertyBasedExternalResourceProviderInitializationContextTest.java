@@ -18,18 +18,18 @@ package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class PropertyBasedExternalResourceProviderInitializationContextTest {
     private static final String PROVIDER_NAME = "external";
     private static final String PREFIX = "nifi.test.resources.external.provider." + PROVIDER_NAME + ".";
@@ -39,69 +39,58 @@ public class PropertyBasedExternalResourceProviderInitializationContextTest {
 
     @Test
     public void testEmptyProperties() throws TlsException {
-        // when
-        final PropertyBasedExternalResourceProviderInitializationContext testSubject = givenTestSubject();
+        final PropertyBasedExternalResourceProviderInitializationContext testSubject = getTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
-        // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
-        Assert.assertTrue(result.isEmpty());
+        Assertions.assertTrue(result.isEmpty());
     }
 
     @Test
     public void testGuardedPropertiesAreNotReturned() throws TlsException {
-        // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX + "implementation", "value");
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
-        // when
-        final PropertyBasedExternalResourceProviderInitializationContext testSubject = givenTestSubject();
+        final PropertyBasedExternalResourceProviderInitializationContext testSubject = getTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
-        // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
-        Assert.assertTrue(result.isEmpty());
+        Assertions.assertTrue(result.isEmpty());
     }
 
     @Test
     public void testPropertiesWouldHaveEmptyKeyAreNotReturned() throws TlsException {
-        // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX, "value");
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
-        // when
-        final PropertyBasedExternalResourceProviderInitializationContext testSubject = givenTestSubject();
+        final PropertyBasedExternalResourceProviderInitializationContext testSubject = getTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
-        // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
-        Assert.assertTrue(result.isEmpty());
+        Assertions.assertTrue(result.isEmpty());
     }
 
     @Test
     public void testPrefixIsRemoved() throws TlsException {
-        // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX + "key1", "value1");
         availableProperties.put(PREFIX + "key2", "value2");
         Mockito.when(properties.getPropertiesWithPrefix(PREFIX)).thenReturn(availableProperties);
 
-        // when
-        final PropertyBasedExternalResourceProviderInitializationContext testSubject = givenTestSubject();
+        final PropertyBasedExternalResourceProviderInitializationContext testSubject = getTestSubject();
         final Map<String, String> result = testSubject.getProperties();
 
-        // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
-        Assert.assertEquals(2, result.size());
-        Assert.assertTrue(result.containsKey("key1"));
-        Assert.assertTrue(result.containsKey("key2"));
-        Assert.assertEquals("value1", result.get("key1"));
-        Assert.assertEquals("value2", result.get("key2"));
+        Assertions.assertEquals(2, result.size());
+        Assertions.assertTrue(result.containsKey("key1"));
+        Assertions.assertTrue(result.containsKey("key2"));
+        Assertions.assertEquals("value1", result.get("key1"));
+        Assertions.assertEquals("value2", result.get("key2"));
     }
 
-    private PropertyBasedExternalResourceProviderInitializationContext givenTestSubject() throws TlsException {
+    private PropertyBasedExternalResourceProviderInitializationContext getTestSubject() throws TlsException {
         return new PropertyBasedExternalResourceProviderInitializationContext(properties, PREFIX, Optional.empty());
     }
 }

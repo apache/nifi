@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.flow.resource;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class DoNotReplaceResolutionStrategyTest {
     private static final String RESOURCE_NAME = "resource.json";
     private static final String OTHER_RESOURCE_NAME = "driver.jar";
@@ -42,39 +42,30 @@ public class DoNotReplaceResolutionStrategyTest {
 
     @Test
     public void testEmptyFolder() {
-        // given
         Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{});
 
-        // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
-        // then
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
     }
 
     @Test
     public void testFolderWithoutMatchingFile() {
-        // given
         Mockito.when(existingResource.getName()).thenReturn(OTHER_RESOURCE_NAME);
         Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
 
-        // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
-        // then
-        Assert.assertTrue(result);
+        Assertions.assertTrue(result);
     }
 
     @Test
     public void testFolderWithMatchingFile() {
-        // given
         Mockito.when(existingResource.getName()).thenReturn(RESOURCE_NAME);
         Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
 
-        // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
-        // then
-        Assert.assertFalse(result);
+        Assertions.assertFalse(result);
     }
 }

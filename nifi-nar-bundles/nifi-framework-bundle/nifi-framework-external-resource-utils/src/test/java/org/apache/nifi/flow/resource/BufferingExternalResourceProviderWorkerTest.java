@@ -17,15 +17,15 @@
 package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.util.FileUtils;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class BufferingExternalResourceProviderWorkerTest {
     private static final String PREFIX = "prefix";
     private static final String RESOURCE_NAME_1 = "config.json";
@@ -65,16 +65,14 @@ public class BufferingExternalResourceProviderWorkerTest {
     private TestExternalResourceProvider provider;
     private BufferingExternalResourceProviderWorker testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        Mockito.when(conflictResolutionStrategy.shouldBeFetched(Mockito.any(File.class), Mockito.any(ExternalResourceDescriptor.class))).thenReturn(true);
-
         if (TARGET_DIRECTORY.exists()) {
             FileUtils.deleteFile(TARGET_DIRECTORY, true);
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDown() throws IOException {
         if (TARGET_DIRECTORY.exists()) {
             FileUtils.deleteFile(TARGET_DIRECTORY, true);
@@ -83,176 +81,157 @@ public class BufferingExternalResourceProviderWorkerTest {
 
     @Test
     public void testHappyPathWhenNoResourcesFound() throws InterruptedException {
-        // given
-        givenActions(Action.LIST, Action.LIST, Action.LIST);
-        givenProviderWithoutResource();
-        givenTestSubject();
+        setActions(Action.LIST, Action.LIST, Action.LIST);
+        setUpProviderWithoutResource();
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenAssertOperationsAreFinished();
-        thenConflictResulotionWasNotNeeded();
-        thenTargetFolderIsEmpty();
+        assertOperationsAreFinished();
+        verifyConflictResulotionWasNotNeeded();
+        assertTargetFolderIsEmpty();
     }
 
     @Test
     public void testRunWithPreExistingDirectory() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST);
-        givenTargetDirectoryExists(true);
-        givenProviderWithoutResource();
-        givenTestSubject();
+        setActions(Action.LIST);
+        ensureTargetDirectoryExists(true);
+        setUpProviderWithoutResource();
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenAssertOperationsAreFinished();
-        thenTargetFolderIsEmpty();
+        assertOperationsAreFinished();
+        assertTargetFolderIsEmpty();
     }
 
     @Test
     public void testRunWithPreExistingDirectoryWhenMissingPrivileges() throws InterruptedException, IOException {
-        // given
-        givenNoAction();
-        givenTargetDirectoryExists(false);
-        givenProviderWithoutResource();
-        givenTestSubject();
+        setNoAction();
+        ensureTargetDirectoryExists(false);
+        setUpProviderWithoutResource();
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenAssertOperationsAreFinished();
+        assertOperationsAreFinished();
     }
 
     @Test
     public void testHappyPathWhenThereAreResources() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH, Action.FETCH);
-        final ExternalResourceDescriptor resource1 = givenAvailableResource(RESOURCE_NAME_1);
-        final ExternalResourceDescriptor resource2 = givenAvailableResource(RESOURCE_NAME_2);
-        givenProviderWithResource(resource1, resource2);
-        givenTestSubject();
+        setUpConflictResolution(true);
+        setActions(Action.LIST, Action.FETCH, Action.FETCH);
+        final ExternalResourceDescriptor resource1 = getAvailableResource(RESOURCE_NAME_1);
+        final ExternalResourceDescriptor resource2 = getAvailableResource(RESOURCE_NAME_2);
+        setProviderWithResource(resource1, resource2);
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenAssertOperationsAreFinished();
-        thenConflictResulotionWasNeeded(resource1, 1);
-        thenConflictResulotionWasNeeded(resource2, 1);
-        thenTargetFolderContains(CONTENT_PROVIDED, resource1, resource2);
+        assertOperationsAreFinished();
+        verifyConflictResulotionWasNeeded(resource1, 1);
+        verifyConflictResulotionWasNeeded(resource2, 1);
+        assertTargetFolderContains(CONTENT_PROVIDED, resource1, resource2);
     }
 
     @Test
     public void testWhenSomeResourcesAreConflicting() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH);
-        final ExternalResourceDescriptor resource1 = givenAvailableResource(RESOURCE_NAME_1);
-        final ExternalResourceDescriptor resource2 = givenAvailableResource(RESOURCE_NAME_2);
-        givenProviderWithResource(resource1, resource2);
-        givenResourceShouldNotBeFetched(resource1);
-        givenTestSubject();
+        setUpConflictResolution(true);
+        setActions(Action.LIST, Action.FETCH);
+        final ExternalResourceDescriptor resource1 = getAvailableResource(RESOURCE_NAME_1);
+        final ExternalResourceDescriptor resource2 = getAvailableResource(RESOURCE_NAME_2);
+        setProviderWithResource(resource1, resource2);
+        setResourceShouldNotBeFetched(resource1);
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenWaitForFileOperationsToFinish();
-        thenConflictResulotionWasNeeded(resource1, 1);
-        thenConflictResulotionWasNeeded(resource2, 1);
-        thenTargetFolderContains(CONTENT_PROVIDED, resource2);
+        waitForFileOperationsToFinish();
+        verifyConflictResulotionWasNeeded(resource1, 1);
+        verifyConflictResulotionWasNeeded(resource2, 1);
+        assertTargetFolderContains(CONTENT_PROVIDED, resource2);
     }
 
     @Test
     public void testRetryAfterFailure() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH, Action.LIST, Action.FETCH);
-        final ExternalResourceDescriptor resource1 = givenAvailableResource(RESOURCE_NAME_1);
-        givenProviderWithResourceAndFetchSuccessSequence(resource1, false, true);
-        givenTestSubject();
+        setUpConflictResolution(true);
+        setActions(Action.LIST, Action.FETCH, Action.LIST, Action.FETCH);
+        final ExternalResourceDescriptor resource1 = getAvailableResource(RESOURCE_NAME_1);
+        setUpProviderWithResourceAndFetchSuccessSequence(resource1, false, true);
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenWaitForFileOperationsToFinish();
-        thenConflictResulotionWasNeeded(resource1, 2);
-        thenTargetFolderContains(CONTENT_PROVIDED, resource1);
+        waitForFileOperationsToFinish();
+        verifyConflictResulotionWasNeeded(resource1, 2);
+        assertTargetFolderContains(CONTENT_PROVIDED, resource1);
     }
 
     @Test
     public void testExistingFileIsReplaced() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH);
-        givenTargetDirectoryExists(true);
-        givenFileExists(RESOURCE_NAME_1, CONTENT_LOCAL,true);
-        final ExternalResourceDescriptor resource = givenAvailableResource(RESOURCE_NAME_1);
-        givenProviderWithResource(resource);
-        givenTestSubject();
+        setUpConflictResolution(true);
+        setActions(Action.LIST, Action.FETCH);
+        ensureTargetDirectoryExists(true);
+        ensureFileExists(RESOURCE_NAME_1, CONTENT_LOCAL,true);
+        final ExternalResourceDescriptor resource = getAvailableResource(RESOURCE_NAME_1);
+        setProviderWithResource(resource);
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenWaitForFileOperationsToFinish();
-        thenTargetFolderContains(CONTENT_PROVIDED, resource);
+        waitForFileOperationsToFinish();
+        assertTargetFolderContains(CONTENT_PROVIDED, resource);
     }
 
     @Test
-    @Ignore("This test needs human interaction and should not part of a build")
+    @Disabled("This test needs human interaction and should not part of a build")
     public void testExistingFileCannotBeDeleted() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH);
-        givenTargetDirectoryExists(true);
-        givenFileExists(RESOURCE_NAME_1, CONTENT_LOCAL, false);
-        final ExternalResourceDescriptor resource = givenAvailableResource(RESOURCE_NAME_1);
-        givenProviderWithResource(resource);
-        givenTestSubject();
+        setActions(Action.LIST, Action.FETCH);
+        ensureTargetDirectoryExists(true);
+        ensureFileExists(RESOURCE_NAME_1, CONTENT_LOCAL, false);
+        final ExternalResourceDescriptor resource = getAvailableResource(RESOURCE_NAME_1);
+        setProviderWithResource(resource);
+        setUpTestSubject();
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenWaitForFileOperationsToFinish();
-        thenTargetFolderContains(CONTENT_LOCAL, resource);
-        thenGivenPathIsAccessible(RESOURCE_NAME_1);
+        waitForFileOperationsToFinish();
+        assertTargetFolderContains(CONTENT_LOCAL, resource);
+        ensureGivenPathIsAccessible(RESOURCE_NAME_1);
     }
 
     @Test
-    @Ignore("This test needs human interaction and should not part of a build")
+    @Disabled("This test needs human interaction and should not part of a build")
     public void testExistingTemporaryFileCannotBeDeleted() throws InterruptedException, IOException {
-        // given
-        givenActions(Action.LIST, Action.FETCH);
-        givenTargetDirectoryExists(true);
-        final ExternalResourceDescriptor resource = givenAvailableResource(RESOURCE_NAME_1);
-        givenProviderWithResource(resource);
-        givenTestSubject();
-        final String tempFileName = givenTempFileName();
-        givenFileExists(tempFileName, CONTENT_TEMP,false);
+        setActions(Action.LIST, Action.FETCH);
+        ensureTargetDirectoryExists(true);
+        final ExternalResourceDescriptor resource = getAvailableResource(RESOURCE_NAME_1);
+        setProviderWithResource(resource);
+        setUpTestSubject();
+        final String tempFileName = setTempFileName();
+        ensureFileExists(tempFileName, CONTENT_TEMP,false);
 
-        // when
-        whenRunningTestSubject();
+        runningTestSubject();
 
-        // then
-        thenWaitForFileOperationsToFinish();
-        thenConflictResulotionWasNeeded(resource, 1);
-        thenTargetFolderContains(CONTENT_TEMP, tempFileName);
-        thenGivenPathIsAccessible(tempFileName);
+        waitForFileOperationsToFinish();
+        verifyConflictResulotionWasNeeded(resource, 1);
+        assertTargetFolderContains(CONTENT_TEMP, tempFileName);
+        ensureGivenPathIsAccessible(tempFileName);
     }
 
-    private void givenNoAction() {
-        givenActions();
+    private void setNoAction() {
+        setActions();
     }
 
-    private void givenActions(Action... actions) {
+    private void setActions(Action... actions) {
         this.actions = new Actions(actions);
     }
 
-    private void givenTargetDirectoryExists(boolean accessible) throws IOException {
+    private void setUpConflictResolution(final boolean shouldBeFetched) {
+        Mockito.when(conflictResolutionStrategy.shouldBeFetched(Mockito.any(File.class), Mockito.any(ExternalResourceDescriptor.class))).thenReturn(shouldBeFetched);
+    }
+
+    private void ensureTargetDirectoryExists(boolean accessible) throws IOException {
         FileUtils.ensureDirectoryExistAndCanReadAndWrite(TARGET_DIRECTORY);
 
         if (!accessible) {
@@ -260,30 +239,30 @@ public class BufferingExternalResourceProviderWorkerTest {
         }
     }
 
-    private ExternalResourceDescriptor givenAvailableResource(String resourceName) {
+    private ExternalResourceDescriptor getAvailableResource(String resourceName) {
         final ExternalResourceDescriptor resource = new ImmutableExternalResourceDescriptor(resourceName, System.currentTimeMillis());
         return resource;
     }
 
-    private void givenTestSubject() {
+    private void setUpTestSubject() {
         testSubject = new BufferingExternalResourceProviderWorker(PREFIX, this.getClass().getClassLoader(), provider, conflictResolutionStrategy, TARGET_DIRECTORY, 50, new CountDownLatch(0));
     }
 
-    private void givenProviderWithResourceAndFetchSuccessSequence(final ExternalResourceDescriptor resource, final Boolean... fetchSuccessSequence) {
+    private void setUpProviderWithResourceAndFetchSuccessSequence(final ExternalResourceDescriptor resource, final Boolean... fetchSuccessSequence) {
         countDownLatch = new CountDownLatch(actions.numberOfAllActions());
         provider = new TestExternalResourceProvider(Collections.singletonList(resource), countDownLatch, Arrays.asList(fetchSuccessSequence));
     }
 
-    private void givenProviderWithResource(final ExternalResourceDescriptor... resources) {
+    private void setProviderWithResource(final ExternalResourceDescriptor... resources) {
         countDownLatch = new CountDownLatch(actions.numberOfAllActions());
         provider = new TestExternalResourceProvider(Arrays.asList(resources), countDownLatch);
     }
 
-    private void givenProviderWithoutResource() {
-        givenProviderWithResource();
+    private void setUpProviderWithoutResource() {
+        setProviderWithResource();
     }
 
-    private void givenFileExists(final String fileName, final String content, final boolean accessible) throws IOException {
+    private void ensureFileExists(final String fileName, final String content, final boolean accessible) throws IOException {
         final File file = new File(TARGET_DIRECTORY, fileName);
         file.createNewFile();
 
@@ -299,22 +278,22 @@ public class BufferingExternalResourceProviderWorkerTest {
         }
     }
 
-    private String givenTempFileName() {
+    private String setTempFileName() {
         return ".provider_" + testSubject.getName().substring(PREFIX.length() + 3) + ".tmp";
     }
 
-    private void givenResourceShouldNotBeFetched(final ExternalResourceDescriptor resource) {
+    private void setResourceShouldNotBeFetched(final ExternalResourceDescriptor resource) {
         Mockito.when(conflictResolutionStrategy.shouldBeFetched(TARGET_DIRECTORY, resource)).thenReturn(false);
     }
 
-    private void whenRunningTestSubject() throws InterruptedException {
+    private void runningTestSubject() throws InterruptedException {
         final Thread workerThread = new Thread(testSubject);
         workerThread.start();
         countDownLatch.await();
         testSubject.stop();
     }
 
-    private void thenAssertFileContains(final File file, final String expectedContent) throws IOException {
+    private void assertFileContains(final File file, final String expectedContent) throws IOException {
         try (
             final FileReader fileReader = new FileReader(file);
             final BufferedReader bufferedReader = new BufferedReader(fileReader)
@@ -326,55 +305,55 @@ public class BufferingExternalResourceProviderWorkerTest {
                 result.append(line);
             }
 
-            Assert.assertEquals(expectedContent, result.toString());
+            Assertions.assertEquals(expectedContent, result.toString());
         }
     }
 
-    private void thenAssertOperationsAreFinished() throws InterruptedException {
-        thenWaitForFileOperationsToFinish();
-        Assert.assertFalse(testSubject.isRunning());
-        Assert.assertEquals(actions.numberOfListings(), provider.getListCounter());
-        Assert.assertEquals(actions.numberOfFetches(), provider.getFetchCounter());
+    private void assertOperationsAreFinished() throws InterruptedException {
+        waitForFileOperationsToFinish();
+        Assertions.assertFalse(testSubject.isRunning());
+        Assertions.assertEquals(actions.numberOfListings(), provider.getListCounter());
+        Assertions.assertEquals(actions.numberOfFetches(), provider.getFetchCounter());
     }
 
-    private void thenConflictResulotionWasNotNeeded() {
+    private void verifyConflictResulotionWasNotNeeded() {
         Mockito.verify(conflictResolutionStrategy, Mockito.never()).shouldBeFetched(Mockito.any(File.class), Mockito.any(ExternalResourceDescriptor.class));
     }
 
-    private void thenConflictResulotionWasNeeded(final ExternalResourceDescriptor resource, final int times) {
+    private void verifyConflictResulotionWasNeeded(final ExternalResourceDescriptor resource, final int times) {
         Mockito.verify(conflictResolutionStrategy, Mockito.times(times)).shouldBeFetched(TARGET_DIRECTORY, resource);
     }
 
-    private void thenTargetFolderIsEmpty() {
-        Assert.assertEquals(0, TARGET_DIRECTORY.list().length);
+    private void assertTargetFolderIsEmpty() {
+        Assertions.assertEquals(0, TARGET_DIRECTORY.list().length);
     }
 
-    private void thenWaitForFileOperationsToFinish() throws InterruptedException {
+    private void waitForFileOperationsToFinish() throws InterruptedException {
         Thread.sleep(150);
     }
 
-    private void thenTargetFolderContains(final String content, final ExternalResourceDescriptor... resources) throws IOException {
-        Assert.assertEquals(resources.length, TARGET_DIRECTORY.list().length);
+    private void assertTargetFolderContains(final String content, final ExternalResourceDescriptor... resources) throws IOException {
+        Assertions.assertEquals(resources.length, TARGET_DIRECTORY.list().length);
 
         for (final ExternalResourceDescriptor resource : resources) {
             File acquiredResource = new File(TARGET_DIRECTORY_PATH, resource.getLocation());
-            Assert.assertTrue(acquiredResource.exists());
-            thenAssertFileContains(acquiredResource, content);
+            Assertions.assertTrue(acquiredResource.exists());
+            assertFileContains(acquiredResource, content);
         }
     }
 
-    private void thenTargetFolderContains(final String content, final ExternalResourceDescriptor resource) throws IOException {
-        thenTargetFolderContains(content, resource.getLocation());
+    private void assertTargetFolderContains(final String content, final ExternalResourceDescriptor resource) throws IOException {
+        assertTargetFolderContains(content, resource.getLocation());
     }
 
-    private void thenTargetFolderContains(final String content, final String fileName) throws IOException {
-        Assert.assertEquals(1, TARGET_DIRECTORY.list().length);
+    private void assertTargetFolderContains(final String content, final String fileName) throws IOException {
+        Assertions.assertEquals(1, TARGET_DIRECTORY.list().length);
         File acquiredResource = new File(TARGET_DIRECTORY_PATH, fileName);
-        Assert.assertTrue(acquiredResource.exists());
-        thenAssertFileContains(acquiredResource, content);
+        Assertions.assertTrue(acquiredResource.exists());
+        assertFileContains(acquiredResource, content);
     }
 
-    private void thenGivenPathIsAccessible(final String path) {
+    private void ensureGivenPathIsAccessible(final String path) {
         final File file = new File(path);
         file.setWritable(true);
     }
