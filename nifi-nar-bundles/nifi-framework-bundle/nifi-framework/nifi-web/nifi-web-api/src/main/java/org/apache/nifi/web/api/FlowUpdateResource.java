@@ -299,6 +299,20 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         return createUpdateRequestResponse(requestType, requestId, request, false);
     }
 
+    private boolean isActive(final AffectedComponentDTO affectedComponentDto) {
+        final String state = affectedComponentDto.getState();
+        if ("Running".equalsIgnoreCase(state) || "Starting".equalsIgnoreCase(state)) {
+            return true;
+        }
+
+        final Integer threadCount = affectedComponentDto.getActiveThreadCount();
+        if (threadCount != null && threadCount > 0) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Perform the specified flow update
      */
@@ -318,8 +332,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         stoppableReferenceTypes.add(AffectedComponentDTO.COMPONENT_TYPE_OUTPUT_PORT);
 
         final Set<AffectedComponentEntity> runningComponents = affectedComponents.stream()
-                .filter(dto -> stoppableReferenceTypes.contains(dto.getComponent().getReferenceType()))
-                .filter(dto -> "Running".equalsIgnoreCase(dto.getComponent().getState()))
+                .filter(entity -> stoppableReferenceTypes.contains(entity.getComponent().getReferenceType()))
+                .filter(entity -> isActive(entity.getComponent()))
                 .collect(Collectors.toSet());
 
         logger.info("Stopping {} Processors", runningComponents.size());
