@@ -5056,7 +5056,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             }
 
             if (localComponent.getComponentType() == org.apache.nifi.flow.ComponentType.CONTROLLER_SERVICE) {
-                final String serviceId = ((InstantiatedVersionedControllerService) localComponent).getInstanceIdentifier();
+                final String serviceId = localComponent.getInstanceIdentifier();
                 final ControllerServiceNode serviceNode = controllerServiceDAO.getControllerService(serviceId);
 
                 final List<ControllerServiceNode> referencingServices = serviceNode.getReferences().findRecursiveReferences(ControllerServiceNode.class);
@@ -5171,6 +5171,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         dto.setId(connectable.getIdentifier());
         dto.setReferenceType(connectable.getConnectableType().name());
         dto.setState(connectable.getScheduledState().name());
+        dto.setName(connectable.getName());
 
         final String groupId = connectable instanceof RemoteGroupPort ? ((RemoteGroupPort) connectable).getRemoteProcessGroup().getIdentifier() : connectable.getProcessGroupIdentifier();
         dto.setProcessGroupId(groupId);
