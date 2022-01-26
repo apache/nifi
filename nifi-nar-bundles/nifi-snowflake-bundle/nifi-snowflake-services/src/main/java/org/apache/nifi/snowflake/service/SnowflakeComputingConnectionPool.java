@@ -179,24 +179,6 @@ public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .required(false)
-            .dynamic(true)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-            .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR);
-
-        if (propertyDescriptorName.startsWith(SENSITIVE_PROPERTY_PREFIX)) {
-            builder.sensitive(true).expressionLanguageSupported(ExpressionLanguageScope.NONE);
-        } else {
-            builder.expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY);
-        }
-
-        return builder.build();
-    }
-
-    @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
         return Collections.emptyList();
     }
