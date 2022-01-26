@@ -23,9 +23,9 @@ import org.apache.nifi.schema.inference.RecordSource;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.validation.Validation;
 import java.io.FileInputStream;
@@ -51,7 +51,7 @@ public class TestCEFSchemaInference {
     private CEFCustomExtensionTypeResolver typeResolver;
     private RecordSchema result;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         includeExtensions = false;
         includeCustomExtensions = false;
@@ -63,268 +63,223 @@ public class TestCEFSchemaInference {
 
     @Test
     public void testInferBasedOnHeaderFields() throws Exception {
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
-        givenTestSubject();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
     @Test
     public void testInferBasedOnHeaderFieldsWhenIncludingExtensions() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
-        givenTestSubject();
+        setIncludeExtensions();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
     @Test
     public void testInferBasedOnHeaderFieldsWithRaw() throws Exception {
-        // given
-        givenRawMessageField("raw");
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
-        givenTestSubject();
+        setRawMessageField("raw");
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields(), Collections.singletonList(new RecordField("raw", RecordFieldType.STRING.getDataType())));
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields(), Collections.singletonList(new RecordField("raw", RecordFieldType.STRING.getDataType())));
     }
 
     @Test
     public void testInferBasedOnHeaderAndExtensionFieldsWhenNotIncludingExtensions() throws Exception {
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
-        givenTestSubject();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
     @Test
     public void testInferBasedOnHeaderAndExtensionFieldsWhenIncludingExtensions() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
-        givenTestSubject();
+        setIncludeExtensions();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldWithExtensions());
+        assertSchemaConsistsOf(TestCEFUtil.getFieldWithExtensions());
     }
 
     @Test
     public void testInferBasedOnRowWithCustomExtensionsButSkipping() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
-        givenTestSubject();
+        setIncludeExtensions();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldWithExtensions());
+        assertSchemaConsistsOf(TestCEFUtil.getFieldWithExtensions());
     }
 
     @Test
     public void testInferBasedOnRowWithCustomExtensionsAsString() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenIncludeCustomExtensions(CEFCustomExtensionTypeResolver.STRING_RESOLVER);
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
-        givenTestSubject();
+        setIncludeExtensions();
+        setIncludeCustomExtensions(CEFCustomExtensionTypeResolver.STRING_RESOLVER);
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+        assertSchemaConsistsOf(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
     }
 
     @Test
     public void testInferBasedOnRowWithCustomExtensions() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
-        givenTestSubject();
+        setIncludeExtensions();
+        setIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
+        assertSchemaConsistsOf(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
     }
 
     @Test
     public void testInferBasedOnRowWithEmptyExtensions() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
-        givenTestSubject();
+        setIncludeExtensions();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then - as extension types are defined by the extension dictionary, even with empty value the data type can be inferred
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldWithExtensions());
+        // As extension types are defined by the extension dictionary, even with empty value the data type can be inferred
+        assertSchemaConsistsOf(TestCEFUtil.getFieldWithExtensions());
     }
 
     @Test
     public void testInferBasedOnRowWithEmptyCustomExtensions() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
-        givenTestSubject();
+        setIncludeExtensions();
+        setIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then - as there is no value provided to infer based on, the empty custom field will be considered as string
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+        // As there is no value provided to infer based on, the empty custom field will be considered as string
+        assertSchemaConsistsOf(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
     }
 
     @Test
     public void testInferWhenStartingWithEmptyRow() throws Exception {
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
-        givenTestSubject();
+        setRecordSource(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
     @Test
     public void testInferWithDifferentCustomFieldTypes() throws Exception {
-        // given
-        givenIncludeExtensions();
-        givenIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
-        givenRecordSource(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_DIFFERENT_CUSTOM_TYPES);
-        givenTestSubject();
+        setIncludeExtensions();
+        setIncludeCustomExtensions(CEFCustomExtensionTypeResolver.SIMPLE_RESOLVER);
+        setRecordSource(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_DIFFERENT_CUSTOM_TYPES);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_CHOICE));
+        assertSchemaConsistsOf(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_CHOICE));
     }
 
     @Test
     public void testInferBasedOnEmptyRow() throws Exception{
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_EMPTY_ROW);
-        givenTestSubject();
+        setRecordSource(TestCEFUtil.INPUT_EMPTY_ROW);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields()); // For CEF it is always expected to have a header
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields()); // For CEF it is always expected to have a header
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testInferBasedOnMisformattedRow() throws Exception{
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_MISFORMATTED_ROW);
-        givenTestSubject();
+        setRecordSource(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        Assertions.assertThrows(IOException.class, () -> inferSchema());
     }
 
     @Test
     public void testInferBasedOnMisformattedRowWhenNonFailFast() throws Exception{
-        // given
-        givenRecordSourceWhenNonFailFast(TestCEFUtil.INPUT_MISFORMATTED_ROW);
-        givenTestSubject();
+        setRecordSourceWhenNonFailFast(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        setUpTestSubject();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields());
     }
 
     @Test
     public void testInferBasedOnHeaderFieldsWithInvalid() throws Exception {
-        // given
-        givenRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
-        givenTestSubjectWithInvalidField();
+        setRecordSource(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setUpTestSubjectWithInvalidField();
 
-        // when
-        whenInferSchema();
+        inferSchema();
 
-        // then
-        thenSchemaConsistsOf(CEFSchemaUtil.getHeaderFields(), Collections.singletonList(new RecordField("invalid", RecordFieldType.STRING.getDataType())));
+        assertSchemaConsistsOf(CEFSchemaUtil.getHeaderFields(), Collections.singletonList(new RecordField("invalid", RecordFieldType.STRING.getDataType())));
     }
 
-    private void givenIncludeExtensions() {
+    private void setIncludeExtensions() {
         this.includeExtensions = true;
     }
 
-    private void givenIncludeCustomExtensions(final CEFCustomExtensionTypeResolver typeResolver) {
+    private void setIncludeCustomExtensions(final CEFCustomExtensionTypeResolver typeResolver) {
         this.includeCustomExtensions = true;
         this.typeResolver = typeResolver;
     }
 
-    private void givenTestSubject() {
+    private void setUpTestSubject() {
         this.testSubject = new CEFSchemaInference(includeExtensions, includeCustomExtensions, typeResolver, rawMessageField, null);
     }
 
-    private void givenTestSubjectWithInvalidField() {
+    private void setUpTestSubjectWithInvalidField() {
         this.testSubject = new CEFSchemaInference(includeExtensions, includeCustomExtensions, typeResolver, rawMessageField, "invalid");
     }
 
-    private void givenRawMessageField(final String rawMessageField) {
+    private void setRawMessageField(final String rawMessageField) {
         this.rawMessageField = rawMessageField;
     }
 
-    private void givenRecordSource(final String inputFile) throws FileNotFoundException {
-        givenRecordSource(inputFile, true);
+    private void setRecordSource(final String inputFile) throws FileNotFoundException {
+        setRecordSource(inputFile, true);
     }
 
-    private void givenRecordSource(final String inputFile, final boolean failFast) throws FileNotFoundException {
+    private void setRecordSource(final String inputFile, final boolean failFast) throws FileNotFoundException {
         final FileInputStream inputStream = new FileInputStream(inputFile);
         this.recordSource = new CEFRecordSource(inputStream, parser, Locale.US, true, failFast);
     }
 
-    private void givenRecordSourceWhenNonFailFast(final String inputFile) throws FileNotFoundException {
-        givenRecordSource(inputFile, false);
+    private void setRecordSourceWhenNonFailFast(final String inputFile) throws FileNotFoundException {
+        setRecordSource(inputFile, false);
     }
 
-    private void whenInferSchema() throws IOException {
+    private void inferSchema() throws IOException {
         result = testSubject.inferSchema(recordSource);
     }
 
-    private void thenSchemaConsistsOf(final List<RecordField>... expectedFieldGroups) {
+    private void assertSchemaConsistsOf(final List<RecordField>... expectedFieldGroups) {
         final List<RecordField> expectedFields = Arrays.stream(expectedFieldGroups).flatMap(group -> group.stream()).collect(Collectors.toList());
-        Assert.assertEquals(expectedFields.size(), result.getFieldCount());
+        Assertions.assertEquals(expectedFields.size(), result.getFieldCount());
 
         for (final RecordField expectedField : expectedFields) {
             final Optional<RecordField> field = result.getField(expectedField.getFieldName());
-            Assert.assertTrue(field.isPresent());
-            Assert.assertEquals(expectedField, field.get());
+            Assertions.assertTrue(field.isPresent());
+            Assertions.assertEquals(expectedField, field.get());
         }
     }
 }

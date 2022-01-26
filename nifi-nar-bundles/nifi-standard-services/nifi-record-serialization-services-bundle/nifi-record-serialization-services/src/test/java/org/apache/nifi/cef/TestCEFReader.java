@@ -35,9 +35,9 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -56,7 +56,7 @@ public class TestCEFReader {
     private TestCEFProcessor processor;
     private CEFReader reader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         runner = null;
         processor = null;
@@ -65,195 +65,158 @@ public class TestCEFReader {
 
     @Test
     public void testValidatingReaderWhenRawFieldValueIsInvalid() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenRawFieldIs("dst"); // Invalid because there is an extension with the same name
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        setUpReader();
+        setRawField("dst"); // Invalid because there is an extension with the same name
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
 
-        // when & then
-        thenAssertInvalid();
+        assertReaderIsInvalid();
     }
 
     @Test
     public void testReadingSingleRowWithHeaderFields() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleRowWithHeaderFieldsAndRaw() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenRawFieldIs(TestCEFUtil.RAW_FIELD);
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setRawField(TestCEFUtil.RAW_FIELD);
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE));
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE));
     }
 
     @Test
     public void testReadingSingleRowWithExtensionFieldsWhenSchemaIsHeadersOnly() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleRowWithCustomExtensionFieldsAsStrings() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_AS_STRINGS);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_AS_STRINGS);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
     }
 
     @Test
     public void testMisformattedRowsWithoutInvalidFieldIsBeingSet() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        enableReader();
 
-        // when
-        whenProcessorRunsWithError(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        triggerProcessorWithError(TestCEFUtil.INPUT_MISFORMATTED_ROW);
     }
 
     @Test
     public void testMisformattedRowsWithInvalidFieldIsSet() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenInvalidFieldIsSet();
-        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
-        givenReaderIsEnabled();
+        setUpReader();
+        setInvalidField();
+        setSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        triggerProcessor(TestCEFUtil.INPUT_MISFORMATTED_ROW);
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldIsSet(1, "invalid", "Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|");
+        assertNumberOfResults(3);
+        assertFieldIsSet(1, "invalid", "Oct 12 04:16:11 localhost CEF:0|nxlog.org|nxlog|2.7.1243|");
     }
 
     @Test
     public void testReadingSingleRowWithCustomExtensionFields() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123));
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123));
     }
 
     @Test
     public void testReadingMultipleRows() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_MULTIPLE_IDENTICAL_ROWS);
+        triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_IDENTICAL_ROWS);
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(3);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingMultipleRowsWithEmptyRows() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_EMPTY_ROWS);
+        triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_EMPTY_ROWS);
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(3);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingMultipleRowsStartingWithEmptyRow() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchemaIsInferred(CEFReader.HEADERS_ONLY);
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchemaIsInferred(CEFReader.HEADERS_ONLY);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
+        triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(3);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testWithPredefinedSchema() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReaderIsEnabled();
+        setUpReader();
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleRowWithEmptyExtensionFields() throws Exception {
-        // given
-        givenReaderSetUp();
-        givenAcceptEmptyExtensions();
-        givenSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
-        givenReaderIsEnabled();
+        setUpReader();
+        setAcceptEmptyExtensions();
+        setSchemaIsInferred(CEFReader.CUSTOM_EXTENSIONS_INFERRED);
+        enableReader();
 
-        // when
-        whenProcessorRuns(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
+        triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, ""));
+        assertNumberOfResults(1);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, ""));
     }
 
-    private void givenReaderSetUp() throws InitializationException {
+    private void setUpReader() throws InitializationException {
         processor = new TestCEFProcessor();
         runner = TestRunners.newTestRunner(processor);
         reader = new CEFReader();
@@ -261,20 +224,20 @@ public class TestCEFReader {
         runner.setProperty(TestCEFProcessor.READER, "reader");
     }
 
-    private void givenAcceptEmptyExtensions() {
+    private void setAcceptEmptyExtensions() {
         runner.setProperty(reader, CEFReader.ACCEPT_EMPTY_EXTENSIONS, "true");
     }
 
-    private void givenSchemaIsInferred(final AllowableValue value) {
+    private void setSchemaIsInferred(final AllowableValue value) {
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
         runner.setProperty(reader, CEFReader.INFERENCE_STRATEGY, value);
     }
 
-    private void givenInvalidFieldIsSet() {
+    private void setInvalidField() {
         runner.setProperty(reader, CEFReader.INVALID_FIELD, "invalid");
     }
 
-    private void givenSchema(List<RecordField> fields) throws InitializationException {
+    private void setSchema(List<RecordField> fields) throws InitializationException {
         final MockSchemaRegistry registry = new MockSchemaRegistry();
         registry.addSchema("predefinedSchema", new SimpleRecordSchema(fields));
         runner.addControllerService("registry", registry);
@@ -284,49 +247,49 @@ public class TestCEFReader {
         runner.enableControllerService(registry);
     }
 
-    private void givenRawFieldIs(final String value) {
+    private void setRawField(final String value) {
         runner.setProperty(reader, CEFReader.RAW_FIELD, value);
     }
 
-    private void givenReaderIsEnabled() {
+    private void enableReader() {
         runner.assertValid(reader);
         runner.enableControllerService(reader);
     }
 
-    private void whenProcessorRuns(final String input) throws FileNotFoundException {
+    private void triggerProcessor(final String input) throws FileNotFoundException {
         runner.enqueue(new FileInputStream(input));
         runner.run();
         runner.assertAllFlowFilesTransferred(TestCEFProcessor.SUCCESS);
     }
 
-    private void whenProcessorRunsWithError(final String input) {
+    private void triggerProcessorWithError(final String input) {
         try {
             runner.enqueue(new FileInputStream(input));
             runner.run();
-            Assert.fail();
+            Assertions.fail();
         } catch (final Throwable e) {
             // the TestCEFProcessor wraps the original exception into a RuntimeException
-            Assert.assertTrue(e.getCause() instanceof RuntimeException);
-            Assert.assertTrue(e.getCause().getCause() instanceof IOException);
+            Assertions.assertTrue(e.getCause() instanceof RuntimeException);
+            Assertions.assertTrue(e.getCause().getCause() instanceof IOException);
         }
     }
 
-    private void thenAssertNumberOfResults(final int numberOfResults) {
-        Assert.assertEquals(numberOfResults, processor.getRecords().size());
+    private void assertNumberOfResults(final int numberOfResults) {
+        Assertions.assertEquals(numberOfResults, processor.getRecords().size());
     }
 
-    private void thenAssertInvalid() {
+    private void assertReaderIsInvalid() {
         runner.assertNotValid(reader);
     }
 
-    private void thenAssertFieldIsSet(final int number, final String name, final String value) {
-        Assert.assertEquals(value, processor.getRecords().get(number).getValue(name));
+    private void assertFieldIsSet(final int number, final String name, final String value) {
+        Assertions.assertEquals(value, processor.getRecords().get(number).getValue(name));
     }
 
-    private void thenAssertFieldsAre(final Map<String, Object>... fieldGroups) {
+    private void assertFieldsAre(final Map<String, Object>... fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
         Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
-        processor.getRecords().forEach(r -> TestCEFUtil.thenAssertFieldsAre(r, expectedFields));
+        processor.getRecords().forEach(r -> TestCEFUtil.assertFieldsAre(r, expectedFields));
     }
 
     private static class TestCEFProcessor extends AbstractProcessor {

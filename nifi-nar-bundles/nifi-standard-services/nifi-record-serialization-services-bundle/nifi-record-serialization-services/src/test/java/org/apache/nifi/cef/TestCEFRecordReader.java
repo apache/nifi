@@ -25,10 +25,10 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import javax.validation.Validation;
 import java.io.FileInputStream;
@@ -59,7 +59,7 @@ public class TestCEFRecordReader {
     private String rawField;
     private String invalidField;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         schema = null;
         inputStream = null;
@@ -72,7 +72,7 @@ public class TestCEFRecordReader {
         invalidField = null;
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws IOException {
         if (inputStream != null) {
             inputStream.close();
@@ -81,380 +81,308 @@ public class TestCEFRecordReader {
 
     @Test
     public void testReadingSingleLineWithHeaderFieldsUsingSchemaWithHeaderFields() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleLineWithExtensionFieldsUsingSchemaWithHeaderFields() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleLineWithCustomExtensionFieldsUsingSchemaWithHeaderFields() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingSingleLineWithHeaderFieldsUsingSchemaWithExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES));
     }
 
     @Test
     public void testReadingSingleLineWithExtensionFieldsUsingSchemaWithExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
     }
 
     @Test
     public void testReadingSingleLineWithCustomExtensionFieldsUsingSchemaWithExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
     }
 
     @Test
     public void testReadingSingleLineWithHeaderFieldsUsingSchemaWithCustomExtensionFieldsAsStrings() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES), Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES), Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
     }
 
     @Test
     public void testReadingSingleLineWithExtensionFieldsUsingSchemaWithCustomExtensionFieldsAsStrings() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
     }
 
     @Test
     public void testReadingSingleLineWithCustomExtensionFieldsUsingSchemaWithCustomExtensionFieldsAsStrings() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD_AS_STRING));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
     }
 
     @Test
     public void testReadingSingleLineWithHeaderFieldsUsingSchemaWithCustomExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES), Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES), Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
     }
 
     @Test
     public void testReadingSingleLineWithExtensionFieldsUsingSchemaWithCustomExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, null));
     }
 
     @Test
     public void testReadingSingleLineWithCustomExtensionFieldsUsingSchemaWithCustomExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123));
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123));
     }
 
     @Test
     public void testReadingContainingRawEvent() throws Exception {
-        // given
-        givenSchema(givenFieldsWithHeaderAndRaw());
-        givenRawMessageField(TestCEFUtil.RAW_FIELD);
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
+        setSchema(getFieldsWithHeaderAndRaw());
+        setRawMessageField(TestCEFUtil.RAW_FIELD);
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE));
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE));
     }
 
     @Test
     public void testSingleLineWithHeaderFieldsAndNotDroppingUnknownFields() throws Exception {
-        // given
-        givenKeepUnknownFields();
-        givenSchema(givenFieldsWithExtensionsExpect("c6a1", "dmac"));
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
+        setKeepUnknownFields();
+        setSchema(getFieldsWithExtensionsExpect("c6a1", "dmac"));
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, without(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
-        thenAssertFieldIs("c6a1", TestCEFUtil.EXPECTED_EXTENSION_VALUES.get("c6a1"));
-        thenAssertFieldIs("dmac", TestCEFUtil.EXPECTED_EXTENSION_VALUES.get("dmac"));
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, without(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
+        assertFieldIs("c6a1", TestCEFUtil.EXPECTED_EXTENSION_VALUES.get("c6a1"));
+        assertFieldIs("dmac", TestCEFUtil.EXPECTED_EXTENSION_VALUES.get("dmac"));
     }
 
     @Test
     public void testReadingEmptyRow()  throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_EMPTY_ROW);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_EMPTY_ROW);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(0);
+        assertNumberOfResults(0);
     }
 
-    @Test(expected = MalformedRecordException.class)
+    @Test
     public void testReadingMisformattedRow()  throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_MISFORMATTED_ROW);
 
-        // when
-        whenReadingRecords();
+        Assertions.assertThrows(MalformedRecordException.class, () -> readRecords());
     }
 
     @Test
     public void testReadingMisformattedRowWhenInvalidFieldIsSet()  throws Exception {
-        // given
-        givenInvalidFieldIsSet();
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_MISFORMATTED_ROW);
+        setInvalidField();
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_MISFORMATTED_ROW);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        //
-        thenAssertNumberOfResults(3);
+        assertNumberOfResults(3);
     }
 
     @Test
     public void testReadingMultipleIdenticalRows() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_MULTIPLE_IDENTICAL_ROWS);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_MULTIPLE_IDENTICAL_ROWS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(3);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingMultipleIdenticalRowsWithEmptyOnes() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_EMPTY_ROWS);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_EMPTY_ROWS);
 
-        // when
-        whenReadingRecords(5);
+        readRecords(5);
 
-        // then
-        thenAssertNumberOfResults(3);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertNumberOfResults(3);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
     }
 
     @Test
     public void testReadingMultipleRowsWithDecreasingNumberOfExtensionFields() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_DECREASING_NUMBER_OF_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_DECREASING_NUMBER_OF_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(2);
-        thenAssertFieldsAre(0, TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
-        thenAssertFieldsAre(1, TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
+        assertNumberOfResults(2);
+        assertFieldsAre(0, TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES);
+        assertFieldsAre(1, TestCEFUtil.EXPECTED_HEADER_VALUES, withNulls(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
     }
 
     @Test
     public void testReadingMultipleRowsWithIncreasingNumberOfExtensionFields() throws Exception {
-        // given
-        givenSchema(givenFieldsWithExtensionsExpect("c6a1", "dmac"));
-        givenReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_INCREASING_NUMBER_OF_EXTENSIONS);
+        setSchema(getFieldsWithExtensionsExpect("c6a1", "dmac"));
+        setReader(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_INCREASING_NUMBER_OF_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(2);
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, without(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
+        assertNumberOfResults(2);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, without(TestCEFUtil.EXPECTED_EXTENSION_VALUES, "c6a1", "dmac"));
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test
     public void testReadingIncorrectHeaderField() throws Exception {
-        // given
-        givenSchema(CEFSchemaUtil.getHeaderFields());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_INCORRECT_HEADER_FIELD);
+        setSchema(CEFSchemaUtil.getHeaderFields());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_INCORRECT_HEADER_FIELD);
 
-        // when
-        whenReadingRecords();
+        Assertions.assertThrows(NumberFormatException.class, () -> readRecords());
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test
     public void testReadingIncorrectCustomVariableFormat() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
-        givenIncludeCustomExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_INCORRECT_CUSTOM_EXTENSIONS);
+        setSchema(TestCEFUtil.getFieldsWithCustomExtensions(TestCEFUtil.CUSTOM_EXTENSION_FIELD));
+        setIncludeCustomExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_INCORRECT_CUSTOM_EXTENSIONS);
 
-        // when
-        whenReadingRecords();
+        Assertions.assertThrows(NumberFormatException.class, () -> readRecords());
     }
 
     @Test
     public void testReadingEmptyValuesWhenAcceptingEmptyExtensions() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenAcceptingEmptyExtensions();
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setAcceptEmptyExtensions();
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
 
-        // when
-        whenReadingRecords();
+        readRecords();
 
-        // then
-        thenAssertNumberOfResults(1);
-        thenAssertSchemaIsSet();
+        assertNumberOfResults(1);
+        assertSchemaIsSet();
 
         final Map<String, Object> expectedExtensionValues = new HashMap<>();
         expectedExtensionValues.putAll(TestCEFUtil.EXPECTED_EXTENSION_VALUES);
         expectedExtensionValues.put("cn1", null);
         expectedExtensionValues.put("cn1Label", "");
 
-        thenAssertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, expectedExtensionValues);
+        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, expectedExtensionValues);
     }
 
-    @Test(expected = NumberFormatException.class)
+    @Test
     public void testReadingEmptyValuesWhenNotAcceptingEmptyExtensions() throws Exception {
-        // given
-        givenSchema(TestCEFUtil.givenFieldWithExtensions());
-        givenReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
+        setSchema(TestCEFUtil.getFieldWithExtensions());
+        setReader(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_EXTENSION);
 
-        // when
-        whenReadingRecords();
-
-        // then - as empty is not accepted, number type fields will not be parsed properly
+        // As empty is not accepted, number type fields will not be parsed properly
+        Assertions.assertThrows(NumberFormatException.class, () -> readRecords());
     }
 
-    private static List<RecordField> givenFieldsWithHeaderAndRaw() {
+    private static List<RecordField> getFieldsWithHeaderAndRaw() {
         final List<RecordField> result = new ArrayList<>(CEFSchemaUtil.getHeaderFields());
         result.add(new RecordField(TestCEFUtil.RAW_FIELD, RecordFieldType.STRING.getDataType()));
         return result;
     }
 
-    private List<RecordField> givenFieldsWithExtensionsExpect(final String... fieldsToExclude) {
+    private List<RecordField> getFieldsWithExtensionsExpect(final String... fieldsToExclude) {
         final List<RecordField> result = new ArrayList<>();
         final Set<String> excludedFields = new HashSet<>();
         Arrays.stream(fieldsToExclude).forEach(f -> excludedFields.add(f));
 
-        for (final RecordField record : TestCEFUtil.givenFieldWithExtensions()) {
+        for (final RecordField record : TestCEFUtil.getFieldWithExtensions()) {
             if (!excludedFields.contains(record.getFieldName())) {
                 result.add(record);
             }
@@ -463,36 +391,36 @@ public class TestCEFRecordReader {
         return result;
     }
 
-    private void givenSchema(final List<RecordField> fields) {
+    private void setSchema(final List<RecordField> fields) {
         this.schema = new SimpleRecordSchema(fields);
     }
 
-    private void givenIncludeCustomExtensions() {
+    private void setIncludeCustomExtensions() {
         includeCustomExtensions = true;
     }
 
-    private void givenAcceptingEmptyExtensions() {
+    private void setAcceptEmptyExtensions() {
         acceptEmptyExtensions = true;
     }
 
-    private void givenRawMessageField(final String rawField) {
+    private void setRawMessageField(final String rawField) {
         this.rawField = rawField;
     }
 
-    private void givenKeepUnknownFields() {
+    private void setKeepUnknownFields() {
         dropUnknownFields = false;
     }
 
-    private void givenInvalidFieldIsSet() {
+    private void setInvalidField() {
         invalidField = "invalid";
     }
 
-    private void givenReader(final String file) throws FileNotFoundException {
+    private void setReader(final String file) throws FileNotFoundException {
         inputStream = new FileInputStream(file);
         testSubject = new CEFRecordReader(inputStream, schema, parser, new MockComponentLogger(), Locale.US, rawField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
     }
 
-    private void whenReadingRecords() throws IOException, MalformedRecordException {
+    private void readRecords() throws IOException, MalformedRecordException {
         final List<Record> results = new ArrayList<>();
         Record result;
 
@@ -503,7 +431,7 @@ public class TestCEFRecordReader {
         this.results = results;
     }
 
-    private void whenReadingRecords(final int count) throws IOException, MalformedRecordException {
+    private void readRecords(final int count) throws IOException, MalformedRecordException {
         final List<Record> results = new ArrayList<>();
 
         for (int i=1; i<=count; i++) {
@@ -517,28 +445,28 @@ public class TestCEFRecordReader {
         this.results = results;
     }
 
-    private void thenAssertFieldsAre(final Map<String, Object>... fieldGroups) {
+    private void assertFieldsAre(final Map<String, Object>... fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
         Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
-        results.forEach(r -> TestCEFUtil.thenAssertFieldsAre(r, expectedFields));
+        results.forEach(r -> TestCEFUtil.assertFieldsAre(r, expectedFields));
     }
 
-    private void thenAssertFieldsAre(final int number, final Map<String, Object>... fieldGroups) {
+    private void assertFieldsAre(final int number, final Map<String, Object>... fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
         Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
-        TestCEFUtil.thenAssertFieldsAre(results.get(number), expectedFields);
+        TestCEFUtil.assertFieldsAre(results.get(number), expectedFields);
     }
 
-    private void thenAssertFieldIs(final String field, final Object expectedValue) {
-        results.forEach(r -> Assert.assertEquals(expectedValue, r.getValue(field)));
+    private void assertFieldIs(final String field, final Object expectedValue) {
+        results.forEach(r -> Assertions.assertEquals(expectedValue, r.getValue(field)));
     }
 
-    private void thenAssertNumberOfResults(final int numberOfResults) {
-        Assert.assertEquals(numberOfResults, results.size());
+    private void assertNumberOfResults(final int numberOfResults) {
+        Assertions.assertEquals(numberOfResults, results.size());
     }
 
-    private void thenAssertSchemaIsSet() {
-        results.forEach(r -> Assert.assertEquals(schema, r.getSchema()));
+    private void assertSchemaIsSet() {
+        results.forEach(r -> Assertions.assertEquals(schema, r.getSchema()));
     }
 
     private static Map<String, Object> withNulls(final Map<String, Object> expectedFields) {

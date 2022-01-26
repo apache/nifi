@@ -93,7 +93,7 @@ public class TestCEFUtil {
      * The list of custom fields in the schema are expected to be generated based on the first event in the flow file. Because of this, it will not contain all the
      * possible extension fields. Also because of this, the following rows are handled based on this schema as well.
      */
-    static List<RecordField> givenFieldWithExtensions() {
+    static List<RecordField> getFieldWithExtensions() {
         final List<RecordField> result = new ArrayList<>(CEFSchemaUtil.getHeaderFields());
         result.add(new RecordField("cn1Label", RecordFieldType.STRING.getDataType()));
         result.add(new RecordField("spt", RecordFieldType.INT.getDataType()));
@@ -108,8 +108,8 @@ public class TestCEFUtil {
         return result;
     }
 
-    static List<RecordField> givenFieldsWithCustomExtensions(RecordField... customExtensions) {
-        final List<RecordField> result = TestCEFUtil.givenFieldWithExtensions();
+    static List<RecordField> getFieldsWithCustomExtensions(RecordField... customExtensions) {
+        final List<RecordField> result = TestCEFUtil.getFieldWithExtensions();
 
         for (final RecordField customExtension : customExtensions) {
             result.add(customExtension);
@@ -121,7 +121,7 @@ public class TestCEFUtil {
     /*
      * Record internally keeps the unknown fields even if they are marked for dropping. Thus direct comparison will not work as expected
      */
-    static void thenAssertFieldsAre(final Record record, final Map<String, Object> expectedValues) {
+    static void assertFieldsAre(final Record record, final Map<String, Object> expectedValues) {
         Assert.assertEquals(expectedValues.size(), record.getValues().length);
         expectedValues.entrySet().forEach(field -> Assert.assertEquals("Field " + field.getKey() + " is incorrect" , field.getValue(), record.getValue(field.getKey())));
     }
