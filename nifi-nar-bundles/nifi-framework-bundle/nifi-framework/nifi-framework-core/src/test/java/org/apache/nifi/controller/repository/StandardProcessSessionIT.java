@@ -2866,7 +2866,7 @@ public class StandardProcessSessionIT {
     @Test
     public void testWhenFlowFilePenalizeBackoffMechanismConfiguredFlowFileIsPenalized() throws IOException {
         final Connectable processor = createProcessorConnectable();
-        configureRetry(processor, 1, BackoffMechanism.PENALIZE_FLOWFILE, "1 ms", 10000L);
+        configureRetry(processor, 1, BackoffMechanism.PENALIZE_FLOWFILE, "15 ms", 10000L);
         final StandardProcessSession session = createSessionForRetry(processor);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
