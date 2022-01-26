@@ -85,7 +85,7 @@
                     </attributes>
                 </configuration>
             </plugin>
-            <!-- Unpack rest-api.html that was generated from nifi-registry-web-api and place it into a temp folder in the target dir -->
+            <!-- Unpack rest-api/index.html that was generated from nifi-registry-web-api and place it into a temp folder in the target dir -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -100,15 +100,15 @@
                         <configuration>
                             <includeGroupIds>org.apache.nifi.registry</includeGroupIds>
                             <includeArtifactIds>nifi-registry-web-api</includeArtifactIds>
-                            <outputDirectory>${project.build.directory}/nifi-registry-web-api/</outputDirectory>
-                            <includes>**/rest-api.html</includes>
+                            <outputDirectory>${project.build.directory}/nifi-registry-web-api</outputDirectory>
+                            <includes>docs/rest-api/index.html</includes>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <!-- Copy rest-api.html from the tmp dir to the generated-docs dir where the other html docs are, this is done
+            <!-- Copy rest-api/index.html from the tmp dir to the generated-docs dir where the other html docs are, this is done
                     in two steps to eliminate the nested path that was created in the temp dir when running unpack-dependencies
              -->
             <plugin>
@@ -125,10 +125,10 @@
                         <configuration>
                             <target>
                                 <sequential>
-                                    <echo>Copy unpacked rest-api.html to generated-docs dir</echo>
-                                    <copy todir="${project.build.directory}/generated-docs">
-                                        <fileset dir="${project.build.directory}/nifi-registry-web-api/docs/rest-api/">
-                                            <include name="**" />
+                                    <echo>Copy unpacked rest-api/index.html to generated-docs dir</echo>
+                                    <copy tofile="${project.build.directory}/generated-docs/rest-api.html">
+                                        <fileset dir="${project.build.directory}/nifi-registry-web-api/docs/rest-api">
+                                            <include name="index.html" />
                                         </fileset>
                                     </copy>
                                 </sequential>
