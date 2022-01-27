@@ -88,6 +88,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -1457,7 +1458,8 @@ public final class DtoFactory {
     }
 
     public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
-                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup,
+                                                         final ParameterProviderLookup parameterProviderLookup) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1486,23 +1488,29 @@ public final class DtoFactory {
                     .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
                     .collect(Collectors.toList()));
         }
-        dto.setSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getSensitiveParameterProvider().orElse(null)));
-        dto.setNonSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getNonSensitiveParameterProvider().orElse(null)));
+        dto.setSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getSensitiveParameterProvider().orElse(null),
+                parameterProviderLookup));
+        dto.setNonSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getNonSensitiveParameterProvider().orElse(null),
+                parameterProviderLookup));
         dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
     }
 
-    private ComponentReferenceEntity createParameterProviderReferenceEntity(final ParameterProvider parameterProvider) {
+    private ComponentReferenceEntity createParameterProviderReferenceEntity(final ParameterProvider parameterProvider,
+                                                                            final ParameterProviderLookup parameterProviderLookup) {
         if (parameterProvider == null) {
             return null;
         }
+
+        final ParameterProviderNode parameterProviderNode = parameterProviderLookup.getParameterProvider(parameterProvider.getIdentifier());
 
         final ComponentReferenceEntity ref = new ComponentReferenceEntity();
         ref.setId(parameterProvider.getIdentifier());
         final ComponentReferenceDTO component = new ComponentReferenceDTO();
         component.setId(parameterProvider.getIdentifier());
+        component.setName(parameterProviderNode.getName());
         ref.setComponent(component);
         return ref;
     }

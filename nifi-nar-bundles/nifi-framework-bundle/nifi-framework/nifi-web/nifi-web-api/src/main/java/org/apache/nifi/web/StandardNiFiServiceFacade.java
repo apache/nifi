@@ -1212,7 +1212,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionUpdate<ParameterContextDTO> snapshot = updateComponent(revision,
             parameterContext,
             () -> parameterContextDAO.updateParameterContext(parameterContextDto),
-            context -> dtoFactory.createParameterContextDto(context, revisionManager, false, parameterContextDAO));
+            context -> dtoFactory.createParameterContextDto(context, revisionManager, false, parameterContextDAO, parameterProviderDAO));
 
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(snapshot.getLastModification());
@@ -1263,7 +1263,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                                                                 final ParameterContextLookup parameterContextLookup) {
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterContext, user);
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revisionManager.getRevision(parameterContext.getIdentifier()));
-        final ParameterContextDTO parameterContextDto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, includeInheritedParameters, parameterContextLookup);
+        final ParameterContextDTO parameterContextDto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, includeInheritedParameters,
+                parameterContextLookup, parameterProviderDAO);
         final ParameterContextEntity entity = entityFactory.createParameterContextEntity(parameterContextDto, revisionDto, permissions);
         return entity;
     }
@@ -1350,7 +1351,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             // save the update
             controllerFacade.save();
 
-            final ParameterContextDTO dto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO);
+            final ParameterContextDTO dto = dtoFactory.createParameterContextDto(parameterContext, revisionManager, false,
+                    parameterContextDAO, parameterProviderDAO);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
             return new StandardRevisionUpdate<>(dto, lastMod);
         });
@@ -1375,7 +1377,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             parameterContext.getResource(),
             () -> parameterContextDAO.deleteParameterContext(parameterContextId),
             true,
-            dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO));
+            dtoFactory.createParameterContextDto(parameterContext, revisionManager, false, parameterContextDAO, parameterProviderDAO));
 
         return entityFactory.createParameterContextEntity(snapshot, null, permissions);
 
