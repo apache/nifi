@@ -103,7 +103,7 @@
         <org.slf4j.version>1.7.32</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.44.v20210927</jetty.version>
-        <jackson.version>2.12.5</jackson.version>
+        <jackson.version>2.13.1</jackson.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <nifi.groovy.version>3.0.8</nifi.groovy.version>
@@ -114,12 +114,12 @@
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
-        <jersey.version>2.33</jersey.version>
+        <jersey.version>2.35</jersey.version>
         <logback.version>1.2.10</logback.version>
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <netty.4.version>4.1.72.Final</netty.4.version>
-        <spring.version>5.3.14</spring.version>
+        <spring.version>5.3.15</spring.version>
         <spring.security.version>5.6.1</spring.security.version>
     </properties>
 
