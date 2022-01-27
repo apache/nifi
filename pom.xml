@@ -41,6 +41,7 @@
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
         <module>c2</module>
+        <module>nifi-h2</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -123,6 +124,7 @@
         <netty.4.version>4.1.73.Final</netty.4.version>
         <spring.version>5.3.15</spring.version>
         <spring.security.version>5.6.1</spring.security.version>
+        <h2.version>2.1.210</h2.version>
     </properties>
 
     <repositories>
