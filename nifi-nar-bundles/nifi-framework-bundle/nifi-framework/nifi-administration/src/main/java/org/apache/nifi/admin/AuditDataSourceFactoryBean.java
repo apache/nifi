@@ -84,7 +84,7 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
     private static final String CREATE_CONFIGURE_DETAILS_TABLE = "CREATE TABLE CONFIGURE_DETAILS ("
             + "ACTION_ID INT NOT NULL PRIMARY KEY, "
             + "NAME VARCHAR2(1000) NOT NULL, "
-            + "VALUE VARCHAR2(5000), "
+            + "\"VALUE\" VARCHAR2(5000), "
             + "PREVIOUS_VALUE VARCHAR2(5000), "
             + "FOREIGN KEY (ACTION_ID) REFERENCES ACTION(ID)"
             + ")";
