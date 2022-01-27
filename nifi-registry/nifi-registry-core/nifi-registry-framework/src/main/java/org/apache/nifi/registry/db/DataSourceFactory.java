@@ -18,6 +18,7 @@ package org.apache.nifi.registry.db;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.h2.database.migration.H2DatabaseUpdater;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
 import javax.sql.DataSource;
+import java.io.File;
 
 /**
  * Overriding Spring Boot's normal automatic creation of a DataSource in order to use the properties
@@ -87,11 +89,27 @@ public class DataSourceFactory {
                 .build();
 
         if (dataSource instanceof HikariDataSource) {
-            LOGGER.info("Setting maximum pool size on HikariDataSource to {}", new Object[]{properties.getDatabaseMaxConnections()});
-            ((HikariDataSource)dataSource).setMaximumPoolSize(properties.getDatabaseMaxConnections());
+            LOGGER.info("Setting maximum pool size on HikariDataSource to {}", properties.getDatabaseMaxConnections());
+            ((HikariDataSource) dataSource).setMaximumPoolSize(properties.getDatabaseMaxConnections());
+        }
+
+        // Migrate an H2 existing database if required
+        if (databaseUrl.startsWith(H2DatabaseUpdater.H2_URL_PREFIX)) {
+            final File databaseFile = getFileFromH2URL(databaseUrl);
+            final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";LOCK_MODE=3";
+
+            try {
+                H2DatabaseUpdater.checkAndPerformMigration(databaseFile.getAbsolutePath(), migrationDbUrl, databaseUsername, databasePassword);
+            } catch (Exception e) {
+                throw new RuntimeException("H2 database migration failed", e);
+            }
         }
 
         return dataSource;
     }
 
+    private File getFileFromH2URL(final String databaseUrl) {
+        final String dbPath = databaseUrl.substring(H2DatabaseUpdater.H2_URL_PREFIX.length(), databaseUrl.indexOf(";"));
+        return new File(dbPath);
+    }
 }

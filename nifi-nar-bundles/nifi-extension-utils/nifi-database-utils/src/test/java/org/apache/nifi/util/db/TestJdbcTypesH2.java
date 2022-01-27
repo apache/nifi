@@ -48,25 +48,25 @@ public class TestJdbcTypesH2 {
     }
 
     String createTable = "    CREATE TABLE `users` ( "
-            + "  `id` int(11) NOT NULL AUTO_INCREMENT, "
+            + "  `id` int NOT NULL AUTO_INCREMENT, "
             + "  `email` varchar(255) NOT NULL, "
             + "  `password` varchar(255) DEFAULT NULL, "
             + "  `activation_code` varchar(255) DEFAULT NULL, "
             + "  `forgotten_password_code` varchar(255) DEFAULT NULL, "
             + "  `forgotten_password_time` datetime DEFAULT NULL, "
             + "  `created` datetime NOT NULL, "
-            + "  `active` tinyint(1) NOT NULL DEFAULT '0', "
-            + "  `home_module_id` int(11) DEFAULT NULL, "
+            + "  `active` tinyint NOT NULL DEFAULT '0', "
+            + "  `home_module_id` int DEFAULT NULL, "
 
-            + "  somebinary BINARY default null, "
+            + "  somebinary BINARY(4) default null, "
             + "  somebinary2 VARBINARY default null, "
             + "  somebinary3 LONGVARBINARY default null, "
-            + "  somearray   ARRAY default null, "
+            + "  somearray INTEGER ARRAY default null, "
             + "  someblob BLOB default null, "
             + "  someclob CLOB default null, "
 
             + "  PRIMARY KEY (`id`), "
-            + "  UNIQUE KEY `email` (`email`) ) " ;
+            + "  CONSTRAINT unique_email UNIQUE (`email`) ) " ;
 //            + "  KEY `home_module_id` (`home_module_id`) )" ;
 /*            + "  CONSTRAINT `users_ibfk_1` FOREIGN KEY (`home_module_id`) REFERENCES "
             + "`modules` (`id`) ON DELETE SET NULL "
@@ -92,7 +92,7 @@ public class TestJdbcTypesH2 {
 //                + " values ('robert.gates@cold.com', '******', 'CAS', 'ounou', '2005-12-09', '2005-12-03', 1, 5)");
 
         st.executeUpdate("insert into users (email, password, activation_code, created, active, somebinary, somebinary2, somebinary3, someblob, someclob) "
-                + " values ('mari.gates@cold.com', '******', 'CAS', '2005-12-03', 3, '66FF', 'ABDF', 'EE64', 'BB22', 'CC88')");
+                + " values ('mari.gates@cold.com', '******', 'CAS', '2005-12-03', 3, 0x66FF, 'ABDF', 'EE64', 'BB22', 'CC88')");
 
         final ResultSet resultSet = st.executeQuery("select U.*, ROW_NUMBER() OVER () as rownr from users U");
 //      final ResultSet resultSet = st.executeQuery("select U.active from users U");
