@@ -377,6 +377,7 @@ import java.util.stream.Stream;
 public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiServiceFacade.class);
     private static final int VALIDATION_WAIT_MILLIS = 50;
+    private static final String ROOT_PROCESS_GROUP = "RootProcessGroup";
 
     // nifi core components
     private ControllerFacade controllerFacade;
@@ -5614,7 +5615,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
         nifiMetricsRegistry.clear();
-        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", "RootProcessGroup",
+        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP,
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
 
         // Add the total byte counts (read/written) to the NiFi metrics registry
@@ -5623,28 +5624,33 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
         final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesRead(), "TOTAL_BYTES_READ",
-                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesWritten(), "TOTAL_BYTES_WRITTEN",
-                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesSent(), "TOTAL_BYTES_SENT",
-                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
-                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
         //Add total task duration for root to the NiFi metrics registry
+        // The latest aggregated status history is the last element in the list so we need the last element only
         final StatusHistoryEntity rootGPStatusHistory = getProcessGroupStatusHistory(rootPGId);
         final List<StatusSnapshotDTO> aggregatedStatusHistory = rootGPStatusHistory.getStatusHistory().getAggregateSnapshots();
-        final long taskDuration = aggregatedStatusHistory.isEmpty() ? 0L :
-                aggregatedStatusHistory.get(aggregatedStatusHistory.size() - 1).getStatusMetrics()
-                .get(ProcessGroupStatusDescriptor.TASK_MILLIS.getField());
+        final int lastIndex = aggregatedStatusHistory.size() -1;
+        final String taskDurationInMillis = ProcessGroupStatusDescriptor.TASK_MILLIS.getField();
+        long taskDuration = 0;
+        if (!aggregatedStatusHistory.isEmpty()) {
+            final StatusSnapshotDTO latestStatusHistory = aggregatedStatusHistory.get(lastIndex);
+            taskDuration = latestStatusHistory.getStatusMetrics().get(taskDurationInMillis);
+        }
         nifiMetricsRegistry.setDataPoint(taskDuration, "TOTAL_TASK_DURATION",
-                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+                instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
         PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
 
         final Map<String, Double> aggregatedMetrics = new HashMap<>();
         PrometheusMetricsUtil.aggregatePercentUsed(rootPGStatus, aggregatedMetrics);
-        PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,"RootProcessGroup", rootPGName, rootPGId);
+        PrometheusMetricsUtil.createAggregatedNifiMetrics(nifiMetricsRegistry, aggregatedMetrics, instanceId,ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Get Connection Status Analytics (predictions, e.g.)
         Set<Connection> connections = controllerFacade.getFlowManager().findAllConnections();
@@ -5669,7 +5675,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 break;
             }
         }
-        PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, "RootProcessGroup", rootPGName, rootPGId);
+        PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry, aggregatedMetrics, instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId);
 
         // Create a query to get all bulletins
         final BulletinQueryDTO query = new BulletinQueryDTO();

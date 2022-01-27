@@ -22,7 +22,6 @@ import org.apache.nifi.prometheus.util.AbstractMetricsRegistry;
 import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -35,10 +34,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.apache.nifi.util.StringUtils.EMPTY;
 import static org.hamcrest.CoreMatchers.everyItem;
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPrometheusMetricsUtil {
     private static final long DEFAULT_PREDICTION_VALUE = -1L;
@@ -88,11 +90,11 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.aggregatePercentUsed(singleProcessGroupStatus, aggregatedMetrics);
 
-        assertThat(aggregatedMetrics.size(), equalTo(4));
-        assertThat(EXPECTED_DEFAULT_PERCENT_USED_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES)));
-        assertThat(EXPECTED_DEFAULT_PERCENT_USED_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(BYTES_AT_BACKPRESSURE)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(COUNT_AT_BACKPRESSURE)));
+        assertEquals(4, aggregatedMetrics.size());
+        assertEquals(EXPECTED_DEFAULT_PERCENT_USED_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES));
+        assertEquals(EXPECTED_DEFAULT_PERCENT_USED_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(BYTES_AT_BACKPRESSURE));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(COUNT_AT_BACKPRESSURE));
     }
 
     @Test
@@ -101,11 +103,11 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.aggregatePercentUsed(singleProcessGroupStatusWithBytesBackpressure, aggregatedMetrics);
 
-        assertThat(aggregatedMetrics.size(), equalTo(4));
-        assertThat(EXPECTED_BACKPRESSURE_PERCENT_USED_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES)));
-        assertThat(EXPECTED_DEFAULT_PERCENT_USED_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT)));
-        assertThat(EXPECTED_TRUE_BACKPRESSURE, equalTo(aggregatedMetrics.get(BYTES_AT_BACKPRESSURE)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(COUNT_AT_BACKPRESSURE)));
+        assertEquals(4, aggregatedMetrics.size());
+        assertEquals(EXPECTED_BACKPRESSURE_PERCENT_USED_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES));
+        assertEquals(EXPECTED_DEFAULT_PERCENT_USED_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT));
+        assertEquals(EXPECTED_TRUE_BACKPRESSURE, aggregatedMetrics.get(BYTES_AT_BACKPRESSURE));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(COUNT_AT_BACKPRESSURE));
     }
 
     @Test
@@ -114,11 +116,11 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.aggregatePercentUsed(nestedProcessGroupStatus, aggregatedMetrics);
 
-        assertThat(aggregatedMetrics.size(), equalTo(4));
-        assertThat(EXPECTED_NESTED_BYTES_PERCENT_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES)));
-        assertThat(EXPECTED_NESTED_COUNT_PERCENT_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(BYTES_AT_BACKPRESSURE)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(COUNT_AT_BACKPRESSURE)));
+        assertEquals(4, aggregatedMetrics.size());
+        assertEquals(EXPECTED_NESTED_BYTES_PERCENT_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES));
+        assertEquals(EXPECTED_NESTED_COUNT_PERCENT_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(BYTES_AT_BACKPRESSURE));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(COUNT_AT_BACKPRESSURE));
     }
 
     @Test
@@ -127,11 +129,11 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.aggregatePercentUsed(nestedProcessGroupStatusWithCountBackpressure, aggregatedMetrics);
 
-        assertThat(aggregatedMetrics.size(), equalTo(4));
-        assertThat(EXPECTED_NESTED_BYTES_PERCENT_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES)));
-        assertThat(EXPECTED_BACKPRESSURE_PERCENT_USED_VALUE, equalTo(aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT)));
-        assertThat(EXPECTED_FALSE_BACKPRESSURE, equalTo(aggregatedMetrics.get(BYTES_AT_BACKPRESSURE)));
-        assertThat(EXPECTED_TRUE_BACKPRESSURE, equalTo(aggregatedMetrics.get(COUNT_AT_BACKPRESSURE)));
+        assertEquals(4, aggregatedMetrics.size());
+        assertEquals(EXPECTED_NESTED_BYTES_PERCENT_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_BYTES));
+        assertEquals(EXPECTED_BACKPRESSURE_PERCENT_USED_VALUE, aggregatedMetrics.get(NIFI_PERCENT_USED_COUNT));
+        assertEquals(EXPECTED_FALSE_BACKPRESSURE, aggregatedMetrics.get(BYTES_AT_BACKPRESSURE));
+        assertEquals(EXPECTED_TRUE_BACKPRESSURE, aggregatedMetrics.get(COUNT_AT_BACKPRESSURE));
     }
 
     @Test
@@ -139,9 +141,9 @@ public class TestPrometheusMetricsUtil {
         Map<String, Double> aggregatedMetrics = new HashMap<>();
         generateConnectionAnalyticMetricsAggregation(aggregatedMetrics, mixedValuedPredictions);
 
-        assertThat(aggregatedMetrics.size(), equalTo(2));
-        assertThat(1.0, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION)));
-        assertThat(2.0, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION)));
+        assertEquals(2, aggregatedMetrics.size());
+        assertEquals(1.0, aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION));
+        assertEquals(2.0, aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION));
     }
 
     @Test
@@ -149,9 +151,9 @@ public class TestPrometheusMetricsUtil {
         Map<String, Double> aggregatedMetrics = new HashMap<>();
         generateConnectionAnalyticMetricsAggregation(aggregatedMetrics, defaultValuedPredictions);
 
-        assertThat(aggregatedMetrics.size(), equalTo(2));
-        assertThat(EXPECTED_DEFAULT_PREDICTION_VALUE, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION)));
-        assertThat(EXPECTED_DEFAULT_PREDICTION_VALUE, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION)));
+        assertEquals(2, aggregatedMetrics.size());
+        assertEquals(EXPECTED_DEFAULT_PREDICTION_VALUE, aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION));
+        assertEquals(EXPECTED_DEFAULT_PREDICTION_VALUE, aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION));
     }
 
     @Test
@@ -161,8 +163,8 @@ public class TestPrometheusMetricsUtil {
         aggregatedMetrics.put(COUNT_AT_BACKPRESSURE, 0.0);
         generateConnectionAnalyticMetricsAggregation(aggregatedMetrics, mixedValuedPredictions);
 
-        assertThat(EXPECTED_BACKPRESSURE_PREDICTION_VALUE, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION)));
-        assertThat(2.0, equalTo(aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION)));
+        assertEquals(EXPECTED_BACKPRESSURE_PREDICTION_VALUE, aggregatedMetrics.get(NIFI_TIME_TO_BYTES_BACKPRESSURE_PREDICTION));
+        assertEquals(2.0, aggregatedMetrics.get(NIFI_TIME_TO_COUNT_BACKPRESSURE_PREDICTION));
     }
 
     @Test
@@ -172,15 +174,15 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
                 emptyAggregatedMetrics,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(connectionAnalyticsMetricsRegistry);
 
-        assertThat(emptyAggregatedMetrics.size(), equalTo(0));
-        assertThat(sampleValues.size(), equalTo(2));
+        assertTrue(emptyAggregatedMetrics.isEmpty());
+        assertEquals(2, sampleValues.size());
         assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PREDICTION_VALUE)));
     }
 
@@ -192,15 +194,15 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
                 aggregatedMetrics,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(connectionAnalyticsMetricsRegistry);
 
-        assertThat(aggregatedMetrics.size(), equalTo(2));
-        assertThat(sampleValues.size(), equalTo(2));
+        assertEquals(2, aggregatedMetrics.size());
+        assertEquals(2, sampleValues.size());
         assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PREDICTION_VALUE)));
     }
 
@@ -212,16 +214,16 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
                 aggregatedMetrics,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(connectionAnalyticsMetricsRegistry);
 
-        assertThat(aggregatedMetrics.size(), equalTo(2));
-        assertThat(sampleValues.size(), equalTo(2));
-        assertThat(sampleValues, CoreMatchers.hasItems(1.0, 2.0));
+        assertEquals(2, aggregatedMetrics.size());
+        assertEquals(2, sampleValues.size());
+        assertThat(sampleValues, hasItems(1.0, 2.0));
     }
 
     @Test
@@ -234,15 +236,15 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.createAggregatedConnectionStatusAnalyticsMetrics(connectionAnalyticsMetricsRegistry,
                 aggregatedMetrics,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(connectionAnalyticsMetricsRegistry);
 
-        assertThat(sampleValues.size(), equalTo(2));
-        assertThat(sampleValues, CoreMatchers.hasItems(0.0, 2.0));
+        assertEquals(2, sampleValues.size());
+        assertThat(sampleValues, hasItems(0.0, 2.0));
     }
 
     @Test
@@ -252,15 +254,15 @@ public class TestPrometheusMetricsUtil {
 
         PrometheusMetricsUtil.createAggregatedNifiMetrics(niFiMetricsRegistry,
                 emptyAggregatedMetrics,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(niFiMetricsRegistry);
 
-        assertThat(emptyAggregatedMetrics.size(), equalTo(0));
-        assertThat(sampleValues.size(), equalTo(2));
+        assertTrue(emptyAggregatedMetrics.isEmpty());
+        assertEquals(2, sampleValues.size());
         assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PERCENT_USED_VALUE)));
     }
 
@@ -272,14 +274,14 @@ public class TestPrometheusMetricsUtil {
         PrometheusMetricsUtil.aggregatePercentUsed(singleProcessGroupStatus, result);
         PrometheusMetricsUtil.createAggregatedNifiMetrics(niFiMetricsRegistry,
                 result,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(niFiMetricsRegistry);
 
-        assertThat(sampleValues.size(), equalTo(2));
+        assertEquals(2, sampleValues.size());
         assertThat(sampleValues, everyItem(is(EXPECTED_DEFAULT_PERCENT_USED_VALUE)));
     }
 
@@ -291,15 +293,15 @@ public class TestPrometheusMetricsUtil {
         PrometheusMetricsUtil.aggregatePercentUsed(nestedProcessGroupStatus, result);
         PrometheusMetricsUtil.createAggregatedNifiMetrics(niFiMetricsRegistry,
                 result,
-                "",
-                "",
-                "",
-                "");
+                EMPTY,
+                EMPTY,
+                EMPTY,
+                EMPTY);
 
         List<Double> sampleValues = getSampleValuesList(niFiMetricsRegistry);
 
-        assertThat(sampleValues.size(), equalTo(2));
-        assertThat(sampleValues, CoreMatchers.hasItems(EXPECTED_NESTED_BYTES_PERCENT_VALUE, EXPECTED_NESTED_COUNT_PERCENT_VALUE));
+        assertEquals(2, sampleValues.size());
+        assertThat(sampleValues, hasItems(EXPECTED_NESTED_BYTES_PERCENT_VALUE, EXPECTED_NESTED_COUNT_PERCENT_VALUE));
     }
 
     private static ProcessGroupStatus createSingleProcessGroupStatus(final long queuedBytes, final long bytesThreshold, final int queuedCount, final long objectThreshold) {

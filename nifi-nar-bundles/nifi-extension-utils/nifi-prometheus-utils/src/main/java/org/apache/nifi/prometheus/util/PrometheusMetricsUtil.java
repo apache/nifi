@@ -49,6 +49,8 @@ public class PrometheusMetricsUtil {
     private static final CollectorRegistry BULLETIN_REGISTRY = new CollectorRegistry();
 
     protected static final String DEFAULT_LABEL_STRING = "";
+    private static final double MAXIMUM_BACKPRESSURE = 1.0;
+    private static final double UNDEFINED_BACKPRESSURE = -1.0;
 
     // Common properties/values
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
@@ -400,7 +402,7 @@ public class PrometheusMetricsUtil {
 
     private static void setBackpressure(final Map<String, Double> aggregatedMetrics, final double percentUsed, final String atBackpressureKey) {
         if (percentUsed >= 100) {
-            aggregatedMetrics.put(atBackpressureKey, 1.0);
+            aggregatedMetrics.put(atBackpressureKey, MAXIMUM_BACKPRESSURE);
         } else if (!aggregatedMetrics.containsKey(atBackpressureKey)) {
             aggregatedMetrics.put(atBackpressureKey, 0.0);
         }
@@ -409,7 +411,7 @@ public class PrometheusMetricsUtil {
     private static void determineMinValueForPredictions(final Map<String, Double> aggregatedMetrics, final String metricFamilySamplesName,
                                                         final double metricSampleValue, final String atBackpressureKey) {
         final Double currentValue = aggregatedMetrics.get(metricFamilySamplesName);
-        if (aggregatedMetrics.get(atBackpressureKey) != null && aggregatedMetrics.get(atBackpressureKey) == 1.0) {
+        if (aggregatedMetrics.get(atBackpressureKey) != null && aggregatedMetrics.get(atBackpressureKey) == MAXIMUM_BACKPRESSURE) {
             aggregatedMetrics.put(metricFamilySamplesName, 0.0);
         } else if (currentValue == null) {
             aggregatedMetrics.put(metricFamilySamplesName, metricSampleValue);
@@ -441,8 +443,8 @@ public class PrometheusMetricsUtil {
         final String componentId = StringUtils.isEmpty(compId) ? DEFAULT_LABEL_STRING : compId;
         final Double bytesValue = aggregatedMetrics.get("nifi_time_to_bytes_backpressure_prediction");
         final Double countsValue = aggregatedMetrics.get("nifi_time_to_count_backpressure_prediction");
-        final double bytesBackpressure = bytesValue == null ? -1.0 : bytesValue;
-        final double countsBackpressure = countsValue == null ? -1.0 : countsValue;
+        final double bytesBackpressure = bytesValue == null ? UNDEFINED_BACKPRESSURE : bytesValue;
+        final double countsBackpressure = countsValue == null ? UNDEFINED_BACKPRESSURE : countsValue;
 
         connectionAnalyticsMetricsRegistry.setDataPoint(bytesBackpressure,
                 "TIME_TO_BYTES_BACKPRESSURE_PREDICTION",
