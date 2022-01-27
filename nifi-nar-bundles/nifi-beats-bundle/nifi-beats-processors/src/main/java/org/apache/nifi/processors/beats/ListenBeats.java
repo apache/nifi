@@ -70,7 +70,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 @Tags({"listen", "beats", "tcp", "logs"})
 @CapabilityDescription("Listens for messages sent by libbeat compatible clients (e.g. filebeats, metricbeats, etc) using Libbeat's 'output.logstash', writing its JSON formatted payload " +
         "to the content of a FlowFile." +
-        "This processor replaces the now deprecated ListenLumberjack")
+        "This processor replaces the now deprecated/removed ListenLumberjack")
 @WritesAttributes({
     @WritesAttribute(attribute = "beats.sender", description = "The sending host of the messages."),
     @WritesAttribute(attribute = "beats.port", description = "The sending port the messages were received over."),
