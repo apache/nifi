@@ -17,6 +17,7 @@
 package org.apache.nifi.admin;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.h2.database.migration.H2DatabaseUpdater;
 import org.apache.nifi.util.NiFiProperties;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
     private static final String CREATE_CONFIGURE_DETAILS_TABLE = "CREATE TABLE CONFIGURE_DETAILS ("
             + "ACTION_ID INT NOT NULL PRIMARY KEY, "
             + "NAME VARCHAR2(1000) NOT NULL, "
-            + "VALUE VARCHAR2(5000), "
+            + "\"VALUE\" VARCHAR2(5000), "
             + "PREVIOUS_VALUE VARCHAR2(5000), "
             + "FOREIGN KEY (ACTION_ID) REFERENCES ACTION(ID)"
             + ")";
@@ -127,14 +128,18 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
             File repositoryDirectory = new File(repositoryDirectoryPath);
 
             // get a handle to the database file
-            File databaseFile = new File(repositoryDirectory, AUDIT_DATABASE_FILE_NAME);
+            File dbFileNoExtension = new File(repositoryDirectory, AUDIT_DATABASE_FILE_NAME);
 
             // format the database url
-            String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
+            String databaseUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFileNoExtension + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
             String databaseUrlAppend = properties.getProperty(NiFiProperties.H2_URL_APPEND);
             if (StringUtils.isNotBlank(databaseUrlAppend)) {
                 databaseUrl += databaseUrlAppend;
             }
+
+            // Migrate an existing database if required
+            final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFileNoExtension + ";LOCK_MODE=3";
+            H2DatabaseUpdater.checkAndPerformMigration(dbFileNoExtension.getAbsolutePath(), migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
 
             // create the pool
             connectionPool = JdbcConnectionPool.create(databaseUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);

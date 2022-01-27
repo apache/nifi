@@ -27,7 +27,9 @@ import org.apache.nifi.registry.revision.api.RevisionUpdate;
 import org.apache.nifi.registry.revision.api.UpdateRevisionTask;
 import org.apache.nifi.registry.revision.standard.StandardRevisionClaim;
 import org.apache.nifi.registry.revision.standard.StandardUpdateResult;
-import org.flywaydb.core.internal.jdbc.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.database.mysql.MySQLDatabaseType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -97,8 +99,8 @@ public class TestJdbcRevisionManager {
 
         try (final Connection connection = dataSource.getConnection()) {
             final String createTableSql;
-            final DatabaseType databaseType = DatabaseType.fromJdbcConnection(connection);
-            if (databaseType == DatabaseType.MYSQL) {
+            final DatabaseType databaseType = DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
+            if (databaseType.equals(new MySQLDatabaseType())) {
                 createTableSql = CREATE_TABLE_SQL_MYSQL;
             } else {
                 createTableSql = CREATE_TABLE_SQL_DEFAULT;

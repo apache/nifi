@@ -18,8 +18,11 @@ package org.apache.nifi.registry.db;
 
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.configuration.FluentConfiguration;
-import org.flywaydb.core.internal.jdbc.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseType;
+import org.flywaydb.core.internal.database.DatabaseTypeRegister;
+import org.flywaydb.core.internal.database.postgresql.PostgreSQLDatabaseType;
 import org.flywaydb.core.internal.jdbc.JdbcUtils;
+import org.flywaydb.database.mysql.MySQLDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
@@ -52,21 +55,17 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
     @Override
     public void customize(final FluentConfiguration configuration) {
         final DatabaseType databaseType = getDatabaseType(configuration.getDataSource());
-        LOGGER.info("Determined database type is {}", new Object[] {databaseType.name()});
+        LOGGER.info("Determined database type is {}", databaseType.getName());
 
-        switch (databaseType) {
-            case MYSQL:
-                LOGGER.info("Setting migration locations to {}", new Object[] {LOCATIONS_MYSQL});
-                configuration.locations(LOCATIONS_MYSQL);
-                break;
-            case POSTGRESQL:
-                LOGGER.info("Setting migration locations to {}", new Object[] {LOCATIONS_POSTGRES});
-                configuration.locations(LOCATIONS_POSTGRES);
-                break;
-            default:
-                LOGGER.info("Setting migration locations to {}", new Object[] {LOCATIONS_DEFAULT});
-                configuration.locations(LOCATIONS_DEFAULT);
-                break;
+        if (databaseType.equals(new MySQLDatabaseType())) {
+            LOGGER.info("Setting migration locations to {}", LOCATIONS_MYSQL);
+            configuration.locations(LOCATIONS_MYSQL);
+        } else if (databaseType.equals(new PostgreSQLDatabaseType())) {
+            LOGGER.info("Setting migration locations to {}", LOCATIONS_POSTGRES);
+            configuration.locations(LOCATIONS_POSTGRES);
+        } else {
+            LOGGER.info("Setting migration locations to {}", LOCATIONS_DEFAULT);
+            configuration.locations(LOCATIONS_DEFAULT);
         }
 
         // At some point Flyway changed their default table name: https://github.com/flyway/flyway/issues/1848
@@ -88,7 +87,7 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
      */
     private DatabaseType getDatabaseType(final DataSource dataSource) {
         try (final Connection connection = dataSource.getConnection()) {
-            return DatabaseType.fromJdbcConnection(connection);
+            return DatabaseTypeRegister.getDatabaseTypeForConnection(connection);
         } catch (SQLException e) {
             LOGGER.error(e.getMessage(), e);
             throw new FlywayException("Unable to obtain connection from Flyway DataSource", e);
