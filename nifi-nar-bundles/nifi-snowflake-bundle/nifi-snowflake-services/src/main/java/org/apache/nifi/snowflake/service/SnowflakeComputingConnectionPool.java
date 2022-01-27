@@ -24,7 +24,6 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -32,16 +31,13 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.DBCPConnectionPool;
-import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
-import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -171,8 +167,6 @@ public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
         properties = Collections.unmodifiableList(props);
     }
 
-    private volatile BasicDataSource dataSource;
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -256,59 +250,16 @@ public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
         });
     }
 
-    protected Driver getDriver(final String driverName, final String url) {
-        final Class<?> clazz;
-
-        try {
-            clazz = Class.forName(driverName);
-        } catch (final ClassNotFoundException e) {
-            throw new ProcessException("Driver class " + driverName +  " is not found", e);
-        }
-
-        try {
-            return DriverManager.getDriver(url);
-        } catch (final SQLException e) {
-            // In case the driver is not registered by the implementation, we explicitly try to register it.
-            try {
-                final Driver driver = (Driver) clazz.newInstance();
-                DriverManager.registerDriver(driver);
-                return DriverManager.getDriver(url);
-            } catch (final SQLException e2) {
-                throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
-            } catch (final IllegalAccessException | InstantiationException e2) {
-                throw new ProcessException("Creating driver instance is failed", e2);
-            }
-        }
-    }
-
-    /**
-     * Shutdown pool, close all open connections.
-     *
-     * @throws SQLException if there is an error while closing open connections
-     */
-    @OnDisabled
-    public void shutdown() throws SQLException {
-        try {
-            if (dataSource != null) {
-                dataSource.close();
-            }
-        } finally {
-            dataSource = null;
-        }
-    }
-
     @Override
-    public Connection getConnection() throws ProcessException {
+    protected Driver getDriver(String driverName, String url) {
         try {
-            final Connection connection = dataSource.getConnection();
-            return connection;
-        } catch (final SQLException e) {
-            throw new ProcessException(e);
-        }
-    }
+            Class.forName(SnowflakeDriver.class.getName());
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
+            Driver driver = DriverManager.getDriver(url);
+
+            return driver;
+        } catch (Exception e) {
+            throw new ProcessException("Snowflake driver is unavailable or the provided url is incompatible.", e);
+        }
     }
 }

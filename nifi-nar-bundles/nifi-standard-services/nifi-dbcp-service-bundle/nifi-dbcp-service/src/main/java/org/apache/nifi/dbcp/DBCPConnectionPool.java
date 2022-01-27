@@ -319,8 +319,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         properties = Collections.unmodifiableList(props);
     }
 
-    private volatile BasicDataSource dataSource;
-    private volatile KerberosUser kerberosUser;
+    protected volatile BasicDataSource dataSource;
+    protected volatile KerberosUser kerberosUser;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -571,7 +571,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     @Override
     public String toString() {
-        return "DBCPConnectionPool[id=" + getIdentifier() + "]";
+        return this.getClass().getSimpleName() + "[id=" + getIdentifier() + "]";
     }
 
     BasicDataSource getDataSource() {

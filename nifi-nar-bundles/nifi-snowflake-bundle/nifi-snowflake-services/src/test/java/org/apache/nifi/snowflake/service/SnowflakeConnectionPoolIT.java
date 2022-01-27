@@ -23,7 +23,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -33,15 +32,12 @@ import java.sql.Statement;
 /**
  * Set the following constants:<p>
  * SNOWFLAKE_URL<p>
- * SNOWFLAKE_PASSWORD<p>
+ * SNOWFLAKE_USER<p>
  * SNOWFLAKE_PASSWORD<p>
  * TABLE_NAME<p>
  */
-@Disabled("Manual test.")
-public class SnowflakeConnectionPoolTest {
+public class SnowflakeConnectionPoolIT {
     public static final String SNOWFLAKE_URL = "tm55946.us-east-2.aws.snowflakecomputing.com";
-//    public static final String SNOWFLAKE_URL = "tm55946.us-east-2.aws.snowflakecomputing.com/?db=test_db";
-//    public static final String SNOWFLAKE_URL = "jdbc:snowflake://tm55946.us-east-2.aws.snowflakecomputing.com";
     public static final String SNOWFLAKE_USER = "???";
     public static final String SNOWFLAKE_PASSWORD = "???";
     public static final String TABLE_NAME = "test_db.public.test_table";
