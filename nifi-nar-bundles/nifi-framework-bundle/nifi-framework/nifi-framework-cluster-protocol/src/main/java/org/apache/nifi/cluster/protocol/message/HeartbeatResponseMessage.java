@@ -17,18 +17,18 @@
 
 package org.apache.nifi.cluster.protocol.message;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
 import javax.xml.bind.annotation.XmlRootElement;
-
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import java.util.ArrayList;
+import java.util.List;
 
 @XmlRootElement(name = "heartbeatResponse")
 public class HeartbeatResponseMessage extends ProtocolMessage {
 
     private List<NodeConnectionStatus> updatedNodeStatuses = new ArrayList<>();
     private String flowElectionMessage = null;
+    private CommsTimingDetails commsTimingDetails;
 
     @Override
     public MessageType getType() {
@@ -49,5 +49,13 @@ public class HeartbeatResponseMessage extends ProtocolMessage {
 
     public void setFlowElectionMessage(String flowElectionMessage) {
         this.flowElectionMessage = flowElectionMessage;
+    }
+
+    public CommsTimingDetails getCommsTimingDetails() {
+        return commsTimingDetails;
+    }
+
+    public void setCommsTimingDetails(final CommsTimingDetails commsTimingDetails) {
+        this.commsTimingDetails = commsTimingDetails;
     }
 }
