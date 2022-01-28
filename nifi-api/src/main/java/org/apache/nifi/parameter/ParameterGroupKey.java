@@ -25,7 +25,7 @@ public class ParameterGroupKey {
     private final ParameterSensitivity sensitivity;
 
     public ParameterGroupKey(final String groupName, final ParameterSensitivity sensitivity) {
-        this.groupName = groupName;
+        this.groupName = Objects.requireNonNull(groupName, "A Parameter Group name is required");
         this.sensitivity = sensitivity;
     }
 
