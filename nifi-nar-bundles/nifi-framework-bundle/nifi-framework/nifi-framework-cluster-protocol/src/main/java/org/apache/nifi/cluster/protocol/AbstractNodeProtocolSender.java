@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.protocol;
 
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ClusterWorkloadResponseMessage;
+import org.apache.nifi.cluster.protocol.message.CommsTimingDetails;
 import org.apache.nifi.cluster.protocol.message.ConnectionRequestMessage;
 import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
@@ -30,7 +31,11 @@ import org.apache.nifi.io.socket.SocketUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Objects;
@@ -39,10 +44,15 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
     private static final Logger logger = LoggerFactory.getLogger(AbstractNodeProtocolSender.class);
     private final SocketConfiguration socketConfiguration;
     private final ProtocolContext<ProtocolMessage> protocolContext;
+    private final ProtocolMessageMarshaller<ProtocolMessage> marshaller;
+    private final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller;
 
     public AbstractNodeProtocolSender(final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
         this.socketConfiguration = socketConfiguration;
         this.protocolContext = protocolContext;
+
+        marshaller = protocolContext.createMarshaller();
+        unmarshaller = protocolContext.createUnmarshaller();
     }
 
     @Override
@@ -111,23 +121,23 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
 
     @Override
     public HeartbeatResponseMessage heartbeat(final HeartbeatMessage msg, final String address) throws ProtocolException {
-        final String hostname;
-        final int port;
-        try {
-            final String[] parts = address.split(":");
-            hostname = parts[0];
-            port = Integer.parseInt(parts[1]);
-        } catch (final Exception e) {
-            throw new IllegalArgumentException("Cannot send heartbeat to address [" + address + "]. Address must be in <hostname>:<port> format");
-        }
+        final CommsTimingDetails timingDetails = new CommsTimingDetails();
 
-        final ProtocolMessage responseMessage = sendProtocolMessage(msg, hostname, port);
+        final String[] parts = address.split(":");
+        final String hostname = parts[0];
+        final int port = Integer.parseInt(parts[1]);
+
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, hostname, port, timingDetails);
+
         if (MessageType.HEARTBEAT_RESPONSE == responseMessage.getType()) {
-            return (HeartbeatResponseMessage) responseMessage;
+            final HeartbeatResponseMessage heartbeatResponseMessage = (HeartbeatResponseMessage) responseMessage;
+            heartbeatResponseMessage.setCommsTimingDetails(timingDetails);
+            return heartbeatResponseMessage;
         }
 
         throw new ProtocolException("Expected message type '" + MessageType.HEARTBEAT_RESPONSE + "' but found '" + responseMessage.getType() + "'");
     }
+
 
     @Override
     public ClusterWorkloadResponseMessage clusterWorkload(final ClusterWorkloadRequestMessage msg) throws ProtocolException {
@@ -137,7 +147,8 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         } catch (IOException e) {
             throw new ProtocolException("Failed to getServiceAddress due to " + e, e);
         }
-        final ProtocolMessage responseMessage = sendProtocolMessage(msg, serviceAddress.getHostName(), serviceAddress.getPort());
+
+        final ProtocolMessage responseMessage = sendProtocolMessage(msg, serviceAddress.getHostName(), serviceAddress.getPort(), new CommsTimingDetails());
         if (MessageType.CLUSTER_WORKLOAD_RESPONSE == responseMessage.getType()) {
             return (ClusterWorkloadResponseMessage) responseMessage;
         }
@@ -162,38 +173,55 @@ public abstract class AbstractNodeProtocolSender implements NodeProtocolSender {
         return socketConfiguration;
     }
 
-    private ProtocolMessage sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port) {
-        Socket socket = null;
-        try {
-            try {
-                socket = SocketUtils.createSocket(new InetSocketAddress(hostname, port), socketConfiguration);
-            } catch (IOException e) {
-                throw new ProtocolException("Failed to send message to Cluster Coordinator due to: " + e, e);
-            }
+    private ProtocolMessage sendProtocolMessage(final ProtocolMessage msg, final String hostname, final int port, final CommsTimingDetails timingDetails) {
+        final long dnsLookupStart = System.currentTimeMillis();
+        final InetSocketAddress socketAddress = new InetSocketAddress(hostname, port);
 
+        final long connectStart = System.currentTimeMillis();
+        try (final Socket socket = SocketUtils.createSocket(socketAddress, socketConfiguration);
+             final InputStream in = new BufferedInputStream(socket.getInputStream());
+             final OutputStream out = new BufferedOutputStream(socket.getOutputStream())) {
+
+            final long sendStart = System.currentTimeMillis();
             try {
                 // marshal message to output stream
-                final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
-                marshaller.marshal(msg, socket.getOutputStream());
+                marshaller.marshal(msg, out);
             } catch (final IOException ioe) {
-                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
+                throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message", ioe);
             }
 
+            // Read the first byte to see how long it takes, and then reset it so that
+            // we can consume it in the unmarshaller. This provides us helpful information in logs if heartbeats are not being produced/consumed
+            // as frequently/efficiently as we'd like.
+            final long receiveStart = System.currentTimeMillis();
+            in.mark(1);
+            in.read();
+            in.reset();
+
+            final long receiveFullStart = System.currentTimeMillis();
             final ProtocolMessage response;
             try {
                 // unmarshall response and return
-                final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
-                response = unmarshaller.unmarshal(socket.getInputStream());
+                response = unmarshaller.unmarshal(in);
             } catch (final IOException ioe) {
                 throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message from "
-                        + socket.getRemoteSocketAddress() + " due to: " + ioe, ioe);
+                        + socket.getRemoteSocketAddress(), ioe);
             }
 
+            final long receiveEnd = System.currentTimeMillis();
+
+            timingDetails.setDnsLookupMillis(connectStart - dnsLookupStart);
+            timingDetails.setConnectMillis(sendStart - connectStart);
+            timingDetails.setSendRequestMillis(receiveStart - sendStart);
+            timingDetails.setReceiveFirstByteMillis(receiveFullStart - receiveStart);
+            timingDetails.setReceiveFullResponseMillis(receiveEnd - receiveStart);
+
             return response;
-        } finally {
-            SocketUtils.closeQuietly(socket);
+        } catch (IOException e) {
+            throw new ProtocolException("Failed to send message to Cluster Coordinator", e);
         }
     }
+
 
     protected abstract InetSocketAddress getServiceAddress() throws IOException;
 }
