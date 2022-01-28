@@ -43,6 +43,14 @@ import java.util.regex.Pattern;
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
+    public static final PropertyDescriptor PARAMETER_GROUP_NAME = new PropertyDescriptor.Builder()
+            .name("parameter-group-name")
+            .displayName("Parameter Group Name")
+            .description("The name of the parameter group that will be fetched.  This indicates the name of the Parameter Context that may receive " +
+                    "the fetched parameters.")
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[a-zA-Z0-9_. -]+$")))
+            .required(true)
+            .build();
     public static final PropertyDescriptor SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
             .name("sensitive-parameter-regex")
             .displayName("Sensitive Parameter Regex")
@@ -66,6 +74,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     @Override
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(PARAMETER_GROUP_NAME);
         properties.add(SENSITIVE_PARAMETER_REGEX);
         properties.add(NON_SENSITIVE_PARAMETER_REGEX);
 
@@ -79,6 +88,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
 
     @Override
     public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
+        final String parameterGroupName = context.getProperty(PARAMETER_GROUP_NAME).getValue();
         final Pattern sensitivePattern = context.getProperty(SENSITIVE_PARAMETER_REGEX).isSet()
                 ? Pattern.compile(context.getProperty(SENSITIVE_PARAMETER_REGEX).getValue())
                 : null;
@@ -98,8 +108,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
             }
         });
         return Arrays.asList(
-                new ProvidedParameterGroup(ParameterSensitivity.SENSITIVE, sensitiveParameters),
-                new ProvidedParameterGroup(ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
+                new ProvidedParameterGroup(parameterGroupName, ParameterSensitivity.SENSITIVE, sensitiveParameters),
+                new ProvidedParameterGroup(parameterGroupName, ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
     }
 
     @Override

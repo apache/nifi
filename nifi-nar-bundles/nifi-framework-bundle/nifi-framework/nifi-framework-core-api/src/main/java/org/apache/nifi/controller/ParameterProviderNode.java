@@ -53,8 +53,7 @@ public interface ParameterProviderNode extends ComponentNode {
     void verifyCanDelete();
 
     /**
-     * Returns all ParameterContexts that reference this ParameterProvider
-     * @return
+     * @return all ParameterContexts that reference this ParameterProvider
      */
     Set<ParameterProviderUsageReference> getReferences();
 

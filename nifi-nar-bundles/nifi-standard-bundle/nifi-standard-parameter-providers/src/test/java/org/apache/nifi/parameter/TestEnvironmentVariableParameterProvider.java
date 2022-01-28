@@ -57,6 +57,7 @@ public class TestEnvironmentVariableParameterProvider {
         parameterProvider.initialize(initContext);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(EnvironmentVariableParameterProvider.PARAMETER_GROUP_NAME, "environment variables");
         properties.put(EnvironmentVariableParameterProvider.SENSITIVE_PARAMETER_REGEX, sensitivePattern);
         properties.put(EnvironmentVariableParameterProvider.NON_SENSITIVE_PARAMETER_REGEX, nonSensitivePattern);
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);

@@ -52,7 +52,7 @@ public class ParameterProviderUsageReference {
         }
 
         return groupKey.getSensitivity() == sensitivity
-                && (groupKey.getGroupName() == null || groupKey.getGroupName().equalsIgnoreCase(parameterContext.getName()));
+                && groupKey.getGroupName().equalsIgnoreCase(parameterContext.getName());
     }
 
     @Override

@@ -83,21 +83,14 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
                     "If not specified, no non-sensitive parameters will be included.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
-    public static final PropertyDescriptor GROUPED_PARAMETER_DIRECTORIES = new PropertyDescriptor.Builder()
-            .name("grouped-parameter-directories")
-            .displayName("Grouped Parameter Directories")
+    public static final PropertyDescriptor PARAMETER_GROUP_DIRECTORIES = new PropertyDescriptor.Builder()
+            .name("parameter-group-directories")
+            .displayName("Parameter Group Directories")
             .description("A comma-separated list of directory absolute paths that will map to named parameter groups.  Each directory that contains " +
                     "files will map to a parameter group, named after the innermost directory in the path.  Files inside the directory will map to " +
                     "parameter names, whose values are the content of each respective file.")
             .addValidator(new MultiDirectoryExistsValidator())
-            .build();
-    public static final PropertyDescriptor UNGROUPED_PARAMETER_DIRECTORIES = new PropertyDescriptor.Builder()
-            .name("ungrouped-parameter-directories")
-            .displayName("Ungrouped Parameter Directories")
-            .description("A comma-separated list of directory absolute paths that will map to ungrouped parameters.  Any directory in this list that contains " +
-                    "files will map to a set of ungrouped parameters, which may apply to any referencing Parameter Context.  Files inside the directory will map to " +
-                    "parameter names, whose values are the content of each respective file.")
-            .addValidator(new MultiDirectoryExistsValidator())
+            .required(true)
             .build();
     public static final PropertyDescriptor PARAMETER_VALUE_BYTE_LIMIT = new PropertyDescriptor.Builder()
             .name("parameter-value-byte-limit")
@@ -116,26 +109,10 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SENSITIVE_PARAMETER_REGEX);
         properties.add(NON_SENSITIVE_PARAMETER_REGEX);
-        properties.add(GROUPED_PARAMETER_DIRECTORIES);
-        properties.add(UNGROUPED_PARAMETER_DIRECTORIES);
+        properties.add(PARAMETER_GROUP_DIRECTORIES);
         properties.add(PARAMETER_VALUE_BYTE_LIMIT);
 
         this.properties = Collections.unmodifiableList(properties);
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final Collection<ValidationResult> validationResults = new ArrayList<>();
-
-        if (!context.getProperty(GROUPED_PARAMETER_DIRECTORIES).isSet() && !context.getProperty(UNGROUPED_PARAMETER_DIRECTORIES).isSet()) {
-            validationResults.add(new ValidationResult.Builder()
-                    .subject(GROUPED_PARAMETER_DIRECTORIES.getDisplayName())
-                    .explanation(String.format("at least one of '%s' or '%s' is required", GROUPED_PARAMETER_DIRECTORIES.getDisplayName(), UNGROUPED_PARAMETER_DIRECTORIES.getDisplayName()))
-                    .valid(false)
-                    .build());
-        }
-
-        return validationResults;
     }
 
     @Override
@@ -148,26 +125,17 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
 
         final List<ProvidedParameterGroup> parameterGroups = new ArrayList<>();
 
-        final Collection<File> groupedDirectories = getDirectories(context, GROUPED_PARAMETER_DIRECTORIES);
-        final Collection<File> ungroupedDirectories = getDirectories(context, UNGROUPED_PARAMETER_DIRECTORIES);
-        groupedDirectories.forEach(directory -> {
+        final Collection<File> groupDirectories = getDirectories(context, PARAMETER_GROUP_DIRECTORIES);
+        groupDirectories.forEach(directory -> {
             parameterGroups.addAll(getParameters(context, directory, directory.getName()));
         });
-        ungroupedDirectories.forEach(directory -> {
-            parameterGroups.addAll(getParameters(context, directory, null));
-        });
-        final AtomicInteger ungroupedParameterCount = new AtomicInteger(0);
         final AtomicInteger groupedParameterCount = new AtomicInteger(0);
         final Collection<String> groupNames = new HashSet<>();
         parameterGroups.forEach(group -> {
-            if (group.getGroupKey().getGroupName() == null) {
-                ungroupedParameterCount.addAndGet(group.getItems().size());
-            } else {
-                groupedParameterCount.addAndGet(group.getItems().size());
-                groupNames.add(group.getGroupKey().getGroupName());
-            }
+            groupedParameterCount.addAndGet(group.getItems().size());
+            groupNames.add(group.getGroupKey().getGroupName());
         });
-        getLogger().info("Fetched {} ungrouped parameters and {} grouped parameters.  Group names: {}", ungroupedParameterCount.get(), groupedParameterCount.get(), groupNames);
+        getLogger().info("Fetched {} parameters.  Group names: {}", groupedParameterCount.get(), groupNames);
         return parameterGroups;
     }
 
