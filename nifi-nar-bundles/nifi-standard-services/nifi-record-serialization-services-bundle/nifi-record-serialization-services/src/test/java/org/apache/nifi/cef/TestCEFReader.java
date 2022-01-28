@@ -262,16 +262,11 @@ public class TestCEFReader {
         runner.assertAllFlowFilesTransferred(TestCEFProcessor.SUCCESS);
     }
 
-    private void triggerProcessorWithError(final String input) {
-        try {
-            runner.enqueue(new FileInputStream(input));
-            runner.run();
-            Assertions.fail();
-        } catch (final Throwable e) {
-            // the TestCEFProcessor wraps the original exception into a RuntimeException
-            Assertions.assertTrue(e.getCause() instanceof RuntimeException);
-            Assertions.assertTrue(e.getCause().getCause() instanceof IOException);
-        }
+    private void triggerProcessorWithError(final String input) throws FileNotFoundException {
+        runner.enqueue(new FileInputStream(input));
+        final AssertionError exception = Assertions.assertThrows(AssertionError.class, () -> runner.run());
+        Assertions.assertTrue(exception.getCause() instanceof RuntimeException);
+        Assertions.assertTrue(exception.getCause().getCause() instanceof IOException);
     }
 
     private void assertNumberOfResults(final int numberOfResults) {

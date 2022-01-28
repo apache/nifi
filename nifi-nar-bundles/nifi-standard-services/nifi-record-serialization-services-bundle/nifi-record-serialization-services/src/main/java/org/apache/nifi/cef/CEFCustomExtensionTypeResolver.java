@@ -18,7 +18,7 @@ package org.apache.nifi.cef;
 
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.util.SchemaInferenceUtil;
 
 /**
  * Provides strategy for resolving data type for custom extensions.
@@ -33,6 +33,6 @@ interface CEFCustomExtensionTypeResolver {
     DataType resolve(String value);
 
     CEFCustomExtensionTypeResolver STRING_RESOLVER = value -> RecordFieldType.STRING.getDataType();
-    CEFCustomExtensionTypeResolver SIMPLE_RESOLVER = value -> DataTypeUtils.inferSimpleDataType(value);
+    CEFCustomExtensionTypeResolver SIMPLE_RESOLVER = value -> SchemaInferenceUtil.getDataType(value);
     CEFCustomExtensionTypeResolver SKIPPING_RESOLVER = value -> null;
 }

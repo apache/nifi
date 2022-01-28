@@ -150,8 +150,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
 
     @Override
     protected List<AllowableValue> getSchemaAccessStrategyValues() {
-        final List<AllowableValue> allowableValues = new ArrayList<>();
-        allowableValues.addAll(super.getSchemaAccessStrategyValues());
+        final List<AllowableValue> allowableValues = new ArrayList<>(super.getSchemaAccessStrategyValues());
         allowableValues.add(SchemaInferenceUtil.INFER_SCHEMA);
         return allowableValues;
     }
@@ -206,8 +205,8 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
         final String inferenceStrategy = context.getProperty(INFERENCE_STRATEGY).getValue();
         final boolean inferenceNeedsCustomExtensions = !inferenceStrategy.equals(HEADERS_ONLY.getValue()) && !inferenceStrategy.equals(HEADERS_AND_EXTENSIONS.getValue());
         final boolean isInferSchema =  context.getProperty(SCHEMA_ACCESS_STRATEGY).getValue().equals(SchemaInferenceUtil.INFER_SCHEMA.getValue());
-        includeCustomExtensions = !isInferSchema || (isInferSchema && inferenceNeedsCustomExtensions);
 
+        includeCustomExtensions = !isInferSchema || inferenceNeedsCustomExtensions;
         acceptEmptyExtensions = context.getProperty(ACCEPT_EMPTY_EXTENSIONS).asBoolean();
     }
 

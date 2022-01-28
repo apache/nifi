@@ -160,12 +160,11 @@ final class CEFRecordReader implements RecordReader {
             : convertSimpleIfPossible(fieldValue, dataType, fieldName);
     }
 
-    private final Object convert(final Object value, final DataType dataType, final String fieldName) {
+    private Object convert(final Object value, final DataType dataType, final String fieldName) {
         return DataTypeUtils.convertType(prepareValue(value), dataType, DATE_FORMAT_SUPPLIER, TIME_FORMAT_SUPPLIER, DATETIME_FORMAT_SUPPLIER, fieldName);
     }
 
-    private final Object convertSimpleIfPossible(final Object value, final DataType dataType, final String fieldName) {
-
+    private Object convertSimpleIfPossible(final Object value, final DataType dataType, final String fieldName) {
         if (dataType == null || value == null) {
             return value;
         }
