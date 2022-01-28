@@ -18,6 +18,7 @@ package org.apache.nifi.cdc.postgresql.processors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -34,11 +35,14 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 /**
  * Unit Test for PostgreSQL CDC Processor.
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestCaptureChangePostgreSQL {
 
     private static final String DRIVER_NAME = "org.postgresql.Driver";
@@ -64,7 +68,7 @@ public class TestCaptureChangePostgreSQL {
     }
 
     @Test
-    public void testRequiredProperties() {
+    public void test01RequiredProperties() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.assertNotValid();
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -86,7 +90,7 @@ public class TestCaptureChangePostgreSQL {
     }
 
     @Test
-    public void testCDCBeginCommitNotIncludedAllMetadataNotIncluded() {
+    public void test02CDCBeginCommitNotIncludedAllMetadataNotIncluded() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -101,8 +105,8 @@ public class TestCaptureChangePostgreSQL {
         runner.setProperty(CaptureChangePostgreSQL.INCLUDE_ALL_METADATA, "false");
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 1); // Expected only 1 flow file
-                                                                                      // (INSERT event).
+        // Expected only 1 flow file (INSERT event).
+        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 1);
 
         final MockFlowFile insert = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(0);
         assertNotNull(insert);
@@ -114,7 +118,7 @@ public class TestCaptureChangePostgreSQL {
     }
 
     @Test
-    public void testCDCBeginCommitIncludedAllMetadataNotIncluded() {
+    public void test03CDCBeginCommitIncludedAllMetadataNotIncluded() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -131,17 +135,22 @@ public class TestCaptureChangePostgreSQL {
         runner.setValidateExpressionUsage(false);
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 3); // Expected 3 flow files (BEGIN,
-                                                                                      // INSERT and COMMIT events).
+        // Expected 3 flow files (BEGIN, INSERT and COMMIT events).
+        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 3);
 
+        // BEGIN
         final MockFlowFile begin = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(0);
         assertNotNull(begin);
         begin.assertAttributeEquals("cdc.type", "begin");
         begin.assertAttributeEquals("cdc.lsn", "101");
-        begin.assertContentEquals(
-                "{\"xid\":14,\"lsn\":101,\"xCommitTime\":\"2000-01-01 00:00:00 BRST -0200\",\"type\":\"begin\",\"xLSNFinal\":101}",
-                StandardCharsets.UTF_8);
 
+        String beginContent = begin.getContent();
+        beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                "\"xCommitTime\":\"2000-01-01 00:00:00 BRT -0200\",\"type\""); // Replaced to skip different TZ.
+        assertTrue(beginContent.equals(
+                "{\"xid\":14,\"lsn\":101,\"xCommitTime\":\"2000-01-01 00:00:00 BRT -0200\",\"type\":\"begin\",\"xLSNFinal\":101}"));
+
+        // INSERT
         final MockFlowFile insert = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(1);
         assertNotNull(insert);
         insert.assertAttributeEquals("cdc.type", "insert");
@@ -150,17 +159,21 @@ public class TestCaptureChangePostgreSQL {
                 "{\"tupleData\":{\"id\":8},\"relationName\":\"public.tb_city\",\"lsn\":101,\"type\":\"insert\"}",
                 StandardCharsets.UTF_8);
 
+        // COMMIT
         final MockFlowFile commit = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(2);
         assertNotNull(commit);
         commit.assertAttributeEquals("cdc.type", "commit");
         commit.assertAttributeEquals("cdc.lsn", "102");
-        commit.assertContentEquals(
-                "{\"lsn\":102,\"flags\":0,\"xCommitTime\":\"2000-01-01 00:00:01 BRST -0200\",\"type\":\"commit\",\"commitLSN\":102,\"xLSNEnd\":102}",
-                StandardCharsets.UTF_8);
+
+        String commitContent = commit.getContent();
+        commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                "\"xCommitTime\":\"2000-01-01 00:00:01 BRT -0200\",\"type\""); // Replaced to skip different TZ.
+        assertTrue(commitContent.equals(
+                "{\"lsn\":102,\"flags\":0,\"xCommitTime\":\"2000-01-01 00:00:01 BRT -0200\",\"type\":\"commit\",\"commitLSN\":102,\"xLSNEnd\":102}"));
     }
 
     @Test
-    public void testCDCBeginCommitIncludedAllMetadataIncluded() {
+    public void test04CDCBeginCommitIncludedAllMetadataIncluded() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -175,18 +188,22 @@ public class TestCaptureChangePostgreSQL {
         runner.setProperty(CaptureChangePostgreSQL.INCLUDE_ALL_METADATA, "true");
 
         runner.run();
-        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 4); // Expected 4 flow files (BEGIN,
-                                                                                      // RELATION, INSERT and COMMIT
-                                                                                      // events).
+        // Expected 4 flow files (BEGIN, RELATION, INSERT and COMMIT events).
+        runner.assertAllFlowFilesTransferred(CaptureChangePostgreSQL.REL_SUCCESS, 4);
 
+        // BEGIN
         final MockFlowFile begin = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(0);
         assertNotNull(begin);
         begin.assertAttributeEquals("cdc.type", "begin");
         begin.assertAttributeEquals("cdc.lsn", "101");
-        begin.assertContentEquals(
-                "{\"xid\":14,\"lsn\":101,\"xCommitTime\":\"2000-01-01 00:00:00 BRST -0200\",\"type\":\"begin\",\"xLSNFinal\":101}",
-                StandardCharsets.UTF_8);
 
+        String beginContent = begin.getContent();
+        beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                "\"xCommitTime\":\"2000-01-01 00:00:00 BRT -0200\",\"type\""); // Replaced to skip different TZ.
+        assertTrue(beginContent.equals(
+                "{\"xid\":14,\"lsn\":101,\"xCommitTime\":\"2000-01-01 00:00:00 BRT -0200\",\"type\":\"begin\",\"xLSNFinal\":101}"));
+
+        // RELATION
         final MockFlowFile relation = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(1);
         assertNotNull(relation);
         relation.assertAttributeEquals("cdc.type", "relation");
@@ -197,6 +214,7 @@ public class TestCaptureChangePostgreSQL {
                         + "\"type\":\"relation\",\"numColumns\":1}",
                 StandardCharsets.UTF_8);
 
+        // INSERT
         final MockFlowFile insert = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(2);
         assertNotNull(insert);
         insert.assertAttributeEquals("cdc.type", "insert");
@@ -205,17 +223,21 @@ public class TestCaptureChangePostgreSQL {
                 "{\"tupleData\":{\"id\":8},\"relationName\":\"public.tb_city\",\"lsn\":101,\"relationId\":14,\"tupleType\":\"N\",\"type\":\"insert\"}",
                 StandardCharsets.UTF_8);
 
+        // COMMIT
         final MockFlowFile commit = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(3);
         assertNotNull(commit);
         commit.assertAttributeEquals("cdc.type", "commit");
         commit.assertAttributeEquals("cdc.lsn", "102");
-        commit.assertContentEquals(
-                "{\"lsn\":102,\"flags\":0,\"xCommitTime\":\"2000-01-01 00:00:01 BRST -0200\",\"type\":\"commit\",\"commitLSN\":102,\"xLSNEnd\":102}",
-                StandardCharsets.UTF_8);
+
+        String commitContent = commit.getContent();
+        commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                "\"xCommitTime\":\"2000-01-01 00:00:01 BRT -0200\",\"type\""); // Replaced to skip different TZ.
+        assertTrue(commitContent.equals(
+                "{\"lsn\":102,\"flags\":0,\"xCommitTime\":\"2000-01-01 00:00:01 BRT -0200\",\"type\":\"commit\",\"commitLSN\":102,\"xLSNEnd\":102}"));
     }
 
     @Test
-    public void testState() {
+    public void test05State() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
@@ -238,7 +260,7 @@ public class TestCaptureChangePostgreSQL {
     }
 
     @Test
-    public void testDataProvenance() {
+    public void test06DataProvenance() {
         runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
         runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
         runner.setProperty(CaptureChangePostgreSQL.PORT, PORT);
