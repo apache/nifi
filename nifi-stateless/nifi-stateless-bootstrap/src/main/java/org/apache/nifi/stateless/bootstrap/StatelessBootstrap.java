@@ -199,6 +199,15 @@ public class StatelessBootstrap {
             filesAllowed.add(file.getName());
         }
 
+        final File java11Directory = new File(narDirectory, "java11");
+        final File[] java11DirectoryFiles = java11Directory.listFiles();
+        if (java11DirectoryFiles != null) {
+            for (final File file : java11DirectoryFiles) {
+                findClassNamesInJar(file, classesAllowed);
+                filesAllowed.add(file.getName());
+            }
+        }
+
         classesBlocked.removeAll(classesAllowed);
         filesBlocked.removeAll(filesAllowed);
 
