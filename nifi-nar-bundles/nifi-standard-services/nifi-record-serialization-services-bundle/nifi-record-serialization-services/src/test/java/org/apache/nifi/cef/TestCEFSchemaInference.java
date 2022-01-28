@@ -272,7 +272,6 @@ public class TestCEFSchemaInference {
         result = testSubject.inferSchema(recordSource);
     }
 
-    @SafeVarargs
     private void assertSchemaConsistsOf(final List<RecordField>... expectedFieldGroups) {
         final List<RecordField> expectedFields = Arrays.stream(expectedFieldGroups).flatMap(group -> group.stream()).collect(Collectors.toList());
         Assertions.assertEquals(expectedFields.size(), result.getFieldCount());
