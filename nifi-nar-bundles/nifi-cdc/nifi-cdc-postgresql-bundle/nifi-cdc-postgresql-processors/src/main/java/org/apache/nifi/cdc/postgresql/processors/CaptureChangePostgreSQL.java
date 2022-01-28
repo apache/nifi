@@ -390,6 +390,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
 
                 flowFile = session.putAttribute(flowFile, "cdc.type", message.get("type").toString());
 
+                // Some messagens don't have LSN (e.g. Relation).
                 if (message.containsKey("lsn")) // Relation messagens don't have LSN.
                     flowFile = session.putAttribute(flowFile, "cdc.lsn", message.get("lsn").toString());
 
@@ -400,7 +401,11 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
 
             session.transfer(listFlowFiles, REL_SUCCESS);
 
-            this.lastLSN = this.replicationReader.getLongLastReceiveLSN();
+            this.lastLSN = this.replicationReader.getLastReceiveLSN();
+
+            // Feedback is sent after the flowfiles transfer completes.
+            this.replicationReader.sendFeedback(this.lastLSN);
+
             updateState(context.getStateManager());
 
         } catch (SQLException | IOException e) {

@@ -98,8 +98,17 @@ public class MockReader extends Reader {
   }
 
   @Override
-  public Long getLongLastReceiveLSN() {
+  public Long getLastReceiveLSN() {
     return this.replicationStream.getLastReceiveLSN().asLong();
+  }
+
+  @Override
+  public void sendFeedback(Long lsnLong) {
+    if (lsnLong > 0) {
+      LogSequenceNumber lsn = LogSequenceNumber.valueOf(lsnLong);
+      this.replicationStream.setAppliedLSN(lsn);
+      this.replicationStream.setFlushedLSN(lsn);
+    }
   }
 
   /**

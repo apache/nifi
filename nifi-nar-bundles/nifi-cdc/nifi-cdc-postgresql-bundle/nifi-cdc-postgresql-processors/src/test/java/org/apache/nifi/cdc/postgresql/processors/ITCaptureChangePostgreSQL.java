@@ -139,7 +139,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testRequiredProperties() {
+        public void test01RequiredProperties() {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.assertNotValid();
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
@@ -163,7 +163,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testRegisterDriverFailure() {
+        public void test02RegisterDriverFailure() {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -202,7 +202,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testConnectionFailures() {
+        public void test03ConnectionFailures() {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -225,7 +225,6 @@ public class ITCaptureChangePostgreSQL {
                         assertEquals("Error creating SQL connection to specified host and port", ioe.getMessage());
                         Throwable psqle = ioe.getCause();
                         assertTrue(psqle instanceof PSQLException);
-                        assertEquals("The connection attempt failed.", psqle.getMessage());
                 }
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
 
@@ -328,7 +327,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testCDCBeginCommitNotIncludedAllMetadataNotIncluded() throws SQLException {
+        public void test04CDCBeginCommitNotIncludedAllMetadataNotIncluded() throws SQLException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -417,7 +416,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testCDCBeginCommitIncludedAllMetadataNotIncluded() throws SQLException {
+        public void test05CDCBeginCommitIncludedAllMetadataNotIncluded() throws SQLException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -603,7 +602,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testCDCBeginCommitIncludedAllMetadataIncluded() throws SQLException {
+        public void test06CDCBeginCommitIncludedAllMetadataIncluded() throws SQLException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -848,7 +847,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testCDCDropSlotIfExistsFalse() throws SQLException {
+        public void test07CDCDropSlotIfExistsFalse() throws SQLException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -899,7 +898,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testCDCStartLSN() throws SQLException, IOException {
+        public void test08CDCStartLSN() throws SQLException, IOException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -941,7 +940,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testState() throws SQLException, IOException {
+        public void test09State() throws SQLException, IOException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
@@ -973,7 +972,7 @@ public class ITCaptureChangePostgreSQL {
         }
 
         @Test
-        public void testDataProvenance() throws SQLException {
+        public void test10DataProvenance() throws SQLException {
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_LOCATION, DRIVER_LOCATION);
                 runner.setProperty(CaptureChangePostgreSQL.DRIVER_NAME, DRIVER_NAME);
                 runner.setProperty(CaptureChangePostgreSQL.HOST, HOST);
