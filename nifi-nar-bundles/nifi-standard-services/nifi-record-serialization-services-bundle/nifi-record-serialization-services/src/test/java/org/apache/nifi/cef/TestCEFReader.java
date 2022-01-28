@@ -281,7 +281,6 @@ public class TestCEFReader {
         Assertions.assertEquals(value, processor.getRecords().get(number).getValue(name));
     }
 
-    @SafeVarargs
     private void assertFieldsAre(final Map<String, Object>... fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
         Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));

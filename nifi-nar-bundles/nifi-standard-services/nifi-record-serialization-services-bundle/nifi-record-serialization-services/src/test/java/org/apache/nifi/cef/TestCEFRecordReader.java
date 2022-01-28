@@ -445,7 +445,6 @@ public class TestCEFRecordReader {
         this.results = results;
     }
 
-    @SafeVarargs
     private void assertFieldsAre(final Map<String, Object>... fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
         Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
