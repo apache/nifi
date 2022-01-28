@@ -274,31 +274,36 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         }
 
         final long startNanos = System.nanoTime();
-        Participant participant;
         try {
-            participant = role.getLeaderSelector().getLeader();
-        } catch (Exception e) {
-            logger.debug("Unable to determine leader for role '{}'; returning null", roleName);
-            return null;
+
+            Participant participant;
+            try {
+                participant = role.getLeaderSelector().getLeader();
+            } catch (Exception e) {
+                logger.warn("Unable to determine leader for role '{}'; returning null", roleName, e);
+                return null;
+            }
+
+            if (participant == null) {
+                logger.debug("There is currently no elected leader for the {} role", roleName);
+                return null;
+            }
+
+            final String participantId = participant.getId();
+            if (StringUtils.isEmpty(participantId)) {
+                logger.debug("Found leader participant for role {} but the participantId was empty", roleName);
+                return null;
+            }
+
+            final String previousLeader = lastKnownLeader.put(roleName, participantId);
+            if (previousLeader != null && !previousLeader.equals(participantId)) {
+                onLeaderChanged(roleName);
+            }
+
+            return participantId;
+        } finally {
+            registerPollTime(System.nanoTime() - startNanos);
         }
-
-        if (participant == null) {
-            return null;
-        }
-
-        final String participantId = participant.getId();
-        if (StringUtils.isEmpty(participantId)) {
-            return null;
-        }
-
-        registerPollTime(System.nanoTime() - startNanos);
-
-        final String previousLeader = lastKnownLeader.put(roleName, participantId);
-        if (previousLeader != null && !previousLeader.equals(participantId)) {
-            onLeaderChanged(roleName);
-        }
-
-        return participantId;
     }
 
     private void registerPollTime(final long nanos) {
