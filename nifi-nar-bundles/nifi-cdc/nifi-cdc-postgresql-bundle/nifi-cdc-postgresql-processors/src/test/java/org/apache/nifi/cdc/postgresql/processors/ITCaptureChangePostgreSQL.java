@@ -454,11 +454,11 @@ public class ITCaptureChangePostgreSQL {
                 String beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // INSERT
                 final MockFlowFile insert = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS)
@@ -481,12 +481,12 @@ public class ITCaptureChangePostgreSQL {
 
                 String commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
 
                 /* -------------------- UPDATE OPERATION -------------------- */
 
@@ -509,11 +509,11 @@ public class ITCaptureChangePostgreSQL {
                 beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // UPDATE
                 final MockFlowFile update = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS)
@@ -537,12 +537,12 @@ public class ITCaptureChangePostgreSQL {
 
                 commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
 
                 /* -------------------- DELETE OPERATION -------------------- */
 
@@ -565,11 +565,11 @@ public class ITCaptureChangePostgreSQL {
                 beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // DELETE
                 final MockFlowFile delete = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS)
@@ -593,12 +593,12 @@ public class ITCaptureChangePostgreSQL {
 
                 commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
         }
 
         @Test
@@ -640,11 +640,11 @@ public class ITCaptureChangePostgreSQL {
                 String beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // RELATION
                 MockFlowFile relation = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS).get(1);
@@ -683,12 +683,12 @@ public class ITCaptureChangePostgreSQL {
 
                 String commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
 
                 /* -------------------- UPDATE OPERATION -------------------- */
 
@@ -711,11 +711,11 @@ public class ITCaptureChangePostgreSQL {
                 beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // RELATION
                 relation = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS)
@@ -758,12 +758,12 @@ public class ITCaptureChangePostgreSQL {
 
                 commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
 
                 /* -------------------- DELETE OPERATION -------------------- */
 
@@ -787,11 +787,11 @@ public class ITCaptureChangePostgreSQL {
                 beginContent = begin.getContent();
                 beginContent = beginContent.replaceAll("\"xid\":[0-9]+,", "\"xid\":123,");
                 beginContent = beginContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111111,");
-                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                beginContent = beginContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 beginContent = beginContent.replaceAll("\"xLSNFinal\":[0-9]+}", "\"xLSNFinal\":1111112}");
                 assertTrue(beginContent.equals(
-                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"xLSNFinal\":1111112}"));
+                                "{\"xid\":123,\"lsn\":1111111,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"begin\",\"xLSNFinal\":1111112}"));
 
                 // RELATION
                 relation = runner.getFlowFilesForRelationship(CaptureChangePostgreSQL.REL_SUCCESS)
@@ -838,12 +838,12 @@ public class ITCaptureChangePostgreSQL {
 
                 commitContent = commit.getContent();
                 commitContent = commitContent.replaceAll("\"lsn\":[0-9]+,", "\"lsn\":1111113,");
-                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",",
-                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",");
+                commitContent = commitContent.replaceAll("\"xCommitTime\":\".+\",\"type\"",
+                                "\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\"");
                 commitContent = commitContent.replaceAll("\"commitLSN\":[0-9]+,", "\"commitLSN\":1111112,");
                 commitContent = commitContent.replaceAll("\"xLSNEnd\":[0-9]+}", "\"xLSNEnd\":1111113}");
                 assertTrue(commitContent.equals(
-                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
+                                "{\"lsn\":1111113,\"flags\":0,\"xCommitTime\":\"2022-01-01 12:01:01 BRT -0300\",\"type\":\"commit\",\"commitLSN\":1111112,\"xLSNEnd\":1111113}"));
         }
 
         @Test
