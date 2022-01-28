@@ -102,9 +102,9 @@ public class Reader {
     }
 
     /**
-     * Reads a pending event change at the slot replication since the last feedback.
-     * If received buffer is null, there is not more pending events. The binary
-     * event buffer is decoded and converted to a JSON String.
+     * Reads a pending event from the slot replication since the last
+     * feedback. If received buffer is null, there is not more pending events. The
+     * binary event buffer is decoded and converted to a JSON String.
      *
      * @return HashMap (String, Object)
      * @throws SQLException
@@ -126,16 +126,6 @@ public class Reader {
         if (buffer == null)
             return null;
 
-        LogSequenceNumber lsn = this.replicationStream.getLastReceiveLSN();
-        Long lsnLong = lsn.asLong();
-
-        // Some messagens don't have LSN (e.g. Relation).
-        if (lsnLong > 0) {
-            // Replication feedback.
-            this.replicationStream.setAppliedLSN(lsn);
-            this.replicationStream.setFlushedLSN(lsn);
-        }
-
         // Binary buffer decode process.
         HashMap<String, Object> message;
         try {
@@ -148,6 +138,9 @@ public class Reader {
         // Messages not requested/included.
         if (message.isEmpty())
             return message;
+
+        LogSequenceNumber lsn = this.replicationStream.getLastReceiveLSN();
+        Long lsnLong = lsn.asLong();
 
         // Some messagens don't have LSN (e.g. Relation).
         if (lsnLong > 0)
@@ -179,8 +172,22 @@ public class Reader {
      *
      * @return Long
      */
-    public Long getLongLastReceiveLSN() {
+    public Long getLastReceiveLSN() {
         return this.replicationStream.getLastReceiveLSN().asLong();
+    }
+
+    /**
+     * Sends replication feedback to the database server.
+     *
+     * @param lsnLong
+     *                Last received LSN as Long.
+     */
+    public void sendFeedback(Long lsnLong) {
+        if (lsnLong > 0) {
+            LogSequenceNumber lsn = LogSequenceNumber.valueOf(lsnLong);
+            this.replicationStream.setAppliedLSN(lsn);
+            this.replicationStream.setFlushedLSN(lsn);
+        }
     }
 
     /**
