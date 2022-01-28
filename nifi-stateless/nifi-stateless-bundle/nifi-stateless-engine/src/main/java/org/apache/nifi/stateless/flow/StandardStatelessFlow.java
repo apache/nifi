@@ -115,7 +115,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private volatile ExecutorService runDataflowExecutor;
     private volatile ScheduledExecutorService backgroundTaskExecutor;
     private volatile boolean initialized = false;
-    private volatile Boolean stateful = false;
+    private volatile Boolean stateful = null;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
@@ -533,7 +533,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     private boolean isStateful(final ProcessGroup processGroup) {
         final boolean stateful = processGroup.getProcessors().stream()
-                .anyMatch(processorNode -> processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));;
+                .anyMatch(processorNode -> processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
 
         if (stateful) {
             return true;
