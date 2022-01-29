@@ -17,7 +17,6 @@
 package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.nifi.schema.inference.FieldTypeInference;
 import org.apache.nifi.schema.inference.RecordSource;
 import org.apache.nifi.schema.inference.SchemaInferenceEngine;
@@ -25,15 +24,14 @@ import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.SchemaInferenceUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFieldNames> {
 
@@ -42,7 +40,6 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
     public CSVSchemaInference(final TimeValueInference timeValueInference) {
         this.timeValueInference = timeValueInference;
     }
-
 
     @Override
     public RecordSchema inferSchema(final RecordSource<CSVRecordAndFieldNames> recordSource) throws IOException {
@@ -67,7 +64,6 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
         return createSchema(typeMap);
     }
 
-
     private void inferSchema(final CSVRecordAndFieldNames recordAndFieldNames, final Map<String, FieldTypeInference> typeMap) {
         final CSVRecord csvRecord = recordAndFieldNames.getRecord();
         for (final String fieldName : recordAndFieldNames.getFieldNames()) {
@@ -78,7 +74,7 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
 
             final FieldTypeInference typeInference = typeMap.computeIfAbsent(fieldName, key -> new FieldTypeInference());
             final String trimmed = trim(value);
-            final DataType dataType = getDataType(trimmed);
+            final DataType dataType = SchemaInferenceUtil.getDataType(trimmed, timeValueInference);
             typeInference.addPossibleDataType(dataType);
         }
     }
@@ -87,56 +83,9 @@ public class CSVSchemaInference implements SchemaInferenceEngine<CSVRecordAndFie
         return (value.length() > 1) && value.startsWith("\"") && value.endsWith("\"") ? value.substring(1, value.length() - 1) : value;
     }
 
-
-    private DataType getDataType(final String value) {
-        if (value == null || value.isEmpty()) {
-            return null;
-        }
-
-        if (NumberUtils.isParsable(value)) {
-            if (value.contains(".")) {
-                try {
-                    final double doubleValue = Double.parseDouble(value);
-
-                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
-                        return RecordFieldType.DECIMAL.getDecimalDataType(value.length() - 1, value.length() - 1 - value.indexOf("."));
-                    }
-
-                    if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
-                        return RecordFieldType.DOUBLE.getDataType();
-                    }
-
-                    return RecordFieldType.FLOAT.getDataType();
-                } catch (final NumberFormatException nfe) {
-                    return RecordFieldType.STRING.getDataType();
-                }
-            }
-
-            try {
-                final long longValue = Long.parseLong(value);
-                if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
-                    return RecordFieldType.LONG.getDataType();
-                }
-
-                return RecordFieldType.INT.getDataType();
-            } catch (final NumberFormatException nfe) {
-                return RecordFieldType.STRING.getDataType();
-            }
-        }
-
-        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
-            return RecordFieldType.BOOLEAN.getDataType();
-        }
-
-        final Optional<DataType> timeDataType = timeValueInference.getDataType(value);
-        return timeDataType.orElse(RecordFieldType.STRING.getDataType());
-    }
-
-
     private RecordSchema createSchema(final Map<String, FieldTypeInference> inferences) {
         final List<RecordField> recordFields = new ArrayList<>(inferences.size());
         inferences.forEach((fieldName, type) -> recordFields.add(new RecordField(fieldName, type.toDataType(), true)));
         return new SimpleRecordSchema(recordFields);
     }
-
 }

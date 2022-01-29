@@ -120,9 +120,29 @@
             <version>2.8.1</version>
         </dependency>
         <dependency>
+            <groupId>javax.validation</groupId>
+            <artifactId>validation-api</artifactId>
+            <version>2.0.1.Final</version>
+        </dependency>
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0.1-jre</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fluenda</groupId>
+            <artifactId>parcefone</artifactId>
+            <version>2.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.bval</groupId>
+            <artifactId>bval-jsr</artifactId>
+            <version>2.0.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-mock-record-utils</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -143,6 +163,23 @@
                         <exclude>src/test/resources/avro/multiple-types.avsc</exclude>
                         <exclude>src/test/resources/avro/simple.avsc</exclude>
                         <exclude>src/test/resources/avro/recursive.avsc</exclude>
+
+                        <exclude>src/test/resources/cef/empty-row.txt</exclude>
+                        <exclude>src/test/resources/cef/misformatted-row.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows-decreasing-number-of-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows-increasing-number-of-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows-starting-with-empty-row.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows-with-different-custom-types.txt</exclude>
+                        <exclude>src/test/resources/cef/multiple-rows-with-empty-rows.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-header-fields-only.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-custom-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-empty-extension.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-empty-custom-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-incorrect-custom-extensions.txt</exclude>
+                        <exclude>src/test/resources/cef/single-row-with-incorrect-header-field.txt</exclude>
+
                         <exclude>src/test/resources/csv/extra-white-space.csv</exclude>
                         <exclude>src/test/resources/csv/multi-bank-account.csv</exclude>
                         <exclude>src/test/resources/csv/single-bank-account.csv</exclude>

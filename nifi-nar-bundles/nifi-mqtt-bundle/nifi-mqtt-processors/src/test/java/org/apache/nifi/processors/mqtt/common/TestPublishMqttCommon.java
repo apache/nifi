@@ -17,23 +17,21 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
-import io.moquette.server.Server;
 import org.apache.nifi.processors.mqtt.PublishMQTT;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.apache.nifi.processors.mqtt.PublishMQTT.REL_SUCCESS;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_CLEAN_SESSION_FALSE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public abstract class TestPublishMqttCommon {
 
-    public Server MQTT_server;
     public TestRunner testRunner;
     public String topic;
 

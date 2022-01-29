@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.mqtt;
 
-import io.moquette.proto.messages.PublishMessage;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
@@ -34,20 +33,18 @@ import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.FilenameFilter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.BlockingQueue;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,12 +66,13 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setTlsConfiguration() {
         tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
-    @Before
+    @BeforeEach
+
     public void init() {
         PUBLISH_WAIT_MS = 0;
 
@@ -111,11 +109,8 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         processor.onScheduled(runner.getProcessContext());
     }
 
-    /**
-     * If the session.commit() fails, we should not remove the unprocessed message
-     */
     @Test
-    public void testMessageNotConsumedOnCommitFail() throws NoSuchFieldException, IllegalAccessException, NoSuchMethodException {
+    public void testMessageNotConsumedOnCommitFail() throws NoSuchFieldException, IllegalAccessException {
         testRunner.run(1, false);
         ConsumeMQTT processor = (ConsumeMQTT) testRunner.getProcessor();
         MQTTQueueMessage mock = mock(MQTTQueueMessage.class);
@@ -123,54 +118,26 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         when(mock.getTopic()).thenReturn("testTopic");
         BlockingQueue<MQTTQueueMessage> mqttQueue = getMqttQueue(processor);
         mqttQueue.add(mock);
-        try {
-            ProcessSession session = testRunner.getProcessSessionFactory().createSession();
-            transferQueue(processor,
-                    (ProcessSession) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { ProcessSession.class }, (proxy, method, args) -> {
-                        if (method.getName().equals("commitAsync")) {
-                            throw new RuntimeException();
-                        } else {
-                            return method.invoke(session, args);
-                        }
-                    }));
-            fail("Expected runtime exception");
-        } catch (InvocationTargetException e) {
-            assertTrue("Expected generic runtime exception, not " + e, e.getCause() instanceof RuntimeException);
-        }
-        assertTrue("Expected mqttQueue to contain uncommitted message.", mqttQueue.contains(mock));
-    }
 
-    @After
-    public void tearDown() {
-        if (MQTT_server != null) {
-            MQTT_server.stopServer();
-        }
-        final File folder =  new File("./target");
-        final File[] files = folder.listFiles( new FilenameFilter() {
-            @Override
-            public boolean accept( final File dir,
-                                   final String name ) {
-                return name.matches( "moquette_store.mapdb.*" );
-            }
-        } );
-        for ( final File file : files ) {
-            if ( !file.delete() ) {
-                System.err.println( "Can't remove " + file.getAbsolutePath() );
-            }
-        }
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+
+        assertThrows(InvocationTargetException.class, () -> transferQueue(processor,
+            (ProcessSession) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{ProcessSession.class}, (proxy, method, args) -> {
+                if (method.getName().equals("commitAsync")) {
+                    throw new RuntimeException();
+                } else {
+                    return method.invoke(session, args);
+                }
+            })));
+        assertTrue(mqttQueue.contains(mock));
     }
 
     @Override
-    public void internalPublish(PublishMessage publishMessage) {
-        MqttMessage mqttMessage = new MqttMessage();
-        mqttMessage.setPayload(publishMessage.getPayload().array());
-        mqttMessage.setRetained(publishMessage.isRetainFlag());
-        mqttMessage.setQos(publishMessage.getQos().ordinal());
-
+    public void internalPublish(final MqttMessage message, final String topicName) {
         try {
-            mqttTestClient.publish(publishMessage.getTopicName(), mqttMessage);
+            mqttTestClient.publish(topicName, message);
         } catch (MqttException e) {
-            fail("Should never get an MqttException when publishing using test client");
+            throw new RuntimeException(e);
         }
     }
 }
