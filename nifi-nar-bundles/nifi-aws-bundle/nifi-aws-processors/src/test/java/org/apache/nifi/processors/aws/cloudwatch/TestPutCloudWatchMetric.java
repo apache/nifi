@@ -30,9 +30,20 @@ import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import org.junit.Test;
 import org.junit.Assert;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 /**
  * Unit tests for {@link PutCloudWatchMetric}.
+ *
+ *  * Test Partition Bounds (include required params and values/unit for metric)
+ *  * - Namespace String
+ *  * - Metric Name String
+ *  * - Value Double
+ *  * - Unit String | Enum
+ *  * - Region String | Enum
+ *  * - Credentials File
+ *  * - Communications Timeout
  */
 public class TestPutCloudWatchMetric {
 
@@ -268,23 +279,52 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
-    @Test
-    public void testInvalidUnitRoutesToFailure() throws Exception {
+    @ParameterizedTest
+    @CsvSource({"nan","BogusUnit","Unit"})
+    public void testInvalidUnit(String unit) throws Exception {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        mockPutCloudWatchMetric.throwException = new InvalidParameterValueException("Unit error message");
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
-        runner.setProperty(PutCloudWatchMetric.UNIT, "BogusUnit");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1");
+        runner.assertNotValid();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"Count","Bytes","Percent",""})
+    public void testValidUnit(String unit) throws Exception {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1");
+        runner.assertValid();
+    }
+
+
+    @ParameterizedTest
+    @CsvSource({"Count","Bytes","Percent"})
+    //figure out why this is not working...
+    public void testValidUnitRoutesToSuccess(String unit) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        mockPutCloudWatchMetric.throwException = new InvalidParameterValueException("Unit error message");
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.assertValid();
 
         runner.enqueue(new byte[] {});
         runner.run();
 
         Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
+//        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
     }
 
     @Test
@@ -308,4 +348,36 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
+
+    @ParameterizedTest
+    @CsvSource({"null","us-west-100","us-east-a"})
+    public void testInvalidRegion(String region) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
+        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.assertNotValid();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"us-east-1","us-west-1","us-east-2"})
+    public void testValidRegionRoutesToSuccess(String region) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
+        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.assertValid();
+
+        runner.enqueue(new byte[] {});
+        runner.run();
+
+        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+    }
 }

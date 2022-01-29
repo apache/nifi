@@ -70,6 +70,16 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
+    private static final Set<String> units = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(
+                    "Seconds", "Microseconds", "Milliseconds", "Bytes",
+                    "Kilobytes", "Megabytes", "Gigabytes", "Terabytes",
+                    "Bits", "Kilobits", "Megabits", "Gigabits", "Terabits",
+                    "Percent", "Count", "Bytes/Second", "Kilobytes/Second",
+                    "Megabytes/Second", "Gigabytes/Second", "Terabytes/Second",
+                    "Bits/Second", "Kilobits/Second", "Megabits/Second", "Gigabits/Second",
+                    "Terabits/Second", "Count/Second", "None", "")));
+
     private static final Validator DOUBLE_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
@@ -84,6 +94,22 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
                     reason = "not a valid Double";
                 }
 
+                return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
+            }
+        }
+    };
+
+    private static final Validator UNIT_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
+                return (new ValidationResult.Builder()).subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            } else {
+                String reason = null;
+
+                if (!units.contains(input)) {
+                    reason = "not a valid Unit";
+                }
                 return (new ValidationResult.Builder()).subject(subject).input(input).explanation(reason).valid(reason == null).build();
             }
         }
@@ -131,7 +157,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             .description("The unit of the metric. (e.g Seconds, Bytes, Megabytes, Percent, Count,  Kilobytes/Second, Terabits/Second, Count/Second) For details see http://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDatum.html")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(UNIT_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MAXIMUM = new PropertyDescriptor.Builder()
@@ -232,6 +258,7 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
             problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
                     .explanation("Must set either Value or complete StatisticSet(Maximum, Minimum, SampleCount, Sum) properties").build());
         }
+
 
         if (dynamicPropertyNames.size() > 10) {
             problems.add(new ValidationResult.Builder().subject("Metric").valid(false)
