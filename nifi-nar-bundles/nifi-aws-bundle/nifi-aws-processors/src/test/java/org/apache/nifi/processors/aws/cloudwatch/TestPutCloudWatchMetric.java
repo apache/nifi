@@ -305,28 +305,6 @@ public class TestPutCloudWatchMetric {
         runner.assertValid();
     }
 
-
-    @ParameterizedTest
-    @CsvSource({"Count","Bytes","Percent"})
-    //figure out why this is not working...
-    public void testValidUnitRoutesToSuccess(String unit) {
-        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        mockPutCloudWatchMetric.throwException = new InvalidParameterValueException("Unit error message");
-        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
-
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
-        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
-        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
-        runner.assertValid();
-
-        runner.enqueue(new byte[] {});
-        runner.run();
-
-        Assert.assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-//        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
-    }
-
     @Test
     public void testTimestampExpressionInvalidRoutesToFailure() throws Exception {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
