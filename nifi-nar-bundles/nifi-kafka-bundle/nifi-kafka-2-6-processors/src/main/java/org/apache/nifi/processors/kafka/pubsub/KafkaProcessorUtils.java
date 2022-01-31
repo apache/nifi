@@ -105,7 +105,7 @@ public final class KafkaProcessorUtils {
 
     static final String AWS_MSK_IAM_VALUE = "AWS_MSK_IAM";
     static final AllowableValue SASL_MECHANISM_AWS_MSK_IAM = new AllowableValue(AWS_MSK_IAM_VALUE, AWS_MSK_IAM_VALUE,"IAM role based authentication mechanism for AWS MSK. " +
-            "AWS Credentials should be configured on the NiFi Instance");
+            "AWS Credentials should be configured on the NiFi Instance.");
 
     static final AllowableValue FAILURE_STRATEGY_FAILURE_RELATIONSHIP = new AllowableValue("Route to Failure", "Route to Failure",
         "When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the 'failure' relationship.");
@@ -186,7 +186,7 @@ public final class KafkaProcessorUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    static final PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
             .name("aws.profilename")
             .displayName("AWS Profile Name")
             .description("The AWS Profile to consider when there are multiple profiles in the instance.")
@@ -195,25 +195,49 @@ public final class KafkaProcessorUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    static final PropertyDescriptor AWS_ROLE_ARN = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AWS_ROLE_ARN = new PropertyDescriptor.Builder()
             .name("aws.arn")
             .displayName("AWS Role ARN")
-            .description("The awsRoleArn specifies the ARN for the IAM role the client should use.")
+            .description("This property specifies the ARN for the IAM role the kafka client should use.")
             .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    static final PropertyDescriptor AWS_SESSION_NAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AWS_SESSION_NAME = new PropertyDescriptor.Builder()
             .name("aws.session.name")
             .displayName("AWS Role Session Name")
-            .description("specifies the session name that this particular client should use while assuming the IAM role. If the same IAM Role "
+            .description("Specifies the session name that this particular client should use while assuming the IAM role. If the same IAM Role "
                 + "is used in multiple contexts, the session names can be used to differentiate between the different contexts. "
-                + "The awsRoleSessionName is optional")
+                + "This property is optional.")
             .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    public static final PropertyDescriptior AWS_STS_REGION = new PropertyDescriptor.Builder()
+	    .name("aws.sts.region")
+	    .displayName("AWS STS Region")
+	    .descrition("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
+		+ "the global endpoint for AWS STS is used by default. When the Kafka client is running in a VPC with an interface "
+		+ "VPC Endpoint to a regional endpoint of AWS STS and we want all STS traffic to go over that endpoint, we should "
+		+ "set awsStsRegion to the region corresponding to the interface VPC Endpoint. This property is optional.")
+            .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    public static final PropertyDescriptor AWS_DEBUG_CREDS = new PropertyDescriptor.Builder()
+            .name("aws.debug.creds")
+            .displayName("Debug AWS Credentials")
+            .description("This property helps to debug which AWS credential is being exactly used. If the AWS client side logging "
+	        + "is set to DEBUG and the Kafka client configuration property includes awsDebugCreds set to true, NIFI processor(s) "
+		+ "will print the debug log including IAM Account, IAM user id and the ARN of the IAM Principal corresponding "
+		+ "to the credential being used. This property can be combined with any of the other properties such as awsRoleArn, "
+		+ "awsRoleSessionName etc. It is recommended to use this property only during debug since it makes an additional remote call.")
+            .required(false)
+            .allowableValues("true", "false")
+            .defaultValue("false")
             .build();
     static final PropertyDescriptor TOKEN_AUTH = new PropertyDescriptor.Builder()
             .name("sasl.token.auth")
@@ -649,6 +673,8 @@ public final class KafkaProcessorUtils {
         final String awsProfileName = context.getProperty(AWS_PROFILE_NAME).evaluateAttributeExpressions().getValue();
         final String awsRoleArn = context.getProperty(AWS_ROLE_ARN).evaluateAttributeExpressions().getValue();
         final String awsSessionName = context.getProperty(AWS_SESSION_NAME).evaluateAttributeExpressions().getValue();
+        final String awsStsRegion = context.getProperty(AWS_STS_REGION).evaluateAttributeExpressions().getValue();
+	final boolean awsDebugCreds = context.getProperty(AWS_DEBUG_CREDS).asBoolean();
 
         final StringBuilder builder = new StringBuilder("software.amazon.msk.auth.iam.IAMLoginModule required ");
         if (awsProfileName != null && !StringUtils.isBlank(awsProfileName)) {
@@ -659,6 +685,12 @@ public final class KafkaProcessorUtils {
                 builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
             }
         }
+	if (awsStsRegion != null && !StringUtils.isBlank(awsStsRegion)) {
+	    builder.append(" awsStsRegion=\"" + awsStsRegion + "\"");
+	}
+	if (awsDebugCreds) {
+	    builder.append(" awsDebugCreds=true");
+	}
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
         // This callback handler is key for this Authentication mechanism. AWS callback handler JAR should be placed in the NIFI libraries CLASSPATH.
