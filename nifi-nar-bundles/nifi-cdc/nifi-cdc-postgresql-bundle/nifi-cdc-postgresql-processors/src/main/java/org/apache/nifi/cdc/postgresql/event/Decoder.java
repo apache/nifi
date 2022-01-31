@@ -41,10 +41,10 @@ import java.util.HashMap;
  * @see org.apache.nifi.cdc.postgresql.event.Table
  * @see org.apache.nifi.cdc.postgresql.event.Column
  */
-public class Decode {
+public class Decoder {
 
-    private static HashMap<Integer, String> dataTypes = new HashMap<Integer, String>();
-    private static HashMap<Integer, Table> relations = new HashMap<Integer, Table>();
+    private HashMap<Integer, String> dataTypes = new HashMap<Integer, String>();
+    private HashMap<Integer, Table> relations = new HashMap<Integer, Table>();
 
     /**
      * Decodes the binary buffer event read from replication stream and returns a
@@ -71,7 +71,7 @@ public class Decode {
      *                                      if decodes fails to convert bytes
      *                                      to String
      */
-    public static HashMap<String, Object> decodeLogicalReplicationBuffer(ByteBuffer buffer, boolean includeBeginCommit,
+    public HashMap<String, Object> decodeLogicalReplicationBuffer(ByteBuffer buffer, boolean includeBeginCommit,
             boolean includeAllMetadata) throws ParseException, UnsupportedEncodingException {
 
         HashMap<String, Object> message = new HashMap<String, Object>();
@@ -207,7 +207,7 @@ public class Decode {
                     column.setDataTypeId(buffer.getInt(position));
                     position += 4;
 
-                    column.setDataTypeName(Decode.dataTypes.get(column.getDataTypeId()));
+                    column.setDataTypeName(this.dataTypes.get(column.getDataTypeId()));
 
                     /* (Int32) Type modifier of the column (atttypmod). */
                     column.setTypeModifier(buffer.getInt(position));
@@ -216,7 +216,7 @@ public class Decode {
                     relation.putColumn(i, column);
                 }
 
-                Decode.relations.put(relation.getId(), relation);
+                this.relations.put(relation.getId(), relation);
 
                 if (includeAllMetadata) {
                     message.put("type", "relation");
@@ -265,16 +265,18 @@ public class Decode {
                 int relationId_I = buffer.getInt(position);
                 position += 4;
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     message.put("relationId", relationId_I);
+                }
 
-                message.put("relationName", Decode.relations.get(relationId_I).getObjectName());
+                message.put("relationName", this.relations.get(relationId_I).getObjectName());
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     /*
                      * (Byte1) Identifies the following TupleData message as a new tuple ('N').
                      */
                     message.put("tupleType", "" + (char) buffer.get(5));
+                }
 
                 position += 1;
 
@@ -293,10 +295,11 @@ public class Decode {
                 int relationId_U = buffer.getInt(position);
                 position += 4;
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     message.put("relationId", relationId_U);
+                }
 
-                message.put("relationName", Decode.relations.get(relationId_U).getObjectName());
+                message.put("relationName", this.relations.get(relationId_U).getObjectName());
 
                 /*
                  * (Byte1) Either identifies the following TupleData submessage as a key ('K')
@@ -305,19 +308,22 @@ public class Decode {
                 char tupleType1 = (char) buffer.get(position);
                 position += 1;
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     message.put("tupleType1", tupleType1);
+                }
 
                 /* TupleData N, K or O */
                 Object[] tupleData1 = parseTupleData(relationId_U, buffer, position);
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     message.put("tupleData1", tupleData1[0]);
+                }
 
                 if (tupleType1 == 'N') {
-                    if (!includeAllMetadata)
+                    if (!includeAllMetadata) {
                         /* TupleData N */
                         message.put("tupleData", tupleData1[0]);
+                    }
 
                     return message;
                 }
@@ -336,12 +342,13 @@ public class Decode {
 
                 position += 1;
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     /* TupleData N */
                     message.put("tupleData2", parseTupleData(relationId_U, buffer, position)[0]);
-                else
+                } else {
                     /* TupleData N */
                     message.put("tupleData", parseTupleData(relationId_U, buffer, position)[0]);
+                }
 
                 return message;
 
@@ -356,17 +363,19 @@ public class Decode {
                 int relationId_D = buffer.getInt(position);
                 position += 4;
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     message.put("relationId", relationId_D);
+                }
 
-                message.put("relationName", Decode.relations.get(relationId_D).getObjectName());
+                message.put("relationName", this.relations.get(relationId_D).getObjectName());
 
-                if (includeAllMetadata)
+                if (includeAllMetadata) {
                     /*
                      * (Byte1) Either identifies the following TupleData submessage as a key ('K')
                      * or as an old tuple ('O').
                      */
                     message.put("tupleType", "" + (char) buffer.get(position));
+                }
 
                 position += 1;
 
@@ -399,7 +408,7 @@ public class Decode {
      *                                      if decodes fails to convert bytes
      *                                      to String
      */
-    public static Object[] parseTupleData(int relationId, ByteBuffer buffer, int position)
+    private Object[] parseTupleData(int relationId, ByteBuffer buffer, int position)
             throws UnsupportedEncodingException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
@@ -437,7 +446,7 @@ public class Decode {
                  * (ByteN) The value of the column, in text format.
                  * Numeric types are not quoted.
                  */
-                if (column.getDataTypeName().startsWith("int")) {
+                if (column.getDataTypeName() != null && column.getDataTypeName().startsWith("int")) {
                     data.put(column.getName(), Long.parseLong(new String(bytes, StandardCharsets.UTF_8)));
                 } else {
                     /* (ByteN) The value of the column, in text format. */
@@ -468,8 +477,7 @@ public class Decode {
      * @throws ParseException
      *                        if fails to parse start date
      */
-    public static String getFormattedPostgreSQLEpochDate(long microseconds) throws ParseException {
-
+    private String getFormattedPostgreSQLEpochDate(long microseconds) throws ParseException {
         Date pgEpochDate = new SimpleDateFormat("yyyy-MM-dd").parse("2000-01-01");
         Calendar cal = Calendar.getInstance();
         cal.setTime(pgEpochDate);
@@ -483,9 +491,10 @@ public class Decode {
      *
      * @return boolean
      */
-    public static boolean isDataTypesEmpty() {
-        if (Decode.dataTypes.isEmpty())
+    public boolean isDataTypesEmpty() {
+        if (this.dataTypes.isEmpty()) {
             return true;
+        }
 
         return false;
     }
@@ -499,12 +508,12 @@ public class Decode {
      * @throws SQLException
      *                      if fails to access PostgreSQL database
      */
-    public static void loadDataTypes(Connection queryConnection) throws SQLException {
+    public void loadDataTypes(Connection queryConnection) throws SQLException {
         Statement stmt = queryConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("SELECT oid, typname FROM pg_catalog.pg_type");
 
         while (rs.next()) {
-            Decode.dataTypes.put(rs.getInt(1), rs.getString(2));
+            this.dataTypes.put(rs.getInt(1), rs.getString(2));
         }
 
         rs.close();
@@ -517,7 +526,7 @@ public class Decode {
      * @param dataTypes
      *                  A set with data type id and data type name.
      */
-    public static void setDataTypes(HashMap<Integer, String> dataTypes) {
-        Decode.dataTypes = dataTypes;
+    public void setDataTypes(HashMap<Integer, String> dataTypes) {
+        this.dataTypes = dataTypes;
     }
 }

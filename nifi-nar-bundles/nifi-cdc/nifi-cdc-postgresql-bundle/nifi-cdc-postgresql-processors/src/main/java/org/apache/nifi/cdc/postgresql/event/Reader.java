@@ -38,14 +38,16 @@ import org.postgresql.replication.PGReplicationStream;
  * position to start (LSN) reading at the object creation.
  *
  * @see org.apache.nifi.cdc.postgresql.event.Slot
- * @see org.apache.nifi.cdc.postgresql.event.Decode
+ * @see org.apache.nifi.cdc.postgresql.event.Decoder
  */
 public class Reader {
     private boolean includeBeginCommit;
     private boolean includeAllMetadata;
     private String publication;
+
     private Slot replicationSlot;
     private PGReplicationStream replicationStream;
+    private Decoder replicationDecoder;
 
     public Reader(String slot, boolean dropSlotIfExists, String publication, Long lsn, boolean includeBeginCommit,
             boolean includeAllMetadata, Connection replicationConn, Connection queryConn)
@@ -53,10 +55,11 @@ public class Reader {
 
         try {
             // Creating replication slot.
-            if (this.replicationSlot == null)
+            if (this.replicationSlot == null) {
                 this.replicationSlot = new Slot(slot, dropSlotIfExists, replicationConn, queryConn);
+            }
         } catch (SQLException e) {
-            throw new SQLException("Failed to create replication slot. " + e, e);
+            throw new SQLException("Failed to create replication slot", e);
         }
 
         try {
@@ -77,16 +80,18 @@ public class Reader {
                         .withStartPosition(startLSN).start();
             }
         } catch (SQLException e) {
-            throw new SQLException("Failed to create replication stream. " + e.getMessage(), e);
+            throw new SQLException("Failed to create replication stream", e);
         }
 
+        // Creating replication buffer decoder.
+        this.replicationDecoder = new Decoder();
         try {
             // Loading data types.
-            if (Decode.isDataTypesEmpty())
-                Decode.loadDataTypes(queryConn);
-
+            if (replicationDecoder.isDataTypesEmpty()) {
+                replicationDecoder.loadDataTypes(queryConn);
+            }
         } catch (SQLException e) {
-            throw new SQLException("Failed to load data types. " + e.getMessage(), e);
+            throw new SQLException("Failed to load data types", e);
         }
 
         this.includeBeginCommit = includeBeginCommit;
@@ -113,38 +118,41 @@ public class Reader {
      *                      if decode event failed
      *
      * @see org.apache.nifi.cdc.postgresql.event.Slot
-     * @see org.apache.nifi.cdc.postgresql.event.Decode
+     * @see org.apache.nifi.cdc.postgresql.event.Decoder
      */
     public HashMap<String, Object> readMessage() throws SQLException, IOException {
         ByteBuffer buffer;
         try {
             buffer = this.replicationStream.readPending();
         } catch (Exception e) {
-            throw new SQLException("Failed to read pending events. " + e.getMessage(), e);
+            throw new SQLException("Failed to read pending events", e);
         }
 
-        if (buffer == null)
+        if (buffer == null) {
             return null;
+        }
 
         // Binary buffer decode process.
         HashMap<String, Object> message;
         try {
-            message = Decode.decodeLogicalReplicationBuffer(buffer, this.includeBeginCommit,
+            message = replicationDecoder.decodeLogicalReplicationBuffer(buffer, this.includeBeginCommit,
                     this.includeAllMetadata);
         } catch (Exception e) {
-            throw new IOException("Failed to decode event buffer. " + e.getMessage(), e);
+            throw new IOException("Failed to decode event buffer", e);
         }
 
         // Messages not requested/included.
-        if (message.isEmpty())
+        if (message.isEmpty()) {
             return message;
+        }
 
         LogSequenceNumber lsn = this.replicationStream.getLastReceiveLSN();
         Long lsnLong = lsn.asLong();
 
         // Some messagens don't have LSN (e.g. Relation).
-        if (lsnLong > 0)
+        if (lsnLong > 0) {
             message.put("lsn", lsnLong);
+        }
 
         return message;
     }
@@ -163,7 +171,7 @@ public class Reader {
         try {
             return jsonMapper.writeValueAsString(message);
         } catch (JsonProcessingException e) {
-            throw new IOException("Failed to convert event message to JSON. " + e.getMessage(), e);
+            throw new IOException("Failed to convert event message to JSON", e);
         }
     }
 

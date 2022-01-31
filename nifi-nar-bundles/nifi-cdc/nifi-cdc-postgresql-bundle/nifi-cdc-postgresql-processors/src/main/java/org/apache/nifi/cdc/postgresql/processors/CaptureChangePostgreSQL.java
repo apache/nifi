@@ -339,8 +339,9 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         if (stateMap.get(LAST_LSN_STATE_MAP_KEY) != null && Long.parseLong(stateMap.get(LAST_LSN_STATE_MAP_KEY)) > 0L) {
             this.lastLSN = Long.parseLong(stateMap.get(LAST_LSN_STATE_MAP_KEY));
         } else {
-            if (startLSN != null)
+            if (startLSN != null) {
                 this.lastLSN = startLSN;
+            }
         }
 
         try {
@@ -358,8 +359,6 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        // final ComponentLog logger = getLogger();
-
         if (this.replicationReader == null || this.replicationReader.getReplicationStream() == null) {
             setup(context);
         }
@@ -370,11 +369,13 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             while (listFlowFiles.size() < this.getMaxFlowFileListSize()) {
                 HashMap<String, Object> message = this.replicationReader.readMessage();
 
-                if (message == null) // No more messages.
+                if (message == null) { // No more messages.
                     break;
+                }
 
-                if (message.isEmpty()) // Skip empty messages.
+                if (message.isEmpty()) { // Skip empty messages.
                     continue;
+                }
 
                 String data = this.replicationReader.convertMessageToJSON(message);
 
@@ -391,8 +392,9 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
                 flowFile = session.putAttribute(flowFile, "cdc.type", message.get("type").toString());
 
                 // Some messagens don't have LSN (e.g. Relation).
-                if (message.containsKey("lsn")) // Relation messagens don't have LSN.
+                if (message.containsKey("lsn")) {
                     flowFile = session.putAttribute(flowFile, "cdc.lsn", message.get("lsn").toString());
+                }
 
                 flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), MIME_TYPE_DEFAULT);
 
@@ -430,17 +432,19 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         try {
             this.replicationReader = null;
 
-            if (lastLSN != null)
+            if (lastLSN != null) {
                 updateState(stateManager);
+            }
 
-            if (queryConnHolder != null)
+            if (queryConnHolder != null) {
                 queryConnHolder.close();
+            }
 
-            if (replicationConnHolder != null)
+            if (replicationConnHolder != null) {
                 replicationConnHolder.close();
-
+            }
         } catch (Exception e) {
-            throw new CDCException("Error closing CDC connections!", e);
+            throw new CDCException("Closing CDC Connection failed", e);
         }
     }
 
@@ -485,7 +489,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
         } catch (InitializationException e) {
             throw new RuntimeException(
                     "Failed to register JDBC driver. Ensure PostgreSQL Driver Location(s) and PostgreSQL Driver Class Name "
-                            + "are configured correctly. " + e,
+                            + "are configured correctly",
                     e);
         }
 
@@ -506,7 +510,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             // Ensure Query connection can be created.
             this.getQueryConnection();
         } catch (SQLException e) {
-            throw new IOException("Error creating SQL connection to specified host and port", e);
+            throw new IOException("Failed to create SQL connection to specified host and port", e);
         }
 
         replicationConnHolder = new JDBCConnectionHolder(address, database, username, password, true,
@@ -515,7 +519,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             // Ensure Replication connection can be created.
             this.getReplicationConnection();
         } catch (SQLException e) {
-            throw new IOException("Error creating Replication connection to specified host and port", e);
+            throw new IOException("Failed to create Replication connection to specified host and port", e);
         }
     }
 
@@ -634,8 +638,9 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             connection = DriverManager.getConnection(connectionUrl, connectionProps);
 
             // Set auto commit for query connection.
-            if (!isReplicationConnection)
+            if (!isReplicationConnection) {
                 connection.setAutoCommit(true);
+            }
 
             return connection;
         }

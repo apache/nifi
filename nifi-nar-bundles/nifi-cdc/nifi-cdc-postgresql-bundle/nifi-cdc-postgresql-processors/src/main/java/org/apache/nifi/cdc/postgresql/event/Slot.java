@@ -58,10 +58,11 @@ public class Slot {
     public void create(boolean dropSlotIfExists, Connection replicationConn, Connection queryConn) throws SQLException {
         try {
             if (exists(queryConn)) {
-                if (dropSlotIfExists)
+                if (dropSlotIfExists) {
                     drop(replicationConn);
-                else
+                } else {
                     return;
+                }
             }
 
             PGConnection pgcon = replicationConn.unwrap(PGConnection.class);
@@ -69,7 +70,7 @@ public class Slot {
                     .withOutputPlugin("pgoutput").make();
 
         } catch (SQLException e) {
-            throw new SQLException("Failed to create replication slot. " + e, e);
+            throw new SQLException("Failed to create replication slot", e);
         }
     }
 
@@ -97,7 +98,7 @@ public class Slot {
                 return false;
             }
         } catch (SQLException e) {
-            throw new SQLException("Failed to check replication slot existence. " + e, e);
+            throw new SQLException("Failed to check replication slot existence", e);
         }
     }
 
@@ -114,7 +115,7 @@ public class Slot {
             PGConnection pgcon = replicationConn.unwrap(PGConnection.class);
             pgcon.getReplicationAPI().dropReplicationSlot(this.name);
         } catch (SQLException e) {
-            throw new SQLException("Failed to drop replication slot. " + e, e);
+            throw new SQLException("Failed to drop replication slot", e);
         }
     }
 
