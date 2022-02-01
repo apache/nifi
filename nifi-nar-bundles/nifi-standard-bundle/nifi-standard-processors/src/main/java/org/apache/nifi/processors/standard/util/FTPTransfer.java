@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
@@ -528,7 +527,6 @@ public class FTPTransfer implements FileTransfer {
         }
     }
 
-    @VisibleForTesting
     protected FTPClient createClient(final PropertyContext context, final Map<String, String> attributes) {
         return FTP_CLIENT_PROVIDER.getClient(context, attributes);
     }

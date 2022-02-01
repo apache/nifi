@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizeAccess;
@@ -134,7 +134,7 @@ public abstract class ApplicationResource {
     private FlowController flowController;
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
-    private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+    private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = Caffeine.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
 
     protected void forwardToLoginMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
         forwardToMessagePage(httpServletRequest, httpServletResponse, LOGIN_ERROR_TITLE, message);
@@ -718,7 +718,7 @@ public abstract class ApplicationResource {
     }
 
     private <T extends Entity> void phaseOneStoreTransaction(final T requestEntity, final Revision revision, final Set<Revision> revisions) {
-        if (twoPhaseCommitCache.size() > MAX_CACHE_SOFT_LIMIT) {
+        if (twoPhaseCommitCache.estimatedSize() > MAX_CACHE_SOFT_LIMIT) {
             throw new IllegalStateException("The maximum number of requests are in progress.");
         }
 

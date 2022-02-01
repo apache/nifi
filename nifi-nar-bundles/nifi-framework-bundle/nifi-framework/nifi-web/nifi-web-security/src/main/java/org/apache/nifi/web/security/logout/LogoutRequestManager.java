@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.security.logout;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.util.CacheKey;
 
@@ -33,7 +33,7 @@ public class LogoutRequestManager {
     }
 
     public LogoutRequestManager(final int cacheExpiration, final TimeUnit units) {
-        this.requestLookup = CacheBuilder.newBuilder().expireAfterWrite(cacheExpiration, units).build();
+        this.requestLookup = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, units).build();
     }
 
     public void start(final LogoutRequest logoutRequest) {

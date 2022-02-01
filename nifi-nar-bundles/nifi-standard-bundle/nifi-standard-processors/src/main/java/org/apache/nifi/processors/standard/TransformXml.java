@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -261,18 +260,12 @@ public class TransformXml extends AbstractProcessor {
         final Long cacheTTL = context.getProperty(CACHE_TTL_AFTER_LAST_ACCESS).asTimePeriod(TimeUnit.SECONDS);
 
         if (cacheSize > 0) {
-            CacheBuilder<Object, Object> cacheBuilder = CacheBuilder.newBuilder().maximumSize(cacheSize);
+            final Caffeine<Object, Object> cacheBuilder = Caffeine.newBuilder().maximumSize(cacheSize);
             if (cacheTTL > 0) {
                 cacheBuilder.expireAfterAccess(cacheTTL, TimeUnit.SECONDS);
             }
 
-            cache = cacheBuilder.build(
-                    new CacheLoader<String, Templates>() {
-                        @Override
-                        public Templates load(final String path) throws TransformerConfigurationException, LookupFailureException {
-                            return newTemplates(context, path);
-                        }
-                    });
+            cache = cacheBuilder.build(path -> newTemplates(context, path));
         } else {
             cache = null;
             logger.info("Stylesheet cache disabled because cache size is set to 0");

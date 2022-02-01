@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.security.x509.ocsp;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -41,6 +37,9 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -127,17 +126,14 @@ public class OcspCertificateValidator {
                 final long cacheDurationMillis = FormatUtils.getTimeDuration("12 hours", TimeUnit.MILLISECONDS);
 
                 // build the ocsp cache
-                ocspCache = CacheBuilder.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(new CacheLoader<OcspRequest, OcspStatus>() {
-                    @Override
-                    public OcspStatus load(OcspRequest ocspRequest) throws Exception {
-                        final String subjectDn = ocspRequest.getSubjectCertificate().getSubjectX500Principal().getName();
+                ocspCache = Caffeine.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(ocspRequest -> {
+                    final String subjectDn = ocspRequest.getSubjectCertificate().getSubjectX500Principal().getName();
 
-                        logger.info(String.format("Validating client certificate via OCSP: <%s>", subjectDn));
-                        final OcspStatus ocspStatus = getOcspStatus(ocspRequest);
-                        logger.info(String.format("Client certificate status for <%s>: %s", subjectDn, ocspStatus.toString()));
+                    logger.info(String.format("Validating client certificate via OCSP: <%s>", subjectDn));
+                    final OcspStatus ocspStatus = getOcspStatus(ocspRequest);
+                    logger.info(String.format("Client certificate status for <%s>: %s", subjectDn, ocspStatus.toString()));
 
-                        return ocspStatus;
-                    }
+                    return ocspStatus;
                 });
             } catch (final Exception e) {
                 logger.error("Disabling OCSP certificate validation. Unable to load OCSP configuration: " + e, e);
@@ -234,17 +230,13 @@ public class OcspCertificateValidator {
             // create the ocsp status key
             final OcspRequest ocspRequest = new OcspRequest(subjectCertificate, issuerCertificate);
 
-            try {
-                // determine the status and ensure it isn't verified as revoked
-                final OcspStatus ocspStatus = ocspCache.getUnchecked(ocspRequest);
+            // determine the status and ensure it isn't verified as revoked
+            final OcspStatus ocspStatus = ocspCache.get(ocspRequest);
 
-                // we only disallow when we have a verified response that states the certificate is revoked
-                if (VerificationStatus.Verified.equals(ocspStatus.getVerificationStatus()) && ValidationStatus.Revoked.equals(ocspStatus.getValidationStatus())) {
-                    throw new CertificateStatusException(String.format("Client certificate for <%s> is revoked according to the certificate authority.",
-                            subjectCertificate.getSubjectX500Principal().getName()));
-                }
-            } catch (final UncheckedExecutionException uee) {
-                logger.warn(String.format("Unable to validate client certificate via OCSP: <%s>", subjectCertificate.getSubjectX500Principal().getName()), uee.getCause());
+            // we only disallow when we have a verified response that states the certificate is revoked
+            if (VerificationStatus.Verified.equals(ocspStatus.getVerificationStatus()) && ValidationStatus.Revoked.equals(ocspStatus.getValidationStatus())) {
+                throw new CertificateStatusException(String.format("Client certificate for <%s> is revoked according to the certificate authority.",
+                        subjectCertificate.getSubjectX500Principal().getName()));
             }
         }
     }
@@ -356,7 +348,7 @@ public class OcspCertificateValidator {
 
             // ensure the appropriate response object
             final Object ocspResponseObject = ocspResponse.getResponseObject();
-            if (ocspResponseObject == null || !(ocspResponseObject instanceof BasicOCSPResp)) {
+            if (!(ocspResponseObject instanceof BasicOCSPResp)) {
                 logger.warn(String.format("Unexpected OCSP response object: %s", ocspResponseObject));
                 return ocspStatus;
             }

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
@@ -63,10 +61,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -241,7 +241,7 @@ public class ListenHTTPServlet extends HttpServlet {
             }
 
             Set<FlowFile> flowFileSet;
-            if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
+            if (StringUtils.isNotBlank(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
                 flowFileSet = handleMultipartRequest(request, session, foundSubject, foundIssuer);
             } else {
                 flowFileSet = handleRequest(request, session, foundSubject, foundIssuer, destinationIsLegacyNiFi, contentType, in);
@@ -272,9 +272,11 @@ public class ListenHTTPServlet extends HttpServlet {
         Set<FlowFile> flowFileSet = new HashSet<>();
         String tempDir = System.getProperty("java.io.tmpdir");
         request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
-        List<Part> requestParts = ImmutableList.copyOf(request.getParts());
-        for (int i = 0; i < requestParts.size(); i++) {
-            Part part = requestParts.get(i);
+        Collection<Part> requestParts = Collections.unmodifiableCollection(request.getParts());
+        final Iterator<Part> parts = requestParts.iterator();
+        int i = 0;
+        while (parts.hasNext()) {
+            Part part = parts.next();
             FlowFile flowFile = session.create();
             try (OutputStream flowFileOutputStream = session.write(flowFile)) {
                 StreamUtils.copy(part.getInputStream(), flowFileOutputStream);
@@ -282,6 +284,7 @@ public class ListenHTTPServlet extends HttpServlet {
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             flowFile = savePartDetailsAsAttributes(session, part, flowFile, i, requestParts.size());
             flowFileSet.add(flowFile);
+            i++;
         }
         return flowFileSet;
     }

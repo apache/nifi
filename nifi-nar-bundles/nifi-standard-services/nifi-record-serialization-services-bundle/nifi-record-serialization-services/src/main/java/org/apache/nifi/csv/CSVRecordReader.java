@@ -42,9 +42,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import com.google.common.base.Throwables;
-
-
 public class CSVRecordReader extends AbstractCSVRecordReader {
     private final CSVParser csvParser;
 
@@ -116,7 +113,7 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
                 return new MapRecord(schema, values, coerceTypes, dropUnknownFields);
             }
         } catch (Exception e) {
-            throw new MalformedRecordException("Error while getting next record. Root cause: " +  Throwables.getRootCause(e), e);
+            throw new MalformedRecordException("Error while getting next record", e);
         }
 
         return null;

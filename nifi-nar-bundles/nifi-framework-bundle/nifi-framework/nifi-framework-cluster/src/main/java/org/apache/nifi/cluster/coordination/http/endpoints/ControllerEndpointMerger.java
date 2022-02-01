@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import com.google.common.collect.Sets;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PortEntityMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -27,6 +26,7 @@ import org.apache.nifi.web.api.entity.ControllerEntity;
 import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -88,8 +88,8 @@ public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<Controll
         }
 
         // get intersection of input and output ports
-        final Set<PortDTO> clientInputPorts = Sets.newHashSet(clientDto.getInputPorts());
-        final Set<PortDTO> clientOutputPorts = Sets.newHashSet(clientDto.getOutputPorts());
+        final Set<PortDTO> clientInputPorts = new HashSet<>(clientDto.getInputPorts());
+        final Set<PortDTO> clientOutputPorts = new HashSet<>(clientDto.getOutputPorts());
         dtoMap.values().forEach(controller -> {
             clientInputPorts.retainAll(controller.getInputPorts());
             clientOutputPorts.retainAll(controller.getOutputPorts());
