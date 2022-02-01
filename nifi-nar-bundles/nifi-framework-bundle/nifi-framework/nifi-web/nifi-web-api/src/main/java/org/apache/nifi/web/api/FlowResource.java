@@ -121,7 +121,6 @@ import org.apache.nifi.web.api.request.FlowMetricsProducer;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.SnippetUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -505,7 +504,7 @@ public class FlowResource extends ApplicationResource {
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(null, false, false);
         if (uiOnly) {
-            controllerServices.forEach(SnippetUtils::stripNonUiRelevantFields);
+            controllerServices.forEach(this::stripNonUiRelevantFields);
         }
 
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
@@ -560,7 +559,7 @@ public class FlowResource extends ApplicationResource {
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
         if (uiOnly) {
-            controllerServices.forEach(SnippetUtils::stripNonUiRelevantFields);
+            controllerServices.forEach(this::stripNonUiRelevantFields);
         }
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 

@@ -1017,34 +1017,4 @@ public final class SnippetUtils {
             }
         }
     }
-
-    public static void stripNonUiRelevantFields(final ControllerServiceEntity serviceEntity) {
-        final ControllerServiceDTO dto = serviceEntity.getComponent();
-        if (dto == null) {
-            return;
-        }
-
-        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
-        if (referencingEntities == null) {
-            return;
-        }
-
-        referencingEntities.forEach(SnippetUtils::stripNonUiRelevantFields);
-    }
-
-    public static void stripNonUiRelevantFields(final ControllerServiceReferencingComponentEntity entity) {
-        final ControllerServiceReferencingComponentDTO dto = entity.getComponent();
-        if (dto == null) {
-            return;
-        }
-
-        dto.setDescriptors(null);
-        dto.setProperties(null);
-
-        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
-        if (referencingEntities != null) {
-            referencingEntities.forEach(SnippetUtils::stripNonUiRelevantFields);
-        }
-    }
-
 }

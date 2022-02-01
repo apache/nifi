@@ -628,7 +628,8 @@
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'state': enabled ? 'ENABLED' : 'DISABLED'
+            'state': enabled ? 'ENABLED' : 'DISABLED',
+            'uiOnly': true
         };
 
         var updated = $.ajax({
@@ -755,7 +756,8 @@
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components
@@ -1057,7 +1059,8 @@
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components

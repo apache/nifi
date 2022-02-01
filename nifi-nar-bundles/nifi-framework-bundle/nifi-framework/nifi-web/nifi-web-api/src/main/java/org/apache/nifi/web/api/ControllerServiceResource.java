@@ -64,7 +64,6 @@ import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEnt
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.SnippetUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -213,7 +212,7 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the controller service
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
         if (uiOnly) {
-            SnippetUtils.stripNonUiRelevantFields(entity);
+            stripNonUiRelevantFields(entity);
         }
         populateRemainingControllerServiceEntityContent(entity);
 
@@ -583,6 +582,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
                             referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
+                    if (updateReferenceRequest.getUiOnly() == Boolean.TRUE) {
+                        entity.getControllerServiceReferencingComponents().forEach(this::stripNonUiRelevantFields);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
@@ -845,6 +848,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     // update the controller service
                     final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingControllerServiceEntityContent(entity);
+
+                    if (runStatusEntity.getUiOnly() == Boolean.TRUE) {
+                        stripNonUiRelevantFields(entity);
+                    }
 
                     return generateOkResponse(entity).build();
                 }

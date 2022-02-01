@@ -354,10 +354,7 @@
         var parameterContexts = $.ajax({
                 type: 'GET',
                 url: config.urls.parameterContexts,
-                dataType: 'json',
-                data: {
-                    uiOnly: true
-                }
+                dataType: 'json'
             });
 
         // wait for everything to complete
