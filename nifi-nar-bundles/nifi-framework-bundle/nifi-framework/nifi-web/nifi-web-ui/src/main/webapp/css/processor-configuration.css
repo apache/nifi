@@ -90,6 +90,21 @@ div.processor-configuration-warning-icon:before {
     padding: 2px;
 }
 
+#processor-relationships-tab-content label {
+    color: #775351;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: inherit;
+    line-height: normal;
+}
+
+#processor-relationships-tab-content .backoff-policy-setting input,
+#processor-relationships-tab-content .backoff-policy-setting label {
+    display: inline-block;
+}
+
+
 div.processor-relationship-container {
     margin-bottom: 7px;
 }

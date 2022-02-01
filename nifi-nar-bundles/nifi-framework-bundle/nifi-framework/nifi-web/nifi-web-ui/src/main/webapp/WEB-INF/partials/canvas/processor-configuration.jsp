@@ -225,11 +225,6 @@
                     </div>
                 </div>
                 <div class="settings-right">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Retry Settings
-                        </div>
-                    </div>
                     <div class="retry-count-setting setting">
                         <div class="setting-name">Number of retry attempts</div>
                         <div class="setting-field">
@@ -237,17 +232,17 @@
                         </div>
                     </div>
                     <div class="backoff-policy-setting setting">
-                        <div class="setting-name">Backoff Policy</div>
+                        <div class="setting-name">Retry Backoff Policy</div>
                         <div class="setting-field">
-                            <input type="radio" id="penalizeFlowFile" name="backoffPolicy" value="PENALIZE_FLOWFILE" style="display: inline-block;">
-                            <label for="penalizeFlowFile" style="display: inline-block;">penalize flow file</label>
+                            <input type="radio" id="penalizeFlowFile" name="backoffPolicy" value="PENALIZE_FLOWFILE">
+                            <label for="penalizeFlowFile">penalize flow file</label>
 
-                            <input type="radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR" style="display: inline-block;">
-                            <label for="yieldEntireProcessor" style="display: inline-block;">yield entire processor</label>
+                            <input type="radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR">
+                            <label for="yieldEntireProcessor">yield entire processor</label>
                         </div>
                     </div>
                     <div class="max-backoff-setting setting">
-                        <div class="setting-name">Max Backoff Period</div>
+                        <div class="setting-name">Retry Max Backoff Period</div>
                         <div class="setting-field">
                             <input type="text" id="max-backoff-period" class="small-setting-input">
                         </div>

@@ -404,8 +404,10 @@
 
     /**
      * Marshals the relationships that will be auto terminated and retried
+     *
+     * @argument {string} relationshipType      The type of relationship to marshal. ie. terminate || retry
      **/
-    var marshalRelationships = function(action) {
+    var marshalRelationships = function(relationshipType) {
         // get all available relationships
         var availableRelationships = $('#auto-action-relationship-names');
         var selectedRelationships = [];
@@ -415,7 +417,7 @@
             var relationship = $(relationshipElement);
 
             // get each relationship and its corresponding checkbox
-            var relationshipCheck = relationship.children('div.processor-' + action + '-relationship-container').children('div.processor-' + action + '-relationship');
+            var relationshipCheck = relationship.children('div.processor-' + relationshipType + '-relationship-container').children('div.processor-' + relationshipType + '-relationship');
 
             // see if this relationship has been selected
             if (relationshipCheck.hasClass('checkbox-checked')) {
@@ -591,7 +593,7 @@
                     name: 'Properties',
                     tabContentId: 'processor-properties-tab-content'
                 }, {
-                    name: 'Automatic Actions',
+                    name: 'Relationships',
                     tabContentId: 'processor-relationships-tab-content'
                 }, {
                     name: 'Comments',
@@ -911,9 +913,9 @@
                         var setRetryControlsDisabledState = (function() {
                             var isEnabled = $('#auto-action-relationship-names').find('div.nf-checkbox.processor-retry-relationship.checkbox-checked').length ? true : false;
                             if (isEnabled) {
-                                $('#processor-relationships-tab-content .settings-right input').prop("disabled", false);
+                                $('#processor-relationships-tab-content .settings-right').show();
                             } else {
-                                $('#processor-relationships-tab-content .settings-right input').prop("disabled", true);
+                                $('#processor-relationships-tab-content .settings-right').hide();
                             }
                         });
                         setRetryControlsDisabledState();
