@@ -106,7 +106,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public static final PropertyDescriptor CLIENT_ID = new PropertyDescriptor.Builder()
         .name("client-id")
         .displayName("Client ID")
-        .required(false)
+        .dependsOn(GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE)
+        .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
@@ -114,7 +115,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public static final PropertyDescriptor CLIENT_SECRET = new PropertyDescriptor.Builder()
         .name("client-secret")
         .displayName("Client secret")
-        .dependsOn(CLIENT_ID)
+        .dependsOn(GRANT_TYPE, CLIENT_CREDENTIALS_GRANT_TYPE)
         .required(true)
         .sensitive(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
