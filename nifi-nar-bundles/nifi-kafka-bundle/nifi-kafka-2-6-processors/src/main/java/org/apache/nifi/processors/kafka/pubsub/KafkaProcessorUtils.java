@@ -215,7 +215,7 @@ public final class KafkaProcessorUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    public static final PropertyDescriptior AWS_STS_REGION = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor AWS_STS_REGION = new PropertyDescriptor.Builder()
 	    .name("aws.sts.region")
 	    .displayName("AWS STS Region")
 	    .descrition("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
