@@ -686,7 +686,7 @@ public final class KafkaProcessorUtils {
                 builder.append(" awsRoleSessionName=\"" + awsSessionName + "\"");
             }
         }
-	if (awsStsRegion != null && !StringUtils.isBlank(awsStsRegion)) {
+        if (awsStsRegion != null && !StringUtils.isBlank(awsStsRegion)) {
             builder.append(" awsStsRegion=\"" + awsStsRegion + "\"");
         }
         if (awsDebugCreds) {
