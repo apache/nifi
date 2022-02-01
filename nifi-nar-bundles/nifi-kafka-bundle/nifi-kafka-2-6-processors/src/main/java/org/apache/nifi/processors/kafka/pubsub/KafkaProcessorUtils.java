@@ -231,10 +231,11 @@ public final class KafkaProcessorUtils {
             .name("aws.debug.creds")
             .displayName("Debug AWS Credentials")
             .description("This property helps to debug which AWS credential is being exactly used. If the AWS client side logging "
-	        + "is set to DEBUG and the Kafka client configuration property includes awsDebugCreds set to true, NIFI processor(s) "
-		+ "will print the debug log including IAM Account, IAM user id and the ARN of the IAM Principal corresponding "
-		+ "to the credential being used. This property can be combined with any of the other properties such as awsRoleArn, "
-		+ "awsRoleSessionName etc. It is recommended to use this property only during debug since it makes an additional remote call.")
+                + "is set to DEBUG and the Kafka client configuration property includes awsDebugCreds set to true, NIFI processor(s) "
+                + "will print the debug log including IAM Account, IAM user id and the ARN of the IAM Principal corresponding "
+                + "to the credential being used. This property can be combined with any of the other properties such as awsRoleArn, "
+                + "awsRoleSessionName etc. It is recommended to use this property only during debug since it makes an additional remote call.")
+            .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -688,9 +689,9 @@ public final class KafkaProcessorUtils {
 	if (awsStsRegion != null && !StringUtils.isBlank(awsStsRegion)) {
 	    builder.append(" awsStsRegion=\"" + awsStsRegion + "\"");
 	}
-	if (awsDebugCreds) {
-	    builder.append(" awsDebugCreds=true");
-	}
+        if (awsDebugCreds) {
+            builder.append(" awsDebugCreds=true");
+        }
         builder.append(";");
         mapToPopulate.put(SaslConfigs.SASL_JAAS_CONFIG, builder.toString());
         // This callback handler is key for this Authentication mechanism. AWS callback handler JAR should be placed in the NIFI libraries CLASSPATH.
