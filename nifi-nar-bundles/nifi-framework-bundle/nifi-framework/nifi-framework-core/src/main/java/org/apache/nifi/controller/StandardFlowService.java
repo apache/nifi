@@ -1121,7 +1121,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     if (logger.isTraceEnabled()) {
                         logger.trace("Waiting for write lock and then will save");
                     }
-                    writeLock.lock();
+                    final boolean lockObtained = writeLock.tryLock(10, TimeUnit.MILLISECONDS);
+                    if (!lockObtained) {
+                        logger.trace("Could not obtain lock so will not write flow to disk during this iteration.");
+                        return;
+                    }
                     try {
                         dao.save(controller, holder.shouldArchive);
                         // Nulling it out if it is still set to our current SaveHolder.  Otherwise leave it alone because it means
@@ -1149,7 +1153,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private class SaveHolder {
+    private static class SaveHolder {
 
         private final Calendar saveTime;
         private final boolean shouldArchive;
