@@ -216,12 +216,12 @@ public final class KafkaProcessorUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor AWS_STS_REGION = new PropertyDescriptor.Builder()
-	    .name("aws.sts.region")
-	    .displayName("AWS STS Region")
-	    .description("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
-		+ "the global endpoint for AWS STS is used by default. When the Kafka client is running in a VPC with an interface "
-		+ "VPC Endpoint to a regional endpoint of AWS STS and we want all STS traffic to go over that endpoint, we should "
-		+ "set awsStsRegion to the region corresponding to the interface VPC Endpoint. This property is optional.")
+            .name("aws.sts.region")
+            .displayName("AWS STS Region")
+            .description("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
+                + "the global endpoint for AWS STS is used by default. When the Kafka client is running in a VPC with an interface "
+                + "VPC Endpoint to a regional endpoint of AWS STS and we want all STS traffic to go over that endpoint, we should "
+                + "set awsStsRegion to the region corresponding to the interface VPC Endpoint. This property is optional.")
             .dependsOn(SASL_MECHANISM, SASL_MECHANISM_AWS_MSK_IAM)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -675,7 +675,7 @@ public final class KafkaProcessorUtils {
         final String awsRoleArn = context.getProperty(AWS_ROLE_ARN).evaluateAttributeExpressions().getValue();
         final String awsSessionName = context.getProperty(AWS_SESSION_NAME).evaluateAttributeExpressions().getValue();
         final String awsStsRegion = context.getProperty(AWS_STS_REGION).evaluateAttributeExpressions().getValue();
-	final boolean awsDebugCreds = context.getProperty(AWS_DEBUG_CREDS).asBoolean();
+        final boolean awsDebugCreds = context.getProperty(AWS_DEBUG_CREDS).asBoolean();
 
         final StringBuilder builder = new StringBuilder("software.amazon.msk.auth.iam.IAMLoginModule required ");
         if (awsProfileName != null && !StringUtils.isBlank(awsProfileName)) {
@@ -687,8 +687,8 @@ public final class KafkaProcessorUtils {
             }
         }
 	if (awsStsRegion != null && !StringUtils.isBlank(awsStsRegion)) {
-	    builder.append(" awsStsRegion=\"" + awsStsRegion + "\"");
-	}
+            builder.append(" awsStsRegion=\"" + awsStsRegion + "\"");
+        }
         if (awsDebugCreds) {
             builder.append(" awsDebugCreds=true");
         }
