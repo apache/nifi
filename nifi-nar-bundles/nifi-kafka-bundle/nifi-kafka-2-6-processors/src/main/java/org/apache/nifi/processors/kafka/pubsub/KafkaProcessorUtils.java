@@ -218,7 +218,7 @@ public final class KafkaProcessorUtils {
     public static final PropertyDescriptor AWS_STS_REGION = new PropertyDescriptor.Builder()
 	    .name("aws.sts.region")
 	    .displayName("AWS STS Region")
-	    .descrition("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
+	    .description("Specifies the regional endpoint of AWS STS to use while assuming the IAM role. If awsStsRegion is omitted "
 		+ "the global endpoint for AWS STS is used by default. When the Kafka client is running in a VPC with an interface "
 		+ "VPC Endpoint to a regional endpoint of AWS STS and we want all STS traffic to go over that endpoint, we should "
 		+ "set awsStsRegion to the region corresponding to the interface VPC Endpoint. This property is optional.")
