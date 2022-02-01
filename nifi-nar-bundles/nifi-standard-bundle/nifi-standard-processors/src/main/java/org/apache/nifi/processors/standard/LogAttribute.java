@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -51,8 +52,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.eclipse.jetty.util.StringUtil;
-
-import com.google.common.collect.Sets;
 
 @EventDriven
 @SideEffectFree
@@ -248,8 +247,8 @@ public class LogAttribute extends AbstractProcessor {
         // collect properties
         final String attrsToLogValue = context.getProperty(ATTRIBUTES_TO_LOG_CSV).getValue();
         final String attrsToRemoveValue = context.getProperty(ATTRIBUTES_TO_IGNORE_CSV).getValue();
-        final Set<String> attrsToLog = StringUtils.isBlank(attrsToLogValue) ? Sets.newHashSet(flowFileAttrKeys) : Sets.newHashSet(attrsToLogValue.split("\\s*,\\s*"));
-        final Set<String> attrsToRemove = StringUtils.isBlank(attrsToRemoveValue) ? Sets.newHashSet() : Sets.newHashSet(attrsToRemoveValue.split("\\s*,\\s*"));
+        final Set<String> attrsToLog = StringUtils.isBlank(attrsToLogValue) ? new HashSet<>(flowFileAttrKeys) : new HashSet<>(Arrays.asList(attrsToLogValue.split("\\s*,\\s*")));
+        final Set<String> attrsToRemove = StringUtils.isBlank(attrsToRemoveValue) ? new HashSet<>() : new HashSet<>(Arrays.asList(attrsToRemoveValue.split("\\s*,\\s*")));
         final Pattern attrsToLogRegex = Pattern.compile(context.getProperty(ATTRIBUTES_TO_LOG_REGEX).getValue());
         final String attrsToRemoveRegexValue = context.getProperty(ATTRIBUTES_TO_IGNORE_REGEX).getValue();
         final Pattern attrsToRemoveRegex = attrsToRemoveRegexValue == null ? null : Pattern.compile(context.getProperty(ATTRIBUTES_TO_IGNORE_REGEX).getValue());

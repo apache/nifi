@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
@@ -71,7 +69,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -359,12 +360,12 @@ public class StandardNiFiServiceFacadeTest {
         final String parameterName = "foo";
         final VersionedParameterContext versionedParameterContext = mock(VersionedParameterContext.class);
         when(versionedParameterContext.getName()).thenReturn(parameterName);
-        final Map<String, VersionedParameterContext> parameterContexts = Maps.newHashMap();
+        final Map<String, VersionedParameterContext> parameterContexts = new LinkedHashMap<>();
         parameterContexts.put(parameterName, versionedParameterContext);
         when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(parameterContexts);
 
         final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
-        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = Maps.newHashMap();
+        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = new LinkedHashMap<>();
         externalControllerServiceReferences.put("test", externalControllerServiceReference);
         when(nonVersionedProcessGroup.getExternalControllerServiceReferences()).thenReturn(externalControllerServiceReferences);
 
@@ -389,7 +390,7 @@ public class StandardNiFiServiceFacadeTest {
         when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
 
         when(processGroup.getVersionControlInformation()).thenReturn(null);
-        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(processGroup.getProcessGroups()).thenReturn(Collections.singleton(childProcessGroup));
         when(childProcessGroup.getVersionControlInformation()).thenReturn(null);
 
         assertFalse(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
@@ -404,7 +405,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final VersionControlInformation vci = mock(VersionControlInformation.class);
         when(processGroup.getVersionControlInformation()).thenReturn(vci);
-        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet());
+        when(processGroup.getProcessGroups()).thenReturn(new HashSet<>());
 
         assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
     }
@@ -419,7 +420,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final VersionControlInformation vci = mock(VersionControlInformation.class);
         when(processGroup.getVersionControlInformation()).thenReturn(null);
-        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(processGroup.getProcessGroups()).thenReturn(Collections.singleton(childProcessGroup));
         when(childProcessGroup.getVersionControlInformation()).thenReturn(vci);
 
         assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));

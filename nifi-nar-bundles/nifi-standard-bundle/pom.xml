@@ -276,11 +276,6 @@
                 <version>0.9.0</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>28.0-jre</version>
-            </dependency>
-            <dependency>
                 <groupId>org.xerial.snappy</groupId>
                 <artifactId>snappy-java</artifactId>
                 <version>1.1.7.3</version>

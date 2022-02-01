@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.schema.inference;
 
-import avro.shaded.com.google.common.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -112,7 +111,6 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         return Optional.ofNullable(cachedSchema);
     }
 
-    @VisibleForTesting
     protected String createIdentifier(final RecordSchema schema) {
         final MessageDigest digest;
         try {

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.server;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
@@ -835,7 +833,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         logger.info("Configuring Jetty for " + connectorLabel + " on port: " + port);
 
-        final List<Connector> serverConnectors = Lists.newArrayList();
+        final List<Connector> serverConnectors = new ArrayList<>();
 
         // Calculate Idle Timeout as twice the auto-refresh interval. This ensures that even with some variance in timing,
         // we are able to avoid closing connections from users' browsers most of the time. This can make a significant difference
@@ -845,7 +843,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final long idleTimeout = autoRefreshMillis * 2;
 
         // If the interfaces collection is empty or each element is empty
-        if (networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> !Strings.isNullOrEmpty(value)).collect(Collectors.toList()).isEmpty()) {
+        if (networkInterfaces.isEmpty() || networkInterfaces.values().stream().filter(value -> StringUtils.isNotBlank(value)).collect(Collectors.toList()).isEmpty()) {
             final ServerConnector serverConnector = serverConnectorCreator.create(server, configuration);
 
             // Set host and port
@@ -857,7 +855,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             serverConnectors.add(serverConnector);
         } else {
             // Add connectors for all IPs from network interfaces
-            serverConnectors.addAll(Lists.newArrayList(networkInterfaces.values().stream().map(ifaceName -> {
+            serverConnectors.addAll(new ArrayList<>(networkInterfaces.values().stream().map(ifaceName -> {
                 NetworkInterface iface = null;
                 try {
                     iface = NetworkInterface.getByName(ifaceName);
