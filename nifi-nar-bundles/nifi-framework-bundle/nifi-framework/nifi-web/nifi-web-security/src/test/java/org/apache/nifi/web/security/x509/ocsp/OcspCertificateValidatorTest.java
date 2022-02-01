@@ -29,11 +29,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,24 +61,9 @@ public class OcspCertificateValidatorTest {
     private static final String SIGNATURE_ALGORITHM = "SHA256withRSA";
     private static final String PROVIDER = "BC";
 
-    private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US";
-
-    private static X509Certificate ISSUER_CERTIFICATE;
-
     @BeforeClass
     public static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
-
-//        ISSUER_CERTIFICATE = generateCertificate(ISSUER_DN);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-
     }
 
     /**
@@ -277,35 +259,5 @@ public class OcspCertificateValidatorTest {
             assert e instanceof SignatureException;
             assert e.getMessage().contains("certificate does not verify with supplied key");
         }
-    }
-
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testShouldValidateCertificate() throws Exception {
-
-    }
-
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testShouldNotValidateEmptyCertificate() throws Exception {
-
-    }
-
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testShouldNotValidateInvalidCertificate() throws Exception {
-
-    }
-
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testValidateShouldHandleUnsignedResponse() throws Exception {
-
-    }
-
-    @Ignore("To be implemented with Groovy test")
-    @Test
-    public void testValidateShouldHandleResponseWithIncorrectNonce() throws Exception {
-
     }
 }

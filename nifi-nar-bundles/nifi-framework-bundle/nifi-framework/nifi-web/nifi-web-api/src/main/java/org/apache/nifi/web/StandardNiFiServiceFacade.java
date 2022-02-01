@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import com.google.common.collect.Sets;
 import io.prometheus.client.CollectorRegistry;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.action.Action;
@@ -2850,7 +2849,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     final ControllerServiceDTO dto = dtoFactory.createControllerServiceDto(cs);
                     final ControllerServiceReference ref = controllerService.getReferences();
                     final ControllerServiceReferencingComponentsEntity referencingComponentsEntity =
-                            createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerService.getIdentifier()));
+                            createControllerServiceReferencingComponentsEntity(ref, Collections.singleton(controllerService.getIdentifier()));
                     dto.setReferencingComponents(referencingComponentsEntity.getControllerServiceReferencingComponents());
                     return dto;
                 });
@@ -4504,7 +4503,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ControllerServiceEntity getControllerService(final String controllerServiceId) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(controllerServiceId);
-        return createControllerServiceEntity(controllerService, Sets.newHashSet(controllerServiceId));
+        return createControllerServiceEntity(controllerService, Collections.singleton(controllerServiceId));
     }
 
     @Override
@@ -4525,7 +4524,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ControllerServiceReferencingComponentsEntity getControllerServiceReferencingComponents(final String controllerServiceId) {
         final ControllerServiceNode service = controllerServiceDAO.getControllerService(controllerServiceId);
         final ControllerServiceReference ref = service.getReferences();
-        return createControllerServiceReferencingComponentsEntity(ref, Sets.newHashSet(controllerServiceId));
+        return createControllerServiceReferencingComponentsEntity(ref, Collections.singleton(controllerServiceId));
     }
 
     private ReportingTaskEntity createReportingTaskEntity(final ReportingTaskNode reportingTask) {

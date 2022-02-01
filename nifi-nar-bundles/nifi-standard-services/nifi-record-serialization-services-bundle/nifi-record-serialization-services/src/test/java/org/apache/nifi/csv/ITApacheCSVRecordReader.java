@@ -28,8 +28,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import com.google.common.base.Throwables;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -101,7 +99,6 @@ public class ITApacheCSVRecordReader {
             while (reader.nextRecord() != null) {}
         } catch (Exception e) {
             assertThat(e, instanceOf(MalformedRecordException.class));
-            assertThat(Throwables.getRootCause(e), instanceOf(IOException.class));
         }
     }
 }

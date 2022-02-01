@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.nifi.processor.ProcessContext;
@@ -29,8 +30,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-
-import com.google.common.collect.Maps;
 
 public class TestLogAttribute {
 
@@ -44,7 +43,7 @@ public class TestLogAttribute {
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo, bar");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -67,7 +66,7 @@ public class TestLogAttribute {
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_REGEX, "foo.*");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -92,7 +91,7 @@ public class TestLogAttribute {
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo, bar");
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_REGEX, "foo*");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -115,7 +114,7 @@ public class TestLogAttribute {
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_CSV, "bar");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -138,7 +137,7 @@ public class TestLogAttribute {
 
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foo.*");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -163,7 +162,7 @@ public class TestLogAttribute {
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_CSV, "foo,bar");
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foo.*");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -188,7 +187,7 @@ public class TestLogAttribute {
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo");
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foo.*");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -213,7 +212,7 @@ public class TestLogAttribute {
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_CSV, "foo,foobaz");
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_CSV, "foobaz");
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");
@@ -237,7 +236,7 @@ public class TestLogAttribute {
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_LOG_REGEX, "foo.*"); // includes foo,foobaz
         runner.setProperty(LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX, "foobaz.*"); // includes foobaz
 
-        final Map<String,String> attrs = Maps.newHashMap();
+        final Map<String,String> attrs = new LinkedHashMap<>();
         attrs.put("foo", "foo-value");
         attrs.put("bar", "bar-value");
         attrs.put("foobaz", "foobaz-value");

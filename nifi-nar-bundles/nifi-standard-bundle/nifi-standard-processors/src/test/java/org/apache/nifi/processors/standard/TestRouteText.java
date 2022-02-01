@@ -24,11 +24,11 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -771,8 +771,8 @@ public class TestRouteText {
         runner.setProperty(RouteText.MATCH_STRATEGY, RouteText.MATCHES_REGULAR_EXPRESSION);
         runner.setProperty("simple", ".*(${someValue}).*");
 
-        runner.enqueue("some text", ImmutableMap.of("someValue", "a value"));
-        runner.enqueue("some other text", ImmutableMap.of("someValue", "a value"));
+        runner.enqueue("some text", Collections.singletonMap("someValue", "a value"));
+        runner.enqueue("some other text", Collections.singletonMap("someValue", "a value"));
         runner.run(2);
 
         assertEquals("Expected 1 elements in the cache for the patterns, got" +
@@ -781,7 +781,7 @@ public class TestRouteText {
         for (int i = 0; i < RouteText.PATTERNS_CACHE_MAXIMUM_ENTRIES * 2; ++i) {
             String iString = Long.toString(i);
             runner.enqueue("some text with " + iString + "in it",
-                    ImmutableMap.of("someValue", iString));
+                    Collections.singletonMap("someValue", iString));
             runner.run();
         }
 

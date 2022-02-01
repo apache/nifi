@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.schemaregistry.hortonworks;
 
-import com.google.common.collect.ImmutableMap;
 import com.hortonworks.registries.schemaregistry.SchemaIdVersion;
 import com.hortonworks.registries.schemaregistry.SchemaMetadata;
 import com.hortonworks.registries.schemaregistry.SchemaMetadataInfo;
@@ -50,6 +49,7 @@ import org.apache.nifi.util.Tuple;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -242,7 +242,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     private Map<String, String> buildSslProperties(final ConfigurationContext context) {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+        final Map<String, String> propertiesBuilder = new HashMap<>();
         if (sslContextService != null) {
             propertiesBuilder.put("protocol", sslContextService.getSslAlgorithm());
             if (sslContextService.isKeyStoreConfigured()) {
@@ -259,7 +259,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 propertiesBuilder.put("trustStoreType", sslContextService.getTrustStoreType());
             }
         }
-      return propertiesBuilder.build();
+      return Collections.unmodifiableMap(propertiesBuilder);
     }
 
     @OnDisabled
