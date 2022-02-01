@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.api;
 
-import com.google.common.collect.Sets;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -28,6 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.ws.rs.core.Response;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -62,8 +62,8 @@ public class TestVersionsResource {
 
         final VersionedProcessGroup innerVersionedProcessGroup = mock(VersionedProcessGroup.class);
         final VersionedProcessGroup innerInnerVersionedProcessGroup = mock(VersionedProcessGroup.class);
-        when(versionedProcessGroup.getProcessGroups()).thenReturn(Sets.newHashSet(innerVersionedProcessGroup));
-        when(innerVersionedProcessGroup.getProcessGroups()).thenReturn(Sets.newHashSet(innerInnerVersionedProcessGroup));
+        when(versionedProcessGroup.getProcessGroups()).thenReturn(Collections.singleton(innerVersionedProcessGroup));
+        when(innerVersionedProcessGroup.getProcessGroups()).thenReturn(Collections.singleton(innerInnerVersionedProcessGroup));
 
         final Response response = versionsResource.exportFlowVersion(groupId);
 

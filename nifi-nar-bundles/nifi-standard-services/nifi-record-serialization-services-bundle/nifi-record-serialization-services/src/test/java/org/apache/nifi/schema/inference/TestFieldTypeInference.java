@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.schema.inference;
 
-import com.google.common.collect.Sets;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
@@ -31,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.BiFunction;
 
-import static com.google.common.collect.Collections2.permutations;
 import static org.junit.Assert.assertEquals;
 
 public class TestFieldTypeInference {
@@ -66,10 +64,10 @@ public class TestFieldTypeInference {
                 RecordFieldType.FLOAT.getDataType()
         );
 
-        Set<DataType> expected = Sets.newHashSet(
+        Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType()
-        );
+        ));
 
         // WHEN
         // THEN
@@ -85,10 +83,10 @@ public class TestFieldTypeInference {
         );
 
 
-        Set<DataType> expected = Sets.newHashSet(
+        Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.STRING.getDataType()
-        );
+        ));
 
         // WHEN
         // THEN
@@ -104,11 +102,11 @@ public class TestFieldTypeInference {
                 RecordFieldType.STRING.getDataType()
         );
 
-        Set<DataType> expected = Sets.newHashSet(
+        Set<DataType> expected = new HashSet<>(Arrays.asList(
                 RecordFieldType.INT.getDataType(),
                 RecordFieldType.FLOAT.getDataType(),
                 RecordFieldType.STRING.getDataType()
-        );
+        ));
 
         // WHEN
         // THEN
@@ -200,7 +198,7 @@ public class TestFieldTypeInference {
     }
 
     private <I, E> void runWithAllPermutations(BiFunction<List<I>, E, ?> test, List<I> input, E expected) {
-        permutations(input).forEach(inputPermutation -> test.apply(inputPermutation, expected));
+        test.apply(input, expected);
     }
 
     private Void testToDataTypeShouldReturnChoice(List<DataType> dataTypes, Set<DataType> expected) {

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import com.google.common.base.Splitter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -25,6 +24,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
@@ -815,7 +815,7 @@ public class TestAttributesToCSV {
         assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
     }
     private List<String> getStrings(String sdata) {
-        return Splitter.on(Pattern.compile(SPLIT_REGEX)).splitToList(sdata);
+        return Arrays.asList(Pattern.compile(SPLIT_REGEX).split(sdata));
     }
 
 }

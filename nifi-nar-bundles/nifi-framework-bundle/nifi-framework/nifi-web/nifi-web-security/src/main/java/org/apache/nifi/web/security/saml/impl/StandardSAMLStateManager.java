@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.security.saml.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.saml.SAMLStateManager;
@@ -27,7 +27,6 @@ import org.apache.nifi.web.security.util.IdentityProviderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class StandardSAMLStateManager implements SAMLStateManager {
@@ -48,8 +47,8 @@ public class StandardSAMLStateManager implements SAMLStateManager {
 
     public StandardSAMLStateManager(final BearerTokenProvider bearerTokenProvider, final int cacheExpiration, final TimeUnit units) {
         this.bearerTokenProvider = bearerTokenProvider;
-        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(cacheExpiration, units).build();
-        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(cacheExpiration, units).build();
+        this.stateLookupForPendingRequests = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, units).build();
+        this.jwtLookupForCompletedRequests = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, units).build();
     }
 
     @Override
@@ -61,15 +60,11 @@ public class StandardSAMLStateManager implements SAMLStateManager {
         final CacheKey requestIdentifierKey = new CacheKey(requestIdentifier);
         final String state = IdentityProviderUtils.generateStateValue();
 
-        try {
-            synchronized (stateLookupForPendingRequests) {
-                final String cachedState = stateLookupForPendingRequests.get(requestIdentifierKey, () -> state);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(state, cachedState)) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+        synchronized (stateLookupForPendingRequests) {
+            final String cachedState = stateLookupForPendingRequests.get(requestIdentifierKey, key -> state);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(state, cachedState)) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login request state.");
         }
 
         return state;
@@ -109,16 +104,12 @@ public class StandardSAMLStateManager implements SAMLStateManager {
 
         final CacheKey requestIdentifierKey = new CacheKey(requestIdentifier);
         final String bearerToken = bearerTokenProvider.getBearerToken(token);
-        try {
-            // cache the jwt for later retrieval
-            synchronized (jwtLookupForCompletedRequests) {
-                final String cachedJwt = jwtLookupForCompletedRequests.get(requestIdentifierKey, () -> bearerToken);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(bearerToken, cachedJwt)) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+        // cache the jwt for later retrieval
+        synchronized (jwtLookupForCompletedRequests) {
+            final String cachedJwt = jwtLookupForCompletedRequests.get(requestIdentifierKey, key -> bearerToken);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(bearerToken, cachedJwt)) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (final ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login authentication token.");
         }
     }
 

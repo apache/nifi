@@ -17,7 +17,6 @@
 
 package org.apache.nifi.controller.queue.clustered.partition;
 
-import com.google.common.hash.Hashing;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.slf4j.Logger;
@@ -25,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class CorrelationAttributePartitioner implements FlowFilePartitioner {
     private static final Logger logger = LoggerFactory.getLogger(CorrelationAttributePartitioner.class);
@@ -39,15 +39,7 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
     public QueuePartition getPartition(final FlowFileRecord flowFile, final QueuePartition[] partitions,  final QueuePartition localPartition) {
         final int hash = hash(flowFile);
 
-        // The consistentHash method appears to always return a bucket of '1' if there are 2 possible buckets,
-        // so in this case we will just use modulo division to avoid this. I suspect this is a bug with the Guava
-        // implementation, but it's not clear at this point.
-        final int index;
-        if (partitions.length < 3) {
-            index = Math.floorMod(hash, partitions.length);
-        } else {
-            index = Hashing.consistentHash(hash, partitions.length);
-        }
+        final int index = findIndex(hash, partitions.length);
 
         if (logger.isDebugEnabled()) {
             final List<String> partitionDescriptions = new ArrayList<>(partitions.length);
@@ -74,5 +66,14 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
     @Override
     public boolean isRebalanceOnFailure() {
         return false;
+    }
+
+    private int findIndex(final long hash, final int partitions) {
+        final Random random = new Random(hash);
+        int index = random.nextInt();
+        while (index < 0 && index >= partitions) {
+            index = random.nextInt();
+        }
+        return index;
     }
 }
