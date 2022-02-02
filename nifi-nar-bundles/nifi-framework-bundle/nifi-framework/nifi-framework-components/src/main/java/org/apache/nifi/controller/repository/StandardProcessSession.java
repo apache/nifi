@@ -495,9 +495,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         for (ProvenanceEventRecord eventRecord : events) {
             final String eventRecordUuid = eventRecord.getFlowFileUuid();
-            for (String ChildUuid : forkEventBuilders.get(flowFileRecord).getChildFlowFileIds()) {
-                if (eventRecordUuid.equals(ChildUuid)) {
-                    provenanceReporter.remove(eventRecord);
+            final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(flowFileRecord);
+            if (eventBuilder != null) {
+                for (String ChildUuid : eventBuilder.getChildFlowFileIds()) {
+                    if (eventRecordUuid.equals(ChildUuid)) {
+                        provenanceReporter.remove(eventRecord);
+                    }
                 }
             }
             if (eventRecordUuid.equals(parentUuid)) {
