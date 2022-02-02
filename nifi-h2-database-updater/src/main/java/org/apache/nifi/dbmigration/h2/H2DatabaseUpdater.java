@@ -36,8 +36,10 @@ public class H2DatabaseUpdater {
 
     private static final String H2_MIGRATION_DIRECTORY = "./h2_migration";
     private static final String DEFAULT_JAVA_CMD = "java";
+
     public static final String EXPORT_FILE_PREFIX = "export_";
     public static final String EXPORT_FILE_POSTFIX = ".sql";
+    public static final String H2_URL_PREFIX = "jdbc:h2:";
 
     private static final JdbcDataSource migrationDataSource = new JdbcDataSource();
 

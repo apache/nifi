@@ -92,7 +92,7 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
             final String specifiedWorkingDir = properties.getProperty("working.dir", "./").trim();
             final String libDir = specifiedWorkingDir + properties.getProperty("lib.dir", "./lib").trim();
             final String javaCmd = properties.getProperty("java", "java");
-            final String migrationDbUrl = "jdbc:h2:" + databaseFile + ";LOCK_MODE=3";
+            final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";LOCK_MODE=3";
             H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD, libDir, javaCmd);
 
             // create the pool
@@ -133,7 +133,7 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
     }
 
     private String getDatabaseUrl(File databaseFile) {
-        String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
+        String databaseUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
         String databaseUrlAppend = properties.getProperty(NiFiProperties.H2_URL_APPEND);
         if (StringUtils.isNotBlank(databaseUrlAppend)) {
             databaseUrl += databaseUrlAppend;

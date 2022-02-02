@@ -102,7 +102,23 @@
                 <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
                 <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
                 <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
+
+                <!-- exclude H2 migrator libraries, they'll be included in the h2_migration subdirectory -->
+                <exclude>org.apache.nifi:nifi-h2-database-migrator</exclude>
             </excludes>
+        </dependencySet>
+
+        <!-- Write out the H2 libs for H2 migration to their own dir -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/h2_migration</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>org.apache.nifi:nifi-h2-database-migrator</include>
+            </includes>
         </dependencySet>
         
         <!-- Write out the conf directory contents -->

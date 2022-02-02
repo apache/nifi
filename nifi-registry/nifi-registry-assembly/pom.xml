@@ -155,6 +155,12 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties-loader</artifactId>
         </dependency>
+        <!-- H2 version used to migrate from H2 1.x to 2.x+, they will be moved to their own subdirectory -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-h2-database-migrator</artifactId>
+            <version>1.16.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
