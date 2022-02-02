@@ -2872,7 +2872,7 @@ Many of the same system properties are supported by both the Persistent and Writ
 * Change the settings for `nifi.provenance.repository.max.storage.time` (default value of `24 hours`) and `nifi.provenance.repository.max.storage.size` (default value of `1 GB`) to values more suitable for your production environment
 * Change `nifi.provenance.repository.index.shard.size` from the default value of `500 MB` to `4 GB`
 * Change `nifi.provenance.repository.index.threads` from the default value of `2` to either `4` or `8` as the Write Ahead repository enables this to scale better
-* If processing a high volume of events, change `nifi.provenance.repository.rollover.time` from a default of `30 secs` to `1 min` and `nifi.provenance.repository.rollover.size` from the default of `100 MB` to `1 GB`
+* If processing a high volume of events, change `nifi.provenance.repository.rollover.size` from the default of `100 MB` to `1 GB`
 
 Once these property changes have been made, restart NiFi.
 
