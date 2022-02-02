@@ -19,12 +19,14 @@ package org.apache.nifi.processors.gcp.storage;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
@@ -35,6 +37,7 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link DeleteGCSObject}. No connections to the Google Cloud service are made.
  */
+@ExtendWith(MockitoExtension.class)
 public class DeleteGCSObjectTest extends AbstractGCSTest {
     public static final Long GENERATION = 42L;
     static final String KEY = "somefile";
@@ -46,11 +49,6 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
 
     @Mock
     Storage storage;
-
-    @Before
-    public void setup() throws Exception {
-        MockitoAnnotations.initMocks(this);
-    }
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {
@@ -107,17 +105,19 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
         final Long generation1 = GENERATION + 1L;
         final Long generation2 = GENERATION + 2L;
 
-        runner.enqueue("testdata1", ImmutableMap.of(
-                BUCKET_ATTR, bucket1,
-                KEY_ATTR, key1,
-                GENERATION_ATTR, String.valueOf(generation1)
-        ));
+        final Map<String, String> firstAttributes = new LinkedHashMap<>();
+        firstAttributes.put(BUCKET_ATTR, bucket1);
+        firstAttributes.put(KEY_ATTR, key1);
+        firstAttributes.put(GENERATION_ATTR, String.valueOf(generation1));
 
-        runner.enqueue("testdata2", ImmutableMap.of(
-                BUCKET_ATTR, bucket2,
-                KEY_ATTR, key2,
-                GENERATION_ATTR, String.valueOf(generation2)
-        ));
+        runner.enqueue("testdata1", firstAttributes);
+
+        final Map<String, String> secondAttributes = new LinkedHashMap<>();
+        secondAttributes.put(BUCKET_ATTR, bucket2);
+        secondAttributes.put(KEY_ATTR, key2);
+        secondAttributes.put(GENERATION_ATTR, String.valueOf(generation2));
+
+        runner.enqueue("testdata2", secondAttributes);
 
         runner.run(2);
 

@@ -22,7 +22,6 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.commons.io.output.CountingOutputStream;
@@ -192,15 +191,15 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-            .add(BUCKET)
-            .add(KEY)
-            .addAll(super.getSupportedPropertyDescriptors())
-            .add(GENERATION)
-            .add(ENCRYPTION_KEY)
-            .add(RANGE_START)
-            .add(RANGE_LENGTH)
-            .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(BUCKET);
+        descriptors.add(KEY);
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(GENERATION);
+        descriptors.add(ENCRYPTION_KEY);
+        descriptors.add(RANGE_START);
+        descriptors.add(RANGE_LENGTH);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override

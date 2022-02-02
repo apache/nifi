@@ -22,7 +22,6 @@ import com.google.api.pathtemplate.ValidationException;
 import com.google.cloud.pubsub.v1.stub.GrpcSubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStub;
 import com.google.cloud.pubsub.v1.stub.SubscriberStubSettings;
-import com.google.common.collect.ImmutableList;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.pubsub.v1.AcknowledgeRequest;
 import com.google.pubsub.v1.ProjectSubscriptionName;
@@ -51,6 +50,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -191,10 +191,10 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.of(PROJECT_ID,
+        return Collections.unmodifiableList(Arrays.asList(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 SUBSCRIPTION,
-                BATCH_SIZE);
+                BATCH_SIZE));
     }
 
     @Override

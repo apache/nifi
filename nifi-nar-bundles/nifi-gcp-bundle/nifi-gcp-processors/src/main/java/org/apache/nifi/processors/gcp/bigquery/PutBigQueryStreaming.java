@@ -21,7 +21,6 @@ import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.TableId;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -53,6 +52,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,11 +103,10 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor> builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(RECORD_READER)
-                .add(SKIP_INVALID_ROWS)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(RECORD_READER);
+        descriptors.add(SKIP_INVALID_ROWS);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -132,7 +131,7 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
 
             try (final InputStream in = session.read(flowFile)) {
                 final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-                try (final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());) {
+                try (final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
                     Record currentRecord;
                     while ((currentRecord = reader.nextRecord()) != null) {
                         request.addRow(convertMapRecord(currentRecord.toMap()));

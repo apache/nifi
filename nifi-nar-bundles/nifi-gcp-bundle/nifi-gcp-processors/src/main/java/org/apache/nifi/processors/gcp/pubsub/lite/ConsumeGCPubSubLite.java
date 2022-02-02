@@ -24,7 +24,6 @@ import com.google.cloud.pubsublite.SubscriptionPath;
 import com.google.cloud.pubsublite.cloudpubsub.FlowControlSettings;
 import com.google.cloud.pubsublite.cloudpubsub.Subscriber;
 import com.google.cloud.pubsublite.cloudpubsub.SubscriberSettings;
-import com.google.common.collect.ImmutableList;
 import com.google.pubsub.v1.PubsubMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -53,6 +52,7 @@ import org.apache.nifi.processors.gcp.pubsub.AbstractGCPubSubProcessor;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -171,10 +171,10 @@ public class ConsumeGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.of(SUBSCRIPTION,
+        return Collections.unmodifiableList(Arrays.asList(SUBSCRIPTION,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 BYTES_OUTSTANDING,
-                MESSAGES_OUTSTANDING);
+                MESSAGES_OUTSTANDING));
     }
 
     @Override

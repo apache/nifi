@@ -24,6 +24,17 @@
     <artifactId>nifi-cassandra-services-nar</artifactId>
     <packaging>nar</packaging>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Provided in nifi-cassandra-services-api-nar -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

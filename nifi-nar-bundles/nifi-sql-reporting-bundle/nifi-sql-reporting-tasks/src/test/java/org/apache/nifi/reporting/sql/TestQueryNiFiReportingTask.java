@@ -319,13 +319,13 @@ class TestQueryNiFiReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, "select * from BULLETINS, PROVENANCE where " +
                 "bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime " +
-                "and timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
+                "and timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime LIMIT 10");
         reportingTask = initTask(properties);
         currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
-        assertEquals(3003, rows.size());
+        assertEquals(10, rows.size());
 
         final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
@@ -341,7 +341,7 @@ class TestQueryNiFiReportingTask {
 
         mockProvenanceRepository.registerEvent(prov1002);
 
-        currentTime.set(bulletin.getTimestamp().getTime());
+        currentTime.set(bulletin.getTimestamp().toInstant().plusSeconds(1).toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
