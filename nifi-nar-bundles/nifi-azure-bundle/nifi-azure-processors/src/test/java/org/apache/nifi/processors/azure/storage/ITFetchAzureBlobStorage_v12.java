@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.google.common.collect.Sets;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -187,7 +186,7 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
     }
 
     private void assertProvenanceEvents() {
-        Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.FETCH);
+        Set<ProvenanceEventType> expectedEventTypes = Collections.singleton(ProvenanceEventType.FETCH);
 
         Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
                 .map(ProvenanceEventRecord::getEventType)

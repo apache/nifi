@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +44,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
 
-        runner.enqueue(new byte[0], ImmutableMap.of(
+        runner.enqueue(new byte[0], Collections.singletonMap(
                 "filename", KEY
         ));
 
@@ -74,7 +74,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
         runner.setProperty(FetchGCSObject.ENCRYPTION_KEY, ENCRYPTION_KEY);
 
-        runner.enqueue(new byte[0], ImmutableMap.of(
+        runner.enqueue(new byte[0], Collections.singletonMap(
                 "filename", KEY
         ));
 
@@ -101,7 +101,7 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
     public void testFetchNonexistantFile() throws Exception {
         final TestRunner runner = buildNewRunner(new FetchGCSObject());
         runner.setProperty(FetchGCSObject.BUCKET, BUCKET);
-        runner.enqueue(new byte[0], ImmutableMap.of(
+        runner.enqueue(new byte[0], Collections.singletonMap(
                 "filename", "non-existent"
         ));
 

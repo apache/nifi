@@ -23,7 +23,6 @@ import com.google.cloud.BaseServiceException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.TableId;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -104,12 +103,12 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor> builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(DATASET)
-                .add(TABLE_NAME)
-                .add(IGNORE_UNKNOWN)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(DATASET);
+        descriptors.add(TABLE_NAME);
+        descriptors.add(IGNORE_UNKNOWN);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override

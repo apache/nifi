@@ -21,7 +21,6 @@ import com.google.cloud.Service;
 import com.google.cloud.ServiceOptions;
 import com.google.cloud.TransportOptions;
 import com.google.cloud.http.HttpTransportOptions;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
@@ -35,6 +34,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.Proxy;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -125,7 +125,7 @@ public abstract class AbstractGCPProcessor<
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.of(
+        return Collections.unmodifiableList(Arrays.asList(
                 PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 RETRY_COUNT,
@@ -133,7 +133,7 @@ public abstract class AbstractGCPProcessor<
                 PROXY_PORT,
                 HTTP_PROXY_USERNAME,
                 HTTP_PROXY_PASSWORD,
-                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS)
+                ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS))
         );
     }
 

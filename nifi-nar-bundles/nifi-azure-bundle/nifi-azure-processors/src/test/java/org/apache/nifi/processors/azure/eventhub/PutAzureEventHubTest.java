@@ -31,6 +31,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -56,7 +58,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
-import com.google.common.collect.ImmutableMap;
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventHubClient;
 
@@ -155,7 +156,7 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PutAzureEventHub.PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY_ATTRIBUTE_NAME);
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        flowFile.putAttributes(ImmutableMap.of(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
+        flowFile.putAttributes(Collections.singletonMap(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
         testRunner.enqueue(flowFile);
         testRunner.run(1, true);
 
@@ -178,7 +179,7 @@ public class PutAzureEventHubTest {
         setUpStandardTestConfig();
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        flowFile.putAttributes(ImmutableMap.of(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
+        flowFile.putAttributes(Collections.singletonMap(TEST_PARTITIONING_KEY_ATTRIBUTE_NAME, TEST_PARTITIONING_KEY));
 
         // Key not specified
         testRunner.enqueue(flowFile);
@@ -210,7 +211,11 @@ public class PutAzureEventHubTest {
         setUpStandardTestConfig();
 
         MockFlowFile flowFile = new MockFlowFile(1234);
-        ImmutableMap<String, String> demoAttributes = ImmutableMap.of("A", "a", "B", "b", "D", "d", "C", "c");
+        final Map<String, String> demoAttributes = new LinkedHashMap<>();
+        demoAttributes.put("A", "a");
+        demoAttributes.put("B", "b");
+        demoAttributes.put("D", "d");
+        demoAttributes.put("C", "c");
         flowFile.putAttributes(demoAttributes);
 
         testRunner.enqueue(flowFile);

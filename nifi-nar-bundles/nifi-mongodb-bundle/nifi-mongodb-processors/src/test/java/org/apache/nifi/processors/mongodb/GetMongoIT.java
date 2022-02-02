@@ -19,7 +19,6 @@
 package org.apache.nifi.processors.mongodb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Lists;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
@@ -41,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.HashMap;
@@ -60,10 +60,10 @@ public class GetMongoIT {
 
     static {
         CAL = Calendar.getInstance();
-        DOCUMENTS = Lists.newArrayList(
-            new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
-            new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
-            new Document("_id", "doc_3").append("a", 1).append("b", 3)
+        DOCUMENTS = Arrays.asList(
+                new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
+                new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4).append("date_field", CAL.getTime()),
+                new Document("_id", "doc_3").append("a", 1).append("b", 3)
         );
     }
 

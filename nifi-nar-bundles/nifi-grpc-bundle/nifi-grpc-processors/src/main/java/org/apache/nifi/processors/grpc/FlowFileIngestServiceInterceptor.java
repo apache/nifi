@@ -36,7 +36,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Simple gRPC service call interceptor that enforces various controls
@@ -59,7 +59,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
      * @param logger the {@link ComponentLog} for the ListenGRPC processor
      */
     public FlowFileIngestServiceInterceptor(final ComponentLog logger) {
-        this.logger = checkNotNull(logger);
+        this.logger = requireNonNull(logger);
     }
 
     /**
@@ -70,7 +70,7 @@ public class FlowFileIngestServiceInterceptor implements ServerInterceptor {
      * @return this
      */
     public FlowFileIngestServiceInterceptor enforceDNPattern(final Pattern authorizedDNPattern) {
-        this.authorizedDNpattern = checkNotNull(authorizedDNPattern);
+        this.authorizedDNpattern = requireNonNull(authorizedDNPattern);
         return this;
     }
 
