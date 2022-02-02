@@ -16,8 +16,6 @@
  */
 package org.apache.hadoop.hive.ql.io.orc;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
@@ -27,6 +25,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.function.Function;
@@ -2566,11 +2565,12 @@ public class OrcFlowFileWriter implements Writer, MemoryManager.Callback {
     public void appendStripe(byte[] stripe, int offset, int length,
                              StripeInformation stripeInfo,
                              OrcProto.StripeStatistics stripeStatistics) throws IOException {
-        checkArgument(stripe != null, "Stripe must not be null");
-        checkArgument(length <= stripe.length,
-                "Specified length must not be greater specified array length");
-        checkArgument(stripeInfo != null, "Stripe information must not be null");
-        checkArgument(stripeStatistics != null,
+        Objects.requireNonNull(stripe, "Stripe must not be null");
+        if (length > stripe.length) {
+            throw new IllegalArgumentException("Specified length must not be greater specified array length");
+        }
+        Objects.requireNonNull(stripeInfo, "Stripe information must not be null");
+        Objects.requireNonNull(stripeStatistics,
                 "Stripe statistics must not be null");
 
         getStream();

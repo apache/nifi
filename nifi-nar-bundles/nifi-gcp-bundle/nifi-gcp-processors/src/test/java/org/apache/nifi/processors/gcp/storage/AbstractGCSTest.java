@@ -26,29 +26,25 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 
 /**
  * Base class for GCS Unit Tests. Provides a framework for creating a TestRunner instance with always-required credentials.
  */
+@ExtendWith(MockitoExtension.class)
 public abstract class AbstractGCSTest {
     private static final String PROJECT_ID = System.getProperty("test.gcp.project.id", "nifi-test-gcp-project");
     private static final Integer RETRIES = 9;
 
     static final String BUCKET = RemoteStorageHelper.generateBucketName();
-
-    @Before
-    public void setup() throws Exception {
-        MockitoAnnotations.initMocks(this);
-    }
 
     public static TestRunner buildNewRunner(Processor processor) throws Exception {
         final GCPCredentialsService credentialsService = new GCPCredentialsControllerService();
@@ -84,13 +80,10 @@ public abstract class AbstractGCSTest {
         final StorageOptions options = processor.getServiceOptions(runner.getProcessContext(),
                 mockCredentials);
 
-        assertEquals("Project IDs should match",
-                PROJECT_ID, options.getProjectId());
+        assertEquals(PROJECT_ID, options.getProjectId(), "Project IDs should match");
 
-        assertEquals("Retry counts should match",
-                RETRIES.intValue(), options.getRetrySettings().getMaxAttempts());
+        assertEquals(RETRIES.intValue(), options.getRetrySettings().getMaxAttempts(), "Retry counts should match");
 
-        assertSame("Credentials should be configured correctly",
-                mockCredentials, options.getCredentials());
+        assertSame(mockCredentials, options.getCredentials(), "Credentials should be configured correctly");
     }
 }

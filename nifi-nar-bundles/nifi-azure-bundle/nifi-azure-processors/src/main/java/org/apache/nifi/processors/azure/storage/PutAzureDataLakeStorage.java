@@ -21,7 +21,6 @@ import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -173,7 +172,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    @VisibleForTesting
     static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
         long chunkStart = 0;
         long chunkSize;

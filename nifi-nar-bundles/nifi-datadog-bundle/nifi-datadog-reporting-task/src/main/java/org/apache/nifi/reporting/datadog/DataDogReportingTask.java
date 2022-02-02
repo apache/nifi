@@ -18,9 +18,6 @@ package org.apache.nifi.reporting.datadog;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -41,6 +38,7 @@ import org.coursera.metrics.datadog.DynamicTagsCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.ArrayList;
@@ -99,7 +97,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
     private String metricsPrefix;
     private String environment;
     private String statusId;
-    private ConcurrentHashMap<String, AtomicDouble> metricsMap;
+    private ConcurrentHashMap<String, Double> metricsMap;
     private Map<String, String> defaultTags;
     private volatile JmxJvmMetrics virtualMachineMetrics;
     private Logger logger = LoggerFactory.getLogger(getClass().getName());
@@ -133,7 +131,10 @@ public class DataDogReportingTask extends AbstractReportingTask {
         metricsPrefix = context.getProperty(METRICS_PREFIX).evaluateAttributeExpressions().getValue();
         environment = context.getProperty(ENVIRONMENT).evaluateAttributeExpressions().getValue();
         statusId = status.getId();
-        defaultTags = ImmutableMap.of("env", environment, "dataflow_id", statusId);
+        final Map<String, String> tags = new HashMap<>();
+        tags.put("env", environment);
+        tags.put("dataflow_id", statusId);
+        defaultTags = Collections.unmodifiableMap(tags);
         try {
             updateDataDogTransport(context);
         } catch (IOException e) {
@@ -149,11 +150,11 @@ public class DataDogReportingTask extends AbstractReportingTask {
             logger.debug(metricName + ": " + entry.getValue());
             //if metric is not registered yet - register it
             if (!metricsMap.containsKey(metricName)) {
-                metricsMap.put(metricName, new AtomicDouble(entry.getValue()));
+                metricsMap.put(metricName, entry.getValue());
                 metricRegistry.register(metricName, new MetricGauge(metricName, tags));
             }
             //set real time value to metrics map
-            metricsMap.get(metricName).set(entry.getValue());
+            metricsMap.put(metricName, entry.getValue());
         }
     }
 
@@ -199,12 +200,12 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
         @Override
         public Object getValue() {
-            return metricsMap.get(metricName).get();
+            return metricsMap.get(metricName);
         }
 
         @Override
         public List<String> getTags() {
-            List<String> tagsList = Lists.newArrayList();
+            List<String> tagsList = new ArrayList<>();
             for (Map.Entry<String, String> entry : tags.entrySet()) {
                 tagsList.add(entry.getKey() + ":" + entry.getValue());
             }
@@ -266,7 +267,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
         return new MetricRegistry();
     }
 
-    protected ConcurrentHashMap<String, AtomicDouble> getMetricsMap() {
+    protected ConcurrentHashMap<String, Double> getMetricsMap() {
         return new ConcurrentHashMap<>();
     }
 }

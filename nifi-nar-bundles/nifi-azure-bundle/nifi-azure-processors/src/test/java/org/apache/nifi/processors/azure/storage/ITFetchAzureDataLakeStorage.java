@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage;
 
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
-import com.google.common.collect.Sets;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -25,8 +24,10 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -447,7 +448,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, String rangeStart, String rangeLength,
                                  Map<String, String> attributes, String inputFlowFileContent, String expectedFlowFileContent) {
         // GIVEN
-        Set<ProvenanceEventType> expectedEventTypes = Sets.newHashSet(ProvenanceEventType.CONTENT_MODIFIED, ProvenanceEventType.FETCH);
+        Set<ProvenanceEventType> expectedEventTypes = new LinkedHashSet<>(Arrays.asList(ProvenanceEventType.CONTENT_MODIFIED, ProvenanceEventType.FETCH));
 
         setRunnerProperties(fileSystem, directory, filename, rangeStart, rangeLength);
 

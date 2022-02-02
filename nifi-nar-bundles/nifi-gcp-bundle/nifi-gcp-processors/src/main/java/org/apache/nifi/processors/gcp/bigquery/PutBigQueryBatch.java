@@ -26,7 +26,6 @@ import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableDataWriteChannel;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -54,7 +53,9 @@ import org.threeten.bp.temporal.ChronoUnit;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -225,22 +226,21 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor> builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(TABLE_SCHEMA)
-                .add(READ_TIMEOUT)
-                .add(SOURCE_TYPE)
-                .add(CREATE_DISPOSITION)
-                .add(WRITE_DISPOSITION)
-                .add(MAXBAD_RECORDS)
-                .add(CSV_ALLOW_JAGGED_ROWS)
-                .add(CSV_ALLOW_QUOTED_NEW_LINES)
-                .add(CSV_CHARSET)
-                .add(CSV_FIELD_DELIMITER)
-                .add(CSV_QUOTE)
-                .add(CSV_SKIP_LEADING_ROWS)
-                .add(AVRO_USE_LOGICAL_TYPES)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(TABLE_SCHEMA);
+        descriptors.add(READ_TIMEOUT);
+        descriptors.add(SOURCE_TYPE);
+        descriptors.add(CREATE_DISPOSITION);
+        descriptors.add(WRITE_DISPOSITION);
+        descriptors.add(MAXBAD_RECORDS);
+        descriptors.add(CSV_ALLOW_JAGGED_ROWS);
+        descriptors.add(CSV_ALLOW_QUOTED_NEW_LINES);
+        descriptors.add(CSV_CHARSET);
+        descriptors.add(CSV_FIELD_DELIMITER);
+        descriptors.add(CSV_QUOTE);
+        descriptors.add(CSV_SKIP_LEADING_ROWS);
+        descriptors.add(AVRO_USE_LOGICAL_TYPES);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override

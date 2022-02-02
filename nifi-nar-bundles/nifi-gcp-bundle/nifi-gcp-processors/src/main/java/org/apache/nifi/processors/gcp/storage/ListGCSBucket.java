@@ -21,7 +21,6 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -247,17 +246,17 @@ public class ListGCSBucket extends AbstractGCSProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-            .add(LISTING_STRATEGY)
-            .add(TRACKING_STATE_CACHE)
-            .add(INITIAL_LISTING_TARGET)
-            .add(TRACKING_TIME_WINDOW)
-            .add(BUCKET)
-            .add(RECORD_WRITER)
-            .addAll(super.getSupportedPropertyDescriptors())
-            .add(PREFIX)
-            .add(USE_GENERATIONS)
-            .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.add(LISTING_STRATEGY);
+        descriptors.add(TRACKING_STATE_CACHE);
+        descriptors.add(INITIAL_LISTING_TARGET);
+        descriptors.add(TRACKING_TIME_WINDOW);
+        descriptors.add(BUCKET);
+        descriptors.add(RECORD_WRITER);
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(PREFIX);
+        descriptors.add(USE_GENERATIONS);
+        return Collections.unmodifiableList(descriptors);
     }
 
     private static final Set<Relationship> relationships = Collections.singleton(REL_SUCCESS);
