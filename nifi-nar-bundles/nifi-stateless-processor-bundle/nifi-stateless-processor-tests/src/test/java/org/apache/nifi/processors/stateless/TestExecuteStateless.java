@@ -99,7 +99,7 @@ public class TestExecuteStateless {
         runner.enqueue("B", Collections.singletonMap("desired.port", "B"));
         runner.enqueue("C", Collections.singletonMap("desired.port", "C"));
 
-        runner.run(3);
+        runner.run(3, true, true, 60000L);
 
         runner.assertTransferCount(ExecuteStateless.REL_OUTPUT, 3);
         runner.assertTransferCount(ExecuteStateless.REL_ORIGINAL, 3);
