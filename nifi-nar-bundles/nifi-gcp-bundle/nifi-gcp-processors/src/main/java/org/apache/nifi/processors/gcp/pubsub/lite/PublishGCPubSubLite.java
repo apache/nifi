@@ -24,7 +24,6 @@ import com.google.api.gax.rpc.ApiException;
 import com.google.cloud.pubsublite.TopicPath;
 import com.google.cloud.pubsublite.cloudpubsub.Publisher;
 import com.google.cloud.pubsublite.cloudpubsub.PublisherSettings;
-import com.google.common.collect.ImmutableList;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Timestamp;
 import com.google.pubsub.v1.PubsubMessage;
@@ -128,11 +127,11 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.of(TOPIC_NAME,
+        return Collections.unmodifiableList(Arrays.asList(TOPIC_NAME,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 ORDERING_KEY,
                 BATCH_SIZE,
-                BATCH_BYTES);
+                BATCH_BYTES));
     }
 
     @Override

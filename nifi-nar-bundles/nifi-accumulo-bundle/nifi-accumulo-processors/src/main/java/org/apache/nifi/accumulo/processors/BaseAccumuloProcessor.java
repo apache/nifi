@@ -17,12 +17,15 @@
  */
 package org.apache.nifi.accumulo.processors;
 
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.accumulo.controllerservices.BaseAccumuloService;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Base Accumulo class that provides connector services, table name, and thread
@@ -79,7 +82,5 @@ public abstract class BaseAccumuloProcessor extends AbstractProcessor {
      * so that implementations must constructor their own lists knowingly
      */
 
-    protected static final ImmutableList<PropertyDescriptor> baseProperties = ImmutableList.of(ACCUMULO_CONNECTOR_SERVICE,TABLE_NAME,CREATE_TABLE,THREADS,ACCUMULO_TIMEOUT);
-
-
+    protected static final List<PropertyDescriptor> baseProperties = Collections.unmodifiableList(Arrays.asList(ACCUMULO_CONNECTOR_SERVICE, TABLE_NAME, CREATE_TABLE, THREADS, ACCUMULO_TIMEOUT));
 }

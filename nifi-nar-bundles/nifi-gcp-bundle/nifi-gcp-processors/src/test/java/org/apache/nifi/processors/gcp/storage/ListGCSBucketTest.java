@@ -21,9 +21,6 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -33,12 +30,17 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -64,10 +66,10 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.OWNER_ATT
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.OWNER_TYPE_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.UPDATE_TIME_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_ATTR;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
@@ -139,7 +141,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        assertEquals("Cluster StateMap should be fresh (version -1L)", -1L, runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion());
+        assertEquals(-1L, runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion(), "Cluster StateMap should be fresh (version -1L)");
         assertTrue(processor.getStateKeys().isEmpty());
 
         processor.restoreState(runner.getProcessSessionFactory().createSession());
@@ -159,11 +161,10 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(
-                ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(4L),
-                ListGCSBucket.CURRENT_KEY_PREFIX + "0", "test-key-0",
-                ListGCSBucket.CURRENT_KEY_PREFIX + "1", "test-key-1"
-        );
+        final Map<String, String> state = new LinkedHashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(4L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "test-key-0");
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "1", "test-key-1");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
@@ -186,26 +187,24 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        assertEquals("Cluster StateMap should be fresh (version -1L)",
-                -1L,
-                runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion()
+        assertEquals(-1L,
+                runner.getProcessContext().getStateManager().getState(Scope.CLUSTER).getVersion(),
+                "Cluster StateMap should be fresh (version -1L)"
         );
 
-        final Set<String> keys = ImmutableSet.of("test-key-0", "test-key-1");
+        final Set<String> keys = new LinkedHashSet<>(Arrays.asList("test-key-0", "test-key-1"));
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         processor.persistState(session, 4L, keys);
 
         final StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
-        assertEquals("Cluster StateMap should have been written to", 1L, stateMap.getVersion());
+        assertEquals(1L, stateMap.getVersion(), "Cluster StateMap should have been written to");
 
-        assertEquals(
-                ImmutableMap.of(
-                        ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(4L),
-                        ListGCSBucket.CURRENT_KEY_PREFIX+"0", "test-key-0",
-                        ListGCSBucket.CURRENT_KEY_PREFIX+"1", "test-key-1"
-                ),
-                stateMap.toMap()
-        );
+        final Map<String, String> state = new HashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(4L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "test-key-0");
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "1", "test-key-1");
+
+        assertEquals(state, stateMap.toMap());
     }
 
     @Test
@@ -218,7 +217,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         runner.getStateManager().setFailOnStateSet(Scope.CLUSTER, true);
 
-        final Set<String> keys = ImmutableSet.of("test-key-0", "test-key-1");
+        final Set<String> keys = new HashSet<>(Arrays.asList("test-key-0", "test-key-1"));
 
         assertTrue(runner.getLogger().getErrorMessages().isEmpty());
 
@@ -249,6 +248,13 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         return blob;
     }
 
+    private Blob buildMockBlobWithoutBucket(String bucket, String key, long updateTime) {
+        final Blob blob = mock(Blob.class);
+        when(blob.getName()).thenReturn(key);
+        when(blob.getUpdateTime()).thenReturn(updateTime);
+        return blob;
+    }
+
     private void verifyConfigVerification(final TestRunner runner, final ListGCSBucket processor, final int expectedCount) {
         final List<ConfigVerificationResult> verificationResults = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
         assertEquals(3, verificationResults.size());
@@ -261,8 +267,9 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         final ConfigVerificationResult listingResult = verificationResults.get(2);
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, listingResult.getOutcome());
 
-        assertTrue(String.format("Expected %s blobs to be counted, but explanation was: %s", expectedCount, listingResult.getExplanation()),
-                listingResult.getExplanation().matches(String.format(".*finding %s blobs.*", expectedCount)));
+        assertTrue(
+                listingResult.getExplanation().matches(String.format(".*finding %s blobs.*", expectedCount)),
+                String.format("Expected %s blobs to be counted, but explanation was: %s", expectedCount, listingResult.getExplanation()));
     }
 
     @Test
@@ -273,7 +280,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of(
+        final Iterable<Blob> mockList = Arrays.asList(
                 buildMockBlob("blob-bucket-1", "blob-key-1", 2L),
                 buildMockBlob("blob-bucket-2", "blob-key-2", 3L)
         );
@@ -305,7 +312,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
 
         assertEquals(3L, processor.getStateTimestamp());
 
-        assertEquals(ImmutableSet.of("blob-key-2"), processor.getStateKeys());
+        assertEquals(Collections.singleton("blob-key-2"), processor.getStateKeys());
     }
 
     @Test
@@ -316,7 +323,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of(
+        final Iterable<Blob> mockList = Collections.singletonList(
                 buildMockBlob("blob-bucket-1", "blob-key-1", 2L)
         );
 
@@ -348,7 +355,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of();
+        final Iterable<Blob> mockList = Collections.emptyList();
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -362,7 +369,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.assertTransferCount(ListGCSBucket.REL_SUCCESS, 0);
         verifyConfigVerification(runner, processor, 0);
 
-        assertEquals("No state should be persisted on an empty return", -1L, runner.getStateManager().getState(Scope.CLUSTER).getVersion());
+        assertEquals(-1L, runner.getStateManager().getState(Scope.CLUSTER).getVersion(), "No state should be persisted on an empty return");
     }
 
     @Test
@@ -373,12 +380,14 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L), ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-1");
+        final Map<String, String> state = new LinkedHashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-1");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
-        final Iterable<Blob> mockList = ImmutableList.of(
-                buildMockBlob("blob-bucket-1", "blob-key-1", 1L),
+        final Iterable<Blob> mockList = Arrays.asList(
+                buildMockBlobWithoutBucket("blob-bucket-1", "blob-key-1", 1L),
                 buildMockBlob("blob-bucket-2", "blob-key-2", 2L)
         );
 
@@ -404,7 +413,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals("blob-key-2", flowFile.getAttribute(KEY_ATTR));
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
         assertEquals(2L, processor.getStateTimestamp());
-        assertEquals(ImmutableSet.of("blob-key-2"), processor.getStateKeys());
+        assertEquals(Collections.singleton("blob-key-2"), processor.getStateKeys());
     }
 
     @Test
@@ -415,16 +424,15 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(
-                ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L),
-                ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2"
-        );
+        final Map<String, String> state = new LinkedHashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
-        final Iterable<Blob> mockList = ImmutableList.of(
+        final Iterable<Blob> mockList = Arrays.asList(
                 buildMockBlob("blob-bucket-1", "blob-key-1", 2L),
-                buildMockBlob("blob-bucket-2", "blob-key-2", 1L)
+                buildMockBlobWithoutBucket("blob-bucket-2", "blob-key-2", 1L)
         );
 
         when(mockBlobPage.getValues())
@@ -454,7 +462,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
         assertEquals(2L, processor.getStateTimestamp());
 
-        assertEquals(ImmutableSet.of("blob-key-1"), processor.getStateKeys());
+        assertEquals(Collections.singleton("blob-key-1"), processor.getStateKeys());
     }
 
     @Test
@@ -465,16 +473,15 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(
-                ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L),
-                ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2"
-        );
+        final Map<String, String> state = new LinkedHashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
-        final Iterable<Blob> mockList = ImmutableList.of(
+        final Iterable<Blob> mockList = Arrays.asList(
                 buildMockBlob("blob-bucket-1", "blob-key-1", 2L),
-                buildMockBlob("blob-bucket-2", "blob-key-2", 1L),
+                buildMockBlobWithoutBucket("blob-bucket-2", "blob-key-2", 1L),
                 buildMockBlob("blob-bucket-3", "blob-key-3", 2L)
         );
 
@@ -509,7 +516,8 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals("blob-key-3",flowFile.getAttribute(KEY_ATTR));
         assertEquals("2", flowFile.getAttribute(UPDATE_TIME_ATTR));
         assertEquals(2L, processor.getStateTimestamp());
-        assertEquals(ImmutableSet.of("blob-key-1", "blob-key-3"), processor.getStateKeys());
+
+        assertEquals(new HashSet<>(Arrays.asList("blob-key-1", "blob-key-3")), processor.getStateKeys());
     }
 
     @Test
@@ -520,16 +528,15 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Map<String, String> state = ImmutableMap.of(
-                ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L),
-                ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2"
-        );
+        final Map<String, String> state = new LinkedHashMap<>();
+        state.put(ListGCSBucket.CURRENT_TIMESTAMP, String.valueOf(1L));
+        state.put(ListGCSBucket.CURRENT_KEY_PREFIX + "0", "blob-key-2");
 
         runner.getStateManager().setState(state, Scope.CLUSTER);
 
-        final Iterable<Blob> mockList = ImmutableList.of(
+        final Iterable<Blob> mockList = Arrays.asList(
                 buildMockBlob("blob-bucket-1", "blob-key-1", 1L),
-                buildMockBlob("blob-bucket-2", "blob-key-2", 1L),
+                buildMockBlobWithoutBucket("blob-bucket-2", "blob-key-2", 1L),
                 buildMockBlob("blob-bucket-3", "blob-key-3", 1L)
         );
 
@@ -564,7 +571,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         assertEquals("blob-key-3", flowFile.getAttribute(KEY_ATTR));
         assertEquals("1", flowFile.getAttribute(UPDATE_TIME_ATTR));
         assertEquals(1L, processor.getStateTimestamp());
-        assertEquals(ImmutableSet.of("blob-key-1", "blob-key-3"), processor.getStateKeys());
+        assertEquals(new HashSet<>(Arrays.asList("blob-key-1", "blob-key-3")), processor.getStateKeys());
     }
 
     @Test
@@ -600,7 +607,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(blob.getCreateTime()).thenReturn(CREATE_TIME);
         when(blob.getUpdateTime()).thenReturn(UPDATE_TIME);
 
-        final Iterable<Blob> mockList = ImmutableList.of(blob);
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -646,7 +653,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(mockUser.getEmail()).thenReturn(OWNER_USER_EMAIL);
         when(blob.getOwner()).thenReturn(mockUser);
 
-        final Iterable<Blob> mockList = ImmutableList.of(blob);
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -677,7 +684,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(mockGroup.getEmail()).thenReturn(OWNER_GROUP_EMAIL);
         when(blob.getOwner()).thenReturn(mockGroup);
 
-        final Iterable<Blob> mockList = ImmutableList.of(blob);
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -709,7 +716,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(mockDomain.getDomain()).thenReturn(OWNER_DOMAIN);
         when(blob.getOwner()).thenReturn(mockDomain);
 
-        final Iterable<Blob> mockList = ImmutableList.of(blob);
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
         when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
@@ -740,7 +747,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         when(mockProject.getProjectId()).thenReturn(OWNER_PROJECT_ID);
         when(blob.getOwner()).thenReturn(mockProject);
 
-        final Iterable<Blob> mockList = ImmutableList.of(blob);
+        final Iterable<Blob> mockList = Collections.singletonList(blob);
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -766,11 +773,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         addRequiredPropertiesToRunner(runner);
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of();
-
-        when(mockBlobPage.getValues()).thenReturn(mockList);
-        when(mockBlobPage.getNextPage()).thenReturn(null);
-        when(storage.list(anyString(), any(Storage.BlobListOption[].class))).thenReturn(mockBlobPage);
+        final Iterable<Blob> mockList = Collections.emptyList();
 
         runner.getStateManager().setFailOnStateGet(Scope.CLUSTER, true);
         runner.enqueue("test");
@@ -790,7 +793,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.setProperty(ListGCSBucket.PREFIX, PREFIX);
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of();
+        final Iterable<Blob> mockList = Collections.emptyList();
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);
@@ -813,7 +816,7 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         runner.setProperty(ListGCSBucket.USE_GENERATIONS, String.valueOf(USE_GENERATIONS));
         runner.assertValid();
 
-        final Iterable<Blob> mockList = ImmutableList.of();
+        final Iterable<Blob> mockList = Collections.emptyList();
 
         when(mockBlobPage.getValues()).thenReturn(mockList);
         when(mockBlobPage.getNextPage()).thenReturn(null);

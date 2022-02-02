@@ -17,10 +17,6 @@
 
 package org.apache.nifi.processors.enrich;
 
-
-
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -33,6 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -187,16 +184,16 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
      * @param queryParser The parsing mechanism being used to parse the data into groups
      * @param queryRegex The regex to be used to split the query results into groups. The regex MUST implement at least on named capture group "KEY" to be used to populate the table rows
      * @param lookupKey The regular expression number or the column of a split to be used for matching
-     * @return  Table with attribute names and values where each Table row uses the value of the KEY named capture group specified in @param queryRegex
+     * @return  Row Map with attribute names and values where each Map row uses the value of the KEY named capture group specified in @param queryRegex
      */
-    protected Table<String, String, String> parseBatchResponse(String rawResult, String queryParser, String queryRegex, int lookupKey, String schema) {
+    protected Map<String, Map<String, String>> parseBatchResponse(String rawResult, String queryParser, String queryRegex, int lookupKey, String schema) {
         // Note the hardcoded record0.
         //  Since iteration is done within the parser and Multimap is used, the record number here will always be 0.
         // Consequentially, 0 is hardcoded so that batched and non batched attributes follow the same naming
         // conventions
         final String recordPosition = ".record0";
 
-        final Table<String, String, String> results = HashBasedTable.create();
+        final Map<String, Map<String, String>> results = new LinkedHashMap<>();
 
         switch (queryParser) {
             case "Split":
@@ -207,7 +204,15 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                     String[] splitResult = line.split(queryRegex);
 
                     for (int r = 0; r < splitResult.length; r++) {
-                        results.put(splitResult[ lookupKey - 1 ], "enrich." + schema + recordPosition + ".group" + String.valueOf(r), splitResult[r]);
+                        final String key = splitResult[ lookupKey - 1 ];
+                        final String group = "enrich." + schema + recordPosition + ".group" + r;
+                        final String result = splitResult[r];
+                        Map<String, String> row = results.get(key);
+                        if (row == null) {
+                            row = new LinkedHashMap<>();
+                        }
+                        row.put(group, result);
+                        results.put(key, row);
                     }
                 }
                 break;
@@ -223,7 +228,15 @@ public abstract class AbstractEnrichProcessor extends AbstractProcessor {
                     // Note that RegEx matches capture group 0 is usually broad but starting with it anyway
                     // for the sake of purity
                     for (int r = 0; r <= matcher.groupCount(); r++) {
-                        results.put(matcher.group(lookupKey), "enrich." + schema + recordPosition + ".group" + String.valueOf(r), matcher.group(r));
+                        final String key = matcher.group(lookupKey);
+                        final String group = "enrich." + schema + recordPosition + ".group" + String.valueOf(r);
+                        final String result = matcher.group(r);
+                        Map<String, String> row = results.get(key);
+                        if (row == null) {
+                            row = new LinkedHashMap<>();
+                        }
+                        row.put(group, result);
+                        results.put(key, row);
                     }
                 } catch (IndexOutOfBoundsException e) {
                     getLogger().warn("Could not find capture group {} while processing result. You may want to review your " +

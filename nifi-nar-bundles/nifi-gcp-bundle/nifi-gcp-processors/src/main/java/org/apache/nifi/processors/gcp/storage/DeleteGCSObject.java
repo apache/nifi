@@ -18,7 +18,6 @@ package org.apache.nifi.processors.gcp.storage;
 
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -32,6 +31,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -79,12 +79,12 @@ public class DeleteGCSObject extends AbstractGCSProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(BUCKET)
-                .add(KEY)
-                .add(GENERATION)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(BUCKET);
+        descriptors.add(KEY);
+        descriptors.add(GENERATION);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override

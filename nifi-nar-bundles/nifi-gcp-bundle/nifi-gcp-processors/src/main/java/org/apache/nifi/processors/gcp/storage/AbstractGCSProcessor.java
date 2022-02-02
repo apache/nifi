@@ -21,7 +21,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.BaseServiceException;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -68,9 +67,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .build();
+        return Collections.unmodifiableList(super.getSupportedPropertyDescriptors());
     }
 
     @Override

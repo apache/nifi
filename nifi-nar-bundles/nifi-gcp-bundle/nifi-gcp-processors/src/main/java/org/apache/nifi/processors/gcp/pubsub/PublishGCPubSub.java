@@ -24,7 +24,6 @@ import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.cloud.pubsub.v1.stub.GrpcPublisherStub;
 import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
-import com.google.common.collect.ImmutableList;
 import com.google.iam.v1.TestIamPermissionsRequest;
 import com.google.iam.v1.TestIamPermissionsResponse;
 import com.google.protobuf.ByteString;
@@ -109,10 +108,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.of(PROJECT_ID,
+        return Collections.unmodifiableList(Arrays.asList(PROJECT_ID,
                 GCP_CREDENTIALS_PROVIDER_SERVICE,
                 TOPIC_NAME,
-                BATCH_SIZE);
+                BATCH_SIZE));
     }
 
     @Override

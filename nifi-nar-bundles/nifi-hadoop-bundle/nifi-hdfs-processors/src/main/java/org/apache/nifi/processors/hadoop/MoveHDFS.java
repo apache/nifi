@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -57,6 +56,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -334,7 +334,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context,
                                        final ProcessSession session, FlowFile parentFlowFile) {
-        Preconditions.checkState(parentFlowFile != null, "No parent flowfile for this batch was provided");
+        Objects.requireNonNull(parentFlowFile, "No parent flowfile for this batch was provided");
 
         // process the batch of files
         final Configuration conf = getConfiguration();
