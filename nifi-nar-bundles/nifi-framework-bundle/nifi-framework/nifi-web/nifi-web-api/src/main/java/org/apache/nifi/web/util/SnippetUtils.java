@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web.util;
 
-
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.RequestAction;
@@ -1014,5 +1012,4 @@ public final class SnippetUtils {
             }
         }
     }
-
 }
