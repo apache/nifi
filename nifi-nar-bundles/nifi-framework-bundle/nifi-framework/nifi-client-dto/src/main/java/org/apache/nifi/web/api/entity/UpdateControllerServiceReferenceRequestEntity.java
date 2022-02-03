@@ -32,6 +32,7 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
     private String state;
     private Map<String, RevisionDTO> referencingComponentRevisions;
     private Boolean disconnectedNodeAcknowledged;
+    private Boolean uiOnly;
 
     @ApiModelProperty(
         value = "The identifier of the Controller Service."
@@ -76,5 +77,17 @@ public class UpdateControllerServiceReferenceRequestEntity extends Entity {
 
     public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
+    }
+
+    @ApiModelProperty(
+        value = "Indicates whether or not the response should only include fields necessary for rendering the NiFi User Interface. As such, when this value is set to true, some fields may be " +
+            "returned as null values, and the selected fields may change at any time without notice. As a result, this value should not be set to true by any client other than the UI."
+    )
+    public Boolean getUiOnly() {
+        return uiOnly;
+    }
+
+    public void setUiOnly(final Boolean uiOnly) {
+        this.uiOnly = uiOnly;
     }
 }

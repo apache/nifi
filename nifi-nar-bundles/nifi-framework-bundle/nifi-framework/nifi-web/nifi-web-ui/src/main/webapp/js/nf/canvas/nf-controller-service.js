@@ -165,7 +165,10 @@
         return $.ajax({
             type: 'GET',
             url: controllerServiceEntity.uri,
-            dataType: 'json'
+            dataType: 'json',
+            data: {
+                uiOnly: true
+            }
         }).done(function (response) {
             renderControllerService(serviceTable, response);
         }).fail(nfErrorHandler.handleAjaxError);
@@ -625,7 +628,8 @@
         var updateControllerServiceEntity = {
             'revision': nfClient.getRevision(controllerServiceEntity),
             'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'state': enabled ? 'ENABLED' : 'DISABLED'
+            'state': enabled ? 'ENABLED' : 'DISABLED',
+            'uiOnly': true
         };
 
         var updated = $.ajax({
@@ -752,7 +756,8 @@
             'id': controllerServiceEntity.id,
             'state': running ? 'RUNNING' : 'STOPPED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components
@@ -822,7 +827,10 @@
             return $.ajax({
                 type: 'GET',
                 url: '../nifi-api/controller-services/' + encodeURIComponent(controllerServiceId),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).fail(nfErrorHandler.handleAjaxError);
         }
     };
@@ -857,7 +865,10 @@
                 var service = $.ajax({
                     type: 'GET',
                     url: controllerServiceEntity.uri,
-                    dataType: 'json'
+                    dataType: 'json',
+                    data: {
+                        uiOnly: true
+                    }
                 });
 
                 $.when(bulletins, service).done(function (bulletinResponse, serviceResult) {
@@ -1048,7 +1059,8 @@
             'id': controllerServiceEntity.id,
             'state': enabled ? 'ENABLED' : 'DISABLED',
             'referencingComponentRevisions': referencingRevisions,
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged()
+            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+            'uiOnly': true
         };
 
         // issue the request to update the referencing components
@@ -1955,7 +1967,10 @@
             var reloadService = $.ajax({
                 type: 'GET',
                 url: controllerServiceEntity.uri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             });
 
             // get the controller service history
@@ -2145,7 +2160,10 @@
             var reloadService = $.ajax({
                 type: 'GET',
                 url: controllerServiceEntity.uri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             });
 
             // get the controller service history
@@ -2173,7 +2191,7 @@
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 nfCommon.populateField('read-only-controller-service-name', controllerService['name']);
                 nfCommon.populateField('read-only-controller-service-comments', controllerService['comments']);
-                
+
                 $('#controller-service-configuration').modal('setSubtitle', nfCommon.formatType(controllerService));
 
                 // set the implemented apis
