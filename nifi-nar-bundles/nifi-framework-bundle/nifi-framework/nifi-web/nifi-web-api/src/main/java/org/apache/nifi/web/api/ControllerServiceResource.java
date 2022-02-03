@@ -178,7 +178,9 @@ public class ControllerServiceResource extends ApplicationResource {
             response = ControllerServiceEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /controller-services/{uuid}")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -194,7 +196,8 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The controller service id.",
                     required = true
             )
-            @PathParam("id") final String id) {
+            @PathParam("id") final String id,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         if (isReplicateRequest()) {
             return replicate(HttpMethod.GET);
@@ -208,10 +211,14 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // get the controller service
         final ControllerServiceEntity entity = serviceFacade.getControllerService(id);
+        if (uiOnly) {
+            stripNonUiRelevantFields(entity);
+        }
         populateRemainingControllerServiceEntityContent(entity);
 
         return generateOkResponse(entity).build();
     }
+
 
     /**
      * Returns the descriptor for the specified property.
@@ -575,6 +582,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ControllerServiceReferencingComponentsEntity entity = serviceFacade.updateControllerServiceReferencingComponents(
                             referencingRevisions, updateReferenceRequest.getId(), scheduledState, controllerServiceState);
 
+                    if (updateReferenceRequest.getUiOnly() == Boolean.TRUE) {
+                        entity.getControllerServiceReferencingComponents().forEach(this::stripNonUiRelevantFields);
+                    }
+
                     return generateOkResponse(entity).build();
                 }
         );
@@ -837,6 +848,10 @@ public class ControllerServiceResource extends ApplicationResource {
                     // update the controller service
                     final ControllerServiceEntity entity = serviceFacade.updateControllerService(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
                     populateRemainingControllerServiceEntityContent(entity);
+
+                    if (runStatusEntity.getUiOnly() == Boolean.TRUE) {
+                        stripNonUiRelevantFields(entity);
+                    }
 
                     return generateOkResponse(entity).build();
                 }

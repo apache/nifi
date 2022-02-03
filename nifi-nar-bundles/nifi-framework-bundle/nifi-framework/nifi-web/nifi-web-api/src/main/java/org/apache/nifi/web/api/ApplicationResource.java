@@ -53,8 +53,12 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.api.cookie.ApplicationCookieService;
 import org.apache.nifi.web.api.cookie.StandardApplicationCookieService;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
@@ -1271,5 +1275,34 @@ public abstract class ApplicationResource {
         // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
         // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
         return baseUrl + "/nifi/";
+    }
+
+    protected void stripNonUiRelevantFields(final ControllerServiceEntity serviceEntity) {
+        final ControllerServiceDTO dto = serviceEntity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities == null) {
+            return;
+        }
+
+        referencingEntities.forEach(this::stripNonUiRelevantFields);
+    }
+
+    protected void stripNonUiRelevantFields(final ControllerServiceReferencingComponentEntity entity) {
+        final ControllerServiceReferencingComponentDTO dto = entity.getComponent();
+        if (dto == null) {
+            return;
+        }
+
+        dto.setDescriptors(null);
+        dto.setProperties(null);
+
+        final Set<ControllerServiceReferencingComponentEntity> referencingEntities = dto.getReferencingComponents();
+        if (referencingEntities != null) {
+            referencingEntities.forEach(this::stripNonUiRelevantFields);
+        }
     }
 }

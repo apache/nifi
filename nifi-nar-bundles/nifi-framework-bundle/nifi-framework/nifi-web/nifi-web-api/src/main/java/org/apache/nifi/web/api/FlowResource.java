@@ -113,7 +113,6 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataSetEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowsEntity;
 import org.apache.nifi.web.api.metrics.JsonFormatPrometheusMetricsWriter;
-import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.PrometheusMetricsWriter;
 import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
@@ -482,7 +481,9 @@ public class FlowResource extends ApplicationResource {
             response = ControllerServicesEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -492,7 +493,7 @@ public class FlowResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response getControllerServicesFromController() {
+    public Response getControllerServicesFromController(@QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         authorizeFlow();
 
@@ -502,6 +503,10 @@ public class FlowResource extends ApplicationResource {
 
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(null, false, false);
+        if (uiOnly) {
+            controllerServices.forEach(this::stripNonUiRelevantFields);
+        }
+
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
@@ -527,7 +532,9 @@ public class FlowResource extends ApplicationResource {
             response = ControllerServicesEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
-            }
+            },
+            notes = "If the uiOnly query parameter is provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User Interface. As such, " +
+                "the selected fields may change at any time, even during incremental releases, without warning. As a result, this parameter should not be provided by any client other than the UI."
     )
     @ApiResponses(
             value = {
@@ -540,8 +547,8 @@ public class FlowResource extends ApplicationResource {
     public Response getControllerServicesFromGroup(
             @ApiParam(value = "The process group id.", required = true) @PathParam("id") String groupId,
             @ApiParam("Whether or not to include parent/ancestory process groups") @QueryParam("includeAncestorGroups") @DefaultValue("true") boolean includeAncestorGroups,
-            @ApiParam("Whether or not to include descendant process groups") @QueryParam("includeDescendantGroups") @DefaultValue("false") boolean includeDescendantGroups
-            ) {
+            @ApiParam("Whether or not to include descendant process groups") @QueryParam("includeDescendantGroups") @DefaultValue("false") boolean includeDescendantGroups,
+            @QueryParam("uiOnly") @DefaultValue("false") final boolean uiOnly) {
 
         authorizeFlow();
 
@@ -551,6 +558,9 @@ public class FlowResource extends ApplicationResource {
 
         // get all the controller services
         final Set<ControllerServiceEntity> controllerServices = serviceFacade.getControllerServices(groupId, includeAncestorGroups, includeDescendantGroups);
+        if (uiOnly) {
+            controllerServices.forEach(this::stripNonUiRelevantFields);
+        }
         controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
 
         // create the response entity
@@ -561,6 +571,7 @@ public class FlowResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
+
 
     // ---------------
     // reporting-tasks
