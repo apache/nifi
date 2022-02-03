@@ -985,8 +985,23 @@ NfRegistryApi.prototype = {
                 return of({});
             })
         );
+    },
+    /**
+     * Get NiFi Registry version string.
+     *
+     * Returns {*}
+     */
+    getRegistryVersion: function (action, resource) {
+        return this.http.get('../nifi-registry-api/version').pipe(
+            map(function (response) {
+                return response;
+            }),
+            catchError(function (error) {
+                // If failed, return an empty object.
+                return of({});
+            })
+        );
     }
-
 };
 
 NfRegistryApi.parameters = [

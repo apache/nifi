@@ -21,7 +21,9 @@ import NfRegistryService from 'services/nf-registry.service';
 import NfStorage from 'services/nf-storage.service';
 import nfRegistryAnimations from 'nf-registry.animations';
 import NfRegistryApi from 'services/nf-registry.api';
+import { NfRegistryExplorerAbout } from 'components/explorer/dialogs/about/nf-registry-explorer-about';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 
 /**
  * NfRegistry constructor.
@@ -32,15 +34,17 @@ import { Router } from '@angular/router';
  * @param nfRegistryApi     The api service.
  * @param changeDetectorRef     The change detector ref.
  * @param router                The angular router module.
+ * @param matDialog             The angular material dialog service
  * @constructor
  */
-function NfRegistry(http, nfStorage, nfRegistryService, nfRegistryApi, changeDetectorRef, router) {
+function NfRegistry(http, nfStorage, nfRegistryService, nfRegistryApi, changeDetectorRef, router, matDialog) {
     this.http = http;
     this.nfStorage = nfStorage;
     this.nfRegistryService = nfRegistryService;
     this.nfRegistryApi = nfRegistryApi;
     this.cd = changeDetectorRef;
     this.router = router;
+    this.matDialog = matDialog;
 }
 
 NfRegistry.prototype = {
@@ -55,6 +59,10 @@ NfRegistry.prototype = {
 
         this.nfRegistryApi.getRegistryConfig().subscribe(function (registryConfig) {
             self.nfRegistryService.registry.config = registryConfig;
+        });
+
+        this.nfRegistryApi.getRegistryVersion().subscribe(function (registryVersion) {
+            self.nfRegistryService.registry.version = registryVersion;
         });
     },
 
@@ -99,6 +107,11 @@ NfRegistry.prototype = {
         } else {
             self.router.navigateByUrl('login');
         }
+    },
+    showAboutDialog: function () {
+        this.matDialog.open(NfRegistryExplorerAbout, {
+            data: this.nfRegistryService.registry.version
+        });
     }
 };
 
@@ -119,7 +132,8 @@ NfRegistry.parameters = [
     NfRegistryService,
     NfRegistryApi,
     ChangeDetectorRef,
-    Router
+    Router,
+    MatDialog
 ];
 
 export default NfRegistry;
