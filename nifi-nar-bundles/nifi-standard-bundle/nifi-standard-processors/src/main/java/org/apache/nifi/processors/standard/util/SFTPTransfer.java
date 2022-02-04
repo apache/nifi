@@ -41,7 +41,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.ssh.PatchedSFTPEngine;
 import org.apache.nifi.processors.standard.ssh.SSHClientProvider;
@@ -54,7 +53,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
@@ -73,6 +71,10 @@ import java.util.stream.Collectors;
 
 public class SFTPTransfer implements FileTransfer {
     private static final SSHClientProvider SSH_CLIENT_PROVIDER = new StandardSSHClientProvider();
+
+    private static final String DOT_PREFIX = ".";
+    private static final String RELATIVE_CURRENT_DIRECTORY = DOT_PREFIX;
+    private static final String RELATIVE_PARENT_DIRECTORY = "..";
 
     private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES;
     private static final Set<String> DEFAULT_CIPHER_NAMES;
@@ -278,7 +280,7 @@ public class SFTPTransfer implements FileTransfer {
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
         final boolean symlink  = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
-        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
+        final Pattern fileFilterPattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
         final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
         final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
@@ -286,7 +288,7 @@ public class SFTPTransfer implements FileTransfer {
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
         if (pathPattern != null) {
-            Path reldir = path == null ? Paths.get(".") : Paths.get(path);
+            Path reldir = path == null ? Paths.get(RELATIVE_CURRENT_DIRECTORY) : Paths.get(path);
             if (remotePath != null) {
                 reldir = Paths.get(remotePath).relativize(reldir);
             }
@@ -298,26 +300,25 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         final SFTPClient sftpClient = getSFTPClient(null);
-        final boolean isPathMatch = pathFilterMatches;
+        final boolean pathMatched = pathFilterMatches;
+        final boolean filteringDisabled = !applyFilters;
 
-        //subDirs list is used for both 'sub directories' and 'symlinks'
         final List<RemoteResourceInfo> subDirs = new ArrayList<>();
         try {
             final RemoteResourceFilter filter = (entry) -> {
                 final String entryFilename = entry.getName();
 
                 // skip over 'this directory' and 'parent directory' special files regardless of ignoring dot files
-                if (entryFilename.equals(".") || entryFilename.equals("..")) {
+                if (RELATIVE_CURRENT_DIRECTORY.equals(entryFilename) || RELATIVE_PARENT_DIRECTORY.equals(entryFilename)) {
                     return false;
                 }
 
                 // skip files and directories that begin with a dot if we're ignoring them
-                if (ignoreDottedFiles && entryFilename.startsWith(".")) {
+                if (ignoreDottedFiles && entryFilename.startsWith(DOT_PREFIX)) {
                     return false;
                 }
 
-                // if is a directory and we're supposed to recurse OR if is a link and we're supposed to follow symlink
-                if ((recurse && entry.isDirectory()) || (symlink && (entry.getAttributes().getType() == FileMode.Type.SYMLINK))){
+                if (isIncludedDirectory(entry, recurse, symlink)) {
                     subDirs.add(entry);
                     return false;
                 }
@@ -328,9 +329,8 @@ public class SFTPTransfer implements FileTransfer {
                     return false;
                 }
 
-                // if is not a directory and is not a link and it matches FILE_FILTER_REGEX - then let's add it
-                if (!entry.isDirectory() && !(entry.getAttributes().getType() == FileMode.Type.SYMLINK) && (!applyFilters || isPathMatch)) {
-                    if (pattern == null || !applyFilters || pattern.matcher(entryFilename).matches()) {
+                if (isIncludedFile(entry, symlink) && (filteringDisabled || pathMatched)) {
+                    if (filteringDisabled || fileFilterPattern == null || fileFilterPattern.matcher(entryFilename).matches()) {
                         listing.add(newFileInfo(entry, path));
                     }
                 }
@@ -339,7 +339,7 @@ public class SFTPTransfer implements FileTransfer {
             };
 
             if (path == null || path.trim().isEmpty()) {
-                sftpClient.ls(".", filter);
+                sftpClient.ls(RELATIVE_CURRENT_DIRECTORY, filter);
             } else {
                 sftpClient.ls(path, filter);
             }
@@ -368,6 +368,47 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
 
+    }
+
+    /**
+     * Include remote resources when regular file found or when symbolic links are enabled and the resource is a link
+     *
+     * @param remoteResourceInfo Remote Resource Information
+     * @param symlinksEnabled Follow symbolic links enabled
+     * @return Included file status
+     */
+    private boolean isIncludedFile(final RemoteResourceInfo remoteResourceInfo, final boolean symlinksEnabled) {
+        return remoteResourceInfo.isRegularFile() || (symlinksEnabled && isSymlink(remoteResourceInfo));
+    }
+
+    /**
+     * Include remote resources when recursion is enabled or when symbolic links are enabled and the resource is a directory link
+     *
+     * @param remoteResourceInfo Remote Resource Information
+     * @param recursionEnabled Recursion enabled status
+     * @param symlinksEnabled Follow symbolic links enabled
+     * @return Included directory status
+     */
+    private boolean isIncludedDirectory(final RemoteResourceInfo remoteResourceInfo, final boolean recursionEnabled, final boolean symlinksEnabled) {
+        boolean includedDirectory = false;
+
+        if (remoteResourceInfo.isDirectory()) {
+            includedDirectory = recursionEnabled;
+        } else if (symlinksEnabled && isSymlink(remoteResourceInfo)) {
+            final String path = remoteResourceInfo.getPath();
+            try {
+                final FileAttributes pathAttributes = sftpClient.stat(path);
+                includedDirectory = FileMode.Type.DIRECTORY == pathAttributes.getMode().getType();
+            } catch (final IOException e) {
+                logger.warn("Read symbolic link attributes failed [{}]", path, e);
+            }
+        }
+
+        return includedDirectory;
+    }
+
+    private boolean isSymlink(final RemoteResourceInfo remoteResourceInfo) {
+        return FileMode.Type.SYMLINK == remoteResourceInfo.getAttributes().getType();
     }
 
     private FileInfo newFileInfo(final RemoteResourceInfo entry, String path) {
@@ -422,12 +463,7 @@ public class SFTPTransfer implements FileTransfer {
             rf = sftpClient.open(remoteFileName);
             rfis = rf.new ReadAheadRemoteFileInputStream(16);
             final InputStream in = rfis;
-            resultFlowFile = session.write(origFlowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream out) throws IOException {
-                    StreamUtils.copy(in, out);
-                }
-            });
+            resultFlowFile = session.write(origFlowFile, out -> StreamUtils.copy(in, out));
             return resultFlowFile;
         } catch (final SFTPException e) {
             switch (e.getStatusCode()) {
@@ -660,7 +696,7 @@ public class SFTPTransfer implements FileTransfer {
         String tempFilename = ctx.getProperty(TEMP_FILENAME).evaluateAttributeExpressions(flowFile).getValue();
         if (tempFilename == null) {
             final boolean dotRename = ctx.getProperty(DOT_RENAME).asBoolean();
-            tempFilename = dotRename ? "." + filename : filename;
+            tempFilename = dotRename ? DOT_PREFIX + filename : filename;
         }
         final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
