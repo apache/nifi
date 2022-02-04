@@ -29,11 +29,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.Event;
+import org.apache.nifi.processor.util.listen.queue.TrackingLinkedBlockingQueue;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.charset.Charset;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -42,6 +44,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
@@ -121,8 +124,11 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     protected volatile int port;
     protected volatile Charset charset;
     protected volatile ChannelDispatcher dispatcher;
-    protected volatile BlockingQueue<E> events;
+    protected volatile TrackingLinkedBlockingQueue<E> events;
     protected volatile BlockingQueue<E> errorEvents = new LinkedBlockingQueue<>();
+
+    private static final long TRACKING_LOG_INTERVAL = 60000;
+    private final AtomicLong nextTrackingLog = new AtomicLong();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -174,7 +180,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        events = new LinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        events = new TrackingLinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
         final String interfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress interfaceAddress = NetworkUtils.getInterfaceAddress(interfaceName);
 
@@ -233,6 +239,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
      * @return an event from one of the queues, or null if none are available
      */
     protected E getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
+        processTrackingLog();
         E event = null;
         if (pollErrorQueue) {
             event = errorEvents.poll();
@@ -262,5 +269,14 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
 
     protected long getLongPollTimeout() {
         return POLL_TIMEOUT_MS;
+    }
+
+    private void processTrackingLog() {
+        final long now = Instant.now().toEpochMilli();
+        if (now > nextTrackingLog.get()) {
+            getLogger().debug("Event Queue Current Size [{}] Largest Size [{}]", events.size(), events.getLargestSize());
+            final long nextTrackingLogScheduled = now + TRACKING_LOG_INTERVAL;
+            nextTrackingLog.getAndSet(nextTrackingLogScheduled);
+        }
     }
 }
