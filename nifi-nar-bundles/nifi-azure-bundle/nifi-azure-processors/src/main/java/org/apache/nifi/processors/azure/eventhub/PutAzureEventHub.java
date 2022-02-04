@@ -76,6 +76,8 @@ import org.apache.nifi.util.StopWatch;
         + "Also please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureEventHub extends AbstractProcessor {
+    private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s.%s/%s";
+
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
             .description("The name of the event hub to send to")
@@ -89,15 +91,7 @@ public class PutAzureEventHub extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
-    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Service Bus Endpoint")
-            .description("To support namespaces not in the default windows.net domain.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues("servicebus.windows.net","servicebus.chinacloudapi.cn", "servicebus.cloudapi.de", "servicebus.usgovcloudapi.net")
-            .defaultValue("servicebus.windows.net")
-            .required(true)
-            .build();
+    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Send claims.")
@@ -252,7 +246,7 @@ public class PutAzureEventHub extends AbstractProcessor {
                     final String namespace = context.getProperty(NAMESPACE).getValue();
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
                     final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-                    final String transitUri = String.format("amqps://%s.%s/%s", namespace, serviceBusEndpoint, eventHubName);
+                    final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING, namespace, serviceBusEndpoint, eventHubName);
                     session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                     session.transfer(flowFile, REL_SUCCESS);
 

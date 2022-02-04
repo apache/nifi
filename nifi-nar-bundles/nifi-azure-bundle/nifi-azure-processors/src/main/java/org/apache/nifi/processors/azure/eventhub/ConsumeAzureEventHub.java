@@ -112,15 +112,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
             .build();
-    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Service Bus Endpoint")
-            .description("To support namespaces not in the default windows.net domain.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues("servicebus.windows.net","servicebus.chinacloudapi.cn", "servicebus.cloudapi.de", "servicebus.usgovcloudapi.net")
-            .defaultValue("servicebus.windows.net")
-            .required(true)
-            .build();
+    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY_NAME = new PropertyDescriptor.Builder()
             .name("event-hub-shared-access-policy-name")
             .displayName("Shared Access Policy Name")
