@@ -51,7 +51,6 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.db.JdbcProperties;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -65,6 +64,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -84,14 +84,12 @@ class TestQueryNiFiReportingTask {
     private ProcessGroupStatus status;
     private BulletinRepository mockBulletinRepository;
     private MockProvenanceRepository mockProvenanceRepository;
-    private AtomicLong currentBulletinTime;
-    private AtomicLong currentProvenanceTime;
+    private AtomicLong currentTime;
     private MockStateManager mockStateManager;
 
     @BeforeEach
     public void setup() {
-        currentBulletinTime = new AtomicLong();
-        currentProvenanceTime = new AtomicLong();
+        currentTime = new AtomicLong();
         status = new ProcessGroupStatus();
         status.setId("1234");
         status.setFlowFilesReceived(5);
@@ -155,19 +153,12 @@ class TestQueryNiFiReportingTask {
         Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
         nestedConnectionStatuses2.add(nestedConnectionStatus2);
         groupStatus3.setConnectionStatus(nestedConnectionStatuses2);
-        Collection<ProcessGroupStatus> nestedGroupStatuses2 = new ArrayList<>();
-        nestedGroupStatuses2.add(groupStatus3);
 
         Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
         groupStatuses.add(groupStatus1);
         groupStatuses.add(groupStatus3);
         status.setProcessGroupStatus(groupStatuses);
 
-    }
-
-    @AfterEach
-    public void tearDown() {
-        ((MockQueryBulletinRepository) mockBulletinRepository).setTimestampedQuery(false);
     }
 
     @Test
@@ -209,20 +200,20 @@ class TestQueryNiFiReportingTask {
 
     @Test
     void testBulletinIsInTimeWindow() throws InitializationException {
+        String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
+
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime");
+        properties.put(QueryMetricsUtil.QUERY, query);
         reportingTask = initTask(properties);
-        currentBulletinTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(3, rows.size());
 
-        final Bulletin bulletin = BulletinFactory.createBulletin("input port", "ERROR", "test bulletin 3", "testFlowFileUuid");
+        final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
-        ((MockQueryBulletinRepository) mockBulletinRepository).setTimestampedQuery(true);
-        currentBulletinTime.set(bulletin.getTimestamp().getTime());
+        currentTime.set(bulletin.getTimestamp().getTime());
 
         reportingTask.onTrigger(context);
 
@@ -233,11 +224,12 @@ class TestQueryNiFiReportingTask {
 
     @Test
     void testBulletinIsOutOfTimeWindow() throws InitializationException {
+        String query = "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime";
+
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
-        properties.put(QueryMetricsUtil.QUERY, "select * from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime");
+        properties.put(QueryMetricsUtil.QUERY, query);
         reportingTask = initTask(properties);
-        currentBulletinTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
@@ -245,8 +237,7 @@ class TestQueryNiFiReportingTask {
 
         final Bulletin bulletin = BulletinFactory.createBulletin("input port", "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
-        ((MockQueryBulletinRepository) mockBulletinRepository).setTimestampedQuery(true);
-        currentBulletinTime.set(bulletin.getTimestamp().getTime() - 1);
+        currentTime.set(bulletin.getTimestamp().getTime() - 1);
 
         reportingTask.onTrigger(context);
 
@@ -257,10 +248,9 @@ class TestQueryNiFiReportingTask {
     @Test
     void testProvenanceEventIsInTimeWindow() throws InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
         properties.put(QueryMetricsUtil.QUERY, "select * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
-        currentProvenanceTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
@@ -282,7 +272,7 @@ class TestQueryNiFiReportingTask {
 
         mockProvenanceRepository.registerEvent(prov1002);
 
-        currentProvenanceTime.set(prov1002.getEventTime());
+        currentTime.set(prov1002.getEventTime());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
@@ -295,7 +285,7 @@ class TestQueryNiFiReportingTask {
         properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
         properties.put(QueryMetricsUtil.QUERY, "select * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
-        currentProvenanceTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
@@ -317,7 +307,7 @@ class TestQueryNiFiReportingTask {
 
         mockProvenanceRepository.registerEvent(prov1002);
 
-        currentProvenanceTime.set(prov1002.getEventTime() - 1);
+        currentTime.set(prov1002.getEventTime() - 1);
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
@@ -327,21 +317,18 @@ class TestQueryNiFiReportingTask {
     @Test
     void testUniqueProvenanceAndBulletinQuery() throws InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(QueryMetricsUtil.RECORD_SINK, "mock-record-sink");
         properties.put(QueryMetricsUtil.QUERY, "select * from BULLETINS, PROVENANCE where " +
                 "bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime " +
                 "and timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
-        currentBulletinTime.set(Instant.now().toEpochMilli());
-        currentProvenanceTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
 
         List<Map<String, Object>> rows = mockRecordSinkService.getRows();
         assertEquals(3003, rows.size());
 
-        final Bulletin bulletin = BulletinFactory.createBulletin("input port", "ERROR", "test bulletin 3", "testFlowFileUuid");
+        final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.INPUT_PORT.name().toLowerCase(), "ERROR", "test bulletin 3", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
-        ((MockQueryBulletinRepository) mockBulletinRepository).setTimestampedQuery(true);
 
         MockFlowFile mockFlowFile = new MockFlowFile(1002L);
         ProvenanceEventRecord prov1002 = mockProvenanceRepository.eventBuilder()
@@ -350,19 +337,12 @@ class TestQueryNiFiReportingTask {
                 .setComponentId("12345")
                 .setComponentType("ReportingTask")
                 .setFlowFileUUID("I am FlowFile 1")
-                .setEventTime(Instant.now().toEpochMilli())
-                .setEventDuration(100)
-                .setTransitUri("test://")
-                .setSourceSystemFlowFileIdentifier("I am FlowFile 1")
-                .setAlternateIdentifierUri("remote://test")
                 .build();
 
         mockProvenanceRepository.registerEvent(prov1002);
 
-        currentBulletinTime.set(bulletin.getTimestamp().getTime());
-        currentProvenanceTime.set(prov1002.getEventTime());
+        currentTime.set(bulletin.getTimestamp().getTime());
         reportingTask.onTrigger(context);
-
 
         List<Map<String, Object>> sameRows = mockRecordSinkService.getRows();
         assertEquals(1, sameRows.size());
@@ -391,8 +371,7 @@ class TestQueryNiFiReportingTask {
         assertEquals(testProvenanceStartTime, provenanceStartTime);
 
         final long currentTime = Instant.now().toEpochMilli();
-        currentBulletinTime.set(currentTime);
-        currentProvenanceTime.set(currentTime);
+        this.currentTime.set(currentTime);
 
         reportingTask.onTrigger(context);
 
@@ -402,6 +381,7 @@ class TestQueryNiFiReportingTask {
         assertEquals(currentTime, updatedBulletinStartTime);
         assertEquals(currentTime, updatedProvenanceStartTime);
     }
+    //--NEW END
 
     @Test
     void testJvmMetricsTable() throws InitializationException {
@@ -540,7 +520,7 @@ class TestQueryNiFiReportingTask {
 
         // Validate the third row
         row = rows.get(2);
-        assertEquals("controller service", row.get("bulletinCategory"));
+        assertEquals("controller_service", row.get("bulletinCategory"));
         assertEquals("ERROR", row.get("bulletinLevel"));
         assertEquals(flowFileUuid, row.get("bulletinFlowFileUuid"));
     }
@@ -634,8 +614,8 @@ class TestQueryNiFiReportingTask {
 
         mockBulletinRepository = new MockQueryBulletinRepository();
         mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2", "testFlowFileUuid"));
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "INFO", "test bulletin 1", "testFlowFileUuid"));
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("controller service", "ERROR", "test bulletin 2", "testFlowFileUuid"));
+        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.PROCESSOR.name().toLowerCase(), "INFO", "test bulletin 1", "testFlowFileUuid"));
+        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "ERROR", "test bulletin 2", "testFlowFileUuid"));
 
         Mockito.when(context.getBulletinRepository()).thenReturn(mockBulletinRepository);
 
@@ -644,50 +624,31 @@ class TestQueryNiFiReportingTask {
 
     private final class MockQueryNiFiReportingTask extends QueryNiFiReportingTask {
         @Override
-        protected long getCurrentBulletinTime() {
-            return currentBulletinTime.get();
-        }
-
-        @Override
-        protected long getCurrentProvenanceTime() {
-            return currentProvenanceTime.get();
+        public long getCurrentTime() {
+            return currentTime.get();
         }
     }
 
     private static class MockQueryBulletinRepository extends MockBulletinRepository {
-
-        List<Bulletin> bulletinList;
-        boolean isTimestampedQuery;
-
-        public MockQueryBulletinRepository() {
-            bulletinList = new ArrayList<>();
-        }
+        Map<String, List<Bulletin>> bulletins = new HashMap<>();
 
         @Override
         public void addBulletin(Bulletin bulletin) {
-            bulletinList.add(bulletin);
+            bulletins.computeIfAbsent(bulletin.getCategory(), __ -> new ArrayList<>())
+                    .add(bulletin);
         }
 
         @Override
         public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
-            if (bulletinQuery.getSourceType().equals(ComponentType.PROCESSOR)) {
-                return Collections.singletonList(bulletinList.get(1));
-            } else if (bulletinQuery.getSourceType().equals(ComponentType.CONTROLLER_SERVICE)) {
-                return Collections.singletonList(bulletinList.get(2));
-            } else if (isTimestampedQuery && bulletinQuery.getSourceType().equals(ComponentType.INPUT_PORT)) {
-                return Collections.singletonList(bulletinList.get(3));
-            } else {
-                return Collections.emptyList();
-            }
+            return new ArrayList<>(
+                    Optional.ofNullable(bulletins.get(bulletinQuery.getSourceType().name().toLowerCase()))
+                            .orElse(Collections.emptyList()));
         }
 
         @Override
         public List<Bulletin> findBulletinsForController() {
-            return Collections.singletonList(bulletinList.get(0));
-        }
-
-        public void setTimestampedQuery(boolean timestampedQuery) {
-            isTimestampedQuery = timestampedQuery;
+            return Optional.ofNullable(bulletins.get("controller"))
+                    .orElse(Collections.emptyList());
         }
     }
 }

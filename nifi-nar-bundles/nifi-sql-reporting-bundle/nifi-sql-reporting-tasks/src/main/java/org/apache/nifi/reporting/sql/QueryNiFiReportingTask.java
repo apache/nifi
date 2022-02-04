@@ -31,7 +31,6 @@ import org.apache.nifi.reporting.sql.util.QueryMetricsUtil;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 import org.apache.nifi.util.StopWatch;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +52,7 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
         + "CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled (see the nifi.analytics.predict.enabled property in nifi.properties). Attempting a "
         + "query on the table when the capability is disabled will cause an error.")
 @Stateful(scopes = Scope.LOCAL, description = "Stores the Reporting Task's last execution time so that on restart the task knows where it left off.")
-public class QueryNiFiReportingTask extends AbstractReportingTask {
+public class QueryNiFiReportingTask extends AbstractReportingTask implements QueryTimeAware {
 
     private List<PropertyDescriptor> properties;
 
@@ -91,25 +90,8 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
         final StopWatch stopWatch = new StopWatch(true);
         String sql = context.getProperty(QueryMetricsUtil.QUERY).getValue();
         try {
-            final Map<String, String> stateMap = new HashMap<>(context.getStateManager().getState(Scope.LOCAL).toMap());
-
-            if (sql.contains(BULLETIN_START_TIME.getSqlPlaceholder()) && sql.contains(BULLETIN_END_TIME.getSqlPlaceholder())) {
-                final long startTime = stateMap.get(BULLETIN_START_TIME.name()) == null ? 0 : Long.parseLong(stateMap.get(BULLETIN_START_TIME.name()));
-                final long currentTime = getCurrentBulletinTime();
-                sql = sql.replace(BULLETIN_START_TIME.getSqlPlaceholder(), String.valueOf(startTime));
-                sql = sql.replace(BULLETIN_END_TIME.getSqlPlaceholder(), String.valueOf(currentTime));
-                stateMap.put(BULLETIN_START_TIME.name(), String.valueOf(currentTime));
-                context.getStateManager().setState(stateMap, Scope.LOCAL);
-            }
-
-            if (sql.contains(PROVENANCE_START_TIME.getSqlPlaceholder()) && sql.contains(PROVENANCE_END_TIME.getSqlPlaceholder())) {
-                final long startTime = stateMap.get(PROVENANCE_START_TIME.name()) == null ? 0 : Long.parseLong(stateMap.get(PROVENANCE_START_TIME.name()));
-                final long currentTime = getCurrentProvenanceTime();
-                sql = sql.replace(PROVENANCE_START_TIME.getSqlPlaceholder(), String.valueOf(startTime));
-                sql = sql.replace(PROVENANCE_END_TIME.getSqlPlaceholder(), String.valueOf(currentTime));
-                stateMap.put(PROVENANCE_START_TIME.name(), String.valueOf(currentTime));
-                context.getStateManager().setState(stateMap, Scope.LOCAL);
-            }
+            sql = processStartAndEndTimes(context, sql, BULLETIN_START_TIME, BULLETIN_END_TIME);
+            sql = processStartAndEndTimes(context, sql, PROVENANCE_START_TIME, PROVENANCE_END_TIME);
 
             getLogger().debug("Executing query: {}", sql);
             final QueryResult queryResult = metricsQueryService.query(context, sql);
@@ -142,12 +124,5 @@ public class QueryNiFiReportingTask extends AbstractReportingTask {
             getLogger().error("Error processing the query due to {}", new Object[]{e.getMessage()}, e);
         }
     }
-
-    protected long getCurrentBulletinTime() {
-        return Instant.now().toEpochMilli();
-    }
-
-    protected long getCurrentProvenanceTime() {
-        return Instant.now().toEpochMilli();
-    }
 }
+

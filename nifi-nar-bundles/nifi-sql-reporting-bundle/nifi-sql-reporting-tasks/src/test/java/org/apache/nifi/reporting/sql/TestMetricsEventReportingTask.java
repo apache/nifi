@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.sql;
 
-import com.google.common.collect.Lists;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -42,7 +41,6 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.sql.util.QueryMetricsUtil;
 import org.apache.nifi.reporting.sql.util.TrackedQueryTime;
-import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.MockPropertyContextActionHandler;
 import org.apache.nifi.rules.PropertyContextActionHandler;
 import org.apache.nifi.rules.engine.MockRulesEngineService;
@@ -53,7 +51,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.SharedSessionState;
-import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,18 +65,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 class TestMetricsEventReportingTask {
-
-    private static final String LOG = "LOG";
-    private static final String ALERT = "ALERT";
 
     private ReportingContext context;
     private MockMetricsEventReportingTask reportingTask;
@@ -87,14 +80,12 @@ class TestMetricsEventReportingTask {
     private ProcessGroupStatus status;
     private MockQueryBulletinRepository mockBulletinRepository;
     private MockProvenanceRepository mockProvenanceRepository;
-    private AtomicLong currentBulletinTime;
-    private AtomicLong currentProvenanceTime;
+    private AtomicLong currentTime;
     private MockStateManager mockStateManager;
 
     @BeforeEach
     public void setup() {
-        currentBulletinTime = new AtomicLong();
-        currentProvenanceTime = new AtomicLong();
+        currentTime = new AtomicLong();
         status = new ProcessGroupStatus();
         actionHandler = new MockPropertyContextActionHandler();
         status.setId("1234");
@@ -137,41 +128,6 @@ class TestMetricsEventReportingTask {
         rootConnectionStatuses.add(root1ConnectionStatus);
         rootConnectionStatuses.add(root2ConnectionStatus);
         status.setConnectionStatus(rootConnectionStatuses);
-
-        // create a group status with processing time
-        ProcessGroupStatus groupStatus1 = new ProcessGroupStatus();
-        groupStatus1.setProcessorStatus(processorStatuses);
-        groupStatus1.setBytesRead(1234L);
-
-        // Create a nested group status with a connection
-        ProcessGroupStatus groupStatus2 = new ProcessGroupStatus();
-        groupStatus2.setProcessorStatus(processorStatuses);
-        groupStatus2.setBytesRead(12345L);
-        ConnectionStatus nestedConnectionStatus = new ConnectionStatus();
-        nestedConnectionStatus.setId("nested");
-        nestedConnectionStatus.setQueuedCount(1001);
-        Collection<ConnectionStatus> nestedConnectionStatuses = new ArrayList<>();
-        nestedConnectionStatuses.add(nestedConnectionStatus);
-        groupStatus2.setConnectionStatus(nestedConnectionStatuses);
-        Collection<ProcessGroupStatus> nestedGroupStatuses = new ArrayList<>();
-        nestedGroupStatuses.add(groupStatus2);
-        groupStatus1.setProcessGroupStatus(nestedGroupStatuses);
-
-        ProcessGroupStatus groupStatus3 = new ProcessGroupStatus();
-        groupStatus3.setBytesRead(1L);
-        ConnectionStatus nestedConnectionStatus2 = new ConnectionStatus();
-        nestedConnectionStatus2.setId("nested2");
-        nestedConnectionStatus2.setQueuedCount(3);
-        Collection<ConnectionStatus> nestedConnectionStatuses2 = new ArrayList<>();
-        nestedConnectionStatuses2.add(nestedConnectionStatus2);
-        groupStatus3.setConnectionStatus(nestedConnectionStatuses2);
-        Collection<ProcessGroupStatus> nestedGroupStatuses2 = new ArrayList<>();
-        nestedGroupStatuses2.add(groupStatus3);
-
-        Collection<ProcessGroupStatus> groupStatuses = new ArrayList<>();
-        groupStatuses.add(groupStatus1);
-        groupStatuses.add(groupStatus3);
-        status.setProcessGroupStatus(groupStatuses);
     }
 
     @Test
@@ -180,14 +136,9 @@ class TestMetricsEventReportingTask {
         properties.put(QueryMetricsUtil.QUERY, "select connectionId, predictedQueuedCount, predictedTimeToBytesBackpressureMillis from CONNECTION_STATUS_PREDICTIONS");
         reportingTask = initTask(properties);
         reportingTask.onTrigger(context);
-        List<Map<String, Object>> metricsList = actionHandler.getRows();
-        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
         List<PropertyContext> propertyContexts = actionHandler.getPropertyContexts();
-        assertFalse(metricsList.isEmpty());
-        assertEquals(2, defaultLogActions.size());
-        assertEquals(2, defaultAlertActions.size());
-        assertEquals(4, propertyContexts.size());
+        assertEquals(2, actionHandler.getRows().size());
+        assertEquals(2, propertyContexts.size());
     }
 
     @Test
@@ -195,26 +146,16 @@ class TestMetricsEventReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, "select bulletinCategory from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime");
         reportingTask = initTask(properties);
-        currentBulletinTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
-        List<Map<String, Object>> metricsList = actionHandler.getRows();
-        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(1, defaultLogActions.size());
-        assertEquals(0, defaultAlertActions.size());
+        assertEquals(1, actionHandler.getRows().size());
 
         actionHandler.reset();
-        mockBulletinRepository.setTimestampedQuery(true);
-        final Bulletin bulletin = BulletinFactory.createBulletin("controller service", "WARN", "test bulletin 2", "testFlowFileUuid");
+        final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "WARN", "test bulletin 2", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
-        currentBulletinTime.set(bulletin.getTimestamp().getTime());
+        currentTime.set(bulletin.getTimestamp().getTime());
         reportingTask.onTrigger(context);
-        List<Tuple<String, Action>> defaultLogActions2 = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions2 = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(0, defaultLogActions2.size());
-        assertEquals(1, defaultAlertActions2.size());
+        assertEquals(1, actionHandler.getRows().size());
     }
 
     @Test
@@ -222,26 +163,16 @@ class TestMetricsEventReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, "select bulletinCategory from BULLETINS where bulletinTimestamp > $bulletinStartTime and bulletinTimestamp <= $bulletinEndTime");
         reportingTask = initTask(properties);
-        currentBulletinTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
-        List<Map<String, Object>> metricsList = actionHandler.getRows();
-        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(1, defaultLogActions.size());
-        assertEquals(0, defaultAlertActions.size());
+        assertEquals(1, actionHandler.getRows().size());
 
         actionHandler.reset();
-        mockBulletinRepository.setTimestampedQuery(true);
-        final Bulletin bulletin = BulletinFactory.createBulletin("controller service", "WARN", "test bulletin 2", "testFlowFileUuid");
+        final Bulletin bulletin = BulletinFactory.createBulletin(ComponentType.CONTROLLER_SERVICE.name().toLowerCase(), "WARN", "test bulletin 2", "testFlowFileUuid");
         mockBulletinRepository.addBulletin(bulletin);
-        currentBulletinTime.set(bulletin.getTimestamp().getTime() - 1);
+        currentTime.set(bulletin.getTimestamp().getTime() - 1);
         reportingTask.onTrigger(context);
-        List<Tuple<String, Action>> updatedDefaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> updatedDefaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertTrue(metricsList.isEmpty());
-        assertEquals(0, updatedDefaultLogActions.size());
-        assertEquals(0, updatedDefaultAlertActions.size());
+        assertEquals(0, actionHandler.getRows().size());
     }
 
     @Test
@@ -249,14 +180,9 @@ class TestMetricsEventReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, "select componentId from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
-        currentProvenanceTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
-        List<Map<String, Object>> metricsList = actionHandler.getRows();
-        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(1, defaultLogActions.size());
-        assertEquals(0, defaultAlertActions.size());
+        assertEquals(1, actionHandler.getRows().size());
 
         actionHandler.reset();
 
@@ -275,14 +201,10 @@ class TestMetricsEventReportingTask {
                 .build();
         mockProvenanceRepository.registerEvent(prov2);
 
-        currentProvenanceTime.set(prov2.getEventTime());
+        currentTime.set(prov2.getEventTime());
         reportingTask.onTrigger(context);
 
-        List<Tuple<String, Action>> defaultLogActions2 = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions2 = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(0, defaultLogActions2.size());
-        assertEquals(1, defaultAlertActions2.size());
+        assertEquals(1, actionHandler.getRows().size());
     }
 
     @Test
@@ -290,14 +212,9 @@ class TestMetricsEventReportingTask {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(QueryMetricsUtil.QUERY, "select componentId from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime");
         reportingTask = initTask(properties);
-        currentProvenanceTime.set(Instant.now().toEpochMilli());
+        currentTime.set(Instant.now().toEpochMilli());
         reportingTask.onTrigger(context);
-        List<Map<String, Object>> metricsList = actionHandler.getRows();
-        List<Tuple<String, Action>> defaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> defaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertFalse(metricsList.isEmpty());
-        assertEquals(1, defaultLogActions.size());
-        assertEquals(0, defaultAlertActions.size());
+        assertEquals(1, actionHandler.getRows().size());
 
         actionHandler.reset();
 
@@ -316,14 +233,10 @@ class TestMetricsEventReportingTask {
                 .build();
         mockProvenanceRepository.registerEvent(prov2);
 
-        currentProvenanceTime.set(prov2.getEventTime() - 1);
+        currentTime.set(prov2.getEventTime() - 1);
         reportingTask.onTrigger(context);
 
-        List<Tuple<String, Action>> updatedDefaultLogActions = actionHandler.getDefaultActionsByType(LOG);
-        List<Tuple<String, Action>> updatedDefaultAlertActions = actionHandler.getDefaultActionsByType(ALERT);
-        assertTrue(metricsList.isEmpty());
-        assertEquals(0, updatedDefaultLogActions.size());
-        assertEquals(0, updatedDefaultAlertActions.size());
+        assertEquals(0, actionHandler.getRows().size());
     }
 
     @Test
@@ -349,8 +262,7 @@ class TestMetricsEventReportingTask {
         assertEquals(testProvenanceStartTime, provenanceStartTime);
 
         final long currentTime = Instant.now().toEpochMilli();
-        currentBulletinTime.set(currentTime);
-        currentProvenanceTime.set(currentTime);
+        this.currentTime.set(currentTime);
 
         reportingTask.onTrigger(context);
 
@@ -393,13 +305,8 @@ class TestMetricsEventReportingTask {
         actionHandler = new MockPropertyContextActionHandler();
         Mockito.when(pValue.asControllerService(PropertyContextActionHandler.class)).thenReturn(actionHandler);
 
-        Action action1 = new Action();
-        action1.setType(LOG);
-        Action action2 = new Action();
-        action2.setType(ALERT);
-
         final PropertyValue resValue = Mockito.mock(StandardPropertyValue.class);
-        MockRulesEngineService rulesEngineService = new MockRulesEngineService(Lists.newArrayList(action1, action2));
+        MockRulesEngineService rulesEngineService = new MockRulesEngineService();
         Mockito.when(resValue.asControllerService(RulesEngineService.class)).thenReturn(rulesEngineService);
 
         ConfigurationContext configContext = Mockito.mock(ConfigurationContext.class);
@@ -417,19 +324,14 @@ class TestMetricsEventReportingTask {
 
     private final class MockMetricsEventReportingTask extends MetricsEventReportingTask {
         @Override
-        protected long getCurrentBulletinTime() {
-            return currentBulletinTime.get();
-        }
-
-        @Override
-        protected long getCurrentProvenanceTime() {
-            return currentProvenanceTime.get();
+        public long getCurrentTime() {
+            return currentTime.get();
         }
     }
 
     private void setupMockBulletinRepository() {
         mockBulletinRepository = new MockQueryBulletinRepository();
-        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "WARN", "test bulletin 1", "testFlowFileUuid"));
+        mockBulletinRepository.addBulletin(BulletinFactory.createBulletin(ComponentType.PROCESSOR.name().toLowerCase(), "WARN", "test bulletin 1", "testFlowFileUuid"));
 
         Mockito.when(context.getBulletinRepository()).thenReturn(mockBulletinRepository);
     }
@@ -470,37 +372,26 @@ class TestMetricsEventReportingTask {
     }
 
     private static class MockQueryBulletinRepository extends MockBulletinRepository {
-
-        List<Bulletin> bulletinList;
-        boolean isTimestampedQuery;
-
-        public MockQueryBulletinRepository() {
-            bulletinList = new ArrayList<>();
-        }
+        Map<String, List<Bulletin>> bulletins = new HashMap<>();
 
         @Override
         public void addBulletin(Bulletin bulletin) {
-            bulletinList.add(bulletin);
+            bulletins.computeIfAbsent(bulletin.getCategory(), key -> new ArrayList<>())
+                    .add(bulletin);
         }
 
         @Override
         public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
-            if (bulletinQuery.getSourceType().equals(ComponentType.PROCESSOR)) {
-                return Collections.singletonList(bulletinList.get(0));
-            } else if (isTimestampedQuery && bulletinQuery.getSourceType().equals(ComponentType.CONTROLLER_SERVICE)) {
-                return Collections.singletonList(bulletinList.get(1));
-            } else {
-                return Collections.emptyList();
-            }
+            return new ArrayList<>(
+                    Optional.ofNullable(bulletins.get(bulletinQuery.getSourceType().name().toLowerCase()))
+                            .orElse(Collections.emptyList())
+            );
         }
 
         @Override
         public List<Bulletin> findBulletinsForController() {
-            return Collections.emptyList();
-        }
-
-        public void setTimestampedQuery(boolean timestampedQuery) {
-            isTimestampedQuery = timestampedQuery;
+            return Optional.ofNullable(bulletins.get("controller"))
+                    .orElse(Collections.emptyList());
         }
     }
 }
