@@ -111,7 +111,7 @@ public class NiFi implements NiFiEntryPoint {
                 }
 
                 bootstrapListener = new BootstrapListener(this, port);
-                bootstrapListener.start();
+                bootstrapListener.start(properties.getDefaultListenerBootstrapPort());
             } catch (final NumberFormatException nfe) {
                 throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
             }
