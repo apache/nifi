@@ -39,7 +39,7 @@ public class ITPutSQS {
 
     private final String VPCE_QUEUE_URL = "https://vpce-1234567890abcdefg-12345678.sqs.us-west-2.vpce.amazonaws.com/123456789012/test-queue";
     private final String VPCE_ENDPOINT_OVERRIDE = "https://vpce-1234567890abcdefg-12345678.sqs.us-west-2.vpce.amazonaws.com";
-
+    private final String VPCE_CHINESE_ENDPOINT_OVERRIDE = "https://vpce-1234567890abcdefg-12345678.sqs.cn-north-1.vpce.amazonaws.com.cn";
     @Test
     public void testSimplePut() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
@@ -101,4 +101,24 @@ public class ITPutSQS {
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
+
+    @Test
+    public void testVpceChineseEndpoint() throws IOException {
+        // additional AWS environment setup for testing VPCE endpoints:
+        //   - create an Interface Endpoint in your VPC for SQS (https://docs.aws.amazon.com/vpc/latest/privatelink/vpce-interface.html#create-interface-endpoint)
+        //   - create a Client VPN Endpoint in your VPC (https://docs.aws.amazon.com/vpn/latest/clientvpn-admin/cvpn-getting-started.html)
+        //         and connect your local machine (running the test) to your VPC via VPN
+        //   - alternatively, the test can be run on an EC2 instance located on the VPC
+
+        final TestRunner runner = TestRunners.newTestRunner(new PutSQS());
+        runner.setProperty(PutSQS.CREDENTIALS_FILE, System.getProperty("user.home") + "/aws-credentials.properties");
+        runner.setProperty(PutSQS.REGION, Regions.CN_NORTH_1.getName());
+        runner.setProperty(PutSQS.QUEUE_URL, VPCE_QUEUE_URL);
+        runner.setProperty(PutSQS.ENDPOINT_OVERRIDE, VPCE_CHINESE_ENDPOINT_OVERRIDE);
+
+        runner.enqueue(Paths.get("src/test/resources/hello.txt"));
+        runner.run(1);
+
+        runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
+    }    
 }

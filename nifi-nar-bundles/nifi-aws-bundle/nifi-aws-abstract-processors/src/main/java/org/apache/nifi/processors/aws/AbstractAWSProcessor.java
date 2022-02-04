@@ -156,6 +156,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile Region region;
 
     protected static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
+    protected static final String VPCE_CHINESE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com.cn";
     protected static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
 
     // If protocol is changed to be a property, ensure other uses are also changed
@@ -330,7 +331,13 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                     // handling vpce endpoints
                     // falling back to the configured region if the parse fails
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
-                    String regionValue = parseRegionForVPCE(urlstr, region.getName());
+                    String regionValue = parseRegionForVPCE(urlstr, region.getName(), VPCE_ENDPOINT_SUFFIX);
+                    client.setEndpoint(urlstr, client.getServiceName(), regionValue);
+                } else if (urlstr.endsWith(VPCE_CHINESE_ENDPOINT_SUFFIX)) {
+                    // handling vpce endpoints
+                    // falling back to the configured region if the parse fails
+                    // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+                    String regionValue = parseRegionForVPCE(urlstr, region.getName(), VPCE_CHINESE_ENDPOINT_SUFFIX);
                     client.setEndpoint(urlstr, client.getServiceName(), regionValue);
                 } else {
                     // handling non-vpce custom endpoints where the AWS library can parse the region out
@@ -351,8 +358,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         Refer NIFI-5456, NIFI-5893 & NIFI-8662
      */
-    private String parseRegionForVPCE(String url, String configuredRegion) {
-        int index = url.length() - VPCE_ENDPOINT_SUFFIX.length();
+    private String parseRegionForVPCE(String url, String configuredRegion, String suffixVPCE) {
+        int index = url.length() - suffixVPCE.length();
 
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
@@ -363,7 +370,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             return configuredRegion;
         }
     }
-
     /**
      * Create client from the arguments
      * @param context process context
