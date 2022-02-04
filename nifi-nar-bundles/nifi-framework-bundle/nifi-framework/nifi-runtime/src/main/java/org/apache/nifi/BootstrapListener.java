@@ -56,11 +56,11 @@ public class BootstrapListener {
         secretKey = UUID.randomUUID().toString();
     }
 
-    public void start() throws IOException {
+    public void start(final int listenPort) throws IOException {
         logger.debug("Starting Bootstrap Listener to communicate with Bootstrap Port {}", bootstrapPort);
 
         serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress("localhost", 0));
+        serverSocket.bind(new InetSocketAddress("localhost", listenPort));
         serverSocket.setSoTimeout(2000);
 
         final int localPort = serverSocket.getLocalPort();
