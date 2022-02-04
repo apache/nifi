@@ -129,6 +129,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
 
     private static final long TRACKING_LOG_INTERVAL = 60000;
     private final AtomicLong nextTrackingLog = new AtomicLong();
+    private int eventsCapacity;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -180,7 +181,8 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     public void onScheduled(final ProcessContext context) throws IOException {
         charset = Charset.forName(context.getProperty(CHARSET).getValue());
         port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        events = new TrackingLinkedBlockingQueue<>(context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger());
+        eventsCapacity = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
+        events = new TrackingLinkedBlockingQueue<>(eventsCapacity);
         final String interfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress interfaceAddress = NetworkUtils.getInterfaceAddress(interfaceName);
 
@@ -274,7 +276,12 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
     private void processTrackingLog() {
         final long now = Instant.now().toEpochMilli();
         if (now > nextTrackingLog.get()) {
-            getLogger().debug("Event Queue Current Size [{}] Largest Size [{}]", events.size(), events.getLargestSize());
+            getLogger().debug("Event Queue Capacity [{}] Remaining [{}] Size [{}] Largest Size [{}]",
+                    eventsCapacity,
+                    events.remainingCapacity(),
+                    events.size(),
+                    events.getLargestSize()
+            );
             final long nextTrackingLogScheduled = now + TRACKING_LOG_INTERVAL;
             nextTrackingLog.getAndSet(nextTrackingLogScheduled);
         }
