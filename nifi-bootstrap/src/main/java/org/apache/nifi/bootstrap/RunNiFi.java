@@ -111,6 +111,8 @@ public class RunNiFi {
     public static final String NIFI_LOCK_FILE_NAME = "nifi.lock";
     public static final String NIFI_BOOTSTRAP_SENSITIVE_KEY = "nifi.bootstrap.sensitive.key";
 
+    public static final String NIFI_BOOTSTRAP_LISTEN_PORT_PROP = "nifi.bootstrap.listen.port";
+
     public static final String PID_KEY = "pid";
 
     public static final int STARTUP_WAIT_SECONDS = 60;
@@ -1249,8 +1251,18 @@ public class RunNiFi {
             cmdLogger.error("Self-Signed Certificate Generation Failed", e);
         }
 
+        final String listenPortPropString = props.get(NIFI_BOOTSTRAP_LISTEN_PORT_PROP);
+        int listenPortPropInt = 0; // default to zero (random ephemeral port)
+        if (listenPortPropString != null) {
+            try {
+                listenPortPropInt = Integer.parseInt(listenPortPropString.trim());
+            } catch (final Exception e) {
+                // no-op, use the default
+            }
+        }
+
         final NiFiListener listener = new NiFiListener();
-        final int listenPort = listener.start(this);
+        final int listenPort = listener.start(this, listenPortPropInt);
 
         final List<String> cmd = new ArrayList<>();
 

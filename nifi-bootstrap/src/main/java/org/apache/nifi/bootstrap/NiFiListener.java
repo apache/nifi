@@ -33,9 +33,9 @@ public class NiFiListener {
     private ServerSocket serverSocket;
     private volatile Listener listener;
 
-    int start(final RunNiFi runner) throws IOException {
+    int start(final RunNiFi runner, final int listenPort) throws IOException {
         serverSocket = new ServerSocket();
-        serverSocket.bind(new InetSocketAddress("localhost", 0));
+        serverSocket.bind(new InetSocketAddress("localhost", listenPort));
 
         final int localPort = serverSocket.getLocalPort();
         listener = new Listener(serverSocket, runner);

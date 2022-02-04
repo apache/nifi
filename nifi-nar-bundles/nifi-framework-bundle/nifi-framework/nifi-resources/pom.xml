@@ -156,6 +156,9 @@
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
 
+        <!-- nifi.properties: listener bootstrap -->
+        <nifi.listener.bootstrap.port>0</nifi.listener.bootstrap.port>
+
         <!-- nifi.properties: openid connect -->
         <nifi.security.user.oidc.discovery.url />
         <nifi.security.user.oidc.connect.timeout>5 secs</nifi.security.user.oidc.connect.timeout>
