@@ -303,7 +303,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         final ControllerServiceEntity node2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId());
         assertEquals(sleepService.getId(), node2SleepService.getId());
-        waitFor(() -> node2SleepService.getComponent().getState().equals(ENABLED_STATE));
+        waitFor(() -> {
+            final ControllerServiceEntity updatedNode2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId());
+            return updatedNode2SleepService.getComponent().getState().equals(ENABLED_STATE);
+        });
 
         final ReportingTaskEntity node2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
         waitFor(() -> node2ReportingTask.getComponent().getState().equals(RUNNING_STATE));
@@ -683,7 +686,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         connection.setDisconnectedNodeAcknowledged(true);
 
         // Delete the CountFlowFiles processor, and countB and countC services, disable A.
-        getNifiClient().getProcessorClient().stopProcessor(countFlowFiles);
+        getClientUtil().stopProcessor(countFlowFiles);
         getNifiClient().getConnectionClient().deleteConnection(connection);
         getNifiClient().getProcessorClient().deleteProcessor(countFlowFiles);
         getClientUtil().disableControllerServices("root", true);
