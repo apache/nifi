@@ -281,6 +281,83 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
         }
     }
 
+    // TODO: Create util that handles this.
+//    private DataflowDefinition createVersionedFlowDefinition(final DataflowDefinition<Object> provided) {
+//        final Object flowSnapshot = provided.getFlowSnapshot();
+//        if (flowSnapshot instanceof VersionedExternalFlow) {
+//            return (DataflowDefinition<VersionedExternalFlow>) (DataflowDefinition) provided;
+//        }
+//
+//        final VersionedExternalFlow versionedExternalFlow;
+//        if (flowSnapshot instanceof VersionedFlowSnapshot) {
+//            final VersionedFlowSnapshot versionedSnapshot = (VersionedFlowSnapshot) flowSnapshot;
+//            versionedExternalFlow = new VersionedExternalFlow();
+//
+//            final VersionedFlowSnapshotMetadata versionedFlowSnapshotMetadata = versionedSnapshot.getSnapshotMetadata();
+//            if (versionedFlowSnapshotMetadata != null) {
+//                final VersionedExternalFlowMetadata externalFlowMetadata = new VersionedExternalFlowMetadata();
+//                externalFlowMetadata.setBucketIdentifier(versionedFlowSnapshotMetadata.getBucketIdentifier());
+//                externalFlowMetadata.setFlowIdentifier(versionedFlowSnapshotMetadata.getFlowIdentifier());
+//                externalFlowMetadata.setFlowName(provided.getFlowName());
+//                externalFlowMetadata.setVersion(versionedFlowSnapshotMetadata.getVersion());
+//                versionedExternalFlow.setMetadata(externalFlowMetadata);
+//            }
+//
+//            versionedExternalFlow.setExternalControllerServices(versionedSnapshot.getExternalControllerServices());
+//            versionedExternalFlow.setFlowContents(versionedSnapshot.getFlowContents());
+//            versionedExternalFlow.setParameterContexts(versionedSnapshot.getParameterContexts());
+//        } else {
+//            throw new IllegalArgumentException("Unknown type of Flow Snapshot. Expected VersionedFlowSnapshot or VersionedExternalFlow but received " + flowSnapshot);
+//        }
+//
+//        return new DataflowDefinition<VersionedExternalFlow>() {
+//            @Override
+//            public VersionedExternalFlow getFlowSnapshot() {
+//                return versionedExternalFlow;
+//            }
+//
+//            @Override
+//            public String getFlowName() {
+//                return provided.getFlowName();
+//            }
+//
+//            @Override
+//            public Set<String> getFailurePortNames() {
+//                return provided.getFailurePortNames();
+//            }
+//
+//            @Override
+//            public Set<String> getInputPortNames() {
+//                return provided.getInputPortNames();
+//            }
+//
+//            @Override
+//            public Set<String> getOutputPortNames() {
+//                return provided.getOutputPortNames();
+//            }
+//
+//            @Override
+//            public List<ParameterContextDefinition> getParameterContexts() {
+//                return provided.getParameterContexts();
+//            }
+//
+//            @Override
+//            public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
+//                return provided.getReportingTaskDefinitions();
+//            }
+//
+//            @Override
+//            public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+//                return provided.getParameterValueProviderDefinitions();
+//            }
+//
+//            @Override
+//            public TransactionThresholds getTransactionThresholds() {
+//                return provided.getTransactionThresholds();
+//            }
+//        };
+//    }
+
     private ContentRepository createContentRepository(final StatelessEngineConfiguration engineConfiguration) {
         final Optional<File> contentRepoStorageDirectory = engineConfiguration.getContentRepositoryDirectory();
         if (contentRepoStorageDirectory.isPresent()) {
