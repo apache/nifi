@@ -49,7 +49,6 @@ limitations under the License.
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
-                            <tarLongFileMode>posix</tarLongFileMode>
                             <formats>zip</formats>
                         </configuration>
                     </execution>
