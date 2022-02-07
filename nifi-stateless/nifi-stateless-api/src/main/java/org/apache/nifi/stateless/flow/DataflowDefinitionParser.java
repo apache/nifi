@@ -27,9 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface DataflowDefinitionParser {
-    DataflowDefinition<?> parseFlowDefinition(File configurationFile, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
+    DataflowDefinition parseFlowDefinition(File configurationFile, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
         throws StatelessConfigurationException, IOException;
 
-    DataflowDefinition<?> parseFlowDefinition(Map<String, String> configurationProperties, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
+    DataflowDefinition parseFlowDefinition(Map<String, String> configurationProperties, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
         throws StatelessConfigurationException, IOException;
 }

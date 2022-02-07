@@ -45,7 +45,7 @@ public class TestPropertiesFileFlowDefinitionParser {
 
         final List<ParameterOverride> parameterOverrides = new ArrayList<>();
         final StatelessEngineConfiguration engineConfig = createStatelessEngineConfiguration();
-        final DataflowDefinition<?> dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), engineConfig, parameterOverrides);
+        final DataflowDefinition dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), engineConfig, parameterOverrides);
         assertEquals(new HashSet<>(Arrays.asList("foo", "bar", "baz")), dataflowDefinition.getFailurePortNames());
 
         final List<ParameterContextDefinition> contextDefinitions = dataflowDefinition.getParameterContexts();

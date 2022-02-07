@@ -18,8 +18,8 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 
 public interface ProcessGroupSynchronizer {
 
@@ -29,7 +29,7 @@ public interface ProcessGroupSynchronizer {
      * @param proposedSnapshot the proposed/desired state for the process group
      * @param synchronizationOptions options for how to synchronize the group
      */
-    void synchronize(ProcessGroup group, VersionedFlowSnapshot proposedSnapshot, GroupSynchronizationOptions synchronizationOptions) throws ProcessorInstantiationException;
+    void synchronize(ProcessGroup group, VersionedExternalFlow proposedSnapshot, GroupSynchronizationOptions synchronizationOptions) throws ProcessorInstantiationException;
 
     void verifyCanSynchronize(ProcessGroup group, VersionedProcessGroup proposed, boolean verifyConnectionRemoval);
 

@@ -52,7 +52,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
@@ -88,16 +87,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
+public class StandardStatelessDataflowFactory implements StatelessDataflowFactory {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
 
-    @Override
-    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition,
+
+    // TODO: Support both VersionedExternalFlow and VersionedFlowSnapshot...
+    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition dataflowDefinition,
                                             final ClassLoader extensionRootClassLoader)
                     throws IOException, StatelessConfigurationException {
         final long start = System.currentTimeMillis();
-
-        final VersionedFlowSnapshot flowSnapshot = dataflowDefinition.getFlowSnapshot();
 
         ProvenanceRepository provenanceRepo = null;
         ContentRepository contentRepo = null;
@@ -114,7 +112,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             }
 
             final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
-            flowRegistry.addFlowSnapshot(flowSnapshot);
+            flowRegistry.addFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
             final FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.addFlowRegistry(flowRegistry);
 
@@ -184,7 +182,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
             }
 
-            final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
+            final StatelessEngine statelessEngine = new StandardStatelessEngine.Builder()
                     .bulletinRepository(bulletinRepository)
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)
@@ -283,6 +281,83 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             throw e;
         }
     }
+
+    // TODO: Create util that handles this.
+//    private DataflowDefinition createVersionedFlowDefinition(final DataflowDefinition<Object> provided) {
+//        final Object flowSnapshot = provided.getFlowSnapshot();
+//        if (flowSnapshot instanceof VersionedExternalFlow) {
+//            return (DataflowDefinition<VersionedExternalFlow>) (DataflowDefinition) provided;
+//        }
+//
+//        final VersionedExternalFlow versionedExternalFlow;
+//        if (flowSnapshot instanceof VersionedFlowSnapshot) {
+//            final VersionedFlowSnapshot versionedSnapshot = (VersionedFlowSnapshot) flowSnapshot;
+//            versionedExternalFlow = new VersionedExternalFlow();
+//
+//            final VersionedFlowSnapshotMetadata versionedFlowSnapshotMetadata = versionedSnapshot.getSnapshotMetadata();
+//            if (versionedFlowSnapshotMetadata != null) {
+//                final VersionedExternalFlowMetadata externalFlowMetadata = new VersionedExternalFlowMetadata();
+//                externalFlowMetadata.setBucketIdentifier(versionedFlowSnapshotMetadata.getBucketIdentifier());
+//                externalFlowMetadata.setFlowIdentifier(versionedFlowSnapshotMetadata.getFlowIdentifier());
+//                externalFlowMetadata.setFlowName(provided.getFlowName());
+//                externalFlowMetadata.setVersion(versionedFlowSnapshotMetadata.getVersion());
+//                versionedExternalFlow.setMetadata(externalFlowMetadata);
+//            }
+//
+//            versionedExternalFlow.setExternalControllerServices(versionedSnapshot.getExternalControllerServices());
+//            versionedExternalFlow.setFlowContents(versionedSnapshot.getFlowContents());
+//            versionedExternalFlow.setParameterContexts(versionedSnapshot.getParameterContexts());
+//        } else {
+//            throw new IllegalArgumentException("Unknown type of Flow Snapshot. Expected VersionedFlowSnapshot or VersionedExternalFlow but received " + flowSnapshot);
+//        }
+//
+//        return new DataflowDefinition<VersionedExternalFlow>() {
+//            @Override
+//            public VersionedExternalFlow getFlowSnapshot() {
+//                return versionedExternalFlow;
+//            }
+//
+//            @Override
+//            public String getFlowName() {
+//                return provided.getFlowName();
+//            }
+//
+//            @Override
+//            public Set<String> getFailurePortNames() {
+//                return provided.getFailurePortNames();
+//            }
+//
+//            @Override
+//            public Set<String> getInputPortNames() {
+//                return provided.getInputPortNames();
+//            }
+//
+//            @Override
+//            public Set<String> getOutputPortNames() {
+//                return provided.getOutputPortNames();
+//            }
+//
+//            @Override
+//            public List<ParameterContextDefinition> getParameterContexts() {
+//                return provided.getParameterContexts();
+//            }
+//
+//            @Override
+//            public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
+//                return provided.getReportingTaskDefinitions();
+//            }
+//
+//            @Override
+//            public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+//                return provided.getParameterValueProviderDefinitions();
+//            }
+//
+//            @Override
+//            public TransactionThresholds getTransactionThresholds() {
+//                return provided.getTransactionThresholds();
+//            }
+//        };
+//    }
 
     private ContentRepository createContentRepository(final StatelessEngineConfiguration engineConfiguration) {
         final Optional<File> contentRepoStorageDirectory = engineConfiguration.getContentRepositoryDirectory();

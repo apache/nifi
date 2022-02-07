@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.flow.ComponentType;
-import org.apache.nifi.flow.VersionedComponent;
 
 import java.util.List;
 import java.util.Set;

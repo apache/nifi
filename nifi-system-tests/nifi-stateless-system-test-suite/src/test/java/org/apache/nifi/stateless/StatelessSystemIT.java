@@ -19,7 +19,9 @@ package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.registry.VersionedFlowConverter;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
@@ -165,12 +167,21 @@ public class StatelessSystemIT {
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
                                              final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds)
+                throws IOException, StatelessConfigurationException {
+
+        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(versionedFlowSnapshot);
+        return loadDataflow(externalFlow, parameterContexts, parameterValueProviderDefinitions, failurePortNames, transactionThresholds);
+    }
+
+    protected StatelessDataflow loadDataflow(final VersionedExternalFlow versionedExternalFlow, final List<ParameterContextDefinition> parameterContexts,
+                                             final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
 
-        final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
+        final DataflowDefinition dataflowDefinition = new DataflowDefinition() {
             @Override
-            public VersionedFlowSnapshot getFlowSnapshot() {
-                return versionedFlowSnapshot;
+            public VersionedExternalFlow getVersionedExternalFlow() {
+                return versionedExternalFlow;
             }
 
             @Override
@@ -185,14 +196,14 @@ public class StatelessSystemIT {
 
             @Override
             public Set<String> getInputPortNames() {
-                return versionedFlowSnapshot.getFlowContents().getInputPorts().stream()
+                return versionedExternalFlow.getFlowContents().getInputPorts().stream()
                     .map(VersionedPort::getName)
                     .collect(Collectors.toSet());
             }
 
             @Override
             public Set<String> getOutputPortNames() {
-                return versionedFlowSnapshot.getFlowContents().getOutputPorts().stream()
+                return versionedExternalFlow.getFlowContents().getOutputPorts().stream()
                     .map(VersionedPort::getName)
                     .collect(Collectors.toSet());
             }

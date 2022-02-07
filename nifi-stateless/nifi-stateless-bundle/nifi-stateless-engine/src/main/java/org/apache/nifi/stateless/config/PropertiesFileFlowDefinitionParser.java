@@ -24,7 +24,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.registry.VersionedFlowConverter;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
@@ -98,13 +100,13 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
 
 
-    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig, final List<ParameterOverride> parameterOverrides)
+    public DataflowDefinition parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig, final List<ParameterOverride> parameterOverrides)
                         throws IOException, StatelessConfigurationException {
         final Map<String, String> properties = readPropertyValues(propertiesFile);
         return parseFlowDefinition(properties, engineConfig, parameterOverrides);
     }
 
-    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final Map<String, String> properties, final StatelessEngineConfiguration engineConfig,
+    public DataflowDefinition parseFlowDefinition(final Map<String, String> properties, final StatelessEngineConfiguration engineConfig,
                                                                          final List<ParameterOverride> parameterOverrides) throws IOException, StatelessConfigurationException {
 
         // A common problem is users accidentally including whitespace at the beginning or end of property values.
@@ -115,17 +117,16 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
         final Set<String> failurePortNames = getFailurePortNames(properties);
         final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, engineConfig.getSslContext());
+        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(flowSnapshot);
         final List<ParameterContextDefinition> parameterContextDefinitions = getParameterContexts(properties);
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
         final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions = getParameterValueProviders(properties, parameterOverrides);
         final TransactionThresholds transactionThresholds = getTransactionThresholds(properties);
 
-        final String rootGroupName = flowSnapshot.getFlowContents().getName();
-        final String flowName = properties.getOrDefault(FLOW_NAME, rootGroupName);
+        final String flowName = properties.getOrDefault(FLOW_NAME, externalFlow.getMetadata().getFlowName());
 
         return new StandardDataflowDefinition.Builder()
-            .flowSnapshot(flowSnapshot)
-            .flowName(flowName)
+            .versionedExternalFlow(externalFlow)
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
@@ -479,6 +480,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final String envValue = System.getenv(envVariable);
         return envValue == null ? "" : envValue;
     }
+
 
     private VersionedFlowSnapshot fetchVersionedFlowSnapshot(final Map<String, String> properties, final SslContextDefinition sslContextDefinition)
         throws IOException, StatelessConfigurationException {
