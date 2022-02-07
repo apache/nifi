@@ -18,7 +18,6 @@
 package org.apache.nifi.stateless.flow;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
@@ -46,6 +45,7 @@ import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -532,14 +532,19 @@ public class StandardStatelessFlow implements StatelessDataflow {
     }
 
     private boolean isStateful(final ProcessGroup processGroup) {
-        final boolean stateful = processGroup.getProcessors().stream()
-                .anyMatch(processorNode -> processorNode.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        final boolean stateful = processGroup.getProcessors().stream().anyMatch(this::isStateful);
 
         if (stateful) {
             return true;
         }
 
         return processGroup.getProcessGroups().stream().anyMatch(this::isStateful);
+    }
+
+    private boolean isStateful(final ProcessorNode processorNode) {
+        final Processor processor = processorNode.getProcessor();
+        final ProcessContext context = processContextFactory.createProcessContext(processorNode);
+        return processor.isStateful(context);
     }
 
     @Override
