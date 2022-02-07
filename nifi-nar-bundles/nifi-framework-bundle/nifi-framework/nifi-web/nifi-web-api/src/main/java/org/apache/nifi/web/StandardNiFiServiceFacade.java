@@ -98,11 +98,14 @@ import org.apache.nifi.controller.status.history.ProcessGroupStatusDescriptor;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurableComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
@@ -129,10 +132,10 @@ import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+import org.apache.nifi.registry.VersionedFlowConverter;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
@@ -141,7 +144,6 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -4919,7 +4921,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyCanUpdate(final String groupId, final VersionedFlowSnapshot proposedFlow, final boolean verifyConnectionRemoval, final boolean verifyNotDirty) {
         final ProcessGroup group = processGroupDAO.getProcessGroup(groupId);
-        group.verifyCanUpdate(proposedFlow, verifyConnectionRemoval, verifyNotDirty);
+        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(proposedFlow);
+        group.verifyCanUpdate(externalFlow, verifyConnectionRemoval, verifyNotDirty);
     }
 
     @Override
@@ -4936,7 +4939,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // verify that the process group can be updated to the given snapshot. We do not verify that connections can
         // be removed, because the flow may still be running, and it only matters that the connections can be removed once the components
         // have been stopped.
-        group.verifyCanUpdate(versionedFlowSnapshot, false, false);
+        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(versionedFlowSnapshot);
+        group.verifyCanUpdate(externalFlow, false, false);
     }
 
     @Override
@@ -5347,7 +5351,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             @Override
             public RevisionUpdate<ProcessGroupDTO> update() {
                 // update the Process Group
-                final ProcessGroup updatedProcessGroup = processGroupDAO.updateProcessGroupFlow(groupId, proposedFlowSnapshot, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
+                final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(proposedFlowSnapshot);
+                processGroupDAO.updateProcessGroupFlow(groupId, externalFlow, versionControlInfo, componentIdSeed, verifyNotModified, updateSettings,
                     updateDescendantVersionedFlows);
 
                 // update the revisions

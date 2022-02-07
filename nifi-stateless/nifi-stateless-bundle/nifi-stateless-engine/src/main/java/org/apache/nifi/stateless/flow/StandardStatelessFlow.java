@@ -107,7 +107,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final ProcessContextFactory processContextFactory;
     private final RepositoryContextFactory repositoryContextFactory;
     private final List<FlowFileQueue> internalFlowFileQueues;
-    private final DataflowDefinition<?> dataflowDefinition;
+    private final DataflowDefinition dataflowDefinition;
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessScheduler processScheduler;
@@ -122,7 +122,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private volatile Boolean stateful = null;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
-                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
+                                 final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition dataflowDefinition,
                                  final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler, final BulletinRepository bulletinRepository) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();

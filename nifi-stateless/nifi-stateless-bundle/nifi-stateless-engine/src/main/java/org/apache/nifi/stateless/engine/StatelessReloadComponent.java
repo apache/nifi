@@ -29,7 +29,6 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.TerminationAwareLogger;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
@@ -40,7 +39,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
@@ -52,9 +50,9 @@ import java.util.Set;
 public class StatelessReloadComponent implements ReloadComponent {
     private static final Logger logger = LoggerFactory.getLogger(StatelessReloadComponent.class);
 
-    private final StatelessEngine<VersionedFlowSnapshot> statelessEngine;
+    private final StatelessEngine statelessEngine;
 
-    public StatelessReloadComponent(final StatelessEngine<VersionedFlowSnapshot> statelessEngine) {
+    public StatelessReloadComponent(final StatelessEngine statelessEngine) {
         this.statelessEngine = statelessEngine;
     }
 
@@ -169,7 +167,7 @@ public class StatelessReloadComponent implements ReloadComponent {
     }
 
     @Override
-    public void reload(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) throws ReportingTaskInstantiationException {
+    public void reload(final ReportingTaskNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls) {
         if (existingNode == null) {
             throw new IllegalStateException("Existing ReportingTaskNode cannot be null");
         }

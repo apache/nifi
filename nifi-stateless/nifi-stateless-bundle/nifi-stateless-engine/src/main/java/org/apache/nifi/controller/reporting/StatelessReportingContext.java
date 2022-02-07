@@ -30,10 +30,10 @@ import org.apache.nifi.stateless.engine.StatelessEngine;
 import java.util.Map;
 
 public class StatelessReportingContext extends AbstractReportingContext implements ReportingContext {
-    private final StatelessEngine<?> statelessEngine;
+    private final StatelessEngine statelessEngine;
     private final FlowManager flowManager;
 
-    public StatelessReportingContext(final StatelessEngine<?> statelessEngine, final FlowManager flowManager,
+    public StatelessReportingContext(final StatelessEngine statelessEngine, final FlowManager flowManager,
                                      final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
                                      final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
         super(reportingTask, statelessEngine.getBulletinRepository(), properties, statelessEngine.getControllerServiceProvider(), parameterLookup, variableRegistry);

@@ -26,9 +26,17 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.integration.DirectInjectionExtensionManager;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
@@ -44,15 +52,7 @@ import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.bucket.Bucket;
-import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.registry.flow.VersionedParameter;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -103,7 +103,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         processor.setAutoTerminatedRelationships(Collections.singleton(REL_SUCCESS));
         processor.setProperties(Collections.singletonMap(NopServiceReferencingProcessor.SERVICE.getName(), controllerService.getIdentifier()));
 
-        final VersionedFlowSnapshot proposedFlow = createFlowSnapshot(Collections.singletonList(controllerService), Collections.singletonList(processor), null);
+        final VersionedExternalFlow proposedFlow = createFlowSnapshot(Collections.singletonList(controllerService), Collections.singletonList(processor), null);
 
         // Create an Inner Process Group and update it to match the Versioned Flow.
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -146,8 +146,8 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
         processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "password"));
 
-        // Create a VersionedFlowSnapshot that contains the processor
-        final VersionedFlowSnapshot versionedFlowWithExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
+        // Create a VersionedExternalFlow that contains the processor
+        final VersionedExternalFlow versionedFlowWithExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
 
         // Create child group
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -173,7 +173,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         assertEquals(DifferenceType.PROPERTY_PARAMETERIZED, differences.iterator().next().getDifferenceType());
 
         // Create a Versioned Flow that contains the Parameter Reference.
-        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
+        final VersionedExternalFlow versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), null);
 
         // Ensure no difference between the current configuration and the versioned flow
         differences = getLocalModifications(innerGroup, versionedFlowWithParameterReference);
@@ -191,9 +191,9 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
         processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
 
-        // Create a VersionedFlowSnapshot that contains the processor
+        // Create a VersionedExternalFlow that contains the processor
         final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
-        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
+        final VersionedExternalFlow versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
 
         // Create child group
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -223,9 +223,9 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ProcessorNode processor = createProcessorNode(UsernamePasswordProcessor.class);
         processor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
 
-        // Create a VersionedFlowSnapshot that contains the processor
+        // Create a VersionedExternalFlow that contains the processor
         final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
-        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
+        final VersionedExternalFlow versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processor), Collections.singleton(parameter));
 
         // Create child group
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -253,15 +253,15 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ProcessorNode initialProcessor = createProcessorNode(UsernamePasswordProcessor.class);
         initialProcessor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}"));
 
-        // Create a VersionedFlowSnapshot that contains the processor
+        // Create a VersionedExternalFlow that contains the processor
         final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
-        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
+        final VersionedExternalFlow versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
             Collections.singletonList(initialProcessor), Collections.singleton(parameter));
 
 
         // Update processor to have an explicit value for the second version of the flow.
         initialProcessor.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret-value"));
-        final VersionedFlowSnapshot versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+        final VersionedExternalFlow versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
 
         // Create child group and update to the first version of the flow, with parameter ref
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -290,7 +290,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         initialProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "pass");
         initialProcessor.setProperties(initialProperties);
 
-        final VersionedFlowSnapshot initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+        final VersionedExternalFlow initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
 
         // Update processor to have a different explicit value for both sensitive and non-sensitive properties and create a versioned flow for it.
         final Map<String, String> updatedProperties = new HashMap<>();
@@ -298,7 +298,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         updatedProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "pass");
         initialProcessor.setProperties(updatedProperties);
 
-        final VersionedFlowSnapshot updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+        final VersionedExternalFlow updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
 
         // Create child group and update to the first version of the flow, with parameter ref
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -335,7 +335,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         initialProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "#{secret-param}");
         initialProcessor.setProperties(initialProperties);
 
-        final VersionedFlowSnapshot initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+        final VersionedExternalFlow initialVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
 
         // Update processor to have a different explicit value for both sensitive and non-sensitive properties and create a versioned flow for it.
         final Map<String, String> updatedProperties = new HashMap<>();
@@ -343,7 +343,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         updatedProperties.put(UsernamePasswordProcessor.PASSWORD.getName(), "#{other-param}");
         initialProcessor.setProperties(updatedProperties);
 
-        final VersionedFlowSnapshot updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
+        final VersionedExternalFlow updatedVersionSnapshot = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(initialProcessor), null);
 
         // Create child group and update to the first version of the flow, with parameter ref
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -369,12 +369,12 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         processorWithExplicitValue.setProperties(Collections.singletonMap(UsernamePasswordProcessor.PASSWORD.getName(), "secret-value"));
 
 
-        // Create a VersionedFlowSnapshot that contains the processor
+        // Create a VersionedExternalFlow that contains the processor
         final Parameter parameter = new Parameter(new ParameterDescriptor.Builder().name("secret-param").sensitive(true).build(), null);
-        final VersionedFlowSnapshot versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
+        final VersionedExternalFlow versionedFlowWithParameterReference = createFlowSnapshot(Collections.emptyList(),
             Collections.singletonList(processorWithParamRef), Collections.singleton(parameter));
 
-        final VersionedFlowSnapshot versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processorWithExplicitValue), null);
+        final VersionedExternalFlow versionedFlowExplicitValue = createFlowSnapshot(Collections.emptyList(), Collections.singletonList(processorWithExplicitValue), null);
 
         // Create child group and update to the first version of the flow, with parameter ref
         final ProcessGroup innerGroup = getFlowController().getFlowManager().createProcessGroup("inner-group-id");
@@ -406,7 +406,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         groupA.addInputPort(port);
 
         //Create a snapshot
-        final VersionedFlowSnapshot version1 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version1 = createFlowSnapshot(groupA);
 
         //Create Process Group B under Process Group A
         final ProcessGroup groupB = createProcessGroup("group-b-id", "Group B", groupA);
@@ -421,7 +421,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final Connection connection = connect(groupA, processor, port, processor.getRelationships());
 
         //Create another snapshot
-        final VersionedFlowSnapshot version2 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version2 = createFlowSnapshot(groupA);
 
         //Change Process Group A version to Version 1
         groupA.updateFlow(version1, null, false, true, true);
@@ -463,7 +463,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final Connection connection = connect(group, processor, port, processor.getRelationships());
 
         //Create a snapshot
-        final VersionedFlowSnapshot version1 = createFlowSnapshot(group);
+        final VersionedExternalFlow version1 = createFlowSnapshot(group);
 
         //Create Funnel under Process Group
         Funnel funnel = getFlowController().getFlowManager().createFunnel("funnel-id");
@@ -476,7 +476,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         group.removeOutputPort(port);
 
         //Create another snapshot
-        final VersionedFlowSnapshot version2 = createFlowSnapshot(group);
+        final VersionedExternalFlow version2 = createFlowSnapshot(group);
 
         //Change Process Group version to Version 1
         group.updateFlow(version1, null, false, true, true);
@@ -534,7 +534,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final Connection connection2 = connect(groupA, processor1, inputPort, processor1.getRelationships());
 
         //Create a snapshot
-        final VersionedFlowSnapshot version1 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version1 = createFlowSnapshot(groupA);
 
         //Modify Connection 1 to point to Processor 2
         connection1.setDestination(processor2);
@@ -543,7 +543,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         moveOutputPort(outputPort, groupB);
 
         //Create another snapshot
-        final VersionedFlowSnapshot version2 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version2 = createFlowSnapshot(groupA);
 
         //Delete connection 2
         groupA.removeConnection(connection2);
@@ -552,7 +552,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         groupB.removeInputPort(inputPort);
 
         //Create another snapshot
-        final VersionedFlowSnapshot version3 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version3 = createFlowSnapshot(groupA);
 
         //Change Process Group version to Version 1
         groupA.updateFlow(version1, null, false, true, true);
@@ -612,7 +612,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final Connection connection2 = connect(groupA, processor1, inputPort, processor1.getRelationships());
 
         //Create a snapshot
-        final VersionedFlowSnapshot version1 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version1 = createFlowSnapshot(groupA);
 
         //Modify Connection 1 to point to Processor 2
         connection1.setDestination(processor2);
@@ -621,7 +621,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         groupA.removeOutputPort(outputPort);
 
         //Create another snapshot
-        final VersionedFlowSnapshot version2 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version2 = createFlowSnapshot(groupA);
 
         //Delete connection 2
         groupA.removeConnection(connection2);
@@ -630,7 +630,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         moveInputPort(inputPort, groupA);
 
         //Create another snapshot
-        final VersionedFlowSnapshot version3 = createFlowSnapshot(groupA);
+        final VersionedExternalFlow version3 = createFlowSnapshot(groupA);
 
         //Change Process Group version to Version 1
         groupA.updateFlow(version1, null, false, true, true);
@@ -686,10 +686,10 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     }
 
 
-    private Set<FlowDifference> getLocalModifications(final ProcessGroup processGroup, final VersionedFlowSnapshot versionedFlowSnapshot) {
+    private Set<FlowDifference> getLocalModifications(final ProcessGroup processGroup, final VersionedExternalFlow VersionedExternalFlow) {
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(getFlowController().getExtensionManager());
         final VersionedProcessGroup localGroup = mapper.mapProcessGroup(processGroup, getFlowController().getControllerServiceProvider(), getFlowController().getFlowRegistryClient(), true);
-        final VersionedProcessGroup registryGroup = versionedFlowSnapshot.getFlowContents();
+        final VersionedProcessGroup registryGroup = VersionedExternalFlow.getFlowContents();
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Local Flow", localGroup);
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
@@ -707,14 +707,8 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         return differences;
     }
 
-    private VersionedFlowSnapshot createFlowSnapshot(final ProcessGroup group, final List<ControllerServiceNode> controllerServices,
+    private VersionedExternalFlow createFlowSnapshot(final ProcessGroup group, final List<ControllerServiceNode> controllerServices,
                                                      final List<ProcessorNode> processors, final Set<Parameter> parameters) {
-        final VersionedFlowSnapshotMetadata snapshotMetadata = createSnapshotMetadata();
-
-        final Bucket bucket = createBucket();
-
-        final VersionedFlow flow = createVersionedFlow();
-
         createBundle();
 
         final NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(getExtensionManager());
@@ -804,7 +798,14 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         flowContents.setFunnels(versionedFunnels);
         flowContents.setConnections(versionedConnections);
 
-        final VersionedFlowSnapshot versionedFlowSnapshot = createVersionedFlowSnapshot(snapshotMetadata, bucket, flow, flowContents);
+        final VersionedExternalFlow externalFlow = new VersionedExternalFlow();
+
+        final VersionedExternalFlowMetadata metadata = new VersionedExternalFlowMetadata();
+        externalFlow.setMetadata(metadata);
+        metadata.setBucketIdentifier("unit-test-bucket");
+        metadata.setFlowIdentifier("unit-test-flow");
+        metadata.setVersion(1);
+        metadata.setFlowName("unit-test-flow");
 
         if (parameters != null) {
             final Set<VersionedParameter> versionedParameters = new HashSet<>();
@@ -820,31 +821,22 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
             final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
             versionedParameterContext.setName("Unit Test Context");
             versionedParameterContext.setParameters(versionedParameters);
-            versionedFlowSnapshot.setParameterContexts(Collections.singletonMap(versionedParameterContext.getName(), versionedParameterContext));
+            externalFlow.setParameterContexts(Collections.singletonMap(versionedParameterContext.getName(), versionedParameterContext));
 
             flowContents.setParameterContextName("Unit Test Context");
         }
 
-        return versionedFlowSnapshot;
+        return externalFlow;
     }
 
-    private VersionedFlowSnapshot createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Set<Parameter> parameters) {
+    private VersionedExternalFlow createFlowSnapshot(final List<ControllerServiceNode> controllerServices, final List<ProcessorNode> processors, final Set<Parameter> parameters) {
         return createFlowSnapshot(null, controllerServices, processors, parameters);
     }
 
-    private VersionedFlowSnapshot createFlowSnapshot(final ProcessGroup group) {
-        return createFlowSnapshot(group, Collections.EMPTY_LIST, Collections.EMPTY_LIST, null);
+    private VersionedExternalFlow createFlowSnapshot(final ProcessGroup group) {
+        return createFlowSnapshot(group, Collections.emptyList(), Collections.emptyList(), null);
     }
 
-    @NotNull
-    private VersionedFlowSnapshot createVersionedFlowSnapshot(VersionedFlowSnapshotMetadata snapshotMetadata, Bucket bucket, VersionedFlow flow, VersionedProcessGroup flowContents) {
-        final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
-        versionedFlowSnapshot.setSnapshotMetadata(snapshotMetadata);
-        versionedFlowSnapshot.setBucket(bucket);
-        versionedFlowSnapshot.setFlow(flow);
-        versionedFlowSnapshot.setFlowContents(flowContents);
-        return versionedFlowSnapshot;
-    }
 
     @NotNull
     private VersionedProcessGroup createFlowContents() {
@@ -882,14 +874,4 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         return bucket;
     }
 
-    @NotNull
-    private VersionedFlowSnapshotMetadata createSnapshotMetadata() {
-        final VersionedFlowSnapshotMetadata snapshotMetadata = new VersionedFlowSnapshotMetadata();
-        snapshotMetadata.setAuthor("unit-test");
-        snapshotMetadata.setBucketIdentifier("unit-test-bucket");
-        snapshotMetadata.setFlowIdentifier("unit-test-flow");
-        snapshotMetadata.setTimestamp(System.currentTimeMillis());
-        snapshotMetadata.setVersion(1);
-        return snapshotMetadata;
-    }
 }

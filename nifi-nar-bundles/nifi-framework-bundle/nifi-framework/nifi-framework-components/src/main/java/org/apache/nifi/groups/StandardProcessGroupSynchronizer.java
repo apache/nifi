@@ -48,6 +48,7 @@ import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
@@ -71,8 +72,8 @@ import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.registry.flow.VersionedParameter;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -142,13 +143,13 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
     }
 
     @Override
-    public void synchronize(final ProcessGroup group, final VersionedFlowSnapshot proposedSnapshot, final GroupSynchronizationOptions options) {
+    public void synchronize(final ProcessGroup group, final VersionedExternalFlow versionedExternalFlow, final GroupSynchronizationOptions options) {
 
         final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(context.getExtensionManager(), context.getFlowMappingOptions());
         final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(group, context.getControllerServiceProvider(), context.getFlowRegistryClient(), true);
 
         final ComparableDataFlow localFlow = new StandardComparableDataFlow("Currently Loaded Flow", versionedGroup);
-        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", proposedSnapshot.getFlowContents());
+        final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
 
         final PropertyDecryptor decryptor = options.getPropertyDecryptor();
         final FlowComparator flowComparator = new StandardFlowComparator(proposedFlow, localFlow, group.getAncestorServiceIds(), new StaticDifferenceDescriptor(), decryptor::decrypt);
@@ -199,7 +200,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
                 .map(FlowDifference::toString)
                 .collect(Collectors.joining("\n"));
 
-            LOG.info("Updating {} to {}; there are {} differences to take into account:\n{}", group, proposedSnapshot,
+            LOG.info("Updating {} to {}; there are {} differences to take into account:\n{}", group, versionedExternalFlow,
                 flowComparison.getDifferences().size(), differencesByLine);
         }
 
@@ -217,7 +218,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
 
         context.getFlowManager().withParameterContextResolution(() -> {
             try {
-                synchronize(group, proposedSnapshot.getFlowContents(), proposedSnapshot.getParameterContexts());
+                synchronize(group, versionedExternalFlow.getFlowContents(), versionedExternalFlow.getParameterContexts());
             } catch (final ProcessorInstantiationException pie) {
                 throw new RuntimeException(pie);
             }

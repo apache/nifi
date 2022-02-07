@@ -65,7 +65,6 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -91,12 +90,12 @@ import static java.util.Objects.requireNonNull;
 public class StatelessFlowManager extends AbstractFlowManager implements FlowManager {
     private static final Logger logger = LoggerFactory.getLogger(StatelessFlowManager.class);
 
-    private final StatelessEngine<VersionedFlowSnapshot> statelessEngine;
+    private final StatelessEngine statelessEngine;
     private final SSLContext sslContext;
     private final BulletinRepository bulletinRepository;
 
     public StatelessFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
-                                final StatelessEngine<VersionedFlowSnapshot> statelessEngine, final BooleanSupplier flowInitializedCheck,
+                                final StatelessEngine statelessEngine, final BooleanSupplier flowInitializedCheck,
                                 final SSLContext sslContext, final BulletinRepository bulletinRepository) {
         super(flowFileEventRepository, parameterContextManager, statelessEngine.getFlowRegistryClient(), flowInitializedCheck);
 

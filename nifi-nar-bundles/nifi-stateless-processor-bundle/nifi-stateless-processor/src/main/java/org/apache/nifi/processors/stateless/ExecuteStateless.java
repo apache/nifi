@@ -41,6 +41,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -60,6 +61,7 @@ import org.apache.nifi.processors.stateless.retrieval.CachingDataflowProvider;
 import org.apache.nifi.processors.stateless.retrieval.DataflowProvider;
 import org.apache.nifi.processors.stateless.retrieval.FileSystemDataflowProvider;
 import org.apache.nifi.processors.stateless.retrieval.RegistryDataflowProvider;
+import org.apache.nifi.registry.VersionedFlowConverter;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -462,7 +464,7 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
         final StatelessEngineConfiguration engineConfiguration = createEngineConfiguration(context, dataflowIndex);
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(engineConfiguration, Thread.currentThread().getContextClassLoader());
 
-        final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = createDataflowDefinition(context, flowSnapshot);
+        final DataflowDefinition dataflowDefinition = createDataflowDefinition(context, flowSnapshot);
 
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
         dataflow.initialize();
@@ -746,7 +748,8 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
     }
 
 
-    private DataflowDefinition<VersionedFlowSnapshot> createDataflowDefinition(final ProcessContext context, final VersionedFlowSnapshot flowSnapshot) {
+    private DataflowDefinition createDataflowDefinition(final ProcessContext context, final VersionedFlowSnapshot flowSnapshot) {
+        final VersionedExternalFlow externalFlow = VersionedFlowConverter.createVersionedExternalFlow(flowSnapshot);
         final ParameterValueProviderDefinition parameterValueProviderDefinition = new ParameterValueProviderDefinition();
         parameterValueProviderDefinition.setType("org.apache.nifi.stateless.parameter.OverrideParameterValueProvider");
         parameterValueProviderDefinition.setName("Parameter Override");
@@ -783,10 +786,10 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             }
         };
 
-        return new DataflowDefinition<VersionedFlowSnapshot>() {
+        return new DataflowDefinition() {
             @Override
-            public VersionedFlowSnapshot getFlowSnapshot() {
-                return flowSnapshot;
+            public VersionedExternalFlow getVersionedExternalFlow() {
+                return externalFlow;
             }
 
             @Override

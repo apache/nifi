@@ -19,6 +19,8 @@ package org.apache.nifi.registry.flow;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 
@@ -117,7 +119,7 @@ public class VersionedFlowSnapshot {
     @ApiModelProperty(value = "The parameter contexts referenced by process groups in the flow contents. " +
             "The mapping is from the name of the context to the context instance, and it is expected that any " +
             "context in this map is referenced by at least one process group in this flow.")
-    public Map<String,VersionedParameterContext> getParameterContexts() {
+    public Map<String, VersionedParameterContext> getParameterContexts() {
         return parameterContexts;
     }
 
