@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.serialization;
 
-import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;

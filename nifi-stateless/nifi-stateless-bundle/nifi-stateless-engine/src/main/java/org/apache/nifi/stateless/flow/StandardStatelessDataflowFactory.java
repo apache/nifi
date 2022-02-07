@@ -52,7 +52,6 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.InMemoryFlowRegistry;
 import org.apache.nifi.registry.flow.StandardFlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
@@ -88,16 +87,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
+public class StandardStatelessDataflowFactory implements StatelessDataflowFactory {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
 
-    @Override
-    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition,
+
+    public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition dataflowDefinition,
                                             final ClassLoader extensionRootClassLoader)
                     throws IOException, StatelessConfigurationException {
         final long start = System.currentTimeMillis();
-
-        final VersionedFlowSnapshot flowSnapshot = dataflowDefinition.getFlowSnapshot();
 
         ProvenanceRepository provenanceRepo = null;
         ContentRepository contentRepo = null;
@@ -114,7 +111,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             }
 
             final InMemoryFlowRegistry flowRegistry = new InMemoryFlowRegistry();
-            flowRegistry.addFlowSnapshot(flowSnapshot);
+            flowRegistry.addFlowSnapshot(dataflowDefinition.getVersionedExternalFlow());
             final FlowRegistryClient flowRegistryClient = new StandardFlowRegistryClient();
             flowRegistryClient.addFlowRegistry(flowRegistry);
 
@@ -184,7 +181,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 System.setProperty("java.security.krb5.conf", krb5File.getAbsolutePath());
             }
 
-            final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
+            final StatelessEngine statelessEngine = new StandardStatelessEngine.Builder()
                     .bulletinRepository(bulletinRepository)
                     .encryptor(lazyInitializedEncryptor)
                     .extensionManager(extensionManager)

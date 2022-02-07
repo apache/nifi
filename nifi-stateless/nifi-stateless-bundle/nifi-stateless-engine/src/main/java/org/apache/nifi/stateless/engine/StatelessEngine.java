@@ -37,11 +37,11 @@ import org.apache.nifi.stateless.flow.StatelessDataflow;
 
 import java.time.Duration;
 
-public interface StatelessEngine<T> {
+public interface StatelessEngine {
 
     void initialize(StatelessEngineInitializationContext initializationContext);
 
-    StatelessDataflow createFlow(DataflowDefinition<T> dataflowDefinition);
+    StatelessDataflow createFlow(DataflowDefinition dataflowDefinition);
 
     ExtensionManager getExtensionManager();
 

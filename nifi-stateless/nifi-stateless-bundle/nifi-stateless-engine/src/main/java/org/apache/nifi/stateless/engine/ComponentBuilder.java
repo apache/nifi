@@ -56,7 +56,6 @@ import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableRegistry;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.StandardComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -74,14 +73,14 @@ import java.util.Set;
 public class ComponentBuilder {
     private static final Logger logger = LoggerFactory.getLogger(ComponentBuilder.class);
 
-    private StatelessEngine<VersionedFlowSnapshot> statelessEngine;
+    private StatelessEngine statelessEngine;
     private FlowManager flowManager;
     private String identifier;
     private String type;
     private BundleCoordinate bundleCoordinate;
     private Set<URL> additionalClassPathUrls;
 
-    public ComponentBuilder statelessEngine(final StatelessEngine<VersionedFlowSnapshot> statelessEngine) {
+    public ComponentBuilder statelessEngine(final StatelessEngine statelessEngine) {
         this.statelessEngine = statelessEngine;
         return this;
     }

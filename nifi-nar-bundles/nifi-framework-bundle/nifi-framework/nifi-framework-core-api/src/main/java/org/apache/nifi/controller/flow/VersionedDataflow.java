@@ -20,7 +20,7 @@ package org.apache.nifi.controller.flow;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterContext;
 
 import java.util.List;
 import java.util.Set;

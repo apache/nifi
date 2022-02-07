@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
@@ -67,24 +68,24 @@ public class StatelessBootstrap {
         this.engineConfiguration = engineConfiguration;
     }
 
-    public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition)
+    public StatelessDataflow createDataflow(final DataflowDefinition dataflowDefinition)
                 throws IOException, StatelessConfigurationException {
-        final StatelessDataflowFactory<T> dataflowFactory = getSingleInstance(engineClassLoader, StatelessDataflowFactory.class);
+        final StatelessDataflowFactory dataflowFactory = getSingleInstance(engineClassLoader, StatelessDataflowFactory.class);
         final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition, extensionClassLoader);
         return dataflow;
     }
 
-    public DataflowDefinition<?> parseDataflowDefinition(final File flowDefinitionFile, final List<ParameterOverride> parameterOverrides)
+    public DataflowDefinition parseDataflowDefinition(final File flowDefinitionFile, final List<ParameterOverride> parameterOverrides)
                 throws StatelessConfigurationException, IOException {
         final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(engineClassLoader, DataflowDefinitionParser.class);
-        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionFile, engineConfiguration, parameterOverrides);
+        final DataflowDefinition dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionFile, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
 
-    public DataflowDefinition<?> parseDataflowDefinition(final Map<String, String> flowDefinitionProperties, final List<ParameterOverride> parameterOverrides)
+    public DataflowDefinition parseDataflowDefinition(final Map<String, String> flowDefinitionProperties, final List<ParameterOverride> parameterOverrides)
                 throws StatelessConfigurationException, IOException {
         final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(engineClassLoader, DataflowDefinitionParser.class);
-        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration, parameterOverrides);
+        final DataflowDefinition dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
 
@@ -119,47 +120,18 @@ public class StatelessBootstrap {
         final long unpackMillis = System.currentTimeMillis() - unpackStart;
         logger.info("Unpacked NAR files in {} millis", unpackMillis);
 
+        final BlockListClassLoader statelessClassLoader = createExtensionRootClassLoader(narDirectory, rootClassLoader);
+
         final File statelessNarWorkingDir = locateStatelessNarWorkingDirectory(extensionsWorkingDir);
-        final File statelessNarInf = new File(statelessNarWorkingDir, "NAR-INF");
-        final File statelessNarDependencies = new File(statelessNarInf, "bundled-dependencies");
-        final File[] statelessNarContents = statelessNarDependencies.listFiles();
-        if (statelessNarContents == null || statelessNarContents.length == 0) {
-            throw new IOException("Could not access contents of Stateless NAR dependencies at " + statelessNarDependencies);
+        final NarClassLoader engineClassLoader;
+        try {
+            engineClassLoader = new NarClassLoader(statelessNarWorkingDir, statelessClassLoader);
+        } catch (final ClassNotFoundException e) {
+            throw new IOException("Could not create NarClassLoader for Stateless NAR located at " + statelessNarWorkingDir.getAbsolutePath(), e);
         }
-
-        final List<URL> urls = new ArrayList<>();
-        final List<String> filenames = new ArrayList<>();
-        for (final File dependency : statelessNarContents) {
-            final URL url = dependency.toURI().toURL();
-            urls.add(url);
-            filenames.add(dependency.getName());
-        }
-
-        logger.info("Creating Stateless Bootstrap with the following files in the classpath: {}", filenames);
-
-        final URL[] urlArray = urls.toArray(new URL[0]);
-        final BlockListClassLoader extensionClassLoader = createExtensionRootClassLoader(narDirectory, rootClassLoader);
-
-        final Set<String> classesBlockedExtensions = extensionClassLoader.getClassesBlocked();
-
-        // For the engine ClassLoader, we also want to block everything that we block for extensions except for the classes
-        // that the engine needs specifically (i.e., the classes in the stateless engine nar). We do this because there are some
-        // classes that may need to be shared between the bootstrap and the caller. For example, VersionedFlowSnapshot.
-        final URLClassLoader engineUrlClassLoader = new URLClassLoader(urlArray, rootClassLoader);
-        final Set<String> engineSpecificClassNames = new HashSet<>();
-        final Set<String> engineSpecificFiles = new HashSet<>();
-        findClassNamesInJars(urls, engineSpecificClassNames, engineSpecificFiles);
-
-        final Set<String> classesBlockedEngine = new HashSet<>(classesBlockedExtensions);
-        classesBlockedEngine.removeAll(engineSpecificClassNames);
-
-        logger.debug("Blocking the following classes from being loaded from parent {} for Engine by Stateless ClassLoaders: {}", engineUrlClassLoader, classesBlockedEngine);
-        logger.debug("Blocking the following files from being loaded from parent {} for Engine by Stateless ClassLoaders: {}", engineUrlClassLoader, engineSpecificFiles);
-
-        final BlockListClassLoader engineClassLoader = new BlockListClassLoader(engineUrlClassLoader, classesBlockedEngine);
 
         Thread.currentThread().setContextClassLoader(engineClassLoader);
-        return new StatelessBootstrap(engineClassLoader, extensionClassLoader, engineConfiguration);
+        return new StatelessBootstrap(engineClassLoader, statelessClassLoader, engineConfiguration);
     }
 
     /**
