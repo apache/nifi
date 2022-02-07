@@ -205,11 +205,11 @@
                 <version>3.1.0</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- jetty-schemas-3.1.jar handling this explicitly  Must be in root lib -->
+            <!-- jetty-schemas handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>org.eclipse.jetty.toolchain</groupId>
                 <artifactId>jetty-schemas</artifactId>
-                <version>3.1</version>
+                <version>5.2</version>
                 <scope>provided</scope>
             </dependency>
             <!-- logback-classic, logback-core, log4j-over-slf4j, jul-to-slf4j,jcl-over-slf4j,slf4j-api handling this explicitly  Must be in root lib -->
