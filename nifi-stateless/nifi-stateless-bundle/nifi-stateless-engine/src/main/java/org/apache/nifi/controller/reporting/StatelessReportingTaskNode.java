@@ -35,9 +35,9 @@ import org.apache.nifi.stateless.engine.StatelessEngine;
 
 public class StatelessReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
     private final FlowManager flowManager;
-    private final StatelessEngine<?> statelessEngine;
+    private final StatelessEngine statelessEngine;
 
-    public StatelessReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final StatelessEngine<?> statelessEngine,
+    public StatelessReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final StatelessEngine statelessEngine,
                                       final FlowManager flowManager, final ProcessScheduler processScheduler, final ValidationContextFactory validationContextFactory,
                                       final ComponentVariableRegistry variableRegistry, final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
                                       final ValidationTrigger validationTrigger) {

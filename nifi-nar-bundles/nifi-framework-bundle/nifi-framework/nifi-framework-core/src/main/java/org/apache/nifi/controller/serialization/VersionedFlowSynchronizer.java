@@ -52,6 +52,9 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -69,9 +72,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedParameter;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.DifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.FlowComparator;
@@ -298,9 +298,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 final Map<String, VersionedParameterContext> versionedParameterContextMap = new HashMap<>();
                 versionedFlow.getParameterContexts().forEach(context -> versionedParameterContextMap.put(context.getName(), context));
 
-                final VersionedFlowSnapshot versionedFlowSnapshot = new VersionedFlowSnapshot();
-                versionedFlowSnapshot.setParameterContexts(versionedParameterContextMap);
-                versionedFlowSnapshot.setFlowContents(versionedFlow.getRootGroup());
+                final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
+                versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
+                versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
 
                 // Inherit controller-level components.
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
@@ -313,7 +313,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 final ComponentScheduler componentScheduler = new FlowControllerComponentScheduler(controller);
 
                 if (rootGroup.isEmpty()) {
-                    final VersionedProcessGroup versionedRoot = versionedFlowSnapshot.getFlowContents();
+                    final VersionedProcessGroup versionedRoot = versionedExternalFlow.getFlowContents();
                     rootGroup = controller.getFlowManager().createProcessGroup(versionedRoot.getInstanceIdentifier());
                     rootGroup.setComments(versionedRoot.getComments());
                     rootGroup.setPosition(new Position(versionedRoot.getPosition().getX(), versionedRoot.getPosition().getY()));
@@ -350,7 +350,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     .mapControllerServiceReferencesToVersionedId(false)
                     .build();
 
-                rootGroup.synchronizeFlow(versionedFlowSnapshot, syncOptions, flowMappingOptions);
+                rootGroup.synchronizeFlow(versionedExternalFlow, syncOptions, flowMappingOptions);
 
                 // Inherit templates, now that all necessary Process Groups have been created
                 inheritTemplates(controller, versionedFlow);

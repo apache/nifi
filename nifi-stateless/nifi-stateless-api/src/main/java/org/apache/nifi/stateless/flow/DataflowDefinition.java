@@ -17,6 +17,7 @@
 
 package org.apache.nifi.stateless.flow;
 
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
@@ -24,8 +25,8 @@ import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import java.util.List;
 import java.util.Set;
 
-public interface DataflowDefinition<T> {
-    T getFlowSnapshot();
+public interface DataflowDefinition {
+    VersionedExternalFlow getVersionedExternalFlow();
 
     String getFlowName();
 

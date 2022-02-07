@@ -19,10 +19,10 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
@@ -35,33 +35,31 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class StandardDataflowDefinition implements DataflowDefinition<VersionedFlowSnapshot> {
-    private final VersionedFlowSnapshot flowSnapshot;
+public class StandardDataflowDefinition implements DataflowDefinition {
+    private final VersionedExternalFlow versionedExternalFlow;
     private final Set<String> failurePortNames;
     private final List<ParameterContextDefinition> parameterContexts;
     private final List<ReportingTaskDefinition> reportingTaskDefinitions;
     private final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions;
     private final TransactionThresholds transactionThresholds;
-    private final String flowName;
 
     private StandardDataflowDefinition(final Builder builder) {
-        flowSnapshot = requireNonNull(builder.flowSnapshot, "Flow Snapshot must be provided");
+        versionedExternalFlow = requireNonNull(builder.versionedExternalFlow, "Flow Snapshot must be provided");
         failurePortNames = builder.failurePortNames == null ? Collections.emptySet() : builder.failurePortNames;
         parameterContexts = builder.parameterContexts == null ? Collections.emptyList() : builder.parameterContexts;
         reportingTaskDefinitions = builder.reportingTaskDefinitions == null ? Collections.emptyList() : builder.reportingTaskDefinitions;
         transactionThresholds = builder.transactionThresholds == null ? TransactionThresholds.SINGLE_FLOWFILE : builder.transactionThresholds;
         parameterValueProviderDefinitions = builder.parameterValueProviderDefinitions == null ? Collections.emptyList() : builder.parameterValueProviderDefinitions;
-        flowName = builder.flowName;
     }
 
     @Override
-    public VersionedFlowSnapshot getFlowSnapshot() {
-        return flowSnapshot;
+    public VersionedExternalFlow getVersionedExternalFlow() {
+        return versionedExternalFlow;
     }
 
     @Override
     public String getFlowName() {
-        return flowName;
+        return versionedExternalFlow.getMetadata().getFlowName();
     }
 
     @Override
@@ -71,14 +69,14 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
 
     @Override
     public Set<String> getInputPortNames() {
-        return flowSnapshot.getFlowContents().getInputPorts().stream()
+        return versionedExternalFlow.getFlowContents().getInputPorts().stream()
             .map(VersionedPort::getName)
             .collect(Collectors.toSet());
     }
 
     @Override
     public Set<String> getOutputPortNames() {
-        return flowSnapshot.getFlowContents().getOutputPorts().stream()
+        return versionedExternalFlow.getFlowContents().getOutputPorts().stream()
             .map(VersionedPort::getName)
             .collect(Collectors.toSet());
     }
@@ -105,7 +103,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
 
     public Set<Bundle> getReferencedBundles() {
         final Set<Bundle> referenced = new HashSet<>();
-        final VersionedProcessGroup rootGroup = flowSnapshot.getFlowContents();
+        final VersionedProcessGroup rootGroup = versionedExternalFlow.getFlowContents();
         discoverReferencedBundles(rootGroup, referenced);
         return referenced;
     }
@@ -125,21 +123,15 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     }
 
     public static class Builder {
-        private VersionedFlowSnapshot flowSnapshot;
+        private VersionedExternalFlow versionedExternalFlow;
         private Set<String> failurePortNames;
         private List<ParameterContextDefinition> parameterContexts;
         private List<ReportingTaskDefinition> reportingTaskDefinitions;
         private List<ParameterValueProviderDefinition> parameterValueProviderDefinitions;
         private TransactionThresholds transactionThresholds;
-        private String flowName;
 
-        public Builder flowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
-            this.flowSnapshot = flowSnapshot;
-            return this;
-        }
-
-        public Builder flowName(final String flowName) {
-            this.flowName = flowName;
+        public Builder versionedExternalFlow(final VersionedExternalFlow versionedExternalFlow) {
+            this.versionedExternalFlow = versionedExternalFlow;
             return this;
         }
 
