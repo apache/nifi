@@ -46,7 +46,7 @@
     "url-search-params": "0.6.1"
   },
   "devDependencies": {
-    "npm-force-resolutions": "^0.0.10"
+    "npm-force-resolutions": "0.0.10"
   },
   "resolutions": {
     "underscore": "1.13.2"
