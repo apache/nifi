@@ -17,17 +17,21 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi</artifactId>
+        <artifactId>nifi-h2</artifactId>
         <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-h2-database-migrator</artifactId>
 
     <dependencies>
-        <!-- H2 version used to migrate from H2 1.x to 2.x+, will be moved to its own subdirectory -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>1.4.199</version>
+            <version>${h2.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-h2-database</artifactId>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

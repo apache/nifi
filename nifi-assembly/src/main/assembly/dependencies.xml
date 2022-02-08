@@ -43,9 +43,6 @@
                 <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
                 <exclude>javax.annotation:javax.annotation-api</exclude>
 
-                <!-- exclude H2 migrator libraries, they'll be included in the h2_migration subdirectory -->
-                <exclude>nifi-h2-database-migrator</exclude>
-
                 <!-- exclude AspectJ library from lib, it'll be included in the aspectj subdir -->
                 <exclude>org.aspectj:aspectjweaver</exclude>
             </excludes>

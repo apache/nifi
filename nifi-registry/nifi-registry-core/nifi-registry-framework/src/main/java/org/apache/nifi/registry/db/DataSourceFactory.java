@@ -96,13 +96,12 @@ public class DataSourceFactory {
         // Migrate an H2 existing database if required
         if (databaseUrl.startsWith(H2DatabaseUpdater.H2_URL_PREFIX)) {
             final String specifiedWorkingDir = properties.getProperty("working.dir", "./").trim();
-            final String libDir = specifiedWorkingDir + properties.getProperty("lib.dir", "./lib").trim();
-            final String javaCmd = properties.getProperty("java", "java");
             final File databaseFile = getFileFromH2URL(databaseUrl);
             final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";LOCK_MODE=3";
 
+            LOGGER.info("H2 database version 1 detected, the database will be migrated to version 2. Existing files will be backed up to the same directory.");
             try {
-                H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, databaseUsername, databasePassword, libDir, javaCmd);
+                H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, databaseUsername, databasePassword);
             } catch (Exception e) {
                 throw new RuntimeException("Error during H2 migration", e);
             }

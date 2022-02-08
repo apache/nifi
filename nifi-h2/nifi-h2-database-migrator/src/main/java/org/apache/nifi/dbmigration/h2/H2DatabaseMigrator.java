@@ -16,46 +16,27 @@
  */
 package org.apache.nifi.dbmigration.h2;
 
-import org.h2.jdbcx.JdbcDataSource;
+import org.apache.nifi.org.h2.jdbcx.JdbcDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class H2DatabaseMigratorProcess {
+import static org.apache.nifi.dbmigration.h2.H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
+import static org.apache.nifi.dbmigration.h2.H2DatabaseUpdater.EXPORT_FILE_PREFIX;
 
-    public static final String EXPORT_FILE_PREFIX = "export_";
-    public static final String EXPORT_FILE_POSTFIX = ".sql";
+public class H2DatabaseMigrator {
+
+    private static final Logger logger = LoggerFactory.getLogger(H2DatabaseMigrator.class);
+
     public static final String BACKUP_FILE_POSTFIX = ".migration_backup";
 
-    public static void main(String[] args) {
-        if (args.length < 4) {
-            // Write error to file
-            StringBuilder errorMsg = new StringBuilder("Migration tool requires 4 arguments, the JDBC URL to the H2 database, the path to the database file, "
-                    + "and the username and password for the database.\n");
-            if (args.length == 0) {
-                errorMsg.append("No arguments given");
-            } else {
-                for (int i = 1; i < args.length; i++) {
-                    errorMsg.append("arg[");
-                    errorMsg.append(i);
-                    errorMsg.append("] = ");
-                    errorMsg.append(args[i]);
-                    errorMsg.append("\n");
-                }
-            }
-            handleError(errorMsg.toString(), 10);
-        }
-
-        final String dbUrl = args[0];
-        final String dbPath = args[1];
-        final String user = args[2];
-        final String pass = args[3];
+    public static void exportAndBackup(final String dbUrl, final String dbPath, final String user, final String pass) {
 
         // Attempt to connect with the latest driver
         JdbcDataSource migrationDataSource = new JdbcDataSource();
@@ -73,7 +54,8 @@ public class H2DatabaseMigratorProcess {
             conn = migrationDataSource.getConnection();
             s = conn.createStatement();
         } catch (SQLException sqle) {
-            handleError("Could not connect to the database with the legacy driver, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState(), 20);
+            logger.error("Could not connect to the database with the legacy driver, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState());
+            throw new RuntimeException(sqle);
         }
 
         try {
@@ -85,7 +67,8 @@ public class H2DatabaseMigratorProcess {
             } catch (SQLException se2) {
                 // Ignore, the error will be handled
             }
-            handleError("Export of the database with the legacy driver failed, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState(), 30);
+            logger.error("Export of the database with the legacy driver failed, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState());
+            throw new RuntimeException(sqle);
         }
 
         try {
@@ -97,35 +80,26 @@ public class H2DatabaseMigratorProcess {
 
         // Verify the export file exists
         if (!Files.exists(Paths.get(exportFile))) {
-            handleError("Export of the database with the legacy driver failed, no export file was created", 40);
+            logger.error("Export of the database with the legacy driver failed, no export file was created");
+            throw new RuntimeException("Export of the database with the legacy driver failed, no export file was created");
         }
 
         // Now that the export file exists, backup (rename) the DB files so the main process with the newer H2 driver can create and import the previous database
         File dbDir = new File(dbPath).getParentFile();
         File[] dbFiles = dbDir.listFiles((dir, name) -> !name.endsWith(EXPORT_FILE_POSTFIX) && name.startsWith(dbPathFile.getName()));
         if (dbFiles == null || dbFiles.length == 0) {
-            handleError("Backing up the legacy database failed, no database files were found.", 50);
+            logger.error("Backing up the legacy database failed, no database files were found.");
+            throw new RuntimeException("Backing up the legacy database failed, no database files were found.");
         }
 
         for (File dbFile : dbFiles) {
             File dbBackupFile = new File(dbFile.getAbsolutePath() + BACKUP_FILE_POSTFIX);
             if (!dbFile.renameTo(dbBackupFile)) {
-                handleError("Backing up the legacy database failed, " + dbFile.getName() + " could not be renamed.", 60);
+                logger.error("Backing up the legacy database failed, " + dbFile.getName() + " could not be renamed.");
+                throw new RuntimeException("Backing up the legacy database failed, " + dbFile.getName() + " could not be renamed.");
             }
         }
 
         // exit gracefully so the H2 migrator can proceed with rebuilding the database
-    }
-
-    private static void handleError(final String errorMsg, final int exitCode) {
-        // Write the message to a file and exit with the given code
-        try {
-            Path path = Paths.get("./h2_migration_error.txt");
-            byte[] errorMsgBytes = errorMsg.getBytes();
-            Files.write(path, errorMsgBytes);
-        } catch (IOException ioe) {
-            // Not much we can do here, so just exit
-        }
-        System.exit(exitCode);
     }
 }

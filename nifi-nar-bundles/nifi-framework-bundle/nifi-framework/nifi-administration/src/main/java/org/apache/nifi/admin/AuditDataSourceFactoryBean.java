@@ -138,11 +138,8 @@ public class AuditDataSourceFactoryBean implements FactoryBean {
             }
 
             // Migrate an existing database if required
-            final String specifiedWorkingDir = properties.getProperty("working.dir", "./").trim();
-            final String libDir = specifiedWorkingDir + properties.getProperty("lib.dir", "./lib").trim();
-            final String javaCmd = properties.getProperty("java", "java");
             final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + databaseFile + ";LOCK_MODE=3";
-            H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD, libDir, javaCmd);
+            H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
 
             // create the pool
             connectionPool = JdbcConnectionPool.create(databaseUrl, NF_USERNAME_PASSWORD, NF_USERNAME_PASSWORD);
