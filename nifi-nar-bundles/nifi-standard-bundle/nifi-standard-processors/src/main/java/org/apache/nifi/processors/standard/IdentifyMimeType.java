@@ -59,7 +59,7 @@ import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaMetadataKeys;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.mime.MimeType;
 import org.apache.tika.mime.MimeTypes;
@@ -218,7 +218,7 @@ public class IdentifyMimeType extends AbstractProcessor {
                     Metadata metadata = new Metadata();
 
                     if (filename != null && context.getProperty(USE_FILENAME_IN_DETECTION).asBoolean()) {
-                        metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY, filename);
+                        metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
                     }
                     // Get mime type
                     MediaType mediatype = detector.detect(tikaStream, metadata);
