@@ -66,11 +66,17 @@ import java.util.stream.Collectors;
 import net.minidev.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 
 
 /**
@@ -88,6 +94,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private IDTokenValidator tokenValidator;
     private ClientID clientId;
     private Secret clientSecret;
+    private SSLContext sslContext;
 
     /**
      * Creates a new StandardOidcIdentityProvider.
@@ -110,6 +117,11 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             return;
         }
 
+        // choose to use NiFi truststore instead of system's cacerts when connecting to OIDC provider
+        if (properties.shouldOidcUseNiFiTruststore()) {
+            configureSslContext();
+        }
+
         validateOIDCConfiguration();
 
         try {
@@ -120,6 +132,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
 
         validateOIDCProviderMetadata();
+    }
+
+    private void configureSslContext() {
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            throw new RuntimeException("Unable to establish an SSL context for OIDC identity provider from nifi.properties", e);
+        }
     }
 
     /**
@@ -247,6 +268,9 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);
+        if (properties.shouldOidcUseNiFiTruststore()) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        }
 
         final HTTPResponse httpResponse = httpRequest.send();
 
@@ -488,6 +512,9 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final HTTPRequest httpRequest = request.toHTTPRequest();
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);
+        if (properties.shouldOidcUseNiFiTruststore()) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        }
         return httpRequest;
     }
 

@@ -191,6 +191,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String SECURITY_USER_OIDC_ADDITIONAL_SCOPES = "nifi.security.user.oidc.additional.scopes";
     public static final String SECURITY_USER_OIDC_CLAIM_IDENTIFYING_USER = "nifi.security.user.oidc.claim.identifying.user";
     public static final String SECURITY_USER_OIDC_FALLBACK_CLAIMS_IDENTIFYING_USER = "nifi.security.user.oidc.fallback.claims.identifying.user";
+    public static final String SECURITY_USER_OIDC_USE_NIFI_TRUSTSTORE = "nifi.security.user.oidc.use.nifi.truststore";
 
     // apache knox
     public static final String SECURITY_USER_KNOX_URL = "nifi.security.user.knox.url";
@@ -1117,6 +1118,10 @@ public class NiFiProperties extends ApplicationProperties {
             List<String> fallbackClaims = Arrays.asList(rawProperty.split(","));
             return fallbackClaims.stream().map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
         }
+    }
+
+    public boolean shouldOidcUseNiFiTruststore() {
+        return Boolean.parseBoolean(getProperty(SECURITY_USER_OIDC_USE_NIFI_TRUSTSTORE, "false"));
     }
 
     public boolean shouldSendServerVersion() {
