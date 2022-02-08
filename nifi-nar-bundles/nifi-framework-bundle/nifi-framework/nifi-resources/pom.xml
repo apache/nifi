@@ -169,6 +169,7 @@
         <nifi.security.user.oidc.additional.scopes />
         <nifi.security.user.oidc.claim.identifying.user />
         <nifi.security.user.oidc.fallback.claims.identifying.user />
+        <nifi.security.user.oidc.truststore.strategy>JDK</nifi.security.user.oidc.truststore.strategy>
 
         <!-- nifi.properties: apache knox -->
         <nifi.security.user.knox.url />
