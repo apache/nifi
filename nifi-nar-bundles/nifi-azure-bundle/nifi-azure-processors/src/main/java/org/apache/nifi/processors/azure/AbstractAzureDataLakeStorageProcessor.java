@@ -175,19 +175,27 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
     }
 
     public static String evaluateFileSystemProperty(ProcessContext context, FlowFile flowFile) {
-        String fileSystem = context.getProperty(FILESYSTEM).evaluateAttributeExpressions(flowFile).getValue();
+        return evaluateFileSystemProperty(context, flowFile, FILESYSTEM);
+    }
+
+    public static String evaluateFileSystemProperty(ProcessContext context, FlowFile flowFile, PropertyDescriptor property) {
+        String fileSystem = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
         if (StringUtils.isBlank(fileSystem)) {
-            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", FILESYSTEM.getDisplayName()));
+            throw new ProcessException(String.format("'%1$s' property evaluated to blank string. '%s' must be specified as a non-blank string.", property.getDisplayName()));
         }
         return fileSystem;
     }
 
     public static String evaluateDirectoryProperty(ProcessContext context, FlowFile flowFile) {
-        String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
+        return evaluateDirectoryProperty(context, flowFile, DIRECTORY);
+    }
+
+    public static String evaluateDirectoryProperty(ProcessContext context, FlowFile flowFile, PropertyDescriptor property) {
+        String directory = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
         if (directory.startsWith("/")) {
-            throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", DIRECTORY.getDisplayName()));
+            throw new ProcessException(String.format("'%1$s' starts with '/'. '%s' cannot contain a leading '/'.", property.getDisplayName()));
         } else if (StringUtils.isNotEmpty(directory) && StringUtils.isWhitespace(directory)) {
-            throw new ProcessException(String.format("'%1$s' contains whitespace characters only.", DIRECTORY.getDisplayName()));
+            throw new ProcessException(String.format("'%1$s' contains whitespace characters only.", property.getDisplayName()));
         }
         return directory;
     }
@@ -200,19 +208,30 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         return fileName;
     }
 
-    private static class DirectoryValidator implements Validator {
-        @Override
+     public static class DirectoryValidator implements Validator {
+         private String displayName;
+
+         public DirectoryValidator() {
+             this.displayName = null;
+         }
+
+         public DirectoryValidator(String displayName) {
+             this.displayName = displayName;
+         }
+
+         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
+            displayName = displayName == null ? DIRECTORY.getDisplayName() : displayName;
             ValidationResult.Builder builder = new ValidationResult.Builder()
-                    .subject(DIRECTORY.getDisplayName())
+                    .subject(displayName)
                     .input(input);
 
             if (context.isExpressionLanguagePresent(input)) {
                 builder.valid(true).explanation("Expression Language Present");
             } else if (input.startsWith("/")) {
-                builder.valid(false).explanation(String.format("'%s' cannot contain a leading '/'", DIRECTORY.getDisplayName()));
+                builder.valid(false).explanation(String.format("'%s' cannot contain a leading '/'", displayName));
             } else if (StringUtils.isNotEmpty(input) && StringUtils.isWhitespace(input)) {
-                builder.valid(false).explanation(String.format("'%s' cannot contain whitespace characters only", DIRECTORY.getDisplayName()));
+                builder.valid(false).explanation(String.format("'%s' cannot contain whitespace characters only", displayName));
             } else {
                 builder.valid(true);
             }
