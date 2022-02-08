@@ -117,9 +117,9 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             return;
         }
 
-        // choose to use NiFi truststore instead of system's cacerts when connecting to OIDC provider
-        if (properties.shouldOidcUseNiFiTruststore()) {
-            configureSslContext();
+        // Decide whether to use NiFi truststore instead of system's cacerts when connecting to OIDC provider
+        if (TruststoreStrategy.valueOf(properties.getOidcClientTruststoreStrategy()) == TruststoreStrategy.NIFI) {
+            establishSslContext();
         }
 
         validateOIDCConfiguration();
@@ -134,7 +134,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         validateOIDCProviderMetadata();
     }
 
-    private void configureSslContext() {
+    private void establishSslContext() {
         TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
         try {
             this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
@@ -265,13 +265,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
      */
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
-        final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
-        httpRequest.setConnectTimeout(oidcConnectTimeout);
-        httpRequest.setReadTimeout(oidcReadTimeout);
-        if (properties.shouldOidcUseNiFiTruststore()) {
-            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
-        }
-
+        final HTTPRequest httpRequest = setHTTPRequestProperties(new HTTPRequest(HTTPRequest.Method.GET, url));
         final HTTPResponse httpResponse = httpRequest.send();
 
         if (httpResponse.getStatusCode() != 200) {
@@ -509,13 +503,17 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        final HTTPRequest httpRequest = request.toHTTPRequest();
-        httpRequest.setConnectTimeout(oidcConnectTimeout);
-        httpRequest.setReadTimeout(oidcReadTimeout);
-        if (properties.shouldOidcUseNiFiTruststore()) {
-            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        final HTTPRequest httpRequest = setHTTPRequestProperties(request.toHTTPRequest());
+        return (httpRequest);
+    }
+
+    private HTTPRequest setHTTPRequestProperties(final HTTPRequest request) {
+        request.setConnectTimeout(oidcConnectTimeout);
+        request.setReadTimeout(oidcReadTimeout);
+        if (sslContext != null) {
+            request.setSSLSocketFactory(sslContext.getSocketFactory());
         }
-        return httpRequest;
+        return request;
     }
 
     private ClientAuthentication createClientAuthentication() {
