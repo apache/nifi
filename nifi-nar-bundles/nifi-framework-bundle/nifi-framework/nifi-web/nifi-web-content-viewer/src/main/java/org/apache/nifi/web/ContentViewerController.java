@@ -37,6 +37,7 @@ import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.apache.tika.detect.DefaultDetector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,7 +168,7 @@ public class ContentViewerController extends HttpServlet {
 
                 // provide a hint based on the filename
                 final Metadata metadata = new Metadata();
-                metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+                metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, downloadableContent.getFilename());
 
                 // Get mime type
                 final MediaType mediatype = detector.detect(tikaStream, metadata);
