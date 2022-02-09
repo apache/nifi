@@ -153,7 +153,11 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             final String destinationFileSystem = evaluateFileSystemProperty(context, flowFile, DESTINATION_FILESYSTEM);
             final String destinationDirectory = evaluateDirectoryProperty(context, flowFile, DESTINATION_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
-            final String destinationPath = destinationDirectory.isEmpty() ? destinationDirectory : destinationDirectory + "/";
+
+            String destinationPath = destinationDirectory;
+            if (!destinationDirectory.isEmpty() && ! sourceDirectory.isEmpty()) {
+                destinationPath = destinationDirectory + "/";
+            }
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient sourceFileSystemClient = storageClient.getFileSystemClient(sourceFileSystem);
@@ -175,7 +179,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 }
 
                 fileClient = fileClient.renameWithResponse(destinationFileSystem,
-                        destinationPath + fileName,
+                                destinationPath + fileName,
                         sourceConditions,
                         destConditions,
                         null,
