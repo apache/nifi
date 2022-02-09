@@ -22,7 +22,6 @@ import io.swagger.annotations.Authorization;
 import org.apache.nifi.registry.NiFiRegistryApiApplication;
 import org.apache.nifi.registry.RegistryVersion;
 import org.apache.nifi.registry.event.EventService;
-import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
