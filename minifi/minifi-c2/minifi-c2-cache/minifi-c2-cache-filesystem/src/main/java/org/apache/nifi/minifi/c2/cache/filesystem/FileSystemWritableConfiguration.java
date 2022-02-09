@@ -25,6 +25,8 @@ import org.apache.nifi.minifi.c2.api.util.DelegatingOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -79,6 +81,15 @@ public class FileSystemWritableConfiguration implements WriteableConfiguration {
             } else {
                 throw new InvalidParameterException("File not found: " + path, e);
             }
+        }
+    }
+
+    @Override
+    public URL getURL() throws ConfigurationProviderException {
+        try {
+            return path.toUri().toURL();
+        } catch (MalformedURLException murle) {
+            throw new ConfigurationProviderException("Could not determine URL of " + path, murle);
         }
     }
 

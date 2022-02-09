@@ -14,24 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.minifi.c2.service;
 
-package org.apache.nifi.minifi.c2.configuration;
+import org.apache.nifi.c2.protocol.api.C2Heartbeat;
+import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
 
-import org.apache.nifi.minifi.c2.service.C2JsonProviderFeature;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
+public interface C2ProtocolService {
+    C2HeartbeatResponse processHeartbeat(C2Heartbeat heartbeat, C2ProtocolContext context);
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
-public class C2ResourceConfig extends ResourceConfig {
-
-    public C2ResourceConfig(@Context ServletContext servletContext) {
-        final ApplicationContext appCtx = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-
-        // register Jackson Object Mapper Resolver
-        register(C2JsonProviderFeature.class);
-        register(appCtx.getBean("configService"));
-    }
+    void processOperationAck(C2OperationAck operationAck, C2ProtocolContext context);
 }

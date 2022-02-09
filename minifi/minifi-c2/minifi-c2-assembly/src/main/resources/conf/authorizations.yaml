@@ -37,3 +37,31 @@ Paths:
     # Default authorization lets anonymous pull any config.  Remove below to change that.
     - Authorization: ROLE_ANONYMOUS
       Action: allow
+
+  /c2/config/heartbeat:
+    Default Action: deny
+    Actions:
+      - Authorization: CLASS_RASPI_3
+        Query Parameters:
+          class: raspi3
+        Action: allow
+      - Authorization: ROLE_SUPERUSER
+        Action: allow
+
+      # Default authorization lets anonymous pull any config.  Remove below to change that.
+      - Authorization: ROLE_ANONYMOUS
+        Action: allow
+
+  /c2/config/acknowledge:
+    Default Action: deny
+    Actions:
+      - Authorization: CLASS_RASPI_3
+        Query Parameters:
+          class: raspi3
+        Action: allow
+      - Authorization: ROLE_SUPERUSER
+        Action: allow
+
+      # Default authorization lets anonymous pull any config.  Remove below to change that.
+      - Authorization: ROLE_ANONYMOUS
+        Action: allow
