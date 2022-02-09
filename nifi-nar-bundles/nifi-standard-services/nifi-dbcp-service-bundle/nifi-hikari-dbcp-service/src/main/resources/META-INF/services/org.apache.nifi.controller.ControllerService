@@ -12,6 +12,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-org.apache.nifi.dbcp.DBCPConnectionPool
-org.apache.nifi.dbcp.DBCPConnectionPoolLookup
-org.apache.nifi.record.sink.db.DatabaseRecordSink
+org.apache.nifi.dbcp.HikariCPConnectionPool

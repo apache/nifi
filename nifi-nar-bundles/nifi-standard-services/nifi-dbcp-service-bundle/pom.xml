@@ -24,6 +24,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-dbcp-service</module>
+        <module>nifi-hikari-dbcp-service</module>
         <module>nifi-dbcp-service-nar</module>
     </modules>
 </project>
