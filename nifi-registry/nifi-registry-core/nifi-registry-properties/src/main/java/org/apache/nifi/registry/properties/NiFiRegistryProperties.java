@@ -44,8 +44,6 @@ public class NiFiRegistryProperties extends ApplicationProperties {
     public static final String RELATIVE_PROPERTIES_FILE_LOCATION = "conf/nifi-registry.properties";
     public static final String RELATIVE_DOCS_LOCATION = "docs";
 
-    public static final String REGISTRY_VERSION = "nifi.registry.version";
-
     // Keys
     public static final String PROPERTIES_FILE_PATH = "nifi.registry.properties.file.path";
     public static final String WEB_WAR_DIR = "nifi.registry.web.war.directory";
@@ -140,11 +138,6 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public NiFiRegistryProperties(final Properties props) {
         super(props);
-    }
-
-    public String getRegistryVersion() {
-        return getProperty(REGISTRY_VERSION);
-
     }
 
     public int getWebThreads() {

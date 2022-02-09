@@ -19,6 +19,7 @@ package org.apache.nifi.registry.web.api;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
+import org.apache.nifi.registry.NiFiRegistryApiApplication;
 import org.apache.nifi.registry.RegistryVersion;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
@@ -41,15 +42,11 @@ import javax.ws.rs.core.Response;
 )
 public class VersionResource extends ApplicationResource {
 
-    private NiFiRegistryProperties properties;
-
     @Autowired
     public VersionResource(
             final ServiceFacade serviceFacade,
-            final EventService eventService,
-            final NiFiRegistryProperties properties) {
+            final EventService eventService) {
         super(serviceFacade, eventService);
-        this.properties = properties;
     }
 
     @GET
@@ -60,8 +57,8 @@ public class VersionResource extends ApplicationResource {
             response = RegistryVersion.class
     )
     public Response getVersion() {
-        final String versionProperty = properties.getRegistryVersion();
-        final RegistryVersion version = new RegistryVersion(versionProperty);
+        final String implVersion = NiFiRegistryApiApplication.class.getPackage().getImplementationVersion();
+        final RegistryVersion version = new RegistryVersion(implVersion);
         return Response.status(Response.Status.OK).entity(version).build();
     }
 }
