@@ -35,8 +35,8 @@ public class TestProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-        .name("DBCPService test processor")
-        .description("DBCPService test processor")
+        .name("HikariCPControllerService test processor")
+        .description("HikariCPControllerService test processor")
         .identifiesControllerService(DBCPService.class)
         .required(true)
         .build());

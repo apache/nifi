@@ -347,7 +347,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
                 getLogger().info("Error getting connection, performing Kerberos re-login");
                 kerberosUser.login();
             }
-            throw new ProcessException(e);
+            throw new ProcessException("Connection retrieval failed", e);
         }
     }
 

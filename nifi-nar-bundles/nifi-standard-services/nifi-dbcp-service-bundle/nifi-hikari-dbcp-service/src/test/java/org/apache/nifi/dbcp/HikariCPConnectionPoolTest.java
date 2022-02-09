@@ -20,12 +20,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.sql.Connection;
@@ -35,18 +34,28 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
 public class HikariCPConnectionPoolTest {
     private final static String DB_LOCATION = "target/db";
+    private final static String GOOD_CS_NAME = "test-good1";
+    private final static String BAD_CS_NAME = "test-bad1";
+    private final static String EXHAUST_CS_NAME = "test-exhaust";
 
-    @BeforeClass
+    private static String originalDerbyStreamErrorFile;
+
+    @BeforeAll
     public static void setupBeforeClass() {
+        originalDerbyStreamErrorFile = System.getProperty("derby.stream.error.file");
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
-    @Before
+    @AfterAll
+    public static void shutdownAfterClass() {
+        if (originalDerbyStreamErrorFile != null) {
+            System.setProperty("derby.stream.error.file", originalDerbyStreamErrorFile);
+        }
+    }
+
+    @BeforeEach
     public void setup() {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -61,7 +70,7 @@ public class HikariCPConnectionPoolTest {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
         final Map<String, String> properties = new HashMap<>();
-        runner.addControllerService("test-bad1", service, properties);
+        runner.addControllerService(BAD_CS_NAME, service, properties);
         runner.assertNotValid(service);
     }
 
@@ -72,7 +81,7 @@ public class HikariCPConnectionPoolTest {
     public void testMaxWait() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+        runner.addControllerService(GOOD_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -92,7 +101,7 @@ public class HikariCPConnectionPoolTest {
     public void testIdleConnectionsSettings() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+        runner.addControllerService(GOOD_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -110,7 +119,7 @@ public class HikariCPConnectionPoolTest {
     public void testMinIdleCannotBeNegative() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+        runner.addControllerService(GOOD_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -130,7 +139,7 @@ public class HikariCPConnectionPoolTest {
     public void testIdleSettingsAreSet() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+        runner.addControllerService(GOOD_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -143,8 +152,8 @@ public class HikariCPConnectionPoolTest {
 
         runner.enableControllerService(service);
 
-        Assert.assertEquals(4, service.getDataSource().getMinimumIdle());
-        Assert.assertEquals(1000, service.getDataSource().getMaxLifetime());
+        Assertions.assertEquals(4, service.getDataSource().getMinimumIdle());
+        Assertions.assertEquals(1000, service.getDataSource().getMaxLifetime());
 
         service.getDataSource().close();
     }
@@ -156,7 +165,7 @@ public class HikariCPConnectionPoolTest {
     public void testCreateInsertSelect() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-good1", service);
+        runner.addControllerService(GOOD_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -167,18 +176,15 @@ public class HikariCPConnectionPoolTest {
         runner.enableControllerService(service);
 
         runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
-        Assert.assertNotNull(dbcpService);
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService(GOOD_CS_NAME);
+        Assertions.assertNotNull(dbcpService);
         final Connection connection = dbcpService.getConnection();
-        Assert.assertNotNull(connection);
+        Assertions.assertNotNull(connection);
 
         createInsertSelectDrop(connection);
 
         connection.close(); // return to pool
     }
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
 
     /**
      * Test get database connection using Derby. Get many times, after a while pool should not contain any available connection and getConnection should fail.
@@ -187,7 +193,7 @@ public class HikariCPConnectionPoolTest {
     public void testExhaustPool() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-exhaust", service);
+        runner.addControllerService(EXHAUST_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -197,14 +203,22 @@ public class HikariCPConnectionPoolTest {
         runner.enableControllerService(service);
 
         runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-exhaust");
-        Assert.assertNotNull(dbcpService);
+        Assertions.assertDoesNotThrow(() -> {
+            runner.getProcessContext().getControllerServiceLookup().getControllerService(EXHAUST_CS_NAME);
+        });
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService(EXHAUST_CS_NAME);
+        Assertions.assertNotNull(dbcpService);
 
-        exception.expect(ProcessException.class);
-        exception.expectMessage("Connection is not available");
-        for (int i = 0; i < 100; i++) {
-            final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
+        try {
+            for (int i = 0; i < 100; i++) {
+                final Connection connection = dbcpService.getConnection();
+                Assertions.assertNotNull(connection);
+            }
+            Assertions.fail("Should have exhausted the pool and thrown a ProcessException");
+        } catch (ProcessException pe) {
+            // Do nothing, this is expected
+        } catch (Throwable t) {
+            Assertions.fail("Should have exhausted the pool and thrown a ProcessException but threw " + t);
         }
     }
 
@@ -215,7 +229,7 @@ public class HikariCPConnectionPoolTest {
     public void testGetManyNormal() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final HikariCPConnectionPool service = new HikariCPConnectionPool();
-        runner.addControllerService("test-exhaust", service);
+        runner.addControllerService(EXHAUST_CS_NAME, service);
 
         // set embedded Derby database connection url
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true");
@@ -226,36 +240,28 @@ public class HikariCPConnectionPoolTest {
         runner.enableControllerService(service);
 
         runner.assertValid(service);
-        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-exhaust");
-        Assert.assertNotNull(dbcpService);
+        final DBCPService dbcpService = (DBCPService) runner.getProcessContext().getControllerServiceLookup().getControllerService(EXHAUST_CS_NAME);
+        Assertions.assertNotNull(dbcpService);
 
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             final Connection connection = dbcpService.getConnection();
-            Assert.assertNotNull(connection);
+            Assertions.assertNotNull(connection);
             connection.close(); // will return connection to pool
         }
     }
-
-    @Test
-    public void testDriverLoad() throws ClassNotFoundException {
-        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        assertNotNull(clazz);
-    }
-
-
-    String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
-    String dropTable = "drop table restaurants";
 
     private void createInsertSelectDrop(Connection con) throws SQLException {
 
         final Statement st = con.createStatement();
 
         try {
+            String dropTable = "drop table restaurants";
             st.executeUpdate(dropTable);
         } catch (final Exception e) {
             // table may not exist, this is not serious problem.
         }
 
+        String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
         st.executeUpdate(createTable);
 
         st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
@@ -264,9 +270,10 @@ public class HikariCPConnectionPoolTest {
 
         int nrOfRows = 0;
         final ResultSet resultSet = st.executeQuery("select * from restaurants");
-        while (resultSet.next())
+        while (resultSet.next()) {
             nrOfRows++;
-        assertEquals(3, nrOfRows);
+        }
+        Assertions.assertEquals(3, nrOfRows);
 
         st.close();
     }
