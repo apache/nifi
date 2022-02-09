@@ -120,5 +120,5 @@ public class ITPutSQS {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
-    }    
+    }
 }
