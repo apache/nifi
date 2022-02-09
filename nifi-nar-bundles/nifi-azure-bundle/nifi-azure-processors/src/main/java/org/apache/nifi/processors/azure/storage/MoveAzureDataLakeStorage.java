@@ -33,12 +33,11 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -50,17 +49,23 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_PRIMARY_URI;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_SOURCE_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_SOURCE_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_FILESYSTEM;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({DeleteAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
-@CapabilityDescription("Moves content into an Azure Data Lake Storage Gen 2. After the move files will be no longer available on source location." +
-        "Full directory structure must be provided without a leading '/'.")
-@WritesAttributes({@WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
+@CapabilityDescription("Moves content within an Azure Data Lake Storage Gen 2." +
+        " After the move, files will be no longer available on source location.")
+@WritesAttributes({@WritesAttribute(attribute = ATTR_NAME_SOURCE_FILESYSTEM, description = ATTR_DESCRIPTION_SOURCE_FILESYSTEM),
+        @WritesAttribute(attribute = ATTR_NAME_SOURCE_DIRECTORY, description = ATTR_DESCRIPTION_SOURCE_DIRECTORY),
+        @WritesAttribute(attribute = ATTR_NAME_FILESYSTEM, description = ATTR_DESCRIPTION_FILESYSTEM),
         @WritesAttribute(attribute = ATTR_NAME_DIRECTORY, description = ATTR_DESCRIPTION_DIRECTORY),
         @WritesAttribute(attribute = ATTR_NAME_FILENAME, description = ATTR_DESCRIPTION_FILENAME),
         @WritesAttribute(attribute = ATTR_NAME_PRIMARY_URI, description = ATTR_DESCRIPTION_PRIMARY_URI),
@@ -103,20 +108,35 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             .defaultValue(String.format("${%s}", ATTR_NAME_DIRECTORY))
             .build();
 
-    private List<PropertyDescriptor> properties;
+    public static final PropertyDescriptor DESTINATION_FILESYSTEM = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(FILESYSTEM)
+            .displayName("Destination Filesystem")
+            .description("Name of the Azure Storage File System where the files will be moved.")
+            .build();
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        props.add(SOURCE_FILESYSTEM);
-        props.add(SOURCE_DIRECTORY);
-        props.add(CONFLICT_RESOLUTION);
-        properties = Collections.unmodifiableList(props);
-    }
+    public static final PropertyDescriptor DESTINATION_DIRECTORY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(DIRECTORY)
+            .displayName("Destination Directory")
+            .description("Name of the Azure Storage Directory where the files will be moved. The Directory Name cannot contain a leading '/'." +
+                    " The root directory can be designated by the empty string value. Non-existing directories will be created." +
+                    " If the original directory structure should be kept, the full directory path needs to be provided after the destination directory." +
+                    " e.g.: destdir/${azure.directory}")
+            .addValidator(new DirectoryValidator("Destination Directory"))
+            .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            ADLS_CREDENTIALS_SERVICE,
+            SOURCE_FILESYSTEM,
+            SOURCE_DIRECTORY,
+            DESTINATION_FILESYSTEM,
+            DESTINATION_DIRECTORY,
+            FILE,
+            CONFLICT_RESOLUTION
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTIES;
     }
 
     @Override
@@ -130,8 +150,8 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
         try {
             final String sourceFileSystem = evaluateFileSystemProperty(context, flowFile, SOURCE_FILESYSTEM);
             final String sourceDirectory = evaluateDirectoryProperty(context, flowFile, SOURCE_DIRECTORY);
-            final String destinationFileSystem = evaluateFileSystemProperty(context, flowFile, FILESYSTEM);
-            final String destinationDirectory = evaluateDirectoryProperty(context, flowFile, DIRECTORY);
+            final String destinationFileSystem = evaluateFileSystemProperty(context, flowFile, DESTINATION_FILESYSTEM);
+            final String destinationDirectory = evaluateDirectoryProperty(context, flowFile, DESTINATION_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
             final String destinationPath = destinationDirectory.isEmpty() ? destinationDirectory : destinationDirectory + "/";
 
@@ -163,6 +183,8 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                         .getValue();
 
                 final Map<String, String> attributes = new HashMap<>();
+                attributes.put(ATTR_NAME_SOURCE_FILESYSTEM, sourceFileSystem);
+                attributes.put(ATTR_NAME_SOURCE_DIRECTORY, sourceDirectory);
                 attributes.put(ATTR_NAME_FILESYSTEM, destinationFileSystem);
                 attributes.put(ATTR_NAME_DIRECTORY, destinationDirectory);
                 attributes.put(ATTR_NAME_FILENAME, fileName);

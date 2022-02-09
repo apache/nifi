@@ -40,6 +40,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_FILESYSTEM;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -63,8 +65,8 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void setUp() throws InterruptedException {
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_FILESYSTEM, fileSystemName);
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, SOURCE_DIRECTORY);
-        runner.setProperty(MoveAzureDataLakeStorage.FILESYSTEM, fileSystemName);
-        runner.setProperty(MoveAzureDataLakeStorage.DIRECTORY, DESTINATION_DIRECTORY);
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM, fileSystemName);
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, DESTINATION_DIRECTORY);
         runner.setProperty(MoveAzureDataLakeStorage.FILE, FILE_NAME);
     }
 
@@ -75,7 +77,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -87,7 +89,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -99,7 +101,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -108,21 +110,21 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
     public void testMoveFileToDeepDirectory() throws Exception {
         String sourceDirectory = "dir1/dir2";
-        String destDirectory = sourceDirectory + "/dir3/dir4";
+        String destinationDirectory = sourceDirectory + "/dir3/dir4";
         createDirectoryAndUploadFileData(sourceDirectory, FILE_NAME, FILE_DATA);
 
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, sourceDirectory);
-        runner.setProperty(MoveAzureDataLakeStorage.DIRECTORY, destDirectory);
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, destinationDirectory);
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(destDirectory, FILE_NAME, FILE_DATA);
+        assertSuccess(sourceDirectory, destinationDirectory, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -130,11 +132,11 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
         String rootDirectory = "";
-        runner.setProperty(MoveAzureDataLakeStorage.DIRECTORY, rootDirectory);
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, rootDirectory);
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(rootDirectory, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, rootDirectory, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -144,7 +146,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(fileData);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, fileData);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, fileData);
     }
 
     @Test
@@ -157,14 +159,14 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(fileData);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, fileData);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, fileData);
     }
 
     @Test
     public void testMoveFileWithNonExistingFileSystem() {
         createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
-        runner.setProperty(MoveAzureDataLakeStorage.FILESYSTEM, "dummy");
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM, "dummy");
 
         runProcessor(FILE_DATA);
 
@@ -184,18 +186,18 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithSpacesInDirectoryAndFileName() throws Exception {
-        String directory = "dir 1";
-        String destDirectory = "dest dir1";
+        String sourceDirectory = "dir 1";
+        String destinationDirectory = "dest dir1";
         String fileName = "file 1";
-        createDirectoryAndUploadFileData(directory, fileName, FILE_DATA);
+        createDirectoryAndUploadFileData(sourceDirectory, fileName, FILE_DATA);
 
-        runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, directory);
-        runner.setProperty(MoveAzureDataLakeStorage.DIRECTORY, destDirectory);
+        runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, sourceDirectory);
+        runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, destinationDirectory);
         runner.setProperty(MoveAzureDataLakeStorage.FILE, fileName);
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(destDirectory, fileName, FILE_DATA);
+        assertSuccess(sourceDirectory, destinationDirectory, fileName, FILE_DATA);
     }
 
     @Test
@@ -219,7 +221,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -243,7 +245,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA, attributes);
 
-        assertSuccess(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
     }
 
     @Test
@@ -297,28 +299,30 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.run();
     }
 
-    private void assertSuccess(String directory, String fileName, byte[] fileData) throws Exception {
-        assertFlowFile(fileData, fileName, directory);
-        assertAzureFile(directory, fileName, fileData);
+    private void assertSuccess(String sourceDirectory, String destinationDirectory, String fileName, byte[] fileData) throws Exception {
+        assertFlowFile(fileData, fileName, sourceDirectory, destinationDirectory);
+        assertAzureFile(destinationDirectory, fileName, fileData);
         assertProvenanceEvents();
     }
 
-    private void assertSuccessWithIgnoreResolution(String directory, String fileName, byte[] fileData, byte[] azureFileData) throws Exception {
+    private void assertSuccessWithIgnoreResolution(String destinationDirectory, String fileName, byte[] fileData, byte[] azureFileData) throws Exception {
         assertFlowFile(fileData);
-        assertAzureFile(directory, fileName, azureFileData);
+        assertAzureFile(destinationDirectory, fileName, azureFileData);
     }
 
-    private void assertFlowFile(byte[] fileData, String fileName, String directory) throws Exception {
+    private void assertFlowFile(byte[] fileData, String fileName, String sourceDirectory, String destinationDirectory) throws Exception {
         MockFlowFile flowFile = assertFlowFile(fileData);
 
+        flowFile.assertAttributeEquals(ATTR_NAME_SOURCE_FILESYSTEM, fileSystemName);
+        flowFile.assertAttributeEquals(ATTR_NAME_SOURCE_DIRECTORY, sourceDirectory);
         flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
-        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, directory);
+        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, destinationDirectory);
         flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
 
-        String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(directory);
+        String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(destinationDirectory);
         String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
         String urlEscapedPathSeparator = UrlEscapers.urlPathSegmentEscaper().escape("/");
-        String primaryUri = StringUtils.isNotEmpty(directory)
+        String primaryUri = StringUtils.isNotEmpty(destinationDirectory)
                 ? String.format("https://%s.dfs.core.windows.net/%s/%s%s%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedPathSeparator, urlEscapedFileName)
                 : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
         flowFile.assertAttributeEquals(ATTR_NAME_PRIMARY_URI, primaryUri);
@@ -336,10 +340,10 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return flowFile;
     }
 
-    private void assertAzureFile(String directory, String fileName, byte[] fileData) {
+    private void assertAzureFile(String destinationDirectory, String fileName, byte[] fileData) {
         DataLakeFileClient fileClient;
-        if (StringUtils.isNotEmpty(directory)) {
-            DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
+        if (StringUtils.isNotEmpty(destinationDirectory)) {
+            DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(destinationDirectory);
             assertTrue(directoryClient.exists());
 
             fileClient = directoryClient.getFileClient(fileName);
