@@ -118,8 +118,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
 
         // Decide whether to use NiFi truststore instead of system's cacerts when connecting to OIDC provider
-        if (TruststoreStrategy.valueOf(properties.getOidcClientTruststoreStrategy()) == TruststoreStrategy.NIFI) {
-            establishSslContext();
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            setSslContext();
         }
 
         validateOIDCConfiguration();
@@ -134,7 +134,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         validateOIDCProviderMetadata();
     }
 
-    private void establishSslContext() {
+    private void setSslContext() {
         TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
         try {
             this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
@@ -503,8 +503,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        final HTTPRequest httpRequest = setHTTPRequestProperties(request.toHTTPRequest());
-        return (httpRequest);
+        return setHTTPRequestProperties(request.toHTTPRequest());
     }
 
     private HTTPRequest setHTTPRequestProperties(final HTTPRequest request) {
