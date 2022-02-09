@@ -14,24 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.minifi.c2.service;
 
-package org.apache.nifi.minifi.c2.configuration;
+import javax.ws.rs.core.Feature;
+import javax.ws.rs.core.FeatureContext;
+import javax.ws.rs.ext.MessageBodyReader;
+import javax.ws.rs.ext.MessageBodyWriter;
 
-import org.apache.nifi.minifi.c2.service.C2JsonProviderFeature;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
+public class C2JsonProviderFeature implements Feature {
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
-public class C2ResourceConfig extends ResourceConfig {
-
-    public C2ResourceConfig(@Context ServletContext servletContext) {
-        final ApplicationContext appCtx = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-
-        // register Jackson Object Mapper Resolver
-        register(C2JsonProviderFeature.class);
-        register(appCtx.getBean("configService"));
+    @Override
+    public boolean configure(FeatureContext context) {
+        context.register(C2JsonProvider.class, MessageBodyReader.class, MessageBodyWriter.class);
+        return true;
     }
 }

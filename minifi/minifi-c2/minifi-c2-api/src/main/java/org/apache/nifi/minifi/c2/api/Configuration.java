@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.c2.api;
 
 import java.io.InputStream;
+import java.net.URL;
 
 /**
  * Represents a MiNiFi configuration of a given version, format matches the format of the ConfigurationProvider
@@ -44,4 +45,11 @@ public interface Configuration {
      * @return an input stream to read the configuration with
      */
     InputStream getInputStream() throws ConfigurationProviderException;
+
+    /**
+     * Gets the URL of the resource
+     *
+     * @return the URL of the resource
+     */
+    URL getURL() throws ConfigurationProviderException;
 }

@@ -23,13 +23,14 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.cache.WriteableConfiguration;
 
 public class S3WritableConfiguration implements WriteableConfiguration {
 
-  private AmazonS3 s3;
+  private final AmazonS3 s3;
   private final S3Object s3Object;
   private final String version;
 
@@ -79,6 +80,11 @@ public class S3WritableConfiguration implements WriteableConfiguration {
   @Override
   public InputStream getInputStream() throws ConfigurationProviderException {
     return s3Object.getObjectContent();
+  }
+
+  @Override
+  public URL getURL() throws ConfigurationProviderException {
+    return s3.getUrl(s3Object.getBucketName(), s3Object.getKey());
   }
 
   @Override

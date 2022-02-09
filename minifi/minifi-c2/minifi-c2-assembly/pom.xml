@@ -26,7 +26,7 @@ limitations under the License.
     <packaging>pom</packaging>
     <description>This is the assembly of Apache MiNiFi's - Command And Control Server</description>
     <properties>
-        <minifi.c2.server.port>10080</minifi.c2.server.port>
+        <minifi.c2.server.port>10090</minifi.c2.server.port>
 
         <minifi.c2.server.secure>false</minifi.c2.server.secure>
         <minifi.c2.server.keystore>./conf/keystore.jks</minifi.c2.server.keystore>

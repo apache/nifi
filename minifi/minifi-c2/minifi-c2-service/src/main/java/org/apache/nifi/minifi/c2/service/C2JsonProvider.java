@@ -14,24 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.minifi.c2.service;
 
-package org.apache.nifi.minifi.c2.configuration;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 
-import org.apache.nifi.minifi.c2.service.C2JsonProviderFeature;
-import org.glassfish.jersey.server.ResourceConfig;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.ext.Provider;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+@Provider
+@Produces(MediaType.APPLICATION_JSON)
+public class C2JsonProvider extends JacksonJaxbJsonProvider {
 
-public class C2ResourceConfig extends ResourceConfig {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    public C2ResourceConfig(@Context ServletContext servletContext) {
-        final ApplicationContext appCtx = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-
-        // register Jackson Object Mapper Resolver
-        register(C2JsonProviderFeature.class);
-        register(appCtx.getBean("configService"));
+    static {
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
+
+    public C2JsonProvider() {
+        super();
+        setMapper(objectMapper);
+    }
+
+
+
 }
