@@ -359,7 +359,7 @@ public class SelectHive3QL extends AbstractHive3QLProcessor {
         final String altHeader = context.getProperty(HIVEQL_CSV_ALT_HEADER).evaluateAttributeExpressions(fileToProcess).getValue();
         final String delimiter = context.getProperty(HIVEQL_CSV_DELIMITER).evaluateAttributeExpressions(fileToProcess).getValue();
         final boolean quote = context.getProperty(HIVEQL_CSV_QUOTE).asBoolean();
-        final boolean escape = context.getProperty(HIVEQL_CSV_HEADER).asBoolean();
+        final boolean escape = context.getProperty(HIVEQL_CSV_ESCAPE).asBoolean();
         final boolean useLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final String fragmentIdentifier = UUID.randomUUID().toString();
 
