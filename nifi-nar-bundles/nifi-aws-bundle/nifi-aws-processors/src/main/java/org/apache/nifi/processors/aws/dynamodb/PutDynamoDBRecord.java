@@ -1,0 +1,365 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.aws.dynamodb;
+
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.dynamodbv2.document.BatchWriteItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Item;
+import com.amazonaws.services.dynamodbv2.document.TableWriteItems;
+import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughputExceededException;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.SystemResourceConsiderations;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.SplitRecordSetHandler;
+import org.apache.nifi.serialization.SplitRecordSetHandlerException;
+import org.apache.nifi.serialization.record.Record;
+
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class, PutDynamoDB.class})
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert", "Record"})
+@CapabilityDescription(
+        "Inserts items into DynamoDB based on record-oriented data. " +
+        "The record fields are mapped into DynamoDB item fields, including partition and sort keys if set. " +
+        "Depending on the number of records the processor might execute the insert in multiple chunks in order to overcome DynamoDB's limitation on batch writing. " +
+        "This might result partially processed FlowFiles in which case the FlowFile will be transferred to the \"unprocessed\" relationship " +
+        "with the necessary attribute to retry later without duplicating the already executed inserts."
+)
+@WritesAttributes({
+        @WritesAttribute(attribute = PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "Dynamo db key not found"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "Dynamo db exception message"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "Dynamo db error code"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "Dynamo db error message"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "Dynamo db error type"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "Dynamo db error service"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "Dynamo db error is retryable"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "Dynamo db error request id"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db error status code"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_IO_ERROR, description = "IO exception message on creating item")
+})
+@ReadsAttribute(attribute = PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0")
+@SystemResourceConsiderations({
+        @SystemResourceConsideration(resource = SystemResource.MEMORY),
+        @SystemResourceConsideration(resource = SystemResource.NETWORK)
+})
+public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
+
+    /**
+     * Due to DynamoDB's hardcoded limitation on the number of items in one batch, the processor writes them in chunks.
+     * Every chunk contains a number of items according to the limitations.
+     */
+    private static final int MAXIMUM_CHUNK_SIZE = 25;
+
+    static final String CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";
+
+    static final AllowableValue PARTITION_BY_FIELD = new AllowableValue("by-field", "Partition by field",
+            "Uses the value of the Record field identified by the \"Partition Field\" property as partition field.");
+    static final AllowableValue PARTITION_BY_ATTRIBUTE = new AllowableValue("by-attribute", "Partition by attribute",
+            "Uses an incoming FlowFile attribute identified by \"Partition Attribute\" as the value of the partition key and the value of the \"Partition Field\" as field name " +
+            "The incoming Records must not contain field with the same name defined by the \"Partition Field\". " +
+            "With this strategy, it is recommended to use sort key as without sort key DynamoDB will not allow multiple Items with the same partition value.");
+    static final AllowableValue PARTITION_GENERATED = new AllowableValue("generated", "Generated",
+            "The processor will use the value of \"Partition Field\" property for name and a generated UUID as value for the partition key.");
+
+    static final AllowableValue SORT_NONE = new AllowableValue("none", "None",
+            "The processor will not assign sort key to the inserted Items.");
+    static final AllowableValue SORT_BY_FIELD = new AllowableValue("by-field", "Sort by field",
+            "With this strategy, the processor will use the name and value of the field identified by \"Sort Key Field\" as sort key.");
+    static final AllowableValue SORT_BY_SEQUENCE = new AllowableValue("by-sequence", "Generate sequence",
+            "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. The field name is determined by \"Sort Key Field\" as sort key.");
+
+    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .build();
+
+    static final PropertyDescriptor PARTITION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("partition-strategy")
+            .displayName("Partition Strategy")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(PARTITION_BY_FIELD, PARTITION_BY_ATTRIBUTE, PARTITION_GENERATED)
+            .defaultValue(PARTITION_BY_FIELD.getValue())
+            .description("Defines the strategy the processor uses to assign partition key to the inserted Items. Partition key is also known as hash key.")
+            .build();
+
+    static final PropertyDescriptor PARTITION_FIELD = new PropertyDescriptor.Builder()
+            .name("partition-field")
+            .displayName("Partition Field")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("The name of the Item field will be used as partition key. Depending on the \"Partition Strategy\" this might be a field from the incoming Record or a generated one.")
+            .build();
+
+    static final PropertyDescriptor PARTITION_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("partition-attribute")
+            .displayName("Partition Attribute")
+            .required(true)
+            .dependsOn(PARTITION_STRATEGY, PARTITION_BY_ATTRIBUTE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("Specifies the FlowFile attribute will be used as the value of the partition key when using \"Partition by attribute\" partition strategy.")
+            .build();
+
+    static final PropertyDescriptor SORT_KEY_STRATEGY = new PropertyDescriptor.Builder()
+            .name("sort-key-strategy")
+            .displayName("Sort Key Strategy")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(SORT_NONE, SORT_BY_FIELD, SORT_BY_SEQUENCE)
+            .defaultValue(SORT_NONE.getValue())
+            .description("Defines the strategy the processor uses to assign sort key to the inserted Items. Sort key is also known as range key.")
+            .build();
+
+    static final PropertyDescriptor SORT_KEY_FIELD = new PropertyDescriptor.Builder()
+            .name("sort-key-field")
+            .displayName("Sort Key Field")
+            .required(true)
+            .dependsOn(SORT_KEY_STRATEGY, SORT_BY_FIELD, SORT_BY_SEQUENCE)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("Specifies which field will be used as sort key when the sort key strategy is set to \"Sort by field\".")
+            .build();
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Arrays.asList(
+                RECORD_READER,
+                new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE).required(true).build(),
+                TABLE,
+                PARTITION_STRATEGY,
+                PARTITION_FIELD,
+                PARTITION_ATTRIBUTE,
+                SORT_KEY_STRATEGY,
+                SORT_KEY_FIELD,
+                REGION,
+                TIMEOUT,
+                PROXY_HOST,
+                PROXY_HOST_PORT,
+                PROXY_USERNAME,
+                PROXY_PASSWORD,
+                SSL_CONTEXT_SERVICE
+        );
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        final int alreadyProcessedChunks = flowFile.getAttribute(CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.valueOf(flowFile.getAttribute(CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
+        final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(), context, flowFile.getAttributes(), getLogger());
+        final SplitRecordSetHandler.RecordHandlerResult result;
+
+        try (
+            final InputStream in = session.read(flowFile);
+            final RecordReader reader = recordParserFactory.createRecordReader(flowFile, in, getLogger())) {
+            result = handler.handle(reader.createRecordSet(), alreadyProcessedChunks);
+        } catch (final Exception e) {
+            getLogger().error("Error while reading records: " + e.getMessage(), e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
+        final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
+        attributes.put(CHUNKS_PROCESSED_ATTRIBUTE, String.valueOf(result.getSuccessfulChunks()));
+        final FlowFile outgoingFlowFile = session.putAllAttributes(flowFile, attributes);
+
+        if (result.isSuccess()) {
+            session.transfer(outgoingFlowFile, REL_SUCCESS);
+        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof ProvisionedThroughputExceededException) {
+            /**
+             * When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
+             * should be retried at a later time. We yield the processor and the the FlowFile is considered unprocessed (partially processed) due to temporary write limitations.
+             * More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
+             */
+            context.yield();
+            session.transfer(outgoingFlowFile, REL_UNPROCESSED);
+        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof AmazonClientException) {
+            getLogger().error("Could not process FlowFile due to client exception: " + result.getThrowable().getMessage(), result.getThrowable());
+            session.transfer(processClientException(session, Collections.singletonList(outgoingFlowFile), (AmazonClientException) result.getThrowable().getCause()), REL_FAILURE);
+        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof AmazonServiceException) {
+            getLogger().error("Could not process FlowFile due to server exception: " + result.getThrowable().getMessage(), result.getThrowable());
+            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AmazonServiceException) result.getThrowable().getCause()), REL_FAILURE);
+        } else {
+            getLogger().error("Could not process FlowFile: " + result.getThrowable().getMessage(), result.getThrowable());
+            session.transfer(outgoingFlowFile, REL_FAILURE);
+        }
+    }
+
+    private static class DynamoDbSplitRecordSetHandler extends SplitRecordSetHandler {
+        private final DynamoDB dynamoDB;
+        private final String tableName;
+        private final ProcessContext context;
+        private final Map<String, String> flowFileAttributes;
+        private final ComponentLog logger;
+        private TableWriteItems accumulator;
+        private int itemCounter = 0;
+
+        private DynamoDbSplitRecordSetHandler(
+                final int maxChunkSize,
+                final DynamoDB dynamoDB,
+                final ProcessContext context,
+                final Map<String, String> flowFileAttributes,
+                final ComponentLog logger) {
+            super(maxChunkSize);
+            this.dynamoDB = dynamoDB;
+            this.context = context;
+            this.flowFileAttributes = flowFileAttributes;
+            this.logger = logger;
+            this.tableName = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+            accumulator = new TableWriteItems(tableName);
+        }
+
+        @Override
+        protected void handleChunk(final boolean wasBatchAlreadyProcessed) throws SplitRecordSetHandlerException {
+            try {
+                if (!wasBatchAlreadyProcessed) {
+                    final BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(accumulator);
+
+                    if (!outcome.getUnprocessedItems().isEmpty()) {
+                        logger.error("Could not insert all items. The unprocessed items are: " + outcome.getUnprocessedItems().toString());
+                        throw new SplitRecordSetHandlerException("Could not insert all items");
+                    }
+                } else {
+                    logger.debug("Skipping chunk as was already processed");
+                }
+
+                accumulator = new TableWriteItems(tableName);
+            } catch (final Exception e) {
+                throw new SplitRecordSetHandlerException(e);
+            }
+        }
+
+        @Override
+        protected void addToChunk(final Record record) {
+            itemCounter++;
+            accumulator.addItemToPut(convert(record));
+        }
+
+        private Item convert(final Record record) {
+            final String partitionField  = context.getProperty(PARTITION_FIELD).evaluateAttributeExpressions().getValue();
+            final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
+            final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
+
+            final Item result = new Item();
+
+            record.getSchema()
+                    .getFields()
+                    .stream()
+                    .filter(field -> !field.getFieldName().equals(partitionField))
+                    .filter(field -> SORT_NONE.getValue().equals(sortKeyStrategy) || !field.getFieldName().equals(sortKeyField))
+                    .forEach(field -> RecordToItemConverter.addField(record, result, field.getDataType().getFieldType(), field.getFieldName()));
+
+            addPartition(record, result);
+            addSortKey(record, result);
+            return result;
+        }
+
+        private void addPartition(final Record record, final Item result) {
+            final String partitionStrategy = context.getProperty(PARTITION_STRATEGY).getValue();
+            final String partitionField  = context.getProperty(PARTITION_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionAttribute = context.getProperty(PARTITION_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+
+            if (PARTITION_BY_FIELD.getValue().equals(partitionStrategy)) {
+                if (!record.getSchema().getFieldNames().contains(partitionField)) {
+                    throw new ProcessException("\"By field partition\" strategy needs the \"Partition Field\" to present in the record");
+                }
+
+                result.withKeyComponent(partitionField, record.getValue(partitionField));
+            } else if (PARTITION_BY_ATTRIBUTE.getValue().equals(partitionStrategy)) {
+                if (record.getSchema().getFieldNames().contains(partitionField)) {
+                    throw new ProcessException("Cannot reuse existing field with Partition Strategy \"By attribute\"");
+                }
+
+                if (!flowFileAttributes.containsKey(partitionAttribute)) {
+                    throw new ProcessException("Missing attribute");
+                }
+
+                result.withKeyComponent(partitionField, flowFileAttributes.get(partitionAttribute));
+            } else if (PARTITION_GENERATED.getValue().equals(partitionStrategy)) {
+                if (record.getSchema().getFieldNames().contains(partitionField)) {
+                    throw new ProcessException("Cannot reuse existing field with Partition Strategy \"Generated\"");
+                }
+
+                result.withKeyComponent(partitionField, UUID.randomUUID().toString());
+            } else {
+                throw new ProcessException("Unknown Partition Strategy \"" + partitionStrategy + "\"");
+            }
+        }
+
+        private void addSortKey(final Record record, final Item result) {
+            final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
+            final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
+
+            if (SORT_BY_FIELD.getValue().equals(sortKeyStrategy)) {
+                if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
+                    throw new ProcessException("By field sort strategy needs the \"sort key field\" to present in the record");
+                }
+
+                result.withKeyComponent(sortKeyField, record.getValue(sortKeyField));
+            } else if (SORT_BY_SEQUENCE.getValue().equals(sortKeyStrategy)) {
+                if (record.getSchema().getFieldNames().contains(sortKeyField)) {
+                    throw new ProcessException("Cannot reuse existing field with sort key strategy \"Generated sequence\"");
+                }
+
+                result.withKeyComponent(sortKeyField, itemCounter);
+            } else if (SORT_NONE.getValue().equals(sortKeyStrategy)) {
+                logger.debug("None sort key strategy was applied");
+            } else {
+                throw new ProcessException("Unknown Sort Key Strategy \"" + sortKeyStrategy + "\"");
+            }
+        }
+    }
+}

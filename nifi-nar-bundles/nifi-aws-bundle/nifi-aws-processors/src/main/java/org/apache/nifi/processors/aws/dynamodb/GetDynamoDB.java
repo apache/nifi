@@ -56,7 +56,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @SupportsBatching
-@SeeAlso({DeleteDynamoDB.class, PutDynamoDB.class})
+@SeeAlso({DeleteDynamoDB.class, PutDynamoDB.class, PutDynamoDBRecord.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves a document from DynamoDB based on hash and range key.  The key can be string or number."
