@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.minifi;
 
-
 import org.apache.nifi.headless.HeadlessNiFiServer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusConfigReporter;
@@ -25,10 +24,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
  */
 public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiServer {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardMiNiFiServer.class);
+
+    public StandardMiNiFiServer() {
+        super();
+    }
 
     public FlowStatusReport getStatusReport(String requestString) throws StatusRequestException {
         return StatusConfigReporter.getStatus(this.flowController, requestString, logger);
