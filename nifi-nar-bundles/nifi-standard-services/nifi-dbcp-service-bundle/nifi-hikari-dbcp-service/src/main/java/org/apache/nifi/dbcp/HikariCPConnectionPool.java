@@ -297,7 +297,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             }
         });
         dataSource.setDataSourceProperties(properties);
-
+        dataSource.setPoolName(toString());
     }
 
     private long extractMillisWithInfinite(PropertyValue prop) {
