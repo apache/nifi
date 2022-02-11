@@ -21,6 +21,7 @@ import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -61,7 +62,7 @@ public class TestDBCPConnectionPoolLookup {
 
         dbcpLookupService = new DBCPConnectionPoolLookup();
 
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final String dbcpServiceAIdentifier = "dbcp-a";
         runner.addControllerService(dbcpServiceAIdentifier, dbcpServiceA);
@@ -126,7 +127,7 @@ public class TestDBCPConnectionPoolLookup {
     @Test
     public void testCustomValidateAtLeaseOneServiceDefined() throws InitializationException {
         // enable lookup service with no services registered, verify not valid
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("dbcp-lookup", dbcpLookupService);
         runner.assertNotValid(dbcpLookupService);
 
@@ -141,7 +142,7 @@ public class TestDBCPConnectionPoolLookup {
 
     @Test
     public void testCustomValidateSelfReferenceNotAllowed() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("dbcp-lookup", dbcpLookupService);
         runner.setProperty(dbcpLookupService, "dbcp-lookup", "dbcp-lookup");
         runner.assertNotValid(dbcpLookupService);
@@ -200,7 +201,7 @@ public class TestDBCPConnectionPoolLookup {
      */
     private static class MockDBCPService extends AbstractControllerService implements DBCPService {
 
-        private MockConnection connection;
+        private final MockConnection connection;
 
         public MockDBCPService(MockConnection connection) {
             this.connection = connection;
@@ -225,5 +226,4 @@ public class TestDBCPConnectionPoolLookup {
         String getName();
 
     }
-
 }
