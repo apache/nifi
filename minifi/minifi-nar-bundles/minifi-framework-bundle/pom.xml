@@ -51,6 +51,11 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-framework-nar-loading-utils</artifactId>
+                <version>1.16.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
                 <version>1.16.0-SNAPSHOT</version>
             </dependency>

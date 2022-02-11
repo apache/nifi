@@ -110,11 +110,15 @@ public class NarAutoLoader {
 
     public synchronized void stop() {
         started = false;
-        narAutoLoaderTask.stop();
-        narAutoLoaderTask = null;
+        if (narAutoLoaderTask != null) {
+            narAutoLoaderTask.stop();
+            narAutoLoaderTask = null;
+        }
 
-        narProviderTasks.forEach(NarProviderTask::stop);
-        narProviderTasks = null;
+        if (narProviderTasks != null) {
+            narProviderTasks.forEach(NarProviderTask::stop);
+            narProviderTasks = null;
+        }
 
         LOGGER.info("NAR Auto-Loader stopped");
     }
