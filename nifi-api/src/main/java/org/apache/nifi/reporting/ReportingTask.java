@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.reporting;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.ConfigurableComponent;
 
@@ -72,4 +73,13 @@ public interface ReportingTask extends ConfigurableComponent {
      * @param context reporting context
      */
     void onTrigger(ReportingContext context);
+
+    /**
+     * Indicates whether this reporting task, configured with the given {@link ReportingContext}, stores state.
+     * @param context provides access to convenience methods for obtaining property values
+     * @return True if this reporting task stores state
+     */
+    default boolean isStateful(ReportingContext context) {
+        return this.getClass().isAnnotationPresent(Stateful.class);
+    }
 }

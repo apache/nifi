@@ -29,6 +29,8 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -41,6 +43,7 @@ import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
@@ -53,6 +56,7 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
@@ -526,15 +530,23 @@ public class StandardStatelessFlow implements StatelessDataflow {
     @Override
     public boolean isStateful() {
         if (stateful == null) {
+            final boolean hasStatefulReportingTask = reportingTasks.stream().anyMatch(this::isStateful);
+            if (hasStatefulReportingTask) {
+                return true;
+            }
             stateful = isStateful(rootGroup);
         }
         return stateful;
     }
 
     private boolean isStateful(final ProcessGroup processGroup) {
-        final boolean stateful = processGroup.getProcessors().stream().anyMatch(this::isStateful);
+        final boolean hasStatefulProcessor = processGroup.getProcessors().stream().anyMatch(this::isStateful);
 
-        if (stateful) {
+        if (hasStatefulProcessor) {
+            return true;
+        }
+        final boolean hasStatefulControllerService = processGroup.getControllerServices(false).stream().anyMatch(this::isStateful);
+        if (hasStatefulControllerService) {
             return true;
         }
 
@@ -545,6 +557,17 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final Processor processor = processorNode.getProcessor();
         final ProcessContext context = processContextFactory.createProcessContext(processorNode);
         return processor.isStateful(context);
+    }
+
+    private boolean isStateful(final ControllerServiceNode controllerServiceNode) {
+        final ControllerService controllerService = controllerServiceNode.getControllerServiceImplementation();
+        final ConfigurationContext context = new StandardConfigurationContext(controllerServiceNode, controllerServiceProvider, null, rootGroup.getVariableRegistry());
+        return controllerService.isStateful(context);
+    }
+
+    private boolean isStateful(final ReportingTaskNode reportingTaskNode) {
+        final ReportingTask reportingTask = reportingTaskNode.getReportingTask();
+        return reportingTask.isStateful(reportingTaskNode.getReportingContext());
     }
 
     @Override
