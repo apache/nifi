@@ -21,55 +21,82 @@ import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.MockKerberosCredentialsService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DBCPServiceTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder(new File("target"));
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+
+    private static final String DERBY_SHUTDOWN_STATE = "XJ015";
 
     private TestRunner runner;
 
+    private File databaseDirectory;
+
     private DBCPConnectionPool service;
 
-    @BeforeClass
+    @BeforeAll
     public static void setDerbyLog() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+        final File derbyLog = new File(getSystemTemporaryDirectory(), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
-    @Before
+    @AfterAll
+    public static void clearDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
+    }
+
+    @BeforeEach
     public void setService() throws InitializationException {
+        databaseDirectory = getEmptyDirectory();
+
         service = new DBCPConnectionPool();
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, service);
 
-        final String databasePath = new File(tempFolder.getRoot(), "db").getPath();
-        final String databaseUrl = String.format("jdbc:derby:%s;create=true", databasePath);
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, databaseUrl);
+        final String url = String.format("jdbc:derby:%s;create=true", databaseDirectory);
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, url);
         runner.setProperty(service, DBCPConnectionPool.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, String.class.getName());
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+    }
+
+    @AfterEach
+    public void shutdown() throws IOException {
+        if (databaseDirectory.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals(DERBY_SHUTDOWN_STATE, exception.getSQLState());
+            FileUtils.deleteFile(databaseDirectory, true);
+        }
     }
 
     @Test
@@ -131,7 +158,7 @@ public class DBCPServiceTest {
         runner.assertValid(service);
 
         try (final Connection connection = service.getConnection()) {
-            Assert.assertNotNull("Connection not found", connection);
+            assertNotNull(connection);
 
             try (final Statement st = connection.createStatement()) {
                 st.executeUpdate("create table restaurants(id integer, name varchar(20), city varchar(50))");
@@ -141,7 +168,7 @@ public class DBCPServiceTest {
                 st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
 
                 try (final ResultSet resultSet = st.executeQuery("select count(*) AS total_rows from restaurants")) {
-                    assertTrue("Result Set Row not found", resultSet.next());
+                    assertTrue(resultSet.next(), "Result Set Row not found");
                     final int rows = resultSet.getInt(1);
                     assertEquals(3, rows);
                 }
@@ -171,7 +198,7 @@ public class DBCPServiceTest {
         }
 
         runner.assertValid(service);
-        Assert.assertThrows(ProcessException.class, service::getConnection);
+        assertThrows(ProcessException.class, service::getConnection);
     }
 
     @Test
@@ -181,10 +208,10 @@ public class DBCPServiceTest {
         runner.assertValid(service);
 
         try (final Connection connection = service.getConnection()) {
-            Assert.assertNotNull("First Connection not found", connection);
+            assertNotNull(connection, "First Connection not found");
         }
         try (final Connection connection = service.getConnection()) {
-            Assert.assertNotNull("Second Connection not found", connection);
+            assertNotNull(connection, "Second Connection not found");
         }
     }
 
@@ -196,8 +223,8 @@ public class DBCPServiceTest {
         runner.assertValid(service);
 
         final Connection connection = service.getConnection();
-        Assert.assertNotNull(connection);
-        Assert.assertThrows(ProcessException.class, service::getConnection);
+        assertNotNull(connection);
+        assertThrows(ProcessException.class, service::getConnection);
     }
 
     @Test
@@ -212,12 +239,12 @@ public class DBCPServiceTest {
 
         runner.enableControllerService(service);
 
-        Assert.assertEquals(6, service.getDataSource().getMaxIdle());
-        Assert.assertEquals(4, service.getDataSource().getMinIdle());
-        Assert.assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
-        Assert.assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
-        Assert.assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
-        Assert.assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
+        assertEquals(6, service.getDataSource().getMaxIdle());
+        assertEquals(4, service.getDataSource().getMinIdle());
+        assertEquals(1000, service.getDataSource().getMaxConnLifetimeMillis());
+        assertEquals(1000, service.getDataSource().getTimeBetweenEvictionRunsMillis());
+        assertEquals(1000, service.getDataSource().getMinEvictableIdleTimeMillis());
+        assertEquals(1000, service.getDataSource().getSoftMinEvictableIdleTimeMillis());
 
         service.getDataSource().close();
     }
@@ -249,27 +276,27 @@ public class DBCPServiceTest {
             connections.add(service.getConnection());
         }
 
-        Assert.assertEquals(6, service.getDataSource().getNumActive());
+        assertEquals(6, service.getDataSource().getNumActive());
 
         connections.get(0).close();
-        Assert.assertEquals(5, service.getDataSource().getNumActive());
-        Assert.assertEquals(1, service.getDataSource().getNumIdle());
+        assertEquals(5, service.getDataSource().getNumActive());
+        assertEquals(1, service.getDataSource().getNumIdle());
 
         connections.get(1).close();
         connections.get(2).close();
         connections.get(3).close();
         //now at max idle
-        Assert.assertEquals(2, service.getDataSource().getNumActive());
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(2, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
 
         //now a connection should get closed for real so that numIdle does not exceed maxIdle
         connections.get(4).close();
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
-        Assert.assertEquals(1, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(1, service.getDataSource().getNumActive());
 
         connections.get(5).close();
-        Assert.assertEquals(4, service.getDataSource().getNumIdle());
-        Assert.assertEquals(0, service.getDataSource().getNumActive());
+        assertEquals(4, service.getDataSource().getNumIdle());
+        assertEquals(0, service.getDataSource().getNumActive());
 
         service.getDataSource().close();
     }
@@ -304,4 +331,12 @@ public class DBCPServiceTest {
         return credentialsService;
     }
 
+    private File getEmptyDirectory() {
+        final String randomDirectory = String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID());
+        return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
+    }
+
+    private static String getSystemTemporaryDirectory() {
+        return System.getProperty("java.io.tmpdir");
+    }
 }
