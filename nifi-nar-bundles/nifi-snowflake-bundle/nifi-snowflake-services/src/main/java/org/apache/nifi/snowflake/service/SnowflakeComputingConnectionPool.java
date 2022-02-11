@@ -17,24 +17,18 @@
 package org.apache.nifi.snowflake.service;
 
 import net.snowflake.client.jdbc.SnowflakeDriver;
-import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.dbcp.DBCPConnectionPool;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
 
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -42,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementation of Database Connection Pooling Service for Snowflake.
@@ -64,87 +57,23 @@ import java.util.stream.Collectors;
 public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
 
     public static final PropertyDescriptor SNOWFLAKE_URL = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.DATABASE_URL)
         .displayName("Snowflake URL")
-        .name("snowflake-url")
         .description("E.g. 'cb56215.europe-west2.gcp.snowflakecomputing.com/?db=MY_DB'." +
             " The '/?db=MY_DB' part can can have other connection parameters as well." +
             " It can also be omitted but in that case tables need to be referenced with fully qualified names e.g. 'MY_DB.PUBLIC.MY_TABLe'.")
-        .defaultValue(null)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
     public static final PropertyDescriptor SNOWFLAKE_USER = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.DB_USER)
         .displayName("Snowflake User Name")
-        .name("snowflake-user")
-        .defaultValue(null)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .description("Snowflake user name")
         .build();
 
     public static final PropertyDescriptor SNOWFLAKE_PASSWORD = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(DBCPConnectionPool.DB_PASSWORD)
         .displayName("Snowflake Password")
-        .name("snowflake-password")
-        .defaultValue(null)
-        .required(false)
-        .sensitive(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .build();
-
-    public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.VALIDATION_QUERY)
-        .displayName("Validation query")
-        .name("validation-query")
-        .build();
-
-    public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MAX_WAIT_TIME)
-        .displayName("Max Wait Time")
-        .name("max-wait-time")
-        .build();
-
-    public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MAX_TOTAL_CONNECTIONS)
-        .displayName("Max Total Connections")
-        .name("max-total-connections")
-        .build();
-
-    public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MIN_IDLE)
-        .displayName("Minimum Idle Connections")
-        .name("snowflake-min-idle-conns")
-        .build();
-
-    public static final PropertyDescriptor MAX_IDLE = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MAX_IDLE)
-        .displayName("Max Idle Connections")
-        .name("snowflake-max-idle-conns")
-        .build();
-
-    public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MAX_CONN_LIFETIME)
-        .displayName("Max Connection Lifetime")
-        .name("snowflake-max-conn-lifetime")
-        .build();
-
-    public static final PropertyDescriptor EVICTION_RUN_PERIOD = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.EVICTION_RUN_PERIOD)
-        .displayName("Time Between Eviction Runs")
-        .name("snowflake-time-between-eviction-runs")
-        .build();
-
-    public static final PropertyDescriptor MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.MIN_EVICTABLE_IDLE_TIME)
-        .displayName("Minimum Evictable Idle Time")
-        .name("snowflake-min-evictable-idle-time")
-        .build();
-
-    public static final PropertyDescriptor SOFT_MIN_EVICTABLE_IDLE_TIME = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DBCPConnectionPool.SOFT_MIN_EVICTABLE_IDLE_TIME)
-        .displayName("Soft Minimum Evictable Idle Time")
-        .name("snowflake-soft-min-evictable-idle-time")
+        .description("The password for the Snowflake user")
         .build();
 
     private static final List<PropertyDescriptor> properties;
@@ -177,77 +106,15 @@ public class SnowflakeComputingConnectionPool extends DBCPConnectionPool {
         return Collections.emptyList();
     }
 
-    /**
-     * Configures connection pool by creating an instance of the
-     * {@link BasicDataSource} based on configuration provided with
-     * {@link ConfigurationContext}.
-     * <p>
-     * This operation makes no guarantees that the actual connection could be
-     * made since the underlying system may still go off-line during normal
-     * operation of the connection pool.
-     *
-     * @param context the configuration context
-     * @throws InitializationException if unable to create a database connection
-     */
-    @OnEnabled
-    public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        final String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
-        final String connectionString;
-        if (snowflakeUrl.startsWith("jdbc:snowflake")) {
-            connectionString = snowflakeUrl;
-        } else {
-            connectionString = "jdbc:snowflake://" + snowflakeUrl;
-        }
-        final String user = context.getProperty(SNOWFLAKE_USER).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(SNOWFLAKE_PASSWORD).evaluateAttributeExpressions().getValue();
+    @Override
+    protected String getUrl(ConfigurationContext context) {
+        String snowflakeUrl = context.getProperty(SNOWFLAKE_URL).evaluateAttributeExpressions().getValue();
 
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
-        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
-        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
-        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
-        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
-        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
-        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
-        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
-
-        dataSource = new BasicDataSource();
-
-        dataSource.setDriver(getDriver(SnowflakeDriver.class.getName(), connectionString));
-
-        dataSource.setUrl(connectionString);
-        dataSource.setUsername(user);
-        dataSource.setPassword(password);
-
-        dataSource.setMaxWaitMillis(maxWaitMillis);
-        dataSource.setMaxTotal(maxTotal);
-        dataSource.setMinIdle(minIdle);
-        dataSource.setMaxIdle(maxIdle);
-        dataSource.setMaxConnLifetimeMillis(maxConnLifetimeMillis);
-        dataSource.setTimeBetweenEvictionRunsMillis(timeBetweenEvictionRunsMillis);
-        dataSource.setMinEvictableIdleTimeMillis(minEvictableIdleTimeMillis);
-        dataSource.setSoftMinEvictableIdleTimeMillis(softMinEvictableIdleTimeMillis);
-
-        if (validationQuery != null && !validationQuery.isEmpty()) {
-            dataSource.setValidationQuery(validationQuery);
-            dataSource.setTestOnBorrow(true);
+        if (!snowflakeUrl.startsWith("jdbc:snowflake")) {
+            snowflakeUrl = "jdbc:snowflake://" + snowflakeUrl;
         }
 
-        final List<PropertyDescriptor> dynamicProperties = context.getProperties()
-            .keySet()
-            .stream()
-            .filter(PropertyDescriptor::isDynamic)
-            .collect(Collectors.toList());
-
-        dynamicProperties.forEach((descriptor) -> {
-            final PropertyValue propertyValue = context.getProperty(descriptor);
-            if (descriptor.isSensitive()) {
-                final String propertyName = StringUtils.substringAfter(descriptor.getName(), SENSITIVE_PROPERTY_PREFIX);
-                dataSource.addConnectionProperty(propertyName, propertyValue.getValue());
-            } else {
-                dataSource.addConnectionProperty(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
-            }
-        });
+        return snowflakeUrl;
     }
 
     @Override

@@ -414,11 +414,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
+        final String dburl = getUrl(context);
 
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
-        final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
@@ -484,6 +484,10 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                 dataSource.addConnectionProperty(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
             }
         });
+    }
+
+    protected String getUrl(ConfigurationContext context) {
+        return context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
     }
 
     protected Driver getDriver(final String driverName, final String url) {
