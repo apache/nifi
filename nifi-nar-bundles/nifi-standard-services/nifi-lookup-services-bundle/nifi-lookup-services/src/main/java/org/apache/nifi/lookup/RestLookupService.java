@@ -28,7 +28,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -62,11 +61,9 @@ import org.apache.nifi.util.StringUtils;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -335,8 +332,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             final Record record;
             try (final InputStream is = responseBody.byteStream();
                 final InputStream bufferedIn = new BufferedInputStream(is)) {
-                String toString = IOUtils.toString(bufferedIn, StandardCharsets.UTF_8);
-                record = handleResponse(new ByteArrayInputStream(toString.getBytes(StandardCharsets.UTF_8)), responseBody.contentLength(), context);
+                record = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 
             return Optional.ofNullable(record);
