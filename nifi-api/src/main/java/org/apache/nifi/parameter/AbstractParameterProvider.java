@@ -17,8 +17,6 @@
 package org.apache.nifi.parameter;
 
 import org.apache.nifi.components.AbstractConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
@@ -67,22 +65,6 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
      */
     protected ComponentLog getLogger() {
         return logger;
-    }
-
-    @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .displayName(propertyDescriptorName)
-                .dynamic(true)
-                .description(String.format("Maps the value to a Parameter named [%s]", propertyDescriptorName))
-                .addValidator((subject, input, context) -> new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input).valid(subject != null && subject.matches("^[a-zA-Z0-9_. -]+$"))
-                        .explanation(subject + " contains invalid characters.  Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens (-), " +
-                                "underscores (_), periods (.), and spaces ( ) are accepted as mapped Parameter Names.")
-                        .build())
-                .build();
     }
 
     /**

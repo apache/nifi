@@ -282,11 +282,8 @@ public class ParameterContextAuditor extends NiFiAuditor {
             values.put("Inherited Parameter Contexts", parameterContext.getInheritedParameterContexts()
                     .stream().map(pc -> pc.getIdentifier()).collect(Collectors.joining(", ")));
         }
-        if (parameterContext.getSensitiveParameterProvider().isPresent()) {
-            values.put("Sensitive Parameter Provider", parameterContext.getSensitiveParameterProvider().get().getIdentifier());
-        }
-        if (parameterContext.getNonSensitiveParameterProvider().isPresent()) {
-            values.put("Non-Sensitive Parameter Provider", parameterContext.getNonSensitiveParameterProvider().get().getIdentifier());
+        if (parameterContext.getParameterProvider() != null) {
+            values.put("Sensitive Parameter Provider", parameterContext.getParameterProvider().getIdentifier());
         }
 
         return values;

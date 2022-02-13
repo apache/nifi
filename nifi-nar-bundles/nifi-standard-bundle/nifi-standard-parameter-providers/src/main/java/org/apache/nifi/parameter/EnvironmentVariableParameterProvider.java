@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.parameter;
 
-import org.apache.nifi.annotation.behavior.DynamicProperties;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -27,7 +25,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +32,6 @@ import java.util.regex.Pattern;
 
 @Tags({"environment", "variable"})
 @CapabilityDescription("Fetches parameters from environment variables")
-
-@DynamicProperties(
-    @DynamicProperty(name = "Mapped parameter name", value = "Environment variable name",
-        description = "Maps a raw fetched parameter from the external system to the name of a parameter inside the dataflow")
-)
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
@@ -49,24 +41,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
             .description("The name of the parameter group that will be fetched.  This indicates the name of the Parameter Context that may receive " +
                     "the fetched parameters.")
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[a-zA-Z0-9_. -]+$")))
+            .defaultValue("Environment Variables")
             .required(true)
-            .build();
-    public static final PropertyDescriptor SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
-            .name("sensitive-parameter-regex")
-            .displayName("Sensitive Parameter Regex")
-            .description("A Regular Expression indicating which Environment Variables to include as sensitive parameters.  Any that match this pattern " +
-                    " are automatically excluded from the non-sensitive parameters.  If not specified, no sensitive parameters will be included.")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(false)
-            .build();
-    public static final PropertyDescriptor NON_SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
-            .name("non-sensitive-parameter-regex")
-            .displayName("Non-Sensitive Parameter Regex")
-            .description("A Regular Expression indicating which Environment Variables to include as non-sensitive parameters.  If the Sensitive Parameter Regex " +
-                    "is specified, Environment Variables matching that Regex will be excluded from the non-sensitive parameters.  " +
-                    "If not specified, no non-sensitive parameters will be included.")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .required(false)
             .build();
 
     private List<PropertyDescriptor> properties;
@@ -75,8 +51,6 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PARAMETER_GROUP_NAME);
-        properties.add(SENSITIVE_PARAMETER_REGEX);
-        properties.add(NON_SENSITIVE_PARAMETER_REGEX);
 
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -87,29 +61,15 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     }
 
     @Override
-    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
+    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
         final String parameterGroupName = context.getProperty(PARAMETER_GROUP_NAME).getValue();
-        final Pattern sensitivePattern = context.getProperty(SENSITIVE_PARAMETER_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(SENSITIVE_PARAMETER_REGEX).getValue())
-                : null;
-        final Pattern nonSensitivePattern = context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).getValue())
-                : null;
 
-        final List<Parameter> sensitiveParameters = new ArrayList<>();
-        final List<Parameter> nonSensitiveParameters = new ArrayList<>();
+        final List<Parameter> parameters = new ArrayList<>();
         environmentVariables.forEach( (key, value) -> {
             final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
-            final Parameter parameter = new Parameter(parameterDescriptor, value, null, true);
-            if (sensitivePattern != null && sensitivePattern.matcher(key).matches()) {
-                sensitiveParameters.add(parameter);
-            } else if (nonSensitivePattern != null && nonSensitivePattern.matcher(key).matches()) {
-                nonSensitiveParameters.add(parameter);
-            }
+            parameters.add(new Parameter(parameterDescriptor, value, null, true));
         });
-        return Arrays.asList(
-                new ProvidedParameterGroup(parameterGroupName, ParameterSensitivity.SENSITIVE, sensitiveParameters),
-                new ProvidedParameterGroup(parameterGroupName, ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
+        return Collections.singletonList(new ParameterGroup(parameterGroupName, parameters));
     }
 
     @Override
@@ -117,21 +77,12 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            final List<ProvidedParameterGroup> parameterGroups = fetchParameters(context);
-            int sensitiveCount = 0;
-            int nonSensitiveCount = 0;
-            for (final ProvidedParameterGroup group : parameterGroups) {
-                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.SENSITIVE) {
-                    sensitiveCount += group.getItems().size();
-                }
-                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.NON_SENSITIVE) {
-                    nonSensitiveCount += group.getItems().size();
-                }
-            }
+            final List<ParameterGroup> parameterGroups = fetchParameters(context);
+            final int parameterCount = parameterGroups.get(0).getParameters().size();
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Environment Variables")
-                    .explanation(String.format("Fetched %s Environment Variables as sensitive parameters and %s Environment Variables as non-sensitive parameters", sensitiveCount, nonSensitiveCount))
+                    .explanation(String.format("Fetched %s Environment Variables as parameters", parameterCount))
                     .build());
         } catch (final IllegalArgumentException e) {
             verificationLogger.error("Failed to fetch parameters", e);

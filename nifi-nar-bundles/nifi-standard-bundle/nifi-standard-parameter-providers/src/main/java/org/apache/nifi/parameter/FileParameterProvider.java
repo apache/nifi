@@ -17,8 +17,6 @@
 package org.apache.nifi.parameter;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.nifi.annotation.behavior.DynamicProperties;
-import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -49,17 +47,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Tags({"file"})
 @CapabilityDescription("Fetches parameters from files.  Parameter groups are indicated by a set of directories, and files within the directories map to parameter names. " +
         "The content of the file becomes the parameter value.")
 
-@DynamicProperties(
-    @DynamicProperty(name = "Mapped parameter name", value = "Filename",
-        description = "Maps a raw fetched parameter from the external system to the name of a parameter inside the dataflow")
-)
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -68,21 +61,8 @@ import java.util.stream.Collectors;
         }
 )
 public class FileParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
-    public static final PropertyDescriptor SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
-            .name("sensitive-parameter-regex")
-            .displayName("Sensitive Parameter Regex")
-            .description("A Regular Expression indicating which files to include as sensitive parameters.  Any that match this pattern " +
-                    " are automatically excluded from the non-sensitive parameters.  If not specified, no sensitive parameters will be included.")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor NON_SENSITIVE_PARAMETER_REGEX = new PropertyDescriptor.Builder()
-            .name("non-sensitive-parameter-regex")
-            .displayName("Non-Sensitive Parameter Regex")
-            .description("A Regular Expression indicating which files to include as non-sensitive parameters.  If the Sensitive Parameter Regex " +
-                    "is specified, filenames matching that Regex will be excluded from the non-sensitive parameters.  " +
-                    "If not specified, no non-sensitive parameters will be included.")
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .build();
+    private static final int MAX_SIZE_LIMIT = 8096;
+
     public static final PropertyDescriptor PARAMETER_GROUP_DIRECTORIES = new PropertyDescriptor.Builder()
             .name("parameter-group-directories")
             .displayName("Parameter Group Directories")
@@ -97,7 +77,7 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
             .displayName("Parameter Value Byte Limit")
             .description("The maximum byte size of a parameter value.  Since parameter values are pulled from the contents of files, this is a safeguard that can " +
                     "prevent memory issues if large files are included.")
-            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, 1024))
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, MAX_SIZE_LIMIT))
             .defaultValue("256 B")
             .required(true)
             .build();
@@ -107,8 +87,6 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
     @Override
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(SENSITIVE_PARAMETER_REGEX);
-        properties.add(NON_SENSITIVE_PARAMETER_REGEX);
         properties.add(PARAMETER_GROUP_DIRECTORIES);
         properties.add(PARAMETER_VALUE_BYTE_LIMIT);
 
@@ -121,19 +99,19 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
     }
 
     @Override
-    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
+    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
 
-        final List<ProvidedParameterGroup> parameterGroups = new ArrayList<>();
+        final List<ParameterGroup> parameterGroups = new ArrayList<>();
 
         final Collection<File> groupDirectories = getDirectories(context, PARAMETER_GROUP_DIRECTORIES);
         groupDirectories.forEach(directory -> {
-            parameterGroups.addAll(getParameters(context, directory, directory.getName()));
+            parameterGroups.add(getParameterGroup(context, directory, directory.getName()));
         });
         final AtomicInteger groupedParameterCount = new AtomicInteger(0);
         final Collection<String> groupNames = new HashSet<>();
         parameterGroups.forEach(group -> {
-            groupedParameterCount.addAndGet(group.getItems().size());
-            groupNames.add(group.getGroupKey().getGroupName());
+            groupedParameterCount.addAndGet(group.getParameters().size());
+            groupNames.add(group.getGroupName());
         });
         getLogger().info("Fetched {} parameters.  Group names: {}", groupedParameterCount.get(), groupNames);
         return parameterGroups;
@@ -144,24 +122,16 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         try {
-            final List<ProvidedParameterGroup> parameterGroups = fetchParameters(context);
-            int sensitiveCount = 0;
-            int nonSensitiveCount = 0;
-            for (final ProvidedParameterGroup group : parameterGroups) {
-                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.SENSITIVE) {
-                    sensitiveCount += group.getItems().size();
-                }
-                if (group.getGroupKey().getSensitivity() == ParameterSensitivity.NON_SENSITIVE) {
-                    nonSensitiveCount += group.getItems().size();
-                }
-            }
-            final Set<String> parameterGroupNames = parameterGroups.stream().map(group -> group.getGroupKey().getGroupName() == null ? "<any>" : group.getGroupKey().getGroupName())
-                    .collect(Collectors.toSet());
+            final List<ParameterGroup> parameterGroups = fetchParameters(context);
+            final Set<String> parameterGroupNames = parameterGroups.stream().map(ParameterGroup::getGroupName).collect(Collectors.toSet());
+            final long parameterCount = parameterGroups.stream()
+                    .flatMap(group -> group.getParameters().stream())
+                    .count();
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                     .verificationStepName("Fetch Parameters")
-                    .explanation(String.format("Fetched %s files as sensitive parameters and %s files as non-sensitive parameters.  Matching parameter contexts may be named: %s",
-                            sensitiveCount, nonSensitiveCount, parameterGroupNames))
+                    .explanation(String.format("Fetched %s files as parameters.  Matching parameter contexts may be named: %s",
+                            parameterCount, parameterGroupNames))
                     .build());
         } catch (final IllegalArgumentException e) {
             verificationLogger.error("Failed to fetch parameters", e);
@@ -176,23 +146,16 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
 
     private Collection<File> getDirectories(final ConfigurationContext context, final PropertyDescriptor descriptor) {
         return context.getProperty(descriptor).isSet()
-                ? Arrays.stream(context.getProperty(descriptor).getValue().split(",")).map(String::trim).map(File::new) .collect(Collectors.toSet())
+                ? Arrays.stream(context.getProperty(descriptor).getValue().split(",")).map(String::trim).map(File::new).collect(Collectors.toSet())
                 : Collections.emptySet();
     }
 
-    private List<ProvidedParameterGroup> getParameters(final ConfigurationContext context, final File directory, final String groupName) {
-        final List<ProvidedParameterGroup> parameterGroups = new ArrayList<>();
-        final Pattern sensitivePattern = context.getProperty(SENSITIVE_PARAMETER_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(SENSITIVE_PARAMETER_REGEX).getValue()) : null;
-        final Pattern nonSensitivePattern = context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).isSet()
-                ? Pattern.compile(context.getProperty(NON_SENSITIVE_PARAMETER_REGEX).getValue()) : null;
+    private ParameterGroup getParameterGroup(final ConfigurationContext context, final File directory, final String groupName) {
         final int parameterSizeLimit = context.getProperty(PARAMETER_VALUE_BYTE_LIMIT).asDataSize(DataUnit.B).intValue();
 
-        final File[] files = directory.listFiles((dir, name) ->
-                (sensitivePattern == null || sensitivePattern.matcher(name).matches() || nonSensitivePattern == null || nonSensitivePattern.matcher(name).matches()));
+        final File[] files = directory.listFiles();
 
-        final List<Parameter> sensitiveParameters = new ArrayList<>();
-        final List<Parameter> nonSensitiveParameters = new ArrayList<>();
+        final List<Parameter> parameters = new ArrayList<>();
         for (final File file : files) {
             if (file.isDirectory() || file.isHidden()) {
                 continue;
@@ -207,20 +170,13 @@ public class FileParameterProvider extends AbstractParameterProvider implements 
                 }
 
                 final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(parameterName).build();
-                final Parameter parameter = new Parameter(parameterDescriptor, parameterValue, null, true);
-                if (sensitivePattern != null && sensitivePattern.matcher(parameterName).matches()) {
-                    sensitiveParameters.add(parameter);
-                } else if (nonSensitivePattern != null && nonSensitivePattern.matcher(parameterName).matches()) {
-                    nonSensitiveParameters.add(parameter);
-                }
+                parameters.add(new Parameter(parameterDescriptor, parameterValue, null, true));
             } catch (final IOException e) {
                 getLogger().error("Failed to read file [{}]", new Object[] { file }, e);
                 throw new RuntimeException(String.format("Failed to read file [%s]", file), e);
             }
         }
-        parameterGroups.add(new ProvidedParameterGroup(groupName, ParameterSensitivity.SENSITIVE, sensitiveParameters));
-        parameterGroups.add(new ProvidedParameterGroup(groupName, ParameterSensitivity.NON_SENSITIVE, nonSensitiveParameters));
-        return parameterGroups;
+        return new ParameterGroup(groupName, parameters);
     }
 
     public static class MultiDirectoryExistsValidator implements Validator {

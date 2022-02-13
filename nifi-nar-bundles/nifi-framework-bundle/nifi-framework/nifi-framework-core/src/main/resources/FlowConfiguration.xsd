@@ -71,8 +71,9 @@
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
             <xs:element name="inheritedParameterContextId" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
-            <xs:element name="sensitiveParameterProviderId" type="xs:string" minOccurs="0" maxOccurs="1" />
-            <xs:element name="nonSensitiveParameterProviderId" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="parameterProviderId" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="parameterGroupName" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="isSynchronized" type="xs:boolean" minOccurs="0" maxOccurs="1" />
             <xs:element name="parameter" type="ParameterType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>

@@ -84,5 +84,5 @@ public interface ParameterProvider extends ConfigurableComponent {
      * is referenced in a ParameterContext.
      * @throws IOException if there is an I/O problem while fetching the Parameters
      */
-    List<ProvidedParameterGroup> fetchParameters(ConfigurationContext context) throws IOException;
+    List<ParameterGroup> fetchParameters(ConfigurationContext context) throws IOException;
 }

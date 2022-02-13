@@ -17,11 +17,6 @@ package org.apache.nifi.parameter;/*
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.parameter.EnvironmentVariableParameterProvider;
-import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.parameter.ParameterSensitivity;
-import org.apache.nifi.parameter.ProvidedParameterGroup;
-import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -34,22 +29,16 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
 
 public class TestEnvironmentVariableParameterProvider {
     private ParameterProvider getParameterProvider() {
         return new EnvironmentVariableParameterProvider();
     }
 
-    private void runProviderTest(final String sensitivePattern, final String nonSensitivePattern, final ConfigVerificationResult.Outcome expectedOutcome) throws InitializationException, IOException {
+    @Test
+    public void testFetchParameters() throws InitializationException, IOException {
         final Map<String, String> env = System.getenv();
-        final long expectedSensitiveCount = env.keySet().stream()
-                .filter(key -> sensitivePattern != null && key.matches(sensitivePattern))
-                .count();
-        final long expectedNonSensitiveCount = env.keySet().stream()
-                .filter(key -> sensitivePattern == null || !key.matches(sensitivePattern))
-                .filter(key -> nonSensitivePattern != null && key.matches(nonSensitivePattern))
-                .count();
+        final long expectedCount = env.size();
 
         final ParameterProvider parameterProvider = getParameterProvider();
         final MockParameterProviderInitializationContext initContext = new MockParameterProviderInitializationContext("id", "name",
@@ -58,45 +47,19 @@ public class TestEnvironmentVariableParameterProvider {
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(EnvironmentVariableParameterProvider.PARAMETER_GROUP_NAME, "environment variables");
-        properties.put(EnvironmentVariableParameterProvider.SENSITIVE_PARAMETER_REGEX, sensitivePattern);
-        properties.put(EnvironmentVariableParameterProvider.NON_SENSITIVE_PARAMETER_REGEX, nonSensitivePattern);
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
         // Verify parameter fetching
-        if (expectedOutcome == ConfigVerificationResult.Outcome.FAILED) {
-            assertThrows(IllegalArgumentException.class, () -> parameterProvider.fetchParameters(mockConfigurationContext));
-        } else {
-            final List<ProvidedParameterGroup> parameterGroups = parameterProvider.fetchParameters(mockConfigurationContext);
-            final ProvidedParameterGroup sensitiveGroup = parameterGroups.stream().filter(group -> group.getGroupKey().getSensitivity() == ParameterSensitivity.SENSITIVE).findFirst().get();
-            final ProvidedParameterGroup nonSensitiveGroup = parameterGroups.stream().filter(group -> group.getGroupKey().getSensitivity() == ParameterSensitivity.NON_SENSITIVE).findFirst().get();
-            assertEquals(expectedSensitiveCount, sensitiveGroup.getItems().size());
-            assertEquals(expectedNonSensitiveCount, nonSensitiveGroup.getItems().size());
-        }
+        final List<ParameterGroup> parameterGroups = parameterProvider.fetchParameters(mockConfigurationContext);
+        final ParameterGroup group = parameterGroups.stream().findFirst().get();
+        assertEquals(expectedCount, group.getParameters().size());
+        assertEquals("environment variables", group.getGroupName());
 
         // Verify config verification
         final List<ConfigVerificationResult> results = ((VerifiableParameterProvider) parameterProvider).verify(mockConfigurationContext, initContext.getLogger());
 
         assertEquals(1, results.size());
-        assertEquals(expectedOutcome, results.get(0).getOutcome());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
     }
 
-    @Test
-    public void testParameterProviderWithoutOverlap() throws InitializationException, IOException {
-        runProviderTest("[A-M].*", ".*", ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testParameterProviderWithOverlap() throws InitializationException, IOException {
-        runProviderTest("[A-P].*", "[C-Z].*", ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testParameterProviderWithOnlySensitive() throws InitializationException, IOException {
-        runProviderTest("[A-P].*", null, ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
-
-    @Test
-    public void testParameterProviderWithOnlyNonSensitive() throws InitializationException, IOException {
-        runProviderTest(null, "[N-Z].*", ConfigVerificationResult.Outcome.SUCCESSFUL);
-    }
 }

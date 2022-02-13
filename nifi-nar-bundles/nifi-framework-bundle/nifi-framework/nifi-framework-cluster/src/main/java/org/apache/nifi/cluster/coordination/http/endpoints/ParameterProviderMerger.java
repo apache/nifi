@@ -17,39 +17,40 @@
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.parameter.ParameterSensitivity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ParameterProviderMerger {
 
     public static void merge(final ParameterProviderEntity target, final ParameterProviderEntity otherEntity) {
-        final Collection<ProvidedParameterNameGroupEntity> targetParameterNameGroups = target.getComponent().getFetchedParameterNameGroups();
-        if (targetParameterNameGroups != null) {
-            if (otherEntity.getComponent().getFetchedParameterNameGroups() != null) {
-                final Iterator<ProvidedParameterNameGroupEntity> otherGroupIterator = otherEntity.getComponent().getFetchedParameterNameGroups().iterator();
-                for (final ProvidedParameterNameGroupEntity targetParameterNameGroup : targetParameterNameGroups) {
+        final Collection<ParameterGroupConfigurationEntity> targetParameterGroupConfigurations = target.getComponent().getParameterGroupConfigurations();
+        if (targetParameterGroupConfigurations != null) {
+            if (otherEntity.getComponent().getParameterGroupConfigurations() != null) {
+                final Iterator<ParameterGroupConfigurationEntity> otherGroupIterator = otherEntity.getComponent().getParameterGroupConfigurations().iterator();
+                for (final ParameterGroupConfigurationEntity parameterGroupConfiguration : targetParameterGroupConfigurations) {
                     if (!otherGroupIterator.hasNext()) {
                         continue;
                     }
-                    ProvidedParameterNameGroupEntity otherGroup = otherGroupIterator.next();
-                    if (!StringUtils.equals(targetParameterNameGroup.getGroupName(), otherGroup.getGroupName())) {
+                    ParameterGroupConfigurationEntity otherConfiguration = otherGroupIterator.next();
+                    if (!StringUtils.equals(parameterGroupConfiguration.getGroupName(), otherConfiguration.getGroupName())) {
                         continue;
                     }
-                    if (!StringUtils.equals(targetParameterNameGroup.getSensitivity(), otherGroup.getSensitivity())) {
-                        continue;
-                    }
-                    final Set<String> targetParameterNames = targetParameterNameGroup.getParameterNames();
-                    if (targetParameterNames != null) {
-                        if (otherGroup.getGroupName() != null) {
-                            targetParameterNames.retainAll(otherGroup.getParameterNames());
+                    final Map<String, ParameterSensitivity> targetParameterSensitivities = parameterGroupConfiguration.getParameterSensitivities();
+                    if (targetParameterSensitivities != null) {
+                        if (otherConfiguration.getGroupName() != null) {
+                            targetParameterSensitivities.keySet().retainAll(otherConfiguration.getParameterSensitivities().keySet());
                         }
-                        targetParameterNameGroup.setParameterNames(new LinkedHashSet<>(targetParameterNames.stream().sorted().collect(Collectors.toList())));
+                        parameterGroupConfiguration.setParameterSensitivities(new LinkedHashMap<>());
+                        targetParameterSensitivities.keySet().stream()
+                                .sorted()
+                                .forEach(paramName -> parameterGroupConfiguration.getParameterSensitivities()
+                                        .put(paramName, targetParameterSensitivities.get(paramName)));
                     }
                 }
             }

@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
@@ -47,8 +47,8 @@ public class ParameterProviderDTO extends ComponentDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
-    private Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups;
-    private Set<AffectedComponentEntity> referencingComponents;
+    private Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations;
+    private Set<AffectedComponentEntity> affectedComponents;
     private Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts;
 
     private String customUiUrl;
@@ -72,12 +72,12 @@ public class ParameterProviderDTO extends ComponentDTO {
     }
 
     @ApiModelProperty("The set of all components in the flow that are referencing Parameters provided by this provider")
-    public Set<AffectedComponentEntity> getReferencingComponents() {
-        return referencingComponents;
+    public Set<AffectedComponentEntity> getAffectedComponents() {
+        return affectedComponents;
     }
 
-    public void setReferencingComponents(final Set<AffectedComponentEntity> referencingComponents) {
-        this.referencingComponents = referencingComponents;
+    public void setAffectedComponents(final Set<AffectedComponentEntity> affectedComponents) {
+        this.affectedComponents = affectedComponents;
     }
 
     public void setReferencingParameterContexts(final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts) {
@@ -89,18 +89,15 @@ public class ParameterProviderDTO extends ComponentDTO {
         return referencingParameterContexts;
     }
 
-    /**
-     * @return A set of grouped parameter names for any fetched parameters.
-     */
     @ApiModelProperty(
-            value = "A set of grouped parameter names for any fetched parameters."
+            value = "Configuration for any fetched parameter groups."
     )
-    public Collection<ProvidedParameterNameGroupEntity> getFetchedParameterNameGroups() {
-        return fetchedParameterNameGroups;
+    public Collection<ParameterGroupConfigurationEntity> getParameterGroupConfigurations() {
+        return parameterGroupConfigurations;
     }
 
-    public void setFetchedParameterNameGroups(final Collection<ProvidedParameterNameGroupEntity> fetchedParameterNameGroups) {
-        this.fetchedParameterNameGroups = fetchedParameterNameGroups;
+    public void setParameterGroupConfigurations(final Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations) {
+        this.parameterGroupConfigurations = parameterGroupConfigurations;
     }
 
     /**

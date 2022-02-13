@@ -22,9 +22,8 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.parameter.AbstractParameterProvider;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.parameter.ParameterSensitivity;
-import org.apache.nifi.parameter.ProvidedParameterGroup;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,7 +49,7 @@ public class DummyParameterProvider extends AbstractParameterProvider implements
     }
 
     @Override
-    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
+    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
         final List<Parameter> parameters = Arrays.stream(STATIC_PARAMETERS)
                 .map(parameterName -> {
                     final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder()
@@ -59,6 +58,6 @@ public class DummyParameterProvider extends AbstractParameterProvider implements
                     return new Parameter(parameterDescriptor, parameterName + "-value", null, true);
                 })
                 .collect(Collectors.toList());
-        return Collections.singletonList(new ProvidedParameterGroup(ParameterSensitivity.NON_SENSITIVE, parameters));
+        return Collections.singletonList(new ParameterGroup("Group", parameters));
     }
 }

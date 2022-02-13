@@ -213,8 +213,8 @@ public class StandardFlowComparator implements FlowComparator {
 
         addIfDifferent(differences, DifferenceType.DESCRIPTION_CHANGED, contextA, contextB, VersionedParameterContext::getDescription);
         addIfDifferent(differences, DifferenceType.INHERITED_CONTEXTS_CHANGED, contextA, contextB, VersionedParameterContext::getInheritedParameterContexts);
-        addIfDifferent(differences, DifferenceType.PARAMETER_PROVIDER_REFERENCE_CHANGED, contextA, contextB, VersionedParameterContext::getSensitiveParameterProvider);
-        addIfDifferent(differences, DifferenceType.PARAMETER_PROVIDER_REFERENCE_CHANGED, contextA, contextB, VersionedParameterContext::getNonSensitiveParameterProvider);
+        addIfDifferent(differences, DifferenceType.PARAMETER_GROUP_NAME_CHANGED, contextA, contextB, VersionedParameterContext::getParameterGroupName);
+        addIfDifferent(differences, DifferenceType.PARAMETER_PROVIDER_SYNCHRONIZED_CHANGED, contextA, contextB, VersionedParameterContext::isSynchronized);
 
         final Map<String, VersionedParameter> contextAParameters = parametersByName(contextA.getParameters());
         final Map<String, VersionedParameter> contextBParameters = parametersByName(contextB.getParameters());

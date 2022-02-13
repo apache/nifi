@@ -22,24 +22,33 @@ import java.util.List;
 /**
  * Encapsulates a named group of externally fetched parameters that can be provided to referencing Parameter Contexts.
  */
-public class ProvidedParameterGroup extends AbstractParameterGroup<Parameter> {
+public class ParameterGroup {
+
+    private final String groupName;
+
+    private final List<Parameter> parameters;
 
     /**
-     * Creates a named parameter group with a specific sensitivity.
+     * Creates a named parameter group.
      * @param groupName The parameter group name
-     * @param sensitivity The parameter sensitivity
      * @param parameters A list of parameters
      */
-    public ProvidedParameterGroup(final String groupName, final ParameterSensitivity sensitivity, final List<Parameter> parameters) {
-        super(groupName, sensitivity, Collections.unmodifiableList(parameters));
+    public ParameterGroup(final String groupName, final List<Parameter> parameters) {
+        this.groupName = groupName;
+        this.parameters = Collections.unmodifiableList(parameters);
     }
 
     /**
-     * Creates an unnamed parameter group with a specific sensitivity.
-     * @param sensitivity The parameter sensitivity
-     * @param parameters A list of parameters
+     * @return The group name
      */
-    public ProvidedParameterGroup(final ParameterSensitivity sensitivity, final List<Parameter> parameters) {
-        super(sensitivity, Collections.unmodifiableList(parameters));
+    public String getGroupName() {
+        return groupName;
+    }
+
+    /**
+     * @return The provided parameters
+     */
+    public List<Parameter> getParameters() {
+        return parameters;
     }
 }

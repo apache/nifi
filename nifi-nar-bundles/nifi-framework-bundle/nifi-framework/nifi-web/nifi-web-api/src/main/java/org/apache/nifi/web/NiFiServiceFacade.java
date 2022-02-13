@@ -30,8 +30,8 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.flow.ParameterProviderReference;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -2234,19 +2234,20 @@ public interface NiFiServiceFacade {
     /**
      * Verifies the specified parameter provider is able to apply fetched parameters to the flow.
      * @param parameterProviderId parameter provider id
-     * @param parameterNames A set of fetched parameter names to include.  Any parameters not found in this set will not be included in the update verification.
+     * @param parameterGroupConfigurations Configuration for each fetched Parameter Group.   Any parameters not found in this set will not be included
+     *                                     in the update verification.
      */
-    void verifyCanApplyParameters(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
+    void verifyCanApplyParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
 
     /**
      * Returns a list of ParameterContext entities representing updates needed in order to apply the fetched
      * parameters from the parameter provider to the referencing parameter contexts
      * @param parameterProviderId parameter provider id
-     * @param parameterNames A set of fetched parameter names to include.  Any parameters not found in this set will not be included in the update.
+     * @param parameterGroupConfigurations Configuration for each fetched Parameter Group.  Any parameters not found in this set will not be included in the update.
      * @return The list of ParameterContextEntity objects representing required updates to referencing
      * parameter contexts
      */
-    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
+    List<ParameterContextEntity> getParameterContextUpdatesForAppliedParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
 
     /**
      * Gets the references for specified parameter provider.

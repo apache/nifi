@@ -34,7 +34,6 @@ import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
-import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -44,6 +43,8 @@ import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ControllerServiceAPI;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.VersionedConnection;
@@ -51,6 +52,8 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -68,17 +71,14 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.flow.VersionedParameter;
-import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
@@ -795,18 +795,22 @@ public class NiFiRegistryFlowMapper {
         final String versionedContextId = flowMappingOptions.getComponentIdLookup().getComponentId(Optional.empty(), parameterContext.getIdentifier());
         versionedParameterContext.setIdentifier(versionedContextId);
         versionedParameterContext.setInheritedParameterContexts(parameterContext.getInheritedParameterContextNames());
-        parameterContext.getSensitiveParameterProvider().ifPresent(parameterProvider -> {
-            versionedParameterContext.setSensitiveParameterProvider(parameterProvider.getIdentifier());
-        });
-        parameterContext.getNonSensitiveParameterProvider().ifPresent(parameterProvider -> {
-            versionedParameterContext.setNonSensitiveParameterProvider(parameterProvider.getIdentifier());
-        });
+        configureParameterProvider(parameterContext, versionedParameterContext);
 
         if (flowMappingOptions.isMapInstanceIdentifiers()) {
             versionedParameterContext.setInstanceIdentifier(parameterContext.getIdentifier());
         }
 
         return versionedParameterContext;
+    }
+
+    private void configureParameterProvider(final ParameterContext parameterContext, final VersionedParameterContext versionedParameterContext) {
+        final ParameterProviderConfiguration parameterProviderConfiguration = parameterContext.getParameterProviderConfiguration();
+        if (parameterProviderConfiguration != null) {
+            versionedParameterContext.setParameterGroupName(parameterProviderConfiguration.getParameterGroupName());
+            versionedParameterContext.setParameterProvider(parameterProviderConfiguration.getParameterProviderId());
+            versionedParameterContext.setSynchronized(parameterProviderConfiguration.isSynchronized());
+        }
     }
 
     public Map<String, VersionedParameterContext> mapParameterContexts(final ProcessGroup processGroup,
@@ -844,14 +848,11 @@ public class NiFiRegistryFlowMapper {
         versionedContext.setName(parameterContext.getName());
         versionedContext.setParameters(parameters);
         versionedContext.setInheritedParameterContexts(parameterContext.getInheritedParameterContextNames());
-        parameterContext.getSensitiveParameterProvider().ifPresent(parameterProvider -> {
-            versionedContext.setSensitiveParameterProvider(parameterProvider.getIdentifier());
-            parameterProviderReferences.put(parameterProvider.getIdentifier(), createParameterProviderReference(parameterContext.getParameterProviderLookup(), parameterProvider));
-        });
-        parameterContext.getNonSensitiveParameterProvider().ifPresent(parameterProvider -> {
-            versionedContext.setNonSensitiveParameterProvider(parameterProvider.getIdentifier());
-            parameterProviderReferences.put(parameterProvider.getIdentifier(), createParameterProviderReference(parameterContext.getParameterProviderLookup(), parameterProvider));
-        });
+
+        configureParameterProvider(parameterContext, versionedContext);
+        if (versionedContext.getParameterProvider() != null) {
+            parameterProviderReferences.put(versionedContext.getParameterProvider(), createParameterProviderReference(parameterContext));
+        }
         for (final ParameterContext inheritedParameterContext : parameterContext.getInheritedParameterContexts()) {
             mapParameterContext(inheritedParameterContext, parameterContexts, parameterProviderReferences);
         }
@@ -893,6 +894,24 @@ public class NiFiRegistryFlowMapper {
         return versionedParameter;
     }
 
+    private ParameterProviderReference createParameterProviderReference(final ParameterContext parameterContext) {
+        if (parameterContext.getParameterProvider() == null) {
+            return null;
+        }
+
+        final ParameterProviderReference reference = new ParameterProviderReference();
+        final ParameterProvider parameterProvider = parameterContext.getParameterProvider();
+        final ParameterProviderNode parameterProviderNode = parameterContext.getParameterProviderLookup().getParameterProvider(parameterProvider.getIdentifier());
+        final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
+
+        reference.setIdentifier(parameterProvider.getIdentifier());
+        reference.setName(parameterProviderNode.getName());
+        reference.setType(parameterProvider.getClass().getName());
+        reference.setBundle(new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion()));
+
+        return reference;
+    }
+
     private VersionedParameter mapParameter(final Parameter parameter) {
         return mapParameter(parameter, parameter.getValue());
     }
@@ -925,19 +944,6 @@ public class NiFiRegistryFlowMapper {
 
         versionedParameter.setValue(parameterValue);
         return versionedParameter;
-    }
-
-    private ParameterProviderReference createParameterProviderReference(final ParameterProviderLookup parameterProviderLookup, final ParameterProvider parameterProvider) {
-        final ParameterProviderReference reference = new ParameterProviderReference();
-        final ParameterProviderNode parameterProviderNode = parameterProviderLookup.getParameterProvider(parameterProvider.getIdentifier());
-        final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
-
-        reference.setIdentifier(parameterProvider.getIdentifier());
-        reference.setName(parameterProviderNode.getName());
-        reference.setType(parameterProvider.getClass().getName());
-        reference.setBundle(new Bundle(bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion()));
-
-        return reference;
     }
 
     private org.apache.nifi.flow.ScheduledState mapScheduledState(final ScheduledState scheduledState) {

@@ -26,7 +26,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ParameterProviderNode;
-import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -40,7 +39,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
-import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.ReferenceOnlyParameterContext;
 import org.apache.nifi.parameter.StandardParameterContext;
@@ -458,15 +457,6 @@ public abstract class AbstractFlowManager implements FlowManager {
                 }
             }
         }
-        for (final ParameterProviderUsageReference reference : parameterProvider.getReferences()) {
-            switch (reference.getSensitivity()) {
-                case SENSITIVE:
-                    reference.getParameterContext().setSensitiveParameterProvider(null);
-                    break;
-                case NON_SENSITIVE:
-                    reference.getParameterContext().setNonSensitiveParameterProvider(null);
-            }
-        }
 
         allParameterProviders.remove(parameterProvider.getIdentifier());
         LogRepositoryFactory.removeRepository(parameterProvider.getIdentifier());
@@ -500,7 +490,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     @Override
     public ParameterContext createParameterContext(final String id, final String name, final Map<String, Parameter> parameters,
                                                    final List<String> inheritedContextIds,
-                                                   final String sensitiveParameterProviderId, String nonSensitiveParameterProviderId) {
+                                                   final ParameterProviderConfiguration parameterProviderConfiguration) {
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
 
@@ -508,11 +498,6 @@ public abstract class AbstractFlowManager implements FlowManager {
             throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
         }
 
-        final ParameterProviderNode sensitiveParameterProviderNode = getParameterProvider(sensitiveParameterProviderId);
-        final ParameterProvider sensitiveParameterProvider = sensitiveParameterProviderNode == null ? null : sensitiveParameterProviderNode.getParameterProvider();
-
-        final ParameterProviderNode nonSensitiveParameterProviderNode = getParameterProvider(nonSensitiveParameterProviderId);
-        final ParameterProvider nonSensitiveParameterProvider = nonSensitiveParameterProviderNode == null ? null : nonSensitiveParameterProviderNode.getParameterProvider();
         final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this);
         final ParameterContext parameterContext = new StandardParameterContext.Builder()
                 .id(id)
@@ -520,8 +505,7 @@ public abstract class AbstractFlowManager implements FlowManager {
                 .parameterReferenceManager(referenceManager)
                 .parentAuthorizable(getParameterContextParent())
                 .parameterProviderLookup(this)
-                .sensitiveParameterProvider(sensitiveParameterProvider)
-                .nonSensitiveParameterProvider(nonSensitiveParameterProvider)
+                .parameterProviderConfiguration(parameterProviderConfiguration)
                 .build();
         parameterContext.setParameters(parameters);
 

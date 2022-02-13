@@ -157,14 +157,14 @@ public class TestStandardParameterContext {
         final ParameterDescriptor xyzDescriptor2 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
         final Parameter updatedParameter = new Parameter(xyzDescriptor2, "123");
         updates.put("xyz", updatedParameter);
-        assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList(), null, null).size());
+        assertEquals(1, context.getEffectiveParameterUpdates(updates, Collections.emptyList()).size());
 
         // Now there is no change, since the description is the same
         final Map<String, Parameter> updates2 = new HashMap<>();
         final ParameterDescriptor xyzDescriptor3 = new ParameterDescriptor.Builder().from(xyzDescriptor).description("changed").build();
         final Parameter updatedParameter2 = new Parameter(xyzDescriptor3, "123");
         updates.put("xyz", updatedParameter2);
-        assertEquals(0, context.getEffectiveParameterUpdates(updates2, Collections.emptyList(), null, null).size());
+        assertEquals(0, context.getEffectiveParameterUpdates(updates2, Collections.emptyList()).size());
     }
 
     @Test
@@ -605,38 +605,6 @@ public class TestStandardParameterContext {
 
         Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
         Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
-    }
-
-    @Test
-    public void testHasEffectiveValueIfRemoved() {
-        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
-        // Set up a hierarchy as follows:
-        //    a    (foo, bar, baz)
-        //    |
-        //    b    (foo, child)
-        //    |
-        //    c    (bar, grandchild)
-        //
-        // foo is in a/b; bar is in a/c; baz is only in a
-        final ParameterContext a = createParameterContext("a", parameterContextLookup);
-        final ParameterDescriptor foo = addParameter(a, "foo", "a.foo");
-        final ParameterDescriptor bar = addParameter(a, "bar", "a.bar");
-        final ParameterDescriptor baz = addParameter(a, "baz", "a.baz");
-
-        final ParameterContext b = createParameterContext("b", parameterContextLookup);
-        addParameter(b,"foo", "b.foo");
-        final ParameterDescriptor child = addParameter(b, "child", "b.child");
-
-        final ParameterContext c = createParameterContext("c", parameterContextLookup);
-        addParameter(c, "bar", "c.foo");
-        addParameter(c, "grandchild", "c.child");
-
-        a.setInheritedParameterContexts(Arrays.asList(b));
-        b.setInheritedParameterContexts(Arrays.asList(c));
-
-        assertTrue(a.hasEffectiveValueIfRemoved(foo));
-        assertTrue(a.hasEffectiveValueIfRemoved(bar));
-        assertFalse(a.hasEffectiveValueIfRemoved(baz));
     }
 
     @Test

@@ -24,7 +24,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 public class ReferenceOnlyParameterContext extends StandardParameterContext {
 
     public ReferenceOnlyParameterContext(final String id) {
-        super(id, String.format("Reference-Only Parameter Context [%s]", id), ParameterReferenceManager.EMPTY, null, null, null, null);
+        super(id, String.format("Reference-Only Parameter Context [%s]", id), ParameterReferenceManager.EMPTY, null, null, null);
     }
 
     /**

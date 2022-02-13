@@ -83,18 +83,11 @@ public interface ParameterContextDAO extends ParameterContextLookup {
     void verifyUpdate(ParameterContextDTO parameterContextDto, boolean verifyComponentStates);
 
     /**
-     * Returns the sensitive ParameterProvider if the provided DTO contains a valid reference.
+     * Returns the ParameterProvider if the provided DTO contains a valid reference.
      * @param parameterContextDTO The parameter context DTO
-     * @return The sensitive ParameterProvider, if relevant, or null if not specified
+     * @return The ParameterProvider, if relevant, or null if not specified
      */
-    ParameterProvider getSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
-
-    /**
-     * Returns the non-sensitive ParameterProvider if the provided DTO contains a valid reference.
-     * @param parameterContextDTO The parameter context DTO
-     * @return The non-sensitive ParameterProvider, if relevant, or null if not specified
-     */
-    ParameterProvider getNonSensitiveParameterProvider(final ParameterContextDTO parameterContextDTO);
+    ParameterProvider getParameterProvider(final ParameterContextDTO parameterContextDTO);
 
     /**
      * Determines whether this parameter context can be removed.

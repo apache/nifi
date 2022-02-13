@@ -34,7 +34,7 @@ import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.repository.NopLogRepository;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
@@ -140,14 +140,14 @@ public class StandardParameterProviderDAO extends ComponentDAO implements Parame
     }
 
     @Override
-    public void verifyCanApplyParameters(final String parameterProviderId, final Collection<ProvidedParameterNameGroup> parameterNames) {
+    public void verifyCanApplyParameters(final String parameterProviderId, final Collection<ParameterGroupConfiguration> parameterNames) {
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
         parameterProviderNode.verifyCanApplyParameters(parameterNames);
     }
 
     @Override
     public List<ParametersApplication> getFetchedParametersToApply(final String parameterProviderId,
-                                                                   final Collection<ProvidedParameterNameGroup> parameterNames) {
+                                                                   final Collection<ParameterGroupConfiguration> parameterNames) {
         final ParameterProviderNode parameterProviderNode = locateParameterProvider(parameterProviderId);
 
         return parameterProviderNode.getFetchedParametersToApply(parameterNames);

@@ -21,6 +21,7 @@ import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
@@ -30,7 +31,6 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
 import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
@@ -61,7 +62,6 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -76,7 +76,9 @@ import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
@@ -85,7 +87,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProvenanceEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
@@ -228,9 +229,9 @@ public class NiFiClientUtil {
     }
 
     public ParameterProviderApplyParametersRequestEntity applyParameters(final ParameterProviderEntity existingEntity,
-                                                                         final Collection<ProvidedParameterNameGroupEntity> parameterNameGroups) throws NiFiClientException, IOException {
+                                                                         final Collection<ParameterGroupConfigurationEntity> parameterNameGroups) throws NiFiClientException, IOException {
         final ParameterProviderParameterApplicationEntity parameterApplicationEntity = new ParameterProviderParameterApplicationEntity();
-        parameterApplicationEntity.setParameterNameGroups(parameterNameGroups);
+        parameterApplicationEntity.setParameterGroupConfigurations(parameterNameGroups);
         parameterApplicationEntity.setId(existingEntity.getId());
         parameterApplicationEntity.setRevision(existingEntity.getRevision());
 
@@ -370,12 +371,12 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
-        return createParameterContextEntity(name, description, parameters, Collections.emptyList(), null, null);
+        return createParameterContextEntity(name, description, parameters, Collections.emptyList(), null);
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
-                                                               final List<String> inheritedParameterContextIds, final String sensitiveParameterProviderId,
-                                                               final String nonSensitiveParameterProviderId) {
+                                                               final List<String> inheritedParameterContextIds,
+                                                               final ParameterProviderConfiguration parameterProviderConfiguration) {
         final ParameterContextDTO contextDto = new ParameterContextDTO();
         contextDto.setName(name);
         contextDto.setDescription(description);
@@ -393,8 +394,7 @@ public class NiFiClientUtil {
             }).collect(Collectors.toList()));
         }
         contextDto.setInheritedParameterContexts(inheritedRefs);
-        contextDto.setSensitiveParameterProviderRef(createParameterProviderReference(sensitiveParameterProviderId));
-        contextDto.setNonSensitiveParameterProviderRef(createParameterProviderReference(nonSensitiveParameterProviderId));
+        contextDto.setParameterProviderConfiguration(createParamProviderConfigEntity(parameterProviderConfiguration));
 
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setComponent(contextDto);
@@ -403,18 +403,18 @@ public class NiFiClientUtil {
         return entity;
     }
 
-    public ComponentReferenceEntity createParameterProviderReference(final String parameterProviderId) {
-        final ComponentReferenceEntity ref;
-        if (parameterProviderId == null) {
-            ref = null;
-        } else {
-            ref = new ComponentReferenceEntity();
-            ref.setId(parameterProviderId);
-            final ComponentReferenceDTO component = new ComponentReferenceDTO();
-            component.setId(parameterProviderId);
-            ref.setComponent(component);
+    public ParameterProviderConfigurationEntity createParamProviderConfigEntity(final ParameterProviderConfiguration parameterProviderConfiguration) {
+        if (parameterProviderConfiguration == null) {
+            return null;
         }
-        return ref;
+
+        final ParameterProviderConfigurationEntity entity = new ParameterProviderConfigurationEntity();
+        entity.setId(parameterProviderConfiguration.getParameterProviderId());
+        entity.setComponent(new ParameterProviderConfigurationDTO());
+        entity.getComponent().setParameterProviderId(parameterProviderConfiguration.getParameterProviderId());
+        entity.getComponent().setParameterGroupName(parameterProviderConfiguration.getParameterGroupName());
+        entity.getComponent().setSynchronized(parameterProviderConfiguration.isSynchronized());
+        return entity;
     }
 
     public RevisionDTO createNewRevision() {
@@ -458,16 +458,16 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContext(final String contextName, final Map<String, String> parameters) throws NiFiClientException, IOException {
-        return this.createParameterContext(contextName, parameters, Collections.emptyList(), null, null);
+        return this.createParameterContext(contextName, parameters, Collections.emptyList(), null);
     }
 
     public ParameterContextEntity createParameterContext(final String contextName, final Map<String, String> parameters, final List<String> inheritedParameterContextIds,
-                                                         final String sensitiveParameterProviderId, final String nonSensitiveParameterProviderId) throws NiFiClientException, IOException {
+                                                         final ParameterProviderConfiguration parameterProviderConfiguration) throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
         parameters.forEach((paramName, paramValue) -> parameterEntities.add(createParameterEntity(paramName, null, false, paramValue)));
 
         final ParameterContextEntity contextEntity = createParameterContextEntity(contextName, null, parameterEntities, inheritedParameterContextIds,
-                sensitiveParameterProviderId, nonSensitiveParameterProviderId);
+                parameterProviderConfiguration);
 
         final ParameterContextEntity createdContextEntity = nifiClient.getParamContextClient().createParamContext(contextEntity);
         return createdContextEntity;
@@ -482,20 +482,17 @@ public class NiFiClientUtil {
         final ParameterContextDTO component = existingEntity.getComponent();
         final List<String> inheritedParameterContextIds = component.getInheritedParameterContexts() == null ? null :
                 component.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
-        final String sensitiveParameterProviderId = component.getSensitiveParameterProviderRef() == null ? null : component.getSensitiveParameterProviderRef().getId();
-        final String nonSensitiveParameterProviderId = component.getNonSensitiveParameterProviderRef() == null ? null : component.getNonSensitiveParameterProviderRef().getId();
-        return this.updateParameterContext(existingEntity, parameters, inheritedParameterContextIds, sensitiveParameterProviderId, nonSensitiveParameterProviderId);
+        return this.updateParameterContext(existingEntity, parameters, inheritedParameterContextIds);
     }
 
     public ParameterContextUpdateRequestEntity updateParameterContext(final ParameterContextEntity existingEntity, final Map<String, String> parameters,
-                                                                      final List<String> inheritedParameterContextIds, final String sensitiveParameterProviderId,
-                                                                      final String nonSensitiveParameterProviderId) throws NiFiClientException, IOException {
+                                                                      final List<String> inheritedParameterContextIds) throws NiFiClientException, IOException {
         final Set<ParameterEntity> parameterEntities = new HashSet<>();
         parameters.forEach((paramName, paramValue) -> parameterEntities.add(createParameterEntity(paramName, null, false, paramValue)));
         existingEntity.getComponent().setParameters(parameterEntities);
 
         final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
-                parameterEntities, inheritedParameterContextIds, sensitiveParameterProviderId, nonSensitiveParameterProviderId);
+                parameterEntities, inheritedParameterContextIds, null);
         entityUpdate.setId(existingEntity.getId());
         entityUpdate.setRevision(existingEntity.getRevision());
         entityUpdate.getComponent().setId(existingEntity.getComponent().getId());

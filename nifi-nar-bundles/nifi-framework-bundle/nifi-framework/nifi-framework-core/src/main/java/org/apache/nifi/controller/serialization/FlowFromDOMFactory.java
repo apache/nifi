@@ -30,7 +30,6 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
-import org.apache.nifi.web.api.dto.ComponentReferenceDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -39,6 +38,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -48,9 +48,9 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
-import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
@@ -199,13 +199,9 @@ public class FlowFromDOMFactory {
         }
         dto.setInheritedParameterContexts(parameterContexts);
 
-        final ComponentReferenceEntity sensitiveParameterProviderReference = getParameterProviderReference(element, "sensitiveParameterProviderId");
-        if (sensitiveParameterProviderReference != null) {
-            dto.setSensitiveParameterProviderRef(sensitiveParameterProviderReference);
-        }
-        final ComponentReferenceEntity nonSensitiveParameterProviderReference = getParameterProviderReference(element, "nonSensitiveParameterProviderId");
-        if (nonSensitiveParameterProviderReference != null) {
-            dto.setNonSensitiveParameterProviderRef(nonSensitiveParameterProviderReference);
+        final ParameterProviderConfigurationEntity parameterProviderConfiguration = getParameterProviderConfiguration(element);
+        if (parameterProviderConfiguration != null) {
+            dto.setParameterProviderConfiguration(parameterProviderConfiguration);
         }
 
         dto.setParameters(parameterDtos);
@@ -213,16 +209,20 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    private static ComponentReferenceEntity getParameterProviderReference(final Element parameterContextElement, final String idElementName) {
-        final String referenceId = getString(parameterContextElement, idElementName);
-        if (referenceId != null) {
-            final ComponentReferenceEntity reference = new ComponentReferenceEntity();
-            reference.setId(referenceId);
-            final ComponentReferenceDTO referenceDto = new ComponentReferenceDTO();
-            referenceDto.setId(referenceId);
-            reference.setComponent(referenceDto);
+    private static ParameterProviderConfigurationEntity getParameterProviderConfiguration(final Element parameterContextElement) {
+        final String parameterProviderId = getString(parameterContextElement, "parameterProviderId");
+        if (parameterProviderId != null) {
+            final ParameterProviderConfigurationEntity entity = new ParameterProviderConfigurationEntity();
+            entity.setId(parameterProviderId);
+            final ParameterProviderConfigurationDTO dto = new ParameterProviderConfigurationDTO();
+            final String parameterGroupName = getString(parameterContextElement, "parameterGroupName");
+            final Boolean isSynchronized = getBoolean(parameterContextElement, "isSynchronized");
+            dto.setParameterProviderId(parameterProviderId);
+            dto.setParameterGroupName(parameterGroupName);
+            dto.setSynchronized(isSynchronized);
+            entity.setComponent(dto);
 
-            return reference;
+            return entity;
         }
         return null;
     }

@@ -21,7 +21,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ParametersApplication;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 
@@ -111,7 +111,7 @@ public interface ParameterProviderDAO extends ParameterProviderLookup {
      * @param parameterProviderId parameter provider id
      * @param parameterNames A set of fetched parameter names to include.  Any parameters not found in this set will not be included in the update verification.
      */
-    void verifyCanApplyParameters(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
+    void verifyCanApplyParameters(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterNames);
 
     /**
      * Returns a ParametersApplication for each referenced ParameterContext, encapsulating
@@ -121,7 +121,7 @@ public interface ParameterProviderDAO extends ParameterProviderLookup {
      * @param parameterNames A set of fetched parameter names to include.  Any parameters not found in this set will not be included in the update.
      * @return list of ParametersApplication objects
      */
-    List<ParametersApplication> getFetchedParametersToApply(String parameterProviderId, Collection<ProvidedParameterNameGroup> parameterNames);
+    List<ParametersApplication> getFetchedParametersToApply(String parameterProviderId, Collection<ParameterGroupConfiguration> parameterNames);
 
     /**
      * Determines whether this parameter provider can be removed.

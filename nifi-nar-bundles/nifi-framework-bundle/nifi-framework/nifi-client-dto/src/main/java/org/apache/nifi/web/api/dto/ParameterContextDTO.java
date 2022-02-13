@@ -17,9 +17,9 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
 import javax.xml.bind.annotation.XmlType;
@@ -34,8 +34,7 @@ public class ParameterContextDTO {
     private Set<ParameterEntity> parameters;
     private Set<ProcessGroupEntity> boundProcessGroups;
     private List<ParameterContextReferenceEntity> inheritedParameterContexts;
-    private ComponentReferenceEntity sensitiveParameterProviderRef;
-    private ComponentReferenceEntity nonSensitiveParameterProviderRef;
+    private ParameterProviderConfigurationEntity parameterProviderConfiguration;
 
     public void setId(String id) {
         this.identifier = id;
@@ -91,22 +90,13 @@ public class ParameterContextDTO {
         return boundProcessGroups;
     }
 
-    @ApiModelProperty("An optional Parameter Provider for sensitive Parameters")
-    public ComponentReferenceEntity getSensitiveParameterProviderRef() {
-        return sensitiveParameterProviderRef;
+    @ApiModelProperty(value = "Optional configuration for a Parameter Provider")
+    public ParameterProviderConfigurationEntity getParameterProviderConfiguration() {
+        return parameterProviderConfiguration;
     }
 
-    public void setSensitiveParameterProviderRef(final ComponentReferenceEntity sensitiveParameterProviderRef) {
-        this.sensitiveParameterProviderRef = sensitiveParameterProviderRef;
-    }
-
-    @ApiModelProperty("An optional Parameter Provider for non-sensitive Parameters")
-    public ComponentReferenceEntity getNonSensitiveParameterProviderRef() {
-        return nonSensitiveParameterProviderRef;
-    }
-
-    public void setNonSensitiveParameterProviderRef(final ComponentReferenceEntity nonSensitiveParameterProviderRef) {
-        this.nonSensitiveParameterProviderRef = nonSensitiveParameterProviderRef;
+    public void setParameterProviderConfiguration(final ParameterProviderConfigurationEntity parameterProviderConfiguration) {
+        this.parameterProviderConfiguration = parameterProviderConfiguration;
     }
 
     @Override

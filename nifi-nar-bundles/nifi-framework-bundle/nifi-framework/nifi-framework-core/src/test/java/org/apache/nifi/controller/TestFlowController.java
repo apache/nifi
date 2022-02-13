@@ -487,7 +487,7 @@ public class TestFlowController {
             parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
 
             // No problem since there are no inherited parameter contexts
-            controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.emptyList(), null, null);
+            controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.emptyList(), null);
 
             final ParameterContext existingParameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
             final ParameterContextReferenceDTO dto = new ParameterContextReferenceDTO();
@@ -496,11 +496,11 @@ public class TestFlowController {
 
             // This is not wrapped in FlowManager#withParameterContextResolution(Runnable), so it will throw an exception
             assertThrows(IllegalStateException.class, () ->
-                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null, null));
+                    controller.getFlowManager().createParameterContext("id", "name", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
             // Instead, this is how it should be called
             controller.getFlowManager().withParameterContextResolution(() -> controller
-                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null, null));
+                    .getFlowManager().createParameterContext("id2", "name2", parameters, Collections.singletonList(existingParameterContext.getIdentifier()), null));
 
         } finally {
             purgeFlow();

@@ -67,6 +67,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
@@ -94,7 +96,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -122,9 +123,7 @@ public class NiFiRegistryFlowMapperTest {
     @Mock
     private ParameterProviderNode parameterProviderNode;
     @Mock
-    private ParameterProvider sensitiveParameterProvider;
-    @Mock
-    private ParameterProvider nonSensitiveParameterProvider;
+    private ParameterProvider parameterProvider;
 
     private NiFiRegistryFlowMapper flowMapper = new NiFiRegistryFlowMapper(extensionManager);
 
@@ -141,8 +140,7 @@ public class NiFiRegistryFlowMapperTest {
         final BundleCoordinate bundleCoordinates = new BundleCoordinate("group", "artifact", "version");
         when(parameterProviderNode.getBundleCoordinate()).thenReturn(bundleCoordinates);
 
-        when(sensitiveParameterProvider.getIdentifier()).thenReturn(PARAMETER_PROVIDER_ID);
-        when(nonSensitiveParameterProvider.getIdentifier()).thenReturn(PARAMETER_PROVIDER_ID);
+        when(parameterProvider.getIdentifier()).thenReturn(PARAMETER_PROVIDER_ID);
     }
 
     /**
@@ -301,9 +299,11 @@ public class NiFiRegistryFlowMapperTest {
             final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
             when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.singletonList("other-context"));
-            when(parameterContext.getSensitiveParameterProvider()).thenReturn(Optional.of(sensitiveParameterProvider));
-            when(parameterContext.getNonSensitiveParameterProvider()).thenReturn(Optional.of(nonSensitiveParameterProvider));
+            when(parameterContext.getParameterProvider()).thenReturn(parameterProvider);
             when(parameterContext.getParameterProviderLookup()).thenReturn(parameterProviderLookup);
+            final ParameterProviderConfiguration parameterProviderConfiguration = new StandardParameterProviderConfiguration(PARAMETER_PROVIDER_ID,
+                    "groupName", true);
+            when(parameterContext.getParameterProviderConfiguration()).thenReturn(parameterProviderConfiguration);
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);

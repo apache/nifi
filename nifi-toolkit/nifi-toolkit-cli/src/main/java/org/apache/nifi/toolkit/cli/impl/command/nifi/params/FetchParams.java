@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi.params;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.cli.MissingOptionException;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
@@ -25,13 +27,16 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamProviderClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.ParamProviderResult;
+import org.apache.nifi.toolkit.cli.impl.util.JacksonUtils;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Properties;
+import java.util.Set;
 
 public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
 
@@ -41,7 +46,12 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
 
     @Override
     public String getDescription() {
-        return "Fetches the parameters of a parameter provider.  If indicated, also applies the parameters to any referencing parameter contexts.";
+        return "Fetches the parameters of a parameter provider.  If indicated, also applies the parameters to any referencing parameter contexts. " +
+                "When applying parameters, the --inputSource (-i) option specifies the location of a JSON file containing a parameterProviderParameterApplication " +
+                "entity, which allows detailed configuration of the applied groups and parameters.  For a simpler approach, this argument may be omitted, and " +
+                "all fetched groups will be mapped to parameter contexts of the same names.  To select sensitive vs. non-sensitive parameters, the " +
+                "--sensitiveParamPattern (-spp) can be used.  If this is not supplied, all fetched parameters will default to sensitive.  Note that the " +
+                "--inputSource argument overrides any parameter sensitivity specified in the --sensitiveParamPattern argument.";
     }
 
     @Override
@@ -49,6 +59,8 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_PROVIDER_ID.createOption());
         addOption(CommandOption.APPLY_PARAMETERS.createOption());
+        addOption(CommandOption.INPUT_SOURCE.createOption());
+        addOption(CommandOption.SENSITIVE_PARAM_PATTERN.createOption());
     }
 
     @Override
@@ -56,8 +68,18 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
             throws NiFiClientException, IOException, MissingOptionException, CommandException {
 
         final String paramProviderId = getRequiredArg(properties, CommandOption.PARAM_PROVIDER_ID);
+        final String sensitiveParamPattern = getArg(properties, CommandOption.SENSITIVE_PARAM_PATTERN);
         final boolean apply = hasArg(properties, CommandOption.APPLY_PARAMETERS);
 
+        // read the content of the input source into memory
+        final String inputSource = getArg(properties, CommandOption.INPUT_SOURCE);
+        ParameterProviderParameterApplicationEntity parameterApplicationEntity = null;
+        if (inputSource != null) {
+            final String parameterApplicationJson = getInputSourceContent(inputSource);
+            // unmarshall the content into the DTO object
+            final ObjectMapper objectMapper = JacksonUtils.getObjectMapper();
+            parameterApplicationEntity = objectMapper.readValue(parameterApplicationJson, ParameterProviderParameterApplicationEntity.class);
+        }
         final ParamProviderClient paramProviderClient = client.getParamProviderClient();
         final ParameterProviderEntity existingParameterProvider = paramProviderClient.getParamProvider(paramProviderId);
 
@@ -67,17 +89,35 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
         final ParameterProviderEntity fetchedParameterProvider = paramProviderClient.fetchParameters(fetchEntity);
 
         if (apply) {
-            applyParametersAndWait(paramProviderClient, fetchedParameterProvider);
+            applyParametersAndWait(paramProviderClient, fetchedParameterProvider, parameterApplicationEntity, sensitiveParamPattern);
         }
 
         return new ParamProviderResult(getResultType(properties), fetchedParameterProvider);
     }
 
-    private void applyParametersAndWait(final ParamProviderClient paramProviderClient, final ParameterProviderEntity fetchedParameterProvider) throws NiFiClientException, IOException {
-        final ParameterProviderParameterApplicationEntity applicationEntity = new ParameterProviderParameterApplicationEntity();
-        applicationEntity.setRevision(fetchedParameterProvider.getRevision());
-        applicationEntity.setParameterNameGroups(fetchedParameterProvider.getComponent().getFetchedParameterNameGroups());
-        applicationEntity.setId(fetchedParameterProvider.getId());
+    private void applyParametersAndWait(final ParamProviderClient paramProviderClient, final ParameterProviderEntity fetchedParameterProvider,
+                                        final ParameterProviderParameterApplicationEntity inputApplicationEntity, final String sensitiveParamPattern)
+            throws NiFiClientException, IOException {
+        ParameterProviderParameterApplicationEntity applicationEntity = inputApplicationEntity;
+        if (applicationEntity == null) {
+            applicationEntity = new ParameterProviderParameterApplicationEntity();
+            applicationEntity.setRevision(fetchedParameterProvider.getRevision());
+            applicationEntity.setParameterGroupConfigurations(fetchedParameterProvider.getComponent().getParameterGroupConfigurations());
+            applicationEntity.getParameterGroupConfigurations().forEach(groupConfiguration -> {
+                if (groupConfiguration.getParameterSensitivities() == null) {
+                    groupConfiguration.setParameterSensitivities(new HashMap<>());
+                }
+                final Set<String> paramNames = groupConfiguration.getParameterSensitivities().keySet();
+                paramNames.forEach(paramName -> {
+                    ParameterSensitivity sensitivity = ParameterSensitivity.SENSITIVE;
+                    if (sensitiveParamPattern != null) {
+                        sensitivity = paramName.matches(sensitiveParamPattern) ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
+                    }
+                    groupConfiguration.getParameterSensitivities().put(paramName, sensitivity);
+                });
+            });
+            applicationEntity.setId(fetchedParameterProvider.getId());
+        }
         final ParameterProviderApplyParametersRequestEntity request = paramProviderClient.applyParameters(applicationEntity);
 
         while (true) {

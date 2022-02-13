@@ -40,6 +40,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
@@ -164,8 +165,14 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             for(final ParameterContext childContext : parameterContext.getInheritedParameterContexts()) {
                 addStringElement(parameterContextElement, "inheritedParameterContextId", childContext.getIdentifier());
             }
-            parameterContext.getSensitiveParameterProvider().ifPresent(provider -> addStringElement(parameterContextElement, "sensitiveParameterProviderId", provider.getIdentifier()));
-            parameterContext.getNonSensitiveParameterProvider().ifPresent(provider -> addStringElement(parameterContextElement, "nonSensitiveParameterProviderId", provider.getIdentifier()));
+            if (parameterContext.getParameterProviderConfiguration() != null) {
+                final ParameterProviderConfiguration parameterProviderConfiguration = parameterContext.getParameterProviderConfiguration();
+                addStringElement(parameterContextElement, "parameterProviderId", parameterProviderConfiguration.getParameterProviderId());
+                if (parameterProviderConfiguration.getParameterGroupName() != null) {
+                    addStringElement(parameterContextElement, "parameterGroupName", parameterProviderConfiguration.getParameterGroupName());
+                }
+                addStringElement(parameterContextElement, "isSynchronized", String.valueOf(parameterProviderConfiguration.isSynchronized()));
+            }
 
             for (final Parameter parameter : parameterContext.getParameters().values()) {
                 addParameter(parameterContextElement, parameter, encryptor);

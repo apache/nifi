@@ -117,8 +117,6 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
         parameterContextDTO.setParameters(Collections.singleton(parameterEntity));
 
         parameterContextDTO.setInheritedParameterContexts(existingParameterContextDTO.getInheritedParameterContexts());
-        parameterContextDTO.setSensitiveParameterProviderRef(existingParameterContextEntity.getComponent().getSensitiveParameterProviderRef());
-        parameterContextDTO.setNonSensitiveParameterProviderRef(existingParameterContextEntity.getComponent().getNonSensitiveParameterProviderRef());
 
         final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
         updatedParameterContextEntity.setId(paramContextId);

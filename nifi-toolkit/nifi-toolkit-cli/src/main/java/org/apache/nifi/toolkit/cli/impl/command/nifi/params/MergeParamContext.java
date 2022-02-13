@@ -106,18 +106,6 @@ public class MergeParamContext extends AbstractUpdateParamContextCommand<VoidRes
         updatedContextDto.setId(existingContext.getId());
         updatedContextDto.setParameters(createdParameters);
 
-        // Start with the existing providers
-        updatedContextDto.setSensitiveParameterProviderRef(existingContext.getSensitiveParameterProviderRef());
-        updatedContextDto.setNonSensitiveParameterProviderRef(existingContext.getNonSensitiveParameterProviderRef());
-
-        // Add the incoming providers, if specified, otherwise stick with the existing ones
-        if (incomingContext.getSensitiveParameterProviderRef() != null) {
-            updatedContextDto.setSensitiveParameterProviderRef(incomingContext.getSensitiveParameterProviderRef());
-        }
-        if (incomingContext.getNonSensitiveParameterProviderRef() != null) {
-            updatedContextDto.setNonSensitiveParameterProviderRef(incomingContext.getNonSensitiveParameterProviderRef());
-        }
-
         final ParameterContextEntity updatedContextEntity = new ParameterContextEntity();
         updatedContextEntity.setId(existingContext.getId());
         updatedContextEntity.setComponent(updatedContextDto);

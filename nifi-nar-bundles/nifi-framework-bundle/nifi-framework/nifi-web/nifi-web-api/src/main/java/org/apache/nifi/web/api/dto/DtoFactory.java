@@ -80,7 +80,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
-import org.apache.nifi.controller.ParameterProviderUsageReference;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -135,9 +134,10 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ParameterSensitivity;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
@@ -234,6 +234,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
@@ -241,7 +243,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusSnapshotEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -1458,8 +1459,7 @@ public final class DtoFactory {
     }
 
     public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
-                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup,
-                                                         final ParameterProviderLookup parameterProviderLookup) {
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1488,31 +1488,32 @@ public final class DtoFactory {
                     .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
                     .collect(Collectors.toList()));
         }
-        dto.setSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getSensitiveParameterProvider().orElse(null),
-                parameterProviderLookup));
-        dto.setNonSensitiveParameterProviderRef(createParameterProviderReferenceEntity(parameterContext.getNonSensitiveParameterProvider().orElse(null),
-                parameterProviderLookup));
+        dto.setParameterProviderConfiguration(createParameterProviderConfigurationEntity(parameterContext));
         dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
     }
 
-    private ComponentReferenceEntity createParameterProviderReferenceEntity(final ParameterProvider parameterProvider,
-                                                                            final ParameterProviderLookup parameterProviderLookup) {
+    private ParameterProviderConfigurationEntity createParameterProviderConfigurationEntity(final ParameterContext parameterContext) {
+        final ParameterProvider parameterProvider = parameterContext.getParameterProvider();
         if (parameterProvider == null) {
             return null;
         }
 
-        final ParameterProviderNode parameterProviderNode = parameterProviderLookup.getParameterProvider(parameterProvider.getIdentifier());
+        final String parameterProviderId = parameterProvider.getIdentifier();
+        final ParameterProviderNode parameterProviderNode = parameterContext.getParameterProviderLookup().getParameterProvider(parameterProviderId);
 
-        final ComponentReferenceEntity ref = new ComponentReferenceEntity();
-        ref.setId(parameterProvider.getIdentifier());
-        final ComponentReferenceDTO component = new ComponentReferenceDTO();
-        component.setId(parameterProvider.getIdentifier());
-        component.setName(parameterProviderNode.getName());
-        ref.setComponent(component);
-        return ref;
+        final ParameterProviderConfigurationEntity config = new ParameterProviderConfigurationEntity();
+        config.setId(parameterProviderId);
+        final ParameterProviderConfigurationDTO dto = new ParameterProviderConfigurationDTO();
+        config.setComponent(dto);
+
+        dto.setParameterProviderId(parameterProviderId);
+        dto.setParameterProviderName(parameterProviderNode.getName());
+        dto.setParameterGroupName(parameterContext.getParameterProviderConfiguration().getParameterGroupName());
+        dto.setSynchronized(parameterContext.getParameterProviderConfiguration().isSynchronized());
+        return config;
     }
 
     public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
@@ -1657,8 +1658,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ParameterProviderDTO createParameterProviderDto(final ParameterProviderNode parameterProviderNode, final RevisionManager revisionManager,
-                                                           final ParameterContextLookup parameterContextLookup) {
+    public ParameterProviderDTO createParameterProviderDto(final ParameterProviderNode parameterProviderNode) {
         final BundleCoordinate bundleCoordinate = parameterProviderNode.getBundleCoordinate();
         final List<Bundle> compatibleBundles = extensionManager.getBundles(parameterProviderNode.getCanonicalClassName()).stream().filter(bundle -> {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
@@ -1698,10 +1698,10 @@ public final class DtoFactory {
         }
         orderedProperties.putAll(sortedProperties);
 
-        final Collection<ProvidedParameterNameGroup> fetchedParameterNameGroups = parameterProviderNode.getFetchedParameterNames();
-        dto.setFetchedParameterNameGroups(new LinkedHashSet<>(fetchedParameterNameGroups.stream()
+        final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = parameterProviderNode.getParameterGroupConfigurations();
+        dto.setParameterGroupConfigurations(new LinkedHashSet<>(parameterGroupConfigurations.stream()
                 .sorted()
-                .map(this::getProvidedParameterNamesEntity)
+                .map(this::getParameterGroupConfigurationEntity)
                 .collect(Collectors.toList())));
 
         // build the descriptor and property dtos
@@ -1729,8 +1729,7 @@ public final class DtoFactory {
         dto.setValidationStatus(validationStatus.name());
 
         final Set<ParameterProviderReferencingComponentEntity> referencingParameterContexts = new HashSet<>();
-        for (final ParameterProviderUsageReference reference : parameterProviderNode.getReferences()) {
-            final ParameterContext parameterContext = reference.getParameterContext();
+        for (final ParameterContext parameterContext : parameterProviderNode.getReferences()) {
             final ParameterProviderReferencingComponentDTO referenceDto = new ParameterProviderReferencingComponentDTO();
             referenceDto.setName(parameterContext.getName());
             referenceDto.setId(parameterContext.getIdentifier());
@@ -1758,13 +1757,18 @@ public final class DtoFactory {
         return dto;
     }
 
-    private ProvidedParameterNameGroupEntity getProvidedParameterNamesEntity(final ProvidedParameterNameGroup providedParameterNameGroup) {
-        final ProvidedParameterNameGroupEntity entity = new ProvidedParameterNameGroupEntity();
-        entity.setGroupName(providedParameterNameGroup.getGroupKey().getGroupName());
-        entity.setSensitivity(providedParameterNameGroup.getGroupKey().getSensitivity().name());
-        final List<String> parameterNames = new ArrayList<>(providedParameterNameGroup.getItems());
-        Collections.sort(parameterNames);
-        entity.setParameterNames(new LinkedHashSet<>(parameterNames));
+    private ParameterGroupConfigurationEntity getParameterGroupConfigurationEntity(final ParameterGroupConfiguration parameterGroupConfiguration) {
+        final ParameterGroupConfigurationEntity entity = new ParameterGroupConfigurationEntity();
+        entity.setGroupName(parameterGroupConfiguration.getGroupName());
+        entity.setParameterContextName(parameterGroupConfiguration.getParameterContextName());
+
+        final Map<String, ParameterSensitivity> parameterSensitivities = new LinkedHashMap<>();
+        parameterGroupConfiguration.getParameterSensitivities().keySet().stream()
+                .sorted()
+                .forEach(parameterName -> parameterSensitivities.put(parameterName, parameterGroupConfiguration.getParameterSensitivities().get(parameterName)));
+
+        entity.setParameterSensitivities(parameterSensitivities);
+        entity.setSynchronized(parameterGroupConfiguration.isSynchronized());
         return entity;
     }
 

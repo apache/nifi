@@ -17,19 +17,21 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.parameter.ParameterSensitivity;
 
 import javax.xml.bind.annotation.XmlType;
-import java.util.Set;
+import java.util.Map;
 
 /**
- * Entity encapsulating parameter names for a given provided parameter group.
+ * Entity encapsulating the configuration for a single parameter group.
  */
-@XmlType(name = "providedParameterNameGroup")
-public class ProvidedParameterNameGroupEntity extends Entity implements Comparable<ProvidedParameterNameGroupEntity> {
+@XmlType(name = "parameterGroupConfiguration")
+public class ParameterGroupConfigurationEntity extends Entity implements Comparable<ParameterGroupConfigurationEntity> {
 
     private String groupName;
-    private String sensitivity;
-    private Set<String> parameterNames;
+    private String parameterContextName;
+    private Boolean isSynchronized;
+    private Map<String, ParameterSensitivity> parameterSensitivities;
 
     @ApiModelProperty(
             value = "The name of the external parameter group to which the provided parameter names apply."
@@ -43,14 +45,14 @@ public class ProvidedParameterNameGroupEntity extends Entity implements Comparab
     }
 
     @ApiModelProperty(
-            value = "The sensitivity (SENSITIVE or NON_SENSITIVE) of the parameter group."
+            value = "The name of the ParameterContext that receives the parameters in this group"
     )
-    public String getSensitivity() {
-        return sensitivity;
+    public String getParameterContextName() {
+        return parameterContextName;
     }
 
-    public void setSensitivity(final String sensitivity) {
-        this.sensitivity = sensitivity;
+    public void setParameterContextName(final String parameterContextName) {
+        this.parameterContextName = parameterContextName;
     }
 
     /**
@@ -59,16 +61,27 @@ public class ProvidedParameterNameGroupEntity extends Entity implements Comparab
     @ApiModelProperty(
             value = "All fetched parameter names that should be applied."
     )
-    public Set<String> getParameterNames() {
-        return parameterNames;
+    public Map<String, ParameterSensitivity> getParameterSensitivities() {
+        return parameterSensitivities;
     }
 
-    public void setParameterNames(Set<String> parameterNames) {
-        this.parameterNames = parameterNames;
+    public void setParameterSensitivities(Map<String, ParameterSensitivity> parameterSensitivities) {
+        this.parameterSensitivities = parameterSensitivities;
+    }
+
+    @ApiModelProperty(
+            value = "True if this group should be synchronized to a ParameterContext, including creating one if it does not exist."
+    )
+    public Boolean isSynchronized() {
+        return isSynchronized;
+    }
+
+    public void setSynchronized(Boolean aSynchronized) {
+        isSynchronized = aSynchronized;
     }
 
     @Override
-    public int compareTo(final ProvidedParameterNameGroupEntity other) {
+    public int compareTo(final ParameterGroupConfigurationEntity other) {
         if (other == null) {
             return -1;
         }

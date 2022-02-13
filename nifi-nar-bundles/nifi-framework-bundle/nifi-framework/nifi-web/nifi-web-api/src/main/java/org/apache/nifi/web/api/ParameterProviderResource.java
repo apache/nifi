@@ -31,8 +31,10 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterSensitivity;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.NiFiServiceFacade;
@@ -55,6 +57,7 @@ import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersUpdateStepDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -66,18 +69,20 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterApplicationEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderParameterFetchEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.nifi.web.util.ComponentLifecycle;
+import org.apache.nifi.web.util.LifecycleManagementException;
 import org.apache.nifi.web.util.ParameterUpdateManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +104,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -736,14 +742,15 @@ public class ParameterProviderResource extends AbstractParameterResource {
         final Collection<ParameterProviderReferencingComponentEntity> references = Optional.ofNullable(parameterProviderEntity.getComponent().getReferencingParameterContexts())
                 .orElse(Collections.emptySet());
 
-        final Set<AffectedComponentEntity> affectedComponents = new HashSet<>();
+        // The full list of referencing components is used for authorization, since the actual affected components is not known until after the fetch
+        final Set<AffectedComponentEntity> referencingComponents = new HashSet<>();
         final Collection<ParameterContextDTO> referencingParameterContextDtos = new HashSet<>();
         references.forEach(referencingEntity -> {
             final String parameterContextId = referencingEntity.getComponent().getId();
             final ParameterContextEntity parameterContextEntity = serviceFacade.getParameterContext(parameterContextId, true, user);
             parameterContextEntity.getComponent().getParameters().stream()
                     .filter(dto -> Boolean.TRUE.equals(dto.getParameter().getProvided()))
-                    .forEach(p -> affectedComponents.addAll(p.getParameter().getReferencingComponents()));
+                    .forEach(p -> referencingComponents.addAll(p.getParameter().getReferencingComponents()));
             referencingParameterContextDtos.add(parameterContextEntity.getComponent());
         });
 
@@ -767,8 +774,27 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 (revision, parameterProviderFetchEntity) -> {
                     // fetch the parameters
                     final ParameterProviderEntity entity = serviceFacade.fetchParameters(parameterProviderFetchEntity.getId());
+
+                    final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = new ArrayList<>();
+                    // If parameter sensitivities have not yet been specified, assume all are sensitive
+                    getParameterGroupConfigurations(entity.getComponent().getParameterGroupConfigurations()).forEach(group -> {
+                        final Set<String> unspecifiedParameters = group.getParameterSensitivities().entrySet().stream()
+                                .filter(entry -> entry.getValue() == null)
+                                .map(Map.Entry::getKey)
+                                .collect(Collectors.toSet());
+                        final Map<String, ParameterSensitivity> updatedSensitivities = new HashMap<>(group.getParameterSensitivities());
+                        unspecifiedParameters.forEach(parameterName -> {
+                            updatedSensitivities.put(parameterName, ParameterSensitivity.SENSITIVE);
+                        });
+                        parameterGroupConfigurations.add(new ParameterGroupConfiguration(group.getGroupName(), group.getParameterContextName(),
+                                updatedSensitivities, group.isSynchronized()));
+                    });
+                    final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
+
+                    final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
+
                     if (!affectedComponents.isEmpty()) {
-                        entity.getComponent().setReferencingComponents(affectedComponents);
+                        entity.getComponent().setAffectedComponents(affectedComponents);
                     }
                     populateRemainingParameterProviderEntityContent(entity);
 
@@ -857,13 +883,22 @@ public class ParameterProviderResource extends AbstractParameterResource {
         // 9. Re-Enable all affected Controller Services
         // 10. Re-Start all Processors
 
-        // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
-        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, getProvidedParameterNames(requestEntity));
+        final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = getParameterGroupConfigurations(requestEntity.getParameterGroupConfigurations());
+        parameterGroupConfigurations.forEach(parameterGroupConfiguration -> {
+            final ParameterContextEntity newParameterContext = createNewParameterContextEntity(parameterProviderId, parameterGroupConfiguration, user);
+            if (newParameterContext != null) {
+                try {
+                    performParameterContextCreate(user, getAbsolutePath(), replicateRequest, newParameterContext);
+                } catch (final LifecycleManagementException e) {
+                    throw new RuntimeException("Failed to create Parameter Context " + parameterGroupConfiguration.getGroupName(), e);
+                }
+            }
+        });
 
-        final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
-                .map(ParameterContextEntity::getComponent)
-                .collect(Collectors.toList());
-        final Set<AffectedComponentEntity> affectedComponents = serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
+        // Get a list of parameter context entities representing changes needed in order to apply the fetched parameters
+        final List<ParameterContextEntity> parameterContextUpdates = serviceFacade.getParameterContextUpdatesForAppliedParameters(parameterProviderId, parameterGroupConfigurations);
+
+        final Set<AffectedComponentEntity> affectedComponents = getAffectedComponentEntities(parameterContextUpdates);
         logger.debug("Received Apply Request for Parameter Provider: {}; the following {} components will be affected: {}", requestEntity, affectedComponents.size(), affectedComponents);
 
         final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper = new InitiateParameterProviderApplyParametersRequestWrapper(parameterProviderId,
@@ -885,10 +920,17 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 },
                 () -> {
                     // Verify Request
-                    serviceFacade.verifyCanApplyParameters(parameterProviderId, getProvidedParameterNames(requestEntity));
+                    serviceFacade.verifyCanApplyParameters(parameterProviderId, parameterGroupConfigurations);
                 },
                 this::submitApplyRequest
         );
+    }
+
+    private Set<AffectedComponentEntity> getAffectedComponentEntities(List<ParameterContextEntity> parameterContextUpdates) {
+        final Collection<ParameterContextDTO> updatedParameterContextDTOs = parameterContextUpdates.stream()
+                .map(ParameterContextEntity::getComponent)
+                .collect(Collectors.toList());
+        return serviceFacade.getComponentsAffectedByParameterContextUpdate(updatedParameterContextDTOs);
     }
 
     @GET
@@ -1331,11 +1373,39 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return applyParametersRequestEntity;
     }
 
+    private ParameterContextEntity createNewParameterContextEntity(final String parameterProviderId, final ParameterGroupConfiguration parameterGroupConfiguration,
+                                                                   final NiFiUser user) {
+        final ParameterContext parameterContext = serviceFacade.getParameterContextByName(parameterGroupConfiguration.getParameterContextName(), user);
+        if (parameterContext == null && parameterGroupConfiguration.isSynchronized() != null && parameterGroupConfiguration.isSynchronized()) {
+            final ParameterContextEntity parameterContextEntity = new ParameterContextEntity();
+            final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
+            parameterContextDTO.setName(parameterGroupConfiguration.getGroupName());
+
+            final ParameterProviderConfigurationEntity parameterProviderConfiguration = new ParameterProviderConfigurationEntity();
+            final ParameterProviderConfigurationDTO parameterProviderConfigurationDTO = new ParameterProviderConfigurationDTO();
+            parameterProviderConfigurationDTO.setParameterProviderId(parameterProviderId);
+            parameterProviderConfigurationDTO.setParameterGroupName(parameterGroupConfiguration.getGroupName());
+            parameterProviderConfigurationDTO.setSynchronized(true);
+
+            parameterProviderConfiguration.setComponent(parameterProviderConfigurationDTO);
+            parameterContextDTO.setParameterProviderConfiguration(parameterProviderConfiguration);
+
+            parameterContextEntity.setComponent(parameterContextDTO);
+
+            final RevisionDTO initialRevision = new RevisionDTO();
+            initialRevision.setVersion(0L);
+            parameterContextEntity.setRevision(initialRevision);
+            return parameterContextEntity;
+        }
+        return null;
+    }
+
     private Response submitApplyRequest(final Revision requestRevision, final InitiateParameterProviderApplyParametersRequestWrapper requestWrapper) {
         // Create an asynchronous request that will occur in the background, because this request may
         // result in stopping components, which can take an indeterminate amount of time.
         final String requestId = UUID.randomUUID().toString();
         final String parameterProviderId = requestWrapper.getParameterProviderId();
+
         final AsynchronousWebRequest<List<ParameterContextEntity>, List<ParameterContextEntity>> request = new StandardAsynchronousWebRequest<>(
                 requestId, requestWrapper.getParameterContextEntities(), parameterProviderId, requestWrapper.getUser(), getUpdateSteps());
 
@@ -1365,6 +1435,62 @@ public class ParameterProviderResource extends AbstractParameterResource {
         return generateOkResponse(applicationRequestEntity).build();
     }
 
+    private ParameterContextEntity performParameterContextCreate(final NiFiUser user, final URI exampleUri, final boolean replicateRequest,
+                                                                 final ParameterContextEntity parameterContext) throws LifecycleManagementException {
+
+        if (replicateRequest) {
+            final URI updateUri;
+            try {
+                updateUri = new URI(exampleUri.getScheme(), exampleUri.getUserInfo(), exampleUri.getHost(),
+                        exampleUri.getPort(), "/nifi-api/parameter-contexts", null, exampleUri.getFragment());
+            } catch (URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+
+            final Map<String, String> headers = new HashMap<>();
+            headers.put("content-type", MediaType.APPLICATION_JSON);
+
+            final NodeResponse clusterResponse = createParameterContext(parameterContext, updateUri, headers, user);
+
+            final int updateFlowStatus = clusterResponse.getStatus();
+            if (updateFlowStatus != Response.Status.OK.getStatusCode()) {
+                final String explanation = ParameterUpdateManager.getResponseEntity(clusterResponse, String.class);
+                logger.error("Failed to update flow across cluster when replicating POST request to {} for user {}. Received {} response with explanation: {}",
+                        updateUri, user, updateFlowStatus, explanation);
+                throw new LifecycleManagementException("Failed to update Flow on all nodes in cluster due to " + explanation);
+            }
+
+            return serviceFacade.getParameterContext(parameterContext.getId(), false, user);
+        } else {
+            serviceFacade.verifyCreateParameterContext(parameterContext.getComponent());
+            final String contextId = generateUuid();
+            parameterContext.getComponent().setId(contextId);
+
+            final Revision revision = getRevision(parameterContext.getRevision(), contextId);
+            return serviceFacade.createParameterContext(revision, parameterContext.getComponent());
+        }
+    }
+
+    public NodeResponse createParameterContext(final ParameterContextEntity parameterContext, final URI updateUri,
+                                               final Map<String, String> headers, final NiFiUser user) throws LifecycleManagementException {
+        final NodeResponse clusterResponse;
+        try {
+            logger.debug("Replicating POST request to {} for user {}", updateUri, user);
+
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.POST, updateUri, parameterContext, headers).awaitMergedResponse();
+            } else {
+                clusterResponse = getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), user, HttpMethod.POST, updateUri, parameterContext, headers).awaitMergedResponse();
+            }
+        } catch (final InterruptedException ie) {
+            logger.warn("Interrupted while replicating POST request to {} for user {}", updateUri, user);
+            Thread.currentThread().interrupt();
+            throw new LifecycleManagementException("Interrupted while updating flows across cluster", ie);
+        }
+        return clusterResponse;
+    }
+
     private List<UpdateStep> getUpdateSteps() {
         return Arrays.asList(new StandardUpdateStep("Stopping Affected Processors"),
                 new StandardUpdateStep("Disabling Affected Controller Services"),
@@ -1373,28 +1499,16 @@ public class ParameterProviderResource extends AbstractParameterResource {
                 new StandardUpdateStep("Restarting Affected Processors"));
     }
 
-    private Collection<ProvidedParameterNameGroup> getProvidedParameterNames(final ParameterProviderEntity entity) {
-        final Collection<ProvidedParameterNameGroup> providedParameterNames = new ArrayList<>();
+    private Collection<ParameterGroupConfiguration> getParameterGroupConfigurations(final Collection<ParameterGroupConfigurationEntity> groupConfigurationEntities) {
+        final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = new ArrayList<>();
 
-        if (entity != null && entity.getComponent() != null && entity.getComponent().getFetchedParameterNameGroups() != null) {
-            for (final ProvidedParameterNameGroupEntity parameterNameGroup : entity.getComponent().getFetchedParameterNameGroups()) {
-                providedParameterNames.add(new ProvidedParameterNameGroup(parameterNameGroup.getGroupName(),
-                        ParameterSensitivity.valueOf(parameterNameGroup.getSensitivity()), parameterNameGroup.getParameterNames()));
+        if (groupConfigurationEntities != null) {
+            for (final ParameterGroupConfigurationEntity configurationEntity : groupConfigurationEntities) {
+                parameterGroupConfigurations.add(new ParameterGroupConfiguration(configurationEntity.getGroupName(),
+                        configurationEntity.getParameterContextName(), configurationEntity.getParameterSensitivities(), configurationEntity.isSynchronized()));
             }
         }
-        return providedParameterNames;
-    }
-
-    private Collection<ProvidedParameterNameGroup> getProvidedParameterNames(final ParameterProviderParameterApplicationEntity applicationEntity) {
-        final Collection<ProvidedParameterNameGroup> providedParameterNames = new ArrayList<>();
-
-        if (applicationEntity != null && applicationEntity.getParameterNameGroups() != null) {
-            for (final ProvidedParameterNameGroupEntity parameterNameGroup : applicationEntity.getParameterNameGroups()) {
-                providedParameterNames.add(new ProvidedParameterNameGroup(parameterNameGroup.getGroupName(),
-                        ParameterSensitivity.valueOf(parameterNameGroup.getSensitivity()), parameterNameGroup.getParameterNames()));
-            }
-        }
-        return providedParameterNames;
+        return parameterGroupConfigurations;
     }
 
     private static class InitiateParameterProviderApplyParametersRequestWrapper extends Entity {

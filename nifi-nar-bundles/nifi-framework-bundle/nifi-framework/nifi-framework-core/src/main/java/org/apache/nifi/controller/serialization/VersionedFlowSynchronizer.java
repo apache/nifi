@@ -76,6 +76,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.persistence.FlowConfigurationArchiveManager;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -640,8 +642,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> referenceIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
 
+        ParameterProviderConfiguration parameterProviderConfiguration = null;
+        if (versionedParameterContext.getParameterProvider() != null) {
+            parameterProviderConfiguration = new StandardParameterProviderConfiguration(versionedParameterContext.getParameterProvider(),
+                    versionedParameterContext.getParameterGroupName(), versionedParameterContext.isSynchronized());
+        }
         flowManager.createParameterContext(versionedParameterContext.getInstanceIdentifier(), versionedParameterContext.getName(), parameters, referenceIds,
-                versionedParameterContext.getSensitiveParameterProvider(), versionedParameterContext.getNonSensitiveParameterProvider());
+                parameterProviderConfiguration);
         logger.info("Added Parameter Context {}", versionedParameterContext.getName());
     }
 

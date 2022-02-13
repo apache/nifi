@@ -19,8 +19,9 @@ package org.apache.nifi.controller;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterProvider;
-import org.apache.nifi.parameter.ProvidedParameterNameGroup;
+import org.apache.nifi.parameter.ParameterGroupConfiguration;
 
 import java.util.Collection;
 import java.util.List;
@@ -42,11 +43,11 @@ public interface ParameterProviderNode extends ComponentNode {
 
     void fetchParameters();
 
-    void verifyCanApplyParameters(Collection<ProvidedParameterNameGroup> parameterNames);
+    void verifyCanApplyParameters(Collection<ParameterGroupConfiguration> parameterNames);
 
-    Collection<ProvidedParameterNameGroup> getFetchedParameterNames();
+    Collection<ParameterGroupConfiguration> getParameterGroupConfigurations();
 
-    List<ParametersApplication> getFetchedParametersToApply(Collection<ProvidedParameterNameGroup> parameterNames);
+    List<ParametersApplication> getFetchedParametersToApply(Collection<ParameterGroupConfiguration> parameterGroupConfigurations);
 
     void verifyCanClearState();
 
@@ -55,19 +56,19 @@ public interface ParameterProviderNode extends ComponentNode {
     /**
      * @return all ParameterContexts that reference this ParameterProvider
      */
-    Set<ParameterProviderUsageReference> getReferences();
+    Set<ParameterContext> getReferences();
 
     /**
      * Indicates that a parameter context is now referencing this Parameter Provider
-     * @param reference the reference to this provider
+     * @param parameterContext the parameter context that references this provider
      */
-    void addReference(ParameterProviderUsageReference reference);
+    void addReference(ParameterContext parameterContext);
 
     /**
      * Indicates that a parameter context is no longer referencing this Parameter Provider
-     * @param reference the reference this provider
+     * @param parameterContext the parameter context that no longer references this provider
      */
-    void removeReference(ParameterProviderUsageReference reference);
+    void removeReference(ParameterContext parameterContext);
 
     /**
      * Verifies that the given configuration is valid for the Parameter Provider

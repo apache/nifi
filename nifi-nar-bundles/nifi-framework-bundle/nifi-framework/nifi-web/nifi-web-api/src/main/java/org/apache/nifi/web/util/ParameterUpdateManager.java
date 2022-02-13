@@ -217,7 +217,7 @@ public class ParameterUpdateManager {
      * @return the response entity
      */
     @SuppressWarnings("unchecked")
-    private <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
+    public static <T> T getResponseEntity(final NodeResponse nodeResponse, final Class<T> clazz) {
         T entity = (T) nodeResponse.getUpdatedEntity();
         if (entity == null) {
             if (nodeResponse.getClientResponse() != null) {

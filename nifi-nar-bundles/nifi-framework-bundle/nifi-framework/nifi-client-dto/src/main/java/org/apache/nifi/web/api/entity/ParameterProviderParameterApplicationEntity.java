@@ -31,7 +31,7 @@ public class ParameterProviderParameterApplicationEntity extends Entity {
     private String id;
     private RevisionDTO revision;
     private Boolean disconnectedNodeAcknowledged;
-    private Collection<ProvidedParameterNameGroupEntity> parameterNameGroups;
+    private Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations;
 
     @ApiModelProperty(
             value = "The id of the parameter provider."
@@ -73,13 +73,13 @@ public class ParameterProviderParameterApplicationEntity extends Entity {
      * @return Specifies per group which parameter names should be applied to the Parameter Contexts.
      */
     @ApiModelProperty(
-            value = "Specifies per group which parameter names should be applied to the Parameter Contexts."
+            value = "Configuration for the fetched Parameter Groups"
     )
-    public Collection<ProvidedParameterNameGroupEntity> getParameterNameGroups() {
-        return parameterNameGroups;
+    public Collection<ParameterGroupConfigurationEntity> getParameterGroupConfigurations() {
+        return parameterGroupConfigurations;
     }
 
-    public void setParameterNameGroups(Collection<ProvidedParameterNameGroupEntity> parameterNameGroups) {
-        this.parameterNameGroups = parameterNameGroups;
+    public void setParameterGroupConfigurations(Collection<ParameterGroupConfigurationEntity> parameterGroupConfigurations) {
+        this.parameterGroupConfigurations = parameterGroupConfigurations;
     }
 }

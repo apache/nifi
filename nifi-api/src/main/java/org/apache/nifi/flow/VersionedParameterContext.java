@@ -25,8 +25,9 @@ public class VersionedParameterContext extends VersionedComponent {
     private Set<VersionedParameter> parameters;
     private List<String> inheritedParameterContexts;
     private String description;
-    private String sensitiveParameterProvider;
-    private String nonSensitiveParameterProvider;
+    private String parameterProvider;
+    private String parameterGroupName;
+    private Boolean isSynchronized;
 
     @ApiModelProperty("The description of the parameter context")
     public String getDescription() {
@@ -60,21 +61,30 @@ public class VersionedParameterContext extends VersionedComponent {
         return ComponentType.PARAMETER_CONTEXT;
     }
 
-    @ApiModelProperty("The identifier of an optional parameter provider for sensitive parameters")
-    public String getSensitiveParameterProvider() {
-        return sensitiveParameterProvider;
+    @ApiModelProperty("The identifier of an optional parameter provider")
+    public String getParameterProvider() {
+        return parameterProvider;
     }
 
-    public void setSensitiveParameterProvider(String sensitiveParameterProvider) {
-        this.sensitiveParameterProvider = sensitiveParameterProvider;
+    public void setParameterProvider(String parameterProvider) {
+        this.parameterProvider = parameterProvider;
     }
 
-    @ApiModelProperty("The identifier of an optional parameter provider for non-sensitive parameters")
-    public String getNonSensitiveParameterProvider() {
-        return nonSensitiveParameterProvider;
+    @ApiModelProperty("The corresponding parameter group name fetched from the parameter provider, if applicable")
+    public String getParameterGroupName() {
+        return parameterGroupName;
     }
 
-    public void setNonSensitiveParameterProvider(String nonSensitiveParameterProvider) {
-        this.nonSensitiveParameterProvider = nonSensitiveParameterProvider;
+    public void setParameterGroupName(String parameterGroupName) {
+        this.parameterGroupName = parameterGroupName;
+    }
+
+    @ApiModelProperty("True if the parameter provider is set and the context should receive updates when its parameters are next fetched")
+    public Boolean isSynchronized() {
+        return isSynchronized;
+    }
+
+    public void setSynchronized(Boolean aSynchronized) {
+        isSynchronized = aSynchronized;
     }
 }

@@ -327,10 +327,12 @@ public class FingerprintFactory {
                 builder.append(inheritedParameterContextId.getTextContent());
             }
         }
-        final String sensitiveParameterProviderId = DomUtils.getChildText(parameterContextElement, "sensitiveParameterProviderId");
-        builder.append(sensitiveParameterProviderId == null ? "NO_SENSITIVE_PARAMETER_PROVIDER_ID" : sensitiveParameterProviderId);
-        final String nonSensitiveParameterProviderId = DomUtils.getChildText(parameterContextElement, "nonSensitiveParameterProviderId");
-        builder.append(nonSensitiveParameterProviderId == null ? "NO_NONSENSITIVE_PARAMETER_PROVIDER_ID" : nonSensitiveParameterProviderId);
+        final String parameterProviderId = DomUtils.getChildText(parameterContextElement, "parameterProviderId");
+        builder.append(parameterProviderId == null ? "NO_PARAMETER_PROVIDER_ID" : parameterProviderId);
+        final String parameterGroupName = DomUtils.getChildText(parameterContextElement, "parameterGroupName");
+        builder.append(parameterGroupName == null ? "NO_PARAMETER_GROUP_NAME" : parameterGroupName);
+        final String isSynchronized = DomUtils.getChildText(parameterContextElement, "isSynchronized");
+        builder.append(isSynchronized == null ? "NO_PARAMETER_IS_SYNCHRONIZED" : isSynchronized);
 
         return builder;
     }

@@ -16,36 +16,24 @@
  */
 package org.apache.nifi.parameter;
 
-import java.util.Collection;
-import java.util.Objects;
-
-public abstract class AbstractParameterGroup<T> {
-
-    private final String groupName;
-
-    private final Collection<T> items;
+public interface ParameterProviderConfiguration {
 
     /**
-     * Creates a named parameter group.
-     * @param groupName The parameter group name
-     * @param items A collection of grouped items
+     *
+     * @return The identifier of the {@link ParameterProvider} that provides parameters to the Parameter Context.
      */
-    protected AbstractParameterGroup(final String groupName, final Collection<T> items) {
-        this.groupName = Objects.requireNonNull(groupName, "Group name is required");
-        this.items = items;
-    }
+    String getParameterProviderId();
 
     /**
-     * @return The group name
+     *
+     * @return The name of the {@link ParameterGroup} fetched by the ParameterProvider that maps to the Parameter Context.
      */
-    public String getGroupName() {
-        return groupName;
-    }
+    String getParameterGroupName();
 
     /**
-     * @return The collection of grouped items
+     *
+     * @return If true, indicates that the ParameterContext should receive updates from the ParameterProvider when its
+     * parameters are fetched.
      */
-    public Collection<T> getItems() {
-        return items;
-    }
+    boolean isSynchronized();
 }

@@ -92,7 +92,7 @@ public class GhostParameterProvider implements ParameterProvider {
     }
 
     @Override
-    public List<ProvidedParameterGroup> fetchParameters(final ConfigurationContext context) {
+    public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
         throw new ProcessException("Unable to instantiate ParameterProvider class");
     }
 

@@ -70,6 +70,8 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterProviderConfiguration;
+import org.apache.nifi.parameter.StandardParameterProviderConfiguration;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -96,6 +98,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
@@ -109,6 +112,7 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderConfigurationEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -566,8 +570,14 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                         .map(ParameterContextReferenceEntity::getId)
                         .collect(Collectors.toList());
 
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds,
-                getReferenceId(dto.getSensitiveParameterProviderRef()), getReferenceId(dto.getNonSensitiveParameterProviderRef()));
+        ParameterProviderConfiguration parameterProviderConfiguration = null;
+        if (dto.getParameterProviderConfiguration() != null) {
+            final ParameterProviderConfigurationEntity parameterProviderConfigurationEntity = dto.getParameterProviderConfiguration();
+            final ParameterProviderConfigurationDTO configurationDTO = parameterProviderConfigurationEntity.getComponent();
+            parameterProviderConfiguration = new StandardParameterProviderConfiguration(configurationDTO.getParameterProviderId(),
+                    configurationDTO.getParameterGroupName(), configurationDTO.getSynchronized());
+        }
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, referencedIds, parameterProviderConfiguration);
         context.setDescription(dto.getDescription());
         return context;
     }
