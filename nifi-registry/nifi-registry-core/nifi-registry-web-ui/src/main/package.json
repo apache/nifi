@@ -103,7 +103,7 @@
         "license-webpack-plugin": "2.1.1",
         "lint-staged": "12.2.2",
         "mini-css-extract-plugin": "0.12.0",
-        "npm-force-resolutions": "0.0.10",
+        "npm-force-resolutions": "^0.0.10",
         "null-loader": "3.0.0",
         "optimize-css-assets-webpack-plugin": "6.0.1",
         "sass": "1.32.0",
