@@ -76,7 +76,7 @@ import org.apache.nifi.util.StopWatch;
         + "Also please be aware that this processor creates a thread pool of 4 threads for Event Hub Client. They will be extra threads other than the concurrent tasks scheduled for this processor.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class PutAzureEventHub extends AbstractProcessor {
-    private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s.%s/%s";
+    private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s%s/%s";
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")

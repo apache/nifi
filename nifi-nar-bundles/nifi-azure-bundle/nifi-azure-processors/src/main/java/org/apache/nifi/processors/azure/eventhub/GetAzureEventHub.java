@@ -82,7 +82,7 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 })
 public class GetAzureEventHub extends AbstractProcessor {
     private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s";
-    private static final String FORMAT_STRING_FOR_CONECTION_BUILDER = "amqps://%s.%s";
+    private static final String FORMAT_STRING_FOR_CONECTION_BUILDER = "amqps://%s%s";
 
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")

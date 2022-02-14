@@ -34,10 +34,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 public final class AzureEventHubUtils {
 
     public static final String MANAGED_IDENTITY_POLICY = ConnectionStringBuilder.MANAGED_IDENTITY_AUTHENTICATION;
-    public static final AllowableValue AZURE_ENDPOINT = new AllowableValue("servicebus.windows.net","Azure", "Servicebus endpoint for general use");
-    public static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue("servicebus.chinacloudapi.cn", "Azure China", "Servicebus endpoint for China");
-    public static final AllowableValue AZURE_GERMANY_ENDPOINT = new AllowableValue("servicebus.cloudapi.de", "Azure Germany", "Servicebus endpoint for Germany");
-    public static final AllowableValue AZURE_US_GOV_ENDPOINT = new AllowableValue("servicebus.usgovcloudapi.net", "Azure US Government", "Servicebus endpoint for US Government");
+    public static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net","Azure", "Servicebus endpoint for general use");
+    public static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue(".servicebus.chinacloudapi.cn", "Azure China", "Servicebus endpoint for China");
+    public static final AllowableValue AZURE_GERMANY_ENDPOINT = new AllowableValue(".servicebus.cloudapi.de", "Azure Germany", "Servicebus endpoint for Germany");
+    public static final AllowableValue AZURE_US_GOV_ENDPOINT = new AllowableValue(".servicebus.usgovcloudapi.net", "Azure US Government", "Servicebus endpoint for US Government");
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
         .name("Shared Access Policy Primary Key")

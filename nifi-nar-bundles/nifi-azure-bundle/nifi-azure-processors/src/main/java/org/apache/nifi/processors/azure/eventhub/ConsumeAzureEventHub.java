@@ -472,7 +472,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         private void transferTo(Relationship relationship, ProcessSession session, StopWatch stopWatch,
                                 String eventHubName, String partitionId, String consumerGroup, FlowFile flowFile) {
             session.transfer(flowFile, relationship);
-            final String transitUri = String.format("amqps://%s.%s/%s/ConsumerGroups/%s/Partitions/%s",
+            final String transitUri = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
                     namespaceName, serviceBusEndpoint, eventHubName, consumerGroup, partitionId);
             session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         }
@@ -690,7 +690,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
 
         serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-        final String domainName = serviceBusEndpoint.replace("servicebus.", "");
+        final String domainName = serviceBusEndpoint.replace(".servicebus.", "");
         final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
 
