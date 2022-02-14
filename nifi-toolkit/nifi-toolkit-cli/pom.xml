@@ -23,6 +23,10 @@
     <artifactId>nifi-toolkit-cli</artifactId>
     <description>Tooling to make tls configuration easier</description>
 
+    <properties>
+        <jline.version>3.21.0</jline.version>
+    </properties>
+
     <build>
         <resources>
             <resource>
@@ -90,12 +94,12 @@
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline</artifactId>
-            <version>3.5.2</version>
+            <version>${jline.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jline</groupId>
             <artifactId>jline-terminal-jna</artifactId>
-            <version>3.5.2</version>
+            <version>${jline.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
