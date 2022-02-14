@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
-import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderConfigurationDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 
