@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class StandardLabel implements Label {
 
@@ -40,6 +41,7 @@ public class StandardLabel implements Label {
     private final AtomicReference<String> value;
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
+    private final AtomicLong zIndex = new AtomicLong(0L);
 
     public StandardLabel(final String identifier, final String value) {
         this(identifier, new Position(0D, 0D), new HashMap<String, String>(), value, null);
@@ -158,5 +160,15 @@ public class StandardLabel implements Label {
                 throw new IllegalStateException(this + " is already under version control");
             }
         }
+    }
+
+    @Override
+    public long getZIndex() {
+        return zIndex.get();
+    }
+
+    @Override
+    public void setZIndex(final long zIndex) {
+        this.zIndex.set(zIndex);
     }
 }

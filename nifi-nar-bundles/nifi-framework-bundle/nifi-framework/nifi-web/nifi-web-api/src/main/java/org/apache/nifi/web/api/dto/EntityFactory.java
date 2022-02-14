@@ -319,6 +319,7 @@ public final class EntityFactory {
             dimensions.setHeight(dto.getHeight());
             dimensions.setWidth(dto.getWidth());
             entity.setDimensions(dimensions);
+            entity.setzIndex(dto.getzIndex());
 
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
