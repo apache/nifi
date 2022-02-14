@@ -192,7 +192,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
             .name("dbcp-min-idle-conns")
             .description("The minimum number of connections that can remain idle in the pool without extra ones being " +
                 "created. Set to or zero to allow no idle connections.")
-            .defaultValue(GenericObjectPoolConfig.DEFAULT_MIN_IDLE + "")
+            .defaultValue(DEFAULT_MIN_IDLE)
             .required(false)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
