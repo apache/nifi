@@ -189,7 +189,7 @@ public class TestCredentialsProviderFactory {
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
         Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals("credentials provider should be equal", STSAssumeRoleWithWebIdentitySessionCredentialsProvider.class,
                 credentialsProvider.getClass());
     }
     
@@ -279,7 +279,7 @@ public class TestCredentialsProviderFactory {
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
         Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals("credentials provider should be equal", STSAssumeRoleWithWebIdentitySessionCredentialsProvider.class,
                 credentialsProvider.getClass());
     }
 
@@ -323,7 +323,7 @@ public class TestCredentialsProviderFactory {
         final CredentialsProviderFactory factory = new CredentialsProviderFactory();
         final AWSCredentialsProvider credentialsProvider = factory.getCredentialsProvider(properties);
         Assert.assertNotNull(credentialsProvider);
-        assertEquals("credentials provider should be equal", STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals("credentials provider should be equal", STSAssumeRoleWithWebIdentitySessionCredentialsProvider.class,
                 credentialsProvider.getClass());
     }
 
