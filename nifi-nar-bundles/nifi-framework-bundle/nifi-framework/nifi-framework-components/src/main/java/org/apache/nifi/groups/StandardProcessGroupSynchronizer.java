@@ -1546,6 +1546,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
         label.setSize(new Size(proposed.getWidth(), proposed.getHeight()));
         label.setStyle(proposed.getStyle());
         label.setValue(proposed.getLabel());
+        label.setZIndex(proposed.getzIndex());
     }
 
     private ProcessorNode addProcessor(final ProcessGroup destination, final VersionedProcessor proposed, final ComponentIdGenerator componentIdGenerator) throws ProcessorInstantiationException {

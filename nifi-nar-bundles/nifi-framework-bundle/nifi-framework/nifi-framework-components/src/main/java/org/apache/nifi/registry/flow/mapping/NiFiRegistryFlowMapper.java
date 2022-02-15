@@ -637,6 +637,7 @@ public class NiFiRegistryFlowMapper {
         versionedLabel.setLabel(label.getValue());
         versionedLabel.setPosition(mapPosition(label.getPosition()));
         versionedLabel.setStyle(label.getStyle());
+        versionedLabel.setzIndex(label.getZIndex());
 
         return versionedLabel;
     }
