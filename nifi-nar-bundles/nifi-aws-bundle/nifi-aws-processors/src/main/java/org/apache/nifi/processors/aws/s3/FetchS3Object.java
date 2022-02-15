@@ -49,7 +49,7 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
@@ -139,7 +139,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
-        final AmazonS3 client = getClient();
+        final AmazonS3Client client = getClient();
         final GetObjectRequest request;
         if (versionId == null) {
             request = new GetObjectRequest(bucket, key);
@@ -226,9 +226,10 @@ public class FetchS3Object extends AbstractS3Processor {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
+        final String url = client.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
-        session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
+        session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
     }
 
 }
