@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.tests.system.processor;
 
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -320,7 +321,7 @@ public class RetryIT extends NiFiSystemIT {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
         config.setRetryCount(RETRY_COUNT);
         config.setMaxBackoffPeriod("1 ms");
-        config.setBackoffMechanism("PENALIZE_FLOWFILE");
+        config.setBackoffMechanism(BackoffMechanism.PENALIZE_FLOWFILE.name());
         config.setRetriedRelationships(relationships);
         config.setPenaltyDuration("1 ms");
         getClientUtil().updateProcessorConfig(processorEntity, config);

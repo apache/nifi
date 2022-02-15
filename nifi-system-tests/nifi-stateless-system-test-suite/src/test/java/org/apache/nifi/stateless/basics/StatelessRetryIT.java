@@ -36,8 +36,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class StatelessRetryIT extends StatelessSystemIT {
-    private static final int RETRY_COUNTS = 2;
-    private static final String EXPECTED_COUNTER = String.valueOf(RETRY_COUNTS + 1);
+    private static final int RETRY_COUNT = 2;
+    private static final String EXPECTED_COUNTER = String.valueOf(RETRY_COUNT + 1);
 
     @Test
     public void testRetryHappensTwiceThenFinishes() throws StatelessConfigurationException, IOException, InterruptedException {
@@ -49,7 +49,7 @@ public class StatelessRetryIT extends StatelessSystemIT {
         //Create a CountFlowFiles processor and configure 2 retries
         final VersionedProcessor countFlowFiles = flowBuilder.createSimpleProcessor("CountFlowFiles");
         countFlowFiles.setMaxBackoffPeriod("1 ms");
-        countFlowFiles.setRetryCount(RETRY_COUNTS);
+        countFlowFiles.setRetryCount(RETRY_COUNT);
         countFlowFiles.setBackoffMechanism("PENALIZE_FLOWFILE");
         countFlowFiles.setRetriedRelationships(Collections.singleton("success"));
         countFlowFiles.setPenaltyDuration("1 ms");

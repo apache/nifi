@@ -1593,7 +1593,7 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             if (proposed.getRetryCount() != null) {
                 processor.setRetryCount(proposed.getRetryCount());
             } else {
-                processor.setRetryCount(0);
+                processor.setRetryCount(10);
             }
 
             if (proposed.getBackoffMechanism() != null) {

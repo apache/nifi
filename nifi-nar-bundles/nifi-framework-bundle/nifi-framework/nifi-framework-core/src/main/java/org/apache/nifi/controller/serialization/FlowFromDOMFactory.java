@@ -502,7 +502,7 @@ public class FlowFromDOMFactory {
         if (getString(element, "retryCount") != null) {
             configDto.setRetryCount(getInt(element, "retryCount"));
         } else {
-            configDto.setRetryCount(0);
+            configDto.setRetryCount(10);
         }
         configDto.setMaxBackoffPeriod(getString(element, "maxBackoffPeriod"));
         configDto.setBackoffMechanism(getString(element, "backoffMechanism"));

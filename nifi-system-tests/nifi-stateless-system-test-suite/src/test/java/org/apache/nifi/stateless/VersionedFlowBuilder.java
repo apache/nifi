@@ -146,7 +146,7 @@ public class VersionedFlowBuilder {
         processor.setSchedulingStrategy("TIMER_DRIVEN");
         processor.setRetryCount(0);
         processor.setBackoffMechanism("PENALIZE_FLOWFILE");
-        processor.setRetriedRelationships(new HashSet<>());
+        processor.setRetriedRelationships(Collections.EMPTY_SET);
         processor.setMaxBackoffPeriod("0 sec");
 
         group.getProcessors().add(processor);

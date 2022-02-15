@@ -481,7 +481,7 @@ public class FingerprintFactory {
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "executionNode"));
         // run duration nanos
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "runDurationNanos"));
-        // retry counts
+        // retry count
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "retryCount"));
         // backoff mechanism
         appendFirstValue(builder, DomUtils.getChildNodesByTagName(processorElem, "backoffMechanism"));

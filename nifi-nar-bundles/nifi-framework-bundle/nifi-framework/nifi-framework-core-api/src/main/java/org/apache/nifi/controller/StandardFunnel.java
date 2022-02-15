@@ -58,7 +58,7 @@ import static java.util.Objects.requireNonNull;
 public class StandardFunnel implements Funnel {
 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "30 sec";
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "10 mins";
 
     private final String identifier;
     private final Set<Connection> outgoingConnections;
@@ -84,11 +84,6 @@ public class StandardFunnel implements Funnel {
     final int maxIterations;
     private final int maxConcurrentTasks;
 
-    private volatile int retryCount;
-    private volatile Set<String> retriedRelationships;
-    private volatile BackoffMechanism backoffMechanism;
-    private volatile String maxBackoffPeriod;
-
     public StandardFunnel(final String identifier, final int maxConcurrentTasks, final int maxBatchSize) {
         this.identifier = identifier;
         this.processGroupRef = new AtomicReference<>();
@@ -112,11 +107,6 @@ public class StandardFunnel implements Funnel {
 
         this.maxConcurrentTasks = maxConcurrentTasks;
         this.maxIterations = Math.max(1, (int) Math.ceil(maxBatchSize / 1000.0));
-
-        retryCount = 0;
-        retriedRelationships = new HashSet<>();
-        backoffMechanism = BackoffMechanism.PENALIZE_FLOWFILE;
-        maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
     }
 
     @Override
@@ -595,7 +585,6 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setRetryCount(Integer retryCount) {
-        this.retryCount = retryCount;
     }
 
     @Override
@@ -605,7 +594,6 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setRetriedRelationships(Set<String> retriedRelationships) {
-        this.retriedRelationships = (retriedRelationships == null) ? Collections.emptySet() : new HashSet<>(retriedRelationships);
     }
 
     @Override
@@ -620,7 +608,6 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
-        this.backoffMechanism = (backoffMechanism == null) ? BackoffMechanism.PENALIZE_FLOWFILE : backoffMechanism;
     }
 
     @Override
@@ -630,14 +617,6 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setMaxBackoffPeriod(String maxBackoffPeriod) {
-        if (maxBackoffPeriod == null) {
-            maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
-        }
-        final long backoffNanos = FormatUtils.getTimeDuration(maxBackoffPeriod, TimeUnit.NANOSECONDS);
-        if (backoffNanos < 0) {
-            throw new IllegalArgumentException("Max Backoff Period must be positive");
-        }
-        this.maxBackoffPeriod = maxBackoffPeriod;
     }
 
     @Override

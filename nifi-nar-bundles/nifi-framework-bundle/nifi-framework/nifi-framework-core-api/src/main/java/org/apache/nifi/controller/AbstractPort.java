@@ -62,7 +62,7 @@ public abstract class AbstractPort implements Port {
             .build();
 
     private static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
-    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "30 sec";
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "10 mins";
 
     private final List<Relationship> relationships;
 
@@ -90,11 +90,6 @@ public abstract class AbstractPort implements Port {
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
-    private volatile int retryCount;
-    private volatile Set<String> retriedRelationships;
-    private volatile BackoffMechanism backoffMechanism;
-    private volatile String maxBackoffPeriod;
-
     public AbstractPort(final String id, final String name, final ConnectableType type, final ProcessScheduler scheduler) {
         this.id = requireNonNull(id);
         this.name = new AtomicReference<>(requireNonNull(name));
@@ -116,11 +111,6 @@ public abstract class AbstractPort implements Port {
         schedulingPeriod = new AtomicReference<>("0 millis");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
         scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
-
-        retryCount = 0;
-        retriedRelationships = new HashSet<>();
-        backoffMechanism = BackoffMechanism.PENALIZE_FLOWFILE;
-        maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
     }
 
     @Override
@@ -678,7 +668,6 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setRetryCount(Integer retryCount) {
-        this.retryCount = retryCount;
     }
 
     @Override
@@ -688,7 +677,6 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setRetriedRelationships(Set<String> retriedRelationships) {
-        this.retriedRelationships = (retriedRelationships == null) ? Collections.emptySet() : new HashSet<>(retriedRelationships);
     }
 
     @Override
@@ -703,7 +691,6 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setBackoffMechanism(BackoffMechanism backoffMechanism) {
-        this.backoffMechanism = (backoffMechanism == null) ? BackoffMechanism.PENALIZE_FLOWFILE : backoffMechanism;
     }
 
     @Override
@@ -713,13 +700,5 @@ public abstract class AbstractPort implements Port {
 
     @Override
     public void setMaxBackoffPeriod(String maxBackoffPeriod) {
-        if (maxBackoffPeriod == null) {
-            maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;
-        }
-        final long backoffNanos = FormatUtils.getTimeDuration(maxBackoffPeriod, TimeUnit.NANOSECONDS);
-        if (backoffNanos < 0) {
-            throw new IllegalArgumentException("Max Backoff Period must be positive");
-        }
-        this.maxBackoffPeriod = maxBackoffPeriod;
     }
 }

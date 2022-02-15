@@ -127,7 +127,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
-    private static final String DEFAULT_MAX_BACKOFF_PERIOD = DEFAULT_PENALIZATION_PERIOD;
+    private static final String DEFAULT_MAX_BACKOFF_PERIOD = "10 mins";
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicReference<ProcessorDetails> processorRef;
     private final AtomicReference<String> identifier;
@@ -208,7 +208,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         executionNode = isExecutionNodeRestricted() ? ExecutionNode.PRIMARY : ExecutionNode.ALL;
         this.hashCode = new HashCodeBuilder(7, 67).append(identifier).toHashCode();
 
-        retryCount = 0;
+        retryCount = 10;
         retriedRelationships = new HashSet<>();
         backoffMechanism = BackoffMechanism.PENALIZE_FLOWFILE;
         maxBackoffPeriod = DEFAULT_MAX_BACKOFF_PERIOD;

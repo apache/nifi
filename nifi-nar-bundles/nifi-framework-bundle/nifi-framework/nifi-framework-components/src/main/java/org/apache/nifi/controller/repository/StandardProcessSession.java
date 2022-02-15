@@ -99,7 +99,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -143,7 +142,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private Map<String, Long> immediateCounters;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
-    private final Set<String> createdFlowFiles = new HashSet<>();
+    private final Set<String> createdFlowFiles = new HashSet<>(); // UUID of any FlowFile that was created in this session
+    private final Set<String> createdFlowFilesWithoutLineage = new HashSet<>(); // UUID of any FlowFile that was created without a parent. This is a subset of createdFlowFiles.
 
     private final InternalProvenanceReporter provenanceReporter;
 
@@ -177,6 +177,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private StateMap localState;
     private StateMap clusterState;
+    private final String retryAttribute;
+    private final FlowFileLinkage flowFileLinkage = new FlowFileLinkage();
 
     public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination) {
         this.context = context;
@@ -188,6 +190,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         this.claimCache = context.createContentClaimWriteCache();
         LOG.trace("Session {} created for {}", this, connectableDescription);
         processingStartTime = System.nanoTime();
+        retryAttribute = "retryCount." + context.getConnectable().getIdentifier();
     }
 
     private void verifyTaskActive() {
@@ -292,112 +295,87 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         // validate that all records have a transfer relationship for them and if so determine the destination node and clone as necessary
         final Map<Long, StandardRepositoryRecord> toAdd = new HashMap<>();
-        final Map<String, StandardRepositoryRecord> uuidsToRecords = records.values()
-                .stream()
-                .collect(Collectors.toMap(record -> record.getCurrent().getAttribute(CoreAttributes.UUID.key()), Function.identity()));
+
+        final Connectable connectable = context.getConnectable();
+        final long maxBackoffMillis = Math.round(FormatUtils.getPreciseTimeDuration(connectable.getMaxBackoffPeriod(), TimeUnit.MILLISECONDS));
+
+        // Determine which FlowFiles need to be retried
+        final Set<Long> retryIds = new HashSet<>();
+        for (final StandardRepositoryRecord record : records.values()) {
+            if (isRetry(record)) {
+                final long flowFileId = record.getCurrent().getId();
+                retryIds.add(flowFileId);
+
+                final Collection<Long> linkedIds = flowFileLinkage.getLinkedIds(flowFileId);
+                retryIds.addAll(linkedIds);
+            }
+        }
 
         for (final StandardRepositoryRecord record : records.values()) {
+            // Check if this Record should be retried. If so, perform the necessary actions to retry the Record and then continue on to the next record.
+            if (retryIds.contains(record.getCurrent().getId())) {
+                retry(record, maxBackoffMillis);
+            }
+
             if (record.isMarkedForDelete()) {
                 continue;
             }
 
-            if (records.get(record.getCurrent().getId()) == null) {
-                continue;
-            }
-
             final Relationship relationship = record.getTransferRelationship();
+            final List<Connection> destinations = new ArrayList<>(context.getConnections(relationship));
 
-            final Connectable connectable = context.getConnectable();
-            final FlowFileRecord currentFlowFile = record.getOriginal();
-            int retryCount = 0;
-            if (currentFlowFile != null) {
-                String retryCountString = currentFlowFile.getAttribute("retryCount");
-                if (retryCountString != null) {
-                    retryCount = Integer.parseInt(retryCountString);
-                }
-            }
+            if (destinations.isEmpty() && relationship == Relationship.SELF) {
+                record.setDestination(record.getOriginalQueue());
+            } else if (destinations.isEmpty()) {
+                record.markForDelete();
 
-            if (isRetryNeeded(connectable, record, currentFlowFile, retryCount, uuidsToRecords)) {
-
-                final boolean isProcessorYielding = connectable.getBackoffMechanism().equals(BackoffMechanism.YIELD_PROCESSOR);
-                final long maxBackoffPeriod = Math.round(FormatUtils.getPreciseTimeDuration(connectable.getMaxBackoffPeriod(), TimeUnit.MILLISECONDS));
-                final long penalizationTime;
-
-                if (isProcessorYielding) {
-                    penalizationTime = connectable.getYieldPeriod(TimeUnit.MILLISECONDS);
-                } else {
-                    penalizationTime = connectable.getPenalizationPeriod(TimeUnit.MILLISECONDS);
+                if (autoTerminatedEvents == null) {
+                    autoTerminatedEvents = new ArrayList<>();
                 }
 
-                final long backoffTime = calculateBackoffTime(retryCount, maxBackoffPeriod, penalizationTime);
-                retryCount++;
-
-                adjustConnectableStatsForRetry(record, relationship, uuidsToRecords);
-                final FlowFileRecord updatedRecord = resetFlowFileRecordAndUpdateItForRetry(record, uuidsToRecords, retryCount, currentFlowFile);
-                clearProvenanceEventsForRetry(currentFlowFile);
-
-                if (isProcessorYielding) {
-                    connectable.yield(backoffTime, TimeUnit.MILLISECONDS);
-                } else {
-                    penalize(updatedRecord, backoffTime, TimeUnit.MILLISECONDS);
+                final ProvenanceEventRecord dropEvent;
+                try {
+                    dropEvent = provenanceReporter.generateDropEvent(record.getCurrent(), "Auto-Terminated by " + relationship.getName() + " Relationship");
+                    autoTerminatedEvents.add(dropEvent);
+                } catch (final Exception e) {
+                    LOG.warn("Unable to generate Provenance Event for {} on behalf of {} due to {}", record.getCurrent(), connectableDescription, e);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.warn("", e);
+                    }
                 }
-
             } else {
-                final List<Connection> destinations = new ArrayList<>(context.getConnections(relationship));
+                final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
+                final FlowFileRecord currRec = record.getCurrent();
+                final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
+                builder.removeAttributes(retryAttribute);
 
-                if (destinations.isEmpty() && relationship == Relationship.SELF) {
-                    record.setDestination(record.getOriginalQueue());
-                } else if (destinations.isEmpty()) {
-                    record.markForDelete();
+                record.setDestination(finalDestination.getFlowFileQueue());
+                record.setWorking(builder.build(), false);
+                incrementConnectionInputCounts(finalDestination, record);
 
-                    if (autoTerminatedEvents == null) {
-                        autoTerminatedEvents = new ArrayList<>();
+                for (final Connection destination : destinations) { // iterate over remaining destinations and "clone" as needed
+                    incrementConnectionInputCounts(destination, record);
+                    builder.id(context.getNextFlowFileSequence());
+
+                    final String newUuid = UUID.randomUUID().toString();
+                    builder.addAttribute(CoreAttributes.UUID.key(), newUuid);
+
+                    final FlowFileRecord clone = builder.build();
+                    final StandardRepositoryRecord newRecord = new StandardRepositoryRecord(destination.getFlowFileQueue());
+                    provenanceReporter.clone(currRec, clone, false);
+
+                    final ContentClaim claim = clone.getContentClaim();
+                    if (claim != null) {
+                        context.getContentRepository().incrementClaimaintCount(claim);
                     }
+                    newRecord.setWorking(clone, Collections.<String, String>emptyMap(), false);
 
-                    final ProvenanceEventRecord dropEvent;
-                    try {
-                        dropEvent = provenanceReporter.generateDropEvent(record.getCurrent(), "Auto-Terminated by " + relationship.getName() + " Relationship");
-                        autoTerminatedEvents.add(dropEvent);
-                    } catch (final Exception e) {
-                        LOG.warn("Unable to generate Provenance Event for {} on behalf of {} due to {}", record.getCurrent(), connectableDescription, e);
-                        if (LOG.isDebugEnabled()) {
-                            LOG.warn("", e);
-                        }
-                    }
-                } else {
-                    final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
-                    FlowFileRecord currRec = record.getCurrent();
-                    StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
-                    builder.removeAttributes("retryCount");
+                    newRecord.setDestination(destination.getFlowFileQueue());
+                    newRecord.setTransferRelationship(record.getTransferRelationship());
+                    // put the mapping into toAdd because adding to records now will cause a ConcurrentModificationException
+                    toAdd.put(clone.getId(), newRecord);
 
-                    record.setDestination(finalDestination.getFlowFileQueue());
-                    record.setWorking(builder.build(), false);
-                    incrementConnectionInputCounts(finalDestination, record);
-
-                    for (final Connection destination : destinations) { // iterate over remaining destinations and "clone" as needed
-                        incrementConnectionInputCounts(destination, record);
-                        builder.id(context.getNextFlowFileSequence());
-
-                        final String newUuid = UUID.randomUUID().toString();
-                        builder.addAttribute(CoreAttributes.UUID.key(), newUuid);
-
-                        final FlowFileRecord clone = builder.build();
-                        final StandardRepositoryRecord newRecord = new StandardRepositoryRecord(destination.getFlowFileQueue());
-                        provenanceReporter.clone(currRec, clone, false);
-
-                        final ContentClaim claim = clone.getContentClaim();
-                        if (claim != null) {
-                            context.getContentRepository().incrementClaimaintCount(claim);
-                        }
-                        newRecord.setWorking(clone, Collections.<String, String>emptyMap(), false);
-
-                        newRecord.setDestination(destination.getFlowFileQueue());
-                        newRecord.setTransferRelationship(record.getTransferRelationship());
-                        // put the mapping into toAdd because adding to records now will cause a ConcurrentModificationException
-                        toAdd.put(clone.getId(), newRecord);
-
-                        createdFlowFiles.add(newUuid);
-                    }
+                    createdFlowFiles.add(newUuid);
                 }
             }
         }
@@ -408,115 +386,108 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         checkpoint.checkpoint(this, autoTerminatedEvents, copyCollections);
     }
 
-    private boolean isRetryNeeded(final Connectable connectable, final StandardRepositoryRecord record, final FlowFileRecord currentFlowFile,
-                                  final int retryCount, final Map<String, StandardRepositoryRecord> uuidsToRecords) {
-        if (currentFlowFile == null || connectable == null || connectable.getRetriedRelationships().isEmpty()) {
+    private boolean isRetry(final StandardRepositoryRecord record) {
+        final Relationship relationship = record.getTransferRelationship();
+        if (relationship == null) {
             return false;
         }
 
-        if (connectable.isRelationshipRetried(record.getTransferRelationship())) {
-            return retryCount < connectable.getRetryCount();
+        final Connectable connectable = context.getConnectable();
+        if (!connectable.isRelationshipRetried(relationship)) {
+            return false;
         }
 
-        final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(currentFlowFile);
-        if (eventBuilder != null) {
-            for (String uuid : eventBuilder.getChildFlowFileIds()) {
-                if (connectable.isRelationshipRetried(uuidsToRecords.get(uuid).getTransferRelationship())) {
-                    return retryCount < connectable.getRetryCount();
-                }
-            }
+        // If the FlowFile was created in this session and has no lineage (i.e., it was created by a source component),
+        // we do not want to retry the FlowFile, as there is no way to roll back.
+        final String uuid = record.getCurrent().getAttribute(CoreAttributes.UUID.key());
+        if (createdFlowFilesWithoutLineage.contains(uuid)) {
+            return false;
         }
-        return false;
+
+        final int retryCount = getRetries(record.getCurrent());
+        return retryCount < connectable.getRetryCount();
     }
 
-    private FlowFileRecord resetFlowFileRecordAndUpdateItForRetry(final StandardRepositoryRecord record,
-                                                                  final Map<String, StandardRepositoryRecord> uuidsToRecords,
-                                                                  final int retryCount, final FlowFileRecord flowFileRecord) {
+    private void retry(final StandardRepositoryRecord record, final long maxBackoffMillis) {
+        LOG.debug("Updating state to retry {}", record.getCurrent());
 
-        removeTemporaryClaim(record);
-        final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(flowFileRecord);
+        final Connectable connectable = context.getConnectable();
+        final int currentRetries = getRetries(record.getCurrent());
 
-        if (eventBuilder != null) {
-            for (String uuid : eventBuilder.getChildFlowFileIds()) {
-                final StandardRepositoryRecord childRecord = uuidsToRecords.get(uuid);
-                removeTemporaryClaim(childRecord);
-                createdFlowFiles.remove(uuid);
-                records.remove(childRecord.getCurrent().getId());
-            }
-        }
-
-        final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(flowFileRecord);
-        record.setTransferRelationship(null);
-        record.setDestination(record.getOriginalQueue());
-
-        builder.addAttribute("retryCount", String.valueOf(retryCount));
-        final FlowFileRecord newFile = builder.build();
-        record.setWorking(newFile, false);
-        return newFile;
-    }
-
-    private void adjustConnectableStatsForRetry(final StandardRepositoryRecord record, final Relationship relationship,
-                                                final Map<String, StandardRepositoryRecord> uuidsToRecords) {
+        // Account for any statistics that have been added to for FlowFiles/Bytes In/Out
+        final Relationship relationship = record.getTransferRelationship();
         final int numDestinations = context.getConnections(relationship).size();
         final int multiplier = Math.max(1, numDestinations);
-        final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(record.getOriginal());
-        int childrenMultiplier = 0;
-        int contentSize = 0;
-
-        if (eventBuilder != null) {
-            for (String uuid : eventBuilder.getChildFlowFileIds()) {
-
-                final StandardRepositoryRecord childRecord = uuidsToRecords.get(uuid);
-                final Relationship childRelationship = childRecord.getTransferRelationship();
-
-                if (!context.getConnectable().isAutoTerminated(childRelationship)) {
-                    final int childNumDestinations = context.getConnections(childRelationship).size();
-                    final int childMultiplier = Math.max(1, childNumDestinations);
-                    childrenMultiplier += childMultiplier;
-                    contentSize += (childRecord.getCurrent().getSize() * childMultiplier);
-                }
-            }
+        final boolean autoTerminated = connectable.isAutoTerminated(relationship);
+        if (!autoTerminated) {
+            flowFilesOut-= multiplier;
+            contentSizeOut -= record.getCurrent().getSize() * multiplier;
         }
 
-        flowFilesIn--;
-        contentSizeIn -= record.getOriginal().getSize();
-        if (!context.getConnectable().isAutoTerminated(relationship)) {
-            flowFilesOut -= (multiplier + childrenMultiplier);
-            contentSizeOut -= (record.getCurrent().getSize() * multiplier + contentSize);
+        final FlowFileRecord original = record.getOriginal();
+        if (original != null) {
+            flowFilesIn--;
+            contentSizeIn -= original.getSize();
+        }
+
+        // If any content has been created but is no longer being used (i.e., the FlowFile was written to but is now being reverted back to its
+        // previous content), then remove the temporary content.
+        removeTemporaryClaim(record);
+
+        // Adjust for any state that has been updated for the Record that is no longer relevant.
+        final String uuid = record.getCurrent().getAttribute(CoreAttributes.UUID.key());
+        final FlowFileRecord updatedFlowFile = new StandardFlowFileRecord.Builder()
+            .fromFlowFile(record.getOriginal())
+            .addAttribute(retryAttribute, String.valueOf(currentRetries + 1))
+            .build();
+
+        if (original == null) {
+            record.markForDelete();
         } else {
-            flowFilesOut -= childrenMultiplier;
-            contentSizeOut -= contentSize;
+            record.setTransferRelationship(Relationship.SELF);
+        }
+
+        record.setWorking(updatedFlowFile, false);
+
+        // Remove any Provenance Events that have been generated for this Record
+        provenanceReporter.removeEventsForFlowFile(uuid);
+        forkEventBuilders.remove(record.getCurrent());
+        createdFlowFiles.remove(uuid);
+        createdFlowFilesWithoutLineage.remove(uuid);
+        removedFlowFiles.remove(uuid);
+
+        // Penalize the FlowFile or yield the connectable, according to the component configuration.
+        final BackoffMechanism backoffMechanism = connectable.getBackoffMechanism();
+        if (backoffMechanism == BackoffMechanism.PENALIZE_FLOWFILE) {
+            if (!record.isMarkedForDelete()) {
+                final long backoffTime = calculateBackoffTime(currentRetries, maxBackoffMillis, connectable.getPenalizationPeriod(TimeUnit.MILLISECONDS));
+                penalize(record.getCurrent(), backoffTime, TimeUnit.MILLISECONDS);
+            }
+        } else {
+            final long backoffTime = calculateBackoffTime(currentRetries, maxBackoffMillis, connectable.getYieldPeriod(TimeUnit.MILLISECONDS));
+            connectable.yield(backoffTime, TimeUnit.MILLISECONDS);
         }
     }
 
-    private void clearProvenanceEventsForRetry(final FlowFileRecord flowFileRecord) {
-        final String parentUuid = flowFileRecord.getAttribute(CoreAttributes.UUID.key());
-        final Set<ProvenanceEventRecord> events = new HashSet<>(provenanceReporter.getEvents());
-
-        for (ProvenanceEventRecord eventRecord : events) {
-            final String eventRecordUuid = eventRecord.getFlowFileUuid();
-            final ProvenanceEventBuilder eventBuilder = forkEventBuilders.get(flowFileRecord);
-            if (eventBuilder != null) {
-                for (String ChildUuid : eventBuilder.getChildFlowFileIds()) {
-                    if (eventRecordUuid.equals(ChildUuid)) {
-                        provenanceReporter.remove(eventRecord);
-                    }
-                }
-            }
-            if (eventRecordUuid.equals(parentUuid)) {
-                provenanceReporter.remove(eventRecord);
-            }
+    private int getRetries(final FlowFile flowFile) {
+        if (flowFile == null) {
+            return 0;
         }
 
-        forkEventBuilders.remove(flowFileRecord);
+        final String attributeValue = flowFile.getAttribute(retryAttribute);
+        if (attributeValue == null) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(attributeValue);
+        } catch (final Exception e) {
+            return 0;
+        }
     }
 
-    private long calculateBackoffTime(final int retryCount, final long maxBackoffPeriod, final long penalizationTime) {
-        long current = penalizationTime;
-        for (int i = 1; i <= retryCount; i++) {
-                current = current * 2;
-        }
-        return Math.min(current, maxBackoffPeriod);
+    private long calculateBackoffTime(final int retryCount, final long maxBackoffPeriod, final long baseBackoffTime) {
+        return (long) Math.min(maxBackoffPeriod, Math.pow(2, retryCount) * baseBackoffTime);
     }
 
     @Override
@@ -961,7 +932,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
             }
 
-            if (!eventAdded && !repoRecord.getUpdatedAttributes().isEmpty() && curFlowFile.getAttribute("retryCount") == null) {
+            if (!eventAdded && !repoRecord.getUpdatedAttributes().isEmpty() && curFlowFile.getAttribute(retryAttribute) == null) {
                 // We generate an ATTRIBUTES_MODIFIED event only if no other event has been
                 // created for the FlowFile. We do this because all events contain both the
                 // newest and the original attributes, so generating an ATTRIBUTES_MODIFIED
@@ -1425,7 +1396,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         bytesWritten = 0L;
         connectionCounts.clear();
         createdFlowFiles.clear();
+        createdFlowFilesWithoutLineage.clear();
         removedFlowFiles.clear();
+        flowFileLinkage.clear();
+
         if (countersOnCommit != null) {
             countersOnCommit.clear();
         }
@@ -1570,8 +1544,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         for (final FlowFile flowFile : flowFiles) {
             final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
 
-            final StandardRepositoryRecord repoRecord = this.records.remove(flowFile.getId());
-            newOwner.records.put(flowFileRecord.getId(), repoRecord);
+            final long flowFileId = flowFile.getId();
+            final StandardRepositoryRecord repoRecord = this.records.remove(flowFileId);
+            newOwner.records.put(flowFileId, repoRecord);
+
+            final Collection<Long> linkedIds = this.flowFileLinkage.remove(flowFileId);
+            if (linkedIds != null) {
+                linkedIds.forEach(linkedId -> newOwner.flowFileLinkage.addLink(flowFileId, linkedId));
+            }
 
             // Adjust the counts for Connections for each FlowFile that was pulled from a Connection.
             // We do not have to worry about accounting for 'input counts' on connections because those
@@ -1593,9 +1573,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 newOwner.contentSizeIn += flowFile.getSize();
             }
 
-            final String flowFileId = flowFile.getAttribute(CoreAttributes.UUID.key());
-            if (removedFlowFiles.remove(flowFileId)) {
-                newOwner.removedFlowFiles.add(flowFileId);
+            final String flowFileUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
+            if (removedFlowFiles.remove(flowFileUuid)) {
+                newOwner.removedFlowFiles.add(flowFileUuid);
                 newOwner.removedCount++;
                 newOwner.removedBytes += flowFile.getSize();
 
@@ -1603,8 +1583,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 removedBytes -= flowFile.getSize();
             }
 
-            if (createdFlowFiles.remove(flowFileId)) {
-                newOwner.createdFlowFiles.add(flowFileId);
+            if (createdFlowFiles.remove(flowFileUuid)) {
+                newOwner.createdFlowFiles.add(flowFileUuid);
             }
 
             if (repoRecord.getTransferRelationship() != null) {
@@ -1998,7 +1978,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
         record.setWorking(fFile, attrs, false);
         records.put(fFile.getId(), record);
-        createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
+
+        createdFlowFiles.add(uuid);
+        createdFlowFilesWithoutLineage.add(uuid);
+
         return fFile;
     }
 
@@ -2040,6 +2023,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
 
         registerForkEvent(parent, fFile);
+        flowFileLinkage.addLink(parent.getId(), fFile.getId());
         return fFile;
     }
 
@@ -2089,6 +2073,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         createdFlowFiles.add(fFile.getAttribute(CoreAttributes.UUID.key()));
 
         registerJoinEvent(fFile, parents);
+
+        final long flowFileId = fFile.getId();
+        for (final FlowFile parent : parents) {
+            flowFileLinkage.addLink(flowFileId, parent.getId());
+        }
+
         return fFile;
     }
 
@@ -2134,6 +2124,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             registerForkEvent(example, clone);
         }
 
+        flowFileLinkage.addLink(example.getId(), clone.getId());
+
         return clone;
     }
 
@@ -2169,13 +2161,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public FlowFile penalize(FlowFile flowFile) {
+        verifyTaskActive();
+        flowFile = validateRecordState(flowFile, false);
+
         return penalize(flowFile, context.getConnectable().getPenalizationPeriod(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
     }
 
-    public FlowFile penalize(FlowFile flowFile, long period, TimeUnit timeUnit) {
-        verifyTaskActive();
-
-        flowFile = validateRecordState(flowFile, false);
+    public FlowFile penalize(FlowFile flowFile, final long period, final TimeUnit timeUnit) {
+        flowFile = getRecord(flowFile).getCurrent();
         final StandardRepositoryRecord record = getRecord(flowFile);
         final long penalizeMillis = TimeUnit.MILLISECONDS.convert(period, timeUnit);
         final long expirationEpochMillis = System.currentTimeMillis() + penalizeMillis;
@@ -2419,6 +2412,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             removedBytes += flowFile.getSize();
             provenanceReporter.drop(flowFile, flowFile.getAttribute(CoreAttributes.DISCARD_REASON.key()));
         }
+
+        flowFileLinkage.remove(flowFile.getId());
     }
 
     @Override
@@ -2441,6 +2436,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 removedBytes += flowFile.getSize();
                 provenanceReporter.drop(flowFile, flowFile.getAttribute(CoreAttributes.DISCARD_REASON.key()));
             }
+
+            flowFileLinkage.remove(flowFile.getId());
         }
     }
 
@@ -3988,6 +3985,49 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         public long getBytesRemoved() {
             return removedBytes;
+        }
+    }
+
+    private static class FlowFileLinkage {
+        private final Map<Long, List<Long>> linkedIds = new HashMap<>();
+
+        public void addLink(final long id, final long other) {
+            if (id == other) {
+                return;
+            }
+
+            linkedIds.computeIfAbsent(id, key -> new ArrayList<>()).add(other);
+            linkedIds.computeIfAbsent(other, key -> new ArrayList<>()).add(id);
+        }
+
+        public Collection<Long> getLinkedIds(final long id) {
+            final List<Long> linked = linkedIds.get(id);
+            final Set<Long> allLinked = new HashSet<>();
+            if (linked != null) {
+                allLinked.addAll(linked);
+
+                for (final Long linkedId : linked) {
+                    final List<Long> onceRemoved = linkedIds.get(linkedId);
+                    allLinked.addAll(onceRemoved);
+                }
+            }
+            return allLinked;
+        }
+
+        public Collection<Long> remove(final long id) {
+            final List<Long> linked = linkedIds.remove(id);
+
+            if (linked != null) {
+                for (final Long otherId : linked) {
+                    linkedIds.get(otherId).remove(id);
+                }
+            }
+
+            return linked;
+        }
+
+        public void clear() {
+            linkedIds.clear();
         }
     }
 }

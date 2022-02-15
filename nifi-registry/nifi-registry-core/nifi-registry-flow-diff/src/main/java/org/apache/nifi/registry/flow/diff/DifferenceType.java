@@ -56,7 +56,7 @@ public enum DifferenceType {
     /**
      * The component has a different retry count in each of the flows
      */
-    RETRY_COUNTS_CHANGED("Retry Counts Changed"),
+    RETRY_COUNT_CHANGED("Retry Count Changed"),
 
     /**
      * The component has a different retried relationship in each of the flows

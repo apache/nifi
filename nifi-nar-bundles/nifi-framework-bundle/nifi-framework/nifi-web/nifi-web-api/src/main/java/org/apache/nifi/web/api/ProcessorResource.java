@@ -840,7 +840,7 @@ public class ProcessorResource extends ApplicationResource {
         final ProcessorConfigDTO processorConfig = requestProcessorDTO.getConfig();
         if (processorConfig != null) {
             if (processorConfig.getRetryCount() != null && processorConfig.getRetryCount() < 0) {
-                throw new IllegalArgumentException("Retry Counts should not be less than zero.");
+                throw new IllegalArgumentException("Retry Count should not be less than zero.");
             }
 
             if (processorConfig.getBackoffMechanism() != null) {

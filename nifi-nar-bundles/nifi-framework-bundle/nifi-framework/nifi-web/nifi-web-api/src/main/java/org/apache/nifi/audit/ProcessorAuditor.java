@@ -80,7 +80,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     private static final String SCHEDULING_STRATEGY = "Scheduling Strategy";
     private static final String EXECUTION_NODE = "Execution Node";
     private static final String EXTENSION_VERSION = "Extension Version";
-    private static final String RETRY_COUNTS = "Retry Counts";
+    private static final String RETRY_COUNT = "Retry Count";
     private static final String RETRIED_RELATIONSHIPS = "Retried Relationships";
     private static final String BACKOFF_MECHANISM = "Backoff Mechanism";
     private static final String MAX_BACKOFF_PERIOD = "Max Backoff Period";
@@ -429,7 +429,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             }
 
             if (newConfig.getRetryCount() != null) {
-                values.put(RETRY_COUNTS, String.valueOf(processor.getRetryCount()));
+                values.put(RETRY_COUNT, String.valueOf(processor.getRetryCount()));
             }
 
             if (newConfig.getRetriedRelationships() != null) {

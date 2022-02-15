@@ -193,6 +193,8 @@ public class StandardProcessSessionIT {
         when(connectable.getIdentifier()).thenReturn("connectable-1");
         when(connectable.getConnectableType()).thenReturn(ConnectableType.INPUT_PORT);
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
+        when(connectable.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
+        when(connectable.getMaxBackoffPeriod()).thenReturn("1 sec");
 
         Mockito.doAnswer(new Answer<Set<Connection>>() {
             @Override
@@ -2813,7 +2815,7 @@ public class StandardProcessSessionIT {
     @Test
     public void testWhenInRetryAttributeIsAdded() {
         final Connectable processor = createProcessorConnectable();
-        configureRetry(processor, 1, BackoffMechanism.PENALIZE_FLOWFILE, "1 ms", 1L);
+        configureRetry(processor, 1, BackoffMechanism.YIELD_PROCESSOR, "1 ms", 1L);
 
         StandardProcessSession session = createSessionForRetry(processor);
 
@@ -2831,13 +2833,13 @@ public class StandardProcessSessionIT {
 
         FlowFile ff2 = session.get();
         assertNotNull(ff2);
-        assertEquals("1", ff2.getAttribute("retryCount"));
+        assertEquals("1", ff2.getAttribute("retryCount." + connectable.getIdentifier()));
     }
 
     @Test
     public void testWhenRetryCompletedAttributeIsRemoved() {
         final Connectable processor = createProcessorConnectable();
-        configureRetry(processor, 1, BackoffMechanism.PENALIZE_FLOWFILE, "1 ms", 1L);
+        configureRetry(processor, 1, BackoffMechanism.YIELD_PROCESSOR, "1 ms", 1L);
         final StandardProcessSession session = createSessionForRetry(processor);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
@@ -2854,13 +2856,57 @@ public class StandardProcessSessionIT {
 
         final FlowFile ff2 = session.get();
         assertNotNull(ff2);
-        assertEquals("1", ff2.getAttribute("retryCount"));
+        assertEquals("1", ff2.getAttribute("retryCount." + processor.getIdentifier()));
         session.transfer(flowFileRecord, relationship);
         session.commit();
 
         final FlowFile ff3 = session.get();
         assertNotNull(ff3);
-        assertNull(ff3.getAttribute("retryCount"));
+        assertNull(ff3.getAttribute("retryCount." + processor.getIdentifier()));
+    }
+
+    @Test
+    public void testRetryParentFlowFileRemovesChildren() throws IOException {
+        final Connectable processor = createProcessorConnectable();
+        configureRetry(processor, 1, BackoffMechanism.PENALIZE_FLOWFILE, "15 ms", 10000L);
+        final StandardProcessSession session = createSessionForRetry(processor);
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .id(500L)
+            .build();
+
+        flowFileQueue.put(flowFileRecord);
+
+        final Relationship relationshipA = new Relationship.Builder().name("A").build();
+        final Relationship relationshipB = new Relationship.Builder().name("B").build();
+
+        final FlowFile original = session.get();
+        assertNotNull(original);
+
+        final List<ContentClaim> contentClaims = new ArrayList<>();
+        for (int i=0; i < 3; i++) {
+            FlowFile child = session.create(original);
+            final byte[] contents = String.valueOf(i).getBytes();
+            child = session.write(child, out -> out.write(contents));
+
+            final FlowFileRecord childRecord = (FlowFileRecord) child;
+            contentClaims.add(childRecord.getContentClaim());
+
+            session.transfer(child, relationshipB);
+        }
+
+        session.transfer(original, relationshipA);
+        session.commit();
+
+        assertEquals(1, flowFileQueue.size().getObjectCount());
+        final List<ProvenanceEventRecord> provEvents = provenanceRepo.getEvents(0, 1000);
+        assertEquals(0, provEvents.size());
+
+        assertNull(flowFileRecord.getContentClaim());
+        for (final ContentClaim claim : contentClaims) {
+            assertEquals(0, contentRepo.getClaimantCount(claim));
+        }
     }
 
     @Test
@@ -3040,11 +3086,11 @@ public class StandardProcessSessionIT {
                                final String maxBackoffPeriod, final long penalizationPeriod) {
         Processor proc = mock(Processor.class);
         when(((ProcessorNode) connectable).getProcessor()).thenReturn( proc);
-        when(((ProcessorNode) connectable).isRelationshipRetried(any())).thenReturn(true);
-        when(((ProcessorNode) connectable).getRetryCount()).thenReturn(retryCount);
-        when(((ProcessorNode) connectable).getBackoffMechanism()).thenReturn(backoffMechanism);
-        when(((ProcessorNode) connectable).getMaxBackoffPeriod()).thenReturn(maxBackoffPeriod);
-        when(((ProcessorNode) connectable).getRetriedRelationships()).thenReturn(Collections.singleton(FAKE_RELATIONSHIP.getName()));
+        when((connectable).isRelationshipRetried(any())).thenReturn(true);
+        when((connectable).getRetryCount()).thenReturn(retryCount);
+        when((connectable).getBackoffMechanism()).thenReturn(backoffMechanism);
+        when((connectable).getMaxBackoffPeriod()).thenReturn(maxBackoffPeriod);
+        when((connectable).getRetriedRelationships()).thenReturn(Collections.singleton(FAKE_RELATIONSHIP.getName()));
         when(connectable.getPenalizationPeriod(any(TimeUnit.class))).thenReturn(penalizationPeriod);
         when(connectable.getYieldPeriod(any(TimeUnit.class))).thenReturn(penalizationPeriod);
     }
@@ -3052,14 +3098,13 @@ public class StandardProcessSessionIT {
     public Connectable createProcessorConnectable() {
         Connectable connectable = mock(StandardProcessorNode.class);
         final Connection connection = createConnection();
+        final Connection connectionB = createConnection();
 
         final List<Connection> connList = new ArrayList<>();
         connList.add(connection);
 
         when(connectable.hasIncomingConnection()).thenReturn(true);
         when(connectable.getIncomingConnections()).thenReturn(connList);
-
-
 
         when(connectable.getIdentifier()).thenReturn("connectable-1");
         when(connectable.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
@@ -3072,6 +3117,8 @@ public class StandardProcessSessionIT {
                 return Collections.emptySet();
             } else if (relationship == FAKE_RELATIONSHIP || relationship.equals(FAKE_RELATIONSHIP)) {
                 return null;
+            } else if (relationship.getName().equals("B")) {
+                return Collections.singleton(connectionB);
             } else {
                 return new HashSet<>(connList);
             }
