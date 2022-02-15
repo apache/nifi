@@ -53,16 +53,6 @@ import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.AccessTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.InvalidHashException;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import net.minidev.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
@@ -77,6 +67,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 /**
@@ -117,7 +117,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             return;
         }
 
-        // Decide whether to use NiFi truststore instead of system's cacerts when connecting to OIDC provider
+        // Set up trust store SSLContext
         if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
             setSslContext();
         }
@@ -187,7 +187,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
             } else {
-                final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+                final ResourceRetriever retriever = getResourceRetriever();
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
             }
         } catch (final Exception e) {
@@ -265,7 +265,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
      */
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
-        final HTTPRequest httpRequest = setHTTPRequestProperties(new HTTPRequest(HTTPRequest.Method.GET, url));
+        final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
+        setHttpRequestProperties(httpRequest);
         final HTTPResponse httpResponse = httpRequest.send();
 
         if (httpResponse.getStatusCode() != 200) {
@@ -503,16 +504,24 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        return setHTTPRequestProperties(request.toHTTPRequest());
+        return setHttpRequestProperties(request.toHTTPRequest());
     }
 
-    private HTTPRequest setHTTPRequestProperties(final HTTPRequest request) {
-        request.setConnectTimeout(oidcConnectTimeout);
-        request.setReadTimeout(oidcReadTimeout);
-        if (sslContext != null) {
-            request.setSSLSocketFactory(sslContext.getSocketFactory());
+    private HTTPRequest setHttpRequestProperties(final HTTPRequest httpRequest) {
+        httpRequest.setConnectTimeout(oidcConnectTimeout);
+        httpRequest.setReadTimeout(oidcReadTimeout);
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
         }
-        return request;
+        return httpRequest;
+    }
+
+    private ResourceRetriever getResourceRetriever() {
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout, 0, true, sslContext.getSocketFactory());
+        } else {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+        }
     }
 
     private ClientAuthentication createClientAuthentication() {
