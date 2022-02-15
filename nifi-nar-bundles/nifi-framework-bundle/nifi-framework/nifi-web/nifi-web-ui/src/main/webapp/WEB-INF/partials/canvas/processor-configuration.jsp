@@ -226,23 +226,32 @@
                 </div>
                 <div class="settings-right">
                     <div class="retry-count-setting setting">
-                        <div class="setting-name">Number of retry attempts</div>
+                        <div class="setting-name">
+                            Number of Retry Attempts
+                            <div class="fa fa-question-circle" alt="Info" title="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."></div>
+                        </div>
                         <div class="setting-field">
                             <input type="text" id="retry-attempt-count" class="small-setting-input">
                         </div>
                     </div>
                     <div class="backoff-policy-setting setting">
-                        <div class="setting-name">Retry Backoff Policy</div>
+                        <div class="setting-name">
+                            Retry Back Off Policy
+                            <div class="fa fa-question-circle" alt="Info" title="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles.&#013;&#013;Yield: No other FlowFile processing will occur until all retry attempts have been made."></div>
+                        </div>
                         <div class="setting-field">
                             <input type="radio" id="penalizeFlowFile" name="backoffPolicy" value="PENALIZE_FLOWFILE">
-                            <label for="penalizeFlowFile">penalize flow file</label>
+                            <label for="penalizeFlowFile">Penalize</label>
 
-                            <input type="radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR">
-                            <label for="yieldEntireProcessor">yield entire processor</label>
+                            <input type="radio" class="yield-radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR">
+                            <label for="yieldEntireProcessor">Yield</label>
                         </div>
                     </div>
                     <div class="max-backoff-setting setting">
-                        <div class="setting-name">Retry Max Backoff Period</div>
+                        <div class="setting-name">
+                            Retry Maximum Back Off Period
+                            <div class="fa fa-question-circle" alt="Info" title="Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs."></div>
+                        </div>
                         <div class="setting-field">
                             <input type="text" id="max-backoff-period" class="small-setting-input">
                         </div>

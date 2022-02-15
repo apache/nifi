@@ -99,6 +99,10 @@ div.processor-configuration-warning-icon:before {
     line-height: normal;
 }
 
+#processor-relationships-tab-content .yield-radio {
+    margin-left: 24px;
+}
+
 #processor-relationships-tab-content .backoff-policy-setting input,
 #processor-relationships-tab-content .backoff-policy-setting label {
     display: inline-block;
