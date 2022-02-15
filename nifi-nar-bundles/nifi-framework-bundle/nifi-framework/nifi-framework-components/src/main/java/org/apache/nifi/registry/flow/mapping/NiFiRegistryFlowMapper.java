@@ -700,6 +700,10 @@ public class NiFiRegistryFlowMapper {
         processor.setStyle(procNode.getStyle());
         processor.setYieldDuration(procNode.getYieldPeriod());
         processor.setScheduledState(flowMappingOptions.getStateLookup().getState(procNode));
+        processor.setRetryCount(procNode.getRetryCount());
+        processor.setRetriedRelationships(procNode.getRetriedRelationships());
+        processor.setBackoffMechanism(procNode.getBackoffMechanism().name());
+        processor.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
 
         return processor;
     }

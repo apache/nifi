@@ -35,6 +35,8 @@ public interface InternalProvenanceReporter extends ProvenanceReporter {
 
     void remove(ProvenanceEventRecord event);
 
+    void removeEventsForFlowFile(String uuid);
+
     void clear();
 
     void migrate(InternalProvenanceReporter newOwner, Collection<String> flowFileIds);

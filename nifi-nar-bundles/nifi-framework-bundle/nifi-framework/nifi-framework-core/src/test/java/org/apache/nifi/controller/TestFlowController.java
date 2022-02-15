@@ -995,6 +995,10 @@ public class TestFlowController {
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
         configDTO.setExecutionNode(processorNode.getExecutionNode().name());
         configDTO.setAnnotationData(processorNode.getAnnotationData());
+        configDTO.setRetryCount(processorNode.getRetryCount());
+        configDTO.setRetriedRelationships(processorNode.getRetriedRelationships());
+        configDTO.setBackoffMechanism(processorNode.getBackoffMechanism().name());
+        configDTO.setMaxBackoffPeriod(processorNode.getMaxBackoffPeriod());
 
         processorDTO.setConfig(configDTO);
 
@@ -1049,6 +1053,10 @@ public class TestFlowController {
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
         configDTO.setExecutionNode(processorNode.getExecutionNode().name());
         configDTO.setAnnotationData(processorNode.getAnnotationData());
+        configDTO.setRetryCount(processorNode.getRetryCount());
+        configDTO.setRetriedRelationships(processorNode.getRetriedRelationships());
+        configDTO.setBackoffMechanism(processorNode.getBackoffMechanism().name());
+        configDTO.setMaxBackoffPeriod(processorNode.getMaxBackoffPeriod());
 
         processorDTO.setConfig(configDTO);
 
@@ -1105,6 +1113,10 @@ public class TestFlowController {
         configDTO.setSchedulingStrategy(processorNode.getSchedulingStrategy().name());
         configDTO.setExecutionNode(processorNode.getExecutionNode().name());
         configDTO.setAnnotationData(processorNode.getAnnotationData());
+        configDTO.setRetryCount(processorNode.getRetryCount());
+        configDTO.setRetriedRelationships(processorNode.getRetriedRelationships());
+        configDTO.setBackoffMechanism(processorNode.getBackoffMechanism().name());
+        configDTO.setMaxBackoffPeriod(processorNode.getMaxBackoffPeriod());
 
         processorDTO.setConfig(configDTO);
 
