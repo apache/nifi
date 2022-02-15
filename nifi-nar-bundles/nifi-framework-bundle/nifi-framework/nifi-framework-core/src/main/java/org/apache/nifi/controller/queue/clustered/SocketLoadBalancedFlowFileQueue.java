@@ -27,6 +27,7 @@ import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -557,6 +558,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public boolean isEmpty() {
         return size().getObjectCount() == 0;
+    }
+
+    @Override
+    public FlowFileAvailability getFlowFileAvailability() {
+        return localPartition.getFlowFileAvailability();
     }
 
     @Override

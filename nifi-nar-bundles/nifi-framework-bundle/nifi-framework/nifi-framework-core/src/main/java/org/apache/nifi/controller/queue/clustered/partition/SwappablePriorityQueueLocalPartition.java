@@ -20,6 +20,7 @@ package org.apache.nifi.controller.queue.clustered.partition;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
@@ -100,6 +101,11 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     @Override
     public boolean isActiveQueueEmpty() {
         return priorityQueue.isActiveQueueEmpty();
+    }
+
+    @Override
+    public FlowFileAvailability getFlowFileAvailability() {
+        return priorityQueue.getFlowFileAvailability();
     }
 
     @Override
