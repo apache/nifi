@@ -29,6 +29,7 @@ public class RelationshipDTO {
     private String name;
     private String description;
     private Boolean autoTerminate;
+    private Boolean retry;
 
     /**
      * @return the relationship name
@@ -70,5 +71,19 @@ public class RelationshipDTO {
 
     public void setAutoTerminate(Boolean autoTerminate) {
         this.autoTerminate = autoTerminate;
+    }
+
+    /**
+     * @return true if relationship is retry;false otherwise
+     */
+    @ApiModelProperty(
+            value = "Whether or not flowfiles sent to this relationship should retry."
+    )
+    public Boolean isRetry() {
+        return retry;
+    }
+
+    public void setRetry(Boolean retry) {
+        this.retry = retry;
     }
 }

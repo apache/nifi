@@ -144,6 +144,10 @@ public class VersionedFlowBuilder {
         processor.setType(type);
         processor.setYieldDuration("1 sec");
         processor.setSchedulingStrategy("TIMER_DRIVEN");
+        processor.setRetryCount(0);
+        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
+        processor.setRetriedRelationships(Collections.EMPTY_SET);
+        processor.setMaxBackoffPeriod("0 sec");
 
         group.getProcessors().add(processor);
         return processor;

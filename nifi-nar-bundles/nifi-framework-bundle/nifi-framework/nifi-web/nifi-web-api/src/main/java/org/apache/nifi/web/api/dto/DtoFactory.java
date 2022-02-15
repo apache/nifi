@@ -3155,6 +3155,7 @@ public final class DtoFactory {
             relationshipDTO.setDescription(rel.getDescription());
             relationshipDTO.setName(rel.getName());
             relationshipDTO.setAutoTerminate(node.isAutoTerminated(rel));
+            relationshipDTO.setRetry(node.isRelationshipRetried(rel));
             relationships.add(relationshipDTO);
         }
 
@@ -3994,6 +3995,11 @@ public final class DtoFactory {
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         dto.setExecutionNode(procNode.getExecutionNode().name());
 
+       dto.setBackoffMechanism(procNode.getBackoffMechanism().name());
+       dto.setMaxBackoffPeriod(procNode.getMaxBackoffPeriod());
+       dto.setRetriedRelationships(procNode.getRetriedRelationships());
+       dto.setRetryCount(procNode.getRetryCount());
+
         return dto;
     }
 
@@ -4224,6 +4230,10 @@ public final class DtoFactory {
         copy.setDefaultConcurrentTasks(original.getDefaultConcurrentTasks());
         copy.setDefaultSchedulingPeriod(original.getDefaultSchedulingPeriod());
         copy.setLossTolerant(original.isLossTolerant());
+        copy.setBackoffMechanism(original.getBackoffMechanism());
+        copy.setMaxBackoffPeriod(original.getMaxBackoffPeriod());
+        copy.setRetryCount(original.getRetryCount());
+        copy.setRetriedRelationships(original.getRetriedRelationships());
 
         return copy;
     }
