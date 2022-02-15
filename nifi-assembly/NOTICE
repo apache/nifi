@@ -680,6 +680,11 @@ The following binary components are provided under the Apache Software License v
       Apache CXF
       Copyright 2008-2017 The Apache Software Foundation
 
+  (ASLv2) snowflake-jdbc
+    The following NOTICE information applies:
+      snowflake-jdbc
+      Copyright (c) 2013-2018 Snowflake Computing, Inc.
+
   (ASLv2) Apache Lucene
     The following NOTICE information applies:
       Apache Lucene

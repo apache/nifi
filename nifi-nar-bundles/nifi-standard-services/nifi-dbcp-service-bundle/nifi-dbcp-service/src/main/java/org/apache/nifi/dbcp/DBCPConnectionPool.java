@@ -83,28 +83,28 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_IDLE} in Commons-DBCP 2.7.0
      */
-    protected static final String DEFAULT_MIN_IDLE = "0";
+    private static final String DEFAULT_MIN_IDLE = "0";
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MAX_IDLE} in Commons-DBCP 2.7.0
      */
-    protected static final String DEFAULT_MAX_IDLE = "8";
+    private static final String DEFAULT_MAX_IDLE = "8";
     /**
      * Copied from private variable {@link BasicDataSource#maxConnLifetimeMillis} in Commons-DBCP 2.7.0
      */
-    protected static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
+    private static final String DEFAULT_MAX_CONN_LIFETIME = "-1";
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_TIME_BETWEEN_EVICTION_RUNS_MILLIS} in Commons-DBCP 2.7.0
      */
-    protected static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
+    private static final String DEFAULT_EVICTION_RUN_PERIOD = String.valueOf(-1L);
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      * and converted from 1800000L to "1800000 millis" to "30 mins"
      */
-    protected static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
+    private static final String DEFAULT_MIN_EVICTABLE_IDLE_TIME = "30 mins";
     /**
      * Copied from {@link GenericObjectPoolConfig#DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME_MILLIS} in Commons-DBCP 2.7.0
      */
-    protected static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
+    private static final String DEFAULT_SOFT_MIN_EVICTABLE_IDLE_TIME = String.valueOf(-1L);
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
         .name("Database Connection URL")
