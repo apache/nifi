@@ -147,6 +147,8 @@ public interface ComponentNode extends ComponentAuthorizable {
 
     void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
 
+    boolean isReloadAdditionalResourcesNecessary();
+
     void reloadAdditionalResourcesIfNecessary();
 
     void resetValidationState();

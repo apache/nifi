@@ -339,17 +339,21 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public void verifyCanEnable() {
         final ControllerServiceState state = getState();
-        if (state != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled - it has a state of " + state);
+        switch (state) {
+            case DISABLED:
+                return;
+            case DISABLING:
+                throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled - it has a state of " + state);
+            default:
+                if (isReloadAdditionalResourcesNecessary()) {
+                    throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because additional resources are needed - it has a state of " + state);
+                }
         }
     }
 
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
-        final ControllerServiceState state = getState();
-        if (state != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException(getControllerServiceImplementation().getIdentifier() + " cannot be enabled because it is not disabled - it has a state of " + state);
-        }
+        verifyCanEnable();
     }
 
     @Override
