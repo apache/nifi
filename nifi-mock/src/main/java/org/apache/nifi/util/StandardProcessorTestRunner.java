@@ -135,8 +135,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
-
-        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor);
     }
 
     @Override
@@ -189,12 +187,16 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish, final boolean initialize, final long runWait) {
-        if (iterations < 1) {
+        if (iterations < 0) {
             throw new IllegalArgumentException();
         }
 
         context.assertValid();
         context.enableExpressionValidation();
+
+        // Call onConfigurationRestored here, right before the test run, as all properties should have been set byt this point.
+        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, processor, this.context);
+
         try {
             if (initialize) {
                 try {
@@ -228,7 +230,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                         throw new AssertionError(thrown);
                     }
 
-                    if (++finishedCount == 1) {
+                    if (++finishedCount == 1 && stopOnFinish) {
                         unscheduledRun = true;
                         unSchedule();
                     }
@@ -236,7 +238,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                 }
             }
 
-            if (!unscheduledRun) {
+            if (!unscheduledRun && stopOnFinish) {
                 unSchedule();
             }
 

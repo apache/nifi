@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.grpc.stub.StreamObserver;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Simple gRPC service that handles receipt of FlowFileRequest messages from external-to-NiFi gRPC
@@ -69,9 +69,9 @@ public class FlowFileIngestService extends FlowFileServiceGrpc.FlowFileServiceIm
     public FlowFileIngestService(final ComponentLog logger,
                                  final AtomicReference<ProcessSessionFactory> sessionFactoryReference,
                                  final ProcessContext context) {
-        this.context = checkNotNull(context);
-        this.sessionFactoryReference = checkNotNull(sessionFactoryReference);
-        this.logger = checkNotNull(logger);
+        this.context = requireNonNull(context);
+        this.sessionFactoryReference = requireNonNull(sessionFactoryReference);
+        this.logger = requireNonNull(logger);
     }
 
     /**

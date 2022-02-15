@@ -1,0 +1,16 @@
+nifi-hashicorp-vault-nar
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Spring Vault
+    The following NOTICE information applies:
+      Spring Vault
+      Copyright 2004-2021 The Apache Software Foundation

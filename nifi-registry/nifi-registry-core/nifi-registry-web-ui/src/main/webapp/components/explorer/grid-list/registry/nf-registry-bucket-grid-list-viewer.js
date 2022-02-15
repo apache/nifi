@@ -105,6 +105,10 @@ NfRegistryBucketGridListViewer.prototype = {
         this.nfRegistryService.setBreadcrumbState('out');
         this.nfRegistryService.filteredDroplets = [];
         this.$subscription.unsubscribe();
+    },
+
+    trackByFn: function (index) {
+        return index;
     }
 };
 

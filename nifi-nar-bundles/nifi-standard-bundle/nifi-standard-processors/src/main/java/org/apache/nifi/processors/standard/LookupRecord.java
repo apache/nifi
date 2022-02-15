@@ -308,9 +308,10 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
     private Set<Relationship> doInPlaceReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
         final Map<String, RecordPath> recordPaths = flowFileContext.getKey();
         final Map<String, Object> lookupCoordinates = new HashMap<>(recordPaths.size());
+        final String coordinateKey = lookupService.getRequiredKeys().iterator().next();
+        boolean hasUnmatchedValue = false;
 
         for (final Map.Entry<String, RecordPath> entry : recordPaths.entrySet()) {
-            final String coordinateKey = entry.getKey();
             final RecordPath recordPath = entry.getValue();
 
             final RecordPathResult pathResult = recordPath.evaluate(record);
@@ -325,8 +326,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             }
 
             for (FieldValue fieldValue : lookupFieldValues) {
-                final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
-                        ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+                final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
 
                 lookupCoordinates.clear();
                 lookupCoordinates.put(coordinateKey, coordinateValue);
@@ -339,20 +339,22 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
                 }
 
                 if (!lookupValueOption.isPresent()) {
-                    final Set<Relationship> rels = routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
-                    return rels;
+                    hasUnmatchedValue = true;
+                    continue;
                 }
 
                 final Object lookupValue = lookupValueOption.get();
 
                 final DataType inferredDataType = DataTypeUtils.inferDataType(lookupValue, RecordFieldType.STRING.getDataType());
                 fieldValue.updateValue(lookupValue, inferredDataType);
-
             }
         }
 
-        final Set<Relationship> rels = routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
-        return rels;
+        if (hasUnmatchedValue) {
+            return routeToMatchedUnmatched ? UNMATCHED_COLLECTION : SUCCESS_COLLECTION;
+        } else {
+            return routeToMatchedUnmatched ? MATCHED_COLLECTION : SUCCESS_COLLECTION;
+        }
     }
 
     private Set<Relationship> doResultPathReplacement(Record record, FlowFile flowFile, ProcessContext context, Tuple<Map<String, RecordPath>, RecordPath> flowFileContext) {
@@ -382,8 +384,7 @@ public class LookupRecord extends AbstractRouteRecord<Tuple<Map<String, RecordPa
             }
 
             final FieldValue fieldValue = lookupFieldValues.get(0);
-            final Object coordinateValue = (fieldValue.getValue() instanceof Number || fieldValue.getValue() instanceof Boolean)
-                    ? fieldValue.getValue() : DataTypeUtils.toString(fieldValue.getValue(), (String) null);
+            final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
             lookupCoordinates.put(coordinateKey, coordinateValue);
         }
 

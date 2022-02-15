@@ -38,7 +38,7 @@ public class LogComponentStatuses implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(LogComponentStatuses.class);
     private static final int METRIC_CACHE_SECONDS = 300; // FlowFileEvent Repository holds 300 seconds' worth of metrics/events
 
-    private static final String PROCESSOR_LINE_FORMAT = "| %1$-30.30s | %2$-36.36s | %3$-30.30s | %4$28.28s | %5$30.30s | %6$14.14s | %714.14s | %8$28.28s |\n";
+    private static final String PROCESSOR_LINE_FORMAT = "| %1$-30.30s | %2$-36.36s | %3$-30.30s | %4$28.28s | %5$30.30s | %6$14.14s | %7$14.14s | %8$28.28s |\n";
     private static final String COUNTER_LINE_FORMAT = "| %1$-36.36s | %2$-36.36s | %3$28.28s | %4$28.28s |\n";
 
     private final FlowFileEventRepository flowFileEventRepository;

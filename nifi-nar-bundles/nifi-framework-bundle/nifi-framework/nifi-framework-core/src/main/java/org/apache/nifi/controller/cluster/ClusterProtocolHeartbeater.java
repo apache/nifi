@@ -16,6 +16,20 @@
  */
 package org.apache.nifi.controller.cluster;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.ClusterRoles;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.cluster.protocol.NodeProtocolSender;
+import org.apache.nifi.cluster.protocol.ProtocolException;
+import org.apache.nifi.cluster.protocol.message.CommsTimingDetails;
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
+import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -25,18 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.nifi.cluster.coordination.ClusterCoordinator;
-import org.apache.nifi.cluster.coordination.node.ClusterRoles;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.cluster.protocol.HeartbeatPayload;
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.cluster.protocol.NodeProtocolSender;
-import org.apache.nifi.cluster.protocol.ProtocolException;
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
-import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
-import org.apache.nifi.controller.leader.election.LeaderElectionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Uses Leader Election Manager in order to determine which node is the elected
@@ -68,11 +70,14 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         return heartbeatAddress;
     }
 
+
     @Override
     public synchronized void send(final HeartbeatMessage heartbeatMessage) throws IOException {
         final long sendStart = System.nanoTime();
-
+        final long findCoordinatorStart = System.nanoTime();
         final String heartbeatAddress = getHeartbeatAddress();
+        final long findCoordinatorNanos = System.nanoTime() - findCoordinatorStart;
+
         final HeartbeatResponseMessage responseMessage = protocolSender.heartbeat(heartbeatMessage, heartbeatAddress);
 
         final byte[] payloadBytes = heartbeatMessage.getHeartbeat().getPayload();
@@ -104,10 +109,19 @@ public class ClusterProtocolHeartbeater implements Heartbeater {
         final String flowElectionMessage = responseMessage.getFlowElectionMessage();
         final String formattedElectionMessage = flowElectionMessage == null ? "" : "; " + flowElectionMessage;
 
-        logger.info("Heartbeat created at {} and sent to {} at {}; send took {} millis{}",
+        final CommsTimingDetails timingDetails = responseMessage.getCommsTimingDetails();
+
+        logger.info("Heartbeat created at {} and sent to {} at {}; determining Cluster Coordinator took {} millis; DNS lookup for coordinator took {} millis; connecting to coordinator took {} " +
+                "millis; sending heartbeat took {} millis; receiving first byte from response took {} millis; receiving full response took {} millis; total time was {} millis{}",
             dateFormatter.format(new Date(heartbeatMessage.getHeartbeat().getCreatedTimestamp())),
             heartbeatAddress,
             dateFormatter.format(new Date()),
+            TimeUnit.NANOSECONDS.toMillis(findCoordinatorNanos),
+            timingDetails.getDnsLookupMillis(),
+            timingDetails.getConnectMillis(),
+            timingDetails.getSendRequestMillis(),
+            timingDetails.getReceiveFirstByteMillis(),
+            timingDetails.getReceiveFullResponseMillis(),
             sendMillis,
             formattedElectionMessage);
     }

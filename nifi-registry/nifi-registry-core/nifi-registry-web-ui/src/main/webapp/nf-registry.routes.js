@@ -36,7 +36,7 @@ import {
 } from 'services/nf-registry.auth-guard.service';
 
 // eslint-disable-next-line new-cap
-const NfRegistryRoutes = new RouterModule.forRoot([{
+const NfRegistryRoutes = RouterModule.forRoot([{
     path: 'explorer',
     component: NfRegistryExplorer,
     children: [

@@ -19,15 +19,16 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry-core</artifactId>
-    <version>1.15.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>The core modules of NiFi Registry.</description>
     <modules>
         <module>nifi-registry-properties</module>
+	<module>nifi-registry-properties-loader</module>
         <module>nifi-registry-utils</module>
         <module>nifi-registry-data-model</module>
         <module>nifi-registry-flow-diff</module>
@@ -107,7 +108,6 @@
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b08</version>
             </dependency>
-            <!-- Spring Boot 2.0 Requires Jackson 2.9.x -->
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>

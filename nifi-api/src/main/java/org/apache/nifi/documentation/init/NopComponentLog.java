@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.init;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
 
 public class NopComponentLog implements ComponentLog {
     @Override
@@ -41,6 +42,11 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
+    public void warn(LogMessage logMessage) {
+
+    }
+
+    @Override
     public void trace(final String msg, final Throwable t) {
 
     }
@@ -57,6 +63,11 @@ public class NopComponentLog implements ComponentLog {
 
     @Override
     public void trace(final String msg, final Object[] os, final Throwable t) {
+
+    }
+
+    @Override
+    public void trace(LogMessage logMessage) {
 
     }
 
@@ -106,6 +117,11 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
+    public void info(LogMessage message) {
+
+    }
+
+    @Override
     public String getName() {
         return null;
     }
@@ -131,6 +147,11 @@ public class NopComponentLog implements ComponentLog {
     }
 
     @Override
+    public void error(LogMessage message) {
+
+    }
+
+    @Override
     public void debug(final String msg, final Throwable t) {
 
     }
@@ -147,6 +168,11 @@ public class NopComponentLog implements ComponentLog {
 
     @Override
     public void debug(final String msg) {
+
+    }
+
+    @Override
+    public void debug(LogMessage message) {
 
     }
 
@@ -169,4 +195,10 @@ public class NopComponentLog implements ComponentLog {
     public void log(final LogLevel level, final String msg, final Object[] os, final Throwable t) {
 
     }
+
+    @Override
+    public void log(LogMessage message) {
+
+    }
+
 }

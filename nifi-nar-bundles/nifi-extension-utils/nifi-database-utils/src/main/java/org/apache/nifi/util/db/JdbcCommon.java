@@ -189,6 +189,10 @@ public class JdbcCommon {
             return defaultScale;
         }
 
+        public boolean isUseLogicalTypes() {
+            return useLogicalTypes;
+        }
+
         public static class Builder {
             private String recordName;
             private int maxRows = 0;

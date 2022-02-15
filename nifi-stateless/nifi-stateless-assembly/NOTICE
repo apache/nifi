@@ -1,5 +1,5 @@
 nifi-stateless-assembly
-Copyright 2014-2021 The Apache Software Foundation
+Copyright 2014-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -34,11 +34,6 @@ The following binary components are provided under the Apache Software License v
 
       This product includes software developed at
       The Apache Software Foundation (http://www.apache.org/).
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2013 The Apache Software Foundation
 
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
@@ -142,6 +137,18 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - http://glassfish.org/osgi-resource-locator)
 
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta Activation (com.sun.activation:jakarta.activation:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+    (EDL 1.0) JAXB (JSR 222) Reference Implementation (org.glassfish.jaxb:jaxb-runtime:jar:2.3.5)
+    (EDL 1.0) Istack Common Utility Code Runtime (com.sun.istack:istack-commons-runtime:jar:3.0.12)
+    (EDL 1.0) TXW2 Runtime (org.glassfish.jaxb:txw2:jar:2.3.5)
 
 ************************
 Eclipse Public License 1.0

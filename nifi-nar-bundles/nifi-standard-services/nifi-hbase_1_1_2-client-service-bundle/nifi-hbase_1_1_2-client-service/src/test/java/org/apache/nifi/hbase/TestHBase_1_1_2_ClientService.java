@@ -26,11 +26,13 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -47,8 +49,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -60,7 +64,7 @@ public class TestHBase_1_1_2_ClientService {
     private KerberosProperties kerberosPropsWithFile;
     private KerberosProperties kerberosPropsWithoutFile;
 
-    @Before
+    @BeforeEach
     public void setup() {
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -178,6 +182,81 @@ public class TestHBase_1_1_2_ClientService {
         runner.setProperty(service, kerberosPropsWithoutFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
         runner.setProperty(service, kerberosPropsWithoutFile.getKerberosPrincipal(), "test@REALM");
         runner.assertNotValid(service);
+
+        // Kerberos - add valid options with password
+        service = new MockHBaseClientService(table, COL_FAM, kerberosPropsWithFile, true);
+        runner.addControllerService("hbaseClientService", service);
+        runner.setProperty(service, HBase_1_1_2_ClientService.HADOOP_CONF_FILES,
+                "src/test/resources/hbase-site.xml, src/test/resources/core-site-security.xml");
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosPassword(), "password");
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
+        runner.assertValid(service);
+
+        // Kerberos - keytab and password at same time should be invalid
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosKeytab());
+        runner.assertValid(service);
+
+        // Kerberos - credentials service not valid when other kerberos properties set
+        final KerberosCredentialsService credentialsService = enabledKerberosCredentialsService(runner);
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_CREDENTIALS_SERVICE, credentialsService.getIdentifier());
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosPassword());
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosPrincipal());
+        runner.assertValid(service);
+
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosKeytab());
+        runner.assertValid(service);
+
+        // Kerberos - user service with credentials service is invalid
+        final KerberosUserService userService = enableKerberosUserService(runner);
+        runner.setProperty(service, HBase_1_1_2_ClientService.KERBEROS_USER_SERVICE, userService.getIdentifier());
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, HBase_1_1_2_ClientService.KERBEROS_CREDENTIALS_SERVICE);
+        runner.assertValid(service);
+
+        // Kerberos - user service with other kerberos properties is invalid
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosPassword(), "password");
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosPassword());
+        runner.setProperty(service, kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosKeytab());
+        runner.assertNotValid(service);
+
+        runner.removeProperty(service, kerberosPropsWithFile.getKerberosPrincipal());
+        runner.assertValid(service);
+    }
+
+    private KerberosUserService enableKerberosUserService(final TestRunner runner) throws InitializationException {
+        final KerberosUserService kerberosUserService = mock(KerberosUserService.class);
+        when(kerberosUserService.getIdentifier()).thenReturn("userService1");
+        runner.addControllerService(kerberosUserService.getIdentifier(), kerberosUserService);
+        runner.enableControllerService(kerberosUserService);
+        return kerberosUserService;
+    }
+
+    private KerberosCredentialsService enabledKerberosCredentialsService(final TestRunner runner) throws InitializationException {
+        final KerberosCredentialsService credentialsService = mock(KerberosCredentialsService.class);
+        when(credentialsService.getIdentifier()).thenReturn("credsService1");
+        when(credentialsService.getPrincipal()).thenReturn("principal1");
+        when(credentialsService.getKeytab()).thenReturn("keytab1");
+
+        runner.addControllerService(credentialsService.getIdentifier(), credentialsService);
+        runner.enableControllerService(credentialsService);
+        return credentialsService;
     }
 
     @Test
@@ -377,8 +456,8 @@ public class TestHBase_1_1_2_ClientService {
         hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void testScanWithInvalidFilter() throws InitializationException, IOException {
+    @Test
+    public void testScanWithInvalidFilter() throws InitializationException {
         final String tableName = "nifi";
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
 
@@ -397,7 +476,8 @@ public class TestHBase_1_1_2_ClientService {
 
         // this should throw IllegalArgumentException
         final String filter = "this is not a filter";
-        hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler);
+        assertThrows(IllegalArgumentException.class,
+                () -> hBaseClientService.scan(tableName, new ArrayList<Column>(), filter, System.currentTimeMillis(), handler));
     }
 
     private MockHBaseClientService configureHBaseClientService(final TestRunner runner, final Table table) throws InitializationException {

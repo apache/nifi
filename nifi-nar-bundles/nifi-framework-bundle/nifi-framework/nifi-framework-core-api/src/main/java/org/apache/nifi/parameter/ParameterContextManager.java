@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.parameter;
 
+import java.util.Map;
 import java.util.Set;
 
-public interface ParameterContextManager {
-    ParameterContext getParameterContext(String id);
+public interface ParameterContextManager extends ParameterContextLookup {
 
     void addParameterContext(ParameterContext parameterContext);
 
     ParameterContext removeParameterContext(String parameterContextId);
 
     Set<ParameterContext> getParameterContexts();
+
+    Map<String, ParameterContext> getParameterContextNameMapping();
 }

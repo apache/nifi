@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.TestRunner;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -39,7 +40,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
         runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.assertValid();
 
-        runner.enqueue("testdata", ImmutableMap.of(
+        runner.enqueue("testdata", Collections.singletonMap(
                 CoreAttributes.FILENAME.key(), KEY
         ));
 
@@ -61,7 +62,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
         runner.setProperty(DeleteGCSObject.KEY, KEY);
         runner.assertValid();
 
-        runner.enqueue("testdata", ImmutableMap.of(
+        runner.enqueue("testdata", Collections.singletonMap(
                 "filename", "different-filename"
         ));
 
@@ -79,7 +80,7 @@ public class DeleteGCSObjectIT extends AbstractGCSIT {
         runner.setProperty(DeleteGCSObject.BUCKET, BUCKET);
         runner.assertValid();
 
-        runner.enqueue("testdata", ImmutableMap.of(
+        runner.enqueue("testdata", Collections.singletonMap(
                 "filename", "nonexistant-file"
         ));
 

@@ -23,16 +23,16 @@ import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.net.URI;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestJettyWebSocketServer {
@@ -46,13 +46,13 @@ public class TestJettyWebSocketServer {
 
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setRunner() {
         final Processor processor = mock(Processor.class);
         runner = TestRunners.newTestRunner(processor);
     }
 
-    @After
+    @AfterEach
     public void shutdown() {
         runner.shutdown();
     }
@@ -112,7 +112,7 @@ public class TestJettyWebSocketServer {
             session.getRemote().sendString(command);
             session.close();
 
-            assertTrue("Connection not found", connected.get());
+            assertTrue(connected.get(), "Connection not found");
         } finally {
             client.stop();
             runner.disableControllerService(server);

@@ -22,7 +22,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.common.collect.ImmutableList;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -47,6 +46,7 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -289,18 +289,17 @@ public class PutGCSObject extends AbstractGCSProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor>builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(BUCKET)
-                .add(KEY)
-                .add(CONTENT_TYPE)
-                .add(MD5)
-                .add(CRC32C)
-                .add(ACL)
-                .add(ENCRYPTION_KEY)
-                .add(OVERWRITE)
-                .add(CONTENT_DISPOSITION_TYPE)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(BUCKET);
+        descriptors.add(KEY);
+        descriptors.add(CONTENT_TYPE);
+        descriptors.add(MD5);
+        descriptors.add(CRC32C);
+        descriptors.add(ACL);
+        descriptors.add(ENCRYPTION_KEY);
+        descriptors.add(OVERWRITE);
+        descriptors.add(CONTENT_DISPOSITION_TYPE);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -311,6 +310,11 @@ public class PutGCSObject extends AbstractGCSProcessor {
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .dynamic(true)
                 .build();
+    }
+
+    @Override
+    protected List<String> getRequiredPermissions() {
+        return Collections.singletonList("storage.objects.create");
     }
 
     @Override
@@ -400,8 +404,7 @@ public class PutGCSObject extends AbstractGCSProcessor {
                         }
 
                         try {
-
-                            final Blob blob = storage.create(blobInfoBuilder.build(),
+                            final Blob blob = storage.createFrom(blobInfoBuilder.build(),
                                     in,
                                     blobWriteOptions.toArray(new Storage.BlobWriteOption[blobWriteOptions.size()])
                             );

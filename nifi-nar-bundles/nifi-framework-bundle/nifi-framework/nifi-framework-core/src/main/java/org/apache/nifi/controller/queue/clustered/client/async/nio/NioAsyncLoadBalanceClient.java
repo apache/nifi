@@ -129,11 +129,12 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         }
 
         logger.debug("{} Unregistered Connection with ID {}. Will fail any in-flight FlowFiles for Registered Partition {}", this, connectionId, removedPartition);
-        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+        final boolean validSession = loadBalanceSession != null && connectionId.equals(loadBalanceSession.getPartition().getConnectionId());
+        if (validSession && !loadBalanceSession.isComplete()) {
             // Attempt to cancel the session. If successful, trigger the failure callback for the partition.
             // If not successful, it indicates that another thread has completed the session and is responsible or the transaction success/failure
             if (loadBalanceSession.cancel()) {
-                final List<FlowFileRecord> flowFilesSent = loadBalanceSession.getFlowFilesSent();
+                final List<FlowFileRecord> flowFilesSent = loadBalanceSession.getAndPurgeFlowFilesSent();
 
                 logger.debug("{} Triggering failure callback for {} FlowFiles for Registered Partition {} because partition was unregistered", this, flowFilesSent.size(), removedPartition);
                 removedPartition.getFailureCallback().onTransactionFailed(flowFilesSent, TransactionFailureCallback.TransactionPhase.SENDING);
@@ -268,7 +269,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                         loadBalanceSession.getPartition().getConnectionId() + " due to " + e);
 
                     penalize();
-                    loadBalanceSession.getPartition().getFailureCallback().onTransactionFailed(loadBalanceSession.getFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
+                    loadBalanceSession.getPartition().getFailureCallback().onTransactionFailed(loadBalanceSession.getAndPurgeFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
                     close();
 
                     return false;
@@ -278,7 +279,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             } while (success);
 
             if (loadBalanceSession.isComplete() && !loadBalanceSession.isCanceled()) {
-                loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getFlowFilesSent(), nodeIdentifier);
+                loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getAndPurgeFlowFilesSent(), nodeIdentifier);
             }
 
             return anySuccess;
@@ -311,10 +312,10 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 loadBalanceSession = null;
 
                 logger.debug("Node {} disconnected so will terminate the Load Balancing Session", nodeIdentifier);
-                final List<FlowFileRecord> flowFilesSent = session.getFlowFilesSent();
+                final List<FlowFileRecord> flowFilesSent = session.getAndPurgeFlowFilesSent();
 
                 if (!flowFilesSent.isEmpty()) {
-                    session.getPartition().getFailureCallback().onTransactionFailed(session.getFlowFilesSent(), TransactionFailureCallback.TransactionPhase.SENDING);
+                    session.getPartition().getFailureCallback().onTransactionFailed(flowFilesSent, TransactionFailureCallback.TransactionPhase.SENDING);
                 }
 
                 close();

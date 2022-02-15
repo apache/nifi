@@ -18,7 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
-import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -32,54 +32,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.util.StopWatch;
-import java.io.IOException;
+
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-/**
- * <p>
- * The PutTCP processor receives a FlowFile and transmits the FlowFile content over a TCP connection to the configured TCP server. By default, the FlowFiles are transmitted over the same TCP
- * connection (or pool of TCP connections if multiple input threads are configured). To assist the TCP server with determining message boundaries, an optional "Outgoing Message Delimiter" string can
- * be configured which is appended to the end of each FlowFiles content when it is transmitted over the TCP connection. An optional "Connection Per FlowFile" parameter can be specified to change the
- * behaviour so that each FlowFiles content is transmitted over a single TCP connection which is opened when the FlowFile is received and closed after the FlowFile has been sent. This option should
- * only be used for low message volume scenarios, otherwise the platform may run out of TCP sockets.
- * </p>
- *
- * <p>
- * This processor has the following required properties:
- * <ul>
- * <li><b>Hostname</b> - The IP address or host name of the destination TCP server.</li>
- * <li><b>Port</b> - The TCP port of the destination TCP server.</li>
- * </ul>
- * </p>
- *
- * <p>
- * This processor has the following optional properties:
- * <ul>
- * <li><b>Connection Per FlowFile</b> - Specifies that each FlowFiles content will be transmitted on a separate TCP connection.</li>
- * <li><b>Idle Connection Expiration</b> - The time threshold after which a TCP sender is deemed eligible for pruning - the associated TCP connection will be closed after this timeout.</li>
- * <li><b>Max Size of Socket Send Buffer</b> - The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System to indicate how big the socket buffer should
- * be. If this value is set too low, the buffer may fill up before the data can be read, and incoming data will be dropped.</li>
- * <li><b>Outgoing Message Delimiter</b> - A string to append to the end of each FlowFiles content to indicate the end of the message to the TCP server.</li>
- * <li><b>Timeout</b> - The timeout period for determining an error has occurred whilst connecting or sending data.</li>
- * </ul>
- * </p>
- *
- * <p>
- * The following relationships are required:
- * <ul>
- * <li><b>failure</b> - Where to route FlowFiles that failed to be sent.</li>
- * <li><b>success</b> - Where to route FlowFiles after they were successfully sent to the TCP server.</li>
- * </ul>
- * </p>
- *
- */
 @CapabilityDescription("The PutTCP processor receives a FlowFile and transmits the FlowFile content over a TCP connection to the configured TCP server. "
         + "By default, the FlowFiles are transmitted over the same TCP connection (or pool of TCP connections if multiple input threads are configured). "
         + "To assist the TCP server with determining message boundaries, an optional \"Outgoing Message Delimiter\" string can be configured which is appended "
@@ -87,34 +48,11 @@ import java.util.concurrent.TimeUnit;
         + "specified to change the behaviour so that each FlowFiles content is transmitted over a single TCP connection which is opened when the FlowFile "
         + "is received and closed after the FlowFile has been sent. This option should only be used for low message volume scenarios, otherwise the platform " + "may run out of TCP sockets.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@SeeAlso(ListenTCP.class)
+@SeeAlso({ListenTCP.class, PutUDP.class})
 @Tags({ "remote", "egress", "put", "tcp" })
-@TriggerWhenEmpty // trigger even when queue is empty so that the processor can check for idle senders to prune.
-public class PutTCP extends AbstractPutEventProcessor {
+@SupportsBatching
+public class PutTCP extends AbstractPutEventProcessor<InputStream> {
 
-    /**
-     * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form TCP://< host >:< port > where the host and port
-     * values are taken from the configured property values.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @return The URI value as a String.
-     */
-    @Override
-    protected String createTransitUri(final ProcessContext context) {
-        final String protocol = TCP_VALUE.getValue();
-        final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
-
-        return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
-    }
-
-    /**
-     * Get the additional properties that are used by this processor.
-     *
-     * @return List of PropertyDescriptors describing the additional properties.
-     */
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
         return Arrays.asList(CONNECTION_PER_FLOWFILE,
@@ -124,16 +62,6 @@ public class PutTCP extends AbstractPutEventProcessor {
                 CHARSET);
     }
 
-    /**
-     * event handler method to handle the FlowFile being forwarded to the Processor by the framework. The FlowFile contents is sent out over a TCP connection using an acquired ChannelSender object. If
-     * the FlowFile contents was sent out successfully then the FlowFile is forwarded to the success relationship. If an error occurred then the FlowFile is forwarded to the failure relationship.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @param sessionFactory
-     *            - a factory object to obtain a process session.
-     */
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
@@ -142,47 +70,29 @@ public class PutTCP extends AbstractPutEventProcessor {
             return;
         }
 
+        final StopWatch stopWatch = new StopWatch(true);
         try {
-            StopWatch stopWatch = new StopWatch(true);
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    InputStream event = in;
+            session.read(flowFile, inputStream -> {
+                InputStream inputStreamEvent = inputStream;
 
-                    String delimiter = getOutgoingMessageDelimiter(context, flowFile);
-                    if (delimiter != null) {
-                        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
-                        event = new DelimitedInputStream(in, delimiter.getBytes(charSet));
-                    }
-
-                    eventSender.sendEvent(event);
+                final String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+                if (delimiter != null) {
+                    final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                    inputStreamEvent = new DelimitedInputStream(inputStream, delimiter.getBytes(charSet));
                 }
+
+                eventSender.sendEvent(inputStreamEvent);
             });
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
-        } catch (Exception e) {
-            onFailure(context, session, flowFile);
-            getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
+        } catch (final Exception e) {
+            getLogger().error("Send Failed {}", flowFile, e);
+            session.transfer(session.penalize(flowFile), REL_FAILURE);
+            session.commitAsync();
+            context.yield();
         }
-    }
-
-    /**
-     * Event handler method to perform the required actions when a failure has occurred. The FlowFile is penalized, forwarded to the failure relationship and the context is yielded.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile that has failed to have been processed.
-     */
-    protected void onFailure(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        session.transfer(session.penalize(flowFile), REL_FAILURE);
-        session.commitAsync();
-        context.yield();
     }
 
     @Override
@@ -191,7 +101,7 @@ public class PutTCP extends AbstractPutEventProcessor {
     }
 
     @Override
-    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
-        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+    protected NettyEventSenderFactory<InputStream> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.TCP);
     }
 }

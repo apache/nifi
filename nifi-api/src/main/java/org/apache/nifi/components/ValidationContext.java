@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.components;
 
+import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -132,4 +133,18 @@ public interface ValidationContext extends PropertyContext {
      * @return <code>true</code> if all dependencies of the given property descriptor are satisfied, <code>false</code> otherwise
      */
     boolean isDependencySatisfied(PropertyDescriptor propertyDescriptor, Function<String, PropertyDescriptor> propertyDescriptorLookup);
+
+    /**
+     * Determines whether or not incoming and outgoing connections should be validated.
+     * If <code>true</code>, then the validation should verify that all Relationships either have one or more connections that include the Relationship,
+     * or that the Relationship is auto-terminated.
+     * Additionally, if <code>true</code>, then any Processor with an {@link InputRequirement} of {@link InputRequirement.Requirement#INPUT_REQUIRED}
+     * should be invalid unless it has an incoming (non-looping) connection, and any Processor with an {@link InputRequirement} of {@link InputRequirement.Requirement#INPUT_FORBIDDEN}
+     * should be invalid if it does have any incoming connection.
+     *
+     * @return <code>true</code> if Connections should be validated, <code>false</code> if Connections should be ignored
+     */
+    default boolean isValidateConnections() {
+        return true;
+    }
 }

@@ -16,13 +16,7 @@
  */
 package org.apache.nifi.stream.io.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -30,39 +24,26 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
 
 @SuppressWarnings("resource")
 public class StreamDemarcatorTest {
     @Test
     public void validateInitializationFailure() {
-        try {
-            new StreamDemarcator(null, null, -1);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
+        assertThrows(IllegalArgumentException.class, () ->new StreamDemarcator(null, null, -1));
 
-        try {
-            new StreamDemarcator(mock(InputStream.class), null, -1);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
+        assertThrows(IllegalArgumentException.class, () -> new StreamDemarcator(mock(InputStream.class), null, -1));
 
-        try {
-            new StreamDemarcator(mock(InputStream.class), null, 10, -1);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
+        assertThrows(IllegalArgumentException.class, () -> new StreamDemarcator(mock(InputStream.class), null, 10, -1));
 
-        try {
-            new StreamDemarcator(mock(InputStream.class), new byte[0], 10, 1);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // success
-        }
+        assertThrows(IllegalArgumentException.class, () -> new StreamDemarcator(mock(InputStream.class), new byte[0], 10, 1));
     }
 
     @Test
@@ -229,13 +210,13 @@ public class StreamDemarcatorTest {
         assertNull(scanner.nextToken());
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void validateMaxBufferSize() throws IOException {
         String data = "THIS IS MY TEXT<MY DELIMITER>THIS IS MY NEW TEXT THEN<MY DELIMITER>THIS IS MY NEWEST TEXT";
         ByteArrayInputStream is = new ByteArrayInputStream(data.getBytes());
         StreamDemarcator scanner = new StreamDemarcator(is, "<MY DELIMITER>".getBytes(StandardCharsets.UTF_8), 20);
         scanner.nextToken();
-        scanner.nextToken();
+        assertThrows(IOException.class, () -> scanner.nextToken());
     }
 
     @Test

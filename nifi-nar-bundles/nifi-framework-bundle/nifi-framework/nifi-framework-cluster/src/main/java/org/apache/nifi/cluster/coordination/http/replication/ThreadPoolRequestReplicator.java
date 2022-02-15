@@ -28,10 +28,8 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
-import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.IllegalClusterStateException;
 import org.apache.nifi.cluster.manager.exception.NoConnectedNodesException;
-import org.apache.nifi.cluster.manager.exception.OffloadedNodeMutableRequestException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.manager.exception.UriConstructionException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -103,7 +101,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
     /**
      * Creates an instance.
      *
-     * @param corePoolSize core size of the thread pool
      * @param maxPoolSize the max number of threads in the thread pool
      * @param maxConcurrentRequests maximum number of concurrent requests
      * @param client a client for making requests
@@ -112,12 +109,10 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
      * @param eventReporter an EventReporter that can be used to notify users of interesting events. May be null.
      * @param nifiProperties properties
      */
-    public ThreadPoolRequestReplicator(final int corePoolSize, final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
+    public ThreadPoolRequestReplicator(final int maxPoolSize, final int maxConcurrentRequests, final HttpReplicationClient client,
         final ClusterCoordinator clusterCoordinator, final RequestCompletionCallback callback, final EventReporter eventReporter, final NiFiProperties nifiProperties) {
-        if (corePoolSize <= 0) {
-            throw new IllegalArgumentException("The Core Pool Size must be greater than zero.");
-        } else if (maxPoolSize < corePoolSize) {
-            throw new IllegalArgumentException("Max Pool Size must be >= Core Pool Size.");
+        if (maxPoolSize < 2) {
+            throw new IllegalArgumentException("Max Pool Size must be >= 2");
         } else if (client == null) {
             throw new IllegalArgumentException("Client may not be null.");
         }
@@ -138,7 +133,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
             return t;
         };
 
-        executorService = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
+        executorService = new ThreadPoolExecutor(maxPoolSize, maxPoolSize, 5, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), threadFactory);
+        executorService.allowCoreThreadTimeOut(true);
 
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
             @Override
@@ -172,42 +168,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         // If the request is mutable, ensure that all nodes are connected.
         if (mutable) {
-            final List<NodeIdentifier> offloaded = stateMap.get(NodeConnectionState.OFFLOADED);
-            if (offloaded != null && !offloaded.isEmpty()) {
-                if (offloaded.size() == 1) {
-                    throw new OffloadedNodeMutableRequestException("Node " + offloaded.iterator().next() + " is currently offloaded");
-                } else {
-                    throw new OffloadedNodeMutableRequestException(offloaded.size() + " Nodes are currently offloaded");
-                }
-            }
-
-            final List<NodeIdentifier> offloading = stateMap.get(NodeConnectionState.OFFLOADING);
-            if (offloading != null && !offloading.isEmpty()) {
-                if (offloading.size() == 1) {
-                    throw new OffloadedNodeMutableRequestException("Node " + offloading.iterator().next() + " is currently offloading");
-                } else {
-                    throw new OffloadedNodeMutableRequestException(offloading.size() + " Nodes are currently offloading");
-                }
-            }
-
-            final List<NodeIdentifier> disconnected = stateMap.get(NodeConnectionState.DISCONNECTED);
-            if (disconnected != null && !disconnected.isEmpty()) {
-                if (disconnected.size() == 1) {
-                    throw new DisconnectedNodeMutableRequestException("Node " + disconnected.iterator().next() + " is currently disconnected");
-                } else {
-                    throw new DisconnectedNodeMutableRequestException(disconnected.size() + " Nodes are currently disconnected");
-                }
-            }
-
-            final List<NodeIdentifier> disconnecting = stateMap.get(NodeConnectionState.DISCONNECTING);
-            if (disconnecting != null && !disconnecting.isEmpty()) {
-                if (disconnecting.size() == 1) {
-                    throw new DisconnectedNodeMutableRequestException("Node " + disconnecting.iterator().next() + " is currently disconnecting");
-                } else {
-                    throw new DisconnectedNodeMutableRequestException(disconnecting.size() + " Nodes are currently disconnecting");
-                }
-            }
-
             final List<NodeIdentifier> connecting = stateMap.get(NodeConnectionState.CONNECTING);
             if (connecting != null && !connecting.isEmpty()) {
                 if (connecting.size() == 1) {
@@ -252,6 +212,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // request is replicated
         removeCookie(headers, nifiProperties.getKnoxCookieName());
         removeCookie(headers, SecurityCookieName.AUTHORIZATION_BEARER.getName());
+        removeCookie(headers, SecurityCookieName.REQUEST_TOKEN.getName());
 
         // remove the host header
         headers.remove("Host");
@@ -680,9 +641,6 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // check that the request can be applied
         if (mutableRequest) {
             final Map<NodeConnectionState, List<NodeIdentifier>> connectionStates = clusterCoordinator.getConnectionStates();
-            if (connectionStates.containsKey(NodeConnectionState.DISCONNECTED) || connectionStates.containsKey(NodeConnectionState.DISCONNECTING)) {
-                throw new DisconnectedNodeMutableRequestException("Received a mutable request [" + httpMethod + " " + uriPath + "] while a node is disconnected from the cluster");
-            }
 
             if (connectionStates.containsKey(NodeConnectionState.CONNECTING)) {
                 // if any node is connecting and a request can change the flow, then we throw an exception

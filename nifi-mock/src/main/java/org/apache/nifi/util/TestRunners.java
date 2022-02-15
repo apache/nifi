@@ -35,7 +35,7 @@ public class TestRunners {
      * Returns a {@code TestRunner} for the given {@code Processor} which uses the given {@code KerberosContext}.
      * @param processor the {@code Processor} under test
      * @param kerberosContext the {@code KerberosContext} used during the test
-     * @return
+     * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext) {
         return newTestRunner(processor,processor.getClass().getName(), kerberosContext);

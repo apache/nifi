@@ -21,7 +21,6 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.flowfile.FlowFile;
@@ -41,11 +40,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.parquet.hadoop.util.HadoopOutputFile;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
@@ -59,15 +58,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs({ OS.WINDOWS })
 public class FetchParquetTest {
 
     static final String DIRECTORY = "target";
     static final String TEST_CONF_PATH = "src/test/resources/core-site.xml";
     static final String RECORD_HEADER = "name,favorite_number,favorite_color";
+    private static final int USERS = 10;
 
     private Schema schema;
     private Schema schemaWithArray;
@@ -78,13 +82,8 @@ public class FetchParquetTest {
     private FetchParquet proc;
     private TestRunner testRunner;
 
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
-
-    @Before
-    public void setup() throws IOException, InitializationException {
+    @BeforeEach
+    public void setup() throws IOException {
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/avro/user.avsc"), StandardCharsets.UTF_8);
         schema = new Schema.Parser().parse(avroSchema);
 
@@ -119,8 +118,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsers(parquetFile, numUsers);
+        writeParquetUsers(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -131,14 +129,14 @@ public class FetchParquetTest {
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, String.valueOf(numUsers));
+        flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, String.valueOf(USERS));
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
         // the mock record writer will write the header for each record so replace those to get down to just the records
         String flowFileContent = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
         flowFileContent = flowFileContent.replaceAll(RECORD_HEADER + "\n", "");
 
-        verifyCSVRecords(numUsers, flowFileContent);
+        verifyCSVRecords(flowFileContent);
     }
 
     @Test
@@ -156,7 +154,7 @@ public class FetchParquetTest {
     }
 
     @Test
-    public void testFetchWhenDoesntExistShouldRouteToFailure() throws InitializationException {
+    public void testFetchWhenDoesNotExistShouldRouteToFailure() throws InitializationException {
         configure(proc);
 
         final String filename = "/tmp/does-not-exist-" + System.currentTimeMillis();
@@ -185,8 +183,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsers(parquetFile, numUsers);
+        writeParquetUsers(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -204,15 +201,14 @@ public class FetchParquetTest {
     public void testIOExceptionWhileReadingShouldRouteToRetry() throws IOException, InitializationException {
         final FetchParquet proc = new FetchParquet() {
             @Override
-            public HDFSRecordReader createHDFSRecordReader(ProcessContext context, FlowFile flowFile, Configuration conf, Path path)
-                    throws IOException {
+            public HDFSRecordReader createHDFSRecordReader(ProcessContext context, FlowFile flowFile, Configuration conf, Path path) {
                 return new HDFSRecordReader() {
                     @Override
                     public Record nextRecord() throws IOException {
                         throw new IOException("IOException");
                     }
                     @Override
-                    public void close() throws IOException {
+                    public void close() {
                     }
                 };
             }
@@ -222,8 +218,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsers(parquetFile, numUsers);
+        writeParquetUsers(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -255,8 +250,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsers(parquetFile, numUsers);
+        writeParquetUsers(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -276,8 +270,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetWithArrayToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsersWithArray(parquetFile, numUsers);
+        writeParquetUsersWithArray(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -294,8 +287,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetWithNullableArrayToCSV.parquet");
-        final int numUsers = 10;
-        writeParquetUsersWithNullableArray(parquetFile, numUsers);
+        writeParquetUsersWithNullableArray(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -312,8 +304,7 @@ public class FetchParquetTest {
 
         final File parquetDir = new File(DIRECTORY);
         final File parquetFile = new File(parquetDir,"testFetchParquetWithDecimal.parquet");
-        final int numUsers = 10;
-        writeParquetUsersWithDecimal(parquetFile, numUsers);
+        writeParquetUsersWithDecimal(parquetFile);
 
         final Map<String,String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.PATH.key(), parquetDir.getAbsolutePath());
@@ -324,34 +315,34 @@ public class FetchParquetTest {
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
     }
 
-    protected void verifyCSVRecords(int numUsers, String csvContent) {
+    protected void verifyCSVRecords(String csvContent) {
         final String[] splits = csvContent.split("[\\n]");
-        Assert.assertEquals(numUsers, splits.length);
+        assertEquals(USERS, splits.length);
 
-        for (int i=0; i < numUsers; i++) {
+        for (int i=0; i < USERS; i++) {
             final String line = splits[i];
-            Assert.assertEquals("Bob" + i + "," + i + ",blue" + i, line);
+            assertEquals("Bob" + i + "," + i + ",blue" + i, line);
         }
     }
 
-    private AvroParquetWriter.Builder<GenericRecord> createAvroParquetWriter(final File parquetFile, final Schema schema) {
+    private AvroParquetWriter.Builder<GenericRecord> createAvroParquetWriter(final File parquetFile, final Schema schema) throws IOException {
         final Path parquetPath = new Path(parquetFile.getPath());
 
         return AvroParquetWriter
-                .<GenericRecord>builder(parquetPath)
+                .<GenericRecord>builder(HadoopOutputFile.fromPath(parquetPath, testConf))
                 .withSchema(schema)
                 .withConf(testConf);
     }
 
-    private void writeParquetUsers(final File parquetFile, int numUsers) throws IOException {
+    private void writeParquetUsers(final File parquetFile) throws IOException {
         if (parquetFile.exists()) {
-            Assert.assertTrue(parquetFile.delete());
+            assertTrue(parquetFile.delete());
         }
 
         final AvroParquetWriter.Builder<GenericRecord> writerBuilder = createAvroParquetWriter(parquetFile, schema);
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < numUsers; i++) {
+            for (int i=0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -362,9 +353,9 @@ public class FetchParquetTest {
         }
     }
 
-    private void writeParquetUsersWithArray(final File parquetFile, int numUsers) throws IOException {
+    private void writeParquetUsersWithArray(final File parquetFile) throws IOException {
         if (parquetFile.exists()) {
-            Assert.assertTrue(parquetFile.delete());
+            assertTrue(parquetFile.delete());
         }
 
         final AvroParquetWriter.Builder<GenericRecord> writerBuilder = createAvroParquetWriter(parquetFile, schemaWithArray);
@@ -372,7 +363,7 @@ public class FetchParquetTest {
         final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < numUsers; i++) {
+            for (int i=0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -388,9 +379,9 @@ public class FetchParquetTest {
         }
     }
 
-    private void writeParquetUsersWithNullableArray(final File parquetFile, int numUsers) throws IOException {
+    private void writeParquetUsersWithNullableArray(final File parquetFile) throws IOException {
         if (parquetFile.exists()) {
-            Assert.assertTrue(parquetFile.delete());
+            assertTrue(parquetFile.delete());
         }
 
         final AvroParquetWriter.Builder<GenericRecord> writerBuilder = createAvroParquetWriter(parquetFile, schemaWithNullableArray);
@@ -400,7 +391,7 @@ public class FetchParquetTest {
         final Schema favoriteColorsSchema = schemaWithArray.getField("favorite_colors").schema();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < numUsers; i++) {
+            for (int i=0; i < USERS; i++) {
                 final GenericRecord user = new GenericData.Record(schema);
                 user.put("name", "Bob" + i);
                 user.put("favorite_number", i);
@@ -416,9 +407,9 @@ public class FetchParquetTest {
         }
     }
 
-    private void writeParquetUsersWithDecimal(final File parquetFile, int numUsers) throws IOException {
+    private void writeParquetUsersWithDecimal(final File parquetFile) throws IOException {
         if (parquetFile.exists()) {
-            Assert.assertTrue(parquetFile.delete());
+            assertTrue(parquetFile.delete());
         }
 
         final BigDecimal initialAmount = new BigDecimal("1234567.0123456789");
@@ -426,12 +417,12 @@ public class FetchParquetTest {
 
         final List<Schema> amountSchemaUnion = schemaWithDecimal.getField("amount").schema().getTypes();
         final Schema amountSchema = amountSchemaUnion.stream().filter(s -> s.getType() == Schema.Type.FIXED).findFirst().orElse(null);
-        Assert.assertNotNull(amountSchema);
+        assertNotNull(amountSchema);
 
         final Conversions.DecimalConversion decimalConversion = new Conversions.DecimalConversion();
 
         try (final ParquetWriter<GenericRecord> writer = writerBuilder.build()) {
-            for (int i=0; i < numUsers; i++) {
+            for (int i=0; i < USERS; i++) {
                 final BigDecimal incrementedAmount = initialAmount.add(new BigDecimal("1"));
                 final GenericRecord user = new GenericData.Record(schemaWithDecimal);
                 user.put("name", "Bob" + i);
@@ -442,5 +433,4 @@ public class FetchParquetTest {
         }
 
     }
-
 }

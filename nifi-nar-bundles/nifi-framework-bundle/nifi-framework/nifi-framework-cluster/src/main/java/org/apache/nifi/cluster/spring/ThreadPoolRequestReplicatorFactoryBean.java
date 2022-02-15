@@ -42,13 +42,12 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
             final ClusterCoordinator clusterCoordinator = applicationContext.getBean("clusterCoordinator", ClusterCoordinator.class);
             final RequestCompletionCallback requestCompletionCallback = applicationContext.getBean("clusterCoordinator", RequestCompletionCallback.class);
 
-            final int corePoolSize = nifiProperties.getClusterNodeProtocolCorePoolSize();
             final int maxPoolSize = nifiProperties.getClusterNodeProtocolMaxPoolSize();
             final int maxConcurrentRequests = nifiProperties.getClusterNodeMaxConcurrentRequests();
 
             final OkHttpReplicationClient replicationClient = new OkHttpReplicationClient(nifiProperties);
 
-            replicator = new ThreadPoolRequestReplicator(corePoolSize, maxPoolSize, maxConcurrentRequests, replicationClient, clusterCoordinator,
+            replicator = new ThreadPoolRequestReplicator(maxPoolSize, maxConcurrentRequests, replicationClient, clusterCoordinator,
                 requestCompletionCallback, eventReporter, nifiProperties);
         }
 

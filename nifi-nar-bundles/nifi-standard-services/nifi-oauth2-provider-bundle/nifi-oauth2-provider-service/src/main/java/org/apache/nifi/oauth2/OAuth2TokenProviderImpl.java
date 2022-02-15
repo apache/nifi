@@ -30,6 +30,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -39,6 +40,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
+@Deprecated
+@DeprecationNotice(alternatives = {StandardOauth2AccessTokenProvider.class})
 @Tags({"oauth2", "provider", "authorization" })
 @CapabilityDescription("This controller service provides a way of working with access and refresh tokens via the " +
         "password and client_credential grant flows in the OAuth2 specification. It is meant to provide a way for components " +

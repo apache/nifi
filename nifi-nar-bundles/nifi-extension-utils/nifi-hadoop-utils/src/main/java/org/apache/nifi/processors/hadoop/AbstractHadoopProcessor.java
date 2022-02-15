@@ -22,11 +22,11 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.net.NetUtils;
-import org.apache.hadoop.security.SaslPlainServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -43,14 +43,12 @@ import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 
 import javax.net.SocketFactory;
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -58,11 +56,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
 import java.security.PrivilegedExceptionAction;
-import java.security.Security;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -78,7 +76,7 @@ import java.util.regex.Pattern;
  * @see SecurityUtil#loginKerberos(Configuration, String, String)
  */
 @RequiresInstanceClassLoading(cloneAncestorResources = true)
-public abstract class AbstractHadoopProcessor extends AbstractProcessor {
+public abstract class AbstractHadoopProcessor extends AbstractProcessor implements ClassloaderIsolationKeyProvider {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     private static final String DENY_LFS_ACCESS = "NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS";
@@ -86,6 +84,12 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     private static final String DENY_LFS_EXPLANATION = String.format("LFS Access Denied according to Environment Variable [%s]", DENY_LFS_ACCESS);
 
     private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
+
+    private static final String NORMALIZE_ERROR_WITH_PROPERTY = "The filesystem component of the URI configured in the '{}' property ({}) does not match " +
+            "the filesystem URI from the Hadoop configuration file ({}) and will be ignored.";
+
+    private static final String NORMALIZE_ERROR_WITHOUT_PROPERTY = "The filesystem component of the URI configured ({}) does not match the filesystem URI from " +
+            "the Hadoop configuration file ({}) and will be ignored.";
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
@@ -155,6 +159,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
 
+    protected static final String TARGET_HDFS_DIR_CREATED_ATTRIBUTE = "target.dir.created";
+
     private static final Object RESOURCES_LOCK = new Object();
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
@@ -195,6 +201,30 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    public String getClassloaderIsolationKey(final PropertyContext context) {
+        final String explicitKerberosPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
+        if (explicitKerberosPrincipal != null) {
+            return explicitKerberosPrincipal;
+        }
+
+        final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
+        if (credentialsService != null) {
+            final String credentialsServicePrincipal = credentialsService.getPrincipal();
+            if (credentialsServicePrincipal != null) {
+                return credentialsServicePrincipal;
+            }
+        }
+
+        final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
+        if (kerberosUserService != null) {
+            final KerberosUser kerberosUser = kerberosUserService.createKerberosUser();
+            return kerberosUser.getPrincipal();
+        }
+
+        return null;
     }
 
     @Override
@@ -355,28 +385,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     }
                 }
             }
-
-            final KerberosUser kerberosUser = resources.getKerberosUser();
-            if (kerberosUser != null) {
-                try {
-                    kerberosUser.logout();
-                } catch (LoginException e) {
-                    getLogger().warn("Error logging out KerberosUser: {}", e.getMessage(), e);
-                }
-            }
-
-            // Clean-up the static reference to the Configuration instance
-            UserGroupInformation.setConfiguration(new Configuration());
-
-            // Clean-up the reference to the InstanceClassLoader that was put into Configuration
-            final Configuration configuration = resources.getConfiguration();
-            if (configuration != null) {
-                configuration.setClassLoader(null);
-            }
-
-            // Need to remove the Provider instance from the JVM's Providers class so that InstanceClassLoader can be GC'd eventually
-            final SaslPlainServer.SecurityProvider saslProvider = new SaslPlainServer.SecurityProvider();
-            Security.removeProvider(saslProvider.getName());
         }
 
         // Clear out the reference to the resources
@@ -388,14 +396,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         statsField.setAccessible(true);
 
         final Object statsObj = statsField.get(fileSystem);
-        if (statsObj != null && statsObj instanceof FileSystem.Statistics) {
+        if (statsObj instanceof FileSystem.Statistics) {
             final FileSystem.Statistics statistics = (FileSystem.Statistics) statsObj;
 
             final Field statsThreadField = statistics.getClass().getDeclaredField("STATS_DATA_CLEANER");
             statsThreadField.setAccessible(true);
 
             final Object statsThreadObj = statsThreadField.get(statistics);
-            if (statsThreadObj != null && statsThreadObj instanceof Thread) {
+            if (statsThreadObj instanceof Thread) {
                 final Thread statsThread = (Thread) statsThreadObj;
                 try {
                     statsThread.interrupt();
@@ -596,7 +604,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();
         if (depthDiff <= 1) {
-            return "".intern();
+            return "";
         }
         String lastRoot = root.getName();
         Path childsParent = child.getParent();
@@ -623,19 +631,8 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     protected UserGroupInformation getUserGroupInformation() {
         getLogger().trace("getting UGI instance");
-        if (hdfsResources.get().getKerberosUser() != null) {
-            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
-            KerberosUser kerberosUser = hdfsResources.get().getKerberosUser();
-            getLogger().debug("kerberosUser is " + kerberosUser);
-            try {
-                getLogger().debug("checking TGT on kerberosUser " + kerberosUser);
-                kerberosUser.checkTGTAndRelogin();
-            } catch (LoginException e) {
-                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
-            }
-        } else {
-            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
-        }
+        // if there is a KerberosUser associated with UGI, call checkTGTAndRelogin to ensure UGI's underlying Subject has a valid ticket
+        SecurityUtil.checkTGTAndRelogin(getLogger(), hdfsResources.get().getKerberosUser());
         return hdfsResources.get().getUserGroupInformation();
     }
 
@@ -685,39 +682,33 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     protected Path getNormalizedPath(final String rawPath) {
-        final Path path = new Path(rawPath);
-        final URI uri = path.toUri();
-
-        final URI fileSystemUri = getFileSystem().getUri();
-
-        if (uri.getScheme() != null) {
-            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
-                getLogger().warn("The filesystem component of the URI configured ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
-                        "and will be ignored.", uri, fileSystemUri);
-            }
-
-            return new Path(uri.getPath());
-        } else {
-            return path;
-        }
+       return getNormalizedPath(rawPath, Optional.empty());
     }
 
     protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property, final FlowFile flowFile) {
         final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
-        final Path path = new Path(propertyValue);
-        final URI uri = path.toUri();
+        return getNormalizedPath(propertyValue, Optional.of(property.getDisplayName()));
+    }
 
+    private Path getNormalizedPath(final String rawPath, final Optional<String> propertyName) {
+        final URI uri = new Path(rawPath).toUri();
         final URI fileSystemUri = getFileSystem().getUri();
+        final String path;
 
         if (uri.getScheme() != null) {
             if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
-                getLogger().warn("The filesystem component of the URI configured in the '{}' property ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
-                        "and will be ignored.", property.getDisplayName(), uri, fileSystemUri);
+                if (propertyName.isPresent()) {
+                    getLogger().warn(NORMALIZE_ERROR_WITH_PROPERTY, propertyName, uri, fileSystemUri);
+                } else {
+                    getLogger().warn(NORMALIZE_ERROR_WITHOUT_PROPERTY, uri, fileSystemUri);
+                }
             }
 
-            return new Path(uri.getPath());
+            path = uri.getPath();
         } else {
-            return path;
+            path = rawPath;
         }
+
+        return new Path(path.replaceAll("/+", "/"));
     }
 }

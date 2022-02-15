@@ -23,9 +23,9 @@ import org.apache.nifi.websocket.TextMessageConsumer;
 import org.apache.nifi.websocket.WebSocketClientService;
 import org.apache.nifi.websocket.WebSocketServerService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
 import java.net.ServerSocket;
@@ -35,17 +35,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-
 
 public class ITJettyWebSocketCommunication {
 
@@ -60,7 +58,7 @@ public class ITJettyWebSocketCommunication {
         return false;
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         setupServer();
 
@@ -106,7 +104,7 @@ public class ITJettyWebSocketCommunication {
     protected void customizeClient() {
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         clientService.stopClient();
         serverService.stopServer();
@@ -121,7 +119,6 @@ public class ITJettyWebSocketCommunication {
 
     @Test
     public void testClientServerCommunication() throws Exception {
-        assumeFalse(isWindowsEnvironment());
         // Expectations.
         final CountDownLatch serverIsConnectedByClient = new CountDownLatch(1);
         final CountDownLatch clientConnectedServer = new CountDownLatch(1);
@@ -168,21 +165,21 @@ public class ITJettyWebSocketCommunication {
 
         clientService.connect(clientId);
 
-        assertTrue("WebSocket client should be able to fire connected event.", clientConnectedServer.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket server should be able to fire connected event.", serverIsConnectedByClient.await(5, TimeUnit.SECONDS));
+        assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
+        assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
 
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendString(textMessageFromClient));
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromClient.getBytes())));
 
 
-        assertTrue("WebSocket server should be able to consume text message.", serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket server should be able to consume binary message.", serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS));
+        assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
+        assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
 
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendString(textMessageFromServer));
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromServer.getBytes())));
 
-        assertTrue("WebSocket client should be able to consume text message.", clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket client should be able to consume binary message.", clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS));
+        assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
+        assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
 
         clientService.deregisterProcessor(clientId, clientProcessor);
         serverService.deregisterProcessor(serverPath, serverProcessor);
@@ -190,7 +187,6 @@ public class ITJettyWebSocketCommunication {
 
     @Test
     public void testClientServerCommunicationRecovery() throws Exception {
-        assumeFalse(isWindowsEnvironment());
         // Expectations.
         final CountDownLatch serverIsConnectedByClient = new CountDownLatch(1);
         final CountDownLatch clientConnectedServer = new CountDownLatch(1);
@@ -237,8 +233,8 @@ public class ITJettyWebSocketCommunication {
 
         clientService.connect(clientId, Collections.emptyMap());
 
-        assertTrue("WebSocket client should be able to fire connected event.", clientConnectedServer.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket server should be able to fire connected event.", serverIsConnectedByClient.await(5, TimeUnit.SECONDS));
+        assertTrue(clientConnectedServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to fire connected event.");
+        assertTrue(serverIsConnectedByClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to fire connected event.");
 
         // Nothing happens if maintenance is executed while sessions are alive.
         ((JettyWebSocketClient) clientService).maintainSessions();
@@ -253,14 +249,14 @@ public class ITJettyWebSocketCommunication {
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendString(textMessageFromClient));
         clientService.sendMessage(clientId, clientSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromClient.getBytes())));
 
-        assertTrue("WebSocket server should be able to consume text message.", serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket server should be able to consume binary message.", serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS));
+        assertTrue(serverReceivedTextMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume text message.");
+        assertTrue(serverReceivedBinaryMessageFromClient.await(5, TimeUnit.SECONDS), "WebSocket server should be able to consume binary message.");
 
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendString(textMessageFromServer));
         serverService.sendMessage(serverPath, serverSessionIdRef.get(), sender -> sender.sendBinary(ByteBuffer.wrap(textMessageFromServer.getBytes())));
 
-        assertTrue("WebSocket client should be able to consume text message.", clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS));
-        assertTrue("WebSocket client should be able to consume binary message.", clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS));
+        assertTrue(clientReceivedTextMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume text message.");
+        assertTrue(clientReceivedBinaryMessageFromServer.await(5, TimeUnit.SECONDS), "WebSocket client should be able to consume binary message.");
 
         clientService.deregisterProcessor(clientId, clientProcessor);
         serverService.deregisterProcessor(serverPath, serverProcessor);

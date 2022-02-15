@@ -34,22 +34,23 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.SymmetricKeyAlgorithm;
 import org.apache.nifi.processors.pgp.exception.PGPEncryptionException;
+import org.apache.nifi.processors.pgp.io.EncodingStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
 
-import org.bouncycastle.bcpg.ArmoredOutputStream;
-import org.bouncycastle.openpgp.PGPCompressedDataGenerator;
+import org.bouncycastle.bcpg.BCPGInputStream;
+import org.bouncycastle.bcpg.Packet;
 import org.bouncycastle.openpgp.PGPEncryptedDataGenerator;
 import org.bouncycastle.openpgp.PGPException;
-import org.bouncycastle.openpgp.PGPLiteralData;
-import org.bouncycastle.openpgp.PGPLiteralDataGenerator;
 import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPUtil;
 import org.bouncycastle.openpgp.operator.PGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.PGPKeyEncryptionMethodGenerator;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
@@ -63,7 +64,6 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,8 +76,8 @@ import java.util.Set;
  */
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
-@CapabilityDescription("Encrypt Contents using OpenPGP")
-@SeeAlso(DecryptContentPGP.class)
+@CapabilityDescription("Encrypt contents using OpenPGP. The processor reads input and detects OpenPGP messages to avoid unnecessary additional wrapping in Literal Data packets.")
+@SeeAlso({ DecryptContentPGP.class, SignContentPGP.class, VerifyContentPGP.class })
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM, description = "Symmetric-Key Algorithm"),
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, description = "Symmetric-Key Algorithm Block Cipher"),
@@ -153,8 +153,6 @@ public class EncryptContentPGP extends AbstractProcessor {
     /** Enable Integrity Protection as described in RFC 4880 Section 5.13 */
     private static final boolean ENCRYPTION_INTEGRITY_PACKET_ENABLED = true;
 
-    private static final int OUTPUT_BUFFER_SIZE = 8192;
-
     private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
@@ -200,10 +198,14 @@ public class EncryptContentPGP extends AbstractProcessor {
         }
 
         try {
+            final PacketReadInputStreamCallback packetCallback = new PacketReadInputStreamCallback();
+            session.read(flowFile, packetCallback);
+
             final SymmetricKeyAlgorithm symmetricKeyAlgorithm = getSymmetricKeyAlgorithm(context);
             final FileEncoding fileEncoding = getFileEncoding(context);
             final CompressionAlgorithm compressionAlgorithm = getCompressionAlgorithm(context);
-            final StreamCallback callback = getEncryptStreamCallback(context, flowFile, symmetricKeyAlgorithm, compressionAlgorithm, fileEncoding);
+            final StreamCallback callback = getEncryptStreamCallback(context, flowFile, symmetricKeyAlgorithm,
+                    compressionAlgorithm, fileEncoding, packetCallback.packetFound);
             flowFile = session.write(flowFile, callback);
 
             final Map<String, String> attributes = getAttributes(symmetricKeyAlgorithm, fileEncoding, compressionAlgorithm);
@@ -261,10 +263,12 @@ public class EncryptContentPGP extends AbstractProcessor {
         return results;
     }
 
-    private StreamCallback getEncryptStreamCallback(final ProcessContext context, final FlowFile flowFile,
+    private StreamCallback getEncryptStreamCallback(final ProcessContext context,
+                                                    final FlowFile flowFile,
                                                     final SymmetricKeyAlgorithm symmetricKeyAlgorithm,
                                                     final CompressionAlgorithm compressionAlgorithm,
-                                                    final FileEncoding fileEncoding) {
+                                                    final FileEncoding fileEncoding,
+                                                    final boolean packetFound) {
         final SecureRandom secureRandom = new SecureRandom();
         final PGPDataEncryptorBuilder dataEncryptorBuilder = new BcPGPDataEncryptorBuilder(symmetricKeyAlgorithm.getId())
                 .setSecureRandom(secureRandom)
@@ -274,7 +278,7 @@ public class EncryptContentPGP extends AbstractProcessor {
         methodGenerators.forEach(encryptedDataGenerator::addMethod);
 
         final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-        return new EncryptStreamCallback(filename, fileEncoding, encryptedDataGenerator, compressionAlgorithm);
+        return new EncryptStreamCallback(fileEncoding, compressionAlgorithm, filename, packetFound, encryptedDataGenerator);
     }
 
     private List<PGPKeyEncryptionMethodGenerator> getEncryptionMethodGenerators(final ProcessContext context,
@@ -334,65 +338,65 @@ public class EncryptContentPGP extends AbstractProcessor {
         return attributes;
     }
 
-    private static class EncryptStreamCallback implements StreamCallback {
-        private static final char DATA_FORMAT = PGPLiteralData.BINARY;
+    private class PacketReadInputStreamCallback implements InputStreamCallback {
+        private boolean packetFound;
 
-        private final String filename;
+        /**
+         * Process Input Stream and attempt to read OpenPGP Packet for content detection
+         *
+         * @param inputStream Input Stream to be read
+         */
+        @Override
+        public void process(final InputStream inputStream) {
+            try {
+                final InputStream decodedInputStream = PGPUtil.getDecoderStream(inputStream);
+                final BCPGInputStream packetInputStream = new BCPGInputStream(decodedInputStream);
+                final Packet packet = packetInputStream.readPacket();
+                if (packet == null) {
+                    getLogger().debug("PGP Packet not found");
+                } else {
+                    packetFound = true;
+                }
+            } catch (final IOException e) {
+                getLogger().debug("PGP Packet read failed", e);
+            }
+        }
+    }
 
-        private final FileEncoding fileEncoding;
+    private static class EncryptStreamCallback extends EncodingStreamCallback {
+        private final boolean packetFound;
 
         private final PGPEncryptedDataGenerator encryptedDataGenerator;
 
-        private final CompressionAlgorithm compressionAlgorithm;
-
-        public EncryptStreamCallback(final String filename, final FileEncoding fileEncoding, final PGPEncryptedDataGenerator encryptedDataGenerator, final CompressionAlgorithm compressionAlgorithm) {
-            this.filename = filename;
-            this.fileEncoding = fileEncoding;
+        public EncryptStreamCallback(final FileEncoding fileEncoding,
+                                     final CompressionAlgorithm compressionAlgorithm,
+                                     final String filename,
+                                     final boolean packetFound,
+                                     final PGPEncryptedDataGenerator encryptedDataGenerator) {
+            super(fileEncoding, compressionAlgorithm, filename);
+            this.packetFound = packetFound;
             this.encryptedDataGenerator = encryptedDataGenerator;
-            this.compressionAlgorithm = compressionAlgorithm;
         }
 
         /**
-         * Process Input Stream and write encrypted contents to Output Stream
+         * Process Encoding Output Stream using Encrypted Data Generator with for subsequent processing
          *
-         * @param inputStream  Input Stream
-         * @param outputStream Output Stream for encrypted contents
-         * @throws IOException Thrown when unable to read or write streams
+         * @param inputStream          Input Stream
+         * @param encodingOutputStream Output Stream to be processed for encryption
+         * @throws IOException Thrown when failing to read or write streams
+         * @throws PGPException Thrown when failing to perform encryption operations
          */
         @Override
-        public void process(final InputStream inputStream, final OutputStream outputStream) throws IOException {
-            try (final OutputStream encodingOutputStream = getEncodingOutputStream(outputStream)) {
-                processEncoding(inputStream, encodingOutputStream);
-            } catch (final PGPException e) {
-                throw new PGPEncryptionException("PGP Encryption Stream Processing Failed", e);
-            }
-        }
-
-        private OutputStream getEncodingOutputStream(final OutputStream outputStream) throws PGPException {
-            OutputStream encodingOutputStream = outputStream;
-            if (FileEncoding.ASCII.equals(fileEncoding)) {
-                encodingOutputStream = new ArmoredOutputStream(outputStream);
-            }
-            return encodingOutputStream;
-        }
-
-        private void processEncoding(final InputStream inputStream, final OutputStream encodingOutputStream) throws IOException, PGPException {
-            try (final OutputStream encryptedOutputStream = encryptedDataGenerator.open(encodingOutputStream, createBuffer())) {
-                final PGPCompressedDataGenerator compressedDataGenerator = new PGPCompressedDataGenerator(compressionAlgorithm.getId());
-                try (final OutputStream compressedOutputStream = compressedDataGenerator.open(encryptedOutputStream, createBuffer())) {
-                    final PGPLiteralDataGenerator literalDataGenerator = new PGPLiteralDataGenerator();
-                    try (final OutputStream literalOutputStream = literalDataGenerator.open(compressedOutputStream, DATA_FORMAT, filename, new Date(), createBuffer())) {
-                        StreamUtils.copy(inputStream, literalOutputStream);
-                    }
-                    literalDataGenerator.close();
+        protected void processEncoding(final InputStream inputStream, final OutputStream encodingOutputStream) throws IOException, PGPException {
+            try (final OutputStream encryptedOutputStream = encryptedDataGenerator.open(encodingOutputStream, createOutputBuffer())) {
+                if (packetFound) {
+                    // Write OpenPGP packets to encrypted stream without additional encoding
+                    StreamUtils.copy(inputStream, encryptedOutputStream);
+                } else {
+                    super.processEncoding(inputStream, encryptedOutputStream);
                 }
-                compressedDataGenerator.close();
             }
             encryptedDataGenerator.close();
-        }
-
-        private byte[] createBuffer() {
-            return new byte[OUTPUT_BUFFER_SIZE];
         }
     }
 }

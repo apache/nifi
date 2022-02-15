@@ -33,7 +33,7 @@
                 'nf.ProcessGroupConfiguration',
                 'nf.Settings',
                 'nf.ParameterContexts',
-                'lodash-core'],
+                'lodash'],
             function ($,
                       Slick,
                       nfCommon,
@@ -74,7 +74,7 @@
             require('nf.ProcessGroupConfiguration'),
             require('nf.Settings'),
             recuire('nf.ParameterContexts'),
-            require('lodash-core'));
+            require('lodash'));
     } else {
         factory(root.$,
             root.Slick,
@@ -105,6 +105,7 @@
                   _) {
 
     var groupId = null;
+    var propertyVerificationCallback = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
     var EDITOR_MIN_HEIGHT = 100;
@@ -1291,6 +1292,7 @@
         // function for formatting the property value
         var valueFormatter = function (row, cell, value, columnDef, dataContext) {
             var valueMarkup;
+            var valueWidthOffset = 0;
             if (nfCommon.isDefinedAndNotNull(value)) {
                 // get the property descriptor
                 var descriptors = table.data('descriptors');
@@ -1321,7 +1323,20 @@
                         if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
                             valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
                         } else {
-                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nfCommon.escapeHtml(value) + '</pre></div>';
+                            valueWidthOffset = 10;
+
+                            // check for multi-line
+                            if (nfCommon.isMultiLine(value)) {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            } else {
+                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+                            }
+
+                            // check for leading or trailing whitespace
+                            if (nfCommon.hasLeadTrailWhitespace(value)) {
+                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                                valueWidthOffset = 20;
+                            }
                         }
                     }
                 }
@@ -1334,7 +1349,8 @@
             if (dataContext.type === 'required') {
                 content.addClass('required');
             }
-            content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
+            var contentValue = content.find('.ellipsis-white-space-pre');
+            contentValue.attr('title', contentValue.text()).width(columnDef.width - 10 - valueWidthOffset);
 
             // return the appropriate markup
             return $('<div />').append(content).html();
@@ -1423,7 +1439,7 @@
             });
 
         var propertyConfigurationOptions = {
-            forceFitColumns: true,
+            autosizeColsMode: Slick.GridAutosizeColsMode.LegacyForceFit,
             enableTextSelectionOnCells: true,
             enableCellNavigation: true,
             enableColumnReorder: false,
@@ -1518,7 +1534,10 @@
             $.ajax({
                 type: 'GET',
                 url: '../nifi-api/controller-services/' + encodeURIComponent(property.value),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (controllerServiceEntity) {
                 // close the dialog
                 closeDialog();
@@ -1659,6 +1678,9 @@
         });
 
         if (options.readOnly !== true) {
+            propertyGrid.onBeforeEditCell.subscribe(function (e, args) {
+                nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
+            });
             propertyGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
                 setTimeout(function() {
                     var propertyData = propertyGrid.getData();
@@ -1762,15 +1784,26 @@
                 var propertyHistory = history[property];
 
                 // format the tooltip
-                var tooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
+                var propertyTooltip = nfCommon.formatPropertyTooltip(propertyDescriptor, propertyHistory);
 
-                if (nfCommon.isDefinedAndNotNull(tooltip)) {
+                if (nfCommon.isDefinedAndNotNull(propertyTooltip)) {
                     infoIcon.qtip($.extend({},
                         nfCommon.config.tooltipConfig,
                         {
-                            content: tooltip
+                            content: propertyTooltip
                         }));
                 }
+            }
+
+            var whitespaceIcon = $(this).find('div.fa-info');
+            if (whitespaceIcon.length && !whitespaceIcon.data('qtip')) {
+                var whitespaceTooltip = nfCommon.formatWhitespaceTooltip();
+
+                whitespaceIcon.qtip($.extend({},
+                    nfCommon.config.tooltipConfig,
+                    {
+                        content: whitespaceTooltip
+                    }));
             }
         });
     };
@@ -1782,6 +1815,22 @@
             var editController = propertyGrid.getEditController();
             editController.commitCurrentEdit();
         }
+    };
+
+    var marshalProperties = function (table) {
+        var properties = {};
+        var propertyGrid = table.data('gridInstance');
+        var propertyData = propertyGrid.getData();
+        $.each(propertyData.getItems(), function () {
+            if (this.hidden === true && !(this.dependent === true)) {
+                // hidden properties were removed by the user, clear the value
+                properties[this.property] = null;
+            } else if (this.value !== this.previousValue) {
+                // the value has changed
+                properties[this.property] = this.value;
+            }
+        });
+        return properties;
     };
 
     /**
@@ -1928,7 +1977,7 @@
         table.removeData('descriptors history');
 
         // clean up any tooltips that may have been generated
-        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle');
+        nfCommon.cleanUpTooltips(table, 'div.fa-question-circle, div.fa-info');
 
         // clear the data in the grid
         var propertyGrid = table.data('gridInstance');
@@ -1954,7 +2003,8 @@
          *      return $.Deferred(function (deferred) {
          *          deferred.resolve();
          *      }).promise;
-         *   }
+         *   },
+         *   propertyVerificationCallback: function () {}
          * }
          *
          * @argument {object} options The options for the tag cloud
@@ -2125,7 +2175,7 @@
                         newPropertyDialog.on('click', 'div.new-property-ok', add).on('click', 'div.new-property-cancel', cancel);
 
                         // build the control to open the new property dialog
-                        var addProperty = $('<div class="add-property"></div>').appendTo(header);
+                        var addProperty = $('<div class="add-property" title="Add Property"></div>').appendTo(header);
                         $('<button class="button fa fa-plus"></button>').on('click', function () {
                             // close all fields currently being edited
                             saveRow(table);
@@ -2139,6 +2189,21 @@
                             // set the initial focus
                             newPropertyNameField.focus();
                         }).appendTo(addProperty);
+
+                        // build the control to trigger verification
+                        var verifyProperties = $('<div class="verify-properties hidden" title="Verify Properties"></div>').appendTo(header);
+                        $('<button class="button fa fa-check-circle-o"></button>').on('click', function () {
+                            // close all fields currently being edited
+                            saveRow(table);
+
+                            // invoke the verification callback with the current properties
+                            propertyVerificationCallback(marshalProperties(table));
+                        }).appendTo(verifyProperties);
+
+                        // if there is a verification callback registered show the verify button
+                        propertyVerificationCallback = options.propertyVerificationCallback;
+                        var supportsVerification = typeof propertyVerificationCallback === 'function';
+                        verifyProperties.toggleClass('hidden', !supportsVerification);
                     }
                     $('<div class="clear"></div>').appendTo(header);
 
@@ -2265,18 +2330,7 @@
             this.each(function () {
                 // get the property grid data
                 var table = $(this).find('div.property-table');
-                var propertyGrid = table.data('gridInstance');
-                var propertyData = propertyGrid.getData();
-                $.each(propertyData.getItems(), function () {
-                    if (this.hidden === true && !(this.dependent === true)) {
-                        // hidden properties were removed by the user, clear the value
-                        properties[this.property] = null;
-                    } else if (this.value !== this.previousValue) {
-                        // the value has changed
-                        properties[this.property] = this.value;
-                    }
-                });
-
+                properties = marshalProperties(table);
                 return false;
             });
 
@@ -2290,6 +2344,18 @@
         setGroupId: function (currentGroupId) {
             return this.each(function () {
                 groupId = currentGroupId;
+            });
+        },
+
+        /**
+         * Sets the property verification callback.
+         */
+        setPropertyVerificationCallback: function (currentPropertyVerificationCallback) {
+            return this.each(function () {
+                propertyVerificationCallback = currentPropertyVerificationCallback;
+
+                var supportsVerification = typeof currentPropertyVerificationCallback === 'function';
+                $(this).find('div.verify-properties').toggleClass('hidden', !supportsVerification);
             });
         }
     };

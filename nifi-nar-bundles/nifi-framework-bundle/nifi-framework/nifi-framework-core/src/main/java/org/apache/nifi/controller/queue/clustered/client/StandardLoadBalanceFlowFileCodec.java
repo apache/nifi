@@ -39,6 +39,7 @@ public class StandardLoadBalanceFlowFileCodec implements LoadBalanceFlowFileCode
 
         out.writeLong(flowFile.getLineageStartDate());
         out.writeLong(flowFile.getEntryDate());
+        out.writeLong(flowFile.getPenaltyExpirationMillis());
     }
 
     private void writeString(final String value, final DataOutputStream out) throws IOException {

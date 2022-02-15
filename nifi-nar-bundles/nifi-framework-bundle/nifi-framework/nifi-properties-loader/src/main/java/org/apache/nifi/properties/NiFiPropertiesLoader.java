@@ -170,13 +170,13 @@ public class NiFiPropertiesLoader {
         if (protectedNiFiProperties.hasProtectedKeys()) {
             Security.addProvider(new BouncyCastleProvider());
             getSensitivePropertyProviderFactory()
-                    .getSupportedSensitivePropertyProviders()
+                    .getSupportedProviders()
                     .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
         }
         NiFiProperties props = protectedNiFiProperties.getUnprotectedProperties();
         if (protectedNiFiProperties.hasProtectedKeys()) {
             getSensitivePropertyProviderFactory()
-                    .getSupportedSensitivePropertyProviders()
+                    .getSupportedProviders()
                     .forEach(SensitivePropertyProvider::cleanUp);
         }
         return props;
@@ -225,11 +225,18 @@ public class NiFiPropertiesLoader {
                 throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
             }
 
-            final File flowConfiguration = defaultProperties.getFlowConfigurationFile();
-            if (flowConfiguration.exists()) {
-                logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
+            final File jsonFile = defaultProperties.getFlowConfigurationJsonFile();
+            if (jsonFile != null && jsonFile.exists()) {
+                logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", jsonFile, NiFiProperties.SENSITIVE_PROPS_KEY);
                 throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
             }
+
+            final File xmlFile = defaultProperties.getFlowConfigurationFile();
+            if (xmlFile.exists()) {
+                logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", xmlFile, NiFiProperties.SENSITIVE_PROPS_KEY);
+                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+            }
+
             setSensitivePropertiesKey();
             defaultProperties = loadDefault();
         }

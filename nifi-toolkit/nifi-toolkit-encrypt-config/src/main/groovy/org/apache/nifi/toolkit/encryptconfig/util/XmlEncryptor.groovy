@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.toolkit.encryptconfig.util
 
-import groovy.util.slurpersupport.GPathResult
+import groovy.xml.XmlSlurper
 import groovy.xml.XmlUtil
+import groovy.xml.slurpersupport.GPathResult
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.slf4j.Logger
@@ -83,17 +84,11 @@ abstract class XmlEncryptor {
                 throw new IllegalStateException("Input XML is encrypted, but decryption capability is not enabled. " +
                         "Usually this means a decryption password / key was not provided to the tool.")
             }
-            String supportedDecryptionScheme = decryptionProvider.getIdentifierKey()
 
             logger.debug("Found ${encryptedNodes.size()} encrypted XML elements. Will attempt to decrypt using the provided decryption key.")
 
             encryptedNodes.each { node ->
                 logger.debug("Attempting to decrypt ${node.text()}")
-                if (node.@encryption != supportedDecryptionScheme) {
-                    throw new IllegalStateException("Decryption capability not supported by this tool. " +
-                            "This tool supports ${supportedDecryptionScheme}, but this xml file contains " +
-                            "${node.toString()} protected by ${node.@encryption}")
-                }
                 String groupIdentifier = (String) node.parent().identifier
                 String propertyName = (String) node.@name
                 String decryptedValue = decryptionProvider.unprotect(node.text().trim(), providerFactory.getPropertyContext(groupIdentifier, propertyName))

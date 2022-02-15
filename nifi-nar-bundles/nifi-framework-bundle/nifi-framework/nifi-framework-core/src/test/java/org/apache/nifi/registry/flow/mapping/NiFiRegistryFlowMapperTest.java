@@ -17,9 +17,6 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -34,6 +31,7 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -80,9 +78,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -126,10 +128,10 @@ public class NiFiRegistryFlowMapperTest {
                 prepareProcessGroupWithParameterContext(Collections.emptyList(),
                         true, true);
         final ProcessGroup innerProcessGroup =
-                prepareProcessGroupWithParameterContext(Lists.newArrayList(innerInnerProcessGroup),
+                prepareProcessGroupWithParameterContext(Collections.singletonList(innerInnerProcessGroup),
                         true, false);
         final ProcessGroup processGroup =
-                prepareProcessGroupWithParameterContext(Lists.newArrayList(innerProcessGroup),
+                prepareProcessGroupWithParameterContext(Collections.singletonList(innerProcessGroup),
                         false, false);
 
         // first nesting should be traversed because child is not version controlled, but deeper nesting should be ignored
@@ -139,6 +141,8 @@ public class NiFiRegistryFlowMapperTest {
 
         // verify single parameter context
         assertEquals(1, versionedParameterContexts.size());
+        assertEquals(1, versionedParameterContexts.get("context10").getInheritedParameterContexts().size());
+        assertEquals("other-context", versionedParameterContexts.get("context10").getInheritedParameterContexts().get(0));
 
         final String expectedName = innerProcessGroup.getParameterContext().getName();
         verifyParameterContext(innerProcessGroup.getParameterContext(), versionedParameterContexts.get(expectedName));
@@ -153,10 +157,10 @@ public class NiFiRegistryFlowMapperTest {
                 prepareProcessGroupWithParameterContext(Collections.emptyList(),
                         true, true);
         final ProcessGroup innerProcessGroup =
-                prepareProcessGroupWithParameterContext(Lists.newArrayList(innerInnerProcessGroup),
+                prepareProcessGroupWithParameterContext(Collections.singletonList(innerInnerProcessGroup),
                         false, true);
         final ProcessGroup processGroup =
-                prepareProcessGroupWithParameterContext(Lists.newArrayList(innerProcessGroup),
+                prepareProcessGroupWithParameterContext(Collections.singletonList(innerProcessGroup),
                         true, true);
 
         // include nested parameter contexts even though they are version controlled because map descendant indicator is true
@@ -186,9 +190,9 @@ public class NiFiRegistryFlowMapperTest {
         final ProcessGroup processGroup =
                 prepareProcessGroup(1,false,false, false,
                         false, false, null,
-                        false, true, Lists.newArrayList(innerProcessGroup));
+                        false, true, Collections.singletonList(innerProcessGroup));
 
-        final List<ProcessGroup> allProcessGroups = Lists.newArrayList(innerProcessGroup);
+        final List<ProcessGroup> allProcessGroups = Collections.singletonList(innerProcessGroup);
         when(processGroup.findAllProcessGroups()).thenReturn(allProcessGroups);
 
         // perform the mapping, excluding descendant versioned flows
@@ -223,13 +227,13 @@ public class NiFiRegistryFlowMapperTest {
         final ProcessGroup innerProcessGroup =
                 prepareProcessGroup(1,true, false, false,
                         true, true, externalControllerServiceNode,
-                        true, true, Lists.newArrayList(innerInnerProcessGroup));
+                        true, true, Collections.singletonList(innerInnerProcessGroup));
         final ProcessGroup processGroup =
                 prepareProcessGroup(2,false,false, true,
                         false, true, null,
-                        false, true, Lists.newArrayList(innerProcessGroup));
+                        false, true, Collections.singletonList(innerProcessGroup));
 
-        final List<ProcessGroup> allProcessGroups = Lists.newArrayList(innerProcessGroup, innerInnerProcessGroup);
+        final List<ProcessGroup> allProcessGroups = Arrays.asList(innerProcessGroup, innerInnerProcessGroup);
         when(processGroup.findAllProcessGroups()).thenReturn(allProcessGroups);
 
         // perform the mapping
@@ -259,8 +263,9 @@ public class NiFiRegistryFlowMapperTest {
             final ParameterContext parameterContext = mock(ParameterContext.class);
             when(processGroup.getParameterContext()).thenReturn(parameterContext);
             when(parameterContext.getName()).thenReturn("context" + (counter++));
-            final Map<ParameterDescriptor, Parameter> parametersMap = Maps.newHashMap();
+            final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();
             when(parameterContext.getParameters()).thenReturn(parametersMap);
+            when(parameterContext.getInheritedParameterContextNames()).thenReturn(Collections.singletonList("other-context"));
 
             addParameter(parametersMap, "value" + (counter++), false);
             addParameter(parametersMap, "value" + (counter++), true);
@@ -271,7 +276,7 @@ public class NiFiRegistryFlowMapperTest {
             when(processGroup.getVersionControlInformation()).thenReturn(mock(VersionControlInformation.class));
         }
 
-        when(processGroup.getProcessGroups()).thenReturn(Sets.newLinkedHashSet(childProcessGroups));
+        when(processGroup.getProcessGroups()).thenReturn(new HashSet<>(childProcessGroups));
 
         return processGroup;
     }
@@ -343,15 +348,15 @@ public class NiFiRegistryFlowMapperTest {
         when(processGroup.getFlowFileOutboundPolicy()).thenReturn(FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE);
 
         // prep funnels
-        final Set<Funnel> funnels = Sets.newHashSet();
+        final Set<Funnel> funnels = new LinkedHashSet<>();
         if (includeFunnel) {
             funnels.add(prepareFunnel(processGroupId));
         }
         when(processGroup.getFunnels()).thenReturn(funnels);
 
         // prep ports
-        final Set<Port> inputPorts = Sets.newHashSet();
-        final Set<Port> outputPorts = Sets.newHashSet();
+        final Set<Port> inputPorts = new LinkedHashSet<>();
+        final Set<Port> outputPorts = new LinkedHashSet<>();
         if (includePorts) {
             inputPorts.add(preparePort(processGroupId, PortType.INPUT_PORT));
             outputPorts.add(preparePort(processGroupId, PortType.OUTPUT_PORT));
@@ -360,15 +365,15 @@ public class NiFiRegistryFlowMapperTest {
         when(processGroup.getOutputPorts()).thenReturn(outputPorts);
 
         // prep labels
-        final Set<Label> labels = Sets.newHashSet();
+        final Set<Label> labels = new LinkedHashSet<>();
         if (includeLabels) {
             labels.add(prepareLabel(processGroupId));
         }
         when(processGroup.getLabels()).thenReturn(labels);
 
         // prep connections and processors
-        final Set<ProcessorNode> processorNodes = Sets.newLinkedHashSet();
-        final Set<Connection> connections = Sets.newHashSet();
+        final Set<ProcessorNode> processorNodes = new LinkedHashSet<>();
+        final Set<Connection> connections = new LinkedHashSet<>();
         if (numProcessors == 2) {
             // 2 processors connected together
             final ProcessorNode processorNode1 = prepareProcessor(processGroup, externalControllerServiceNode);
@@ -386,7 +391,7 @@ public class NiFiRegistryFlowMapperTest {
         when(processGroup.getConnections()).thenReturn(connections);
 
         // prep controller services
-        final Set<ControllerServiceNode> controllerServiceNodes = Sets.newHashSet();
+        final Set<ControllerServiceNode> controllerServiceNodes = new LinkedHashSet<>();
         if (includeControllerService) {
             controllerServiceNodes.add(prepareControllerService(processGroupId));
         }
@@ -395,14 +400,14 @@ public class NiFiRegistryFlowMapperTest {
         // prep variable registry
         final ComponentVariableRegistry componentVariableRegistry = mock(ComponentVariableRegistry.class);
         when(processGroup.getVariableRegistry()).thenReturn(componentVariableRegistry);
-        final Map<VariableDescriptor, String> registryVariableMap = Maps.newHashMap();
+        final Map<VariableDescriptor, String> registryVariableMap = new LinkedHashMap<>();
         if (includeVariableRegistry) {
             registryVariableMap.putAll(prepareVariableRegistry());
         }
         when(componentVariableRegistry.getVariableMap()).thenReturn(registryVariableMap);
 
         // prepare remote process group
-        final Set<RemoteProcessGroup> remoteProcessGroups = Sets.newHashSet();
+        final Set<RemoteProcessGroup> remoteProcessGroups = new LinkedHashSet<>();
         if (includeRemoteProcessGroup) {
             remoteProcessGroups.add(prepareRemoteProcessGroup(processGroupId));
         }
@@ -415,7 +420,7 @@ public class NiFiRegistryFlowMapperTest {
         }
 
         // prep nested process groups
-        when(processGroup.getProcessGroups()).thenReturn(Sets.newLinkedHashSet(childProcessGroups));
+        when(processGroup.getProcessGroups()).thenReturn(new LinkedHashSet<>(childProcessGroups));
 
         return processGroup;
     }
@@ -432,6 +437,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(port, processGroupId);
         preparePositionable(port);
         prepareConnectable(port, ConnectableType.valueOf(portType.name()));
+        when(port.getScheduledState()).thenReturn(ScheduledState.RUNNING);
         return port;
     }
 
@@ -448,7 +454,6 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(processorNode, processGroup.getIdentifier());
         preparePositionable(processorNode);
         prepareConnectable(processorNode, ConnectableType.PROCESSOR);
-        when(processorNode.getProcessGroup()).thenReturn(processGroup);
         when(processorNode.getAutoTerminatedRelationships()).thenReturn(Collections.emptySet());
         when(processorNode.getBulletinLevel()).thenReturn(LogLevel.INFO);
         when(processorNode.getExecutionNode()).thenReturn(ExecutionNode.ALL);
@@ -464,7 +469,7 @@ public class NiFiRegistryFlowMapperTest {
         }
         final PropertyDescriptor propertyDescriptor = propertyDescriptorBuilder.build();
         final PropertyConfiguration propertyConfiguration = mock(PropertyConfiguration.class);
-        final Map<PropertyDescriptor, PropertyConfiguration> properties = Maps.newHashMap();
+        final Map<PropertyDescriptor, PropertyConfiguration> properties = new LinkedHashMap<>();
         properties.put(propertyDescriptor, propertyConfiguration);
         when(processorNode.getProperties()).thenReturn(properties);
         when(processorNode.getProperty(propertyDescriptor)).thenReturn(propertyConfiguration);
@@ -478,8 +483,8 @@ public class NiFiRegistryFlowMapperTest {
         final Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         when(connection.getProcessGroup()).thenReturn(processGroup);
-        when(connection.getBendPoints()).thenReturn(Lists.newArrayList(new Position(counter++, counter++)));
-        when(connection.getRelationships()).thenReturn(Lists.newArrayList());
+        when(connection.getBendPoints()).thenReturn(Collections.singletonList(new Position(counter++, counter++)));
+        when(connection.getRelationships()).thenReturn(Collections.emptyList());
         final FlowFileQueue flowFileQueue = mock(FlowFileQueue.class);
         when(connection.getFlowFileQueue()).thenReturn(flowFileQueue);
         when(flowFileQueue.getPriorities()).thenReturn(Collections.emptyList());
@@ -495,7 +500,7 @@ public class NiFiRegistryFlowMapperTest {
     private Map<VariableDescriptor, String> prepareVariableRegistry() {
         final VariableDescriptor variableDescriptor =
                 new VariableDescriptor.Builder("variable"+(counter++)).build();
-        final Map<VariableDescriptor, String> variableRegistryMap = Maps.newHashMap();
+        final Map<VariableDescriptor, String> variableRegistryMap = new LinkedHashMap<>();
         variableRegistryMap.put(variableDescriptor, "value"+(counter++));
         return variableRegistryMap;
     }
@@ -517,9 +522,9 @@ public class NiFiRegistryFlowMapperTest {
         when(remoteProcessGroup.getName()).thenReturn("remote" + (counter++));
         when(remoteProcessGroup.getTransportProtocol()).thenReturn(SiteToSiteTransportProtocol.HTTP);
         final RemoteGroupPort remoteGroupInputPort = prepareRemoteGroupPort(remoteProcessGroup);
-        when(remoteProcessGroup.getInputPorts()).thenReturn(Sets.newHashSet(remoteGroupInputPort));
+        when(remoteProcessGroup.getInputPorts()).thenReturn(Collections.singleton(remoteGroupInputPort));
         final RemoteGroupPort remoteGroupOutputPort = prepareRemoteGroupPort(remoteProcessGroup);
-        when(remoteProcessGroup.getOutputPorts()).thenReturn(Sets.newHashSet(remoteGroupOutputPort));
+        when(remoteProcessGroup.getOutputPorts()).thenReturn(Collections.singleton(remoteGroupOutputPort));
         return remoteProcessGroup;
     }
 
@@ -528,6 +533,7 @@ public class NiFiRegistryFlowMapperTest {
         prepareComponentAuthorizable(remoteGroupPort, remoteProcessGroup.getIdentifier());
         when(remoteGroupPort.getName()).thenReturn("remotePort" + (counter++));
         when(remoteGroupPort.getRemoteProcessGroup()).thenReturn(remoteProcessGroup);
+        when(remoteGroupPort.getScheduledState()).thenReturn(ScheduledState.DISABLED);
         return remoteGroupPort;
     }
 
@@ -747,6 +753,7 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(port.getPosition().getY(), versionedPort.getPosition().getY(), 0);
             assertEquals(port.getName(), versionedPort.getName());
             assertEquals(portType, versionedPort.getType());
+            assertEquals(org.apache.nifi.flow.ScheduledState.ENABLED, versionedPort.getScheduledState());
         }
     }
 
@@ -763,6 +770,8 @@ public class NiFiRegistryFlowMapperTest {
             assertEquals(expectedPortGroupIdentifier, versionedRemotePort.getGroupIdentifier());
             assertEquals(remotePort.getName(), versionedRemotePort.getName());
             assertEquals(componentType, versionedRemotePort.getComponentType());
+            assertNotNull(versionedRemotePort.getScheduledState());
+            assertEquals(remotePort.getScheduledState().name(), versionedRemotePort.getScheduledState().name());
         }
     }
 

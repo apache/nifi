@@ -24,6 +24,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 
@@ -33,7 +34,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor {
+public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor implements VerifiableProcessor {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("gcp-pubsub-publish-batch-size")
@@ -69,7 +70,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final Collection<ValidationResult> results = super.customValidate(validationContext);
+        final Collection<ValidationResult> results = new HashSet<>(super.customValidate(validationContext));
 
         final boolean projectId = validationContext.getProperty(PROJECT_ID).isSet();
         if (!projectId) {

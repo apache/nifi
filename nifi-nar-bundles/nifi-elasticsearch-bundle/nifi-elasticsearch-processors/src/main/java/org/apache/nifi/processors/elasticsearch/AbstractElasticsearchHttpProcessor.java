@@ -55,6 +55,7 @@ import javax.net.ssl.X509TrustManager;
 /**
  * A base class for Elasticsearch processors that use the HTTP API
  */
+@Deprecated
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
     static final String SOURCE_QUERY_PARAM = "_source";
     static final String QUERY_QUERY_PARAM = "q";
@@ -128,6 +129,8 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             .build();
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
+
+    final ObjectMapper mapper = new ObjectMapper();
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
@@ -278,7 +281,6 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected JsonNode parseJsonResponse(InputStream in) throws IOException {
-        final ObjectMapper mapper = new ObjectMapper();
         return mapper.readTree(in);
     }
 

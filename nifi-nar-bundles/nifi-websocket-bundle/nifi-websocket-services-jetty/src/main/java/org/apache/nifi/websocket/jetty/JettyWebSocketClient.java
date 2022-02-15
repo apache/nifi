@@ -101,6 +101,16 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("3 sec")
             .build();
 
+    public static final PropertyDescriptor CONNECTION_ATTEMPT_COUNT = new PropertyDescriptor.Builder()
+            .name("connection-attempt-timeout")
+            .displayName("Connection Attempt Count")
+            .description("The number of times to try and establish a connection.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("3")
+            .build();
+
     public static final PropertyDescriptor SESSION_MAINTENANCE_INTERVAL = new PropertyDescriptor.Builder()
             .name("session-maintenance-interval")
             .displayName("Session Maintenance Interval")
@@ -145,6 +155,19 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .defaultValue("US-ASCII")
             .build();
 
+    public static final PropertyDescriptor CUSTOM_AUTH = new PropertyDescriptor.Builder()
+            .name("custom-authorization")
+            .displayName("Custom Authorization")
+            .description(
+                    "Configures a custom HTTP Authorization Header as described in RFC 7235 Section 4.2." +
+                    " Setting a custom Authorization Header excludes configuring the User Name and User Password properties for Basic Authentication.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+
+
     public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
             .name("proxy-host")
             .displayName("HTTP Proxy Host")
@@ -170,10 +193,12 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(WS_URI);
         props.add(SSL_CONTEXT);
         props.add(CONNECTION_TIMEOUT);
+        props.add(CONNECTION_ATTEMPT_COUNT);
         props.add(SESSION_MAINTENANCE_INTERVAL);
         props.add(USER_NAME);
         props.add(USER_PASSWORD);
         props.add(AUTH_CHARSET);
+        props.add(CUSTOM_AUTH);
         props.add(PROXY_HOST);
         props.add(PROXY_PORT);
 
@@ -184,10 +209,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private final ReentrantLock connectionLock = new ReentrantLock();
     private WebSocketClient client;
     private URI webSocketUri;
-    private String authorizationHeader;
     private long connectionTimeoutMillis;
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private ConfigurationContext configurationContext;
+    protected String authorizationHeader;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -219,7 +244,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         configurePolicy(context, client.getPolicy());
         final String userName = context.getProperty(USER_NAME).evaluateAttributeExpressions().getValue();
         final String userPassword = context.getProperty(USER_PASSWORD).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
+        final String customAuth = context.getProperty(CUSTOM_AUTH).evaluateAttributeExpressions().getValue();
+
+        if (!StringUtils.isEmpty(customAuth)) {
+            authorizationHeader = customAuth;
+        } else if (!StringUtils.isEmpty(userName) && !StringUtils.isEmpty(userPassword)) {
             final String charsetName = context.getProperty(AUTH_CHARSET).evaluateAttributeExpressions().getValue();
             if (StringUtils.isEmpty(charsetName)) {
                 throw new IllegalArgumentException(AUTH_CHARSET.getDisplayName() + " was not specified.");
@@ -258,6 +287,14 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             results.add(new ValidationResult.Builder().subject("HTTP Proxy Host and Port").valid(false).explanation(
                     "If HTTP Proxy Host or HTTP Proxy Port is set, both must be set").build());
         }
+
+        final boolean isBaseAuthUsed = validationContext.getProperty(USER_NAME).isSet() || validationContext.getProperty(USER_PASSWORD).isSet();
+
+        if (isBaseAuthUsed && validationContext.getProperty(CUSTOM_AUTH).isSet()) {
+            results.add((new ValidationResult.Builder().subject("Authentication").valid(false).explanation(
+                    "Properties related to Basic Authentication (\"User Name\" and \"User Password\") cannot be used together with \"Custom Authorization\"")).build());
+        }
+
         return results;
     }
 
@@ -321,14 +358,23 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             if (!StringUtils.isEmpty(authorizationHeader)) {
                 request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
             }
-            final Future<Session> connect = client.connect(listener, webSocketUri, request);
-            getLogger().info("Connecting to : {}", webSocketUri);
 
-            final Session session;
-            try {
-                session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
-            } catch (Exception e) {
-                throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
+            final int connectCount = configurationContext.getProperty(CONNECTION_ATTEMPT_COUNT).evaluateAttributeExpressions().asInteger();
+
+            Session session = null;
+            for (int i = 0; i < connectCount; i++) {
+                final Future<Session> connect = createWebsocketSession(listener, request);
+                getLogger().info("Connecting to : {}", webSocketUri);
+                try {
+                    session = connect.get(connectionTimeoutMillis, TimeUnit.MILLISECONDS);
+                    break;
+                } catch (Exception e) {
+                    if (i == connectCount - 1) {
+                        throw new IOException("Failed to connect " + webSocketUri + " due to: " + e, e);
+                    } else {
+                        getLogger().warn("Failed to connect to {}, reconnection attempt {}", webSocketUri, i + 1);
+                    }
+                }
             }
             getLogger().info("Connected, session={}", session);
             activeSessions.put(clientId, new SessionInfo(listener.getSessionId(), flowFileAttributes));
@@ -337,6 +383,10 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             connectionLock.unlock();
         }
 
+    }
+
+    Future<Session> createWebsocketSession(RoutingWebSocketListener listener, ClientUpgradeRequest request) throws IOException {
+        return client.connect(listener, webSocketUri, request);
     }
 
     void maintainSessions() throws Exception {

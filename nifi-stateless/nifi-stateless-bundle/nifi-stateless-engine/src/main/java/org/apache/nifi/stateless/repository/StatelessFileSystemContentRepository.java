@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.repository;
 
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -69,8 +70,8 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        this.resourceClaimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) throws IOException {
+        this.resourceClaimManager = context.getResourceClaimManager();
         if (!directory.exists() && !directory.mkdirs()) {
             throw new IOException("Cannot initialize Content Repository because " + directory.getAbsolutePath() + " does not exist and cannot be created");
         }
@@ -350,6 +351,7 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         private final StandardContentClaim scc;
         private final SynchronizedByteCountingOutputStream out;
         private final long initialOffset;
+        private boolean closed = false;
 
         public ContentOutputStream(final SynchronizedByteCountingOutputStream out, final StandardContentClaim scc) {
             super(out);
@@ -359,7 +361,27 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
         }
 
         @Override
+        public void write(final byte[] b, final int off, final int len) throws IOException {
+            out.write(b, off, len);
+        }
+
+        @Override
+        public void write(final byte[] b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            out.write(b);
+        }
+
+        @Override
         public synchronized void close() throws IOException {
+            if (closed) {
+                return;
+            }
+
+            closed = true;
             super.flush();
             scc.setLength(out.getBytesWritten() - initialOffset);
             writableClaimQueue.offer(scc.getResourceClaim());

@@ -38,6 +38,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -274,6 +275,11 @@ public class StatelessKafkaConnectorUtil {
             }
 
             @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
+            }
+
+            @Override
             public File getKrb5File() {
                 return new File(properties.getOrDefault(KRB5_FILE, DEFAULT_KRB5_FILE));
             }
@@ -308,6 +314,11 @@ public class StatelessKafkaConnectorUtil {
                 }
 
                 return extensionClientDefinitions;
+            }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return "1 min";
             }
         };
 

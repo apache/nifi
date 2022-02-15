@@ -17,19 +17,10 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
-import java.io.InputStream;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
-
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.TableId;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -51,13 +42,20 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.util.StringUtils;
 
-import com.google.cloud.bigquery.BigQueryError;
-import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
-import com.google.cloud.bigquery.TableId;
-import com.google.common.collect.ImmutableList;
+import java.io.InputStream;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A processor for streaming loading data into a Google BigQuery table. It uses the BigQuery
@@ -105,11 +103,10 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor> builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(RECORD_READER)
-                .add(SKIP_INVALID_ROWS)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(RECORD_READER);
+        descriptors.add(SKIP_INVALID_ROWS);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -124,17 +121,8 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
         if (flowFile == null) {
             return;
         }
-
-        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
-        final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-
-        final TableId tableId;
-        if (StringUtils.isEmpty(projectId)) {
-            tableId = TableId.of(dataset, tableName);
-        } else {
-            tableId = TableId.of(projectId, dataset, tableName);
-        }
+        final TableId tableId = getTableId(context, flowFile.getAttributes());
 
         try {
 
@@ -143,7 +131,7 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
 
             try (final InputStream in = session.read(flowFile)) {
                 final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-                try (final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger());) {
+                try (final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
                     Record currentRecord;
                     while ((currentRecord = reader.nextRecord()) != null) {
                         request.addRow(convertMapRecord(currentRecord.toMap()));

@@ -22,4 +22,8 @@ public class SNMPException extends RuntimeException {
         super(errorMessage);
     }
 
+    public SNMPException(final Exception exception) {
+        super(exception);
+    }
+
 }

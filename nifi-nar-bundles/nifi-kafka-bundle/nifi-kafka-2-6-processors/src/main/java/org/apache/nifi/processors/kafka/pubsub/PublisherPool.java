@@ -20,10 +20,12 @@ package org.apache.nifi.processors.kafka.pubsub;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.ConfigVerificationResult;
 
 import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -78,9 +80,24 @@ public class PublisherPool implements Closeable {
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
         final PublisherLease lease = new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger, useTransactions, attributeNameRegex, headerCharacterSet) {
+            private volatile boolean closed = false;
+
             @Override
             public void close() {
+                if (isPoisoned() && useTransactions && !closed) {
+                    try {
+                        producer.abortTransaction();
+                    } catch (final Exception e) {
+                        logger.error("Failed to abort producer transaction", e);
+                    }
+                }
+
                 if (isPoisoned() || isClosed()) {
+                    if (closed) {
+                        return;
+                    }
+
+                    closed = true;
                     super.close();
                 } else {
                     publisherQueue.offer(this);
@@ -112,5 +129,11 @@ public class PublisherPool implements Closeable {
      */
     protected int available() {
         return publisherQueue.size();
+    }
+
+    public List<ConfigVerificationResult> verifyConfiguration(final String topic) {
+        try (final PublisherLease lease = obtainPublisher()) {
+            return lease.verifyConfiguration(topic);
+        }
     }
 }

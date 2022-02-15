@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -52,10 +51,12 @@ import org.apache.nifi.util.StopWatch;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -247,7 +248,8 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         Path inputPath;
         try {
             inputPath = getNormalizedPath(context, INPUT_DIRECTORY_OR_FILE, flowFile);
-            if (!hdfs.exists(inputPath)) {
+            final boolean directoryExists = getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
+            if (!directoryExists) {
                 throw new IOException("Input Directory or File does not exist in HDFS");
             }
         } catch (Exception e) {
@@ -297,6 +299,11 @@ public class MoveHDFS extends AbstractHadoopProcessor {
             context.yield();
             getLogger().warn("Error while retrieving list of files due to {}", new Object[]{e});
             return;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            context.yield();
+            getLogger().warn("Interrupted while retrieving files", e);
+            return;
         }
 
         // prepare to process a batch of files in the queue
@@ -327,7 +334,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context,
                                        final ProcessSession session, FlowFile parentFlowFile) {
-        Preconditions.checkState(parentFlowFile != null, "No parent flowfile for this batch was provided");
+        Objects.requireNonNull(parentFlowFile, "No parent flowfile for this batch was provided");
 
         // process the batch of files
         final Configuration conf = getConfiguration();
@@ -434,7 +441,7 @@ public class MoveHDFS extends AbstractHadoopProcessor {
         }
     }
 
-    protected Set<Path> performListing(final ProcessContext context, Path path) throws IOException {
+    protected Set<Path> performListing(final ProcessContext context, Path path) throws IOException, InterruptedException {
         Set<Path> listing = null;
 
         if (listingLock.tryLock()) {
@@ -464,21 +471,25 @@ public class MoveHDFS extends AbstractHadoopProcessor {
     }
 
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path inputPath, Set<Path> filesVisited)
-            throws IOException {
+            throws IOException, InterruptedException {
         if (null == filesVisited) {
             filesVisited = new HashSet<>();
         }
 
-        if (!hdfs.exists(inputPath)) {
+        UserGroupInformation ugi = getUserGroupInformation();
+
+        final boolean directoryExists = ugi.doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(inputPath));
+        if (!directoryExists) {
             throw new IOException("Selection directory " + inputPath.toString() + " doesn't appear to exist!");
         }
 
         final Set<Path> files = new HashSet<>();
 
-        FileStatus inputStatus = hdfs.getFileStatus(inputPath);
+        FileStatus inputStatus = ugi.doAs((PrivilegedExceptionAction<FileStatus>) () -> hdfs.getFileStatus(inputPath));
 
         if (inputStatus.isDirectory()) {
-            for (final FileStatus file : hdfs.listStatus(inputPath)) {
+            FileStatus[] fileStatuses = ugi.doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfs.listStatus(inputPath));
+            for (final FileStatus file : fileStatuses) {
                 final Path canonicalFile = file.getPath();
 
                 if (!filesVisited.add(canonicalFile)) { // skip files we've already seen (may be looping directory links)

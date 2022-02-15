@@ -31,6 +31,10 @@ public interface DataflowDefinition<T> {
 
     Set<String> getFailurePortNames();
 
+    Set<String> getInputPortNames();
+
+    Set<String> getOutputPortNames();
+
     List<ParameterContextDefinition> getParameterContexts();
 
     List<ReportingTaskDefinition> getReportingTaskDefinitions();

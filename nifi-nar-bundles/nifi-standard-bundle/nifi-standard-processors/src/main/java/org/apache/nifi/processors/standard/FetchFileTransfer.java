@@ -254,31 +254,30 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             transfer = transferWrapper.getFileTransfer();
         }
 
-        boolean closeConnection = false;
         try {
             // Pull data from remote system.
             try {
                 flowFile = transfer.getRemoteFile(filename, flowFile, session);
 
             } catch (final FileNotFoundException e) {
-                closeConnection = false;
                 getLogger().log(levelFileNotFound, "Failed to fetch content for {} from filename {} on remote host {} because the file could not be found on the remote system; routing to {}",
-                        new Object[]{flowFile, filename, host, REL_NOT_FOUND.getName()});
+                        flowFile, filename, host, REL_NOT_FOUND.getName());
                 session.transfer(session.penalize(flowFile), REL_NOT_FOUND);
                 session.getProvenanceReporter().route(flowFile, REL_NOT_FOUND);
+                cleanupTransfer(transfer, false, transferQueue, host, port);
                 return;
             } catch (final PermissionDeniedException e) {
-                closeConnection = false;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
-                        new Object[]{flowFile, filename, host, REL_PERMISSION_DENIED.getName()});
+                        flowFile, filename, host, REL_PERMISSION_DENIED.getName());
                 session.transfer(session.penalize(flowFile), REL_PERMISSION_DENIED);
                 session.getProvenanceReporter().route(flowFile, REL_PERMISSION_DENIED);
+                cleanupTransfer(transfer, false, transferQueue, host, port);
                 return;
             } catch (final ProcessException | IOException e) {
-                closeConnection = true;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {}:{} due to {}; routing to comms.failure",
                         new Object[]{flowFile, filename, host, port, e.toString()}, e);
                 session.transfer(session.penalize(flowFile), REL_COMMS_FAILURE);
+                cleanupTransfer(transfer, true, transferQueue, host, port);
                 return;
             }
 
@@ -306,22 +305,17 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
             // we ingest the data, delete/move the remote file, and then NiFi dies/is shut down before the session is committed. This would
             // result in data loss! If we commit the session first, we are safe.
-            final boolean close = closeConnection;
             final BlockingQueue<FileTransferIdleWrapper> queue = transferQueue;
-            final Runnable cleanupTask = () -> cleanupTransfer(transfer, close, queue, host, port);
+            final Runnable cleanupTask = () -> cleanupTransfer(transfer, false, queue, host, port);
 
             final FlowFile flowFileReceived = flowFile;
             session.commitAsync(() -> {
                 performCompletionStrategy(transfer, context, flowFileReceived, filename, host, port);
                 cleanupTask.run();
-            }, t -> {
-                cleanupTask.run();
-            });
+            }, t -> cleanupTask.run());
         } catch (final Throwable t) {
             getLogger().error("Failed to fetch file", t);
-            if (transfer != null) {
-                cleanupTransfer(transfer, closeConnection, transferQueue, host, port);
-            }
+            cleanupTransfer(transfer, true, transferQueue, host, port);
         }
     }
 

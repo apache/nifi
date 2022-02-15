@@ -18,28 +18,23 @@ package org.apache.nifi.ssl;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.GeneralSecurityException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StandardRestrictedSSLContextServiceTest {
 
     private static final String SERVICE_ID = StandardRestrictedSSLContextService.class.getSimpleName();
@@ -53,18 +48,12 @@ public class StandardRestrictedSSLContextServiceTest {
 
     private TestRunner runner;
 
-    @BeforeClass
-    public static void setConfiguration() throws IOException, GeneralSecurityException {
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+    @BeforeAll
+    public static void setConfiguration() {
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
     }
 
-    @AfterClass
-    public static void deleteConfiguration() throws IOException {
-        Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-        Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-    }
-
-    @Before
+    @BeforeEach
     public void setRunner() {
         runner = TestRunners.newTestRunner(processor);
         service = new StandardRestrictedSSLContextService();

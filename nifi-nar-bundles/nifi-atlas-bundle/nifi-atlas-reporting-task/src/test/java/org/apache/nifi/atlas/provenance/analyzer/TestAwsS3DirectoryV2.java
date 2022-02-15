@@ -82,7 +82,7 @@ public class TestAwsS3DirectoryV2 extends AbstractTestAwsS3Directory {
             assertEquals(AwsS3Directory.TYPE_DIRECTORY_V2, ref.getTypeName());
             assertEquals(String.format("s3a://%s%s/@%s", AWS_BUCKET, actualPath, ATLAS_NAMESPACE), ref.get(ATTR_QUALIFIED_NAME));
             assertEquals(directory, ref.get(ATTR_NAME));
-            assertEquals(actualPath + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
+            assertEquals(StringUtils.substringBeforeLast(actualPath, "/") + "/", ref.get(ATTR_OBJECT_PREFIX_V2));
             assertNotNull(ref.get(ATTR_CONTAINER_V2));
 
             ref = (Referenceable) ref.get(ATTR_CONTAINER_V2);

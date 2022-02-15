@@ -16,7 +16,7 @@
  */
 
 import { Component } from '@angular/core';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import NfRegistryService from 'services/nf-registry.service';
 import nfRegistryAnimations from 'nf-registry.animations';
 import NfUserLoginComponent from 'components/login/dialogs/nf-registry-user-login';

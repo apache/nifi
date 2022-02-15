@@ -22,8 +22,8 @@ import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.util.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -55,7 +55,7 @@ public class KeyedCipherPropertyEncryptorTest {
 
     private KeyedCipherPropertyEncryptor encryptor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         encryptor = new KeyedCipherPropertyEncryptor(CIPHER_PROVIDER, ENCRYPTION_METHOD, SECRET_KEY);
     }

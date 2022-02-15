@@ -19,11 +19,12 @@ package org.apache.nifi.web;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
-import org.apache.nifi.web.security.http.SecurityCookieName;
-import org.apache.nifi.web.security.http.SecurityHeader;
+import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
+import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
 import org.apache.nifi.web.security.jwt.resolver.StandardBearerTokenResolver;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
+import org.apache.nifi.web.security.log.AuthenticationUserFilter;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
@@ -47,11 +48,6 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
 
 /**
  * NiFi Web Api Spring security. Applies the various NiFiAuthenticationFilter servlet filters which will extract authentication
@@ -113,41 +109,22 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        NiFiCsrfTokenRepository csrfRepository = new NiFiCsrfTokenRepository();
-        csrfRepository.setHeaderName(SecurityHeader.AUTHORIZATION.getHeader());
-        csrfRepository.setCookieName(SecurityCookieName.AUTHORIZATION_BEARER.getName());
-
         http
-                .cors().and()
                 .rememberMe().disable()
                 .authorizeRequests().anyRequest().fullyAuthenticated().and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .csrf().requireCsrfProtectionMatcher(new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher())).csrfTokenRepository(csrfRepository);
+                .csrf().requireCsrfProtectionMatcher(
+                        new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher()))
+                        .csrfTokenRepository(new StandardCookieCsrfTokenRepository(properties.getAllowedContextPathsAsList()));
 
-        // x509
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
-
-        // jwt
         http.addFilterBefore(bearerTokenAuthenticationFilter(), AnonymousAuthenticationFilter.class);
-
-        // knox
         http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
-
-        // anonymous
         http.addFilterAfter(anonymousFilterBean(), AnonymousAuthenticationFilter.class);
+        http.addFilterAfter(new AuthenticationUserFilter(), AnonymousAuthenticationFilter.class);
 
         // disable default anonymous handling because it doesn't handle conditional authentication well
         http.anonymous().disable();
-    }
-
-
-    @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET"));
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/process-groups/*/templates/upload", configuration);
-        return source;
     }
 
     @Bean

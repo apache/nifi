@@ -68,7 +68,7 @@
                         <div class="header">Developer</div>
                         <div id="developer-links" class="component-links">
                             <ul>
-                                <li class="component-item"><a class="document-link rest-api" href="rest-api/rest-api.html" target="component-usage">REST API</a></li>
+                                <li class="component-item"><a class="document-link rest-api" href="rest-api/index.html" target="component-usage">REST API</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching developer guides</span>
                         </div>

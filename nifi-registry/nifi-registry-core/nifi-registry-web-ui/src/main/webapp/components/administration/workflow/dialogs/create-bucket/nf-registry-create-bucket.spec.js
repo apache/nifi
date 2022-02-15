@@ -28,14 +28,18 @@ describe('NfRegistryCreateBucket Component isolated unit tests', function () {
     beforeEach(function () {
         nfRegistryService = new NfRegistryService();
         nfRegistryApi = new NfRegistryApi();
-        comp = new NfRegistryCreateBucket(nfRegistryApi, {
-            openCoaster: function () {
+        comp = new NfRegistryCreateBucket(
+            nfRegistryApi,
+            {
+                openCoaster: function () {
+                }
+            },
+            nfRegistryService,
+            {
+                close: function () {
+                }
             }
-        },
-        nfRegistryService, {
-            close: function () {
-            }
-        });
+        );
 
         // Spy
         spyOn(nfRegistryApi, 'createBucket').and.callFake(function () {

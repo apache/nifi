@@ -26,6 +26,8 @@ org.apache.nifi.lookup.ReaderLookup
 org.apache.nifi.csv.CSVReader
 org.apache.nifi.csv.CSVRecordSetWriter
 
+org.apache.nifi.cef.CEFReader
+
 org.apache.nifi.grok.GrokReader
 
 org.apache.nifi.text.FreeFormTextRecordSetWriter

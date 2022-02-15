@@ -17,12 +17,14 @@
 package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The simplest way to run this test is by installing Vault locally, then running:
@@ -44,7 +46,7 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
 
     private HashiCorpVaultCommunicationService vcs;
 
-    @Before
+    @BeforeEach
     public void init() {
         vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setAuthPropertiesFilename(System.getProperty("vault.auth.properties"))
@@ -67,6 +69,9 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
         assertEquals(plaintext, new String(decrypted, StandardCharsets.UTF_8));
     }
 
+    /**
+     * Run <code>vault kv get kv/key</code> to see the secret
+     */
     @Test
     public void testReadWriteSecret() {
         final String key = "key";
@@ -76,5 +81,26 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
 
         final String resultValue = vcs.readKeyValueSecret("kv", key).orElseThrow(() -> new NullPointerException("Missing secret for kv/key"));
         assertEquals(value, resultValue);
+    }
+
+    /**
+     * Run <code>vault kv get kv/secret</code> to see the secret
+     */
+    @Test
+    public void testReadWriteSecretMap() {
+        final String secretKey = "secret";
+        final String key = "key";
+        final String value = "value";
+        final String key2 = "key2";
+        final String value2 = "value2";
+
+        final Map<String, String> keyValues = new HashMap<>();
+        keyValues.put(key, value);
+        keyValues.put(key2, value2);
+
+        vcs.writeKeyValueSecretMap("kv", secretKey, keyValues);
+
+        final Map<String, String> resultMap = vcs.readKeyValueSecretMap("kv", secretKey);
+        assertEquals(keyValues, resultMap);
     }
 }

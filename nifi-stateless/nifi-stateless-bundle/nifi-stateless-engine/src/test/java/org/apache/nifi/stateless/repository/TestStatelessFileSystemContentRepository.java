@@ -17,34 +17,52 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestStatelessFileSystemContentRepository {
     private final File repoDirectory = new File("target/test-stateless-file-system-repository");
     private StatelessFileSystemContentRepository repository;
 
-    @Before
+    private final ContentRepositoryContext contentRepositoryContext = new ContentRepositoryContext() {
+        @Override
+        public ResourceClaimManager getResourceClaimManager() {
+            return new StandardResourceClaimManager();
+        }
+
+        @Override
+        public EventReporter getEventReporter() {
+            return EventReporter.NO_OP;
+        }
+    };
+
+    @BeforeEach
     public void setup() throws IOException {
         repository = new StatelessFileSystemContentRepository(repoDirectory);
-        repository.initialize(new StandardResourceClaimManager());
+        repository.initialize(contentRepositoryContext);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         repository.cleanup();
     }
@@ -105,4 +123,50 @@ public class TestStatelessFileSystemContentRepository {
         }
     }
 
+    @Test
+    public void testWriteToMultipleStreams() throws IOException {
+        final ContentClaim claim1 = repository.create(true);
+        final ContentClaim claim2 = repository.create(true);
+        final ContentClaim claim3 = repository.create(true);
+
+        final OutputStream out1 = repository.write(claim1);
+        final OutputStream out2 = repository.write(claim2);
+        final OutputStream out3 = repository.write(claim3);
+
+        for (final char c : "Hello World".toCharArray()) {
+            out1.write(c);
+            out2.write(c);
+            out3.write(c);
+        }
+
+        out1.close();
+        out2.close();
+        out3.close();
+
+        for (final ContentClaim claim : Arrays.asList(claim1, claim2, claim3)) {
+            try (final InputStream in = repository.read(claim)) {
+                for (final char c : "Hello World".toCharArray()) {
+                    assertEquals(c, in.read());
+                }
+
+                assertEquals(-1, in.read());
+            }
+        }
+
+        final ContentClaim claim4 = repository.create(true);
+        final ResourceClaim resourceClaim4 = claim4.getResourceClaim();
+        assertTrue(resourceClaim4.equals(claim1.getResourceClaim()) || resourceClaim4.equals(claim2.getResourceClaim()) || resourceClaim4.equals(claim3.getResourceClaim()));
+
+        try (final OutputStream out4 = repository.write(claim4)) {
+            out4.write("Hello World".getBytes());
+        }
+
+        try (final InputStream in = repository.read(claim4)) {
+            for (final char c : "Hello World".toCharArray()) {
+                assertEquals(c, in.read());
+            }
+
+            assertEquals(-1, in.read());
+        }
+    }
 }

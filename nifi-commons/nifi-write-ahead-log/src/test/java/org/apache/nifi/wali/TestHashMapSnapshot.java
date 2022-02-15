@@ -17,9 +17,13 @@
 
 package org.apache.nifi.wali;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.wali.DummyRecord;
+import org.wali.DummyRecordSerde;
+import org.wali.SerDeFactory;
+import org.wali.SingletonSerDeFactory;
+import org.wali.UpdateType;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,14 +34,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.wali.DummyRecord;
-import org.wali.DummyRecordSerde;
-import org.wali.SerDeFactory;
-import org.wali.SingletonSerDeFactory;
-import org.wali.UpdateType;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestHashMapSnapshot {
 
@@ -45,7 +45,7 @@ public class TestHashMapSnapshot {
     private DummyRecordSerde serde;
     private SerDeFactory<DummyRecord> serdeFactory;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         if (!storageDirectory.exists()) {
             Files.createDirectories(storageDirectory.toPath());
@@ -135,12 +135,7 @@ public class TestHashMapSnapshot {
 
         serde.setThrowOOMEAfterNSerializeEdits(3);
 
-        try {
-            snapshot.writeSnapshot(snapshot.prepareSnapshot(150L));
-            Assert.fail("Expected OOME");
-        } catch (final OutOfMemoryError oome) {
-            // expected
-        }
+        assertThrows(OutOfMemoryError.class, () -> snapshot.writeSnapshot(snapshot.prepareSnapshot(150L)));
 
         final SnapshotRecovery<DummyRecord> recovery = snapshot.recover();
         assertEquals(25L, recovery.getMaxTransactionId());
@@ -184,12 +179,7 @@ public class TestHashMapSnapshot {
         serde.setThrowIOEAfterNSerializeEdits(3);
 
         for (int i = 0; i < 5; i++) {
-            try {
-                snapshot.writeSnapshot(snapshot.prepareSnapshot(150L));
-                Assert.fail("Expected IOE");
-            } catch (final IOException ioe) {
-                // expected
-            }
+            assertThrows(IOException.class, () -> snapshot.writeSnapshot(snapshot.prepareSnapshot(150L)));
         }
 
         final SnapshotRecovery<DummyRecord> recovery = snapshot.recover();

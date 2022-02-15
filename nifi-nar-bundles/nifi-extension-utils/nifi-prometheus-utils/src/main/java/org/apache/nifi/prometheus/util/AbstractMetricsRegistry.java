@@ -50,4 +50,13 @@ public class AbstractMetricsRegistry {
 
         counter.labels(labels).inc(val);
     }
+
+    public void clear() {
+        for (Gauge gauge : nameToGaugeMap.values()) {
+            gauge.clear();
+        }
+        for (Counter counter : nameToCounterMap.values()) {
+            counter.clear();
+        }
+    }
 }

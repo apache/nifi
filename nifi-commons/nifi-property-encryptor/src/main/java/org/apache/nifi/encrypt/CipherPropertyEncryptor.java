@@ -18,8 +18,8 @@ package org.apache.nifi.encrypt;
 
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.nifi.security.kms.CryptoUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.Arrays;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -52,7 +52,7 @@ abstract class CipherPropertyEncryptor implements PropertyEncryptor {
         final Cipher cipher = getEncryptionCipher(encodedParameters);
         try {
             final byte[] encrypted = cipher.doFinal(binary);
-            return Hex.encodeHexString(CryptoUtils.concatByteArrays(encodedParameters, encrypted));
+            return Hex.encodeHexString(Arrays.concatenate(encodedParameters, encrypted));
         } catch (final BadPaddingException | IllegalBlockSizeException e) {
             final String message = String.format("Encryption Failed with Algorithm [%s]", cipher.getAlgorithm());
             throw new EncryptionException(message, e);

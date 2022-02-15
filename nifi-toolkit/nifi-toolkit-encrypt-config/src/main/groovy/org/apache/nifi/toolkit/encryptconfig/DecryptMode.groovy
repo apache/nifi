@@ -16,13 +16,16 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.internal.OptionAccessor
 import groovy.cli.commons.CliBuilder
-import groovy.cli.commons.OptionAccessor
+
 import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.scheme.ProtectionScheme
+import org.apache.nifi.properties.scheme.ProtectionSchemeResolver
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProviderFactory
+import org.apache.nifi.properties.scheme.StandardProtectionSchemeResolver
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
@@ -35,6 +38,8 @@ import org.slf4j.LoggerFactory
 class DecryptMode implements ToolMode {
 
     private static final Logger logger = LoggerFactory.getLogger(DecryptMode.class)
+
+    private static final ProtectionSchemeResolver PROTECTION_SCHEME_RESOLVER = new StandardProtectionSchemeResolver()
 
     static enum FileType {
         properties,
@@ -75,8 +80,6 @@ class DecryptMode implements ToolMode {
             if (options.v) {
                 verboseEnabled = true
             }
-            EncryptConfigLogger.configureLogger(verboseEnabled)
-
             DecryptConfiguration config = new DecryptConfiguration(options)
 
             run(config)
@@ -211,7 +214,7 @@ class DecryptMode implements ToolMode {
         OptionAccessor rawOptions
 
         Configuration.KeySource keySource
-        PropertyProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
+        ProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
         String key
         SensitivePropertyProvider decryptionProvider
         SensitivePropertyProviderFactory providerFactory
@@ -235,12 +238,8 @@ class DecryptMode implements ToolMode {
 
             determineProtectionScheme()
             determineBootstrapProperties()
-            if (protectionScheme.requiresSecretKey()) {
-                determineKey()
-                if (!key) {
-                    throw new RuntimeException("Failed to configure tool, could not determine key.")
-                }
-            }
+            determineKey()
+
             providerFactory = StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(key, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
             decryptionProvider = providerFactory.getProvider(protectionScheme)
@@ -288,7 +287,7 @@ class DecryptMode implements ToolMode {
         private void determineProtectionScheme() {
 
             if (rawOptions.S) {
-                protectionScheme = PropertyProtectionScheme.valueOf(rawOptions.S)
+                protectionScheme = PROTECTION_SCHEME_RESOLVER.getProtectionScheme(rawOptions.S)
             }
         }
 

@@ -19,7 +19,7 @@ on: [push, pull_request]
 
 env:
   DEFAULT_MAVEN_OPTS: >-
-    -Xmx2g
+    -Xmx3g
     -XX:ReservedCodeCacheSize=1g
     -XX:+UseG1GC
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
@@ -36,12 +36,17 @@ env:
   MAVEN_PROFILES: >-
     -P contrib-check
     -P include-grpc
+    -P skip-nifi-bin-assembly
   MAVEN_PROJECTS: >-
-    -pl -nifi-assembly
-    -pl -nifi-toolkit/nifi-toolkit-assembly
-    -pl -nifi-registry/nifi-registry-assembly
     -pl -minifi/minifi-assembly
+    -pl -minifi/minifi-c2/minifi-c2-assembly
+    -pl -minifi/minifi-toolkit/minifi-toolkit-assembly
+    -pl -nifi-registry/nifi-registry-assembly
+    -pl -nifi-registry/nifi-registry-toolkit/nifi-registry-toolkit-assembly
+    -pl -nifi-stateless/nifi-stateless-assembly
     -pl -nifi-system-tests
+    -pl -nifi-system-tests/nifi-system-test-suite
+    -pl -nifi-toolkit/nifi-toolkit-assembly
 
 concurrency:
   group: ${{ github.ref }}
@@ -55,8 +60,10 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           cat /proc/cpuinfo
           cat /proc/meminfo
+          df
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Cache Maven Dependencies
@@ -73,9 +80,9 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 11
         uses: actions/setup-java@v2
         with:
@@ -93,6 +100,17 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-ubuntu-en
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df
 
   macos-build-jp:
     timeout-minutes: 120
@@ -101,8 +119,10 @@ jobs:
     steps:
       - name: System Information
         run: |
+          hostname
           top -l 1 | grep PhysMem
           sysctl machdep.cpu
+          df
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Cache Maven Dependencies
@@ -119,9 +139,9 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 8
         uses: actions/setup-java@v2
         with:
@@ -139,6 +159,17 @@ jobs:
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-macos-jp
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df
 
   windows-build:
     timeout-minutes: 120
@@ -148,6 +179,7 @@ jobs:
       - name: System Information
         run: |
           systeminfo
+          df
       - name: Setup Git
         run:  |
           git config --global core.autocrlf false
@@ -172,9 +204,9 @@ jobs:
           path: |
             ${{ steps.npm-cache-directory.outputs.directory }}
             **/node_modules
-          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-npm16-
       - name: Set up Java 8
         uses: actions/setup-java@v2
         with:
@@ -191,3 +223,14 @@ jobs:
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: surefire-reports-windows-fr
+          path: |
+            ./**/target/surefire-reports/*.txt
+            ./**/target/surefire-reports/*.xml
+          retention-days: 3
+        if: failure()
+      - name: Post Disk Usage
+        run: df

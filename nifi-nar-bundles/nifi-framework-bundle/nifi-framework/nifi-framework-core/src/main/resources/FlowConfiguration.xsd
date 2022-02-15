@@ -68,6 +68,7 @@
             <xs:element name="id" type="NonEmptyStringType" />
             <xs:element name="name" type="NonEmptyStringType" />
             <xs:element name="description" type="xs:string" minOccurs="0" maxOccurs="1" />
+            <xs:element name="inheritedParameterContextId" type="xs:string" minOccurs="0" maxOccurs="unbounded" />
             <xs:element name="parameter" type="ParameterType" minOccurs="0" maxOccurs="unbounded" />
         </xs:sequence>
     </xs:complexType>
@@ -211,6 +212,7 @@
     <xs:simpleType name="FlowFileConcurrencyType">
         <xs:restriction base="xs:string">
             <xs:enumeration value="SINGLE_FLOWFILE_PER_NODE" />
+            <xs:enumeration value="SINGLE_BATCH_PER_NODE" />
             <xs:enumeration value="UNBOUNDED" />
         </xs:restriction>
     </xs:simpleType>

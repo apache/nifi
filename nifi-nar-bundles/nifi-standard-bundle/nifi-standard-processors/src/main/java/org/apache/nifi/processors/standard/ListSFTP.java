@@ -79,13 +79,11 @@ public class ListSFTP extends ListFileTransfer {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("22").build();
-
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(FILE_TRANSFER_LISTING_STRATEGY);
-        properties.add(HOSTNAME);
-        properties.add(port);
-        properties.add(USERNAME);
+        properties.add(SFTPTransfer.HOSTNAME);
+        properties.add(SFTPTransfer.PORT);
+        properties.add(SFTPTransfer.USERNAME);
         properties.add(SFTPTransfer.PASSWORD);
         properties.add(SFTPTransfer.PRIVATE_KEY_PATH);
         properties.add(SFTPTransfer.PRIVATE_KEY_PASSPHRASE);
@@ -103,6 +101,7 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
+        properties.add(SFTPTransfer.USE_COMPRESSION);
         properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);
         properties.add(FTPTransfer.PROXY_HOST);
@@ -146,11 +145,17 @@ public class ListSFTP extends ListFileTransfer {
     }
 
     @Override
-    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp) throws IOException {
-        final List<FileInfo> listing = super.performListing(context, minTimestamp);
+    protected List<FileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
+                                            final boolean applyFilters) throws IOException {
+        final List<FileInfo> listing = super.performListing(context, minTimestamp, listingMode, applyFilters);
 
+        if (!applyFilters) {
+            return listing;
+        }
+
+        final Predicate<FileInfo> filePredicate = listingMode == ListingMode.EXECUTION ? this.fileFilter : createFileFilter(context);
         return listing.stream()
-                .filter(fileFilter)
+                .filter(filePredicate)
                 .collect(Collectors.toList());
     }
 

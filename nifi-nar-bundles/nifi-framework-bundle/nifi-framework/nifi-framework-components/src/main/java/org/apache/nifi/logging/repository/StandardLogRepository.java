@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.logging.repository;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogMessage;
@@ -27,14 +29,16 @@ import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class StandardLogRepository implements LogRepository {
 
-    private final Map<LogLevel, Collection<LogObserver>> observers = new HashMap<>();
+    private final Map<LogLevel, Collection<LogObserver>> observers = new EnumMap<>(LogLevel.class);
     private final Map<String, LogObserver> observerLookup = new HashMap<>();
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -46,43 +50,64 @@ public class StandardLogRepository implements LogRepository {
     private volatile ComponentLog componentLogger;
 
     @Override
-    public void addLogMessage(final LogLevel level, final String message) {
-        addLogMessage(level, message, (Throwable) null);
-    }
+    public void addLogMessage(LogMessage logMessage) {
+        LogLevel logLevel = logMessage.getLogLevel();
 
-    @Override
-    public void addLogMessage(final LogLevel level, final String message, final Throwable t) {
-        final LogMessage logMessage = new LogMessage(System.currentTimeMillis(), level, message, t);
-
-        final Collection<LogObserver> logObservers = observers.get(level);
+        final Collection<LogObserver> logObservers = observers.get(logLevel);
         if (logObservers != null) {
             for (LogObserver observer : logObservers) {
                 try {
                     observer.onLogMessage(logMessage);
-                } catch (final Throwable observerThrowable) {
+                } catch (final Exception observerThrowable) {
                     logger.error("Failed to pass log message to Observer {} due to {}", observer, observerThrowable.toString());
                 }
             }
         }
+
     }
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
         replaceThrowablesWithMessage(params);
+        final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
-        addLogMessage(level, formattedMessage);
+        final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
+                .message(formattedMessage)
+                .flowFileUuid(flowFileUuid.orElse(null))
+                .createLogMessage();
+        addLogMessage(logMessage);
     }
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
         replaceThrowablesWithMessage(params);
+        final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
-        addLogMessage(level, formattedMessage, t);
+        final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
+                .message(formattedMessage)
+                .throwable(t)
+                .flowFileUuid(flowFileUuid.orElse(null))
+                .createLogMessage();
+        addLogMessage(logMessage);
+    }
+
+    private Optional<String> getFirstFlowFileUuidFromObjects(Object[] params) {
+        int flowFileCount = 0;
+        FlowFile flowFileFound = null;
+        for (final Object param : params) {
+            if (param instanceof FlowFile) {
+                if (++flowFileCount > 1) {
+                    return Optional.empty();
+                }
+                flowFileFound = (FlowFile) param;
+            }
+        }
+        return Optional.ofNullable(flowFileFound).map(ff -> ff.getAttribute(CoreAttributes.UUID.key()));
     }
 
     private void replaceThrowablesWithMessage(final Object[] params) {
         for (int i = 0; i < params.length; i++) {
-            if(params[i] instanceof Throwable) {
+            if (params[i] instanceof Throwable) {
                 params[i] = ((Throwable) params[i]).getLocalizedMessage();
             }
         }
@@ -139,11 +164,7 @@ public class StandardLogRepository implements LogRepository {
             for (int i = minimumLevel.ordinal(); i < allLevels.length; i++) {
                 // no need to register an observer for NONE since that level will never be logged to by a component
                 if (i != LogLevel.NONE.ordinal()) {
-                    Collection<LogObserver> collection = observers.get(allLevels[i]);
-                    if (collection == null) {
-                        collection = new ArrayList<>();
-                        observers.put(allLevels[i], collection);
-                    }
+                    Collection<LogObserver> collection = observers.computeIfAbsent(allLevels[i], k -> new ArrayList<>());
                     collection.add(observer);
                 }
             }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -81,7 +82,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
             final PropertyDescriptor descriptor = processContext.getPropertyDescriptor(entry.getKey());
             final ParameterTokenList tokenList = new StandardParameterTokenList(entry.getValue(), Collections.emptyList());
             final List<ParameterReference> parameterReferences = Collections.emptyList();
-            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), tokenList, parameterReferences);
+            final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), tokenList, parameterReferences, VariableImpact.NEVER_IMPACTED);
             configurationMap.put(descriptor, configuration);
         }
 
@@ -293,12 +294,12 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
             @Override
             public PropertyValue getProperty(final PropertyDescriptor descriptor) {
-                return null;
+                return MockValidationContext.this.getProperty(descriptor);
             }
 
             @Override
             public Map<String, String> getAllProperties() {
-                return null;
+                return MockValidationContext.this.getAllProperties();
             }
         };
 

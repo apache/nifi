@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
     NiFiProperties properties;
 
     @Test
-    public void testEmptyProperties() {
+    public void testEmptyProperties() throws TlsException {
         // when
         final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
         final Map<String, String> result = testSubject.getProperties();
@@ -48,7 +49,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
     }
 
     @Test
-    public void testGuardedPropertiesAreNotReturned() {
+    public void testGuardedPropertiesAreNotReturned() throws TlsException {
         // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX + "implementation", "value");
@@ -64,7 +65,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
     }
 
     @Test
-    public void testPropertiesWouldHaveEmptyKeyAreNotReturned() {
+    public void testPropertiesWouldHaveEmptyKeyAreNotReturned() throws TlsException {
         // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX, "value");
@@ -80,7 +81,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
     }
 
     @Test
-    public void testPrefixIsRemoved() {
+    public void testPrefixIsRemoved() throws TlsException {
         // given
         final Map<String, String> availableProperties = new HashMap<>();
         availableProperties.put(PREFIX + "key1", "value1");

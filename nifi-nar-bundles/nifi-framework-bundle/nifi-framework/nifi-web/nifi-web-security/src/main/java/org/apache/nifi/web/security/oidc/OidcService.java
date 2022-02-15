@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.security.oidc;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.id.State;
@@ -27,7 +27,6 @@ import org.apache.nifi.web.security.util.IdentityProviderUtils;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider.OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED;
@@ -37,9 +36,9 @@ import static org.apache.nifi.web.security.oidc.StandardOidcIdentityProvider.OPE
  */
 public class OidcService {
 
-    private OidcIdentityProvider identityProvider;
-    private Cache<CacheKey, State> stateLookupForPendingRequests; // identifier from cookie -> state value
-    private Cache<CacheKey, String> jwtLookupForCompletedRequests; // identifier from cookie -> jwt or identity (and generate jwt on retrieval)
+    private final OidcIdentityProvider identityProvider;
+    private final Cache<CacheKey, State> stateLookupForPendingRequests; // identifier from cookie -> state value
+    private final Cache<CacheKey, String> jwtLookupForCompletedRequests; // identifier from cookie -> jwt or identity (and generate jwt on retrieval)
 
     /**
      * Creates a new OIDC with an expiration of 1 minute.
@@ -66,8 +65,8 @@ public class OidcService {
 
         identityProvider.initializeProvider();
         this.identityProvider = identityProvider;
-        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
-        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
+        this.stateLookupForPendingRequests = Caffeine.newBuilder().expireAfterWrite(duration, units).build();
+        this.jwtLookupForCompletedRequests = Caffeine.newBuilder().expireAfterWrite(duration, units).build();
     }
 
     /**
@@ -138,15 +137,11 @@ public class OidcService {
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
         final State state = new State(IdentityProviderUtils.generateStateValue());
 
-        try {
-            synchronized (stateLookupForPendingRequests) {
-                final State cachedState = stateLookupForPendingRequests.get(oidcRequestIdentifierKey, () -> state);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(state.getValue(), cachedState.getValue())) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+        synchronized (stateLookupForPendingRequests) {
+            final State cachedState = stateLookupForPendingRequests.get(oidcRequestIdentifierKey, key -> state);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(state.getValue(), cachedState.getValue())) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login request state.");
         }
 
         return state;
@@ -237,16 +232,13 @@ public class OidcService {
      */
     public void storeJwt(final String oidcRequestIdentifier, final String jwt) {
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        try {
-            // Cache the jwt for later retrieval
-            synchronized (jwtLookupForCompletedRequests) {
-                final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> jwt);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(jwt, cachedJwt)) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+
+        // Cache the jwt for later retrieval
+        synchronized (jwtLookupForCompletedRequests) {
+            final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, key -> jwt);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(jwt, cachedJwt)) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (final ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login authentication token.");
         }
     }
 

@@ -19,6 +19,7 @@ package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
@@ -42,11 +43,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
@@ -59,7 +62,7 @@ public class StatelessSystemIT {
     public TestName name = new TestName();
 
     @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
 
     @Before
@@ -90,16 +93,18 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
+            }
+
+            @Override
             public File getKrb5File() {
                 return new File("/etc/krb5.conf");
             }
 
             @Override
             public Optional<File> getContentRepositoryDirectory() {
-                return Optional.empty();
-
-                // Can be used to enable file-based content repository.
-//                return Optional.of(new File("target/nifi-stateless-content-repo"));
+                return getContentRepoDirectory();
             }
 
             @Override
@@ -116,7 +121,16 @@ public class StatelessSystemIT {
             public List<ExtensionClientDefinition> getExtensionClients() {
                 return Collections.emptyList();
             }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return null;
+            }
         };
+    }
+
+    protected Optional<File> getContentRepoDirectory() {
+        return Optional.empty();
     }
 
     protected StatelessDataflow loadDataflow(final File versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts) throws IOException, StatelessConfigurationException {
@@ -167,6 +181,20 @@ public class StatelessSystemIT {
             @Override
             public Set<String> getFailurePortNames() {
                 return failurePortNames;
+            }
+
+            @Override
+            public Set<String> getInputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getInputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<String> getOutputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getOutputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
             }
 
             @Override

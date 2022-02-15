@@ -17,28 +17,39 @@
 package org.apache.nifi.processors.kafka.pubsub;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * A pool of Kafka Consumers for a given topic. Consumers can be obtained by
@@ -51,7 +62,7 @@ public class ConsumerPool implements Closeable {
     private final List<String> topics;
     private final Pattern topicPattern;
     private final Map<String, Object> kafkaProperties;
-    private final long maxWaitMillis;
+    private final Long maxWaitMillis;
     private final ComponentLog logger;
     private final byte[] demarcatorBytes;
     private final String keyEncoding;
@@ -64,6 +75,7 @@ public class ConsumerPool implements Closeable {
     private final Pattern headerNamePattern;
     private final boolean separateByKey;
     private final int[] partitionsToConsume;
+    private final boolean commitOffsets;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
     private final AtomicLong consumerClosedCountRef = new AtomicLong();
     private final AtomicLong leasesObtainedCountRef = new AtomicLong();
@@ -95,7 +107,7 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -103,7 +115,8 @@ public class ConsumerPool implements Closeable {
             final boolean honorTransactions,
             final Charset headerCharacterSet,
             final Pattern headerNamePattern,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -121,6 +134,7 @@ public class ConsumerPool implements Closeable {
         this.headerNamePattern = headerNamePattern;
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -130,7 +144,7 @@ public class ConsumerPool implements Closeable {
             final boolean separateByKey,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String keyEncoding,
             final String securityProtocol,
             final String bootstrapServers,
@@ -138,7 +152,8 @@ public class ConsumerPool implements Closeable {
             final boolean honorTransactions,
             final Charset headerCharacterSet,
             final Pattern headerNamePattern,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -156,6 +171,7 @@ public class ConsumerPool implements Closeable {
         this.headerNamePattern = headerNamePattern;
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -165,7 +181,7 @@ public class ConsumerPool implements Closeable {
             final RecordSetWriterFactory writerFactory,
             final Map<String, Object> kafkaProperties,
             final Pattern topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -174,7 +190,8 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern,
             final boolean separateByKey,
             final String keyEncoding,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -192,6 +209,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -201,7 +219,7 @@ public class ConsumerPool implements Closeable {
             final RecordSetWriterFactory writerFactory,
             final Map<String, Object> kafkaProperties,
             final List<String> topics,
-            final long maxWaitMillis,
+            final Long maxWaitMillis,
             final String securityProtocol,
             final String bootstrapServers,
             final ComponentLog logger,
@@ -210,7 +228,8 @@ public class ConsumerPool implements Closeable {
             final Pattern headerNamePattern,
             final boolean separateByKey,
             final String keyEncoding,
-            final int[] partitionsToConsume) {
+            final int[] partitionsToConsume,
+            final boolean commitOffsets) {
         this.pooledLeases = new LinkedBlockingQueue<>();
         this.maxWaitMillis = maxWaitMillis;
         this.logger = logger;
@@ -228,6 +247,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
+        this.commitOffsets = commitOffsets;
         enqueueAssignedPartitions(partitionsToConsume);
     }
 
@@ -251,6 +271,184 @@ public class ConsumerPool implements Closeable {
         }
 
         return partitionsEachTopic;
+    }
+
+    public List<ConfigVerificationResult> verifyConfiguration() {
+        final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
+
+        // Get a SimpleConsumerLease that we can use to communicate with Kafka
+        SimpleConsumerLease lease = pooledLeases.poll();
+        if (lease == null) {
+            lease = createConsumerLease();
+            if (lease == null) {
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Attempt connection")
+                    .outcome(Outcome.FAILED)
+                    .explanation("Could not obtain a Lease")
+                    .build());
+
+                return verificationResults;
+            }
+        }
+
+        try {
+            final Consumer<byte[], byte[]> consumer = lease.consumer;
+            try {
+                consumer.groupMetadata();
+            } catch (final Exception e) {
+                logger.error("Failed to fetch Consumer Group Metadata in order to verify processor configuration", e);
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Attempt connection")
+                    .outcome(Outcome.FAILED)
+                    .explanation("Could not fetch Consumer Group Metadata: " + e)
+                    .build());
+            }
+
+            try {
+                if (topicPattern == null) {
+                    final Map<String, Long> messagesToConsumePerTopic = new HashMap<>();
+
+                    long toConsume = 0L;
+                    for (final String topicName : topics) {
+                        final List<PartitionInfo> partitionInfos = consumer.partitionsFor(topicName);
+
+                        final Set<TopicPartition> topicPartitions = partitionInfos.stream()
+                            .map(partitionInfo -> new TopicPartition(partitionInfo.topic(), partitionInfo.partition()))
+                            .collect(Collectors.toSet());
+
+                        final Map<TopicPartition, Long> endOffsets = consumer.endOffsets(topicPartitions, Duration.ofSeconds(30));
+                        final Map<TopicPartition, Long> beginningOffsets = consumer.beginningOffsets(topicPartitions, Duration.ofSeconds(30));
+                        final Map<TopicPartition, OffsetAndMetadata> committedOffsets = consumer.committed(topicPartitions, Duration.ofSeconds(30));
+
+                        for (final TopicPartition topicPartition : endOffsets.keySet()) {
+                            final long endOffset = endOffsets.get(topicPartition);
+
+                            final long beginningOffset = beginningOffsets.getOrDefault(topicPartition, 0L);
+                            if (endOffset <= beginningOffset) {
+                                messagesToConsumePerTopic.merge(topicPartition.topic(), 0L, Long::sum);
+                                continue;
+                            }
+
+                            final OffsetAndMetadata offsetAndMetadata = committedOffsets.get(topicPartition);
+                            final long committedOffset = offsetAndMetadata == null ? 0L : offsetAndMetadata.offset();
+
+                            final long currentOffset = Math.max(beginningOffset, committedOffset);
+                            final long messagesToConsume = endOffset - currentOffset;
+                            toConsume += messagesToConsume;
+
+                            messagesToConsumePerTopic.merge(topicPartition.topic(), messagesToConsume, Long::sum);
+                        }
+                    }
+
+                    verificationResults.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Check Offsets")
+                        .outcome(Outcome.SUCCESSFUL)
+                        .explanation("Successfully determined offsets for " + messagesToConsumePerTopic.size() + " topics. Number of messages left to consume per topic: " + messagesToConsumePerTopic)
+                        .build());
+
+                    logger.info("Successfully determined offsets for {} topics. Number of messages left to consume per topic: {}", messagesToConsumePerTopic.size(), messagesToConsumePerTopic);
+
+                    if (readerFactory != null) {
+                        if (toConsume > 0) {
+                            final ConfigVerificationResult checkDataResult = checkRecordIsParsable(lease);
+                            verificationResults.add(checkDataResult);
+                        } else {
+                            verificationResults.add(new ConfigVerificationResult.Builder()
+                                .verificationStepName("Parse Records")
+                                .outcome(Outcome.SKIPPED)
+                                .explanation("There are no available Records to attempt parsing")
+                                .build());
+                        }
+                    }
+
+                } else {
+                    verificationResults.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Determine Topic Offsets")
+                        .outcome(Outcome.SKIPPED)
+                        .explanation("Cannot determine Topic Offsets because a Topic Wildcard was used instead of an explicit Topic Name")
+                        .build());
+
+                    if (readerFactory != null) {
+                        final ConfigVerificationResult checkDataResult = checkRecordIsParsable(lease);
+                        verificationResults.add(checkDataResult);
+                    }
+                }
+            } catch (final Exception e) {
+                logger.error("Failed to determine Topic Offsets in order to verify configuration", e);
+
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Determine Topic Offsets")
+                    .outcome(Outcome.FAILED)
+                    .explanation("Could not fetch Topic Offsets: " + e)
+                    .build());
+
+                verificationResults.add(new ConfigVerificationResult.Builder()
+                    .verificationStepName("Parse Records")
+                    .outcome(Outcome.SKIPPED)
+                    .explanation("Could not determine offsets so will not attempt to fetch records")
+                    .build());
+            }
+
+            return verificationResults;
+        } finally {
+            lease.close(true);
+        }
+    }
+
+    private ConfigVerificationResult checkRecordIsParsable(final SimpleConsumerLease consumerLease) {
+        final ConsumerRecords<byte[], byte[]> consumerRecords = consumerLease.consumer.poll(Duration.ofSeconds(30));
+
+        final Map<String, Integer> parseFailuresPerTopic = new HashMap<>();
+        final Map<String, String> latestParseFailureDescription = new HashMap<>();
+        final Map<String, Integer> recordsPerTopic = new HashMap<>();
+
+        for (final ConsumerRecord<byte[], byte[]> consumerRecord : consumerRecords) {
+            recordsPerTopic.merge(consumerRecord.topic(), 1, Integer::sum);
+            final Map<String, String> attributes = consumerLease.getAttributes(consumerRecord);
+
+            final byte[] recordBytes = consumerRecord.value() == null ? new byte[0] : consumerRecord.value();
+            try (final InputStream in = new ByteArrayInputStream(recordBytes)) {
+                final RecordReader reader = readerFactory.createRecordReader(attributes, in, recordBytes.length, logger);
+                while (reader.nextRecord() != null) {
+                }
+            } catch (final Exception e) {
+                parseFailuresPerTopic.merge(consumerRecord.topic(), 1, Integer::sum);
+                latestParseFailureDescription.put(consumerRecord.topic(), e.toString());
+            }
+        }
+
+        // Note here that we do not commit the offsets. We will just let the consumer close without committing the offsets, which
+        // will roll back the consumption of the messages.
+        if (recordsPerTopic.isEmpty()) {
+            return new ConfigVerificationResult.Builder()
+                .verificationStepName("Parse Records")
+                .outcome(Outcome.SKIPPED)
+                .explanation("Received no messages to attempt parsing within the 30 second timeout")
+                .build();
+        }
+
+        if (parseFailuresPerTopic.isEmpty()) {
+            return new ConfigVerificationResult.Builder()
+                .verificationStepName("Parse Records")
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Was able to parse all Records consumed from topics. Number of Records consumed from each topic: " + recordsPerTopic)
+                .build();
+        } else {
+            final Map<String, String> failureDescriptions = new HashMap<>();
+            for (final String topic : recordsPerTopic.keySet()) {
+                final int records = recordsPerTopic.get(topic);
+                final Integer failures = parseFailuresPerTopic.get(topic);
+                final String failureReason = latestParseFailureDescription.get(topic);
+                final String description = "Failed to parse " + failures + " out of " + records + " records. Sample failure reason: " + failureReason;
+                failureDescriptions.put(topic, description);
+            }
+
+            return new ConfigVerificationResult.Builder()
+                .verificationStepName("Parse Records")
+                .outcome(Outcome.FAILED)
+                .explanation("With the configured Record Reader, failed to parse at least one Record. Failures per topic: " + failureDescriptions)
+                .build();
+        }
     }
 
     /**
@@ -379,7 +577,7 @@ public class ConsumerPool implements Closeable {
     public void close() {
         final List<SimpleConsumerLease> leases = new ArrayList<>();
         pooledLeases.drainTo(leases);
-        leases.stream().forEach((lease) -> {
+        leases.forEach((lease) -> {
             lease.close(true);
         });
     }
@@ -412,7 +610,7 @@ public class ConsumerPool implements Closeable {
 
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer, final List<TopicPartition> assignedPartitions) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
-                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey);
+                readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey, commitOffsets);
             this.consumer = consumer;
             this.assignedPartitions = assignedPartitions;
         }

@@ -17,44 +17,25 @@
 package org.apache.nifi.security.util.crypto
 
 import at.favre.lib.crypto.bcrypt.Radix64Encoder
-import org.apache.kerby.util.Hex
-import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.bouncycastle.util.encoders.Hex
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.nio.charset.StandardCharsets
-import java.security.Security
 
-@RunWith(JUnit4.class)
-class BcryptSecureHasherTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+
+class BcryptSecureHasherTest {
     private static final Logger logger = LoggerFactory.getLogger(BcryptSecureHasher)
 
-    @BeforeClass
+    @BeforeAll
     static void setupOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
-    }
-
-    private static byte[] decodeHex(String hex) {
-        Hex.decode(hex?.replaceAll("[^0-9a-fA-F]", ""))
     }
 
     @Test
@@ -75,7 +56,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         // Act
         testIterations.times { int i ->
             byte[] hash = bcryptSH.hashRaw(inputBytes)
-            String hashHex = Hex.encode(hash)
+            String hashHex = new String(Hex.encode(hash))
             logger.info("Generated hash: ${hashHex}")
             results << hashHex
         }
@@ -180,28 +161,11 @@ class BcryptSecureHasherTest extends GroovyTestCase {
         BcryptSecureHasher secureHasher = new BcryptSecureHasher(cost, 16)
         final byte[] STATIC_SALT = "bad_sal".bytes
 
-        // Act
-        def initializationMsg = shouldFail(IllegalArgumentException) {
-            BcryptSecureHasher invalidSaltLengthHasher = new BcryptSecureHasher(cost, 7)
-        }
-        logger.expected(initializationMsg)
+        assertThrows(IllegalArgumentException.class, { -> new BcryptSecureHasher(cost, 7) })
 
-        def arbitrarySaltRawMsg = shouldFail {
-            byte[] arbitrarySaltHash = secureHasher.hashRaw(inputBytes, STATIC_SALT)
-        }
-
-        def arbitrarySaltHexMsg = shouldFail {
-            byte[] arbitrarySaltHashHex = secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def arbitrarySaltBase64Msg = shouldFail {
-            byte[] arbitrarySaltBase64 = secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8))
-        }
-
-        def results = [arbitrarySaltRawMsg, arbitrarySaltHexMsg, arbitrarySaltBase64Msg]
-
-        // Assert
-        assert results.every { it =~ /The salt length \(7 bytes\) is invalid/ }
+        assertThrows(RuntimeException.class, { -> secureHasher.hashRaw(inputBytes, STATIC_SALT) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashHex(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
+        assertThrows(RuntimeException.class, { -> secureHasher.hashBase64(input, new String(STATIC_SALT, StandardCharsets.UTF_8)) })
     }
 
     @Test
@@ -271,7 +235,7 @@ class BcryptSecureHasherTest extends GroovyTestCase {
      * This test can have the minimum time threshold updated to determine if the performance
      * is still sufficient compared to the existing threat model.
      */
-    @Ignore("Long running test")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     @Test
     void testDefaultCostParamsShouldBeSufficient() {
         // Arrange

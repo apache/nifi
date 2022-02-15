@@ -17,6 +17,7 @@
 package org.apache.nifi.script;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -24,6 +25,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptRunner;
 
@@ -114,6 +116,12 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
                 scriptRunner = null;
             }
         }
+    }
+
+    @OnConfigurationRestored
+    public void onConfigurationRestored(final ProcessContext context) {
+        scriptingComponentHelper.setupVariables(context);
+        setup();
     }
 
     @Override

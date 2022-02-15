@@ -26,7 +26,8 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "controllerServiceRunStatus")
 public class ControllerServiceRunStatusEntity extends ComponentRunStatusEntity {
 
-    private static String[] SUPPORTED_STATE = {"ENABLED", "DISABLED"};
+    private static final String[] SUPPORTED_STATE = {"ENABLED", "DISABLED"};
+    private boolean uiOnly;
 
     @Override
     protected String[] getSupportedState() {
@@ -43,6 +44,18 @@ public class ControllerServiceRunStatusEntity extends ComponentRunStatusEntity {
     )
     public String getState() {
         return super.getState();
+    }
+
+    @ApiModelProperty(
+        value = "Indicates whether or not responses should only include fields necessary for rendering the NiFi User Interface. As such, when this value is set to true, some fields may be " +
+            "returned as null values, and the selected fields may change at any time without notice. As a result, this value should not be set to true by any client other than the UI."
+    )
+    public Boolean getUiOnly() {
+        return uiOnly;
+    }
+
+    public void setUiOnly(final Boolean uiOnly) {
+        this.uiOnly = uiOnly;
     }
 
 }

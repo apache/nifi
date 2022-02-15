@@ -18,7 +18,6 @@ package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,13 +36,12 @@ public interface ContentRepository {
 
     /**
      * Initializes the Content Repository, providing to it the
-     * ContentClaimManager that is to be used for interacting with Content
-     * Claims
+     * ContentRepositoryContext.
      *
-     * @param claimManager to handle claims
+     * @param context to initialize repository
      * @throws java.io.IOException if unable to init
      */
-    void initialize(ResourceClaimManager claimManager) throws IOException;
+    void initialize(ContentRepositoryContext context) throws IOException;
 
     /**
      * Shuts down the Content Repository, freeing any resources that may be

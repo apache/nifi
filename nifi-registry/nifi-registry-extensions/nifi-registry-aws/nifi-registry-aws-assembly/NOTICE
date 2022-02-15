@@ -35,14 +35,6 @@ The following binary components are provided under the Apache Software License v
         contains test data from http://aspell.net/test/orig/batch0.tab.
         Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
 
-  (ASLv2) Apache Commons Logging
-      The following NOTICE information applies:
-        Apache Commons Logging
-        Copyright 2003-2016 The Apache Software Foundation
-
-        This product includes software developed at
-        The Apache Software Foundation (https://www.apache.org/).
-
   (ASLv2) Apache HttpComponents Client
       The following NOTICE information applies:
         Copyright 1999-2019 The Apache Software Foundation
@@ -232,14 +224,6 @@ The following binary components are provided under the Apache Software License v
             * license/LICENSE.caliper.txt (Apache License 2.0)
           * HOMEPAGE:
             * https://github.com/google/caliper
-
-        This product optionally depends on 'Apache Commons Logging', a logging
-        framework, which can be obtained at:
-
-          * LICENSE:
-            * license/LICENSE.commons-logging.txt (Apache License 2.0)
-          * HOMEPAGE:
-            * https://commons.apache.org/logging/
 
         This product optionally depends on 'Apache Log4J', a logging framework, which
         can be obtained at:

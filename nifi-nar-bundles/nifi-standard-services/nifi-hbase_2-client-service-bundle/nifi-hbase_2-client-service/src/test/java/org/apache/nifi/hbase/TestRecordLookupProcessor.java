@@ -110,9 +110,4 @@ public class TestRecordLookupProcessor extends AbstractProcessor {
     public List<Record> getLookedupRecords() {
         return new ArrayList<>(lookedupRecords);
     }
-
-    public void clearLookedupRecords() {
-        this.lookedupRecords.clear();
-    }
-
 }

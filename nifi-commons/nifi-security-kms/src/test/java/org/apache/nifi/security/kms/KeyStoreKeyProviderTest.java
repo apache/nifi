@@ -17,8 +17,8 @@
 package org.apache.nifi.security.kms;
 
 import org.apache.nifi.security.kms.util.SecretKeyUtils;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -28,9 +28,9 @@ import java.security.KeyStore;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class KeyStoreKeyProviderTest {
     private static final String KEY_ID = UUID.randomUUID().toString();
@@ -43,7 +43,7 @@ public class KeyStoreKeyProviderTest {
 
     private static KeyStore keyStore;
 
-    @BeforeClass
+    @BeforeAll
     public static void setKeyStore() throws GeneralSecurityException, IOException {
         keyStore = getKeyStore();
     }

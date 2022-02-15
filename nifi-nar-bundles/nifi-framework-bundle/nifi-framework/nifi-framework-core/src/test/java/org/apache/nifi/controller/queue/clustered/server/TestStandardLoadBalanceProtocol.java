@@ -633,6 +633,7 @@ public class TestStandardLoadBalanceProtocol {
 
             out.writeLong(0L); // lineage start date
             out.writeLong(0L); // entry date
+            out.writeLong(0L); // penalty expiration time
 
             dos.writeInt(baos.size());
             baos.writeTo(dos);

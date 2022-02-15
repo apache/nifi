@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import com.google.common.collect.Lists;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -227,7 +226,7 @@ public class CalculateRecordStats extends AbstractProcessor {
 
         List<Map.Entry<String, Integer>> _flat = new ArrayList<>(toFilter.entrySet());
         _flat.sort(Map.Entry.comparingByValue());
-        _flat = Lists.reverse(_flat);
+        Collections.reverse(_flat);
         for (int index = 0; index < _flat.size() && index < limit; index++) {
             retVal.put(_flat.get(index).getKey(), _flat.get(index).getValue());
         }

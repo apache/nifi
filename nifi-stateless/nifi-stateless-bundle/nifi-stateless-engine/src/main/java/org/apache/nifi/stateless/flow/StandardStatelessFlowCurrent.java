@@ -18,8 +18,12 @@
 package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
@@ -29,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -54,10 +57,6 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
         this.processContextFactory = builder.processContextFactory;
     }
 
-    public Connectable getCurrentComponent() {
-        return currentComponent;
-    }
-
     @Override
     public void triggerFlow() {
         try {
@@ -65,37 +64,66 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
             while (!completionReached) {
                 triggerRootConnectables();
 
-                NextConnectable nextConnectable = NextConnectable.NEXT_READY;
-                while (tracker.isAnyReady() && nextConnectable == NextConnectable.NEXT_READY) {
-                    final List<Connectable> next = tracker.getReady();
-                    logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+                while (tracker.isAnyReady()) {
+                    final Connectable connectable = tracker.getNextReady();
+                    logger.debug("The next ready component to be triggered: {}", connectable);
 
-                    for (final Connectable connectable : next) {
-                        nextConnectable = triggerWhileReady(connectable);
+                    // Continually trigger the given component as long as it is ready to be triggered
+                    final NextConnectable nextConnectable = triggerWhileReady(connectable);
 
-                        // If there's nothing left to do, return
-                        if (nextConnectable == NextConnectable.NONE) {
-                            return;
-                        }
-
-                        // If next connectable is whatever is ready, just continue loop
-                        if (nextConnectable == NextConnectable.NEXT_READY) {
-                            continue;
-                        }
-
-                        // Otherwise, we need to break out of this loop so that we can trigger root connectables or complete dataflow
-                        break;
+                    // If there's nothing left to do, return
+                    if (nextConnectable == NextConnectable.NONE) {
+                        return;
                     }
+
+                    // If next connectable is whatever is ready, just continue loop
+                    if (nextConnectable == NextConnectable.NEXT_READY) {
+                        continue;
+                    }
+
+                    // Otherwise, we need to break out of this loop so that we can trigger root connectables or complete dataflow
+                    break;
                 }
 
-                completionReached = !tracker.isAnyReady();
+
+                // We have reached completion if the tracker does not know of any components ready to be triggered AND
+                // we have no data queued in the flow (with the exception of Output Ports).
+                completionReached = !tracker.isAnyReady() && isFlowQueueEmpty();
             }
         } catch (final Throwable t) {
-            logger.error("Failed to trigger {}", currentComponent, t);
+            if (t instanceof TerminatedTaskException) {
+                logger.debug("Encountered TerminatedTaskException when triggering {}", currentComponent, t);
+            } else {
+                logger.error("Failed to trigger {}", currentComponent, t);
+            }
+
             executionProgress.notifyExecutionFailed(t);
             tracker.triggerFailureCallbacks(t);
             throw t;
         }
+    }
+
+    /**
+     * Returns <code>true</code> if all data in the flow has been fully processed. This includes both 'internal queues'
+     * that are available via the executionProgress, as well as considering any data that has been consumed from the queues by
+     * the 'rootConnectables' that has not yet completed processing
+     *
+     * @return <code>true</code> if all FlowFiles have completed processing and no data is available, <code>false</code> otherwise
+     */
+    private boolean isFlowQueueEmpty() {
+        if (executionProgress.isDataQueued()) {
+            return false;
+        }
+
+        for (final Connectable rootConnectable : rootConnectables) {
+            for (final Connection connection : rootConnectable.getIncomingConnections()) {
+                if (connection.getFlowFileQueue().isUnacknowledgedFlowFile()) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private void triggerRootConnectables() {
@@ -135,6 +163,17 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
                 continue;
             }
 
+            // If we've made no progress, check the condition of this being an Output Port with Batch Output. In such a case, we will make no progress
+            // until data has been processed elsewhere in the flow, so return NEXT_READY.
+            if (connectable.getConnectableType() == ConnectableType.OUTPUT_PORT && connectable.getProcessGroup().getFlowFileOutboundPolicy() == FlowFileOutboundPolicy.BATCH_OUTPUT
+                    && connectable.getProcessGroup().isDataQueuedForProcessing()) {
+
+                logger.debug("{} was triggered but unable to make process. Data is still available for processing, so continue triggering components within the Process Group", connectable);
+                return NextConnectable.NEXT_READY;
+            }
+
+            // Check if we've reached out threshold for how much data we are willing to bring into a single transaction. If so, we will not drop back to
+            // triggering source components
             final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
             if (thresholdMet) {
                 logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
@@ -183,7 +222,7 @@ public class StandardStatelessFlowCurrent implements StatelessFlowCurrent {
 
         SOURCE_CONNECTABLE,
 
-        NONE;
+        NONE
     }
 
     public static class Builder {

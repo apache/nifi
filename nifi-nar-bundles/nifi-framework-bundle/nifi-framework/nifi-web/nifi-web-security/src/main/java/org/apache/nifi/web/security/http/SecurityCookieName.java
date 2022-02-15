@@ -20,7 +20,10 @@ package org.apache.nifi.web.security.http;
  * Enumeration of HTTP Cookie Names for Security
  */
 public enum SecurityCookieName {
-    AUTHORIZATION_BEARER("__Host-Authorization-Bearer");
+    /** See IETF Cookie Prefixes Draft Section 3.1 related to Secure prefix handling */
+    REQUEST_TOKEN("__Secure-Request-Token"),
+
+    AUTHORIZATION_BEARER("__Secure-Authorization-Bearer");
 
     private String name;
 

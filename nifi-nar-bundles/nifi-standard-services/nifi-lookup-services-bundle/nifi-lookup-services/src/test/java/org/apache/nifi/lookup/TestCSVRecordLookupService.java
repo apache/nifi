@@ -16,34 +16,34 @@
  */
 package org.apache.nifi.lookup;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
-
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCSVRecordLookupService {
 
     private final static Optional<Record> EMPTY_RECORD = Optional.empty();
 
     @Test
-    public void testSimpleCsvFileLookupService() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvRecordLookupService() throws InitializationException, IOException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final CSVRecordLookupService service = new CSVRecordLookupService();
 
-        runner.addControllerService("csv-file-lookup-service", service);
+        runner.addControllerService("csv-record-lookup-service", service);
         runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test.csv");
         runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
         runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
@@ -53,9 +53,9 @@ public class TestCSVRecordLookupService {
         final CSVRecordLookupService lookupService =
                 (CSVRecordLookupService) runner.getProcessContext()
                         .getControllerServiceLookup()
-                        .getControllerService("csv-file-lookup-service");
+                        .getControllerService("csv-record-lookup-service");
 
-        assertThat(lookupService, instanceOf(LookupService.class));
+        MatcherAssert.assertThat(lookupService, instanceOf(LookupService.class));
 
         final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
         assertEquals("this is property 1", property1.get().getAsString("value"));
@@ -70,11 +70,11 @@ public class TestCSVRecordLookupService {
     }
 
     @Test
-    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, IOException, LookupFailureException {
+    public void testSimpleCsvRecordLookupServiceWithCharset() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final CSVRecordLookupService service = new CSVRecordLookupService();
 
-        runner.addControllerService("csv-file-lookup-service", service);
+        runner.addControllerService("csv-record-lookup-service", service);
         runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test_Windows-31J.csv");
         runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
         runner.setProperty(service, CSVRecordLookupService.CHARSET, "Windows-31J");
@@ -83,9 +83,9 @@ public class TestCSVRecordLookupService {
         runner.assertValid(service);
 
         final Optional<Record> property1 = service.lookup(Collections.singletonMap("key", "property.1"));
-        assertThat(property1.isPresent(), is(true));
-        assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
-        assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
+        MatcherAssert.assertThat(property1.isPresent(), is(true));
+        MatcherAssert.assertThat(property1.get().getAsString("value"), is("this is property \uff11"));
+        MatcherAssert.assertThat(property1.get().getAsString("created_at"), is("2017-04-01"));
     }
 
     @Test
@@ -111,5 +111,21 @@ public class TestCSVRecordLookupService {
         assertEquals("my_value with an escaped |.", my_key.get().getAsString("value"));
     }
 
+    @Test
+    public void testCacheIsClearedWhenDisableService() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final CSVRecordLookupService service = new CSVRecordLookupService();
+        runner.addControllerService("csv-record-lookup-service", service);
+        runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test.csv");
+        runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
 
+        assertTrue(service.isCaching());
+
+        runner.disableControllerService(service);
+
+        assertFalse(service.isCaching());
+    }
 }

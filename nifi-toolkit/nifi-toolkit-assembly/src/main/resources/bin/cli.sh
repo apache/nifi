@@ -19,8 +19,14 @@
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-SCRIPT_DIR=$(dirname "$0")
-SCRIPT_NAME=$(basename "$0")
+SCRIPT_LINK=$(readlink $0 2> /dev/null)
+if test -z "$SCRIPT_LINK"; then
+    SCRIPT_DIR=$(dirname "$0")
+    SCRIPT_NAME=$(basename "$0")
+else
+    SCRIPT_DIR=$(dirname "$SCRIPT_LINK")
+    SCRIPT_NAME=$(basename "$SCRIPT_LINK")
+fi
 NIFI_TOOLKIT_HOME=$(cd "${SCRIPT_DIR}" && cd .. && pwd)
 PROGNAME=$(basename "$0")
 

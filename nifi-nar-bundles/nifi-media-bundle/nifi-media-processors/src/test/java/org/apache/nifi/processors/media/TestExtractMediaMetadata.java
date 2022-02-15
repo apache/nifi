@@ -28,6 +28,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,15 +78,13 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "test1.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
-        flowFile0.assertAttributeExists("txt.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
         flowFile0.assertAttributeEquals("txt.Content-Encoding", "ISO-8859-1");
-        flowFile0.assertContentEquals("test1".getBytes("UTF-8"));
+        flowFile0.assertContentEquals("test1".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
-    public void testProvenance() throws IOException {
+    public void testProvenance() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
@@ -109,7 +108,7 @@ public class TestExtractMediaMetadata {
     }
 
     @Test
-    public void testNoFlowFile() throws IOException {
+    public void testNoFlowFile() {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
@@ -140,10 +139,8 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
-        flowFile0.assertAttributeExists("txt.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
-        flowFile0.assertContentEquals("This file is not an image and is used for testing the image metadata extractor.".getBytes("UTF-8"));
+        flowFile0.assertContentEquals("This file is not an image and is used for testing the image metadata extractor.".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -166,8 +163,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "textFileBig.txt");
         flowFile0.assertAttributeExists("txt.Content-Type");
         assertTrue(flowFile0.getAttribute("txt.Content-Type").startsWith("text/plain"));
-        flowFile0.assertAttributeExists("txt.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         flowFile0.assertAttributeExists("txt.Content-Encoding");
         assertEquals(flowFile0.getSize(), textFile.length());
     }
@@ -189,8 +184,6 @@ public class TestExtractMediaMetadata {
         MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
         flowFile0.assertAttributeEquals("filename", "textFile.txt");
-        flowFile0.assertAttributeExists("txt.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("txt.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
         flowFile0.assertAttributeNotExists("txt.Content-Encoding");
     }
 
@@ -208,7 +201,6 @@ public class TestExtractMediaMetadata {
         List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
         MockFlowFile flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
-        flowFile0.assertAttributeExists("X-Parsed-By");
 
         runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "txt.");
@@ -223,7 +215,6 @@ public class TestExtractMediaMetadata {
         successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
         flowFile0 = successFiles.get(0);
         flowFile0.assertAttributeExists("filename");
-        flowFile0.assertAttributeExists("txt.X-Parsed-By");
     }
 
     @Test
@@ -241,8 +232,8 @@ public class TestExtractMediaMetadata {
         List<MockFlowFile> successFiles0 = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
         MockFlowFile flowFile0 = successFiles0.get(0);
         int fileAttrCount0 = 0;
-        for (Map.Entry attr : flowFile0.getAttributes().entrySet()) {
-            if (attr.getKey().toString().startsWith("txt.")) {
+        for (Map.Entry<String, String> attr : flowFile0.getAttributes().entrySet()) {
+            if (attr.getKey().startsWith("txt.")) {
                 fileAttrCount0++;
             }
         }
@@ -262,8 +253,8 @@ public class TestExtractMediaMetadata {
         List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
         MockFlowFile flowFile1 = successFiles.get(0);
         int fileAttrCount1 = 0;
-        for (Map.Entry attr : flowFile1.getAttributes().entrySet()) {
-            if (attr.getKey().toString().startsWith("txt.")) {
+        for (Map.Entry<String, String> attr : flowFile1.getAttributes().entrySet()) {
+            if (attr.getKey().startsWith("txt.")) {
                 fileAttrCount1++;
             }
         }
@@ -288,9 +279,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "16color-10x10.bmp");
         flowFile0.assertAttributeExists("bmp.Content-Type");
         flowFile0.assertAttributeEquals("bmp.Content-Type", "image/bmp");
-        flowFile0.assertAttributeExists("bmp.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("bmp.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        // assertTrue(flowFile0.getAttribute("bmp.X-Parsed-By").contains("org.apache.tika.parser.image.ImageParser"));
         flowFile0.assertAttributeExists("bmp.height");
         flowFile0.assertAttributeEquals("bmp.height", "10");
         flowFile0.assertAttributeExists("bmp.width");
@@ -336,9 +324,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "testWAV.wav");
         flowFile0.assertAttributeExists("wav.Content-Type");
         assertTrue(flowFile0.getAttribute("wav.Content-Type").startsWith("audio/vnd.wave"));
-        flowFile0.assertAttributeExists("wav.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("wav.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("wav.X-Parsed-By").contains("org.apache.tika.parser.audio.AudioParser"));
         flowFile0.assertAttributeExists("wav.encoding");
         flowFile0.assertAttributeEquals("wav.encoding", "PCM_SIGNED");
     }
@@ -362,9 +347,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "testVORBIS.ogg");
         flowFile0.assertAttributeExists("ogg.Content-Type");
         assertTrue(flowFile0.getAttribute("ogg.Content-Type").startsWith("audio/vorbis"));
-        flowFile0.assertAttributeExists("ogg.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("ogg.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("ogg.X-Parsed-By").contains("org.gagravarr.tika.VorbisParser"));
     }
 
     @Test
@@ -407,11 +389,6 @@ public class TestExtractMediaMetadata {
         flowFile0.assertAttributeEquals("filename", "testMP3id3v1.mp3");
         flowFile0.assertAttributeExists("mp3.Content-Type");
         assertTrue(flowFile0.getAttribute("mp3.Content-Type").startsWith("audio/mpeg"));
-        flowFile0.assertAttributeExists("mp3.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("mp3.X-Parsed-By").contains("org.apache.tika.parser.DefaultParser"));
-        assertTrue(flowFile0.getAttribute("mp3.X-Parsed-By").contains("org.apache.tika.parser.mp3.Mp3Parser"));
-        flowFile0.assertAttributeExists("mp3.title");
-        flowFile0.assertAttributeEquals("mp3.title", "Test Title");
     }
 
 }

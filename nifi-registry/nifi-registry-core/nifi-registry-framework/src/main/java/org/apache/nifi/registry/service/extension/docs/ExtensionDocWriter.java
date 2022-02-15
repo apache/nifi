@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.service.extension.docs;
 
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
+import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.extension.manifest.Extension;
 
 import java.io.IOException;
 import java.io.OutputStream;

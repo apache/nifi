@@ -21,6 +21,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.services.FlowService;
 
 /**
@@ -43,7 +44,7 @@ public interface FlowSynchronizer {
      * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      * @throws MissingBundleException if the proposed flow cannot be loaded by the controller because it contains a bundle that is not available to the controller
      */
-    void sync(FlowController controller, DataFlow dataFlow, PropertyEncryptor encryptor, FlowService flowService)
+    void sync(FlowController controller, DataFlow dataFlow, PropertyEncryptor encryptor, FlowService flowService, BundleUpdateStrategy bundleUpdateStrategy)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException;
 
 }
