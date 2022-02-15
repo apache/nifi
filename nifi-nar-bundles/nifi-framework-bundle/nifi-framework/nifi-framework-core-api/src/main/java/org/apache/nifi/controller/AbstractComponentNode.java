@@ -627,6 +627,25 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     /**
      * Generates fingerprint for the additional urls and compares it with the previous
+     * fingerprint value.
+     */
+    @Override
+    public synchronized boolean isReloadAdditionalResourcesNecessary() {
+        // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
+        // won't have the fingerprint i.e. will be null, in such cases do nothing
+        if (additionalResourcesFingerprint == null) {
+            return false;
+        }
+
+        final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
+        final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
+
+        final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());
+        return (!StringUtils.equals(additionalResourcesFingerprint, newFingerprint));
+    }
+
+    /**
+     * Generates fingerprint for the additional urls and compares it with the previous
      * fingerprint value. If the fingerprint values don't match, the function calls the
      * component's reload() to load the newly found resources.
      */

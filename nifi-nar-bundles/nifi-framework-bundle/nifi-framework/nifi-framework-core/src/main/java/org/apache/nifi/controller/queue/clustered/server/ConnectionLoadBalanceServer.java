@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
+
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.CertificateUtils;
@@ -96,7 +98,7 @@ public class ConnectionLoadBalanceServer {
     }
 
     public void stop() {
-        stopped = false;
+        stopped = true;
 
         if (acceptConnection != null) {
             acceptConnection.stop();
@@ -148,6 +150,7 @@ public class ConnectionLoadBalanceServer {
 
         public void stop() {
             this.stopped = true;
+            IOUtils.closeQuietly(socket);
         }
 
         @Override
