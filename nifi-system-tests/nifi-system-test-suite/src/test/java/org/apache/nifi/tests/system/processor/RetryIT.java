@@ -34,10 +34,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 
 public class RetryIT extends NiFiSystemIT {
-    private static final int RETRY_COUNTS = 2;
-    private static final String EXPECTED_NO_RETRY_COUNTS = null;
-    private static final String EXPECTED_FIRST_RETRY = String.valueOf(RETRY_COUNTS - 1);
-    private static final String EXPECTED_SECOND_RETRY = String.valueOf(RETRY_COUNTS);
+    private static final int RETRY_COUNT = 2;
 
     @Test
     public void testRetryHappensTwiceThenFinishes() throws NiFiClientException, IOException, InterruptedException {
@@ -67,33 +64,37 @@ public class RetryIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(countEvents.getId());
 
         //Generate flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(generateFlowFile);
+        runProcessorOnce(generateFlowFile);
+        getClientUtil().waitForStoppedProcessor(generateFlowFile.getId());
         waitForQueueCount(generateFlowFileAndPassThroughConnection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(generateFlowFileAndPassThroughConnection));
+        assertEquals(0, getRetryCount(generateFlowFileAndPassThroughConnection));
 
         //Run PassThrough processor, this will trigger the first retry
-        getNifiClient().getProcessorClient().runProcessorOnce(passThrough);
+        runProcessorOnce(passThrough);
+        getClientUtil().waitForStoppedProcessor(passThrough.getId());
         waitForQueueCount(generateFlowFileAndPassThroughConnection.getId(), 1);
 
-        assertEquals(EXPECTED_FIRST_RETRY, getRetryCount(generateFlowFileAndPassThroughConnection));
+        assertEquals(1, getRetryCount(generateFlowFileAndPassThroughConnection));
 
         //Running PassThrough processor again, will trigger another retry
-        getNifiClient().getProcessorClient().runProcessorOnce(passThrough);
+        runProcessorOnce(passThrough);
+        getClientUtil().waitForStoppedProcessor(passThrough.getId());
         waitForQueueCount(generateFlowFileAndPassThroughConnection.getId(), 1);
 
-        assertEquals(EXPECTED_SECOND_RETRY, getRetryCount(generateFlowFileAndPassThroughConnection));
+        assertEquals(2, getRetryCount(generateFlowFileAndPassThroughConnection));
 
         //Running PassThrough processor again should finish retry and transfer flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(passThrough);
+        runProcessorOnce(passThrough);
+        getClientUtil().waitForStoppedProcessor(passThrough.getId());
         waitForQueueCount(passThroughAndCountEventsConnection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(passThroughAndCountEventsConnection));
+        assertEquals(0, getRetryCount(passThroughAndCountEventsConnection));
         assertEquals(0, getConnectionQueueSize(generateFlowFileAndPassThroughConnection.getId()));
     }
 
     @Test
-    public  void testNoRetryHappensWithSourceTypeProcessors() throws NiFiClientException, IOException, InterruptedException {
+    public void testNoRetryHappensWithSourceTypeProcessors() throws NiFiClientException, IOException, InterruptedException {
         //Create a GenerateFlowFile processor
         final ProcessorEntity generateFlowFile = getClientUtil().createProcessor("GenerateFlowFile");
 
@@ -107,16 +108,19 @@ public class RetryIT extends NiFiSystemIT {
         //Create a connection between GenerateFlowFile and CountEvents processors
         final ConnectionEntity connection = getClientUtil().createConnection(generateFlowFile, countEvents, "success");
 
-
         // Wait for processors to be valid
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
         getClientUtil().waitForValidProcessor(countEvents.getId());
 
-
-        getNifiClient().getProcessorClient().runProcessorOnce(generateFlowFile);
+        runProcessorOnce(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(connection));
+        assertEquals(0, getRetryCount(connection));
+    }
+
+    private void runProcessorOnce(final ProcessorEntity processorEntity) throws NiFiClientException, IOException, InterruptedException {
+        getNifiClient().getProcessorClient().runProcessorOnce(processorEntity);
+        getClientUtil().waitForStoppedProcessor(processorEntity.getId());
     }
 
     @Test
@@ -153,28 +157,28 @@ public class RetryIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(countEvents.getId());
 
         //Generate flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(generateFlowFile);
+        runProcessorOnce(generateFlowFile);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(0, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Run SplitTextByLine processor, this will trigger the first retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_FIRST_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(1, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again, will trigger another retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_SECOND_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(2, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again should finish retry and transfer flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(splitTextByLineAndCountEventsSplitsConnection.getId(), 4);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
+        assertEquals(0, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
         assertEquals(0, getConnectionQueueSize(generateFlowFileAndSplitTextByLineConnection.getId()));
         assertEquals(0, getConnectionQueueSize(splitTextByLineAndCountEventsFailureConnection.getId()));
         assertEquals(1, getConnectionQueueSize(splitTextByLineAndCountEventsOriginalConnection.getId()));
@@ -214,28 +218,28 @@ public class RetryIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(countEvents.getId());
 
         //Generate flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(generateFlowFile);
+        runProcessorOnce(generateFlowFile);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(0, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Run SplitTextByLine processor, this will trigger the first retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_FIRST_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(1, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again, will trigger another retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_SECOND_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(2, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again should finish retry and transfer flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(splitTextByLineAndCountEventsSplitsConnection.getId(), 3);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
+        assertEquals(0, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
         assertEquals(0, getConnectionQueueSize(generateFlowFileAndSplitTextByLineConnection.getId()));
         assertEquals(0, getConnectionQueueSize(splitTextByLineAndCountEventsFailureConnection.getId()));
         assertEquals(1, getConnectionQueueSize(splitTextByLineAndCountEventsOriginalConnection.getId()));
@@ -275,40 +279,46 @@ public class RetryIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(countEvents.getId());
 
         //Generate flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(generateFlowFile);
+        runProcessorOnce(generateFlowFile);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(0, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Run SplitTextByLine processor, this will trigger the first retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_FIRST_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(1, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again, will trigger another retry
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(generateFlowFileAndSplitTextByLineConnection.getId(), 1);
 
-        assertEquals(EXPECTED_SECOND_RETRY, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
+        assertEquals(2, getRetryCount(generateFlowFileAndSplitTextByLineConnection));
 
         //Running SplitTextByLine processor again should finish retry and transfer flow file
-        getNifiClient().getProcessorClient().runProcessorOnce(splitTextByLine);
+        runProcessorOnce(splitTextByLine);
         waitForQueueCount(splitTextByLineAndCountEventsSplitsConnection.getId(), 5);
 
-        assertEquals(EXPECTED_NO_RETRY_COUNTS, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
+        assertEquals(0, getRetryCount(splitTextByLineAndCountEventsSplitsConnection));
         assertEquals(0, getConnectionQueueSize(generateFlowFileAndSplitTextByLineConnection.getId()));
         assertEquals(0, getConnectionQueueSize(splitTextByLineAndCountEventsFailureConnection.getId()));
         assertEquals(1, getConnectionQueueSize(splitTextByLineAndCountEventsOriginalConnection.getId()));
     }
 
-    private String getRetryCount(final ConnectionEntity connection) throws NiFiClientException, IOException {
-        return getClientUtil().getQueueFlowFile(connection.getId(), 0).getFlowFile().getAttributes().get("retryCount");
+    private int getRetryCount(final ConnectionEntity connection) throws NiFiClientException, IOException {
+        return getClientUtil().getQueueFlowFile(connection.getId(), 0).getFlowFile().getAttributes()
+            .entrySet().stream()
+            .filter(entry -> entry.getKey().startsWith("retryCount."))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .map(Integer::parseInt)
+            .orElse(0);
     }
 
     private void enableRetries(final ProcessorEntity processorEntity, final Set<String> relationships) throws NiFiClientException, IOException {
         final ProcessorConfigDTO config = new ProcessorConfigDTO();
-        config.setRetryCount(RETRY_COUNTS);
+        config.setRetryCount(RETRY_COUNT);
         config.setMaxBackoffPeriod("1 ms");
         config.setBackoffMechanism("PENALIZE_FLOWFILE");
         config.setRetriedRelationships(relationships);
