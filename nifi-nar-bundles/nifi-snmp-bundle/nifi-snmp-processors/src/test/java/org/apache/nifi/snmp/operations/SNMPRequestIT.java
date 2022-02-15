@@ -56,7 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @RunWith(Parameterized.class)
-public class SNMPRequestTest {
+public class SNMPRequestIT {
 
     private static final String LOCALHOST = "127.0.0.1";
     private static final String INVALID_HOST = "127.0.0.2";
@@ -131,9 +131,9 @@ public class SNMPRequestTest {
     private final String getInvalidOidStatusMessage;
     private final String setInvalidOidStatusMessage;
 
-    public SNMPRequestTest(final int version, final SNMPConfigurationFactory snmpConfigurationFactory, final TestAgent agent,
-                           final String cannotSetReadOnlyOidStatusMessage, final String cannotModifyOidStatusMessage,
-                           final String getInvalidOidStatusMessage, final String setInvalidOidStatusMessage) {
+    public SNMPRequestIT(final int version, final SNMPConfigurationFactory snmpConfigurationFactory, final TestAgent agent,
+                         final String cannotSetReadOnlyOidStatusMessage, final String cannotModifyOidStatusMessage,
+                         final String getInvalidOidStatusMessage, final String setInvalidOidStatusMessage) {
         this.version = version;
         this.snmpConfigurationFactory = snmpConfigurationFactory;
         this.agent = agent;
