@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.controller.status;
 
+import org.apache.nifi.registry.flow.VersionedFlowState;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.nifi.registry.flow.VersionedFlowState;
 
 /**
  */
@@ -255,7 +256,6 @@ public class ProcessGroupStatus implements Cloneable {
 
     @Override
     public ProcessGroupStatus clone() {
-
         final ProcessGroupStatus clonedObj = new ProcessGroupStatus();
 
         clonedObj.id = id;
@@ -447,6 +447,7 @@ public class ProcessGroupStatus implements Cloneable {
             merged.setInputBytes(merged.getInputBytes() + statusToMerge.getInputBytes());
             merged.setOutputCount(merged.getOutputCount() + statusToMerge.getOutputCount());
             merged.setOutputBytes(merged.getOutputBytes() + statusToMerge.getOutputBytes());
+            merged.setFlowFileAvailability(mergeFlowFileAvailability(merged.getFlowFileAvailability(), statusToMerge.getFlowFileAvailability()));
         }
         target.setConnectionStatus(mergedConnectionMap.values());
 
@@ -587,5 +588,27 @@ public class ProcessGroupStatus implements Cloneable {
         }
 
         target.setRemoteProcessGroupStatus(mergedRemoteGroupMap.values());
+    }
+
+    public static FlowFileAvailability mergeFlowFileAvailability(final FlowFileAvailability availabilityA, final FlowFileAvailability availabilityB) {
+        if (availabilityA == availabilityB) {
+            return availabilityA;
+        }
+        if (availabilityA == null) {
+            return availabilityB;
+        }
+        if (availabilityB == null) {
+            return availabilityA;
+        }
+
+        if (availabilityA == FlowFileAvailability.FLOWFILE_AVAILABLE || availabilityB == FlowFileAvailability.FLOWFILE_AVAILABLE) {
+            return FlowFileAvailability.FLOWFILE_AVAILABLE;
+        }
+
+        if (availabilityA == FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED || availabilityB == FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED) {
+            return FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED;
+        }
+
+        return FlowFileAvailability.FLOWFILE_AVAILABLE;
     }
 }

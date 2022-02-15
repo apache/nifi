@@ -52,7 +52,7 @@ public class ConnectionStatusEndpointMerger extends AbstractSingleEntityEndpoint
 
         final NodeIdentifier selectedNodeId = entityMap.entrySet().stream()
                 .filter(e -> e.getValue() == clientEntity)
-                .map(e -> e.getKey())
+                .map(Map.Entry::getKey)
                 .findFirst()
                 .orElse(null);
 

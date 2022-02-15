@@ -48,6 +48,7 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
     private String queuedCount;
     private Integer percentUseCount;
     private Integer percentUseBytes;
+    private String flowFileAvailability;
 
     /* getters / setters */
     /**
@@ -281,6 +282,15 @@ public class ConnectionStatusSnapshotDTO implements Cloneable {
 
     public void setPercentUseBytes(Integer percentUseBytes) {
         this.percentUseBytes = percentUseBytes;
+    }
+
+    @ApiModelProperty("The availability of FlowFiles in this connection")
+    public String getFlowFileAvailability() {
+        return flowFileAvailability;
+    }
+
+    public void setFlowFileAvailability(final String availability) {
+        this.flowFileAvailability = availability;
     }
 
     @Override

@@ -17,16 +17,6 @@
 
 package org.apache.nifi.controller.tasks;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -38,13 +28,24 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardRepositoryContext;
-import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.LifecycleState;
+import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.processor.Processor;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 public class TestConnectableTask {
 
@@ -90,10 +91,10 @@ public class TestConnectableTask {
 
         // Test with only a single connection that is self-looping and empty
         final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
-        when(flowFileQueue.isActiveQueueEmpty()).thenReturn(true);
+        when(flowFileQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.ACTIVE_QUEUE_EMPTY);
 
         final FlowFileQueue nonEmptyQueue = Mockito.mock(FlowFileQueue.class);
-        when(nonEmptyQueue.isActiveQueueEmpty()).thenReturn(false);
+        when(nonEmptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
 
         when(selfLoopingConnection.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         assertFalse(task.invoke().isYield());
@@ -139,7 +140,7 @@ public class TestConnectableTask {
         when(funnel.getIncomingConnections()).thenReturn(Collections.singletonList(selfLoopingConnection));
 
         final FlowFileQueue emptyQueue = Mockito.mock(FlowFileQueue.class);
-        when(emptyQueue.isActiveQueueEmpty()).thenReturn(true);
+        when(emptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.ACTIVE_QUEUE_EMPTY);
         when(selfLoopingConnection.getFlowFileQueue()).thenReturn(emptyQueue);
 
         final Set<Connection> outgoingConnections = new HashSet<>();
@@ -173,7 +174,7 @@ public class TestConnectableTask {
 
         // Adding input FlowFiles.
         final FlowFileQueue nonEmptyQueue = Mockito.mock(FlowFileQueue.class);
-        when(nonEmptyQueue.isActiveQueueEmpty()).thenReturn(false);
+        when(nonEmptyQueue.getFlowFileAvailability()).thenReturn(FlowFileAvailability.FLOWFILE_AVAILABLE);
         when(incomingFromAnotherComponent.getFlowFileQueue()).thenReturn(nonEmptyQueue);
         assertFalse("When a Funnel has both incoming and outgoing connections and FlowFiles to process, then it should be executed.",
                 task.invoke().isYield());
