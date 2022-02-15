@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.queue.clustered.partition;
 
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
@@ -37,6 +38,11 @@ public interface LocalQueuePartition extends QueuePartition {
      * @return <code>true</code> if the active queue is empty, <code>false</code> otherwise
      */
     boolean isActiveQueueEmpty();
+
+    /**
+     * @return the availability of FlowFiles in the queue
+     */
+    FlowFileAvailability getFlowFileAvailability();
 
     /**
      * @return <code>true</code> if there is at least one FlowFile that has not yet been acknowledged, <code>false</code> if all FlowFiles have been acknowledged.

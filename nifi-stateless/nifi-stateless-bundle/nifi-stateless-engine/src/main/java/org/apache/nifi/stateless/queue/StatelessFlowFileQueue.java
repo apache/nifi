@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.queue;
 
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.ListFlowFileStatus;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -121,6 +122,12 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     @Override
     public boolean isEmpty() {
         return flowFiles.isEmpty() && unacknowledgedCount.get() == 0;
+    }
+
+    @Override
+    public FlowFileAvailability getFlowFileAvailability() {
+        // Penalization is ignored in stateless so we can just rely on whether or not the active queue is empty
+        return isActiveQueueEmpty() ? FlowFileAvailability.ACTIVE_QUEUE_EMPTY : FlowFileAvailability.FLOWFILE_AVAILABLE;
     }
 
     @Override

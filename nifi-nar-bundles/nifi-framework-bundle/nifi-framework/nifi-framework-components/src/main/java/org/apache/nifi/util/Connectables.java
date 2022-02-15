@@ -16,18 +16,19 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.Relationship;
+
+import java.util.Collection;
+import java.util.List;
 
 public class Connectables {
 
     public static boolean flowFilesQueued(final Connectable connectable) {
         for (final Connection conn : connectable.getIncomingConnections()) {
-            if (!conn.getFlowFileQueue().isActiveQueueEmpty()) {
+            if (conn.getFlowFileQueue().getFlowFileAvailability() == FlowFileAvailability.FLOWFILE_AVAILABLE) {
                 return true;
             }
         }
