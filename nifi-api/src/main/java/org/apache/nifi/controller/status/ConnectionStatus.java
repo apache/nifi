@@ -44,6 +44,7 @@ public class ConnectionStatus implements Cloneable {
     private long maxQueuedBytes;
     private long totalQueuedDuration;
     private long maxQueuedDuration;
+    private FlowFileAvailability flowFileAvailability;
 
     public String getId() {
         return id;
@@ -214,6 +215,14 @@ public class ConnectionStatus implements Cloneable {
         this.maxQueuedDuration = maxQueuedDuration;
     }
 
+    public FlowFileAvailability getFlowFileAvailability() {
+        return flowFileAvailability;
+    }
+
+    public void setFlowFileAvailability(final FlowFileAvailability availability) {
+        this.flowFileAvailability = availability;
+    }
+
     @Override
     public ConnectionStatus clone() {
         final ConnectionStatus clonedObj = new ConnectionStatus();
@@ -230,6 +239,7 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.sourceName = sourceName;
         clonedObj.destinationId = destinationId;
         clonedObj.destinationName = destinationName;
+        clonedObj.flowFileAvailability = flowFileAvailability;
 
         if (predictions != null) {
             clonedObj.setPredictions(predictions.clone());
@@ -265,6 +275,8 @@ public class ConnectionStatus implements Cloneable {
         builder.append(backPressureDataSizeThreshold);
         builder.append(", backPressureObjectThreshold=");
         builder.append(backPressureObjectThreshold);
+        builder.append(", flowFileAvailability=");
+        builder.append(flowFileAvailability);
         builder.append(", inputCount=");
         builder.append(inputCount);
         builder.append(", inputBytes=");

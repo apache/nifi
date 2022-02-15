@@ -17,6 +17,8 @@
 
 package org.apache.nifi.cluster.manager;
 
+import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.registry.flow.VersionedFlowState;
@@ -274,7 +276,7 @@ public class StatusMerger {
     }
 
     private static <T> Collection<T> replaceNull(final Collection<T> collection) {
-        return (collection == null) ? Collections.<T>emptyList() : collection;
+        return (collection == null) ? Collections.emptyList() : collection;
     }
 
 
@@ -490,6 +492,11 @@ public class StatusMerger {
         target.setFlowFilesQueued(target.getFlowFilesQueued() + toMerge.getFlowFilesQueued());
         target.setBytesQueued(target.getBytesQueued() + toMerge.getBytesQueued());
 
+        final FlowFileAvailability targetFlowFileAvailability = target.getFlowFileAvailability() == null ? null : FlowFileAvailability.valueOf(target.getFlowFileAvailability());
+        final FlowFileAvailability toMergeFlowFileAvailability = toMerge.getFlowFileAvailability() == null ? null : FlowFileAvailability.valueOf(toMerge.getFlowFileAvailability());
+        final FlowFileAvailability mergedFlowFileAvailability = ProcessGroupStatus.mergeFlowFileAvailability(targetFlowFileAvailability, toMergeFlowFileAvailability);
+        target.setFlowFileAvailability(mergedFlowFileAvailability == null ? null : mergedFlowFileAvailability.name());
+
         if (target.getPercentUseBytes() == null) {
             target.setPercentUseBytes(toMerge.getPercentUseBytes());
         } else if (toMerge.getPercentUseBytes() != null) {
@@ -543,14 +550,15 @@ public class StatusMerger {
     }
 
     private static long minNonNegative(long a, long b){
-        if(a < 0){
+        if (a < 0) {
             return b;
-        }else if(b < 0){
+        } else if (b < 0) {
             return a;
-        }else{
+        } else {
             return Math.min(a, b);
         }
     }
+
     public static void updatePrettyPrintedFields(final ConnectionStatusSnapshotDTO target) {
         target.setQueued(prettyPrint(target.getFlowFilesQueued(), target.getBytesQueued()));
         target.setQueuedCount(formatCount(target.getFlowFilesQueued()));
