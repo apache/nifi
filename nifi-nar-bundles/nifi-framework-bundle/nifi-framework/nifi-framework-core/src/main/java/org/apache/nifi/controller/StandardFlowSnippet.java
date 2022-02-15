@@ -269,10 +269,6 @@ public class StandardFlowSnippet implements FlowSnippet {
 
             label.setStyle(labelDTO.getStyle());
 
-            // if (labelDTO.getZIndex != null) {
-            //     label.setZIndex(labelDTO.getZIndex());
-            // }
-
             if (!topLevel) {
                 label.setVersionedComponentId(labelDTO.getVersionedComponentId());
             }
