@@ -33,7 +33,7 @@ import org.snmp4j.mp.SnmpConstants;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class TrapSNMPIntegrationTest {
+public class TrapSNMPIT {
 
     protected static final String SYSTEM_DESCRIPTION_OID = "1.3.6.1.2.1.1.1.0";
     protected static final String SYSTEM_DESCRIPTION_OID_VALUE = "optionalTrapOidTestValue";
