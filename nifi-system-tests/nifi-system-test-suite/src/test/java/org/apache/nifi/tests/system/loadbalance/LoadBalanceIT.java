@@ -254,9 +254,9 @@ public class LoadBalanceIT extends NiFiSystemIT {
         final String nodeId = firstNodeDto.getNodeId();
 
         getClientUtil().disconnectNode(nodeId);
+        waitForNodeStatus(firstNodeDto, "DISCONNECTED");
         getClientUtil().offloadNode(nodeId);
-
-        waitFor(this::isNodeOffloaded);
+        waitForNodeStatus(firstNodeDto, "OFFLOADED");
 
         assertEquals(20, getQueueSize(connection.getId()));
         assertEquals(20 * 1024 * 1024, getQueueBytes(connection.getId()));
