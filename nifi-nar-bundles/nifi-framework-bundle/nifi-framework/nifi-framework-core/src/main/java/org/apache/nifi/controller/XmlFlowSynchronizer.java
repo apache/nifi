@@ -1232,6 +1232,13 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             procNode.setPenalizationPeriod(config.getPenaltyDuration());
             procNode.setYieldPeriod(config.getYieldDuration());
             procNode.setBulletinLevel(LogLevel.valueOf(config.getBulletinLevel()));
+            procNode.setRetryCount(config.getRetryCount());
+            procNode.setRetriedRelationships(config.getRetriedRelationships());
+
+            if (config.getBackoffMechanism() != null) {
+                procNode.setBackoffMechanism(BackoffMechanism.valueOf(config.getBackoffMechanism()));
+            }
+            procNode.setMaxBackoffPeriod(config.getMaxBackoffPeriod());
             updateNonFingerprintedProcessorSettings(procNode, processorDTO);
 
             if (config.getSchedulingStrategy() != null) {

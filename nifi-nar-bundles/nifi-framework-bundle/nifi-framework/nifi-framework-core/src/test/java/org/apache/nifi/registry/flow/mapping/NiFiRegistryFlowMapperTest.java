@@ -28,6 +28,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -459,6 +460,7 @@ public class NiFiRegistryFlowMapperTest {
         when(processorNode.getExecutionNode()).thenReturn(ExecutionNode.ALL);
         when(processorNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
         when(processorNode.getBundleCoordinate()).thenReturn(mock(BundleCoordinate.class));
+        when(processorNode.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
 
         final String rawPropertyValue = "propValue";
         final PropertyDescriptor.Builder propertyDescriptorBuilder =

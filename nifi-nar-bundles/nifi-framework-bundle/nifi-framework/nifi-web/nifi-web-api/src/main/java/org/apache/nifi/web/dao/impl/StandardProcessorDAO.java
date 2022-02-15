@@ -23,6 +23,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -154,6 +155,10 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             final Long runDurationMillis = config.getRunDurationMillis();
             final String bulletinLevel = config.getBulletinLevel();
             final Set<String> undefinedRelationshipsToTerminate = config.getAutoTerminatedRelationships();
+            final Integer retryCount = config.getRetryCount();
+            final Set<String> retriedRelationships = config.getRetriedRelationships();
+            final String backoffMechanism = config.getBackoffMechanism();
+            final String maxBackoffPeriod = config.getMaxBackoffPeriod();
 
             processor.pauseValidationTrigger(); // ensure that we don't trigger many validations to occur
             try {
@@ -194,6 +199,22 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                 }
                 if (isNotNull(configProperties)) {
                     processor.setProperties(configProperties);
+                }
+
+                if (isNotNull(retryCount)) {
+                    processor.setRetryCount(retryCount);
+                }
+
+                if (isNotNull(retriedRelationships)) {
+                    processor.setRetriedRelationships(retriedRelationships);
+                }
+
+                if (isNotNull(backoffMechanism)) {
+                    processor.setBackoffMechanism(BackoffMechanism.valueOf(backoffMechanism));
+                }
+
+                if (isNotNull(maxBackoffPeriod)) {
+                    processor.setMaxBackoffPeriod(maxBackoffPeriod);
                 }
 
                 if (isNotNull(undefinedRelationshipsToTerminate)) {
@@ -427,7 +448,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     configDTO.getSchedulingPeriod(),
                     configDTO.getSchedulingStrategy(),
                     configDTO.getExecutionNode(),
-                    configDTO.getYieldDuration())) {
+                    configDTO.getYieldDuration(),
+                    configDTO.getRetryCount(),
+                    configDTO.getBackoffMechanism(),
+                    configDTO.getMaxBackoffPeriod(),
+                    configDTO.getRetriedRelationships())) {
 
                 modificationRequest = true;
             }

@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -215,6 +216,7 @@ public class TestNiFiRegistryFlowMapper {
         when(procNode.getPosition()).thenReturn(new Position(0D, 0D));
         when(procNode.getSchedulingStrategy()).thenReturn(SchedulingStrategy.TIMER_DRIVEN);
         when(procNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STOPPED);
+        when(procNode.getBackoffMechanism()).thenReturn(BackoffMechanism.YIELD_PROCESSOR);
 
         return procNode;
     }

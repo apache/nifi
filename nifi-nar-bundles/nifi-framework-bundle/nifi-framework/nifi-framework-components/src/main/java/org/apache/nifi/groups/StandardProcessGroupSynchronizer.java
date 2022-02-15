@@ -27,6 +27,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -1585,6 +1586,19 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             processor.setStyle(proposed.getStyle());
             processor.setYieldPeriod(proposed.getYieldDuration());
             processor.setPosition(new Position(proposed.getPosition().getX(), proposed.getPosition().getY()));
+
+            processor.setMaxBackoffPeriod(proposed.getMaxBackoffPeriod());
+            processor.setRetriedRelationships(proposed.getRetriedRelationships());
+
+            if (proposed.getRetryCount() != null) {
+                processor.setRetryCount(proposed.getRetryCount());
+            } else {
+                processor.setRetryCount(10);
+            }
+
+            if (proposed.getBackoffMechanism() != null) {
+                processor.setBackoffMechanism(BackoffMechanism.valueOf(proposed.getBackoffMechanism()));
+            }
 
             final ScheduledState procState = processor.getScheduledState();
             final ProcessGroup group = processor.getProcessGroup();

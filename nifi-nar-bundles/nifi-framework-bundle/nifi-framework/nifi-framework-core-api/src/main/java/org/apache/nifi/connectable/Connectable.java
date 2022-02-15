@@ -19,6 +19,7 @@ package org.apache.nifi.connectable;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.VersionedComponent;
+import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessSession;
@@ -291,4 +292,22 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
      * @return the type of the component. I.e., the class name of the implementation
      */
     String getComponentType();
+
+    int getRetryCount();
+
+    void setRetryCount(Integer retryCount);
+
+    Set<String> getRetriedRelationships();
+
+    void setRetriedRelationships(Set<String> retriedRelationships);
+
+    boolean isRelationshipRetried(Relationship relationship);
+
+    BackoffMechanism getBackoffMechanism();
+
+    void setBackoffMechanism(BackoffMechanism backoffMechanism);
+
+    String getMaxBackoffPeriod();
+
+    void setMaxBackoffPeriod(String maxBackoffPeriod);
 }
