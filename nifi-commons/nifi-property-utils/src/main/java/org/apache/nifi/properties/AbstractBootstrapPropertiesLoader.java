@@ -136,7 +136,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             if (confDir.exists() && confDir.canRead()) {
                 expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
             } else {
-                throw new IOException(String.format("Cannot read %s directory for %s", confDir, bootstrapPath));
+                throw new IOException(String.format("Configuration Directory [%s] not found for Bootstrap Properties", confDir));
             }
         } else {
             expectedBootstrapFile = new File(bootstrapPath);
@@ -164,12 +164,12 @@ public abstract class AbstractBootstrapPropertiesLoader {
         String systemPath = System.getProperty(systemPropertyName);
 
         if (systemPath == null || systemPath.trim().isEmpty()) {
-            logger.warn("The system property {} is not set, so it is being set to '{}'", systemPropertyName, defaultRelativePath);
+            logger.warn("System Property [{}] not found: Using Relative Path [{}]", systemPropertyName, defaultRelativePath);
             System.setProperty(systemPropertyName, defaultRelativePath);
             systemPath = defaultRelativePath;
         }
 
-        logger.info("Determined default application properties path to be '{}'", systemPath);
+        logger.debug("Default Application Properties Path [{}]", systemPath);
         return systemPath;
     }
 }

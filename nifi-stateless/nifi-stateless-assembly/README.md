@@ -194,6 +194,7 @@ descriptions, and example values:
 |---------------|-------------|---------------|
 | nifi.stateless.nar.directory | The location of a directory containing all NiFi Archives (NARs) that are necessary for running the dataflow | /var/lib/nifi/lib |
 | nifi.stateless.working.directory | The location of a directory where Stateless should store its expanded NAR files and use for temporary storage | /var/lib/nifi/work/stateless |
+| nifi.stateless.content.repository.directory | The location of a directory where Stateless should store the contents of FlowFiles. If not specified, Stateless will store FlowFile contents only in memory. However, specifying a directory for storing data can allow Stateless NiFi to process data that is larger than is able to be fit into memory. It is important to note that this does not result in persisting state across restarts. The data in the content repository is cleared each time that a dataflow is triggered. | /var/lib/nifi/content 
 
 
 The following properties may be used for configuring security parameters:
@@ -210,18 +211,28 @@ The following properties may be used for configuring security parameters:
 | nifi.stateless.sensitive.props.key | The dataflow does not hold sensitive passwords, but some processors may have a need to encrypt data before storing it. This key is used to allow processors to encrypt and decrypt data. At present, the only Processor supported by the community that makes use of this feature is hte GetJMSTopic processor, which is deprecated. However, it is provided here for completeness. | Some Passphrase That's Difficult to Guess |
 | nifi.stateless.kerberos.krb5.file | The KRB5 file to use for interacting with Kerberos. This is only necessary if the dataflow interacts with a Kerberized data source/sink. If not specified, will default to `/etc/krb5.conf` | /etc/krb5.conf |
 
+A key tenant of NiFi is a separation between the framework and the extensions that operate on data. As such, we must have a mechanism for dictating where extensions can be located.
+The following properties may be used to indicate where extensions are to be located:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.extensions.directory | The directory that contains extensions that should be loaded. If extensions are to be downloaded (see below), they will be written to this directory, so it must be writable by the user who launches the application. | /var/lib/nifi/extensions |
+| nifi.stateless.readonly.extensions.directory.<suffix> | One or more directories may be specified as read-only extensions directories. Extensions will be loaded from these directories (but not their subdirectories), but these directories do not need to be writable. | /mnt/nifi-extensions/aws-extensions/ |
 
 When Stateless NiFi is started, it parses the provided dataflow and determines which bundles/extensions are necessary
 to run the dataflow. If an extension is not available, or the version referenced by the flow is not available, Stateless
-may attempt to download the extensions automatically. To do this, one or more Extension Clients must be configured.
-Each client is configured using several properties, which are all tied together using a 'key'. For example, if we have
+may attempt to download the extensions automatically. To do this, one or more Extension Clients need to be configured. If no
+Extension Clients are configured, only those extensions can be used that are already available (e.g. manually downloaded and copied offline)
+in the directories specified by the `nifi.stateless.extensions.directory` and `nifi.stateless.readonly.extensions.directory.<suffix>` properties described above.
+
+Each Extension Client is configured using several properties, which are all tied together using a 'key'. For example, if we have
 4 properties, `nifi.stateless.extension.client.ABC.type`, `nifi.stateless.extension.client.ABC.baseUrl`,
 `nifi.stateless.extension.client.XYZ.type`, and `nifi.stateless.extension.client.XYZ.baseUrl`, then we know that
 the first `type` property refers to the same client as the first `baseUrl` property because they both have the 'key'
 `ABC`. Similarly, the second `type` and `baseUrl` properties refer to the same client because they have the same 'key':
 `XYZ`.
 
-Any extension that is downloaded will be stored in the directory specified by the `nifi.stateless.nar.directory` property described above.
+Any extension that is downloaded will be stored in the directory specified by the `nifi.stateless.extensions.directory` property described above.
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
@@ -254,13 +265,18 @@ nifi.stateless.extension.client.mvn-central.useSslContext=false
 nifi.stateless.kerberos.krb5.file=/etc/krb5.conf
 ```
 
+Other configuration properties for the Engine Configuration include:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.status.task.interval | The Stateless Engine can periodically log the status of all processors.  This property can configure the period, or the logging can be avoided by setting this property value to empty.   | 1 min |
+
 
 A minimum configuration of the Engine Configuration may look as follows:
 ```
 nifi.stateless.nar.directory=/var/lib/nifi/lib
 nifi.stateless.working.directory=/var/lib/nifi/work/stateless
 ```
-
 
 #### Dataflow Configuration
 
@@ -305,8 +321,8 @@ Note that while Java properties files typically do not allow for spaces in prope
 files in a way that does allow for spaces, so that Parameter names, etc. may allow for spaces.
 
 There are times, however, when we do not want to provide the list of Parameters in the dataflow properties file. We may want to fetch the Parameters from some file or
-an external service. For this reason, Stateless supports a notion of a Parameter Provider. A Parameter Provider is an extension point that can be used to retrieve Parameters
-from elsewhere. For information on how to configure Parameter Provider, see the [Passing Parameters](#passing-parameters) section below.
+an external service. For this reason, Stateless supports a notion of a Parameter Value Provider. A Parameter Value Provider is an extension point that can be used to retrieve Parameters
+from elsewhere. For information on how to configure Parameter Value Provider, see the [Passing Parameters](#passing-parameters) section below.
 
 When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation.
 Typically, this consists of a single FlowFile at a time or a single batch of FlowFiles at a time, depending on the source processor. However, some processors may
@@ -463,22 +479,112 @@ If a given Parameter is referenced and is not defined using the `-p` syntax, an 
 allowed to contain only letters, numbers, and underscores in their names. As a result, it is important that the Parameters' names also adhere to that same rule, or the environment variable
 will not be addressable.
 
-At times, none of the built-in capabilities for resolving Parameters are ideal, though. In these situations, we can use a custom Parameter Provider in order to source Parameter values from elsewhere.
-To configure a custom Parameter Provider, we must configure it similarly to Reporting Tasks, using a common key to indicate which Parameter Provider the property belongs to.
+At times, none of the built-in capabilities for resolving Parameters are ideal, though. In these situations, we can use a custom Parameter Value Provider in order to source Parameter values from elsewhere.
+To configure a custom Parameter Value Provider, we must configure it similarly to Reporting Tasks, using a common key to indicate which Parameter Value Provider the property belongs to.
 The following properties are supported:
 
 | Property Name | Description | Example Value |
 |---------------|-------------|---------------|
-| nifi.stateless.parameter.provider.\<key>.name | The name of the Parameter Provider | My Secret Parameter Provider
-| nifi.stateless.parameter.provider.\<key>.type | The type of the Parameter Provider. This may be the fully qualified classname or the simple name, if only a single class exists with the simple name | MySecretParameterProvider |
-| nifi.stateless.parameter.provider.\<key>.bundle | The bundle that holds the Parameter Provider. If not specified, the bundle will be automatically identified, if there exists exactly one bundle with the reporting task. However, if no Bundle is specified, none will be downloaded and if more than 1 is already available, the Parameter Provider cannot be created. The format is \<group id>:\<artifact id>:\<version> | org.apache.nifi:nifi-standard-nar:1.14.0 |
-| nifi.stateless.parameter.provider.\<key>.properties.\<property name> | One or more Parameter Provider properties may be configured using this syntax | Any valid value for the corresponding property |
+| nifi.stateless.parameter.provider.\<key>.name | The name of the Parameter Value Provider | My Secret Parameter Value Provider
+| nifi.stateless.parameter.provider.\<key>.type | The type of the Parameter Value Provider. This may be the fully qualified classname or the simple name, if only a single class exists with the simple name | MySecretParameterValueProvider |
+| nifi.stateless.parameter.provider.\<key>.bundle | The bundle that holds the Parameter Value Provider. If not specified, the bundle will be automatically identified, if there exists exactly one bundle with the reporting task. However, if no Bundle is specified, none will be downloaded and if more than 1 is already available, the Parameter Value Provider cannot be created. The format is \<group id>:\<artifact id>:\<version> | org.apache.nifi:nifi-standard-nar:1.14.0 |
+| nifi.stateless.parameter.provider.\<key>.properties.\<property name> | One or more Parameter Value Provider properties may be configured using this syntax | Any valid value for the corresponding property |
 
-An example Parameter Provider might be configured as follows:
+An example Parameter Value Provider might be configured as follows:
 
 ```
-nifi.stateless.parameter.provider.Props File Provider.name=My Custom Properties File Parameter Provider
-nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parameters.custom.MyCustomPropertiesFileParameterProvider
+nifi.stateless.parameter.provider.Props File Provider.name=My Custom Properties File Parameter Value Provider
+nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parameters.custom.MyCustomPropertiesFileParameterValueProvider
 nifi.stateless.parameter.provider.Props File Provider.bundle=com.myorg:nifi-custom-parameter-provider-nar:0.0.1
 nifi.stateless.parameter.provider.Props File Provider.properties.Filename=/tmp/parameters.properties
 ```
+
+##### Built-in Parameter Value Providers
+Following is a list of Parameter Value Providers already available in Stateless.
+
+**HashiCorpVaultParameterValueProvider**
+
+This provider reads parameter values from HashiCorp Vault, and expects secrets to exist in
+the Key/Value (unversioned) Secrets Engine.  The connection to a Vault server can be configured
+via the `./conf/bootstrap-hashicorp-vault.conf` file, which comes with NiFi.
+
+An example of creating a single secret in the correct format is:
+
+```
+vault kv put "nifi-kv/Context" param=value param2=value2
+```
+
+In this example, `nifi-kv` would be supplied by the `vault.kv.path` property in the `bootstrap-hashicorp-vault.conf` file, 
+`Context` is the name of a mapped Parameter Context, and `param` and `param2` are the names of the parameters whose values should be retrieved from the Vault server.
+
+This Parameter Provider requires the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.vault-configuration-file | The filename of a configuration file specifying the Vault settings | ./conf/bootstrap-hashicorp-vault.conf |
+| nifi.stateless.parameter.provider.\<key>.properties.default-secret-name | The default K/V secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret. | `Default` |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
+nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterValueProvider
+nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
+```
+
+**AWS SecretsManagerParameterValueProvider**
+
+This provider reads parameter values from AWS SecretsManager.  Each AWS secret is mapped to a Parameter Context, with
+the Secret name representing the Parameter Context name and the key/value pairs in the Secret representing the 
+Parameter names and values.
+
+The AWS credentials can be configured via the `./conf/bootstrap-aws.conf` file, which comes with NiFi.
+
+Note: The provided AWS credentials must have the `secretsmanager:GetSecretValue` permission in order to use this provider.
+An example of creating a single secret in the correct format is:
+
+```
+aws secretsmanager create-secret --name "Context" --secret-string '{ "Param": "secretValue", "Param2": "secretValue2" }'
+```
+
+In this example, `Context` is the name of a Parameter Context, `Param` is the name of the parameter whose value
+should be retrieved from the Vault server, and `secretValue` is the actual value of the parameter.  Notice that
+there are multiple parameters stored in this secret: a second parameter named `Param2` has the value of `secretValue2`.
+
+Alternatively, if you use the AWS Console to create a secret, follow these steps:
+1. Select a secret type of "Other type of secrets (e.g. API key)"
+2. Enter one Secret key/value for each Parameter, where the key is the Parameter Name and the value is the Parameter value
+3. On the next page, enter the name of the Parameter Context as the Secret name.  Save the Secret.
+
+This Parameter Provider allows the following properties:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.properties.aws-credentials-file | The filename of a configuration file optionally specifying the AWS credentials.  If this property is not provided, or if the credentials are not provided in the file, the default AWS credentials chain will be followed. | `./conf/bootstrap-aws.conf` |
+| nifi.stateless.parameter.provider.\<key>.default-secret-name | The default AWS secret name to use.  This secret represents a default Parameter Context if there is not a matching key within the mapped Parameter Context secret. | `Default`  |
+
+An example of configuring this provider in the dataflow configuration file is:
+
+```
+nifi.stateless.parameter.provider.AWSSecretsManager.name=AWS SecretsManager Provider
+nifi.stateless.parameter.provider.AWSSecretsManager.type=org.apache.nifi.stateless.parameter.AwsSecretsManagerParameterValueProvider
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.aws-credentials-file=./conf/bootstrap-aws.conf
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.default-secret-name=Default
+nifi.stateless.parameter.provider.AWSSecretsManager.properties.MyContextName=MappedSecretName
+```
+
+This provider will map each ParameterContext to a secret of the same name.  In the above example, the Parameter Context named `MyContextName`
+will instead be mapped to a secret named `MappedSecretName`.
+
+Additionally, the provider will assume there is a secret named `Default` that may contain any parameters not found in other mapped ParameterContexts.
+For example, assume the following dataflow and AWS SecretsManager configuration:
+
+- Flow contains a ParameterContext named `ABC`, with parameters `foo` and `bar`.
+- Flow contains a ParameterContext named `MyContextName`, with parameter `baz`.
+- AWS SecretsManager contains a secret named `ABC`, with a key of `foo`.
+- AWS SecretsManager also contains a secret named `Default`, with keys `foo` and `bar`.
+- AWS SecretsManager also contains a secret named `MappedSecretName`, with a key of `baz`.
+
+When executing the dataflow with the above provider configuration, the `foo` parameter will be pulled from the `ABC` secret, since it was found directly in the mapped secret.
+However, the `bar` parameter will be pulled from the `Default` secret, because it was not found in the `ABC` secret, but was found in the `Default` secret, which is indicated by the `default-secret-name` property.
+Additionally, Stateless will pull the `baz` parameter from the `MappedSecretName` secret because of the `MyContextName` mapping property.

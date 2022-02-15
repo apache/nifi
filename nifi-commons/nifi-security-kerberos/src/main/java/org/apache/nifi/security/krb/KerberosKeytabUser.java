@@ -18,15 +18,11 @@ package org.apache.nifi.security.krb;
 
 import org.apache.commons.lang3.Validate;
 
-import javax.security.auth.Subject;
+import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.login.Configuration;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
 
 /**
  * Used to authenticate and execute actions when Kerberos is enabled and a keytab is being used.
- *
- * Some of the functionality in this class is adapted from Hadoop's UserGroupInformation.
  */
 public class KerberosKeytabUser extends AbstractKerberosUser {
 
@@ -39,9 +35,13 @@ public class KerberosKeytabUser extends AbstractKerberosUser {
     }
 
     @Override
-    protected LoginContext createLoginContext(Subject subject) throws LoginException {
-        final Configuration config = new KeytabConfiguration(principal, keytabFile);
-        return new LoginContext("KeytabConf", subject, null, config);
+    protected Configuration createConfiguration() {
+        return new KeytabConfiguration(principal, keytabFile);
+    }
+
+    @Override
+    protected CallbackHandler createCallbackHandler() {
+        return null;
     }
 
     /**
@@ -49,11 +49,6 @@ public class KerberosKeytabUser extends AbstractKerberosUser {
      */
     public String getKeytabFile() {
         return keytabFile;
-    }
-
-    // Visible for testing
-    Subject getSubject() {
-        return this.subject;
     }
 
 }

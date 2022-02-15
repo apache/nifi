@@ -30,7 +30,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SerializedForm;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
@@ -51,9 +51,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestWriteJsonResult {
 
@@ -77,7 +76,6 @@ public class TestWriteJsonResult {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
-        df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
 
         final Map<String, Object> map = new LinkedHashMap<>();

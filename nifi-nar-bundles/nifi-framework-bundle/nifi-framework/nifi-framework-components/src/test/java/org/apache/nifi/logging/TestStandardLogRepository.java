@@ -17,14 +17,17 @@
 
 package org.apache.nifi.logging;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.repository.StandardLogRepository;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.nifi.logging.repository.StandardLogRepository;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class TestStandardLogRepository {
 
@@ -39,23 +42,45 @@ public class TestStandardLogRepository {
         repo.addLogMessage(LogLevel.DEBUG, "Testing {} to get exception message <{}>", new Object[]{observer.getClass().getName(), exception});
         repo.addLogMessage(LogLevel.DEBUG, "Testing {} to get exception message", new Object[]{observer.getClass().getName()}, exception);
 
-        assertEquals(observer.getMessages().get(0), "Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message <exception>");
-        assertEquals(observer.getMessages().get(1), "Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message");
+        assertEquals("Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message <exception>", observer.getMessages().get(0).getMessage());
+        assertEquals("Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message", observer.getMessages().get(1).getMessage());
     }
 
-    private class MockLogObserver implements LogObserver {
+    @Test
+    public void testLogRepositoryLogsFirstFlowFileUuid() {
+        StandardLogRepository repo = new StandardLogRepository();
+        MockLogObserver observer = new MockLogObserver();
+        repo.addObserver("mock", LogLevel.DEBUG, observer);
+        MockFlowFile mockFlowFile = new MockFlowFile(1L);
 
-        private List<String> messages = new ArrayList<String>();
+        repo.addLogMessage(LogLevel.INFO, "Testing {} being shown in exception message", new Object[]{mockFlowFile});
+
+        assertEquals(mockFlowFile.getAttribute(CoreAttributes.UUID.key()), observer.getMessages().get(0).getFlowFileUuid());
+    }
+
+    @Test
+    public void testLogRepositoryDoesntLogMultipleFlowFileUuids() {
+        StandardLogRepository repo = new StandardLogRepository();
+        MockLogObserver observer = new MockLogObserver();
+        repo.addObserver("mock", LogLevel.DEBUG, observer);
+        MockFlowFile mockFlowFile1 = new MockFlowFile(1L);
+        MockFlowFile mockFlowFile2 = new MockFlowFile(2L);
+
+        repo.addLogMessage(LogLevel.INFO, "Testing {} {} flowfiles are not being shown in exception message", new Object[]{mockFlowFile1, mockFlowFile2});
+
+        assertNull(observer.getMessages().get(0).getFlowFileUuid());
+    }
+
+    private static class MockLogObserver implements LogObserver {
+        private final List<LogMessage> messages = new ArrayList<>();
 
         @Override
         public void onLogMessage(LogMessage message) {
-            messages.add(message.getMessage());
+            messages.add(message);
         }
 
-        public List<String> getMessages() {
+        public List<LogMessage> getMessages() {
             return messages;
         }
-
     }
-
 }

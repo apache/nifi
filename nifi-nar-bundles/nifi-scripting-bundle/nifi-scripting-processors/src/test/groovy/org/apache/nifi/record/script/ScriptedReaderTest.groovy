@@ -27,22 +27,22 @@ import org.apache.nifi.serialization.RecordReader
 import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 
-import static junit.framework.TestCase.assertEquals
-import static org.junit.Assert.*
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertNull
+import static org.junit.jupiter.api.Assertions.assertTrue
+
 /**
  * Unit tests for the ScriptedReader class
  */
-@RunWith(JUnit4.class)
 class ScriptedReaderTest {
     private static final String READER_INLINE_SCRIPT = "test_record_reader_inline.groovy"
     private static final String READER_XML_SCRIPT = "test_record_reader_xml.groovy"
@@ -57,7 +57,7 @@ class ScriptedReaderTest {
     def runner
     def scriptingComponent
 
-    @Before
+    @BeforeEach
     void setUp() {
         recordReaderFactory = new MockScriptedReader()
         runner = TestRunners

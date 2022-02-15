@@ -45,11 +45,11 @@ import org.apache.nifi.registry.extension.bundle.BundleVersion;
 import org.apache.nifi.registry.extension.bundle.BundleVersionDependency;
 import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.registry.extension.component.ExtensionFilterParams;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
-import org.apache.nifi.registry.extension.component.TagCount;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.ExtensionFilterParams;
+import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoArtifact;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoBucket;
 import org.apache.nifi.registry.extension.repo.ExtensionRepoGroup;
@@ -333,10 +333,12 @@ public class StandardExtensionService implements ExtensionService {
             extensionEntity.setId(UUID.randomUUID().toString());
             extensionEntity.setBundleVersionId(versionEntity.getId());
 
-            extensionEntity.getRestrictions().forEach(r -> {
-                r.setId(UUID.randomUUID().toString());
-                r.setExtensionId(extensionEntity.getId());
-            });
+            if (extensionEntity.getRestrictions() != null) {
+                extensionEntity.getRestrictions().forEach(r -> {
+                    r.setId(UUID.randomUUID().toString());
+                    r.setExtensionId(extensionEntity.getId());
+                });
+            }
 
             extensionEntity.getProvidedServiceApis().forEach(p -> {
                 p.setId(UUID.randomUUID().toString());

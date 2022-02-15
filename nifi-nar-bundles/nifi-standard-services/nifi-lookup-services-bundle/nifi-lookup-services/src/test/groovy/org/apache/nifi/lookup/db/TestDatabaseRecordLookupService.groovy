@@ -26,9 +26,9 @@ import org.apache.nifi.reporting.InitializationException
 import org.apache.nifi.serialization.record.Record
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import java.sql.Connection
 import java.sql.DriverManager
@@ -36,9 +36,9 @@ import java.sql.SQLException
 import java.sql.Statement
 
 import static org.hamcrest.CoreMatchers.instanceOf
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertThat
+import static org.hamcrest.MatcherAssert.assertThat
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNull
 
 
 class TestDatabaseRecordLookupService {
@@ -48,12 +48,12 @@ class TestDatabaseRecordLookupService {
     private final static Optional<Record> EMPTY_RECORD = Optional.empty()
     private final static String DB_LOCATION = "target/db"
 
-    @BeforeClass
+    @BeforeAll
     static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log")
     }
 
-    @Before
+    @BeforeEach
     void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl()
         final Map<String, String> dbcpProperties = new HashMap<>()
@@ -97,7 +97,7 @@ class TestDatabaseRecordLookupService {
         assertThat(lookupService, instanceOf(LookupService.class))
 
         final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
-        assertNull("Should be null but is not", property1.get().getAsInt("VAL1"))
+        assertNull(property1.get().getAsInt("VAL1"), "Should be null but is not")
         assertEquals("Hello", property1.get().getAsString("VAL2"))
 
         final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
@@ -144,7 +144,7 @@ class TestDatabaseRecordLookupService {
         assertThat(lookupService, instanceOf(LookupService.class))
 
         final Optional<Record> property1 = lookupService.lookup(Collections.singletonMap("key", "0"))
-        assertNull("Should be null but is not", property1.get().getAsInt("VAL1"))
+        assertNull(property1.get().getAsInt("VAL1"), "Should be null but is not")
 
         final Optional<Record> property2 = lookupService.lookup(Collections.singletonMap("key", "1"))
         assertEquals(1, property2.get().getAsInt("VAL1"))

@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponent;
 
 public class InstantiatedConnectableComponent extends ConnectableComponent implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedConnectableComponent extends ConnectableComponent imple
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

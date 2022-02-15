@@ -36,7 +36,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -44,8 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ScriptedRecordSinkTest {
 
@@ -101,7 +100,6 @@ public class ScriptedRecordSinkTest {
     }
 
     public static class MockScriptedRecordSink extends ScriptedRecordSink implements AccessibleScriptingComponentHelper {
-
         @Override
         public ScriptingComponentHelper getScriptingComponentHelper() {
             return this.scriptingComponentHelper;

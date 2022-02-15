@@ -18,12 +18,13 @@
 package org.apache.nifi.stateless;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.registry.flow.Bundle;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -42,10 +43,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
@@ -58,7 +62,7 @@ public class StatelessSystemIT {
     public TestName name = new TestName();
 
     @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
 
     @Before
@@ -89,8 +93,18 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public Collection<File> getReadOnlyExtensionsDirectories() {
+                return Collections.emptyList();
+            }
+
+            @Override
             public File getKrb5File() {
                 return new File("/etc/krb5.conf");
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return getContentRepoDirectory();
             }
 
             @Override
@@ -107,7 +121,16 @@ public class StatelessSystemIT {
             public List<ExtensionClientDefinition> getExtensionClients() {
                 return Collections.emptyList();
             }
+
+            @Override
+            public String getStatusTaskInterval() {
+                return null;
+            }
         };
+    }
+
+    protected Optional<File> getContentRepoDirectory() {
+        return Optional.empty();
     }
 
     protected StatelessDataflow loadDataflow(final File versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts) throws IOException, StatelessConfigurationException {
@@ -141,7 +164,7 @@ public class StatelessSystemIT {
     }
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
-                                             final List<ParameterProviderDefinition> parameterProviderDefinitions, final Set<String> failurePortNames,
+                                             final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
 
         final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
@@ -161,6 +184,20 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public Set<String> getInputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getInputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
+            }
+
+            @Override
+            public Set<String> getOutputPortNames() {
+                return versionedFlowSnapshot.getFlowContents().getOutputPorts().stream()
+                    .map(VersionedPort::getName)
+                    .collect(Collectors.toSet());
+            }
+
+            @Override
             public List<ParameterContextDefinition> getParameterContexts() {
                 return parameterContexts;
             }
@@ -171,8 +208,8 @@ public class StatelessSystemIT {
         }
 
             @Override
-            public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
-                return parameterProviderDefinitions;
+            public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+                return parameterValueProviderDefinitions;
             }
 
             @Override

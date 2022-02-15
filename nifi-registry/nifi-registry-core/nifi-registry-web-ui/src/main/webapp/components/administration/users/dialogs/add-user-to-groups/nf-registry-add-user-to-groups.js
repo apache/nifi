@@ -20,7 +20,7 @@ import NfRegistryApi from 'services/nf-registry.api';
 import { Component } from '@angular/core';
 import { FdsDialogService, FdsSnackBarService } from '@nifi-fds/core';
 import NfRegistryService from 'services/nf-registry.service';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 
 /**
  * NfRegistryAddUserToGroups constructor.

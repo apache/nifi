@@ -116,6 +116,8 @@ import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -128,6 +130,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
@@ -141,11 +144,8 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
@@ -266,7 +266,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class DtoFactory {
@@ -1448,7 +1447,8 @@ public final class DtoFactory {
         return dto;
     }
 
-    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager) {
+    public ParameterContextDTO createParameterContextDto(final ParameterContext parameterContext, final RevisionManager revisionManager,
+                                                         final boolean includeInheritedParameters, final ParameterContextLookup parameterContextLookup) {
         final ParameterContextDTO dto = new ParameterContextDTO();
         dto.setId(parameterContext.getIdentifier());
         dto.setName(parameterContext.getName());
@@ -1465,16 +1465,27 @@ public final class DtoFactory {
         dto.setBoundProcessGroups(boundGroups);
 
         final Set<ParameterEntity> parameterEntities = new LinkedHashSet<>();
-        for (final Parameter parameter : parameterContext.getParameters().values()) {
-            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager));
+        final Map<ParameterDescriptor, Parameter> parameters = includeInheritedParameters ? parameterContext.getEffectiveParameters()
+                : parameterContext.getParameters();
+        for (final Parameter parameter : parameters.values()) {
+            parameterEntities.add(createParameterEntity(parameterContext, parameter, revisionManager, parameterContextLookup));
         }
+
+        final List<ParameterContextReferenceEntity> parameterContextRefs = new ArrayList<>();
+        if (parameterContext.getInheritedParameterContexts() != null) {
+            parameterContextRefs.addAll(parameterContext.getInheritedParameterContexts().stream()
+                    .map(pc -> entityFactory.createParameterReferenceEntity(createParameterContextReference(pc), createPermissionsDto(pc)))
+                    .collect(Collectors.toList()));
+        }
+        dto.setInheritedParameterContexts(parameterContextRefs);
 
         dto.setParameters(parameterEntities);
         return dto;
     }
 
-    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
-        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager);
+    public ParameterEntity createParameterEntity(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager,
+                                                 final ParameterContextLookup parameterContextLookup) {
+        final ParameterDTO dto = createParameterDto(parameterContext, parameter, revisionManager, parameterContextLookup);
         final ParameterEntity entity = new ParameterEntity();
         entity.setParameter(dto);
 
@@ -1484,7 +1495,8 @@ public final class DtoFactory {
         return entity;
     }
 
-    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter, final RevisionManager revisionManager) {
+    public ParameterDTO createParameterDto(final ParameterContext parameterContext, final Parameter parameter,
+                                           final RevisionManager revisionManager, final ParameterContextLookup parameterContextLookup) {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final ParameterDTO dto = new ParameterDTO();
@@ -1503,6 +1515,11 @@ public final class DtoFactory {
 
         final Set<AffectedComponentEntity> referencingComponentEntities = createAffectedComponentEntities(referencingComponents, revisionManager);
         dto.setReferencingComponents(referencingComponentEntities);
+
+        final ParameterContext containingParameterContext = (parameter.getParameterContextId() == null)
+                ? parameterContext : parameterContextLookup.getParameterContext(parameter.getParameterContextId());
+        ParameterContextReferenceDTO refDto = createParameterContextReference(containingParameterContext);
+        dto.setParameterContext(entityFactory.createParameterReferenceEntity(refDto, createPermissionsDto(containingParameterContext)));
 
         return dto;
     }
@@ -2216,13 +2233,13 @@ public final class DtoFactory {
     }
 
     public ProcessGroupFlowDTO createProcessGroupFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
-                                                         final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins) {
+                                                         final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins, final boolean uiOnly) {
 
         final ProcessGroupFlowDTO dto = new ProcessGroupFlowDTO();
         dto.setId(group.getIdentifier());
         dto.setLastRefreshed(new Date());
         dto.setBreadcrumb(createBreadcrumbEntity(group));
-        dto.setFlow(createFlowDto(group, groupStatus, revisionManager, getProcessGroupBulletins));
+        dto.setFlow(createFlowDto(group, groupStatus, revisionManager, getProcessGroupBulletins, uiOnly));
 
         final ProcessGroup parent = group.getParent();
         if (parent != null) {
@@ -2256,6 +2273,7 @@ public final class DtoFactory {
 
         final FlowDTO flow = new FlowDTO();
 
+        final Map<String, ConnectionStatus> connectionStatuses = groupStatus.getConnectionStatus().stream().collect(Collectors.toMap(ConnectionStatus::getId, status -> status));
         for (final ConnectionDTO snippetConnection : snippet.getConnections()) {
             final Connection connection = group.getConnection(snippetConnection.getId());
 
@@ -2263,11 +2281,9 @@ public final class DtoFactory {
             final ConnectionDTO dto = createConnectionDto(connection);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(connection.getIdentifier()));
             final PermissionsDTO accessPolicy = createPermissionsDto(connection);
-            final ConnectionStatusDTO status = getComponentStatus(
-                () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connection.getIdentifier().equals(connectionStatus.getId())).findFirst().orElse(null),
-                this::createConnectionStatusDto
-            );
-            flow.getConnections().add(entityFactory.createConnectionEntity(dto, revision, accessPolicy, status));
+            final ConnectionStatus connectionStatus = connectionStatuses.get(connection.getIdentifier());
+            final ConnectionStatusDTO statusDto = connectionStatus == null ? null : createConnectionStatusDto(connectionStatus);
+            flow.getConnections().add(entityFactory.createConnectionEntity(dto, revision, accessPolicy, statusDto));
         }
 
         for (final FunnelDTO snippetFunnel : snippet.getFunnels()) {
@@ -2280,6 +2296,7 @@ public final class DtoFactory {
             flow.getFunnels().add(entityFactory.createFunnelEntity(dto, revision, accessPolicy));
         }
 
+        final Map<String, PortStatus> inputPortStatuses = groupStatus.getInputPortStatus().stream().collect(Collectors.toMap(PortStatus::getId, status -> status));
         for (final PortDTO snippetInputPort : snippet.getInputPorts()) {
             final Port inputPort = group.getInputPort(snippetInputPort.getId());
 
@@ -2288,15 +2305,14 @@ public final class DtoFactory {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(inputPort.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(inputPort);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(inputPort));
-            final PortStatusDTO status = getComponentStatus(
-                () -> groupStatus.getInputPortStatus().stream().filter(inputPortStatus -> inputPort.getIdentifier().equals(inputPortStatus.getId())).findFirst().orElse(null),
-                inputPortStatus -> createPortStatusDto(inputPortStatus)
-            );
+            final PortStatus portStatus = inputPortStatuses.get(inputPort.getIdentifier());
+            final PortStatusDTO statusDto = portStatus == null ? null : createPortStatusDto(portStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPort.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            flow.getInputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, operatePermissions, status, bulletinEntities));
+            flow.getInputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
+        final Map<String, PortStatus> outputPortStatuses = groupStatus.getOutputPortStatus().stream().collect(Collectors.toMap(PortStatus::getId, status -> status));
         for (final PortDTO snippetOutputPort : snippet.getOutputPorts()) {
             final Port outputPort = group.getOutputPort(snippetOutputPort.getId());
 
@@ -2305,13 +2321,11 @@ public final class DtoFactory {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(outputPort.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(outputPort);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(outputPort));
-            final PortStatusDTO status = getComponentStatus(
-                () -> groupStatus.getOutputPortStatus().stream().filter(outputPortStatus -> outputPort.getIdentifier().equals(outputPortStatus.getId())).findFirst().orElse(null),
-                outputPortStatus -> createPortStatusDto(outputPortStatus)
-            );
+            final PortStatus portStatus = outputPortStatuses.get(outputPort.getIdentifier());
+            final PortStatusDTO statusDto = portStatus == null ? null : createPortStatusDto(portStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPort.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            flow.getOutputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, operatePermissions, status, bulletinEntities));
+            flow.getOutputPorts().add(entityFactory.createPortEntity(dto, revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
         for (final LabelDTO snippetLabel : snippet.getLabels()) {
@@ -2324,6 +2338,7 @@ public final class DtoFactory {
             flow.getLabels().add(entityFactory.createLabelEntity(dto, revision, accessPolicy));
         }
 
+        final Map<String, ProcessGroupStatus> groupStatuses = groupStatus.getProcessGroupStatus().stream().collect(Collectors.toMap(ProcessGroupStatus::getId, status -> status));
         for (final ProcessGroupDTO snippetProcessGroup : snippet.getProcessGroups()) {
             final ProcessGroup processGroup = group.getProcessGroup(snippetProcessGroup.getId());
 
@@ -2331,14 +2346,13 @@ public final class DtoFactory {
             final ProcessGroupDTO dto = createProcessGroupDto(processGroup);
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processGroup.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(processGroup);
-            final ProcessGroupStatusDTO status = getComponentStatus(
-                () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> processGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
-                processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
-            );
+            final ProcessGroupStatus childGroupStatus = groupStatuses.get(processGroup.getIdentifier());
+            final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(processGroup);
-            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, status, bulletins));
+            flow.getProcessGroups().add(entityFactory.createProcessGroupEntity(dto, revision, permissions, statusDto, bulletins));
         }
 
+        final Map<String, ProcessorStatus> processorStatuses = groupStatus.getProcessorStatus().stream().collect(Collectors.toMap(ProcessorStatus::getId, status -> status));
         for (final ProcessorDTO snippetProcessor : snippet.getProcessors()) {
             final ProcessorNode processor = group.getProcessor(snippetProcessor.getId());
 
@@ -2347,15 +2361,14 @@ public final class DtoFactory {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(processor.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(processor);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(processor));
-            final ProcessorStatusDTO status = getComponentStatus(
-                () -> groupStatus.getProcessorStatus().stream().filter(processorStatus -> processor.getIdentifier().equals(processorStatus.getId())).findFirst().orElse(null),
-                processorStatus -> createProcessorStatusDto(processorStatus)
-            );
+            final ProcessorStatus processorStatus = processorStatuses.get(processor.getIdentifier());
+            final ProcessorStatusDTO statusDto = processorStatus == null ? null : createProcessorStatusDto(processorStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(processor.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            flow.getProcessors().add(entityFactory.createProcessorEntity(dto, revision, permissions, operatePermissions, status, bulletinEntities));
+            flow.getProcessors().add(entityFactory.createProcessorEntity(dto, revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
+        final Map<String, RemoteProcessGroupStatus> rpgStatuses = groupStatus.getRemoteProcessGroupStatus().stream().collect(Collectors.toMap(RemoteProcessGroupStatus::getId, status -> status));
         for (final RemoteProcessGroupDTO snippetRemoteProcessGroup : snippet.getRemoteProcessGroups()) {
             final RemoteProcessGroup remoteProcessGroup = group.getRemoteProcessGroup(snippetRemoteProcessGroup.getId());
 
@@ -2364,54 +2377,40 @@ public final class DtoFactory {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(remoteProcessGroup.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(remoteProcessGroup);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(remoteProcessGroup));
-            final RemoteProcessGroupStatusDTO status = getComponentStatus(
-                () -> groupStatus.getRemoteProcessGroupStatus().stream().filter(rpgStatus -> remoteProcessGroup.getIdentifier().equals(rpgStatus.getId())).findFirst().orElse(null),
-                remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(remoteProcessGroup, remoteProcessGroupStatus)
-            );
+            final RemoteProcessGroupStatus rpgStatus = rpgStatuses.get(remoteProcessGroup.getIdentifier());
+            final RemoteProcessGroupStatusDTO statusDto = rpgStatus == null ? null : createRemoteProcessGroupStatusDto(remoteProcessGroup, rpgStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(remoteProcessGroup.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(dto, revision, permissions, operatePermissions, status, bulletinEntities));
+            flow.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(dto, revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
         return flow;
     }
 
-    private <T, S> T getComponentStatus(final Supplier<S> getComponentStatus, final Function<S, T> convertToDto) {
-        final T statusDTO;
-        final S status = getComponentStatus.get();
-        if (status != null) {
-            statusDTO = convertToDto.apply(status);
-        } else {
-            statusDTO = null;
-        }
-        return statusDTO;
-    }
 
     public FlowDTO createFlowDto(final ProcessGroup group, final ProcessGroupStatus groupStatus, final RevisionManager revisionManager,
-                                 final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins) {
+                                 final Function<ProcessGroup, List<BulletinEntity>> getProcessGroupBulletins, final boolean uiOnly) {
         final FlowDTO dto = new FlowDTO();
 
+        final Map<String, ProcessorStatus> processorStatuses = groupStatus.getProcessorStatus().stream().collect(Collectors.toMap(ProcessorStatus::getId, status -> status));
         for (final ProcessorNode procNode : group.getProcessors()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(procNode.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(procNode);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(procNode));
-            final ProcessorStatusDTO status = getComponentStatus(
-                () -> groupStatus.getProcessorStatus().stream().filter(processorStatus -> procNode.getIdentifier().equals(processorStatus.getId())).findFirst().orElse(null),
-                processorStatus -> createProcessorStatusDto(processorStatus)
-            );
+            final ProcessorStatus processorStatus = processorStatuses.get(procNode.getIdentifier());
+            final ProcessorStatusDTO statusDto = processorStatus == null ? null : createProcessorStatusDto(processorStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(procNode.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode), revision, permissions, operatePermissions, status, bulletinEntities));
+            dto.getProcessors().add(entityFactory.createProcessorEntity(createProcessorDto(procNode, uiOnly), revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
+        final Map<String, ConnectionStatus> connectionStatuses = groupStatus.getConnectionStatus().stream().collect(Collectors.toMap(ConnectionStatus::getId, status -> status));
         for (final Connection connNode : group.getConnections()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(connNode.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(connNode);
-            final ConnectionStatusDTO status = getComponentStatus(
-                () -> groupStatus.getConnectionStatus().stream().filter(connectionStatus -> connNode.getIdentifier().equals(connectionStatus.getId())).findFirst().orElse(null),
-                connectionStatus -> createConnectionStatusDto(connectionStatus)
-            );
-            dto.getConnections().add(entityFactory.createConnectionEntity(createConnectionDto(connNode), revision, permissions, status));
+            final ConnectionStatus connectionStatus = connectionStatuses.get(connNode.getIdentifier());
+            final ConnectionStatusDTO statusDto = connectionStatus == null ? null : createConnectionStatusDto(connectionStatus);
+            dto.getConnections().add(entityFactory.createConnectionEntity(createConnectionDto(connNode), revision, permissions, statusDto));
         }
 
         for (final Label label : group.getLabels()) {
@@ -2426,54 +2425,50 @@ public final class DtoFactory {
             dto.getFunnels().add(entityFactory.createFunnelEntity(createFunnelDto(funnel), revision, permissions));
         }
 
+        final Map<String, ProcessGroupStatus> groupStatuses = groupStatus.getProcessGroupStatus().stream().collect(Collectors.toMap(ProcessGroupStatus::getId, status -> status));
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(childGroup.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(childGroup);
-            final ProcessGroupStatusDTO status = getComponentStatus(
-                () -> groupStatus.getProcessGroupStatus().stream().filter(processGroupStatus -> childGroup.getIdentifier().equals(processGroupStatus.getId())).findFirst().orElse(null),
-                processGroupStatus -> createConciseProcessGroupStatusDto(processGroupStatus)
-            );
+            final ProcessGroupStatus childGroupStatus = groupStatuses.get(childGroup.getIdentifier());
+            final ProcessGroupStatusDTO statusDto = childGroupStatus == null ? null : createConciseProcessGroupStatusDto(childGroupStatus);
             final List<BulletinEntity> bulletins = getProcessGroupBulletins.apply(childGroup);
-            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, status, bulletins));
+            dto.getProcessGroups().add(entityFactory.createProcessGroupEntity(createProcessGroupDto(childGroup), revision, permissions, statusDto, bulletins));
         }
 
+        final Map<String, RemoteProcessGroupStatus> rpgStatuses = groupStatus.getRemoteProcessGroupStatus().stream().collect(Collectors.toMap(RemoteProcessGroupStatus::getId, status -> status));
         for (final RemoteProcessGroup rpg : group.getRemoteProcessGroups()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(rpg.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(rpg);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(rpg));
-            final RemoteProcessGroupStatusDTO status = getComponentStatus(
-                () -> groupStatus.getRemoteProcessGroupStatus().stream().filter(remoteProcessGroupStatus -> rpg.getIdentifier().equals(remoteProcessGroupStatus.getId())).findFirst().orElse(null),
-                remoteProcessGroupStatus -> createRemoteProcessGroupStatusDto(rpg, remoteProcessGroupStatus)
-            );
+            final RemoteProcessGroupStatus rpgStatus = rpgStatuses.get(rpg.getIdentifier());
+            final RemoteProcessGroupStatusDTO statusDto = rpgStatus == null ? null : createRemoteProcessGroupStatusDto(rpg, rpgStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(rpg.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), revision, permissions, operatePermissions, status, bulletinEntities));
+            dto.getRemoteProcessGroups().add(entityFactory.createRemoteProcessGroupEntity(createRemoteProcessGroupDto(rpg), revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
+        final Map<String, PortStatus> inputPortStatuses = groupStatus.getInputPortStatus().stream().collect(Collectors.toMap(PortStatus::getId, status -> status));
         for (final Port inputPort : group.getInputPorts()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(inputPort.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(inputPort);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(inputPort));
-            final PortStatusDTO status = getComponentStatus(
-                () -> groupStatus.getInputPortStatus().stream().filter(inputPortStatus -> inputPort.getIdentifier().equals(inputPortStatus.getId())).findFirst().orElse(null),
-                inputPortStatus -> createPortStatusDto(inputPortStatus)
-            );
+            final PortStatus portStatus = inputPortStatuses.get(inputPort.getIdentifier());
+            final PortStatusDTO statusDto = portStatus == null ? null : createPortStatusDto(portStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(inputPort.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), revision, permissions, operatePermissions, status, bulletinEntities));
+            dto.getInputPorts().add(entityFactory.createPortEntity(createPortDto(inputPort), revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
+        final Map<String, PortStatus> outputPortStatuses = groupStatus.getOutputPortStatus().stream().collect(Collectors.toMap(PortStatus::getId, status -> status));
         for (final Port outputPort : group.getOutputPorts()) {
             final RevisionDTO revision = createRevisionDTO(revisionManager.getRevision(outputPort.getIdentifier()));
             final PermissionsDTO permissions = createPermissionsDto(outputPort);
             final PermissionsDTO operatePermissions = createPermissionsDto(new OperationAuthorizable(outputPort));
-            final PortStatusDTO status = getComponentStatus(
-                () -> groupStatus.getOutputPortStatus().stream().filter(outputPortStatus -> outputPort.getIdentifier().equals(outputPortStatus.getId())).findFirst().orElse(null),
-                outputPortStatus -> createPortStatusDto(outputPortStatus)
-            );
+            final PortStatus portStatus = outputPortStatuses.get(outputPort.getIdentifier());
+            final PortStatusDTO statusDto = portStatus == null ? null : createPortStatusDto(portStatus);
             final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(outputPort.getIdentifier()));
             final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), revision, permissions, operatePermissions, status, bulletinEntities));
+            dto.getOutputPorts().add(entityFactory.createPortEntity(createPortDto(outputPort), revision, permissions, operatePermissions, statusDto, bulletinEntities));
         }
 
         return dto;
@@ -2551,39 +2546,14 @@ public final class DtoFactory {
     }
 
 
-    public Set<ComponentDifferenceDTO> createComponentDifferenceDtos(final FlowComparison comparison, final FlowManager flowManager) {
+    public Set<ComponentDifferenceDTO> createComponentDifferenceDtosForLocalModifications(final FlowComparison comparison, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
         final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
 
         final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
         for (final FlowDifference difference : comparison.getDifferences()) {
-            // Ignore these as local differences for now because we can't do anything with it
-            if (difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED) {
-                continue;
-            }
-
-            // Ignore differences that are the result of the Versioned Flow not having a Scheduled State and the newer flow being "ENABLED". We do this because
-            // Scheduled State was not always part of the Versioned Flow - it was always assumed to be ENABLED. We don't want flows that were previously stored in this
-            // format to now be considered different than the local flow.
-            if (FlowDifferenceFilters.isScheduledStateNew(difference)) {
-                continue;
-            }
-
-            // Ignore differences for adding remote ports
-            if (FlowDifferenceFilters.isAddedOrRemovedRemotePort(difference)) {
-                continue;
-            }
-
-            // Ignore name changes to public ports
-            if (FlowDifferenceFilters.isPublicPortNameChange(difference)) {
-                continue;
-            }
-
-            if (FlowDifferenceFilters.isIgnorableVersionedFlowCoordinateChange(difference)) {
-                continue;
-            }
-
-            if (FlowDifferenceFilters.isNewPropertyWithDefaultValue(difference, flowManager)) {
+            // Ignore any environment-specific change
+            if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager)) {
                 continue;
             }
 
@@ -2636,7 +2606,7 @@ public final class DtoFactory {
 
         if (component instanceof InstantiatedVersionedComponent) {
             final InstantiatedVersionedComponent instantiatedComponent = (InstantiatedVersionedComponent) component;
-            dto.setComponentId(instantiatedComponent.getInstanceId());
+            dto.setComponentId(instantiatedComponent.getInstanceIdentifier());
             dto.setProcessGroupId(instantiatedComponent.getInstanceGroupId());
         } else {
             dto.setComponentId(component.getIdentifier());
@@ -2679,43 +2649,43 @@ public final class DtoFactory {
     public Map<String, String> createVersionControlComponentMappingDto(final InstantiatedVersionedProcessGroup group) {
         final Map<String, String> mapping = new HashMap<>();
 
-        mapping.put(group.getInstanceId(), group.getIdentifier());
+        mapping.put(group.getInstanceIdentifier(), group.getIdentifier());
         group.getProcessors().stream()
             .map(proc -> (InstantiatedVersionedProcessor) proc)
-            .forEach(proc -> mapping.put(proc.getInstanceId(), proc.getIdentifier()));
+            .forEach(proc -> mapping.put(proc.getInstanceIdentifier(), proc.getIdentifier()));
         group.getFunnels().stream()
             .map(funnel -> (InstantiatedVersionedFunnel) funnel)
-            .forEach(funnel -> mapping.put(funnel.getInstanceId(), funnel.getIdentifier()));
+            .forEach(funnel -> mapping.put(funnel.getInstanceIdentifier(), funnel.getIdentifier()));
         group.getInputPorts().stream()
             .map(port -> (InstantiatedVersionedPort) port)
-            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+            .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
         group.getOutputPorts().stream()
             .map(port -> (InstantiatedVersionedPort) port)
-            .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+            .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
         group.getControllerServices().stream()
             .map(service -> (InstantiatedVersionedControllerService) service)
-            .forEach(service -> mapping.put(service.getInstanceId(), service.getIdentifier()));
+            .forEach(service -> mapping.put(service.getInstanceIdentifier(), service.getIdentifier()));
         group.getLabels().stream()
             .map(label -> (InstantiatedVersionedLabel) label)
-            .forEach(label -> mapping.put(label.getInstanceId(), label.getIdentifier()));
+            .forEach(label -> mapping.put(label.getInstanceIdentifier(), label.getIdentifier()));
         group.getConnections().stream()
             .map(conn -> (InstantiatedVersionedConnection) conn)
-            .forEach(conn -> mapping.put(conn.getInstanceId(), conn.getIdentifier()));
+            .forEach(conn -> mapping.put(conn.getInstanceIdentifier(), conn.getIdentifier()));
         group.getRemoteProcessGroups().stream()
             .map(rpg -> (InstantiatedVersionedRemoteProcessGroup) rpg)
             .forEach(rpg -> {
-                mapping.put(rpg.getInstanceId(), rpg.getIdentifier());
+                mapping.put(rpg.getInstanceIdentifier(), rpg.getIdentifier());
 
                 if (rpg.getInputPorts() != null) {
                     rpg.getInputPorts().stream()
                         .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                        .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
                 }
 
                 if (rpg.getOutputPorts() != null) {
                     rpg.getOutputPorts().stream()
                         .map(port -> (InstantiatedVersionedRemoteGroupPort) port)
-                        .forEach(port -> mapping.put(port.getInstanceId(), port.getIdentifier()));
+                        .forEach(port -> mapping.put(port.getInstanceIdentifier(), port.getIdentifier()));
                 }
             });
 
@@ -2865,11 +2835,15 @@ public final class DtoFactory {
     }
 
     private List<BulletinDTO> createBulletins(final ComponentNode componentNode) {
-        final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier()));
+        final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier(), componentNode.getProcessGroupIdentifier()));
         return bulletins;
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
+        return createVariableRegistryDto(processGroup, revisionManager, Collections.emptySet());
+    }
+
+    public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager, final Set<String> variablesToIgnore) {
         final ComponentVariableRegistry variableRegistry = processGroup.getVariableRegistry();
 
         final List<String> variableNames = variableRegistry.getVariableMap().keySet().stream()
@@ -2879,6 +2853,10 @@ public final class DtoFactory {
         final Set<VariableEntity> variableEntities = new LinkedHashSet<>();
 
         for (final String variableName : variableNames) {
+            if (variablesToIgnore.contains(variableName)) {
+                continue;
+            }
+
             final VariableDTO variableDto = new VariableDTO();
             variableDto.setName(variableName);
             variableDto.setValue(variableRegistry.getVariableValue(variableName));
@@ -3125,21 +3103,31 @@ public final class DtoFactory {
         return fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
+    public ProcessorDTO createProcessorDto(final ProcessorNode node) {
+        return createProcessorDto(node, false);
+    }
+
     /**
      * Creates a ProcessorDTO from the specified ProcessorNode.
      * @param node node
      * @return dto
      */
-    public ProcessorDTO createProcessorDto(final ProcessorNode node) {
+    private ProcessorDTO createProcessorDto(final ProcessorNode node, final boolean uiOnly) {
         if (node == null) {
             return null;
         }
 
         final BundleCoordinate bundleCoordinate = node.getBundleCoordinate();
-        final List<Bundle> compatibleBundles = extensionManager.getBundles(node.getCanonicalClassName()).stream().filter(bundle -> {
+
+        final List<Bundle> availableBundles = extensionManager.getBundles(node.getCanonicalClassName());
+        int compatibleBundleCount = 0;
+        for (final Bundle bundle : availableBundles) {
             final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
-            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
-        }).collect(Collectors.toList());
+            final boolean compatible = bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
+            if (compatible) {
+                compatibleBundleCount++;
+            }
+        }
 
         final ProcessorDTO dto = new ProcessorDTO();
         dto.setId(node.getIdentifier());
@@ -3152,7 +3140,7 @@ public final class DtoFactory {
         dto.setDeprecated(node.isDeprecated());
         dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
         dto.setExtensionMissing(node.isExtensionMissing());
-        dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+        dto.setMultipleVersionsAvailable(compatibleBundleCount > 1);
         dto.setVersionedComponentId(node.getVersionedComponentId().orElse(null));
 
         dto.setType(node.getCanonicalClassName());
@@ -3186,7 +3174,7 @@ public final class DtoFactory {
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
         dto.setSupportsBatching(node.isSessionBatchingSupported());
 
-        dto.setConfig(createProcessorConfigDto(node));
+        dto.setConfig(createProcessorConfigDto(node, uiOnly));
 
         final ValidationStatus validationStatus = node.getValidationStatus();
         dto.setValidationStatus(validationStatus.name());
@@ -3935,52 +3923,64 @@ public final class DtoFactory {
      * @param procNode node
      * @return dto
      */
-    public ProcessorConfigDTO createProcessorConfigDto(final ProcessorNode procNode) {
+    public ProcessorConfigDTO createProcessorConfigDto(final ProcessorNode procNode, final boolean uiOnly) {
         if (procNode == null) {
             return null;
         }
 
         final ProcessorConfigDTO dto = new ProcessorConfigDTO();
 
-        // sort a copy of the properties
-        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
-            @Override
-            public int compare(final PropertyDescriptor o1, final PropertyDescriptor o2) {
-                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
-            }
-        });
-        sortedProperties.putAll(procNode.getRawPropertyValues());
-
         // get the property order from the processor
         final Processor processor = procNode.getProcessor();
-        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
-        final List<PropertyDescriptor> descriptors = processor.getPropertyDescriptors();
-        if (descriptors != null && !descriptors.isEmpty()) {
-            for (final PropertyDescriptor descriptor : descriptors) {
-                orderedProperties.put(descriptor, null);
+
+        if (!uiOnly) {
+            // sort a copy of the properties
+            final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>((o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName()));
+            sortedProperties.putAll(procNode.getRawPropertyValues());
+
+            final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+            final List<PropertyDescriptor> descriptors = processor.getPropertyDescriptors();
+            if (descriptors != null && !descriptors.isEmpty()) {
+                for (final PropertyDescriptor descriptor : descriptors) {
+                    orderedProperties.put(descriptor, null);
+                }
             }
-        }
-        orderedProperties.putAll(sortedProperties);
+            orderedProperties.putAll(sortedProperties);
 
-        // build the descriptor and property dtos
-        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-        dto.setProperties(new LinkedHashMap<String, String>());
-        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
+            // build the descriptor and property dtos
+            dto.setDescriptors(new LinkedHashMap<>());
+            dto.setProperties(new LinkedHashMap<>());
+            for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
 
-            // store the property descriptor
-            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, procNode.getProcessGroup().getIdentifier()));
+                // store the property descriptor
+                dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, procNode.getProcessGroup().getIdentifier()));
 
-            // determine the property value - don't include sensitive properties
-            String propertyValue = entry.getValue();
-            if (propertyValue != null && descriptor.isSensitive()) {
-                propertyValue = SENSITIVE_VALUE_MASK;
-            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
-                propertyValue = descriptor.getDefaultValue();
+                // determine the property value - don't include sensitive properties
+                String propertyValue = entry.getValue();
+                if (propertyValue != null && descriptor.isSensitive()) {
+                    propertyValue = SENSITIVE_VALUE_MASK;
+                } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                    propertyValue = descriptor.getDefaultValue();
+                }
+
+                // set the property value
+                dto.getProperties().put(descriptor.getName(), propertyValue);
             }
 
-            // set the property value
-            dto.getProperties().put(descriptor.getName(), propertyValue);
+            dto.setAnnotationData(procNode.getAnnotationData());
+
+            // set up the default values for concurrent tasks and scheduling period
+            final Map<String, String> defaultConcurrentTasks = new HashMap<>();
+            defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), String.valueOf(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks()));
+            defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), String.valueOf(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks()));
+            defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), String.valueOf(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks()));
+            dto.setDefaultConcurrentTasks(defaultConcurrentTasks);
+
+            final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
+            defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
+            defaultSchedulingPeriod.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod());
+            dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
         }
 
         dto.setSchedulingPeriod(procNode.getSchedulingPeriod());
@@ -3993,19 +3993,6 @@ public final class DtoFactory {
         dto.setBulletinLevel(procNode.getBulletinLevel().name());
         dto.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         dto.setExecutionNode(procNode.getExecutionNode().name());
-        dto.setAnnotationData(procNode.getAnnotationData());
-
-        // set up the default values for concurrent tasks and scheduling period
-        final Map<String, String> defaultConcurrentTasks = new HashMap<>();
-        defaultConcurrentTasks.put(SchedulingStrategy.TIMER_DRIVEN.name(), String.valueOf(SchedulingStrategy.TIMER_DRIVEN.getDefaultConcurrentTasks()));
-        defaultConcurrentTasks.put(SchedulingStrategy.EVENT_DRIVEN.name(), String.valueOf(SchedulingStrategy.EVENT_DRIVEN.getDefaultConcurrentTasks()));
-        defaultConcurrentTasks.put(SchedulingStrategy.CRON_DRIVEN.name(), String.valueOf(SchedulingStrategy.CRON_DRIVEN.getDefaultConcurrentTasks()));
-        dto.setDefaultConcurrentTasks(defaultConcurrentTasks);
-
-        final Map<String, String> defaultSchedulingPeriod = new HashMap<>();
-        defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
-        defaultSchedulingPeriod.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod());
-        dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
 
         return dto;
     }

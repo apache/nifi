@@ -58,8 +58,4 @@ public class SSLSocketChannelInputStream extends InputStream {
     public int available() throws IOException {
         return channel.available();
     }
-
-    public boolean isDataAvailable() throws IOException {
-        return available() > 0;
-    }
 }

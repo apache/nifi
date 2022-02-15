@@ -175,24 +175,32 @@ public class ZooKeeperStateServer extends ZooKeeperServerMain {
         if (started) {
             started = false;
 
+            if (quorumPeer != null && quorumPeer.isRunning()) {
+                quorumPeer.shutdown();
+            }
+
+            if (connectionFactory != null) {
+                try {
+                    connectionFactory.shutdown();
+                } catch (Exception e) {
+                    logger.warn("Failed to shutdown Connection Factory", e);
+                }
+            }
+
+            if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
+                try {
+                    embeddedZkServer.shutdown();
+                } catch (Exception e) {
+                    logger.warn("Failed to shutdown Embedded Zookeeper", e);
+                }
+            }
+
             if (transactionLog != null) {
                 try {
                     transactionLog.close();
                 } catch (final IOException ioe) {
                     logger.warn("Failed to close Transaction Log", ioe);
                 }
-            }
-
-            if (connectionFactory != null) {
-                connectionFactory.shutdown();
-            }
-
-            if (quorumPeer != null && quorumPeer.isRunning()) {
-                quorumPeer.shutdown();
-            }
-
-            if (embeddedZkServer != null && embeddedZkServer.isRunning()) {
-                embeddedZkServer.shutdown();
             }
 
             if (datadirCleanupManager != null) {

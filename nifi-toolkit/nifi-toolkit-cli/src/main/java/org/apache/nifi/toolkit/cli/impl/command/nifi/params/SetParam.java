@@ -75,7 +75,7 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId);
+        final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
         final ParameterContextDTO existingParameterContextDTO = existingParameterContextEntity.getComponent();
 
         // Determine if this is an existing param or a new one...
@@ -86,6 +86,10 @@ public class SetParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         if (!existingParam.isPresent() && paramValue == null) {
             throw new IllegalArgumentException("A parameter value is required when creating a new parameter");
+        }
+
+        if (existingParam.isPresent() && existingParam.get().getValue().equals(paramValue)) {
+            throw new IllegalArgumentException(String.format("Parameter value supplied for parameter [%s] is the same as its current value", paramName));
         }
 
         // Construct the objects for the update...

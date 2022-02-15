@@ -18,10 +18,11 @@ package org.apache.nifi.snmp.configuration;
 
 public class SNMPConfiguration {
 
-    private final String agentHost;
-    private final String agentPort;
+    private final int managerPort;
+    private final String targetHost;
+    private final String targetPort;
     private final int retries;
-    private final int timeout;
+    private final long timeoutInMs;
     private final int version;
     private final String authProtocol;
     private final String authPassphrase;
@@ -31,10 +32,11 @@ public class SNMPConfiguration {
     private final String securityLevel;
     private final String communityString;
 
-    SNMPConfiguration(final String agentHost,
-                      final String agentPort,
+    SNMPConfiguration(final int managerPort,
+                      final String targetHost,
+                      final String targetPort,
                       final int retries,
-                      final int timeout,
+                      final long timeoutInMs,
                       final int version,
                       final String authProtocol,
                       final String authPassphrase,
@@ -43,10 +45,11 @@ public class SNMPConfiguration {
                       final String securityName,
                       final String securityLevel,
                       final String communityString) {
-        this.agentHost = agentHost;
-        this.agentPort = agentPort;
+        this.managerPort = managerPort;
+        this.targetHost = targetHost;
+        this.targetPort = targetPort;
         this.retries = retries;
-        this.timeout = timeout;
+        this.timeoutInMs = timeoutInMs;
         this.version = version;
         this.authProtocol = authProtocol;
         this.authPassphrase = authPassphrase;
@@ -57,20 +60,24 @@ public class SNMPConfiguration {
         this.communityString = communityString;
     }
 
-    public String getAgentHost() {
-        return agentHost;
+    public int getManagerPort() {
+        return managerPort;
     }
 
-    public String getAgentPort() {
-        return agentPort;
+    public String getTargetHost() {
+        return targetHost;
+    }
+
+    public String getTargetPort() {
+        return targetPort;
     }
 
     public int getRetries() {
         return retries;
     }
 
-    public int getTimeout() {
-        return timeout;
+    public long getTimeoutInMs() {
+        return timeoutInMs;
     }
 
     public int getVersion() {
@@ -103,5 +110,96 @@ public class SNMPConfiguration {
 
     public String getCommunityString() {
         return communityString;
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+
+        private int managerPort;
+        private String targetHost;
+        private String targetPort;
+        private int retries;
+        private long timeoutInMs = 500L;
+        private int version;
+        private String authProtocol;
+        private String authPassphrase;
+        private String privacyProtocol;
+        private String privacyPassphrase;
+        private String securityName;
+        private String securityLevel;
+        private String communityString;
+
+        public Builder setManagerPort(final int managerPort) {
+            this.managerPort = managerPort;
+            return this;
+        }
+
+        public Builder setTargetHost(final String targetHost) {
+            this.targetHost = targetHost;
+            return this;
+        }
+
+        public Builder setTargetPort(final String targetPort) {
+            this.targetPort = targetPort;
+            return this;
+        }
+
+        public Builder setRetries(final int retries) {
+            this.retries = retries;
+            return this;
+        }
+
+        public Builder setTimeoutInMs(final long timeoutInMs) {
+            this.timeoutInMs = timeoutInMs;
+            return this;
+        }
+
+        public Builder setVersion(final int version) {
+            this.version = version;
+            return this;
+        }
+
+        public Builder setAuthProtocol(final String authProtocol) {
+            this.authProtocol = authProtocol;
+            return this;
+        }
+
+        public Builder setAuthPassphrase(final String authPassphrase) {
+            this.authPassphrase = authPassphrase;
+            return this;
+        }
+
+        public Builder setPrivacyProtocol(final String privacyProtocol) {
+            this.privacyProtocol = privacyProtocol;
+            return this;
+        }
+
+        public Builder setPrivacyPassphrase(final String privacyPassphrase) {
+            this.privacyPassphrase = privacyPassphrase;
+            return this;
+        }
+
+        public Builder setSecurityName(final String securityName) {
+            this.securityName = securityName;
+            return this;
+        }
+
+        public Builder setSecurityLevel(final String securityLevel) {
+            this.securityLevel = securityLevel;
+            return this;
+        }
+
+        public Builder setCommunityString(String communityString) {
+            this.communityString = communityString;
+            return this;
+        }
+
+        public SNMPConfiguration build() {
+            return new SNMPConfiguration(managerPort, targetHost, targetPort, retries, timeoutInMs, version, authProtocol,
+                    authPassphrase, privacyProtocol, privacyPassphrase, securityName, securityLevel, communityString);
+        }
     }
 }

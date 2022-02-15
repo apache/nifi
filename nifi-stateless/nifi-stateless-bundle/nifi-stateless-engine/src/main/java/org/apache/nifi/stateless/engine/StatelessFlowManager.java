@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -28,6 +29,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.StandardConnection;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
@@ -47,19 +49,26 @@ import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
+import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
+import org.apache.nifi.logging.ProcessorLogObserver;
+import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.StandardRemoteProcessGroup;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.stateless.queue.StatelessFlowFileQueue;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -84,14 +93,16 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     private final StatelessEngine<VersionedFlowSnapshot> statelessEngine;
     private final SSLContext sslContext;
+    private final BulletinRepository bulletinRepository;
 
     public StatelessFlowManager(final FlowFileEventRepository flowFileEventRepository, final ParameterContextManager parameterContextManager,
                                 final StatelessEngine<VersionedFlowSnapshot> statelessEngine, final BooleanSupplier flowInitializedCheck,
-                                final SSLContext sslContext) {
+                                final SSLContext sslContext, final BulletinRepository bulletinRepository) {
         super(flowFileEventRepository, parameterContextManager, statelessEngine.getFlowRegistryClient(), flowInitializedCheck);
 
         this.statelessEngine = statelessEngine;
         this.sslContext = sslContext;
+        this.bulletinRepository = bulletinRepository;
     }
 
     @Override
@@ -144,7 +155,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ProcessorNode createProcessor(final String type, final String id, final BundleCoordinate coordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                         final boolean registerLogObserver) {
+                                         final boolean registerLogObserver, final String classloaderIsolationKey) {
         logger.debug("Creating Processor of type {} with id {}", type, id);
 
         // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
@@ -163,15 +174,19 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             try (final NarCloseable x = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, procNode.getProcessor());
             } catch (final Exception e) {
-                if (registerLogObserver) {
-                    logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
-                }
-
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
             }
 
             try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, procNode.getProcessor().getClass(), procNode.getProcessor().getIdentifier())) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor());
+                final StateManager stateManager = statelessEngine.getStateManagerProvider().getStateManager(id);
+                final StandardProcessContext processContext = new StandardProcessContext(procNode, statelessEngine.getControllerServiceProvider(),
+                        statelessEngine.getPropertyEncryptor(), stateManager, () -> false, new StatelessNodeTypeProvider());
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, procNode.getProcessor(), processContext);
+            }
+
+            LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
+            if (registerLogObserver) {
+                logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, procNode.getBulletinLevel(), new ProcessorLogObserver(bulletinRepository, procNode));
             }
 
             logger.debug("Processor with id {} successfully created", id);
@@ -251,12 +266,14 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls, final boolean firstTimeAdded,
-                                                 final boolean register) {
+                                                 final boolean register, final String classloaderIsolationKey) {
 
         if (type == null || id == null || bundleCoordinate == null) {
             throw new NullPointerException("Must supply type, id, and bundle coordinate in order to create Reporting Task. Provided arguments were type=" + type + ", id=" + id
                 + ", bundle coordinate = " + bundleCoordinate);
         }
+
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
 
         final ReportingTaskNode taskNode;
         try {
@@ -282,7 +299,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, taskNode.getReportingTask());
 
                 if (isFlowInitialized()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
                 }
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + taskNode.getReportingTask(), e);
@@ -291,6 +308,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
         if (register) {
             onReportingTaskAdded(taskNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ReportingTaskLogObserver(bulletinRepository, taskNode));
         }
 
         return taskNode;
@@ -313,8 +333,11 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls,
-                                                         final boolean firstTimeAdded, final boolean registerLogObserver) {
+                                                         final boolean firstTimeAdded, final boolean registerLogObserver, final String classloaderIsolationKey) {
+
         logger.debug("Creating Controller Service of type {} with id {}", type, id);
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+
         final ControllerServiceNode serviceNode = new ComponentBuilder()
             .identifier(id)
             .type(type)
@@ -327,7 +350,9 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, service.getClass(), service.getIdentifier())) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service);
+            final ConfigurationContext configurationContext =
+                    new StandardConfigurationContext(serviceNode, statelessEngine.getControllerServiceProvider(), null, statelessEngine.getRootVariableRegistry());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, service, configurationContext);
         }
 
         final ControllerService serviceImpl = serviceNode.getControllerServiceImplementation();
@@ -335,6 +360,12 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, serviceImpl);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + serviceImpl, e);
+        }
+
+        LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
+        if (registerLogObserver) {
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ControllerServiceLogObserver(bulletinRepository, serviceNode));
         }
 
         statelessEngine.getControllerServiceProvider().onControllerServiceAdded(serviceNode);

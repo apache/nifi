@@ -37,9 +37,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,6 +50,8 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
 
@@ -87,14 +88,19 @@ public class TestWriteAvroResultWithoutSchema extends TestWriteAvroResult {
         final Map<String, String> attributes = writeResult.getAttributes();
 
         final String schemaText = attributes.get("avro.schema");
-        Assert.assertNotNull(schemaText);
+        assertNotNull(schemaText);
         new Schema.Parser().parse(schemaText);
     }
 
 
     @Test
-    @Ignore("This test takes many seconds to run and is only really useful for comparing performance of the writer before and after changes, so it is @Ignored, but left in place to be run manually " +
-        "for performance comparisons before & after changes are made.")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.performance",
+            matches = "true",
+            disabledReason = "This test takes many seconds to run and is only really useful for comparing performance " +
+                    "of the writer before and after changes, so it is @Ignored, but left in place to be run manually " +
+                    "for performance comparisons before & after changes are made."
+    )
     public void testPerf() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));

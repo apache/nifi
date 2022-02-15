@@ -27,8 +27,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
@@ -38,10 +37,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestJacksonCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
@@ -111,7 +111,7 @@ public class TestJacksonCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(expectedValues, record);
+            assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());
         }
@@ -134,7 +134,7 @@ public class TestJacksonCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"valueA", "valueB"};
-            Assert.assertArrayEquals(expectedValues, record);
+            assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());
         }
@@ -152,11 +152,11 @@ public class TestJacksonCSVRecordReader {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -174,11 +174,11 @@ public class TestJacksonCSVRecordReader {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -402,7 +402,7 @@ public class TestJacksonCSVRecordReader {
     }
 
     @Test
-    public void testMultipleRecordsEscapedWithSpecialChar() throws IOException, MalformedRecordException {
+    public void testMultipleRecordsDelimitedWithSpecialChar() throws IOException, MalformedRecordException {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
@@ -412,16 +412,56 @@ public class TestJacksonCSVRecordReader {
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapedchar.csv");
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(firstExpectedValues, firstRecord);
+            assertArrayEquals(firstExpectedValues, firstRecord);
 
             final Object[] secondRecord = reader.nextRecord().getValues();
             final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
-            Assert.assertArrayEquals(secondExpectedValues, secondRecord);
+            assertArrayEquals(secondExpectedValues, secondRecord);
+
+            assertNull(reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithChar() throws IOException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape("\\".charAt(0));
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
+
+            assertThrows(NumberFormatException.class, () -> reader.nextRecord());
+        }
+    }
+
+    @Test
+    public void testMultipleRecordsEscapedWithNull() throws IOException, MalformedRecordException {
+
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(",".charAt(0)).withEscape(null);
+        final List<RecordField> fields = getDefaultFields();
+        fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
+
+            final Object[] firstRecord = reader.nextRecord().getValues();
+            final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
+            assertArrayEquals(firstExpectedValues, firstRecord);
+
+            final Object[] secondRecord = reader.nextRecord().getValues();
+            final Object[] secondExpectedValues = new Object[] {"2", "Jane Doe", 4820.09D, "321 Your Street", "Your City", "NY", "33333", "USA"};
+            assertArrayEquals(secondExpectedValues, secondRecord);
 
             assertNull(reader.nextRecord());
         }
@@ -439,7 +479,7 @@ public class TestJacksonCSVRecordReader {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
-            Assert.assertArrayEquals(expectedValues, record);
+            assertArrayEquals(expectedValues, record);
 
             assertNull(reader.nextRecord());
         }

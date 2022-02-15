@@ -63,19 +63,44 @@ public class AsynchronousCommitTracker {
         }
     }
 
-    public List<Connectable> getReady() {
-        final List<Connectable> connectables = new ArrayList<>(ready);
-        Collections.reverse(connectables);
-        return connectables;
+
+    public Connectable getNextReady() {
+        if (ready.isEmpty()) {
+            return null;
+        }
+
+        Connectable last = null;
+        for (final Connectable connectable : ready) {
+            last = connectable;
+        }
+
+        return last;
     }
 
+    public List<Connectable> getReady() {
+        final List<Connectable> reversed = new ArrayList<>(ready);
+        Collections.reverse(reversed);
+        return reversed;
+    }
+
+    /**
+     * Determines if there are any components that may be ready to be triggered. Note that a value of <code>true</code> may be returned, even if there are no components
+     * that currently are ready according to {@link #isReady(Connectable)}.
+     *
+     * @return <code>true</code> if any component is expected to be ready to trigger, <code>false</code> otherwise
+     */
     public boolean isAnyReady() {
         final boolean anyReady = !ready.isEmpty();
-
         logger.debug("{} Any components ready = {}, list={}", this, anyReady, ready);
         return anyReady;
     }
 
+    /**
+     * Checks if the given component is ready to be triggered and if not removes the component from the internal list of ready components
+     *
+     * @param connectable the components to check
+     * @return <code>true</code> if the component is ready to be triggered, <code>false</code> otherwise
+     */
     public boolean isReady(final Connectable connectable) {
         if (!ready.contains(connectable)) {
             logger.debug("{} {} is not ready because it's not in the list of ready components", this, connectable);
@@ -94,7 +119,12 @@ public class AsynchronousCommitTracker {
             return true;
         }
 
-        logger.debug("{} {} is not ready because it has no data queued", this, connectable);
+        if (connectable.isTriggerWhenEmpty() && isDataHeld(connectable)) {
+            logger.debug("{} {} is ready because it is triggered when its input queue is empty and has unacknowledged data", this, connectable);
+            return true;
+        }
+
+        logger.debug("{} {} is not ready because it has no data queued or held (or has no data queued and is not to be triggered when input queue is empty)", this, connectable);
         ready.remove(connectable);
         return false;
     }
@@ -111,7 +141,22 @@ public class AsynchronousCommitTracker {
 
     private boolean isDataQueued(final Connectable connectable) {
         for (final Connection incoming : connectable.getIncomingConnections()) {
-            if (!incoming.getFlowFileQueue().isEmpty()) {
+            if (!incoming.getFlowFileQueue().isActiveQueueEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Determines if data is currently being held by the given connectable (i.e., it has at least one incoming Connection with unacknowledged FlowFiles)
+     * @param connectable the connectable to check
+     * @return <code>true</code> if the Connectable is holding onto data, <code>false</code> otherwise
+     */
+    private boolean isDataHeld(final Connectable connectable) {
+        for (final Connection incoming : connectable.getIncomingConnections()) {
+            if (incoming.getFlowFileQueue().isUnacknowledgedFlowFile()) {
                 return true;
             }
         }

@@ -126,4 +126,5 @@ public class ListFTP extends ListFileTransfer {
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
         FTPTransfer.validateProxySpec(validationContext, results);
     }
+
 }

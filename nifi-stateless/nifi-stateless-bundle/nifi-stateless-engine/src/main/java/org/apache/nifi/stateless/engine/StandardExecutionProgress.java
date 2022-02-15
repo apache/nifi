@@ -21,18 +21,27 @@ import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.stateless.flow.CanceledTriggerResult;
+import org.apache.nifi.stateless.flow.DataflowTriggerContext;
+import org.apache.nifi.stateless.flow.ExceptionalTriggerResult;
 import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
-import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
+import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
+import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -45,39 +54,62 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class StandardExecutionProgress implements ExecutionProgress {
     private final ProcessGroup rootGroup;
     private final List<FlowFileQueue> internalFlowFileQueues;
-    private final ByteArrayContentRepository contentRepository;
+    private final ContentRepository contentRepository;
+    private final ProvenanceEventRepository provenanceRepository;
     private final BlockingQueue<TriggerResult> resultQueue;
     private final Set<String> failurePortNames;
     private final AsynchronousCommitTracker commitTracker;
     private final StatelessStateManagerProvider stateManagerProvider;
+    private final Long maxProvenanceEventId;
+    private final DataflowTriggerContext triggerContext;
+    private final FlowPurgeAction purgeAction;
 
     private final BlockingQueue<CompletionAction> completionActionQueue;
     private volatile boolean canceled = false;
     private volatile CompletionAction completionAction = null;
 
     public StandardExecutionProgress(final ProcessGroup rootGroup, final List<FlowFileQueue> internalFlowFileQueues, final BlockingQueue<TriggerResult> resultQueue,
-                                     final ByteArrayContentRepository contentRepository, final Set<String> failurePortNames, final AsynchronousCommitTracker commitTracker,
-                                     final StatelessStateManagerProvider stateManagerProvider) {
+                                     final RepositoryContextFactory repositoryContextFactory, final Set<String> failurePortNames, final AsynchronousCommitTracker commitTracker,
+                                     final StatelessStateManagerProvider stateManagerProvider, final DataflowTriggerContext triggerContext, final FlowPurgeAction purgeAction) {
         this.rootGroup = rootGroup;
         this.internalFlowFileQueues = internalFlowFileQueues;
         this.resultQueue = resultQueue;
-        this.contentRepository = contentRepository;
+        this.contentRepository = repositoryContextFactory.getContentRepository();
+        this.provenanceRepository = repositoryContextFactory.getProvenanceRepository();
         this.failurePortNames = failurePortNames;
         this.commitTracker = commitTracker;
         this.stateManagerProvider = stateManagerProvider;
+        this.maxProvenanceEventId = provenanceRepository.getMaxEventId();
+        this.triggerContext = triggerContext;
+        this.purgeAction = purgeAction;
 
         completionActionQueue = new LinkedBlockingQueue<>();
     }
 
     @Override
+    public boolean isFailurePort(final String portName) {
+        return failurePortNames.contains(portName);
+    }
+
+    @Override
     public boolean isCanceled() {
-        return canceled;
+        if (canceled) {
+            return true;
+        }
+
+        final boolean aborted = triggerContext.isAbort();
+        if (aborted) {
+            notifyExecutionCanceled();
+            return true;
+        }
+
+        return false;
     }
 
     @Override
     public boolean isDataQueued() {
         for (final FlowFileQueue queue : internalFlowFileQueues) {
-            if (!queue.isActiveQueueEmpty()) {
+            if (!queue.isActiveQueueEmpty() || queue.isUnacknowledgedFlowFile()) {
                 return true;
             }
         }
@@ -87,7 +119,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
     @Override
     public CompletionAction awaitCompletionAction() throws InterruptedException {
-        if (canceled) {
+        if (isCanceled()) {
             return CompletionAction.CANCEL;
         }
 
@@ -111,16 +143,18 @@ public class StandardExecutionProgress implements ExecutionProgress {
         for (final String failurePortName : failurePortNames) {
             final List<FlowFile> flowFilesForPort = outputFlowFiles.get(failurePortName);
             if (flowFilesForPort != null && !flowFilesForPort.isEmpty()) {
-                throw new FailurePortEncounteredException("FlowFile was transferred to Port " + failurePortName + ", which is marked as a Failure Port");
+                throw new FailurePortEncounteredException("FlowFile was transferred to Port " + failurePortName + ", which is marked as a Failure Port", failurePortName);
             }
         }
 
         final boolean canceled = isCanceled();
 
         return new TriggerResult() {
+            private volatile Throwable abortCause = null;
+
             @Override
             public boolean isSuccessful() {
-                return true;
+                return abortCause == null;
             }
 
             @Override
@@ -130,7 +164,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public Optional<Throwable> getFailureCause() {
-                return Optional.empty();
+                return Optional.ofNullable(abortCause);
             }
 
             @Override
@@ -144,22 +178,43 @@ public class StandardExecutionProgress implements ExecutionProgress {
             }
 
             @Override
-            public byte[] readContent(final FlowFile flowFile) {
+            public InputStream readContent(final FlowFile flowFile) throws IOException {
                 if (!(flowFile instanceof FlowFileRecord)) {
                     throw new IllegalArgumentException("FlowFile was not created by this flow");
                 }
 
                 final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
                 final ContentClaim contentClaim = flowFileRecord.getContentClaim();
-                final byte[] contentClaimContents = contentRepository.getBytes(contentClaim);
-                final long offset = flowFileRecord.getContentClaimOffset();
-                final long size = flowFileRecord.getSize();
 
-                if (offset == 0 && size == contentClaimContents.length) {
-                    return contentClaimContents;
+                final InputStream in = contentRepository.read(contentClaim);
+                final long offset = flowFileRecord.getContentClaimOffset();
+                if (offset > 0) {
+                    StreamUtils.skip(in, offset);
                 }
 
-                final byte[] flowFileContents = Arrays.copyOfRange(contentClaimContents, (int) offset, (int) (size + offset));
+                return new LimitedInputStream(in, flowFile.getSize());
+            }
+
+            @Override
+            public byte[] readContentAsByteArray(final FlowFile flowFile) throws IOException {
+                if (!(flowFile instanceof FlowFileRecord)) {
+                    throw new IllegalArgumentException("FlowFile was not created by this flow");
+                }
+
+                if (flowFile.getSize() > Integer.MAX_VALUE) {
+                    throw new IOException("Cannot return contents of " + flowFile + " as a byte array because the contents exceed the maximum length supported for byte arrays ("
+                        + Integer.MAX_VALUE + " bytes)");
+                }
+
+                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
+
+                final long size = flowFileRecord.getSize();
+                final byte[] flowFileContents = new byte[(int) size];
+
+                try (final InputStream in = readContent(flowFile)) {
+                    StreamUtils.fillBuffer(in, flowFileContents);
+                }
+
                 return flowFileContents;
             }
 
@@ -168,6 +223,18 @@ public class StandardExecutionProgress implements ExecutionProgress {
                 commitTracker.triggerCallbacks();
                 stateManagerProvider.commitUpdates();
                 completionActionQueue.offer(CompletionAction.COMPLETE);
+                contentRepository.purge();
+            }
+
+            @Override
+            public void abort(final Throwable cause) {
+                abortCause = new DataflowAbortedException("Dataflow was aborted", cause);
+                notifyExecutionFailed(abortCause);
+            }
+
+            @Override
+            public List<ProvenanceEventRecord> getProvenanceEvents() throws IOException {
+                return provenanceRepository.getEvents(maxProvenanceEventId == null ? 0 : maxProvenanceEventId + 1, Integer.MAX_VALUE);
             }
         };
     }
@@ -178,6 +245,8 @@ public class StandardExecutionProgress implements ExecutionProgress {
         commitTracker.triggerFailureCallbacks(new RuntimeException("Dataflow Canceled"));
         stateManagerProvider.rollbackUpdates();
         completionActionQueue.offer(CompletionAction.CANCEL);
+        purgeAction.purge();
+        resultQueue.offer(new CanceledTriggerResult());
     }
 
     @Override
@@ -185,6 +254,8 @@ public class StandardExecutionProgress implements ExecutionProgress {
         commitTracker.triggerFailureCallbacks(cause);
         stateManagerProvider.rollbackUpdates();
         completionActionQueue.offer(CompletionAction.CANCEL);
+        purgeAction.purge();
+        resultQueue.offer(new ExceptionalTriggerResult(cause));
     }
 
     public Map<String, List<FlowFile>> drainOutputQueues() {

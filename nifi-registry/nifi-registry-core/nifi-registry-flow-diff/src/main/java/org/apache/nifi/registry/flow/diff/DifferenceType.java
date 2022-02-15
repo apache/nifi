@@ -121,6 +121,36 @@ public enum DifferenceType {
     PROPERTY_PARAMETERIZATION_REMOVED("Property Parameterization Removed"),
 
     /**
+     * Parameter exists for a given Parameter Context in Flow B but does not exist in Flow A
+     */
+    PARAMETER_ADDED("Parameter Added"),
+
+    /**
+     * Parameter exists for a given Parameter Context in Flow A but does not exist in Flow B
+     */
+    PARAMETER_REMOVED("Parameter Removed"),
+
+    /**
+     * The value of the Parameter is different in each of the flows
+     */
+    PARAMETER_VALUE_CHANGED("Parameter Value Changed"),
+
+    /**
+     * The description of the Parameter is different in each of the flows
+     */
+    PARAMETER_DESCRIPTION_CHANGED("Parameter Description Changed"),
+
+    /**
+     * The Parameter Context bound to a Process Group is different in each of the flows
+     */
+    PARAMETER_CONTEXT_CHANGED("Parameter Context Changed"),
+
+    /**
+     * The Parameter Context inherits from a different collection of Parameter Contexts in each of the flows
+     */
+    INHERITED_CONTEXTS_CHANGED("Inhereted Parameter Contexts Changed"),
+
+    /**
      * The component has a different value for the Annotation Data in each of the flows
      */
     ANNOTATION_DATA_CHANGED("Annotation Data (Advanced UI Configuration) Changed"),
@@ -129,6 +159,11 @@ public enum DifferenceType {
      * The component has a different comment in each of the flows
      */
     COMMENTS_CHANGED("Comments Changed"),
+
+    /**
+     * The component has a different description in each of the flows
+     */
+    DESCRIPTION_CHANGED("Description Changed"),
 
     /**
      * The position of the component on the graph is different in each of the flows
@@ -211,6 +246,11 @@ public enum DifferenceType {
     VARIABLE_REMOVED("Variable Removed from Process Group"),
 
     /**
+     * THe value of the variable is different in each of the flows
+     */
+    VARIABLE_CHANGED("Value of Variable was changed"),
+
+    /**
      * The API of the Controller Service is different in each of the flows
      */
     SERVICE_API_CHANGED("Controller Service API Changed"),
@@ -246,6 +286,11 @@ public enum DifferenceType {
     RPG_COMMS_TIMEOUT_CHANGED("Remote Process Group Communications Timeout Changed"),
 
     /**
+     * The Remote Process Group has a different URL in each of the flows
+     */
+    RPG_URL_CHANGED("Remote Process Group URL Changed"),
+
+    /**
      * The Remote Input Port or Remote Output Port has a different Batch Size in each of the flows
      */
     REMOTE_PORT_BATCH_SIZE_CHANGED("Remote Process Group Port's Batch Size Changed"),
@@ -268,7 +313,23 @@ public enum DifferenceType {
     /**
      * The Process Group's configured FlowFile Outbound Policy is different in each of the flows
      */
-    FLOWFILE_OUTBOUND_POLICY_CHANGED("FlowFile Outbound Policy Changed");
+    FLOWFILE_OUTBOUND_POLICY_CHANGED("FlowFile Outbound Policy Changed"),
+
+    /**
+     * The Process Group's Default value for connections' Backpressure Data Size Threshold is different in each of the flows
+     */
+    DEFAULT_BACKPRESSURE_DATA_SIZE_CHANGED("Default Back Pressure Data Size Changed"),
+
+    /**
+     * The Process Group's Default value for connections' Backpressure Object Threshold is different in each of the flows
+     */
+    DEFAULT_BACKPRESSURE_OBJECT_COUNT_CHANGED("Default Back Pressure Object Count Changed"),
+
+    /**
+     * The Process Group's Default value for connections' FlowFile Expiration is different in each of the flows
+     */
+    DEFAULT_FLOWFILE_EXPIRATION_CHANGED("Default FlowFile Expiration Changed")
+    ;
 
     private final String description;
 

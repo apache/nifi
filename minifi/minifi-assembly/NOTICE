@@ -1,5 +1,5 @@
 Apache NiFi MiNiFi
-Copyright 2014-2021 The Apache Software Foundation
+Copyright 2014-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
@@ -81,11 +81,6 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Jakarta HttpClient
       Copyright 1999-2007 The Apache Software Foundation
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
 
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
@@ -246,11 +241,6 @@ The following binary components are provided under the Apache Software License v
       The creation of the package "o.a.c.m.analysis.integration.gauss" was inspired
       by an original code donated by Sébastien Brisard.
       ===============================================================================
-
-  (ASLv2) Apache log4j
-    The following NOTICE information applies:
-      Apache log4j
-      Copyright 2007 The Apache Software Foundation
 
   (ASLv2) Apache Tika
     The following NOTICE information applies:
@@ -671,8 +661,8 @@ The following binary components are provided under the Eclipse Public License 1.
 
     (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - https://www.aspectj.org)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - https://www.h2database.com/html/license.html)
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.8 - https://logback.qos.ch/)
-    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.8 - https://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.6 - https://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.6 - https://logback.qos.ch/)
 
 *****************
 Mozilla Public License v2.0

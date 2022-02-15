@@ -16,40 +16,31 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.distributed.cache.protocol.ProtocolHandshake;
-import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
+import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.remote.StandardVersionNegotiator;
-import org.apache.nifi.remote.VersionNegotiator;
+import org.apache.nifi.remote.StandardVersionNegotiatorFactory;
+import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"distributed", "cache", "state", "set", "cluster"})
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.DistributedSetCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This can be used in order to share a Set "
         + "between nodes in a NiFi cluster")
 public class DistributedSetCacheClientService extends AbstractControllerService implements DistributedSetCacheClient {
-
-    private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Server Hostname")
@@ -73,16 +64,22 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             .build();
     public static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
-            .description("Specifices how long to wait when communicating with the remote server before determining "
+            .description("Specifies how long to wait when communicating with the remote server before determining "
                     + "that there is a communications failure if data cannot be sent or received")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")
             .build();
 
-    private final BlockingQueue<CommsSession> queue = new LinkedBlockingQueue<>();
-    private volatile ConfigurationContext configContext;
-    private volatile boolean closed = false;
+    /**
+     * The implementation of the business logic for {@link DistributedSetCacheClientService}.
+     */
+    private volatile NettyDistributedSetCacheClient cacheClient = null;
+
+    /**
+     * Creator of object used to broker the version of the distributed cache protocol with the service.
+     */
+    private volatile VersionNegotiatorFactory versionNegotiatorFactory = null;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -95,121 +92,54 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
     }
 
     @OnEnabled
-    public void onConfigured(final ConfigurationContext context) {
-        this.configContext = context;
+    public void onEnabled(final ConfigurationContext context) {
+        getLogger().debug("Enabling Set Cache Client Service [{}]", context.getName());
+        this.versionNegotiatorFactory = new StandardVersionNegotiatorFactory(ProtocolVersion.V1.value());
+        this.cacheClient = new NettyDistributedSetCacheClient(
+                context.getProperty(HOSTNAME).getValue(),
+                context.getProperty(PORT).asInteger(),
+                context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(),
+                context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class),
+                versionNegotiatorFactory);
+    }
+
+    @OnDisabled
+    public void onDisabled() throws IOException {
+        getLogger().debug("Disabling Set Cache Client Service");
+        this.cacheClient.close();
+        this.versionNegotiatorFactory = null;
+        this.cacheClient = null;
     }
 
     @OnStopped
     public void onStopped() throws IOException {
-        close();
-    }
-
-    public CommsSession createCommsSession(final ConfigurationContext context) throws IOException {
-        final String hostname = context.getProperty(HOSTNAME).getValue();
-        final int port = context.getProperty(PORT).asInteger();
-        final int timeoutMillis = context.getProperty(COMMUNICATIONS_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        final CommsSession commsSession;
-        if (sslContextService == null) {
-            commsSession = new StandardCommsSession(hostname, port, timeoutMillis);
-        } else {
-            commsSession = new SSLCommsSession(sslContextService.createContext(), hostname, port, timeoutMillis);
+        if (isEnabled()) {
+            onDisabled();
         }
-
-        commsSession.setTimeout(timeoutMillis, TimeUnit.MILLISECONDS);
-        return commsSession;
-    }
-
-    private CommsSession leaseCommsSession() throws IOException {
-        CommsSession session = queue.poll();
-        if (session != null && !session.isClosed()) {
-            return session;
-        }
-
-        session = createCommsSession(configContext);
-        final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(1);
-        try {
-            ProtocolHandshake.initiateHandshake(session.getInputStream(), session.getOutputStream(), versionNegotiator);
-            session.setProtocolVersion(versionNegotiator.getVersion());
-        } catch (final HandshakeException e) {
-            IOUtils.closeQuietly(session);
-
-            throw new IOException(e);
-        }
-
-        return session;
     }
 
     @Override
-    public <T> boolean addIfAbsent(final T value, final Serializer<T> serializer) throws IOException {
-        return invokeRemoteBoolean("addIfAbsent", value, serializer);
+    public <T> boolean addIfAbsent(T value, Serializer<T> serializer) throws IOException {
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.addIfAbsent(bytes);
     }
 
     @Override
-    public <T> boolean contains(final T value, final Serializer<T> serializer) throws IOException {
-        return invokeRemoteBoolean("contains", value, serializer);
+    public <T> boolean contains(T value, Serializer<T> serializer) throws IOException {
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.contains(bytes);
     }
 
     @Override
-    public <T> boolean remove(final T value, final Serializer<T> serializer) throws IOException {
-        return invokeRemoteBoolean("remove", value, serializer);
+    public <T> boolean remove(T value, Serializer<T> serializer) throws IOException {
+        final byte[] bytes = CacheClientSerde.serialize(value, serializer);
+        return cacheClient.remove(bytes);
     }
 
     @Override
     public void close() throws IOException {
-        this.closed = true;
-
-        CommsSession commsSession;
-        while ((commsSession = queue.poll()) != null) {
-            try (final DataOutputStream dos = new DataOutputStream(commsSession.getOutputStream())) {
-                dos.writeUTF("close");
-                dos.flush();
-            } catch (final IOException e) {
-            }
-            IOUtils.closeQuietly(commsSession);
-        }
-        if (logger.isDebugEnabled() && getIdentifier() != null) {
-            logger.debug("Closed {}", new Object[]{getIdentifier()});
-        }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        if (!closed) {
-            close();
-        }
-        logger.debug("Finalize called");
-    }
-
-    private <T> boolean invokeRemoteBoolean(final String methodName, final T value, final Serializer<T> serializer) throws IOException {
-        if (closed) {
-            throw new IllegalStateException("Client is closed");
-        }
-
-        final CommsSession session = leaseCommsSession();
-        boolean tryToRequeue = true;
-        try {
-            final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
-            dos.writeUTF(methodName);
-
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serializer.serialize(value, baos);
-            dos.writeInt(baos.size());
-            baos.writeTo(dos);
-            dos.flush();
-
-            final DataInputStream dis = new DataInputStream(session.getInputStream());
-            return dis.readBoolean();
-        } catch (final IOException ioe) {
-            tryToRequeue = false;
-            throw ioe;
-        } finally {
-            if (tryToRequeue == true && this.closed == false) {
-                queue.offer(session);
-            } else {
-                IOUtils.closeQuietly(session);
-            }
+        if (isEnabled()) {
+            onDisabled();
         }
     }
 }

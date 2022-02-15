@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.registry;
 
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.registry.jetty.JettyServer;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
 import org.apache.nifi.registry.security.crypto.BootstrapFileCryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.MissingCryptoKeyException;
@@ -31,7 +29,17 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /**
  * Main entry point for NiFiRegistry.
@@ -147,9 +155,11 @@ public class NiFiRegistry {
 
         final CryptoKeyProvider masterKeyProvider;
         final NiFiRegistryProperties properties;
+        final ClassLoader sensitivePropProviderClassLoader;
         try {
             masterKeyProvider = getMasterKeyProvider();
-            properties = initializeProperties(masterKeyProvider);
+            sensitivePropProviderClassLoader = createSensitivePropertiesProviderClassLoader();
+            properties = initializeProperties(masterKeyProvider, sensitivePropProviderClassLoader);
         } catch (final IllegalArgumentException iae) {
             throw new RuntimeException("Unable to load properties: " + iae, iae);
         }
@@ -169,7 +179,7 @@ public class NiFiRegistry {
         return masterKeyProvider;
     }
 
-    public static NiFiRegistryProperties initializeProperties(CryptoKeyProvider masterKeyProvider) {
+    public static NiFiRegistryProperties initializeProperties(CryptoKeyProvider masterKeyProvider, final ClassLoader sensitivePropertyProviderClassLoader) {
         String key = CryptoKeyProvider.EMPTY_KEY;
         try {
             key = masterKeyProvider.getKey();
@@ -178,24 +188,48 @@ public class NiFiRegistry {
             // Do nothing. The key can be empty when it is passed to the loader as the loader will only use it if any properties are protected.
         }
 
+        final String nifiRegistryPropertiesFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY,
+                NiFiRegistryProperties.RELATIVE_PROPERTIES_FILE_LOCATION);
+
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(sensitivePropertyProviderClassLoader);
+
         try {
-            try {
-                // Load properties using key. If properties are protected and key missing, throw RuntimeException
-                final String nifiRegistryPropertiesFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY,
-                        NiFiRegistryProperties.RELATIVE_PROPERTIES_FILE_LOCATION);
-                final NiFiRegistryProperties properties = NiFiRegistryPropertiesLoader.withKey(key).load(nifiRegistryPropertiesFilePath);
-                LOGGER.info("Loaded {} properties", properties.size());
-                return properties;
-            } catch (SensitivePropertyProtectionException e) {
-                final String msg = "There was an issue decrypting protected properties";
-                LOGGER.error(msg, e);
-                throw new IllegalArgumentException(msg);
-            }
-        } catch (IllegalArgumentException e) {
-            final String msg = "The bootstrap process did not provide a valid key and there are protected properties present in the properties file";
-            LOGGER.error(msg, e);
-            throw new IllegalArgumentException(msg);
+            final Class<?> propsLoaderClass = Class.forName("org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader", true, sensitivePropertyProviderClassLoader);
+            final Method withKeyMethod = propsLoaderClass.getMethod("withKey", String.class);
+            final Object loaderInstance = withKeyMethod.invoke(null, key);
+            final Method loadMethod = propsLoaderClass.getMethod("load", String.class);
+            final NiFiRegistryProperties properties = (NiFiRegistryProperties) loadMethod.invoke(loaderInstance, nifiRegistryPropertiesFilePath);
+            LOGGER.info("Application Properties loaded [{}]", properties.size());
+            return properties;
+        } catch (InvocationTargetException wrappedException) {
+            final String msg = "There was an issue decrypting protected properties";
+            throw new IllegalArgumentException(msg, wrappedException.getCause() == null ? wrappedException : wrappedException.getCause());
+        } catch (final IllegalAccessException | NoSuchMethodException | ClassNotFoundException reex) {
+            final String msg = "Unable to access properties loader in the expected manner - apparent classpath or build issue";
+            throw new IllegalArgumentException(msg, reex);
+        } catch (final RuntimeException e) {
+            final String msg = "There was an issue decrypting protected properties";
+            throw new IllegalArgumentException(msg, e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
         }
+    }
+
+    public static ClassLoader createSensitivePropertiesProviderClassLoader() {
+        final List<URL> urls = new ArrayList<>();
+        try (final Stream<Path> files = Files.list(Paths.get("lib/spp"))) {
+            files.forEach(p -> {
+                try {
+                    urls.add(p.toUri().toURL());
+                } catch (final MalformedURLException mef) {
+                    LOGGER.warn("Unable to load bootstrap library [{}]", p.getFileName(), mef);
+                }
+            });
+        } catch (IOException ioe) {
+            LOGGER.warn("Unable to access lib/spp to create sensitive property provider classloader", ioe);
+        }
+        return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
 }

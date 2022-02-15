@@ -23,8 +23,10 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -34,12 +36,11 @@ import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindo
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_COUNT_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_MEAN_KEY;
 import static org.apache.nifi.processors.stateful.analysis.AttributeRollingWindow.ROLLING_WINDOW_VALUE_KEY;
-import static org.junit.Assume.assumeFalse;
 
 public class AttributeRollingWindowIT {
 
     @Test
-    public void testFailureDueToBadAttribute() throws InterruptedException {
+    public void testFailureDueToBadAttribute() {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
@@ -57,7 +58,7 @@ public class AttributeRollingWindowIT {
     }
 
     @Test
-    public void testStateFailures() throws InterruptedException, IOException {
+    public void testStateFailures() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
         MockStateManager mockStateManager = runner.getStateManager();
         final AttributeRollingWindow processor = (AttributeRollingWindow) runner.getProcessor();
@@ -141,8 +142,8 @@ public class AttributeRollingWindowIT {
 
 
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testVerifyCount() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");
@@ -193,10 +194,12 @@ public class AttributeRollingWindowIT {
 
     }
 
-    @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
+    @DisabledOnOs(OS.WINDOWS)
     public void testMicroBatching() throws InterruptedException {
-        assumeFalse(isWindowsEnvironment());
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
         runner.setProperty(AttributeRollingWindow.VALUE_TO_TRACK, "${value}");

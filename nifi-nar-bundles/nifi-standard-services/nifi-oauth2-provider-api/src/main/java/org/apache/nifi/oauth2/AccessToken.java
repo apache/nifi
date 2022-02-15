@@ -17,53 +17,80 @@
 
 package org.apache.nifi.oauth2;
 
+import java.time.Duration;
+import java.time.Instant;
+
 public class AccessToken {
     private String accessToken;
     private String refreshToken;
     private String tokenType;
-    private Integer expires;
-    private String scope;
+    private long expiresIn;
+    private String scopes;
 
-    private Long fetchTime;
+    private final Instant fetchTime;
 
-    public AccessToken(String accessToken,
-                       String refreshToken,
-                       String tokenType,
-                       Integer expires,
-                       String scope) {
+    public static final int EXPIRY_MARGIN = 5000;
+
+    public AccessToken() {
+        this.fetchTime = Instant.now();
+    }
+
+    public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scopes) {
+        this();
         this.accessToken = accessToken;
-        this.tokenType = tokenType;
         this.refreshToken = refreshToken;
-        this.expires = expires;
-        this.scope = scope;
-        this.fetchTime = System.currentTimeMillis();
+        this.tokenType = tokenType;
+        this.expiresIn = expiresIn;
+        this.scopes = scopes;
     }
 
     public String getAccessToken() {
         return accessToken;
     }
 
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
     public String getRefreshToken() {
         return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public String getTokenType() {
         return tokenType;
     }
 
-    public Integer getExpires() {
-        return expires;
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
     }
 
-    public String getScope() {
-        return scope;
+    public long getExpiresIn() {
+        return expiresIn;
     }
 
-    public Long getFetchTime() {
+    public void setExpiresIn(long expiresIn) {
+        this.expiresIn = expiresIn;
+    }
+
+    public String getScopes() {
+        return scopes;
+    }
+
+    public void setScopes(String scopes) {
+        this.scopes = scopes;
+    }
+
+    public Instant getFetchTime() {
         return fetchTime;
     }
 
     public boolean isExpired() {
-        return System.currentTimeMillis() >= ( fetchTime + (expires * 1000) );
+        boolean expired = Duration.between(Instant.now(), fetchTime.plusSeconds(expiresIn - EXPIRY_MARGIN)).isNegative();
+
+        return expired;
     }
 }

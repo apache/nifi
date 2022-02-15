@@ -176,6 +176,18 @@ public class TestExecuteSQL {
     }
 
     @Test
+    public void testAutoCommitFalse() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        runner.setProperty(ExecuteSQL.AUTO_COMMIT, "false");
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
+    public void testAutoCommitTrue() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+        runner.setProperty(ExecuteSQL.AUTO_COMMIT, "true");
+        invokeOnTrigger(null, QUERY_WITHOUT_EL, true, null, false);
+    }
+
+    @Test
     public void testWithNullIntColumn() throws SQLException {
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -555,6 +567,11 @@ public class TestExecuteSQL {
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         SimpleCommerceDataSet.loadTestData2Database(con, 100, 200, 100);
         LOGGER.info("test data loaded");
+
+        //commit loaded data if auto-commit is dissabled
+        if (!con.getAutoCommit()){
+            con.commit();
+        }
 
         // ResultSet size will be 1x200x100 = 20 000 rows
         // because of where PER.ID = ${person.id}

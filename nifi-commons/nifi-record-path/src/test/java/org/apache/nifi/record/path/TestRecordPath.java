@@ -28,13 +28,19 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.uuid5.Uuid5Util;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.ParseException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -51,10 +57,30 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class TestRecordPath {
+
+    private static final String USER_TIMEZONE_PROPERTY = "user.timezone";
+
+    private static final String SYSTEM_TIMEZONE = System.getProperty(USER_TIMEZONE_PROPERTY);
+
+    private static final String TEST_TIMEZONE = "America/Phoenix";
+
+    private static final int TEST_OFFSET_HOURS = 2;
+
+    private static final String TEST_TIMEZONE_OFFSET = String.format("GMT+0%d:00", TEST_OFFSET_HOURS);
+
+    @BeforeAll
+    public static void setTestTimezone() {
+        System.setProperty(USER_TIMEZONE_PROPERTY, TEST_TIMEZONE);
+    }
+
+    @AfterAll
+    public static void setSystemTimezone() {
+        System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+    }
 
     @Test
     public void testCompile() {
@@ -67,12 +93,7 @@ public class TestRecordPath {
         RecordPath.compile("/name[contains(., 'hello')]");
 
         // substring is not a filter function so cannot be used as a predicate
-        try {
-            RecordPath.compile("/name[substring(., 1, 2)]");
-            fail("Expected RecordPathException");
-        } catch (final RecordPathException e) {
-            // expected
-        }
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("/name[substring(., 1, 2)]"));
 
         // substring is not a filter function so can be used as *part* of a predicate but not as the entire predicate
         RecordPath.compile("/name[substring(., 1, 2) = 'e']");
@@ -1417,7 +1438,7 @@ public class TestRecordPath {
     }
 
     @Test
-    public void testFormatDateFromString() throws ParseException {
+    public void testFormatDateFromString() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
@@ -1426,70 +1447,82 @@ public class TestRecordPath {
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
-        values.put("date", "2017-10-20T11:00:00Z");
+
+        final String localDateFormatted = "2017-10-20";
+        final String localDateTimeFormatted = String.format("%sT12:45:30", localDateFormatted);
+        final LocalDateTime localDateTime = LocalDateTime.parse(localDateTimeFormatted);
+
+        values.put("date", localDateTimeFormatted);
         final Record record = new MapRecord(schema, values);
 
-        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20", fieldValue.getValue());
-        final FieldValue fieldValue2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd' , 'GMT+8:00')")
+        final FieldValue fieldValue = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(localDateFormatted, fieldValue.getValue());
+        final FieldValue fieldValue2 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'yyyy-MM-dd' , '%s')", TEST_TIMEZONE_OFFSET))
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20", fieldValue2.getValue());
+        assertEquals(localDateFormatted, fieldValue2.getValue());
 
-        final FieldValue fieldValue3 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'yyyy-MM-dd HH:mm', 'GMT+8:00')")
+        final FieldValue fieldValue3 = RecordPath.compile(String.format("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), \"yyyy-MM-dd'T'HH:mm:ss\", '%s')", TEST_TIMEZONE_OFFSET))
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals("2017-10-20 19:00", fieldValue3.getValue());
 
-        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged.getValue());
-        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\"), 'INVALID' , 'INVALID')")
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneOffset.systemDefault());
+        final ZonedDateTime adjustedZoneDateTime = zonedDateTime.withZoneSameInstant(ZoneOffset.ofHours(TEST_OFFSET_HOURS));
+        final LocalDateTime adjustedLocalDateTime = adjustedZoneDateTime.toLocalDateTime();
+        final String adjustedDateTime = adjustedLocalDateTime.toString();
+        assertEquals(adjustedDateTime, fieldValue3.getValue());
+
+        final FieldValue fieldValueUnchanged = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
+        assertEquals(localDateFormatted, fieldValueUnchanged.getValue().toString());
+        final FieldValue fieldValueUnchanged2 = RecordPath.compile("format( toDate(/date, \"yyyy-MM-dd'T'HH:mm:ss\"), 'INVALID' , 'INVALID')")
             .evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(DataTypeUtils.getDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").parse("2017-10-20T11:00:00Z"), fieldValueUnchanged2.getValue());
+        assertEquals(localDateFormatted, fieldValueUnchanged2.getValue().toString());
     }
 
     @Test
-    public void testFormatDateFromLong() throws ParseException {
+    public void testFormatDateFromLong() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.LONG.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
-        final long dateValue = dateFormat.parse("2017-10-20").getTime();
+        final String localDate = "2017-10-20";
+        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+        final long epochMillis = Instant.parse(instantFormatted).toEpochMilli();
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
-        values.put("date", dateValue);
+        values.put("date", epochMillis);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd' )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged.getValue());
+        assertEquals(epochMillis, fieldValueUnchanged.getValue());
         final FieldValue fieldValueUnchanged2 = RecordPath.compile("format(/date, 'INVALID', 'INVALID' )").evaluate(record).getSelectedFields().findFirst().get();
-        assertEquals(dateValue, fieldValueUnchanged2.getValue());
+        assertEquals(epochMillis, fieldValueUnchanged2.getValue());
     }
 
     @Test
-    public void testFormatDateFromDate() throws ParseException {
+    public void testFormatDateFromDate() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final DateFormat dateFormat = DataTypeUtils.getDateFormat("yyyy-MM-dd");
-        final java.util.Date utilDate = dateFormat.parse("2017-10-20");
-        final Date dateValue = new Date(utilDate.getTime());
+        final String localDate = "2017-10-20";
+        final String instantFormatted = String.format("%sT12:30:45Z", localDate);
+        final Instant instant = Instant.parse(instantFormatted);
+        final Date dateValue = new Date(instant.toEpochMilli());
 
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
         values.put("date", dateValue);
         final Record record = new MapRecord(schema, values);
 
-        assertEquals("2017-10-20", RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
-        assertEquals("2017-10-20 08:00:00", RecordPath.compile("format(/date, 'yyyy-MM-dd HH:mm:ss', 'GMT+8:00')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(localDate, RecordPath.compile("format(/date, 'yyyy-MM-dd')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(instantFormatted, RecordPath.compile("format(/date, \"yyyy-MM-dd'T'HH:mm:ss'Z'\", 'GMT')").evaluate(record).getSelectedFields().findFirst().get().getValue());
 
         final FieldValue fieldValueUnchanged = RecordPath.compile("format(/date, 'INVALID')").evaluate(record).getSelectedFields().findFirst().get();
         assertEquals(dateValue, fieldValueUnchanged.getValue());
@@ -1530,7 +1563,7 @@ public class TestRecordPath {
         assertEquals("Hello World!", RecordPath.compile("toString(/bytes, \"UTF-16\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = IllegalCharsetNameException.class)
+    @Test
     public void testToStringBadCharset() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -1543,7 +1576,9 @@ public class TestRecordPath {
         values.put("bytes", "Hello World!".getBytes(StandardCharsets.UTF_16));
         final Record record = new MapRecord(schema, values);
 
-        RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertThrows(IllegalCharsetNameException.class, () ->
+                RecordPath.compile("toString(/bytes, \"NOT A REAL CHARSET\")").evaluate(record)
+                        .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1563,7 +1598,7 @@ public class TestRecordPath {
                 (byte[]) RecordPath.compile("toBytes(/s, \"UTF-16LE\")").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = IllegalCharsetNameException.class)
+    @Test
     public void testToBytesBadCharset() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
@@ -1576,7 +1611,8 @@ public class TestRecordPath {
         values.put("s", "Hello World!");
         final Record record = new MapRecord(schema, values);
 
-        RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record).getSelectedFields().findFirst().get().getValue();
+        assertThrows(IllegalCharsetNameException.class, () -> RecordPath.compile("toBytes(/s, \"NOT A REAL CHARSET\")").evaluate(record)
+                .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1758,21 +1794,20 @@ public class TestRecordPath {
 
         // test invalid JSON
         final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
-        try {
-            RecordPath.compile("unescapeJson(/json_str)").evaluate(recordInvalidJson).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
-            fail("Expected a RecordPathException for invalid JSON");
-        } catch (RecordPathException rpe) {
-            assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
-        }
+
+        RecordPathException rpe = assertThrows(RecordPathException.class,
+                () -> RecordPath.compile("unescapeJson(/json_str)")
+                        .evaluate(recordInvalidJson).getSelectedFields()
+                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
 
         // test not String
         final Record recordNotString = new MapRecord(schema, Collections.singletonMap("person", new MapRecord(person, Collections.singletonMap("age", 30))));
-        try {
-            RecordPath.compile("unescapeJson(/person/age)").evaluate(recordNotString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
-            fail("Expected IllegalArgumentException for non-String input");
-        } catch (IllegalArgumentException iae) {
-            assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
-        }
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class,
+                () -> RecordPath.compile("unescapeJson(/person/age)")
+                        .evaluate(recordNotString).getSelectedFields()
+                        .findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
     }
 
     @Test
@@ -1782,10 +1817,11 @@ public class TestRecordPath {
         assertEquals("5753a498f025464d72e088a9d5d6e872592d5f91", RecordPath.compile("hash(/firstName, 'SHA-1')").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
-    @Test(expected = RecordPathException.class)
+    @Test
     public void testHashFailure() {
         final Record record = getCaseTestRecord();
-        assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertThrows(RecordPathException.class, () -> RecordPath.compile("hash(/firstName, 'NOT_A_ALGO')").evaluate(record)
+                .getSelectedFields().findFirst().get().getValue());
     }
 
     @Test
@@ -1922,8 +1958,7 @@ public class TestRecordPath {
         accountFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         accountFields.add(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
 
-        final RecordSchema accountSchema = new SimpleRecordSchema(accountFields);
-        return accountSchema;
+        return new SimpleRecordSchema(accountFields);
     }
 
     private Record createSimpleRecord() {
@@ -1937,8 +1972,7 @@ public class TestRecordPath {
         final Map<String, Object> values = new HashMap<>();
         values.put("id", 48);
         values.put("name", "John Doe");
-        final Record record = new MapRecord(schema, values);
-        return record;
+        return new MapRecord(schema, values);
     }
 
 }

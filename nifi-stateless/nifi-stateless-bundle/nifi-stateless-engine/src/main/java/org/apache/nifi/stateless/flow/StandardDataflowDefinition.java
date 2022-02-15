@@ -17,19 +17,21 @@
 
 package org.apache.nifi.stateless.flow;
 
-import org.apache.nifi.registry.flow.Bundle;
-import org.apache.nifi.registry.flow.VersionedControllerService;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -38,7 +40,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     private final Set<String> failurePortNames;
     private final List<ParameterContextDefinition> parameterContexts;
     private final List<ReportingTaskDefinition> reportingTaskDefinitions;
-    private final List<ParameterProviderDefinition> parameterProviderDefinitions;
+    private final List<ParameterValueProviderDefinition> parameterValueProviderDefinitions;
     private final TransactionThresholds transactionThresholds;
     private final String flowName;
 
@@ -48,7 +50,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         parameterContexts = builder.parameterContexts == null ? Collections.emptyList() : builder.parameterContexts;
         reportingTaskDefinitions = builder.reportingTaskDefinitions == null ? Collections.emptyList() : builder.reportingTaskDefinitions;
         transactionThresholds = builder.transactionThresholds == null ? TransactionThresholds.SINGLE_FLOWFILE : builder.transactionThresholds;
-        parameterProviderDefinitions = builder.parameterProviderDefinitions == null ? Collections.emptyList() : builder.parameterProviderDefinitions;
+        parameterValueProviderDefinitions = builder.parameterValueProviderDefinitions == null ? Collections.emptyList() : builder.parameterValueProviderDefinitions;
         flowName = builder.flowName;
     }
 
@@ -68,6 +70,20 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     }
 
     @Override
+    public Set<String> getInputPortNames() {
+        return flowSnapshot.getFlowContents().getInputPorts().stream()
+            .map(VersionedPort::getName)
+            .collect(Collectors.toSet());
+    }
+
+    @Override
+    public Set<String> getOutputPortNames() {
+        return flowSnapshot.getFlowContents().getOutputPorts().stream()
+            .map(VersionedPort::getName)
+            .collect(Collectors.toSet());
+    }
+
+    @Override
     public List<ParameterContextDefinition> getParameterContexts() {
         return parameterContexts;
     }
@@ -78,8 +94,8 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     }
 
     @Override
-    public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
-        return parameterProviderDefinitions;
+    public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {
+        return parameterValueProviderDefinitions;
     }
 
     @Override
@@ -113,7 +129,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         private Set<String> failurePortNames;
         private List<ParameterContextDefinition> parameterContexts;
         private List<ReportingTaskDefinition> reportingTaskDefinitions;
-        private List<ParameterProviderDefinition> parameterProviderDefinitions;
+        private List<ParameterValueProviderDefinition> parameterValueProviderDefinitions;
         private TransactionThresholds transactionThresholds;
         private String flowName;
 
@@ -142,8 +158,8 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
             return this;
         }
 
-        public Builder parameterProviders(final List<ParameterProviderDefinition> parameterProviders) {
-            this.parameterProviderDefinitions = parameterProviders;
+        public Builder parameterValueProviders(final List<ParameterValueProviderDefinition> parameterValueProviders) {
+            this.parameterValueProviderDefinitions = parameterValueProviders;
             return this;
         }
 

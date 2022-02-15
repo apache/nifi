@@ -37,7 +37,6 @@ import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.primitives.Doubles;
 /**
  * <p>
  * An implementation of {@link StatusAnalytics} that is provides Connection related analysis/prediction for a given connection instance
@@ -378,7 +377,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
         Double score = getScore(model);
 
-        if (score == null || (Doubles.isFinite(score) && !Double.isNaN(score) && score < scoreThreshold)) {
+        if (score == null || (score < scoreThreshold)) {
             if (supportOnlineLearning && model.supportsOnlineLearning()) {
                 model.clear();
             }

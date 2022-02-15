@@ -503,7 +503,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             final Map<String, String> attributes = createAttributes(status);
             FlowFile flowFile = session.create();
             flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, REL_SUCCESS);
+            session.transfer(flowFile, getSuccessRelationship());
         }
     }
 
@@ -528,7 +528,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         flowFile = session.putAllAttributes(flowFile, attributes);
 
-        session.transfer(flowFile, REL_SUCCESS);
+        session.transfer(flowFile, getSuccessRelationship());
     }
 
     private Record createRecord(final FileStatus fileStatus) {
@@ -620,15 +620,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
         attributes.put(CoreAttributes.FILENAME.key(), status.getPath().getName());
         attributes.put(CoreAttributes.PATH.key(), getAbsolutePath(status.getPath().getParent()));
 
-        attributes.put("hdfs.owner", status.getOwner());
-        attributes.put("hdfs.group", status.getGroup());
-        attributes.put("hdfs.lastModified", String.valueOf(status.getModificationTime()));
-        attributes.put("hdfs.length", String.valueOf(status.getLen()));
-        attributes.put("hdfs.replication", String.valueOf(status.getReplication()));
+        attributes.put(getAttributePrefix() + ".owner", status.getOwner());
+        attributes.put(getAttributePrefix() + ".group", status.getGroup());
+        attributes.put(getAttributePrefix() + ".lastModified", String.valueOf(status.getModificationTime()));
+        attributes.put(getAttributePrefix() + ".length", String.valueOf(status.getLen()));
+        attributes.put(getAttributePrefix() + ".replication", String.valueOf(status.getReplication()));
 
         final FsPermission permission = status.getPermission();
         final String perms = getPerms(permission.getUserAction()) + getPerms(permission.getGroupAction()) + getPerms(permission.getOtherAction());
-        attributes.put("hdfs.permissions", perms);
+        attributes.put(getAttributePrefix() + ".permissions", perms);
         return attributes;
     }
 
@@ -669,4 +669,11 @@ public class ListHDFS extends AbstractHadoopProcessor {
         };
     }
 
+    protected Relationship getSuccessRelationship() {
+        return REL_SUCCESS;
+    }
+
+    protected String getAttributePrefix() {
+        return "hdfs";
+    }
 }

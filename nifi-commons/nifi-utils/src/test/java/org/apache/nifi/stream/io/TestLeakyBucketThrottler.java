@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.stream.io;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -26,13 +27,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Ignore;
-import org.junit.Test;
+import java.util.concurrent.TimeUnit;
 
-@Ignore("Tests are time-based")
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@Disabled("Tests are time-based")
 public class TestLeakyBucketThrottler {
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void testOutputStreamInterface() throws IOException {
         // throttle rate at 1 MB/sec
         final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);
@@ -51,7 +55,8 @@ public class TestLeakyBucketThrottler {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void testInputStreamInterface() throws IOException {
 
         final byte[] data = new byte[1024 * 1024 * 4];
@@ -75,7 +80,8 @@ public class TestLeakyBucketThrottler {
         }
     }
 
-    @Test(timeout = 10000)
+    @Test
+    @Timeout(value = 10000, unit = TimeUnit.MILLISECONDS)
     public void testDirectInterface() throws IOException, InterruptedException {
         // throttle rate at 1 MB/sec
         try (final LeakyBucketStreamThrottler throttler = new LeakyBucketStreamThrottler(1024 * 1024);

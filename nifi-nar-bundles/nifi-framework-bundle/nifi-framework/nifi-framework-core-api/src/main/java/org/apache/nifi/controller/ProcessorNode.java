@@ -24,8 +24,10 @@ import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -137,6 +139,14 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 
+    public void verifyCanPerformVerification() {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot perform verification because the Processor is not stopped");
+        }
+    }
+
+    public abstract List<ConfigVerificationResult> verifyConfiguration(ProcessContext processContext, ComponentLog logger, Map<String, String> attributes, ExtensionManager extensionManager);
+
     public abstract void verifyCanTerminate();
 
     /**
@@ -164,7 +174,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * states such as STOPPING and STARTING.
      *
      * @return the physical state of this processor [DISABLED, STOPPED, RUNNING,
-     *         STARTIING, STOPIING]
+     *         STARTING, STOPPING]
      */
     public ScheduledState getPhysicalScheduledState() {
         return this.scheduledState.get();
@@ -280,4 +290,11 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @return the desired state for this Processor
      */
     public abstract ScheduledState getDesiredState();
+
+    /**
+     * This method will be called once the processor's configuration has been restored (on startup, reload, e.g.)
+     *
+     * @param context The ProcessContext associated with the Processor configuration
+     */
+    public abstract void onConfigurationRestored(ProcessContext context);
 }

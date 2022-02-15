@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.splunk;
 
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
@@ -25,21 +27,24 @@ import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import javax.net.ssl.SSLContext;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 
 public class TestPutSplunk {
@@ -53,12 +58,12 @@ public class TestPutSplunk {
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private static final String LOCALHOST = "localhost";
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    public void setup() {
         runner = TestRunners.newTestRunner(PutSplunk.class);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         runner.shutdown();
         shutdownServer();
@@ -70,7 +75,8 @@ public class TestPutSplunk {
         }
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testUDPSendWholeFlowFile() throws Exception {
         createTestServer(TransportProtocol.UDP);
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, OUTGOING_MESSAGE_DELIMITER);
@@ -86,7 +92,8 @@ public class TestPutSplunk {
         checkReceivedAllData(message);
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendWholeFlowFile() throws Exception {
         createTestServer(TransportProtocol.TCP);
         final String message = "This is one message, should send the whole FlowFile";
@@ -100,7 +107,8 @@ public class TestPutSplunk {
         checkReceivedAllData(message);
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendMultipleFlowFiles() throws Exception {
         createTestServer(TransportProtocol.TCP);
 
@@ -117,7 +125,8 @@ public class TestPutSplunk {
         checkReceivedAllData(message, message);
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendWholeFlowFileAlreadyHasNewLine() throws Exception {
         createTestServer(TransportProtocol.TCP);
 
@@ -133,7 +142,8 @@ public class TestPutSplunk {
         checkReceivedAllData(message.trim());
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testUDPSendDelimitedMessages() throws Exception {
         createTestServer(TransportProtocol.UDP);
         final String delimiter = "DD";
@@ -151,7 +161,8 @@ public class TestPutSplunk {
         checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendDelimitedMessages() throws Exception {
         createTestServer(TransportProtocol.TCP);
         final String delimiter = "DD";
@@ -170,7 +181,8 @@ public class TestPutSplunk {
         checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendDelimitedMessagesWithEL() throws Exception {
         createTestServer(TransportProtocol.TCP);
 
@@ -193,7 +205,8 @@ public class TestPutSplunk {
         checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendDelimitedMessagesEndsWithDelimiter() throws Exception {
         createTestServer(TransportProtocol.TCP);
         final String delimiter = "DD";
@@ -213,7 +226,8 @@ public class TestPutSplunk {
 
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testTCPSendDelimitedMessagesWithNewLineDelimiter() throws Exception {
         createTestServer(TransportProtocol.TCP);
         final String delimiter = "\\n";
@@ -232,7 +246,8 @@ public class TestPutSplunk {
         checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
     public void testCompletingPreviousBatchOnNextExecution() throws Exception {
         createTestServer(TransportProtocol.UDP);
 
@@ -248,8 +263,9 @@ public class TestPutSplunk {
         checkReceivedAllData(message);
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
-    public void testUnableToCreateConnectionShouldRouteToFailure() throws InterruptedException {
+    @Test
+    @Timeout(value = DEFAULT_TEST_TIMEOUT_PERIOD, unit = TimeUnit.MILLISECONDS)
+    public void testUnableToCreateConnectionShouldRouteToFailure() {
         // Set an unreachable port
         runner.setProperty(PutSplunk.PORT, String.valueOf(NetworkUtils.getAvailableUdpPort()));
 
@@ -261,26 +277,22 @@ public class TestPutSplunk {
     }
 
     private void createTestServer(final TransportProtocol protocol) {
-        createTestServer(LOCALHOST, protocol, null);
-    }
-
-    private void createTestServer(final String address, final TransportProtocol protocol, final SSLContext sslContext) {
         if (protocol == TransportProtocol.UDP) {
-            createTestServer(address, NetworkUtils.getAvailableUdpPort(), protocol, sslContext);
+            createTestServer(NetworkUtils.getAvailableUdpPort(), protocol);
         } else {
-            createTestServer(address, NetworkUtils.getAvailableTcpPort(), protocol, sslContext);
+            createTestServer(NetworkUtils.getAvailableTcpPort(), protocol);
         }
     }
 
-    private void createTestServer(final String address, final int port, final TransportProtocol protocol, final SSLContext sslContext) {
+    private void createTestServer(final int port, final TransportProtocol protocol) {
         messages = new LinkedBlockingQueue<>();
         runner.setProperty(PutSplunk.PROTOCOL, protocol.name());
         runner.setProperty(PutSplunk.PORT, String.valueOf(port));
         final byte[] delimiter = OUTGOING_MESSAGE_DELIMITER.getBytes(CHARSET);
-        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
-        if (sslContext != null) {
-            serverFactory.setSslContext(sslContext);
-        }
+
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), getListenAddress(), port, protocol, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        serverFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         eventServer = serverFactory.getEventServer();
     }
 
@@ -292,6 +304,14 @@ public class TestPutSplunk {
             assertArrayEquals(item.getBytes(), packet.getMessage());
         }
 
-        assertNull("Unexpected extra messages found", messages.poll());
+        assertNull(messages.poll(), "Unexpected extra messages found");
+    }
+
+    private InetAddress getListenAddress() {
+        try {
+            return InetAddress.getByName(LOCALHOST);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

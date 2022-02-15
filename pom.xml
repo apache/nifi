@@ -13,12 +13,12 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>23</version>
+        <version>24</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.15.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -39,6 +39,8 @@
         <module>nifi-stateless</module>
         <module>nifi-registry</module>
         <module>nifi-toolkit</module>
+        <module>nifi-manifest</module>
+        <module>c2</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -78,7 +80,7 @@
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
-        <tag>HEAD</tag>
+        <tag>nifi-1.15.0-RC3</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>
@@ -87,25 +89,39 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
         <maven.surefire.arguments />
+        <node.version>v16.13.2</node.version>
+        <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
+        <project.build.outputTimestamp>10</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <okhttp.version>4.9.1</okhttp.version>
-        <org.bouncycastle.version>1.69</org.bouncycastle.version>
-        <org.slf4j.version>1.7.30</org.slf4j.version>
+        <okhttp.version>4.9.3</okhttp.version>
+        <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
+        <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
+        <org.bouncycastle.version>1.70</org.bouncycastle.version>
+        <org.slf4j.version>1.7.35</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.42.v20210604</jetty.version>
-        <jackson.version>2.12.3</jackson.version>
-        <nifi.groovy.version>2.5.6</nifi.groovy.version>
-        <surefire.version>2.22.2</surefire.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jackson.version>2.13.1</jackson.version>
+        <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
+        <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
+        <nifi.groovy.version>3.0.8</nifi.groovy.version>
+        <surefire.version>3.0.0-M5</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
         <hadoop.version>3.3.0</hadoop.version>
-        <ozone.version>1.0.0</ozone.version>
+        <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
-        <jersey.version>2.33</jersey.version>
+        <jersey.version>2.35</jersey.version>
+        <logback.version>1.2.10</logback.version>
+        <mockito.version>3.11.2</mockito.version>
+        <netty.3.version>3.10.6.Final</netty.3.version>
+        <netty.4.version>4.1.73.Final</netty.4.version>
+        <spring.version>5.3.15</spring.version>
+        <spring.security.version>5.6.1</spring.security.version>
     </properties>
 
     <repositories>
@@ -132,16 +148,6 @@
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
-        </repository>
-        <repository>
-            <id>jcenter</id>
-            <url>https://jcenter.bintray.com</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
         </repository>
         <repository>
             <id>Shibboleth</id>
@@ -200,18 +206,18 @@
                 <version>3.1.0</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- jetty-schemas-3.1.jar handling this explicitly  Must be in root lib -->
+            <!-- jetty-schemas handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>org.eclipse.jetty.toolchain</groupId>
                 <artifactId>jetty-schemas</artifactId>
-                <version>3.1</version>
+                <version>5.2</version>
                 <scope>provided</scope>
             </dependency>
             <!-- logback-classic, logback-core, log4j-over-slf4j, jul-to-slf4j,jcl-over-slf4j,slf4j-api handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.2.3</version>
+                <version>${logback.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
@@ -244,11 +250,6 @@
                 <version>${org.slf4j.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-log4j12</artifactId>
-                <version>${org.slf4j.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.bouncycastle</groupId>
                 <artifactId>bcprov-jdk15on</artifactId>
                 <version>${org.bouncycastle.version}</version>
@@ -263,17 +264,46 @@
                 <artifactId>bcpg-jdk15on</artifactId>
                 <version>${org.bouncycastle.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${org.apache.httpcomponents.httpclient.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${org.apache.httpcomponents.httpcore.version}</version>
+            </dependency>
 
             <!-- These junit/mockito/groovy/spock/hamcrest dependencies are here to encourage consistent unit test library usage -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>5.7.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
                 <version>4.13.2</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>2.28.2</version>
+                <version>${mockito.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>${mockito.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
@@ -291,7 +321,7 @@
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-core</artifactId>
-                <version>1.3-groovy-2.5</version>
+                <version>2.1-M2-groovy-3.0</version>
                 <scope>test</scope>
                 <exclusions>
                     <exclusion>
@@ -353,6 +383,96 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-alpn-java-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-continuation</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-http</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-jaas</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-rewrite</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-runner</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util-ajax</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-common</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-hpack</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.http2</groupId>
+                <artifactId>http2-http-client-transport</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-api</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-client</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-server</artifactId>
+                <version>${jetty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jsp</artifactId>
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
@@ -373,18 +493,74 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
             </dependency>
+            <!-- Override Log4j 2 libraries for transitive dependencies -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>2.17.1</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.4.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-bom</artifactId>
+                <version>${spring.security.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>com.squareup.okhttp3</groupId>
+                <artifactId>okhttp-bom</artifactId>
+                <version>${okhttp.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -405,18 +581,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.1</version>
+                    <version>3.9.0</version>
                     <configuration>
                         <fork>true</fork>
-                        <optimize>true</optimize>
-                        <showDeprecation>true</showDeprecation>
+                        <showDeprecation>${maven.compiler.showDeprecation}</showDeprecation>
                         <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>3.4.0-01</version>
+                    <version>3.7.0</version>
                     <extensions>true</extensions>
                 </plugin>
                 <plugin>
@@ -427,6 +602,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${surefire.version}</version>
                     <configuration>
                         <systemPropertyVariables>
                             <java.awt.headless>true</java.awt.headless>
@@ -440,25 +616,18 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1G
+                        <argLine combine.children="append">-Xmx1g
                             -Djava.net.preferIPv4Stack=true
                             -Duser.language=${user.language}
                             -Duser.country=${user.country}
                             -Duser.timezone=${user.timezone}
                             -Dfile.encoding=UTF-8</argLine>
                     </configuration>
-                    <dependencies>
-                        <dependency>
-                            <!-- Force surefire to use JUnit -->
-                            <groupId>org.apache.maven.surefire</groupId>
-                            <artifactId>surefire-junit4</artifactId>
-                            <version>${surefire.version}</version>
-                        </dependency>
-                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.3.0</version>
                     <configuration>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
@@ -466,16 +635,17 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>2.3.1</version>
+                    <version>2.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.6.0</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>3.3.1</version>
                     <configuration>
                         <failOnError>false</failOnError>
                         <quiet>true</quiet>
@@ -489,6 +659,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
+                    <version>3.0.0-M5</version>
                     <configuration>
                         <useReleaseProfile>true</useReleaseProfile>
                         <releaseProfiles>apache-release</releaseProfiles>
@@ -513,7 +684,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>rpm-maven-plugin</artifactId>
-                    <version>2.1.5</version>
+                    <version>2.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -528,14 +699,19 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.1.2</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.29</version>
+                            <version>9.2.1</version>
                         </dependency>
                     </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.2.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -543,7 +719,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
                 <executions>
                     <!-- Only run for tests -->
                     <execution>
@@ -553,6 +728,7 @@
                         </goals>
                         <configuration>
                             <compilerId>groovy-eclipse-compiler</compilerId>
+
                         </configuration>
                     </execution>
                 </executions>
@@ -564,7 +740,7 @@
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-compiler</artifactId>
-                        <version>3.4.0-01</version>
+                        <version>3.7.0</version>
                     </dependency>
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
@@ -576,7 +752,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.3.1</version>
+                <version>1.3.3</version>
                 <extensions>true</extensions>
                 <configuration>
                     <enforceDocGeneration>true</enforceDocGeneration>
@@ -596,10 +772,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0-M3</version>
+                <version>3.0.0</version>
                 <executions>
                     <execution>
-                        <id>enforce-maven</id>
+                        <id>enforce-maven-version</id>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
@@ -613,22 +789,10 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <!-- We do not test this value so we should probably make it something fairly recent -->
                                     <version>3.6.0</version>
                                 </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-no-snapshots</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <requireReleaseDeps>
-                                    <message>Other than org apache nifi components themselves no snapshot dependencies are allowed</message>
-                                    <!-- If we want to only enforce this for nifi release itself we should add 'onlyWhenRelease' and remove 'failWhenParentIsSnapshot' element -->
+                                    <message>Dependencies outside of Apache NiFi must not use SNAPSHOT versions</message>
                                     <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
                                     <excludes>
                                         <exclude>org.apache.nifi:*</exclude>
@@ -636,17 +800,6 @@
                                         <exclude>org.apache.nifi.registry:*</exclude>
                                     </excludes>
                                 </requireReleaseDeps>
-                            </rules>
-                            <fail>true</fail>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>enforce-banned-dependencies</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
                                 <bannedDependencies>
                                     <excludes>
                                         <!-- Cat-X Deps -->
@@ -654,6 +807,14 @@
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
                                         <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                        <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->
+                                        <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                        <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
+                                        <exclude>log4j:log4j:*</exclude>
+                                        <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j routing to logback -->
+                                        <exclude>org.apache.logging.log4j:log4j-core:*</exclude>
+                                        <!-- Commons Logging excluded in favor of jcl-over-slf4j -->
+                                        <exclude>commons-logging:commons-logging:*</exclude>
                                     </excludes>
                                     <includes>
                                         <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
@@ -883,19 +1044,14 @@
             <dependencyManagement>
                 <dependencies>
                     <dependency>
-                        <groupId>javax.xml.bind</groupId>
-                        <artifactId>jaxb-api</artifactId>
-                        <version>2.3.0</version>
+                        <groupId>jakarta.xml.bind</groupId>
+                        <artifactId>jakarta.xml.bind-api</artifactId>
+                        <version>${jakarta.xml.bind-api.version}</version>
                     </dependency>
                     <dependency>
-                        <groupId>com.sun.xml.bind</groupId>
-                        <artifactId>jaxb-core</artifactId>
-                        <version>2.3.0</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>com.sun.xml.bind</groupId>
-                        <artifactId>jaxb-impl</artifactId>
-                        <version>2.3.0</version>
+                        <groupId>org.glassfish.jaxb</groupId>
+                        <artifactId>jaxb-runtime</artifactId>
+                        <version>${jaxb.runtime.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>com.sun.activation</groupId>
@@ -1014,7 +1170,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>6.1.5</version>
+                        <version>6.5.3</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
@@ -1023,6 +1179,8 @@
                                 </goals>
                                 <configuration>
                                     <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                    <!-- Skip System Scope to avoid dependency resolution errors with jdk.tools on Java 8 -->
+                                    <skipSystemScope>true</skipSystemScope>
                                 </configuration>
                             </execution>
                         </executions>

@@ -27,11 +27,11 @@ import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
@@ -45,15 +45,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
@@ -63,7 +65,6 @@ import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -114,9 +115,9 @@ public class TestListenHTTP {
     private int availablePort;
 
     @BeforeClass
-    public static void setUpSuite() throws GeneralSecurityException, IOException {
+    public static void setUpSuite() throws GeneralSecurityException {
         // generate new keystore and truststore
-        tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         serverConfiguration = new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
@@ -169,27 +170,6 @@ public class TestListenHTTP {
                 tlsConfiguration.getTruststorePassword(),
                 tlsConfiguration.getTruststoreType())
         );
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        if (tlsConfiguration != null) {
-            try {
-                if (StringUtils.isNotBlank(tlsConfiguration.getKeystorePath())) {
-                    Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-                }
-            } catch (IOException e) {
-                throw new IOException("There was an error deleting a keystore: " + e.getMessage(), e);
-            }
-
-            try {
-                if (StringUtils.isNotBlank(tlsConfiguration.getTruststorePath())) {
-                    Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-                }
-            } catch (IOException e) {
-                throw new IOException("There was an error deleting a truststore: " + e.getMessage(), e);
-            }
-        }
     }
 
     @Before
@@ -391,7 +371,7 @@ public class TestListenHTTP {
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
         startSecureServer();
-        assertThrows(SSLException.class, () -> postMessage(null, true, false));
+        assertThrows(IOException.class, () -> postMessage(null, true, false));
     }
 
     @Test
@@ -485,6 +465,71 @@ public class TestListenHTTP {
         assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
     }
 
+    @Test
+    public void testPOSTRequestsReceivedWithRecordReader() throws Exception {
+        final MockRecordParser parser = setupRecordReaderTest();
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+        final String expectedMessage =
+                "\"1\",\"rec1\",\"101\"\n" +
+                "\"2\",\"rec2\",\"102\"\n" +
+                "\"3\",\"rec3\",\"103\"\n" +
+                "\"4\",\"rec4\",\"104\"\n";
+
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_OK, false, false);
+        List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 1);
+        mockFlowFiles.get(0).assertContentEquals(expectedMessage);
+    }
+
+    @Test
+    public void testReturn400WhenInvalidPOSTRequestSentWithRecordReader() throws Exception {
+        final MockRecordParser parser = setupRecordReaderTest();
+        parser.failAfter(2);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.LONG);
+
+        final List<Integer> keys = Arrays.asList(1, 2, 3, 4);
+        final List<String> names = Arrays.asList("rec1", "rec2", "rec3", "rec4");
+        final List<Long> codes = Arrays.asList(101L, 102L, 103L, 104L);
+
+        for (int i = 0; i < keys.size(); i++) {
+            parser.addRecord(keys.get(i), names.get(i), codes.get(i));
+        }
+
+        startWebServerAndSendMessages(Collections.singletonList(""), HttpServletResponse.SC_BAD_REQUEST, false, false);
+
+        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 0);
+    }
+
+    private MockRecordParser setupRecordReaderTest() throws InitializationException {
+        final MockRecordParser parser = new MockRecordParser();
+        final MockRecordWriter writer = new MockRecordWriter();
+
+        runner.addControllerService("mockRecordParser", parser);
+        runner.setProperty(ListenHTTP.RECORD_READER, "mockRecordParser");
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.addControllerService("mockRecordWriter", writer);
+        runner.setProperty(ListenHTTP.RECORD_WRITER, "mockRecordWriter");
+
+        return parser;
+    }
+
     private void startSecureServer() {
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
@@ -493,7 +538,7 @@ public class TestListenHTTP {
         startWebServer();
     }
 
-    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws Exception {
+    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws IOException {
         final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
         final Request.Builder requestBuilder = new Request.Builder();
         final String url = buildUrl(secure);

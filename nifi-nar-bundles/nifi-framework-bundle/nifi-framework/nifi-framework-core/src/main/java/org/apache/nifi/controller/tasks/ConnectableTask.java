@@ -260,10 +260,15 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    rawSession.commitAsync(null, t -> {
-                        final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
-                    });
+                    final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
+
+                    try {
+                        rawSession.commitAsync(null, t -> {
+                            procLog.error("Failed to commit session {} due to {}; rolling back", new Object[]{rawSession, t.toString()}, t);
+                        });
+                    } catch (final TerminatedTaskException tte) {
+                        procLog.debug("Cannot commit Batch Process Session because the Task was forcefully terminated", tte);
+                    }
                 }
 
                 final long processingNanos = System.nanoTime() - startNanos;

@@ -144,7 +144,10 @@
             $.ajax({
                 type: 'GET',
                 url: controllerServicesUri,
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (response) {
                 var serviceTable = getControllerServicesTable();
 
@@ -209,7 +212,10 @@
             $.ajax({
                 type: 'GET',
                 url: config.urls.api + '/process-groups/' + encodeURIComponent(groupId),
-                dataType: 'json'
+                dataType: 'json',
+                data: {
+                    uiOnly: true
+                }
             }).done(function (response) {
                 // store the process group
                 $('#process-group-configuration').data('process-group', response);

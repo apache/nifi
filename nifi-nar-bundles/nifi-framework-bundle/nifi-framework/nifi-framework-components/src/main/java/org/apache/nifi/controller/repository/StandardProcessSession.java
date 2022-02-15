@@ -24,6 +24,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
@@ -60,6 +61,7 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
+import org.apache.nifi.stream.io.NonFlushableOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +80,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1752,8 +1755,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
 
     private List<FlowFile> get(final ConnectionPoller poller, final boolean lockAllQueues) {
-        final List<Connection> connections = context.getPollableConnections();
-        if (lockAllQueues) {
+        List<Connection> connections = context.getPollableConnections();
+        final boolean sortConnections = lockAllQueues && connections.size() > 1;
+        if (sortConnections) {
+            // Sort by identifier so that if there are two arbitrary connections, we always lock them in the same order.
+            // Otherwise, we could encounter a deadlock, if another thread were to lock the same two connections in a different order.
+            // So we always lock ordered on connection identifier. And unlock in the opposite order.
+            // Before doing this, we must create a copy of the List because the one provided by context.getPollableConnections() is usually an unmodifiableList
+            connections = new ArrayList<>(connections);
+            connections.sort(Comparator.comparing(Connection::getIdentifier));
             for (final Connection connection : connections) {
                 connection.lock();
             }
@@ -1783,7 +1793,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             return new ArrayList<>();
         } finally {
-            if (lockAllQueues) {
+            if (sortConnections) {
+                // Reverse ordering in order to unlock
+                connections.sort(Comparator.comparing(Connection::getIdentifier).reversed());
+
                 for (final Connection connection : connections) {
                     connection.unlock();
                 }
@@ -2284,7 +2297,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         for (final Connection conn : context.getConnectable().getIncomingConnections()) {
             do {
                 expired.clear();
-                conn.getFlowFileQueue().poll(filter, expired);
+                conn.getFlowFileQueue().poll(filter, expired, PollStrategy.ALL_FLOWFILES);
                 removeExpired(expired, conn);
             } while (!expired.isEmpty());
         }
@@ -2965,8 +2978,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     // We need to copy all of the data from the old claim to the new claim
                     StreamUtils.copy(oldClaimIn, outStream);
 
-                    // wrap our OutputStreams so that the processor cannot close it
-                    try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream)) {
+                    // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
+                    // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream
+                    // each time, performance suffers. Instead, we prevent the flushing at this level, and we flush in commit.
+                    final NonFlushableOutputStream nonFlushable = new NonFlushableOutputStream(outStream);
+
+                    // Wrap our OutputStreams so that the processor cannot close it
+                    try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable)) {
                         writeRecursionSet.add(source);
                         writer.process(new FlowFileAccessOutputStream(disableOnClose, source));
                     } finally {
@@ -2977,8 +2995,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 newClaim = oldClaim;
                 originalByteWrittenCount = outStream.getBytesWritten();
 
-                // wrap our OutputStreams so that the processor cannot close it
-                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(outStream);
+                // Don't allow flushing of the BufferedOutputStream. The callback may well call wrap our stream in another object that needs to be flushed.
+                // This is OK, but append() is often used many times to append just a small bit of data, over & over. If we allow flushing of our buffered output stream
+                // each time, performance suffers. Instead, we prevent the flushing at this level, and we flush in commit.
+                final NonFlushableOutputStream nonFlushable = new NonFlushableOutputStream(outStream);
+
+                // Wrap our OutputStreams so that the processor cannot close it
+                try (final OutputStream disableOnClose = new DisableOnCloseOutputStream(nonFlushable);
                     final OutputStream flowFileAccessOutStream = new FlowFileAccessOutputStream(disableOnClose, source)) {
                     writeRecursionSet.add(source);
                     writer.process(flowFileAccessOutStream);
@@ -3063,7 +3086,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         // If the content of the FlowFile has already been modified, we need to remove the newly created content (the working claim). However, if
         // they are the same, we cannot just remove the claim because record.getWorkingClaim() will return
         // the original claim if the record is "working" but the content has not been modified
-        // (e.g., in the case of attributes only were updated)
+        // (e.g., in the case of attributes only were updated).
         //
         // In other words:
         // If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
@@ -3071,7 +3094,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         // that may decrement the original claim (because the 2 claims are the same), and that's NOT what we want to do
         // because we will do that later, in the session.commit() and that would result in decrementing the count for
         // the original claim twice.
-        if (record.isContentModified()) {
+        //
+        // Additionally, If the Record Type is CREATE, that means any content that exists is a temporary claim.
+        // This will happen, for example, if a FlowFile is created and then written to multiple times or a FlowFile is cloned and then the clone's contents
+        // are overwritten. In such a case, we can confidently decrement the count/remove the claim because either the claim is null (in which case calling
+        // decrementClaimantCount/addTransientClaim will have no effect, or the claim points to the previously written content that is no longer relevant because
+        // the FlowFile's content is being overwritten.
+
+        if (record.isContentModified() || record.getType() == RepositoryRecordType.CREATE) {
             // In this case, it's ok to decrement the claimant count for the content because we know that the working claim is going to be
             // updated and the given working claim is referenced only by FlowFiles in this session (because it's the Working Claim).
             // Therefore, we need to decrement the claimant count, and since the Working Claim is being changed, that means that

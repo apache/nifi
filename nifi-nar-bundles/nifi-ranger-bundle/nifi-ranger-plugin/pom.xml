@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-ranger-bundle</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-ranger-plugin</artifactId>
@@ -37,6 +37,14 @@
             <artifactId>nifi-properties</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>log4j-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.ranger</groupId>
             <artifactId>ranger-plugins-common</artifactId>
             <version>${ranger.version}</version>
@@ -46,8 +54,16 @@
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
                 <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>com.google.code.findbugs</groupId>
                     <artifactId>jsr305</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -59,6 +75,23 @@
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <!-- Exclude Log4j 2 since Ranger does not include direct references to Log4j Loggers -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -75,6 +108,10 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -87,6 +124,16 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <version>${ranger.hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- hadoop-common and hadoop-auth are transitive dependencies of ranger client, but we need to make sure they
                 are the same version as hadoop-client above -->
@@ -99,6 +146,18 @@
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -110,16 +169,30 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-auth</artifactId>
             <version>${ranger.hadoop.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -191,6 +264,12 @@
                     <groupId>org.apache.hadoop</groupId>
                     <artifactId>hadoop-cloud-storage</artifactId>
                     <version>${ranger.hadoop.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                    </exclusions>
                 </dependency>
             </dependencies>
         </profile>
@@ -202,13 +281,23 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-client</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-client</artifactId>
                     <version>${ozone.version}</version>
+                    <exclusions>
+                      <exclusion>
+                          <groupId>commons-logging</groupId>
+                          <artifactId>commons-logging</artifactId>
+                      </exclusion>
+                      <exclusion>
+                          <groupId>org.apache.logging.log4j</groupId>
+                          <artifactId>log4j-core</artifactId>
+                      </exclusion>
+                    </exclusions>
                 </dependency>
                 <dependency>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-ozone-filesystem</artifactId>
+                    <groupId>org.apache.ozone</groupId>
+                    <artifactId>ozone-filesystem</artifactId>
                     <version>${ozone.version}</version>
                 </dependency>
             </dependencies>

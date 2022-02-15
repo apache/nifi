@@ -73,7 +73,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
         httpMock.verify();
     }));
 
-    it('should load jwt from local storage.', inject([HttpTestingController], function (httpMock) {
+    it('should load jwt from local storage.', inject([HttpTestingController], function () {
         // Spy
         spyOn(nfRegistryApi.nfStorage, 'hasItem').and.callFake(function () {
             return true;
@@ -158,6 +158,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
         // api call
         nfRegistryApi.ticketExchange().subscribe(function (response) {
+            /* eslint-disable no-console */
             console.log('ticketExchange() response is: '.concat(response));
             var setItemCall = nfRegistryApi.nfStorage.setItem.calls.first();
 
@@ -195,7 +196,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
     it('should GET droplet snapshot metadata.', inject([HttpTestingController], function (httpMock) {
         // api call
-        nfRegistryApi.getDropletSnapshotMetadata('flow/test').subscribe(function (response) {
+        nfRegistryApi.getDropletSnapshotMetadata('flow/test').subscribe(function () {
         });
         // the request it made
         req = httpMock.expectOne('../nifi-registry-api/flow/test/versions');
@@ -420,7 +421,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
     it('should DELETE a droplet.', inject([HttpTestingController], function (httpMock) {
         // api call
-        nfRegistryApi.deleteDroplet('flows/1234').subscribe(function (response) {
+        nfRegistryApi.deleteDroplet('flows/1234').subscribe(function () {
         });
 
         // the request it made
@@ -462,7 +463,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
     it('should POST to create a new bucket.', inject([HttpTestingController], function (httpMock) {
         // api call
-        nfRegistryApi.createBucket('test').subscribe(function (response) {
+        nfRegistryApi.createBucket('test', 'testDesc').subscribe(function (response) {
             expect(response.identifier).toBe('1234');
         });
         // the request it made
@@ -484,7 +485,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
         });
 
         // api call
-        nfRegistryApi.createBucket('test').subscribe(function (response) {
+        nfRegistryApi.createBucket('test', 'testDesc').subscribe(function (response) {
             expect(response.message).toEqual('Http failure response for ../nifi-registry-api/buckets: 401 POST bucket mock error');
             var dialogServiceCall = nfRegistryApi.dialogService.openConfirm.calls.first();
             expect(dialogServiceCall.args[0].title).toBe('Error');
@@ -506,7 +507,7 @@ describe('NfRegistry API w/ Angular testing utils', function () {
 
     it('should DELETE a bucket.', inject([HttpTestingController], function (httpMock) {
         // api call
-        nfRegistryApi.deleteBucket('1234', 0).subscribe(function (response) {
+        nfRegistryApi.deleteBucket('1234', 0).subscribe(function () {
         });
         // the request it made
         req = httpMock.expectOne('../nifi-registry-api/buckets/1234?version=0');

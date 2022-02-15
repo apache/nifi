@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 
 public class InstantiatedVersionedRemoteProcessGroup extends VersionedRemoteProcessGroup implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedVersionedRemoteProcessGroup extends VersionedRemoteProc
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

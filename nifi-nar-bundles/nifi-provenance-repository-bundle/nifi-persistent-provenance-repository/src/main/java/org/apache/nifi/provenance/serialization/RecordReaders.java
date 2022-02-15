@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.provenance.serialization;
 
-import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.provenance.ByteArraySchemaRecordReader;
 import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
 import org.apache.nifi.provenance.EncryptedSchemaRecordReader;
@@ -27,11 +26,6 @@ import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.security.repository.RepositoryEncryptorUtils;
-import org.apache.nifi.security.repository.RepositoryType;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
@@ -46,12 +40,6 @@ import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
 public class RecordReaders {
-
-    private static Logger logger = LoggerFactory.getLogger(RecordReaders.class);
-
-    private static boolean isEncryptionAvailable = false;
-    private static boolean encryptionPropertiesRead = false;
-
     /**
      * Creates a new Record Reader that is capable of reading Provenance Event Journals
      *
@@ -166,10 +154,6 @@ public class RecordReaders {
                         throw new FileNotFoundException("Cannot create TOC Reader because the file " + tocFile + " does not exist");
                     }
 
-                    if (!isEncryptionAvailable()) {
-                        throw new IOException("Cannot read encrypted repository because this reader is not configured for encryption");
-                    }
-
                     final TocReader tocReader = new StandardTocReader(tocFile);
                     // Return a reader with no eventEncryptor because this method contract cannot change, then inject the encryptor from the writer in the calling method
                     return new EncryptedSchemaRecordReader(bufferedInStream, filename, tocReader, maxAttributeChars, null);
@@ -190,21 +174,4 @@ public class RecordReaders {
             throw ioe;
         }
     }
-
-    private static boolean isEncryptionAvailable() {
-        if (encryptionPropertiesRead) {
-            return isEncryptionAvailable;
-        } else {
-            try {
-                NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap();
-                isEncryptionAvailable = RepositoryEncryptorUtils.isRepositoryEncryptionConfigured(niFiProperties, RepositoryType.PROVENANCE);
-                encryptionPropertiesRead = true;
-            } catch (IOException e) {
-                logger.error("Encountered an error checking the provenance repository encryption configuration: ", e);
-                isEncryptionAvailable = false;
-            }
-            return isEncryptionAvailable;
-        }
-    }
-
 }

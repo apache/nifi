@@ -21,14 +21,11 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Ignore
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -41,8 +38,8 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
-@RunWith(JUnit4.class)
 class ScryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProviderGroovyTest.class)
 
@@ -56,7 +53,7 @@ class ScryptCipherProviderGroovyTest {
 
     RandomIVPBECipherProvider cipherProvider
 
-    @BeforeClass
+    @BeforeAll
     static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
@@ -73,15 +70,10 @@ class ScryptCipherProviderGroovyTest {
         }
     }
 
-    @Before
+    @BeforeEach
     void setUp() throws Exception {
         // Very fast parameters to test for correctness rather than production values
         cipherProvider = new ScryptCipherProvider(4, 1, 1)
-    }
-
-    @After
-    void tearDown() throws Exception {
-
     }
 
     @Test
@@ -143,8 +135,8 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
+        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
+                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
 
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
@@ -621,7 +613,8 @@ class ScryptCipherProviderGroovyTest {
         assert isScryptSalt
     }
 
-    @Ignore("This test can be run on a specific machine to evaluate if the default parameters are sufficient")
+    @EnabledIfSystemProperty(named = "nifi.test.unstable", matches = "true",
+        disabledReason = "This test can be run on a specific machine to evaluate if the default parameters are sufficient")
     @Test
     void testDefaultConstructorShouldProvideStrongParameters() {
         // Arrange

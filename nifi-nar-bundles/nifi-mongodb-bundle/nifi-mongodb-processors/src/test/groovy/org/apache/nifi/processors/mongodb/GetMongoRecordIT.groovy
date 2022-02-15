@@ -31,10 +31,10 @@ import org.apache.nifi.serialization.record.*
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bson.Document
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.*
 
@@ -62,7 +62,7 @@ class GetMongoRecordIT {
         [ name: "John Brown", failedLogins: 4, lastLogin: new Date(Calendar.instance.time.time - 10000) ]
     ].collect { new Document(it) }
 
-    @Before
+    @BeforeEach
     void setup() {
         runner = TestRunners.newTestRunner(GetMongoRecord.class)
         service = new MongoDBControllerService()
@@ -90,7 +90,7 @@ class GetMongoRecordIT {
         service.getDatabase(DB_NAME).getCollection(COL_NAME).insertMany(SAMPLES)
     }
 
-    @After
+    @AfterEach
     void after() {
         service.getDatabase(DB_NAME).drop()
     }
@@ -99,13 +99,13 @@ class GetMongoRecordIT {
     void testLookup() {
         def ffValidator = { TestRunner runner ->
             def ffs = runner.getFlowFilesForRelationship(GetMongoRecord.REL_SUCCESS)
-            Assert.assertNotNull(ffs)
-            Assert.assertTrue(ffs.size() == 1)
-            Assert.assertEquals("3", ffs[0].getAttribute("record.count"))
-            Assert.assertEquals("application/json", ffs[0].getAttribute(CoreAttributes.MIME_TYPE.key()))
-            Assert.assertEquals(COL_NAME, ffs[0].getAttribute(GetMongoRecord.COL_NAME))
-            Assert.assertEquals(DB_NAME, ffs[0].getAttribute(GetMongoRecord.DB_NAME))
-            Assert.assertEquals(Document.parse("{}"), Document.parse(ffs[0].getAttribute("executed.query")))
+            Assertions.assertNotNull(ffs)
+            Assertions.assertTrue(ffs.size() == 1)
+            Assertions.assertEquals("3", ffs[0].getAttribute("record.count"))
+            Assertions.assertEquals("application/json", ffs[0].getAttribute(CoreAttributes.MIME_TYPE.key()))
+            Assertions.assertEquals(COL_NAME, ffs[0].getAttribute(GetMongoRecord.COL_NAME))
+            Assertions.assertEquals(DB_NAME, ffs[0].getAttribute(GetMongoRecord.DB_NAME))
+            Assertions.assertEquals(Document.parse("{}"), Document.parse(ffs[0].getAttribute("executed.query")))
         }
 
         runner.setProperty(GetMongoRecord.QUERY_ATTRIBUTE, "executed.query")
@@ -141,13 +141,13 @@ class GetMongoRecordIT {
         runner.run()
 
         def parsed = sharedTest()
-        Assert.assertEquals(3, parsed.size())
+        Assertions.assertEquals(3, parsed.size())
         def values = [1, 2, 4]
         int index = 0
         parsed.each {
-            Assert.assertEquals(values[index++], it["failedLogins"])
-            Assert.assertNull(it["name"])
-            Assert.assertNull(it["lastLogin"])
+            Assertions.assertEquals(values[index++], it["failedLogins"])
+            Assertions.assertNull(it["name"])
+            Assertions.assertNull(it["lastLogin"])
         }
     }
 
@@ -159,7 +159,7 @@ class GetMongoRecordIT {
         def raw = runner.getContentAsByteArray(ff)
         String content = new String(raw)
         def parsed = new JsonSlurper().parseText(content)
-        Assert.assertNotNull(parsed)
+        Assertions.assertNotNull(parsed)
 
         parsed
     }
@@ -173,7 +173,7 @@ class GetMongoRecordIT {
         runner.run()
 
         def parsed = sharedTest()
-        Assert.assertEquals(1, parsed.size())
+        Assertions.assertEquals(1, parsed.size())
 
     }
 }

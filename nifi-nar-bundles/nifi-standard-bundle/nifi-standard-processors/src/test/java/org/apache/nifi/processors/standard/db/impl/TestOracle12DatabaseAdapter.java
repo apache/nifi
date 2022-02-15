@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processors.standard.db.impl;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.nifi.processors.standard.db.DatabaseAdapter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -86,4 +95,74 @@ public class TestOracle12DatabaseAdapter {
         String expected4 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
         Assert.assertEquals(expected4, sql4);
     }
+
+    @Test
+    public void testSupportsUpsert() throws Exception {
+        assertTrue(db.getClass().getSimpleName() + " should support upsert", db.supportsUpsert());
+    }
+
+    @Test
+    public void testGetUpsertStatementWithNullTableName() throws Exception {
+        testGetUpsertStatement(null, Arrays.asList("notEmpty"), Arrays.asList("notEmpty"), new IllegalArgumentException("Table name cannot be null or blank"));
+    }
+
+    @Test
+    public void testGetUpsertStatementWithBlankTableName() throws Exception {
+        testGetUpsertStatement("", Arrays.asList("notEmpty"), Arrays.asList("notEmpty"), new IllegalArgumentException("Table name cannot be null or blank"));
+    }
+
+    @Test
+    public void testGetUpsertStatementWithNullColumnNames() throws Exception {
+        testGetUpsertStatement("notEmpty", null, Arrays.asList("notEmpty"), new IllegalArgumentException("Column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testGetUpsertStatementWithEmptyColumnNames() throws Exception {
+        testGetUpsertStatement("notEmpty", Collections.emptyList(), Arrays.asList("notEmpty"), new IllegalArgumentException("Column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testGetUpsertStatementWithNullKeyColumnNames() throws Exception {
+        testGetUpsertStatement("notEmpty", Arrays.asList("notEmpty"), null, new IllegalArgumentException("Key column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testGetUpsertStatementWithEmptyKeyColumnNames() throws Exception {
+        testGetUpsertStatement("notEmpty", Arrays.asList("notEmpty"), Collections.emptyList(), new IllegalArgumentException("Key column names cannot be null or empty"));
+    }
+
+    @Test
+    public void testGetUpsertStatement() throws Exception {
+        // GIVEN
+        String tableName = "table";
+        List<String> columnNames = Arrays.asList("column1","column2", "column3", "column4");
+        Collection<String> uniqueKeyColumnNames = Arrays.asList("column2","column4");
+
+        String expected = "MERGE INTO table USING (SELECT ? column1, ? column2, ? column3, ? column4 FROM DUAL) n" +
+        " ON (table.column2 = n.column2 AND table.column4 = n.column4) WHEN NOT MATCHED THEN" +
+        " INSERT (column1, column2, column3, column4) VALUES (n.column1, n.column2, n.column3, n.column4)" +
+        " WHEN MATCHED THEN UPDATE SET table.column1 = n.column1, table.column3 = n.column3";
+
+        // WHEN
+        // THEN
+        testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, expected);
+    }
+
+    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, IllegalArgumentException expected) {
+        try {
+            testGetUpsertStatement(tableName, columnNames, uniqueKeyColumnNames, (String)null);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertEquals(expected.getMessage(), e.getMessage());
+        }
+    }
+
+    private void testGetUpsertStatement(String tableName, List<String> columnNames, Collection<String> uniqueKeyColumnNames, String expected) {
+        // WHEN
+        String actual = db.getUpsertStatement(tableName, columnNames, uniqueKeyColumnNames);
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
 }

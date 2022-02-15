@@ -17,38 +17,44 @@
 
 package org.apache.nifi.processors.gcp.bigquery;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.BaseServiceException;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.TableId;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.util.StringUtils;
 
-import com.google.api.gax.retrying.RetrySettings;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Base class for creating processors that connect to GCP BiqQuery service
  */
-public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> {
+public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<BigQuery, BigQueryOptions> implements VerifiableProcessor  {
 
     static final int BUFFER_SIZE = 65536;
+
+    private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("bigquery.tables.updateData");
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to this relationship after a successful Google BigQuery operation.")
@@ -97,12 +103,12 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return ImmutableList.<PropertyDescriptor> builder()
-                .addAll(super.getSupportedPropertyDescriptors())
-                .add(DATASET)
-                .add(TABLE_NAME)
-                .add(IGNORE_UNKNOWN)
-                .build();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
+        descriptors.addAll(super.getSupportedPropertyDescriptors());
+        descriptors.add(DATASET);
+        descriptors.add(TABLE_NAME);
+        descriptors.add(IGNORE_UNKNOWN);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -120,6 +126,40 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
                 .setRetrySettings(RetrySettings.newBuilder().setMaxAttempts(retryCount).build())
                 .setTransportOptions(getTransportOptions(context))
                 .build();
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>(verifyCloudService(context, verificationLogger, attributes));
+
+        final BigQuery bigQuery = getCloudService(context);
+        if (bigQuery != null) {
+            try {
+                final TableId tableId = getTableId(context, attributes);
+                if (bigQuery.testIamPermissions(tableId, REQUIRED_PERMISSIONS).size() >= REQUIRED_PERMISSIONS.size()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Verified BigQuery Table [%s] exists and the configured user has the correct permissions.", tableId))
+                            .build());
+                } else {
+                    results.add(new ConfigVerificationResult.Builder()
+                            .verificationStepName("Test IAM Permissions")
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("The configured user does not have the correct permissions on BigQuery Table [%s].", tableId))
+                            .build());
+                }
+            } catch (final BaseServiceException e) {
+                verificationLogger.error("The configured user appears to have the correct permissions, but the following error was encountered", e);
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("Test IAM Permissions")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
+                        .explanation(String.format("The configured user appears to have the correct permissions, but the following error was encountered: " + e.getMessage()))
+                        .build());
+            }
+        }
+
+        return results;
     }
 
     @Override
@@ -145,6 +185,20 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
      * validation result to the results.
      */
     protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    }
+
+    protected TableId getTableId(final ProcessContext context, final Map<String, String> attributes) {
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+        final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(attributes).getValue();
+        final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(attributes).getValue();
+
+        final TableId tableId;
+        if (StringUtils.isEmpty(projectId)) {
+            tableId = TableId.of(dataset, tableName);
+        } else {
+            tableId = TableId.of(projectId, dataset, tableName);
+        }
+        return tableId;
     }
 
 }

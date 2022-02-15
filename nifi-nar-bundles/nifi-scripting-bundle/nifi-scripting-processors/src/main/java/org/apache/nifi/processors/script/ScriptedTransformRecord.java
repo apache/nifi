@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.script;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -29,24 +28,14 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.script.ScriptingComponentHelper;
-import org.apache.nifi.script.ScriptingComponentUtils;
-import org.apache.nifi.search.SearchContext;
-import org.apache.nifi.search.SearchResult;
-import org.apache.nifi.search.Searchable;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -56,17 +45,9 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import javax.script.Bindings;
-import javax.script.Compilable;
-import javax.script.CompiledScript;
-import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
-import javax.script.SimpleBindings;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,32 +78,7 @@ import java.util.concurrent.atomic.AtomicReference;
     "org.apache.nifi.processors.standard.QueryRecord",
     "org.apache.nifi.processors.jolt.record.JoltTransformRecord",
     "org.apache.nifi.processors.standard.LookupRecord"})
-public class ScriptedTransformRecord extends AbstractProcessor implements Searchable {
-    private static final String PYTHON_SCRIPT_LANGUAGE = "python";
-    private static final Set<String> SCRIPT_OPTIONS = ScriptingComponentUtils.getAvailableEngines();
-
-    static final PropertyDescriptor RECORD_READER = new Builder()
-        .name("Record Reader")
-        .displayName("Record Reader")
-        .description("The Record Reader to use parsing the incoming FlowFile into Records")
-        .required(true)
-        .identifiesControllerService(RecordReaderFactory.class)
-        .build();
-    static final PropertyDescriptor RECORD_WRITER = new Builder()
-        .name("Record Writer")
-        .displayName("Record Writer")
-        .description("The Record Writer to use for serializing Records after they have been transformed")
-        .required(true)
-        .identifiesControllerService(RecordSetWriterFactory.class)
-        .build();
-    static final PropertyDescriptor LANGUAGE = new Builder()
-        .name("Script Engine")
-        .displayName("Script Language")
-        .description("The Language to use for the script")
-        .allowableValues(SCRIPT_OPTIONS)
-        .defaultValue("Groovy")
-        .required(true)
-        .build();
+public class ScriptedTransformRecord extends ScriptedRecordProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -134,19 +90,6 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         .description("Any FlowFile that cannot be transformed will be routed to this Relationship")
         .build();
 
-
-    private volatile String scriptToRun = null;
-    private final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
-    private final ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
-    private final List<PropertyDescriptor> descriptors = Arrays.asList(
-        RECORD_READER,
-        RECORD_WRITER,
-        LANGUAGE,
-        ScriptingComponentUtils.SCRIPT_BODY,
-        ScriptingComponentUtils.SCRIPT_FILE,
-        ScriptingComponentUtils.MODULES);
-
-
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>();
@@ -157,37 +100,8 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
+        return DESCRIPTORS;
     }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        return scriptingComponentHelper.customValidate(validationContext);
-    }
-
-    @OnScheduled
-    public void setup(final ProcessContext context) throws IOException {
-        if (!scriptingComponentHelper.isInitialized.get()) {
-            scriptingComponentHelper.createResources(false);
-        }
-
-        scriptingComponentHelper.setupVariables(context);
-        scriptToRun = scriptingComponentHelper.getScriptBody();
-
-        if (scriptToRun == null && scriptingComponentHelper.getScriptPath() != null) {
-            try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.getScriptPath())) {
-                scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
-            }
-        }
-
-        // Create a script runner for each possible task
-        final int maxTasks = context.getMaxConcurrentTasks();
-        scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
-
-        // Always compile when first run
-        compiledScriptRef.set(null);
-    }
-
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
@@ -196,17 +110,12 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
             return;
         }
 
-        final ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
-        if (scriptRunner == null) {
-            // This shouldn't happen. But just in case.
-            session.rollback();
-            return;
-        }
+        final ScriptRunner scriptRunner = pollScriptRunner();
 
         try {
             final ScriptEvaluator evaluator;
             try {
-                ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+                final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
                 evaluator = createEvaluator(scriptEngine, flowFile);
             } catch (final ScriptException se) {
                 getLogger().error("Failed to initialize script engine", se);
@@ -216,7 +125,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
             transform(flowFile, evaluator, context, session);
         } finally {
-            scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
+            offerScriptRunner(scriptRunner);
         }
     }
 
@@ -226,7 +135,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
-        final Counts counts = new Counts();
+        final RecordCounts counts = new RecordCounts();
         try {
             final Map<String, String> attributesToAdd = new HashMap<>();
 
@@ -326,7 +235,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         }
     }
 
-    private void processRecord(final Record inputRecord, final FlowFile flowFile, final Counts counts, final RecordWriteAction recordWriteAction,
+    private void processRecord(final Record inputRecord, final FlowFile flowFile, final RecordCounts counts, final RecordWriteAction recordWriteAction,
                                final ScriptEvaluator evaluator) throws IOException, ScriptException {
         final long index = counts.getRecordCount();
 
@@ -371,125 +280,6 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         // Ensure that the value returned from the script is either null or a Record
         throw new RuntimeException("Evaluated script against Record number " + index + " of " + flowFile
             + " but instead of returning a Record, script returned a value of: " + returnValue);
-    }
-
-    private ScriptEvaluator createEvaluator(final ScriptEngine scriptEngine, final FlowFile flowFile) throws ScriptException {
-        if (PYTHON_SCRIPT_LANGUAGE.equalsIgnoreCase(scriptEngine.getFactory().getLanguageName())) {
-            final CompiledScript compiledScript = getOrCompileScript((Compilable) scriptEngine, scriptToRun);
-            return new PythonScriptEvaluator(scriptEngine, compiledScript, flowFile);
-        }
-
-        return new InterpretedScriptEvaluator(scriptEngine, scriptToRun, flowFile);
-    }
-
-    private CompiledScript getOrCompileScript(final Compilable scriptEngine, final String scriptToRun) throws ScriptException {
-        final CompiledScript existing = compiledScriptRef.get();
-        if (existing != null) {
-            return existing;
-        }
-
-        final CompiledScript compiled = scriptEngine.compile(scriptToRun);
-        final boolean updated = compiledScriptRef.compareAndSet(null, compiled);
-        if (updated) {
-            return compiled;
-        }
-
-        return compiledScriptRef.get();
-    }
-
-    private static Bindings setupBindings(final ScriptEngine scriptEngine) {
-        Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
-        if (bindings == null) {
-            bindings = new SimpleBindings();
-        }
-
-        scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-
-        return bindings;
-    }
-
-
-    @Override
-    public Collection<SearchResult> search(final SearchContext context) {
-        return ScriptingComponentUtils.search(context, getLogger());
-    }
-
-    private interface ScriptEvaluator {
-        Object evaluate(Record record, long index) throws ScriptException;
-    }
-
-
-    private class PythonScriptEvaluator implements ScriptEvaluator {
-        private final ScriptEngine scriptEngine;
-        private final CompiledScript compiledScript;
-        private final Bindings bindings;
-
-        public PythonScriptEvaluator(final ScriptEngine scriptEngine, final CompiledScript compiledScript, final FlowFile flowFile) {
-            // By pre-compiling the script here, we get significant performance gains. A quick 5-minute benchmark
-            // shows gains of about 100x better performance. But even with the compiled script, performance pales
-            // in comparison with Groovy.
-            this.compiledScript = compiledScript;
-            this.scriptEngine = scriptEngine;
-            this.bindings = setupBindings(scriptEngine);
-
-            bindings.put("attributes", flowFile.getAttributes());
-            bindings.put("log", getLogger());
-        }
-
-        @Override
-        public Object evaluate(final Record record, final long index) throws ScriptException {
-            bindings.put("record", record);
-            bindings.put("recordIndex", index);
-
-            compiledScript.eval(bindings);
-            return scriptEngine.get("_");
-        }
-    }
-
-
-    private class InterpretedScriptEvaluator implements ScriptEvaluator {
-        private final ScriptEngine scriptEngine;
-        private final String scriptToRun;
-        private final Bindings bindings;
-
-        public InterpretedScriptEvaluator(final ScriptEngine scriptEngine, final String scriptToRun, final FlowFile flowFile) {
-            this.scriptEngine = scriptEngine;
-            this.scriptToRun = scriptToRun;
-            this.bindings = setupBindings(scriptEngine);
-
-            bindings.put("attributes", flowFile.getAttributes());
-            bindings.put("log", getLogger());
-        }
-
-        @Override
-        public Object evaluate(final Record record, final long index) throws ScriptException {
-            bindings.put("record", record);
-            bindings.put("recordIndex", index);
-
-            // Evaluate the script with the configurator (if it exists) or the engine
-            return scriptEngine.eval(scriptToRun, bindings);
-        }
-    }
-
-    private static class Counts {
-        private long recordCount;
-        private long droppedCount;
-
-        public long getRecordCount() {
-            return recordCount;
-        }
-
-        public long getDroppedCount() {
-            return droppedCount;
-        }
-
-        public void incrementRecordCount() {
-            recordCount++;
-        }
-
-        public void incrementDroppedCount() {
-            droppedCount++;
-        }
     }
 
     private interface RecordWriteAction {

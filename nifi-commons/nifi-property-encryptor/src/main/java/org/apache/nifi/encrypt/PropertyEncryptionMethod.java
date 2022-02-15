@@ -22,7 +22,7 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
 /**
  * Property Encryption Method enumerates supported values in addition to {@link org.apache.nifi.security.util.EncryptionMethod}
  */
-enum PropertyEncryptionMethod {
+public enum PropertyEncryptionMethod {
     NIFI_ARGON2_AES_GCM_128(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM,128),
 
     NIFI_ARGON2_AES_GCM_256(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM, 256),

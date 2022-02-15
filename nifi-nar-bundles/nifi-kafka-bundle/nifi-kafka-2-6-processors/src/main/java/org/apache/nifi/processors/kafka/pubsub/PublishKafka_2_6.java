@@ -29,19 +29,21 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.FlowFileFilters;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import javax.xml.bind.DatatypeConverter;
@@ -67,8 +69,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIB
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
-@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.5"})
-@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.5 Producer API."
+@Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.6"})
+@CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.6 Producer API."
     + "The messages to send may be individual FlowFiles or may be delimited, using a "
     + "user-specified delimiter, such as a new-line. "
     + "The complementary NiFi processor for fetching messages is ConsumeKafka_2_6.")
@@ -81,7 +83,7 @@ import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILUR
 @WritesAttribute(attribute = "msg.count", description = "The number of messages that were sent to Kafka for this FlowFile. This attribute is added only to "
     + "FlowFiles that are routed to success. If the <Message Demarcator> Property is not set, this will always be 1, but if the Property is set, it may "
     + "be greater than 1.")
-public class PublishKafka_2_6 extends AbstractProcessor {
+public class PublishKafka_2_6 extends AbstractProcessor implements VerifiableProcessor {
     protected static final String MSG_COUNT = "msg.count";
 
     static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("all", "Guarantee Replicated Delivery",
@@ -100,7 +102,8 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         "Messages will be assigned partitions in a round-robin fashion, sending the first message to Partition 1, "
             + "the next Partition to Partition 2, and so on, wrapping as necessary.");
     static final AllowableValue RANDOM_PARTITIONING = new AllowableValue("org.apache.kafka.clients.producer.internals.DefaultPartitioner",
-        "DefaultPartitioner", "Messages will be assigned to random partitions.");
+        "DefaultPartitioner", "The default partitioning strategy will choose the sticky partition that changes when the batch is full "
+                + "(See KIP-480 for details about sticky partitioning).");
     static final AllowableValue EXPRESSION_LANGUAGE_PARTITIONING = new AllowableValue(Partitioners.ExpressionLanguagePartitioner.class.getName(), "Expression Language Partitioner",
         "Interprets the <Partition> property as Expression Language that will be evaluated against each FlowFile. This Expression will be evaluated once against the FlowFile, " +
             "so all Records in a given FlowFile will go to the same partition.");
@@ -125,7 +128,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-        .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+        .defaultValue(DELIVERY_REPLICATED.getValue())
         .build();
 
     static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -249,6 +252,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         .description("When Use Transaction is set to true, KafkaProducer config 'transactional.id' will be a generated UUID and will be prefixed with this string.")
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+        .dependsOn(USE_TRANSACTIONS, "true")
         .required(false)
         .build();
     static final PropertyDescriptor MESSAGE_HEADER_ENCODING = new PropertyDescriptor.Builder()
@@ -278,17 +282,28 @@ public class PublishKafka_2_6 extends AbstractProcessor {
 
     static {
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
+        properties.add(KafkaProcessorUtils.BOOTSTRAP_SERVERS);
         properties.add(TOPIC);
-        properties.add(DELIVERY_GUARANTEE);
-        properties.add(FAILURE_STRATEGY);
         properties.add(USE_TRANSACTIONS);
         properties.add(TRANSACTIONAL_ID_PREFIX);
+        properties.add(MESSAGE_DEMARCATOR);
+        properties.add(KafkaProcessorUtils.FAILURE_STRATEGY);
+        properties.add(DELIVERY_GUARANTEE);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
+        properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
+        properties.add(KafkaProcessorUtils.SASL_MECHANISM);
+        properties.add(KafkaProcessorUtils.KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KafkaProcessorUtils.SELF_CONTAINED_KERBEROS_USER_SERVICE);
+        properties.add(KafkaProcessorUtils.JAAS_SERVICE_NAME);
+        properties.add(KafkaProcessorUtils.USER_PRINCIPAL);
+        properties.add(KafkaProcessorUtils.USER_KEYTAB);
+        properties.add(KafkaProcessorUtils.USERNAME);
+        properties.add(KafkaProcessorUtils.PASSWORD);
+        properties.add(KafkaProcessorUtils.TOKEN_AUTH);
+        properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         properties.add(KEY);
         properties.add(KEY_ATTRIBUTE_ENCODING);
-        properties.add(MESSAGE_DEMARCATOR);
         properties.add(MAX_REQUEST_SIZE);
         properties.add(ACK_WAIT_TIME);
         properties.add(METADATA_WAIT_TIME);
@@ -402,7 +417,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final boolean useDemarcator = context.getProperty(MESSAGE_DEMARCATOR).isSet();
 
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(250, DataUnit.KB, 500));
+        final List<FlowFile> flowFiles = PublishKafkaUtil.pollFlowFiles(session);
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -457,6 +472,11 @@ public class PublishKafka_2_6 extends AbstractProcessor {
                             }
                         }
                     });
+
+                    // If consumer offsets haven't been committed, add them to the transaction.
+                    if (useTransactions && "false".equals(flowFile.getAttribute(KafkaProcessorUtils.KAFKA_CONSUMER_OFFSETS_COMMITTED))) {
+                        PublishKafkaUtil.addConsumerOffsets(lease, flowFile, getLogger());
+                    }
                 }
 
                 // Complete the send
@@ -531,4 +551,11 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         return null;
     }
 
+    @Override
+    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
+        final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(attributes).getValue();
+        try (final PublisherPool pool = createPublisherPool(context)) {
+            return pool.verifyConfiguration(topic);
+        }
+    }
 }

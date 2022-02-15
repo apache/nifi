@@ -64,8 +64,11 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
         final File nifiHome = nifiInstance.getInstanceDirectory();
         final File confDir = new File(nifiHome, "conf");
         final File flowXmlGz = new File(confDir, "flow.xml.gz");
-        final byte[] flowXmlGzBytes = Files.readAllBytes(flowXmlGz.toPath());
         assertTrue(flowXmlGz.delete());
+
+        final File flowJsonGz = new File(confDir, "flow.json.gz");
+        final byte[] flowJsonGzBytes = Files.readAllBytes(flowJsonGz.toPath());
+        assertTrue(flowJsonGz.delete());
 
         nifiInstance.start();
 
@@ -78,7 +81,7 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
 
         // Stop the instance, restore the flow.xml.gz, and restart
         nifiInstance.stop();
-        Files.write(flowXmlGz.toPath(), flowXmlGzBytes, StandardOpenOption.CREATE);
+        Files.write(flowJsonGz.toPath(), flowJsonGzBytes, StandardOpenOption.CREATE);
         nifiInstance.start();
 
         // Ensure that there's a FlowFile queued up and that its contents are still accessible and have not changed.

@@ -20,7 +20,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.nifi.registry.client.ExtensionClient;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.extension.component.TagCount;
+import org.apache.nifi.extension.TagCount;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.result.registry.TagCountResult;
 

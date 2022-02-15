@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.engine;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.VariableImpact;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
@@ -42,7 +43,9 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
@@ -56,25 +59,27 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.stateless.config.ConfigurableExtensionDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
+import org.apache.nifi.stateless.config.ParameterValueProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StandardStatelessFlow;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-import org.apache.nifi.stateless.parameter.CompositeParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterProvider;
-import org.apache.nifi.stateless.parameter.ParameterProviderInitializationContext;
+import org.apache.nifi.stateless.parameter.CompositeParameterValueProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProviderInitializationContext;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,7 +100,8 @@ import static java.util.Objects.requireNonNull;
 
 public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
-    private static final int CONCURRENT_EXTENSION_DOWNLOADS = 4;
+    private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
+    public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
 
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
@@ -110,6 +116,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ProvenanceRepository provenanceRepository;
     private final ExtensionRepository extensionRepository;
     private final CounterRepository counterRepository;
+    private final Duration statusTaskInterval;
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
@@ -121,7 +128,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private ProcessContextFactory processContextFactory;
     private RepositoryContextFactory repositoryContextFactory;
     private boolean initialized = false;
-
 
     private StandardStatelessEngine(final Builder builder) {
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
@@ -136,6 +142,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
         this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
+        this.statusTaskInterval = parseDuration(builder.statusTaskInterval);
 
         this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
@@ -170,14 +177,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         childGroup.setName("Stateless Flow");
         rootGroup.addProcessGroup(childGroup);
 
+        LogRepositoryFactory.purge();
         childGroup.updateFlow(dataflowDefinition.getFlowSnapshot(), "stateless-component-id-seed", false, true, true);
 
-        final ParameterProvider parameterProvider = createParameterProvider(dataflowDefinition);
+        final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
         // Map existing parameter contexts by name
-        final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
-        final Map<String, ParameterContext> parameterContextMap = parameterContexts.stream()
-            .collect(Collectors.toMap(ParameterContext::getName, context -> context));
+        final Map<String, ParameterContext> parameterContextMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
 
         // Update Parameters to match those that are provided in the flow configuration, plus those overrides provided
         final List<ParameterContextDefinition> parameterContextDefinitions = dataflowDefinition.getParameterContexts();
@@ -185,34 +191,37 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             parameterContextDefinitions.forEach(contextDefinition -> registerParameterContext(contextDefinition, parameterContextMap));
         }
 
-        overrideParameters(parameterContextMap, parameterProvider);
+        overrideParameters(parameterContextMap, parameterValueProvider);
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler, bulletinRepository);
 
-        final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
-        dataflow.scheduleBackgroundTask(logComponentStatuses, 1, TimeUnit.MINUTES);
+        if (statusTaskInterval != null) {
+            final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
+            dataflow.scheduleBackgroundTask(logComponentStatuses, statusTaskInterval.toMillis(), TimeUnit.MILLISECONDS);
+        }
 
         return dataflow;
     }
 
-    private ParameterProvider createParameterProvider(final DataflowDefinition<?> dataflowDefinition) {
+    private ParameterValueProvider createParameterValueProvider(final DataflowDefinition<?> dataflowDefinition) {
         // Create a Provider for each definition
-        final List<ParameterProvider> providers = new ArrayList<>();
-        for (final ParameterProviderDefinition definition : dataflowDefinition.getParameterProviderDefinitions()) {
-            providers.add(createParameterProvider(definition));
+        final List<ParameterValueProvider> providers = new ArrayList<>();
+        for (final ParameterValueProviderDefinition definition : dataflowDefinition.getParameterValueProviderDefinitions()) {
+            providers.add(createParameterValueProvider(definition));
         }
 
-        // Create a Composite Parameter Provider that wraps all of the others.
-        final CompositeParameterProvider provider = new CompositeParameterProvider(providers);
-        final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
+        // Create a Composite Parameter Value Provider that wraps all of the others.
+        final CompositeParameterValueProvider provider = new CompositeParameterValueProvider(providers);
+        final ParameterValueProviderInitializationContext initializationContext =
+            new StandardParameterValueProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
         provider.initialize(initializationContext);
         return provider;
     }
 
-    private ParameterProvider createParameterProvider(final ParameterProviderDefinition definition) {
-        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition, "Parameter Provider");
+    private ParameterValueProvider createParameterValueProvider(final ParameterValueProviderDefinition definition) {
+        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition, "Parameter Value Provider");
         final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
@@ -223,26 +232,29 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final String providerId = UUID.randomUUID().toString();
         final InstanceClassLoader classLoader = extensionManager.createInstanceClassLoader(providerType, providerId, bundle, Collections.emptySet());
 
+        final ClassLoader initialClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Class<?> rawClass = Class.forName(providerType, true, classLoader);
             Thread.currentThread().setContextClassLoader(classLoader);
 
-            final ParameterProvider parameterProvider = (ParameterProvider) rawClass.newInstance();
+            final ParameterValueProvider parameterValueProvider = (ParameterValueProvider) rawClass.newInstance();
 
             // Initialize the provider
-            final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterProvider, parameterProvider.getPropertyDescriptors());
-            final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(parameterProvider, properties, providerId);
-            parameterProvider.initialize(initializationContext);
+            final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterValueProvider, parameterValueProvider.getPropertyDescriptors());
+            final ParameterValueProviderInitializationContext initializationContext = new StandardParameterValueProviderInitializationContext(parameterValueProvider, properties, providerId);
+            parameterValueProvider.initialize(initializationContext);
 
-            // Ensure that the Parameter Provider is valid.
-            final List<ValidationResult> validationResults = validate(parameterProvider, properties, providerId);
+            // Ensure that the Parameter Value Provider is valid.
+            final List<ValidationResult> validationResults = validate(parameterValueProvider, properties, providerId);
             if (!validationResults.isEmpty()) {
-                throw new IllegalStateException("Parameter Provider with name <" + definition.getName() + "> is not valid: " + validationResults);
+                throw new IllegalStateException("Parameter Value Provider with name <" + definition.getName() + "> is not valid: " + validationResults);
             }
 
-            return parameterProvider;
+            return parameterValueProvider;
         } catch (final Exception e) {
-            throw new IllegalStateException("Could not create Parameter Provider " + definition.getName() + " of type " + definition.getType(), e);
+            throw new IllegalStateException("Could not create Parameter Value Provider " + definition.getName() + " of type " + definition.getType(), e);
+        } finally {
+            Thread.currentThread().setContextClassLoader(initialClassLoader);
         }
     }
 
@@ -254,7 +266,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             final String propertyValue = property.getValue();
 
             final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
-            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList(), VariableImpact.NEVER_IMPACTED);
 
             explicitlyConfiguredPropertyMap.put(descriptor, propertyConfiguration);
         }
@@ -262,7 +274,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final Map<PropertyDescriptor, PropertyConfiguration> fullPropertyMap = buildConfiguredAndDefaultPropertyMap(component, explicitlyConfiguredPropertyMap);
 
         final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap,
-            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null);
+            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null, true);
 
         final Collection<ValidationResult> validationResults = component.validate(validationContext);
         return validationResults.stream()
@@ -288,7 +300,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-
     private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
         final VersionedProcessGroup group = dataflowDefinition.getFlowSnapshot().getFlowContents();
         final Set<BundleCoordinate> requiredBundles = gatherRequiredBundles(group);
@@ -302,8 +313,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             requiredBundles.add(coordinate);
         }
 
-        for (final ParameterProviderDefinition parameterProviderDefinition : dataflowDefinition.getParameterProviderDefinitions()) {
-            final BundleCoordinate coordinate = parseBundleCoordinate(parameterProviderDefinition);
+        for (final ParameterValueProviderDefinition parameterValueProviderDefinition : dataflowDefinition.getParameterValueProviderDefinitions()) {
+            final BundleCoordinate coordinate = parseBundleCoordinate(parameterValueProviderDefinition);
             if (coordinate == null) {
                 continue;
             }
@@ -311,11 +322,12 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             requiredBundles.add(coordinate);
         }
 
+        final Set<BundleCoordinate> unavailableBundles = determineUnavailableBundles(requiredBundles);
         final ExecutorService executor = new FlowEngine(CONCURRENT_EXTENSION_DOWNLOADS, "Download Extensions", true);
-        final Future<Set<Bundle>> future = extensionRepository.fetch(requiredBundles, executor, CONCURRENT_EXTENSION_DOWNLOADS);
+        final Future<Set<Bundle>> future = extensionRepository.fetch(unavailableBundles, executor, CONCURRENT_EXTENSION_DOWNLOADS);
         executor.shutdown();
 
-        logger.info("Waiting for bundles to complete download...");
+        logger.info("Waiting for {} bundles to complete download...", unavailableBundles.size());
         final long downloadStart = System.currentTimeMillis();
         final Set<Bundle> downloadedBundles;
         try {
@@ -327,6 +339,26 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final long downloadMillis = System.currentTimeMillis() - downloadStart;
         logger.info("Successfully downloaded {} bundles in {} millis", downloadedBundles.size(), downloadMillis);
+    }
+
+    private Set<BundleCoordinate> determineUnavailableBundles(final Set<BundleCoordinate> coordinates) {
+        final Set<BundleCoordinate> unavailable = new HashSet<>();
+        determineUnavailableBundles(coordinates, unavailable);
+        return unavailable;
+    }
+
+    private void determineUnavailableBundles(final Set<BundleCoordinate> coordinates, final Set<BundleCoordinate> unavailable) {
+        for (final BundleCoordinate coordinate : coordinates) {
+            final Bundle bundle = extensionManager.getBundle(coordinate);
+            if (bundle == null) {
+                unavailable.add(coordinate);
+            } else {
+                final BundleCoordinate parentCoordinate = bundle.getBundleDetails().getDependencyCoordinate();
+                if (parentCoordinate != null) {
+                    determineUnavailableBundles(Collections.singleton(parentCoordinate), unavailable);
+                }
+            }
+        }
     }
 
     private Set<BundleCoordinate> gatherRequiredBundles(final VersionedProcessGroup group) {
@@ -344,7 +376,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.registry.flow.Bundle bundle) {
+    private BundleCoordinate toBundleCoordinate(final org.apache.nifi.flow.Bundle bundle) {
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
@@ -360,14 +392,14 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
     private ReportingTaskNode createReportingTask(final ReportingTaskDefinition taskDefinition) {
         final BundleCoordinate bundleCoordinate = determineBundleCoordinate(taskDefinition, "Reporting Task");
-        final ReportingTaskNode taskNode = flowManager.createReportingTask(taskDefinition.getType(), UUID.randomUUID().toString(), bundleCoordinate, Collections.emptySet(), true, true);
+        final ReportingTaskNode taskNode = flowManager.createReportingTask(taskDefinition.getType(), UUID.randomUUID().toString(), bundleCoordinate, Collections.emptySet(), true, true, null);
 
         final Map<String, String> properties = resolveProperties(taskDefinition.getPropertyValues(), taskNode.getComponent(), taskNode.getProperties().keySet());
         taskNode.setProperties(properties);
         taskNode.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
         taskNode.setSchedulingPeriod(taskDefinition.getSchedulingFrequency());
 
-        // Ensure that the Parameter Provider is valid.
+        // Ensure that the Parameter Value Provider is valid.
         final List<ValidationResult> validationResults = validate(taskNode.getComponent(), properties, taskNode.getIdentifier());
         if (!validationResults.isEmpty()) {
             throw new IllegalStateException("Reporting Task with name <" + taskNode.getName() + "> is not valid: " + validationResults);
@@ -415,7 +447,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         // Return map containing the desired names.
         return resolved;
     }
-
 
     private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String explicitCoordinates = extensionDefinition.getBundleCoordinates();
@@ -471,7 +502,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return new BundleCoordinate(splits[0], splits[1], splits[2]);
     }
 
-
     private String resolveExtensionClassName(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String specifiedType = extensionDefinition.getType();
         if (specifiedType.contains(".")) {
@@ -504,7 +534,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return possibleResolvedClassNames.iterator().next();
     }
 
-    private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final ParameterProvider parameterProvider) {
+    private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final ParameterValueProvider parameterValueProvider) {
         for (final ParameterContext context : parameterContextMap.values()) {
             final String contextName = context.getName();
             final Map<ParameterDescriptor, Parameter> parameters = context.getParameters();
@@ -512,8 +542,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             final Map<String, Parameter> updatedParameters = new HashMap<>();
             for (final Parameter parameter : parameters.values()) {
                 final String parameterName = parameter.getDescriptor().getName();
-                if (parameterProvider.isParameterDefined(contextName, parameterName)) {
-                    final String providedValue = parameterProvider.getParameterValue(contextName, parameterName);
+                if (parameterValueProvider.isParameterDefined(contextName, parameterName)) {
+                    final String providedValue = parameterValueProvider.getParameterValue(contextName, parameterName);
                     final Parameter updatedParameter = new Parameter(parameter.getDescriptor(), providedValue);
                     updatedParameters.put(parameterName, updatedParameter);
                 }
@@ -522,7 +552,6 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             context.setParameters(updatedParameters);
         }
     }
-
 
     private void registerParameterContext(final ParameterContextDefinition parameterContextDefinition, final Map<String, ParameterContext> parameterContextMap) {
         final String contextName = parameterContextDefinition.getName();
@@ -632,6 +661,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return counterRepository;
     }
 
+    @Override
+    public Duration getStatusTaskInterval() {
+        return statusTaskInterval;
+    }
+
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
@@ -645,6 +679,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ProvenanceRepository provenanceRepository = null;
         private ExtensionRepository extensionRepository = null;
         private CounterRepository counterRepository = null;
+        private String statusTaskInterval = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -706,8 +741,33 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
+        public Builder statusTaskInterval(final String statusTaskInterval) {
+            this.statusTaskInterval = statusTaskInterval;
+            return this;
+        }
+
         public StandardStatelessEngine build() {
             return new StandardStatelessEngine(this);
+        }
+    }
+
+    static Duration parseDuration(final String durationValue) {
+        if (durationValue == null || durationValue.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            final Long taskScheduleSeconds = FormatUtils.getTimeDuration(durationValue.trim(), TimeUnit.SECONDS);
+            final Duration taskScheduleDuration =  Duration.ofSeconds(taskScheduleSeconds);
+            if (taskScheduleDuration.toMillis() < 1000) {
+                logger.warn("Status task schedule period [{}] must be at least one second", durationValue);
+                throw new IllegalArgumentException("Status task schedule period is too small");
+            }
+
+            return taskScheduleDuration;
+        } catch (final IllegalArgumentException e) {
+            logger.warn("Encountered invalid status task schedule: <{}>. Will ignore this property.", durationValue);
+            return DEFAULT_STATUS_TASK_PERIOD;
         }
     }
 }

@@ -28,6 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.ArrayList;
@@ -50,9 +51,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
-            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
+            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_NAME_SECURITY_DESCRIPTION)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
@@ -61,19 +61,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .description("Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .required(true)
-            .defaultValue("dfs.core.windows.net")
+            .defaultValue(AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
-            .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
-
-    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.PROP_SAS_TOKEN)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
@@ -86,41 +75,17 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-tenant-id")
-            .displayName("Service Principal Tenant ID")
-            .description("Tenant ID of the Azure Active Directory hosting the Service Principal. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-client-id")
-            .displayName("Service Principal Client ID")
-            .description("Client ID (or Application ID) of the Client/Application having the Service Principal. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .name("service-principal-client-secret")
-            .displayName("Service Principal Client Secret")
-            .description("Password of the Client/Application. The property is required when Service Principal authentication is used.")
-            .sensitive(true)
-            .required(false)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            ACCOUNT_KEY,
-            SAS_TOKEN,
+            AzureStorageUtils.ACCOUNT_KEY,
+            AzureStorageUtils.PROP_SAS_TOKEN,
             USE_MANAGED_IDENTITY,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
@@ -138,8 +103,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(ACCOUNT_KEY).getValue());
-        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(SAS_TOKEN).getValue());
+        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue());
+        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).getValue());
         boolean useManagedIdentitySet = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
 
         boolean servicePrincipalTenantIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue());
@@ -196,8 +161,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
         setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
-        setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
-        setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
         setValue(credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);

@@ -293,10 +293,11 @@ NfRegistryApi.prototype = {
      * @param {string} name  The name of the bucket.
      * @returns {*}
      */
-    createBucket: function (name, allowPublicRead) {
+    createBucket: function (name, description, allowPublicRead) {
         var self = this;
         return this.http.post('../nifi-registry-api/buckets', {
             'name': name,
+            'description': description,
             'allowPublicRead': allowPublicRead,
             'revision': {
                 'version': 0
@@ -846,7 +847,7 @@ NfRegistryApi.prototype = {
                 }
                 return jwt;
             }),
-            catchError(function (error) {
+            catchError(function () {
                 self.dialogService.openConfirm({
                     title: 'Error',
                     message: 'Please contact your System Administrator.',
@@ -875,7 +876,7 @@ NfRegistryApi.prototype = {
             map(function (response) {
                 return response;
             }),
-            catchError(function (error) {
+            catchError(function () {
                 self.dialogService.openConfirm({
                     title: 'Error',
                     message: 'Please contact your System Administrator.',
@@ -910,12 +911,12 @@ NfRegistryApi.prototype = {
             map(function (jwt) {
                 return jwtHandler(jwt);
             }),
-            catchError(function (error) {
+            catchError(function () {
                 return self.http.post(config.urls.oidc, null, {responseType: 'text', withCredentials: 'true'}).pipe(
                     map(function (jwt) {
                         return jwtHandler(jwt);
                     }),
-                    catchError(function (error) {
+                    catchError(function () {
                         return of('');
                     })
                 );
@@ -974,12 +975,12 @@ NfRegistryApi.prototype = {
      *
      * @returns {*}
      */
-    getRegistryConfig: function (action, resource) {
+    getRegistryConfig: function () {
         return this.http.get('../nifi-registry-api/config').pipe(
             map(function (response) {
                 return response;
             }),
-            catchError(function (error) {
+            catchError(function () {
                 // If failed, return an empty object.
                 return of({});
             })

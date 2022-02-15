@@ -21,7 +21,7 @@ import { Component } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialog } from '@angular/material';
+import { MatDialog } from '@angular/material/dialog';
 import NfRegistryAddPolicyToBucket from 'components/administration/workflow/dialogs/add-policy-to-bucket/nf-registry-add-policy-to-bucket';
 import NfRegistryEditBucketPolicy from 'components/administration/workflow/dialogs/edit-bucket-policy/nf-registry-edit-bucket-policy';
 import { switchMap } from 'rxjs/operators';
@@ -63,6 +63,7 @@ function NfRegistryManageBucket(nfRegistryApi, nfRegistryService, tdDataTableSer
     ];
     this.userPermsSearchTerms = [];
     this.bucketname = '';
+    this.description = '';
     this.allowBundleRedeploy = false;
     this.allowPublicRead = false;
     this.bucketPolicies = [];
@@ -108,6 +109,7 @@ NfRegistryManageBucket.prototype = {
                     var bucket = response[0];
                     self.nfRegistryService.bucket = bucket;
                     self.bucketname = bucket.name;
+                    self.description = bucket.description;
                     self.allowBundleRedeploy = bucket.allowBundleRedeploy;
                     self.allowPublicRead = bucket.allowPublicRead;
                     if (!self.nfRegistryService.currentUser.anonymous) {
@@ -128,7 +130,7 @@ NfRegistryManageBucket.prototype = {
                                     });
                                 }
                             });
-                            self.sortBuckets(self.bucketPoliciesColumns.find(bucketPoliciesColumn => bucketPoliciesColumn.active === true));
+                            self.sortBuckets(self.bucketPoliciesColumns.find((bucketPoliciesColumn) => bucketPoliciesColumn.active === true));
                         }
                     }
                 } else if (response[0].status === 404) {
@@ -168,6 +170,7 @@ NfRegistryManageBucket.prototype = {
                 .subscribe(function (response) {
                     self.nfRegistryService.bucket = response;
                     self.bucketname = response.name;
+                    self.description = response.description;
                     self.allowBundleRedeploy = response.allowBundleRedeploy;
                     self.allowPublicRead = response.allowPublicRead;
 
@@ -208,6 +211,7 @@ NfRegistryManageBucket.prototype = {
                 .subscribe(function (response) {
                     self.nfRegistryService.bucket = response;
                     self.bucketname = response.name;
+                    self.description = response.description;
                     self.allowBundleRedeploy = response.allowBundleRedeploy;
                     self.allowPublicRead = response.allowPublicRead;
 
@@ -354,9 +358,15 @@ NfRegistryManageBucket.prototype = {
                                 policy.userGroups = policy.userGroups.filter(function (group) {
                                     return (group.identity !== userOrGroup.identity);
                                 });
-                                self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                                    policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                                    function (response) {
+                                self.nfRegistryApi.putPolicyActionResource(
+                                    policy.identifier,
+                                    policy.action,
+                                    policy.resource,
+                                    policy.users,
+                                    policy.userGroups,
+                                    policy.revision
+                                ).subscribe(
+                                    function () {
                                         // policy removed!!!...now update the view
                                         self.nfRegistryApi.getPolicies().subscribe(function (response) {
                                             self.userPerms = {};
@@ -405,13 +415,15 @@ NfRegistryManageBucket.prototype = {
     /**
      * Update bucket name.
      *
-     * @param username
+     * @param bucketname        The new bucket name. Must be unique otherwise an error will be shown.
+     * @param description       The new bucket description
      */
-    updateBucketName: function (bucketname) {
+    updateBucketNameAndDescription: function (bucketname, description) {
         var self = this;
         this.nfRegistryApi.updateBucket({
             'identifier': this.nfRegistryService.bucket.identifier,
             'name': bucketname,
+            'description': description,
             'revision': this.nfRegistryService.bucket.revision
         }).subscribe(function (response) {
             if (!response.status || response.status === 200) {
@@ -421,11 +433,12 @@ NfRegistryManageBucket.prototype = {
                     return self.nfRegistryService.bucket.identifier === bucket.identifier;
                 }).forEach(function (bucket) {
                     bucket.name = response.name;
+                    bucket.description = response.description;
                     bucket.revision = response.revision;
                 });
                 self.snackBarService.openCoaster({
                     title: 'Success',
-                    message: 'This bucket name has been updated.',
+                    message: 'This bucket name and description have been updated.',
                     verticalPosition: 'bottom',
                     horizontalPosition: 'right',
                     icon: 'fa fa-check-circle-o',
@@ -434,6 +447,7 @@ NfRegistryManageBucket.prototype = {
                 });
             } else if (response.status === 409) {
                 self.bucketname = self.nfRegistryService.bucket.name;
+                self.description = self.nfRegistryService.bucket.description;
                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
 
@@ -456,12 +470,13 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
@@ -515,12 +530,13 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {
@@ -574,12 +590,13 @@ NfRegistryManageBucket.prototype = {
                     message: response.error,
                     acceptButton: 'Ok',
                     acceptButtonColor: 'fds-warn'
-                }).afterClosed().subscribe(function (accept) {
+                }).afterClosed().subscribe(function () {
                     self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier)
                         .subscribe(function (response) {
                             if (!response.status || response.status === 200) {
                                 self.nfRegistryService.bucket = response;
                                 self.bucketname = self.nfRegistryService.bucket.name;
+                                self.description = self.nfRegistryService.bucket.description;
                                 self.allowBundleRedeploy = self.nfRegistryService.bucket.allowBundleRedeploy;
                                 self.allowPublicRead = self.nfRegistryService.bucket.allowPublicRead;
                             } else if (response.status === 404) {

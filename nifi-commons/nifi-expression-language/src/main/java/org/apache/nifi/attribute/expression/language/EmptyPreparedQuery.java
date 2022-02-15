@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.Collections;
+import java.util.Set;
 
 public class EmptyPreparedQuery implements PreparedQuery {
 
@@ -41,5 +43,10 @@ public class EmptyPreparedQuery implements PreparedQuery {
     @Override
     public VariableImpact getVariableImpact() {
         return VariableImpact.NEVER_IMPACTED;
+    }
+
+    @Override
+    public Set<String> getExplicitlyReferencedAttributes() {
+        return Collections.emptySet();
     }
 }

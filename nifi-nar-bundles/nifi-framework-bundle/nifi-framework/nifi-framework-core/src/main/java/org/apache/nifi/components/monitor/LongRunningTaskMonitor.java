@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.components.monitor;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ThreadDetails;
@@ -79,12 +78,10 @@ public class LongRunningTaskMonitor implements Runnable {
         getLogger().info("Active threads: {}; Long running threads: {}; time to check: {} nanos", activeThreadCount, longRunningThreadCount, NumberFormat.getInstance().format(nanos));
     }
 
-    @VisibleForTesting
     protected Logger getLogger() {
         return LOGGER;
     }
 
-    @VisibleForTesting
     protected ThreadDetails captureThreadDetails() {
         return ThreadDetails.capture();
     }

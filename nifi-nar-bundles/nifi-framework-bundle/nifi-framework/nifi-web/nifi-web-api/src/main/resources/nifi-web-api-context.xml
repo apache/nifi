@@ -251,6 +251,7 @@
         <property name="reportingTaskProvider" ref="reportingTaskProvider"/>
         <property name="componentStateDAO" ref="componentStateDAO"/>
         <property name="reloadComponent" ref="reloadComponent" />
+        <property name="flowController" ref="flowController" />
     </bean>
     <bean id="componentStateDAO" class="org.apache.nifi.web.dao.impl.StandardComponentStateDAO">
         <property name="stateManagerProvider" ref="stateManagerProvider"/>
@@ -271,6 +272,7 @@
     </bean>
     <bean id="parameterContextDAO" class="org.apache.nifi.web.dao.impl.StandardParameterContextDAO">
         <property name="flowController" ref="flowController" />
+        <property name="authorizer" ref="authorizer" />
     </bean>
     <bean id="controllerSearchService" class="org.apache.nifi.web.controller.ControllerSearchService">
         <property name="flowController" ref="flowController" />
@@ -288,6 +290,7 @@
         <property name="matcherForLabel" ref="matcherForLabel" />
         <property name="matcherForControllerServiceNode" ref="matcherForControllerServiceNode" />
     </bean>
+    <bean id="extensionManifestParser" class="org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser" />
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
@@ -296,6 +299,7 @@
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="searchQueryParser" ref="searchQueryParser"/>
         <property name="controllerSearchService" ref="controllerSearchService"/>
+        <property name="extensionManifestParser" ref="extensionManifestParser" />
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
         <property name="controllerFacade" ref="controllerFacade"/>
@@ -582,8 +586,9 @@
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>
         <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
-        <property name="jwtService" ref="jwtService"/>
-        <property name="otpService" ref="otpService"/>
+        <property name="jwtLogoutListener" ref="jwtLogoutListener"/>
+        <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
+        <property name="bearerTokenResolver" ref="bearerTokenResolver"/>
         <property name="kerberosService" ref="kerberosService"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
@@ -599,9 +604,9 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
     <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
-        <property name="jwtService" ref="jwtService"/>
         <property name="oidcService" ref="oidcService"/>
         <property name="properties" ref="nifiProperties"/>
+        <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
     </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>

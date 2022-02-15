@@ -14,12 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.extension.component;
+package org.apache.nifi.extension;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.registry.extension.bundle.BundleType;
-import org.apache.nifi.registry.extension.component.manifest.ExtensionType;
 
 import java.util.Collection;
 import java.util.Collections;

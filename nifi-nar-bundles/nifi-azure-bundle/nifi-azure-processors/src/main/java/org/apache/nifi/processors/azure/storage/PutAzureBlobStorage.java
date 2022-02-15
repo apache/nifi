@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.OperationContext;
 import org.apache.commons.codec.DecoderException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -194,7 +193,6 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     }
 
-    @VisibleForTesting
     void uploadBlob(CloudBlob blob, OperationContext operationContext, BlobRequestOptions blobRequestOptions, InputStream in) throws StorageException, IOException {
         blob.upload(in, -1, null, blobRequestOptions, operationContext);
     }

@@ -27,8 +27,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.codehaus.jackson.JsonNode;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -42,9 +42,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestInferJsonSchemaAccessStrategy {
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -55,7 +55,7 @@ public class TestInferJsonSchemaAccessStrategy {
     private final SchemaInferenceEngine<JsonNode> noTimestampInference = new JsonSchemaInference(new TimeValueInference("yyyy-MM-dd", "HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 
     @Test
-    @Ignore
+    @Disabled
     public void testPerformanceOfSchemaInferenceWithTimestamp() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
         final byte[] data = Files.readAllBytes(file.toPath());
@@ -83,7 +83,7 @@ public class TestInferJsonSchemaAccessStrategy {
     }
 
     @Test
-    @Ignore
+    @Disabled
     public void testPerformanceOfSchemaInferenceWithoutTimestamp() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
         final byte[] data = Files.readAllBytes(file.toPath());

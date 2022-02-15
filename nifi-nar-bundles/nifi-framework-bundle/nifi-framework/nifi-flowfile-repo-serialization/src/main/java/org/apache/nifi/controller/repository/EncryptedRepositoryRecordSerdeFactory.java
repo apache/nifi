@@ -17,35 +17,17 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.io.IOException;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.repository.schema.FieldCache;
-import org.apache.nifi.security.kms.CryptoUtils;
-import org.apache.nifi.security.kms.EncryptionException;
-import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.wali.SerDe;
 
 public class EncryptedRepositoryRecordSerdeFactory extends StandardRepositoryRecordSerdeFactory {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedRepositoryRecordSerdeFactory.class);
+    private final NiFiProperties niFiProperties;
 
-    private FlowFileRepositoryEncryptionConfiguration ffrec;
-
-    public EncryptedRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager, final NiFiProperties niFiProperties, final FieldCache fieldCache) throws EncryptionException {
+    public EncryptedRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager, final NiFiProperties niFiProperties, final FieldCache fieldCache) {
         super(claimManager, fieldCache);
-
-        // Retrieve encryption configuration
-        FlowFileRepositoryEncryptionConfiguration ffrec = new FlowFileRepositoryEncryptionConfiguration(niFiProperties);
-
-        // The configuration should be validated immediately rather than waiting until attempting to deserialize records (initial recovery at startup)
-        if (!CryptoUtils.isValidRepositoryEncryptionConfiguration(ffrec)) {
-            logger.error("The flowfile repository encryption configuration is not valid (see above). Shutting down...");
-            throw new EncryptionException("The flowfile repository encryption configuration is not valid");
-        }
-
-        this.ffrec = ffrec;
+        this.niFiProperties = niFiProperties;
     }
 
     @Override
@@ -54,13 +36,7 @@ public class EncryptedRepositoryRecordSerdeFactory extends StandardRepositoryRec
         if (encodingName == null || EncryptedSchemaRepositoryRecordSerde.class.getName().equals(encodingName)) {
             // Delegate the creation of the wrapped serde to the standard factory
             final SerDe<SerializedRepositoryRecord> serde = super.createSerDe(null);
-
-            // Retrieve encryption configuration
-            try {
-                return new EncryptedSchemaRepositoryRecordSerde(serde, ffrec);
-            } catch (IOException e) {
-                throw new IllegalArgumentException("Could not create Deserializer for Repository Records because the encoding " + encodingName + " requires NiFi properties which could not be loaded");
-            }
+            return new EncryptedSchemaRepositoryRecordSerde(serde, niFiProperties);
         }
 
         // If not encrypted, delegate to the standard factory

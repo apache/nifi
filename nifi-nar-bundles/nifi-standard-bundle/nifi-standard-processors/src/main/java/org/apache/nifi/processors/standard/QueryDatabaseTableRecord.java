@@ -125,6 +125,7 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
         pds.add(SQL_QUERY);
         pds.add(RECORD_WRITER_FACTORY);
         pds.add(MAX_VALUE_COLUMN_NAMES);
+        pds.add(INITIAL_LOAD_STRATEGY);
         pds.add(QUERY_TIMEOUT);
         pds.add(FETCH_SIZE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
@@ -144,7 +145,7 @@ public class QueryDatabaseTableRecord extends AbstractQueryDatabaseTable {
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
 
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
                 .convertNames(convertNamesForAvro)

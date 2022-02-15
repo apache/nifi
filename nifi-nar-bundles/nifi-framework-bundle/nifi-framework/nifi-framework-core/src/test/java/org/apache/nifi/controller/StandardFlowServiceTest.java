@@ -24,6 +24,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
@@ -72,6 +73,7 @@ public class StandardFlowServiceTest {
     private RevisionManager revisionManager;
     private VariableRegistry variableRegistry;
     private ExtensionManager extensionManager;
+    private StatusHistoryRepository statusHistoryRepository;
 
     @BeforeClass
     public static void setupSuite() {
@@ -91,8 +93,9 @@ public class StandardFlowServiceTest {
         revisionManager = mock(RevisionManager.class);
         extensionManager = mock(ExtensionDiscoveringManager.class);
         flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
-                                        new VolatileBulletinRepository(), variableRegistry, mock(FlowRegistryClient.class), extensionManager);
+                                        new VolatileBulletinRepository(), variableRegistry, mock(FlowRegistryClient.class), extensionManager, statusHistoryRepository);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
+        statusHistoryRepository = mock(StatusHistoryRepository.class);
     }
 
     @Test

@@ -31,11 +31,11 @@ import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleInfo;
 import org.apache.nifi.registry.extension.bundle.BundleVersionDependency;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
-import org.apache.nifi.registry.extension.component.ExtensionMetadata;
-import org.apache.nifi.registry.extension.component.TagCount;
-import org.apache.nifi.registry.extension.component.manifest.Extension;
-import org.apache.nifi.registry.extension.component.manifest.ProvidedServiceAPI;
-import org.apache.nifi.registry.extension.component.manifest.Restriction;
+import org.apache.nifi.extension.ExtensionMetadata;
+import org.apache.nifi.extension.TagCount;
+import org.apache.nifi.extension.manifest.Extension;
+import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
+import org.apache.nifi.extension.manifest.Restriction;
 import org.apache.nifi.registry.serialization.SerializationException;
 import org.apache.nifi.registry.serialization.Serializer;
 
@@ -210,12 +210,10 @@ public class ExtensionMappings {
             entity.setProvidedServiceApis(Collections.emptySet());
         }
 
-        if (extension.getRestricted() != null) {
-            if (extension.getRestricted().getRestrictions() != null) {
-                entity.setRestrictions(extension.getRestricted().getRestrictions().stream()
-                        .map(r -> map(r))
-                        .collect(Collectors.toSet()));
-            }
+        if (extension.getRestricted() != null && extension.getRestricted().getRestrictions() != null) {
+            entity.setRestrictions(extension.getRestricted().getRestrictions().stream()
+                    .map(r -> map(r))
+                    .collect(Collectors.toSet()));
         } else {
             entity.setRestrictions(Collections.emptySet());
         }

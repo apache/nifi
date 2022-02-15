@@ -17,20 +17,17 @@
     <parent>
         <artifactId>nifi-rules-action-handler-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>nifi-rules-action-handler-service</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <spring.version>5.3.8</spring.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-rules-engine-service-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -39,17 +36,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-sink-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-service-api</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -59,7 +56,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.mvel</groupId>
@@ -69,7 +66,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-expression</artifactId>
-            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jeasy</groupId>
@@ -82,6 +78,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-
 </project>

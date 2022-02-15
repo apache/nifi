@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import com.google.common.collect.Lists;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 
@@ -75,7 +74,7 @@ public final class BulletinMerger {
             }
         }
 
-        final List<BulletinEntity> entities = Lists.newArrayList();
+        final List<BulletinEntity> entities = new ArrayList<>();
 
         // group by message when permissions allow
         final Map<String,List<BulletinEntity>> groupingEntities = bulletinEntities.stream()

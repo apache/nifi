@@ -455,7 +455,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless|set-sensitive-properties-key|set-single-user-credentials)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|status-history|env|stateless|set-sensitive-properties-key|set-single-user-credentials)
         main "$@"
         ;;
 
@@ -465,6 +465,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless|set-sensitive-properties-key|set-single-user-credentials}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|status-history|install|stateless|set-sensitive-properties-key|set-single-user-credentials}"
         ;;
 esac

@@ -34,11 +34,9 @@ import org.apache.nifi.provenance.store.iterator.EventIterator;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,10 +52,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPartitionedWriteAheadEventStore {
     private static final RecordWriterFactory writerFactory = (file, idGen, compress, createToc) -> RecordWriters.newSchemaRecordWriter(file, idGen, compress, createToc);
@@ -65,17 +63,13 @@ public class TestPartitionedWriteAheadEventStore {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
-    @Rule
-    public TestName testName = new TestName();
-
-    @Before
+    @BeforeEach
     public void resetIds() {
         idGenerator.set(0L);
     }
 
-
     @Test
-    @Ignore
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testPerformanceOfAccessingEvents() throws Exception {
         final RecordWriterFactory recordWriterFactory = (file, idGenerator, compressed, createToc) -> {
             final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
@@ -465,8 +459,8 @@ public class TestPartitionedWriteAheadEventStore {
 
     private RepositoryConfiguration createConfig(final int numStorageDirs) {
         final RepositoryConfiguration config = new RepositoryConfiguration();
-        final String unitTestName = testName.getMethodName();
-        final File storageDir = new File("target/storage/" + unitTestName + "/" + UUID.randomUUID().toString());
+        final String unitTestName = getClass().getSimpleName();
+        final File storageDir = new File("target/storage/" + unitTestName + "/" + UUID.randomUUID());
 
         for (int i = 1; i <= numStorageDirs; i++) {
             config.addStorageDirectory(String.valueOf(i), new File(storageDir, String.valueOf(i)));

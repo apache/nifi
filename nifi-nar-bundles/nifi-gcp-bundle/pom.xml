@@ -19,15 +19,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-gcp-bundle</artifactId>
-    <version>1.15.0-SNAPSHOT</version>
+    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
-        <google.cloud.sdk.version>0.125.0</google.cloud.sdk.version>
+        <google.cloud.sdk.version>0.162.0</google.cloud.sdk.version>
     </properties>
 
     <dependencyManagement>
@@ -39,6 +39,27 @@
                 <version>${google.cloud.sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- Override Jackson versions -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.0.1-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

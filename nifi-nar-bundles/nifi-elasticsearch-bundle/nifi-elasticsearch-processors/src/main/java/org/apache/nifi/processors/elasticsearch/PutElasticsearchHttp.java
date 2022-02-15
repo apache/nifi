@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -33,6 +32,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -62,7 +62,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
+@Deprecated
+@DeprecationNotice(classNames = {"org.apache.nifi.processors.elasticsearch.PutElasticsearchJson"},
+        reason = "This processor is deprecated and may be removed in future releases.")
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @EventDriven
 @SupportsBatching
@@ -142,8 +144,6 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
-
-    private static final ObjectMapper mapper = new ObjectMapper();
 
     static {
         final Set<Relationship> _rels = new HashSet<>();

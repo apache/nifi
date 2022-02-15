@@ -20,8 +20,10 @@ import static org.junit.Assert.assertEquals;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -78,6 +80,11 @@ public class ITPutGetDeleteGetDynamoDBTest extends ITAbstractDynamoDBTest {
             System.out.println(flowFile.getAttributes());
             assertEquals(document, new String(flowFile.toByteArray()));
         }
+
+        final GetDynamoDB getDynamoDB = (GetDynamoDB) getRunner.getProcessor();
+        final List<ConfigVerificationResult> results = getDynamoDB.verify(getRunner.getProcessContext(), getRunner.getLogger(), Collections.emptyMap());
+        assertEquals(2, results.size());
+        assertEquals("Successfully retrieved 1 items, including 1 JSON documents, from DynamoDB", results.get(1).getExplanation());
 
         final TestRunner deleteRunner = TestRunners.newTestRunner(DeleteDynamoDB.class);
 

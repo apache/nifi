@@ -34,6 +34,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,7 +58,7 @@ public class TestVolatileContentRepository {
         addProps.put(VolatileContentRepository.MAX_SIZE_PROPERTY, "10 MB");
         final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
         final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
-        contentRepo.initialize(claimManager);
+        contentRepo.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         final ContentClaim claim = contentRepo.create(true);
         final OutputStream out = contentRepo.write(claim);
 
@@ -112,7 +113,7 @@ public class TestVolatileContentRepository {
         final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
         final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
 
-        contentRepo.initialize(claimManager);
+        contentRepo.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
 
         final byte[] oneK = new byte[1024];
         Arrays.fill(oneK, (byte) 55);
@@ -157,7 +158,7 @@ public class TestVolatileContentRepository {
         addProps.put(VolatileContentRepository.MAX_SIZE_PROPERTY, "11 MB");
         final NiFiProperties nifiProps = NiFiProperties.createBasicNiFiProperties(null, addProps);
         final VolatileContentRepository contentRepo = new VolatileContentRepository(nifiProps);
-        contentRepo.initialize(claimManager);
+        contentRepo.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         final ContentClaim claim = contentRepo.create(true);
 
         final OutputStream out = contentRepo.write(claim);

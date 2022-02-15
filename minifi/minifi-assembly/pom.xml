@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -68,6 +68,7 @@ limitations under the License.
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -124,13 +125,13 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-framework-nar</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-server-nar</artifactId>
-            <version>1.15.0-SNAPSHOT</version>
+            <version>1.16.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -147,6 +148,11 @@ limitations under the License.
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-update-attribute-nar</artifactId>
             <type>nar</type>
+        </dependency>
+        <dependency> <!-- handling this explicitly  Must be in root lib -->
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <!-- NiFi Assembly Dependencies-->
@@ -199,6 +205,10 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
         </dependency>
     </dependencies>
 

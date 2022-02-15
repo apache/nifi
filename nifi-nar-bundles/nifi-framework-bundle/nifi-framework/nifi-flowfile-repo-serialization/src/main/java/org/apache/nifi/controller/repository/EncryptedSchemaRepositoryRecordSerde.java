@@ -23,19 +23,19 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.security.KeyManagementException;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.kms.EncryptionException;
+import java.util.Objects;
+
+import org.apache.nifi.repository.encryption.AesGcmByteArrayRepositoryEncryptor;
+import org.apache.nifi.repository.encryption.RepositoryEncryptor;
+import org.apache.nifi.repository.encryption.configuration.EncryptedRepositoryType;
+import org.apache.nifi.repository.encryption.configuration.EncryptionMetadataHeader;
+import org.apache.nifi.repository.encryption.configuration.kms.RepositoryKeyProviderFactory;
+import org.apache.nifi.repository.encryption.configuration.kms.StandardRepositoryKeyProviderFactory;
 import org.apache.nifi.security.kms.KeyProvider;
-import org.apache.nifi.security.repository.RepositoryEncryptorUtils;
-import org.apache.nifi.security.repository.block.RepositoryObjectBlockEncryptor;
-import org.apache.nifi.security.repository.block.aes.RepositoryObjectAESGCMEncryptor;
-import org.apache.nifi.security.repository.config.FlowFileRepositoryEncryptionConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
@@ -49,73 +49,27 @@ import org.wali.UpdateType;
  * Repository Properties</a>.
  */
 public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
-    private static final Logger logger = LoggerFactory.getLogger(EncryptedSchemaRepositoryRecordSerde.class);
     private final SerDe<SerializedRepositoryRecord> wrappedSerDe;
-    private final KeyProvider keyProvider;
-    private String activeKeyId;
-
-    /**
-     * Creates an instance of the serializer/deserializer which wraps another SerDe instance but transparently encrypts/decrypts the data before/after writing/reading from the streams.
-     *
-     * @param wrappedSerDe                              the wrapped SerDe instance which performs the object <-> bytes (de)serialization
-     * @param flowFileRepositoryEncryptionConfiguration the configuration values necessary to encrypt/decrypt the data
-     * @throws IOException if there is a problem retrieving the configuration values
-     */
-    public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final FlowFileRepositoryEncryptionConfiguration
-            flowFileRepositoryEncryptionConfiguration) throws IOException {
-        if (wrappedSerDe == null) {
-            throw new IllegalArgumentException("This implementation must be provided another serde instance to function");
-        }
-        this.wrappedSerDe = wrappedSerDe;
-
-        // Initialize the encryption-specific fields
-        this.keyProvider = RepositoryEncryptorUtils.validateAndBuildRepositoryKeyProvider(flowFileRepositoryEncryptionConfiguration);
-
-        // Set active key ID
-        setActiveKeyId(flowFileRepositoryEncryptionConfiguration.getEncryptionKeyId());
-    }
+    private final RepositoryEncryptor<byte[], byte[]> encryptor;
+    private final String keyId;
 
     /**
      * Creates an instance of the serializer/deserializer which wraps another SerDe instance but transparently encrypts/decrypts the data before/after writing/reading from the streams.
      *
      * @param wrappedSerDe   the wrapped SerDe instance which performs the object <-> bytes (de)serialization
      * @param niFiProperties the configuration values necessary to encrypt/decrypt the data
-     * @throws IOException if there is a problem retrieving the configuration values
      */
-    public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final NiFiProperties niFiProperties) throws IOException {
-        this(wrappedSerDe, new FlowFileRepositoryEncryptionConfiguration(niFiProperties));
-    }
-
-    /**
-     * Returns the active key ID used for encryption.
-     *
-     * @return the active key ID
-     */
-    String getActiveKeyId() {
-        return activeKeyId;
-    }
-
-    /**
-     * Sets the active key ID used for encryption.
-     *
-     * @param activeKeyId the key ID to use
-     */
-    public void setActiveKeyId(String activeKeyId) {
-        // Key must not be blank and key provider must make key available
-        if (StringUtils.isNotBlank(activeKeyId) && keyProvider.keyExists(activeKeyId)) {
-            this.activeKeyId = activeKeyId;
-            logger.debug("Set active key ID to '" + activeKeyId + "'");
-        } else {
-            logger.warn("Attempted to set active key ID to '" + activeKeyId + "' but that is not a valid or available key ID. Keeping active key ID as '" + this.activeKeyId + "'");
-        }
+    public EncryptedSchemaRepositoryRecordSerde(final SerDe<SerializedRepositoryRecord> wrappedSerDe, final NiFiProperties niFiProperties) {
+        this.wrappedSerDe = Objects.requireNonNull(wrappedSerDe, "Wrapped SerDe required");
+        final RepositoryKeyProviderFactory repositoryKeyProviderFactory = new StandardRepositoryKeyProviderFactory();
+        final KeyProvider keyProvider = repositoryKeyProviderFactory.getKeyProvider(EncryptedRepositoryType.FLOWFILE, niFiProperties);
+        this.encryptor = new AesGcmByteArrayRepositoryEncryptor(keyProvider, EncryptionMetadataHeader.FLOWFILE);
+        this.keyId = niFiProperties.getFlowFileRepoEncryptionKeyId();
     }
 
     @Override
     public void writeHeader(final DataOutputStream out) throws IOException {
         wrappedSerDe.writeHeader(out);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Wrote schema header ({} bytes) to output stream", out.size());
-        }
     }
 
     @Override
@@ -138,7 +92,9 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      */
     @Deprecated
     @Override
-    public void serializeEdit(SerializedRepositoryRecord previousRecordState, SerializedRepositoryRecord newRecordState, DataOutputStream out) throws IOException {
+    public void serializeEdit(final SerializedRepositoryRecord previousRecordState,
+                              final SerializedRepositoryRecord newRecordState,
+                              final DataOutputStream out) throws IOException {
         serializeRecord(newRecordState, out);
     }
 
@@ -152,54 +108,32 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
     @Override
     public void serializeRecord(final SerializedRepositoryRecord record, final DataOutputStream out) throws IOException {
         // Create BAOS wrapped in DOS to intercept the output
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        DataOutputStream tempDataStream = new DataOutputStream(byteArrayOutputStream);
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        final DataOutputStream tempDataStream = new DataOutputStream(byteArrayOutputStream);
 
         // Use the delegate to serialize the actual record and extract the output
-        String recordId = getRecordIdentifier(record).toString();
+        final String recordId = getRecordIdentifier(record).toString();
         wrappedSerDe.serializeRecord(record, tempDataStream);
         tempDataStream.flush();
-        byte[] plainSerializedBytes = byteArrayOutputStream.toByteArray();
-        logger.debug("Serialized flowfile record {} to temp stream with length {}", recordId, plainSerializedBytes.length);
+        final byte[] plainSerializedBytes = byteArrayOutputStream.toByteArray();
 
         // Encrypt the serialized byte[] to the real stream
         encryptToStream(plainSerializedBytes, recordId, out);
-        logger.debug("Encrypted serialized flowfile record {} to actual output stream", recordId);
     }
 
     /**
      * Encrypts the plain serialized bytes and writes them to the output stream. Precedes
-     * the cipher bytes with the plaintext
-     * {@link org.apache.nifi.security.repository.RepositoryObjectEncryptionMetadata} data
-     * to allow for on-demand deserialization and decryption.
+     * the cipher bytes with the plaintext to allow for on-demand deserialization and decryption.
      *
      * @param plainSerializedBytes the plain serialized bytes
      * @param recordId             the unique identifier for this record to be stored in the encryption metadata
      * @param out                  the output stream
      * @throws IOException if there is a problem writing to the stream
      */
-    private void encryptToStream(byte[] plainSerializedBytes, String recordId, DataOutputStream out) throws IOException {
-        try {
-            RepositoryObjectBlockEncryptor encryptor = new RepositoryObjectAESGCMEncryptor();
-            encryptor.initialize(keyProvider);
-            logger.debug("Initialized {} for flowfile record {}", encryptor.toString(), recordId);
-
-            byte[] cipherBytes = encryptor.encrypt(plainSerializedBytes, recordId, getActiveKeyId());
-            logger.debug("Encrypted {} bytes for flowfile record {}", cipherBytes.length, recordId);
-
-            // Maybe remove cipher bytes length because it's included in encryption metadata; deserialization might need to change?
-            out.writeInt(cipherBytes.length);
-            out.write(cipherBytes);
-            logger.debug("Wrote {} bytes (encrypted, including length) for flowfile record {} to output stream", cipherBytes.length + 4, recordId);
-        } catch (KeyManagementException | EncryptionException e) {
-            logger.error("Encountered an error encrypting & serializing flowfile record {} due to {}", recordId, e.getLocalizedMessage());
-            if (logger.isDebugEnabled()) {
-                logger.debug(e.getLocalizedMessage(), e);
-            }
-
-            // The calling method contract only throws IOException
-            throw new IOException("Encountered an error encrypting & serializing flowfile record " + recordId, e);
-        }
+    private void encryptToStream(final byte[] plainSerializedBytes, final String recordId, final DataOutputStream out) throws IOException {
+        final byte[] cipherBytes = encryptor.encrypt(plainSerializedBytes, recordId, keyId);
+        out.writeInt(cipherBytes.length);
+        out.write(cipherBytes);
     }
 
     /**
@@ -222,7 +156,9 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      */
     @Deprecated
     @Override
-    public SerializedRepositoryRecord deserializeEdit(DataInputStream in, Map<Object, SerializedRepositoryRecord> currentRecordStates, int version) throws IOException {
+    public SerializedRepositoryRecord deserializeEdit(final DataInputStream in,
+                                                      final Map<Object, SerializedRepositoryRecord> currentRecordStates,
+                                                      final int version) throws IOException {
         return deserializeRecord(in, version);
 
         // deserializeRecord may return a null if there is no more data. However, when we are deserializing
@@ -252,15 +188,12 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
         // Read the encrypted record bytes
         byte[] cipherBytes = new byte[encryptedRecordLength];
         StreamUtils.fillBuffer(in, cipherBytes);
-        logger.debug("Read {} bytes (encrypted, including length) from actual input stream", encryptedRecordLength + 4);
 
         // Decrypt the byte[]
-        DataInputStream wrappedInputStream = decryptToStream(cipherBytes);
+        final DataInputStream wrappedInputStream = decryptToStream(cipherBytes);
 
         // Deserialize the plain bytes using the delegate serde
-        final SerializedRepositoryRecord deserializedRecord = wrappedSerDe.deserializeRecord(wrappedInputStream, version);
-        logger.debug("Deserialized flowfile record {} from temp stream", getRecordIdentifier(deserializedRecord));
-        return deserializedRecord;
+        return wrappedSerDe.deserializeRecord(wrappedInputStream, version);
     }
 
     /**
@@ -269,26 +202,10 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @param cipherBytes the serialized, encrypted bytes
      * @return a stream wrapping the plain bytes
      */
-    private DataInputStream decryptToStream(byte[] cipherBytes) throws IOException {
-        try {
-            RepositoryObjectBlockEncryptor encryptor = new RepositoryObjectAESGCMEncryptor();
-            encryptor.initialize(keyProvider);
-            logger.debug("Initialized {} for decrypting flowfile record", encryptor.toString());
-
-            byte[] plainSerializedBytes = encryptor.decrypt(cipherBytes, "[pending record ID]");
-            logger.debug("Decrypted {} bytes for flowfile record", cipherBytes.length);
-
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(plainSerializedBytes);
-            return new DataInputStream(byteArrayInputStream);
-        } catch (KeyManagementException | EncryptionException e) {
-            logger.error("Encountered an error decrypting & deserializing flowfile record due to {}", e.getLocalizedMessage());
-            if (logger.isDebugEnabled()) {
-                logger.debug(e.getLocalizedMessage(), e);
-            }
-
-            // The calling method contract only throws IOException
-            throw new IOException("Encountered an error decrypting & deserializing flowfile record", e);
-        }
+    private DataInputStream decryptToStream(final byte[] cipherBytes) {
+        final byte[] plainSerializedBytes = encryptor.decrypt(cipherBytes, "[pending record ID]");
+        final ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(plainSerializedBytes);
+        return new DataInputStream(byteArrayInputStream);
     }
 
     /**
@@ -298,7 +215,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return identifier of record
      */
     @Override
-    public Object getRecordIdentifier(SerializedRepositoryRecord record) {
+    public Object getRecordIdentifier(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getRecordIdentifier(record);
     }
 
@@ -309,7 +226,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return update type
      */
     @Override
-    public UpdateType getUpdateType(SerializedRepositoryRecord record) {
+    public UpdateType getUpdateType(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getUpdateType(record);
     }
 
@@ -326,7 +243,7 @@ public class EncryptedSchemaRepositoryRecordSerde implements SerDe<SerializedRep
      * @return location
      */
     @Override
-    public String getLocation(SerializedRepositoryRecord record) {
+    public String getLocation(final SerializedRepositoryRecord record) {
         return wrappedSerDe.getLocation(record);
     }
 

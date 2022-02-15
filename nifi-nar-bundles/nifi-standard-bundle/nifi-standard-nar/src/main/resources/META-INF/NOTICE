@@ -1,5 +1,5 @@
 nifi-standard-nar
-Copyright 2014-2021 The Apache Software Foundation
+Copyright 2014-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -73,11 +73,6 @@ The following binary components are provided under the Apache Software License v
 
       This project contains annotations derived from JCIP-ANNOTATIONS
       Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
 
   (ASLv2) Joda Time
     The following NOTICE information applies:
@@ -272,7 +267,7 @@ Mozilla Public License v2.0
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:10.6 - http://www.saxonica.com/)
 
 *****************
 Public Domain

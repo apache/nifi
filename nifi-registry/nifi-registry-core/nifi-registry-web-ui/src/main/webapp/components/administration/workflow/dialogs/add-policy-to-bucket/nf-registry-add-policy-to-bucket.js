@@ -18,7 +18,7 @@
 import { Component, ViewChild } from '@angular/core';
 import NfRegistryService from 'services/nf-registry.service';
 import NfRegistryApi from 'services/nf-registry.api';
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material';
+import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { ActivatedRoute } from '@angular/router';
 import { TdDataTableService } from '@covalent/core/data-table';
 import { FdsSnackBarService } from '@nifi-fds/core';
@@ -66,7 +66,7 @@ NfRegistryAddPolicyToBucket.prototype = {
         var self = this;
         this.route.params
             .pipe(
-                switchMap(function (params) {
+                switchMap(function () {
                     return forkJoin(
                         self.nfRegistryApi.getUsers(),
                         self.nfRegistryApi.getUserGroups()
@@ -176,7 +176,7 @@ NfRegistryAddPolicyToBucket.prototype = {
                     }
 
                     self.nfRegistryApi.postPolicyActionResource(action, resource + '/' + self.nfRegistryService.bucket.identifier, users, groups).subscribe(
-                        function (response) {
+                        function () {
                             // policy created!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;
@@ -199,9 +199,15 @@ NfRegistryAddPolicyToBucket.prototype = {
                     } else {
                         policy.userGroups.push(self.userOrGroup);
                     }
-                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                        function (response) {
+                    self.nfRegistryApi.putPolicyActionResource(
+                        policy.identifier,
+                        policy.action,
+                        policy.resource,
+                        policy.users,
+                        policy.userGroups,
+                        policy.revision
+                    ).subscribe(
+                        function () {
                             // policy updated!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;
@@ -237,7 +243,7 @@ NfRegistryAddPolicyToBucket.prototype = {
                     }
 
                     self.nfRegistryApi.postPolicyActionResource(action, resource + '/' + self.nfRegistryService.bucket.identifier, users, groups).subscribe(
-                        function (response) {
+                        function () {
                             // policy created!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;
@@ -260,9 +266,15 @@ NfRegistryAddPolicyToBucket.prototype = {
                     } else {
                         policy.userGroups.push(self.userOrGroup);
                     }
-                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                        function (response) {
+                    self.nfRegistryApi.putPolicyActionResource(
+                        policy.identifier,
+                        policy.action,
+                        policy.resource,
+                        policy.users,
+                        policy.userGroups,
+                        policy.revision
+                    ).subscribe(
+                        function () {
                             // policy updated!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;
@@ -298,7 +310,7 @@ NfRegistryAddPolicyToBucket.prototype = {
                     }
 
                     self.nfRegistryApi.postPolicyActionResource(action, resource + '/' + self.nfRegistryService.bucket.identifier, users, groups).subscribe(
-                        function (response) {
+                        function () {
                             // policy created!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;
@@ -321,9 +333,15 @@ NfRegistryAddPolicyToBucket.prototype = {
                     } else {
                         policy.userGroups.push(self.userOrGroup);
                     }
-                    self.nfRegistryApi.putPolicyActionResource(policy.identifier, policy.action,
-                        policy.resource, policy.users, policy.userGroups, policy.revision).subscribe(
-                        function (response) {
+                    self.nfRegistryApi.putPolicyActionResource(
+                        policy.identifier,
+                        policy.action,
+                        policy.resource,
+                        policy.users,
+                        policy.userGroups,
+                        policy.revision
+                    ).subscribe(
+                        function () {
                             // policy updated!!!...now update the view
                             self.nfRegistryApi.getBucket(self.nfRegistryService.bucket.identifier).subscribe(function (response) {
                                 self.nfRegistryService.bucket = response;

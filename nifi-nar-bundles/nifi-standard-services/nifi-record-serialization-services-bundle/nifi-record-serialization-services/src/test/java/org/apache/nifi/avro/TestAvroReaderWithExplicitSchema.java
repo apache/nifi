@@ -23,7 +23,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,9 +33,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestAvroReaderWithExplicitSchema {
 
@@ -93,7 +94,7 @@ public class TestAvroReaderWithExplicitSchema {
         assertNull(record);
     }
 
-    @Test(expected = IOException.class)
+    @Test
     public void testAvroExplicitReaderWithEmbeddedSchemaFileDifferentFromExplicitSchema() throws Exception {
         File avroFileWithEmbeddedSchema = new File("src/test/resources/avro/avro_embed_schema.avro");
         FileInputStream fileInputStream = new FileInputStream(avroFileWithEmbeddedSchema);
@@ -101,7 +102,7 @@ public class TestAvroReaderWithExplicitSchema {
         RecordSchema recordSchema = new SimpleRecordSchema(dataSchema.toString(), AvroTypeUtil.AVRO_SCHEMA_FORMAT, null);
 
         // Causes IOException in constructor due to schemas not matching
-        new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema);
+        assertThrows(IOException.class, () -> new AvroReaderWithExplicitSchema(fileInputStream, recordSchema, dataSchema));
     }
 
     @Test

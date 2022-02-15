@@ -43,7 +43,6 @@
 
     <bean id="flowElection" class="org.apache.nifi.cluster.coordination.flow.PopularVoteFlowElectionFactoryBean">
         <property name="properties" ref="nifiProperties" />
-        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- Cluster Coordinator -->

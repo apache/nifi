@@ -17,3 +17,7 @@
 DockerBuild.sh
 DockerRun.sh
 DockerImage.txt
+
+target/
+*.iml
+pom.xml

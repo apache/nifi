@@ -16,10 +16,8 @@ package com.hortonworks.registries.schemaregistry.client;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Sets;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hortonworks.registries.auth.KerberosLogin;
 import com.hortonworks.registries.auth.Login;
 import com.hortonworks.registries.auth.NOOPLogin;
@@ -101,11 +99,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static com.hortonworks.registries.schemaregistry.client.SchemaRegistryClient.Configuration.DEFAULT_CONNECTION_TIMEOUT;
@@ -159,8 +158,8 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
     private static final String FILES_PATH = SCHEMA_REGISTRY_PATH + "/files/";
     private static final String SERIALIZERS_PATH = SCHEMA_REGISTRY_PATH + "/serdes/";
     private static final String REGISTY_CLIENT_JAAS_SECTION = "RegistryClient";
-    private static final Set<Class<?>> DESERIALIZER_INTERFACE_CLASSES = Sets.<Class<?>>newHashSet(SnapshotDeserializer.class, PullDeserializer.class, PushDeserializer.class);
-    private static final Set<Class<?>> SERIALIZER_INTERFACE_CLASSES = Sets.<Class<?>>newHashSet(SnapshotSerializer.class, PullSerializer.class);
+    private static final Set<Class<?>> DESERIALIZER_INTERFACE_CLASSES = new LinkedHashSet<>(Arrays.asList(SnapshotDeserializer.class, PullDeserializer.class, PushDeserializer.class));
+    private static final Set<Class<?>> SERIALIZER_INTERFACE_CLASSES = new LinkedHashSet<>(Arrays.asList(SnapshotSerializer.class, PullSerializer.class));
     private static final String SEARCH_FIELDS = SCHEMA_REGISTRY_PATH + "/search/schemas/fields";
     private static final long KERBEROS_SYNCHRONIZATION_TIMEOUT_MS = 180000;
 
@@ -253,7 +252,7 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
                         .name())).longValue(),
                 schemaMetadataFetcher);
 
-        schemaTextCache = CacheBuilder.newBuilder()
+        schemaTextCache = Caffeine.newBuilder()
                 .maximumSize(((Number) configuration.getValue(Configuration.SCHEMA_TEXT_CACHE_SIZE
                         .name())).longValue())
                 .expireAfterAccess(((Number) configuration.getValue(Configuration.SCHEMA_TEXT_CACHE_EXPIRY_INTERVAL_SECS
@@ -592,22 +591,24 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
 
         try {
             return schemaTextCache.get(buildSchemaTextEntry(schemaVersion, schemaName),
-                    () -> doAddSchemaVersion(schemaBranchName, schemaName, schemaVersion, disableCanonicalCheck));
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            LOG.error("Encountered error while adding new version [{}] of schema [{}] and error [{}]", schemaVersion, schemaName, e);
-            if (cause != null) {
-                if (cause instanceof InvalidSchemaException)
-                    throw (InvalidSchemaException) cause;
-                else if (cause instanceof IncompatibleSchemaException) {
-                    throw (IncompatibleSchemaException) cause;
-                } else if (cause instanceof SchemaNotFoundException) {
-                    throw (SchemaNotFoundException) cause;
-                } else {
-                    throw new RuntimeException(cause.getMessage(), cause);
-                }
+                    key -> {
+                        try {
+                            return doAddSchemaVersion(schemaBranchName, schemaName, schemaVersion, disableCanonicalCheck);
+                        } catch (final Exception e) {
+                            LOG.error("Encountered error while adding new version [{}] of schema [{}] and error [{}]", schemaVersion, schemaName, e);
+                            throw new RuntimeException(e);
+                        }
+                    });
+        } catch (final RuntimeException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof InvalidSchemaException)
+                throw (InvalidSchemaException) cause;
+            else if (cause instanceof IncompatibleSchemaException) {
+                throw (IncompatibleSchemaException) cause;
+            } else if (cause instanceof SchemaNotFoundException) {
+                throw (SchemaNotFoundException) cause;
             } else {
-                throw new RuntimeException(e.getMessage(), e);
+                throw e;
             }
         }
     }
@@ -1480,8 +1481,8 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
         private final byte[] schemaDigest;
 
         SchemaDigestEntry(String name, byte[] schemaDigest) {
-            Preconditions.checkNotNull(name, "name can not be null");
-            Preconditions.checkNotNull(schemaDigest, "schema digest can not be null");
+            Objects.requireNonNull(name, "name can not be null");
+            Objects.requireNonNull(schemaDigest, "schema digest can not be null");
 
             this.name = name;
             this.schemaDigest = schemaDigest;

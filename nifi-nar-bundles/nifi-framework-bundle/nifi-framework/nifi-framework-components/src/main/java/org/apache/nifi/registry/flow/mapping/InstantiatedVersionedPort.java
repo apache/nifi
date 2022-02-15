@@ -17,7 +17,7 @@
 
 package org.apache.nifi.registry.flow.mapping;
 
-import org.apache.nifi.registry.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedPort;
 
 public class InstantiatedVersionedPort extends VersionedPort implements InstantiatedVersionedComponent {
     private final String instanceId;
@@ -29,7 +29,7 @@ public class InstantiatedVersionedPort extends VersionedPort implements Instanti
     }
 
     @Override
-    public String getInstanceId() {
+    public String getInstanceIdentifier() {
         return instanceId;
     }
 

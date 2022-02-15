@@ -27,7 +27,8 @@ public interface ScheduledStateLookup {
 
     ScheduledState getScheduledState(Port port);
 
-    public static final ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
+
+    ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
         @Override
         public ScheduledState getScheduledState(final ProcessorNode procNode) {
             return procNode.getDesiredState();

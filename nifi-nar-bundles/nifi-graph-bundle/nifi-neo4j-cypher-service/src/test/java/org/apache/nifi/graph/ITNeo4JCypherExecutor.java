@@ -18,9 +18,9 @@ package org.apache.nifi.graph;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -47,7 +47,7 @@ public class ITNeo4JCypherExecutor {
     private GraphClientService clientService;
     private GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> {};
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         clientService = new Neo4JCypherClientService();
         runner = TestRunners.newTestRunner(MockProcessor.class);
@@ -70,7 +70,7 @@ public class ITNeo4JCypherExecutor {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         runner = null;
         if (driver != null) {

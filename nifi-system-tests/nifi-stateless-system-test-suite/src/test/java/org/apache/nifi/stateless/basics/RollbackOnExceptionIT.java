@@ -18,8 +18,8 @@
 package org.apache.nifi.stateless.basics;
 
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 public class RollbackOnExceptionIT extends StatelessSystemIT {
     private static final String EXCEPTION_TEXT = "Intentional Exception to verify behavior in RollbackOnExceptionIT";
 
-    @Test
+    @Test(timeout = 30_000)
     public void testFlowFileCompletelyRemovedWhenExceptionThrown() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();
         final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
@@ -56,6 +56,10 @@ public class RollbackOnExceptionIT extends StatelessSystemIT {
         assertFalse(result.isSuccessful());
         assertTrue(result.getFailureCause().get() instanceof ProcessException);
 
+        // Wait for dataflow to be purged
+        while (dataflow.isFlowFileQueued()) {
+            Thread.sleep(10L);
+        }
         assertFalse(dataflow.isFlowFileQueued());
     }
 

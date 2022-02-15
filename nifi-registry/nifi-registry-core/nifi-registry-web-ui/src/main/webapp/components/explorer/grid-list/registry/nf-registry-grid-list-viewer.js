@@ -58,7 +58,7 @@ NfRegistryGridListViewer.prototype = {
         // subscribe to the route params
         this.$subscription = this.route.params
             .pipe(
-                switchMap(function (params) {
+                switchMap(function () {
                     return forkJoin(
                         self.nfRegistryApi.getDroplets(),
                         self.nfRegistryApi.getBuckets()
@@ -84,6 +84,10 @@ NfRegistryGridListViewer.prototype = {
         this.nfRegistryService.setBreadcrumbState('out');
         this.nfRegistryService.filteredDroplets = [];
         this.$subscription.unsubscribe();
+    },
+
+    trackByFn: function (index) {
+        return index;
     }
 };
 

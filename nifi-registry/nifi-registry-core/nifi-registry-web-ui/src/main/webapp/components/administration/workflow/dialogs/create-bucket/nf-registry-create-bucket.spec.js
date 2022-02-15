@@ -28,30 +28,35 @@ describe('NfRegistryCreateBucket Component isolated unit tests', function () {
     beforeEach(function () {
         nfRegistryService = new NfRegistryService();
         nfRegistryApi = new NfRegistryApi();
-        comp = new NfRegistryCreateBucket(nfRegistryApi, {
-            openCoaster: function () {
+        comp = new NfRegistryCreateBucket(
+            nfRegistryApi,
+            {
+                openCoaster: function () {
+                }
+            },
+            nfRegistryService,
+            {
+                close: function () {
+                }
             }
-        },
-        nfRegistryService, {
-            close: function () {
-            }
-        });
+        );
 
         // Spy
         spyOn(nfRegistryApi, 'createBucket').and.callFake(function () {
-        }).and.returnValue(of({name: 'NewBucket'}));
+        }).and.returnValue(of({name: 'NewBucket', description: 'NewBucket Description'}));
         spyOn(nfRegistryService, 'filterBuckets');
         spyOn(comp.dialogRef, 'close');
     });
 
     it('should create a new bucket and close the dialog', function () {
         // The function to test
-        comp.createBucket({value: 'NewBucket'}, {checked: false});
+        comp.createBucket({value: 'NewBucket'}, {value: 'NewBucket Description'}, {checked: false});
 
         //assertions
         expect(comp).toBeDefined();
         expect(nfRegistryService.buckets.length).toBe(1);
         expect(nfRegistryService.buckets[0].name).toBe('NewBucket');
+        expect(nfRegistryService.buckets[0].description).toBe('NewBucket Description');
         expect(nfRegistryService.filterBuckets).toHaveBeenCalled();
         expect(comp.dialogRef.close).toHaveBeenCalled();
     });
@@ -61,12 +66,13 @@ describe('NfRegistryCreateBucket Component isolated unit tests', function () {
         comp.keepDialogOpen = true;
 
         // The function to test
-        comp.createBucket({value: 'NewBucket'}, {checked: false});
+        comp.createBucket({value: 'NewBucket'}, {value: 'NewBucket Description'}, {checked: false});
 
         //assertions
         expect(comp).toBeDefined();
         expect(nfRegistryService.buckets.length).toBe(1);
         expect(nfRegistryService.buckets[0].name).toBe('NewBucket');
+        expect(nfRegistryService.buckets[0].description).toBe('NewBucket Description');
         expect(nfRegistryService.filterBuckets).toHaveBeenCalled();
         expect(comp.dialogRef.close.calls.count()).toEqual(0);
     });

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard.servlets;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.FlowFile;
@@ -27,9 +25,16 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.ListenHTTP;
 import org.apache.nifi.processors.standard.ListenHTTP.FlowFileEntryTimeWrapper;
+import org.apache.nifi.processors.standard.exception.ListenHttpException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFileUnpackager;
@@ -38,6 +43,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.eclipse.jetty.server.Request;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.MultipartConfigElement;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -48,16 +54,19 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.X509Certificate;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -109,6 +118,8 @@ public class ListenHTTPServlet extends HttpServlet {
     private long multipartRequestMaxSize;
     private int multipartReadBufferSize;
     private int port;
+    private RecordReaderFactory readerFactory;
+    private RecordSetWriterFactory writerFactory;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -127,6 +138,8 @@ public class ListenHTTPServlet extends HttpServlet {
         this.multipartRequestMaxSize = (long) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE);
         this.multipartReadBufferSize = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE);
         this.port = (int) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PORT);
+        this.readerFactory = processContext.getProperty(ListenHTTP.RECORD_READER).asControllerService(RecordReaderFactory.class);
+        this.writerFactory = processContext.getProperty(ListenHTTP.RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
     }
 
     @Override
@@ -228,7 +241,7 @@ public class ListenHTTPServlet extends HttpServlet {
             }
 
             Set<FlowFile> flowFileSet;
-            if (!Strings.isNullOrEmpty(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
+            if (StringUtils.isNotBlank(request.getContentType()) && request.getContentType().contains("multipart/form-data")) {
                 flowFileSet = handleMultipartRequest(request, session, foundSubject, foundIssuer);
             } else {
                 flowFileSet = handleRequest(request, session, foundSubject, foundIssuer, destinationIsLegacyNiFi, contentType, in);
@@ -242,18 +255,28 @@ public class ListenHTTPServlet extends HttpServlet {
     private void handleException(final HttpServletRequest request, final HttpServletResponse response,
                                  final ProcessSession session, final String foundSubject, final String foundIssuer, final Throwable t) throws IOException {
         session.rollback();
-        logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", new Object[]{request.getRemoteHost(), foundSubject, foundIssuer, t});
-        response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
+        logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] IssuerDN [{}] due to {}", request.getRemoteHost(), foundSubject, foundIssuer, t);
+        if (t instanceof ListenHttpException) {
+            final int returnCode = ((ListenHttpException) t).getReturnCode();
+            response.sendError(returnCode, t.toString());
+        } else {
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
+        }
     }
 
     private Set<FlowFile> handleMultipartRequest(HttpServletRequest request, ProcessSession session, String foundSubject, String foundIssuer)
             throws IOException, IllegalStateException, ServletException {
+        if (isRecordProcessing()) {
+            logger.debug("Record processing will not be utilized while processing multipart request. Request URI: {}", request.getRequestURI());
+        }
         Set<FlowFile> flowFileSet = new HashSet<>();
         String tempDir = System.getProperty("java.io.tmpdir");
         request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, multipartRequestMaxSize, multipartRequestMaxSize, multipartReadBufferSize));
-        List<Part> requestParts = ImmutableList.copyOf(request.getParts());
-        for (int i = 0; i < requestParts.size(); i++) {
-            Part part = requestParts.get(i);
+        Collection<Part> requestParts = Collections.unmodifiableCollection(request.getParts());
+        final Iterator<Part> parts = requestParts.iterator();
+        int i = 0;
+        while (parts.hasNext()) {
+            Part part = parts.next();
             FlowFile flowFile = session.create();
             try (OutputStream flowFileOutputStream = session.write(flowFile)) {
                 StreamUtils.copy(part.getInputStream(), flowFileOutputStream);
@@ -261,6 +284,7 @@ public class ListenHTTPServlet extends HttpServlet {
             flowFile = saveRequestDetailsAsAttributes(request, session, foundSubject, foundIssuer, flowFile);
             flowFile = savePartDetailsAsAttributes(session, part, flowFile, i, requestParts.size());
             flowFileSet.add(flowFile);
+            i++;
         }
         return flowFileSet;
     }
@@ -280,21 +304,12 @@ public class ListenHTTPServlet extends HttpServlet {
         return session.putAllAttributes(flowFile, attributes);
     }
 
-    private Set<FlowFile> handleRequest(final HttpServletRequest request, final ProcessSession session,
-                                        String foundSubject, String foundIssuer, final boolean destinationIsLegacyNiFi, final String contentType, final InputStream in) {
-        FlowFile flowFile = null;
+    private Set<FlowFile> handleRequest(final HttpServletRequest request, final ProcessSession session, String foundSubject, String foundIssuer,
+                                        final boolean destinationIsLegacyNiFi, final String contentType, final InputStream in) throws IOException {
+        FlowFile flowFile;
         String holdUuid = null;
         final AtomicBoolean hasMoreData = new AtomicBoolean(false);
-        final FlowFileUnpackager unpackager;
-        if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {
-            unpackager = new FlowFileUnpackagerV3();
-        } else if (StandardFlowFileMediaType.VERSION_2.getMediaType().equals(contentType)) {
-            unpackager = new FlowFileUnpackagerV2();
-        } else if (StringUtils.startsWith(contentType, StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType())) {
-            unpackager = new FlowFileUnpackagerV1();
-        } else {
-            unpackager = null;
-        }
+        final FlowFileUnpackager unpackager = getFlowFileUnpackager(contentType);
 
         final Set<FlowFile> flowFileSet = new HashSet<>();
 
@@ -302,32 +317,38 @@ public class ListenHTTPServlet extends HttpServlet {
             final long startNanos = System.nanoTime();
             final Map<String, String> attributes = new HashMap<>();
             flowFile = session.create();
-            flowFile = session.write(flowFile, new OutputStreamCallback() {
-                @Override
-                public void process(final OutputStream rawOut) throws IOException {
-                    try (final BufferedOutputStream bos = new BufferedOutputStream(rawOut, 65536)) {
-                        if (unpackager == null) {
-                            IOUtils.copy(in, bos);
-                            hasMoreData.set(false);
-                        } else {
-                            attributes.putAll(unpackager.unpackageFlowFile(in, bos));
 
-                            if (destinationIsLegacyNiFi) {
-                                if (attributes.containsKey("nf.file.name")) {
-                                    // for backward compatibility with old nifi...
-                                    attributes.put(CoreAttributes.FILENAME.key(), attributes.remove("nf.file.name"));
-                                }
+            final OutputStream out = session.write(flowFile);
 
-                                if (attributes.containsKey("nf.file.path")) {
-                                    attributes.put(CoreAttributes.PATH.key(), attributes.remove("nf.file.path"));
-                                }
-                            }
+            try (final BufferedOutputStream bos = new BufferedOutputStream(out, 65536)) {
+                if (unpackager == null) {
+                    if (isRecordProcessing()) {
+                        processRecord(in, flowFile, out);
+                    } else {
+                        IOUtils.copy(in, bos);
+                        hasMoreData.set(false);
+                    }
+                } else {
+                    if (isRecordProcessing()) {
+                        logger.debug("Record processing will not be utilized while processing with unpackager. Request URI: {}", request.getRequestURI());
+                    }
+                    attributes.putAll(unpackager.unpackageFlowFile(in, bos));
 
-                            hasMoreData.set(unpackager.hasMoreData());
+                    if (destinationIsLegacyNiFi) {
+                        if (attributes.containsKey("nf.file.name")) {
+                            // for backward compatibility with old nifi...
+                            attributes.put(CoreAttributes.FILENAME.key(), attributes.remove("nf.file.name"));
+                        }
+
+                        if (attributes.containsKey("nf.file.path")) {
+                            attributes.put(CoreAttributes.PATH.key(), attributes.remove("nf.file.path"));
                         }
                     }
+
+                    hasMoreData.set(unpackager.hasMoreData());
                 }
-            });
+            }
+
 
             final long transferNanos = System.nanoTime() - startNanos;
             final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
@@ -360,33 +381,9 @@ public class ListenHTTPServlet extends HttpServlet {
         return flowFileSet;
     }
 
-    protected FlowFile saveRequestDetailsAsAttributes(final HttpServletRequest request, final ProcessSession session,
-                                                      final String foundSubject, final String foundIssuer, FlowFile flowFile) {
-        Map<String, String> attributes = new HashMap<>();
-        addMatchingRequestHeaders(request, attributes);
-        flowFile = session.putAllAttributes(flowFile, attributes);
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
-        flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
-        flowFile = session.putAttribute(flowFile, "restlistener.remote.issuer.dn", foundIssuer);
-        return flowFile;
-    }
-
-    private void addMatchingRequestHeaders(final HttpServletRequest request, final Map<String, String> attributes) {
-        // put arbitrary headers on flow file
-        for (Enumeration<String> headerEnum = request.getHeaderNames();
-             headerEnum.hasMoreElements(); ) {
-            String headerName = headerEnum.nextElement();
-            if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
-                String headerValue = request.getHeader(headerName);
-                attributes.put(headerName, headerValue);
-            }
-        }
-    }
-
     protected void proceedFlow(final HttpServletRequest request, final HttpServletResponse response,
                                final ProcessSession session, final String foundSubject, final String foundIssuer, final boolean createHold,
-                               final Set<FlowFile> flowFileSet) throws IOException, UnsupportedEncodingException {
+                               final Set<FlowFile> flowFileSet) throws IOException {
         if (createHold) {
             String uuid = UUID.randomUUID().toString();
 
@@ -407,20 +404,83 @@ public class ListenHTTPServlet extends HttpServlet {
             final String ackUri = "/" + basePath + "/holds/" + uuid;
             response.addHeader(LOCATION_HEADER_NAME, ackUri);
             response.addHeader(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE);
-            response.getOutputStream().write(ackUri.getBytes("UTF-8"));
+            response.getOutputStream().write(ackUri.getBytes(StandardCharsets.UTF_8));
             if (logger.isDebugEnabled()) {
                 logger.debug("Ingested {} from Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]; placed hold on these {} files with ID {}",
-                    new Object[]{flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, flowFileSet.size(), uuid});
+                        flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, flowFileSet.size(), uuid);
             }
         } else {
-            response.setStatus(this.returnCode);
             logger.info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]; transferring to 'success'",
-                new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer});
+                    request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer);
 
             session.transfer(flowFileSet, ListenHTTP.RELATIONSHIP_SUCCESS);
-            session.commitAsync();
+
+            final AsyncContext asyncContext = request.startAsync();
+            session.commitAsync(() -> {
+                        response.setStatus(this.returnCode);
+                        asyncContext.complete();
+                    }, t -> {
+                        logger.error("Failed to commit session. Returning error response to Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]",
+                                request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, t);
+                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                        asyncContext.complete();
+                    }
+            );
         }
     }
+
+    protected FlowFile saveRequestDetailsAsAttributes(final HttpServletRequest request, final ProcessSession session,
+                                                      final String foundSubject, final String foundIssuer, FlowFile flowFile) {
+        Map<String, String> attributes = new HashMap<>();
+        addMatchingRequestHeaders(request, attributes);
+        flowFile = session.putAllAttributes(flowFile, attributes);
+        flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
+        flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
+        flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
+        flowFile = session.putAttribute(flowFile, "restlistener.remote.issuer.dn", foundIssuer);
+        return flowFile;
+    }
+
+    private void processRecord(InputStream in, FlowFile flowFile, OutputStream out) {
+        try (final RecordReader reader = readerFactory.createRecordReader(flowFile, new BufferedInputStream(in), logger)) {
+            final RecordSet recordSet = reader.createRecordSet();
+            try (final RecordSetWriter writer = writerFactory.createWriter(logger, reader.getSchema(), out, flowFile)) {
+                writer.write(recordSet);
+            }
+        } catch (IOException | MalformedRecordException e) {
+            throw new ListenHttpException("Could not process record.", e, HttpServletResponse.SC_BAD_REQUEST);
+        } catch (SchemaNotFoundException e) {
+            throw new ListenHttpException("Could not find schema.", e, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private FlowFileUnpackager getFlowFileUnpackager(String contentType) {
+        final FlowFileUnpackager unpackager;
+        if (StandardFlowFileMediaType.VERSION_3.getMediaType().equals(contentType)) {
+            unpackager = new FlowFileUnpackagerV3();
+        } else if (StandardFlowFileMediaType.VERSION_2.getMediaType().equals(contentType)) {
+            unpackager = new FlowFileUnpackagerV2();
+        } else if (StringUtils.startsWith(contentType, StandardFlowFileMediaType.VERSION_UNSPECIFIED.getMediaType())) {
+            unpackager = new FlowFileUnpackagerV1();
+        } else {
+            unpackager = null;
+        }
+        return unpackager;
+    }
+
+    private void addMatchingRequestHeaders(final HttpServletRequest request, final Map<String, String> attributes) {
+        // put arbitrary headers on flow file
+        for (Enumeration<String> headerEnum = request.getHeaderNames();
+             headerEnum.hasMoreElements(); ) {
+            String headerName = headerEnum.nextElement();
+            if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
+                String headerValue = request.getHeader(headerName);
+                attributes.put(headerName, headerValue);
+            }
+        }
+    }
+
+
 
     private void putAttribute(final Map<String, String> map, final String key, final Object value) {
         if (value == null) {
@@ -436,5 +496,9 @@ public class ListenHTTPServlet extends HttpServlet {
         }
 
         map.put(key, value);
+    }
+
+    private boolean isRecordProcessing() {
+        return readerFactory != null && writerFactory != null;
     }
 }

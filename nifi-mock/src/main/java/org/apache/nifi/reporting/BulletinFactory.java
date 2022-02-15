@@ -54,6 +54,15 @@ public class BulletinFactory {
         return bulletin;
     }
 
+    public static Bulletin createBulletin(final String category, final String severity, final String message, final String flowFileUUID) {
+        final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
+        bulletin.setCategory(category);
+        bulletin.setLevel(severity);
+        bulletin.setMessage(message);
+        bulletin.setFlowFileUuid(flowFileUUID);
+        return bulletin;
+    }
+
     public static Bulletin createBulletin(final String groupId, final String groupName, final String sourceId, final ComponentType sourceType,
             final String sourceName, final String category, final String severity, final String message, final String groupPath) {
         final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
@@ -66,6 +75,23 @@ public class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        return bulletin;
+    }
+
+    public static Bulletin createBulletin(final String groupId, final String groupName, final String sourceId, final ComponentType sourceType,
+                                          final String sourceName, final String category, final String severity, final String message,
+                                          final String groupPath, final String flowFileUUID) {
+        final Bulletin bulletin = new MockBulletin(currentId.getAndIncrement());
+        bulletin.setGroupId(groupId);
+        bulletin.setGroupName(groupName);
+        bulletin.setGroupPath(groupPath);
+        bulletin.setSourceId(sourceId);
+        bulletin.setSourceType(sourceType);
+        bulletin.setSourceName(sourceName);
+        bulletin.setCategory(category);
+        bulletin.setLevel(severity);
+        bulletin.setMessage(message);
+        bulletin.setFlowFileUuid(flowFileUUID);
         return bulletin;
     }
 }

@@ -20,7 +20,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.stateless.parameter.ParameterProvider;
+import org.apache.nifi.stateless.parameter.ParameterValueProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +33,12 @@ import java.util.concurrent.TimeUnit;
 public class ExtensionDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionDiscovery.class);
 
-    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders) throws IOException {
+    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders,
+                                                       final boolean logExtensionDiscovery) throws IOException {
         logger.info("Initializing NAR ClassLoaders");
 
         try {
-            narClassLoaders.init(systemClassLoader, null, narWorkingDirectory);
+            narClassLoaders.init(systemClassLoader, null, narWorkingDirectory, logExtensionDiscovery);
         } catch (final ClassNotFoundException cnfe) {
             throw new IOException("Could not initialize Class Loaders", cnfe);
         }
@@ -45,8 +46,8 @@ public class ExtensionDiscovery {
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
         final long discoveryStart = System.nanoTime();
-        final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager(Collections.singleton(ParameterProvider.class));
-        extensionManager.discoverExtensions(narBundles);
+        final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager(Collections.singleton(ParameterValueProvider.class));
+        extensionManager.discoverExtensions(narBundles, logExtensionDiscovery);
 
         final long discoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - discoveryStart);
         logger.info("Successfully discovered extensions in {} milliseconds", discoveryMillis);

@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.security.saml.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.saml.SAMLStateManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.util.CacheKey;
@@ -27,14 +27,13 @@ import org.apache.nifi.web.security.util.IdentityProviderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class StandardSAMLStateManager implements SAMLStateManager {
 
     private static Logger LOGGER = LoggerFactory.getLogger(StandardSAMLStateManager.class);
 
-    private JwtService jwtService;
+    private BearerTokenProvider bearerTokenProvider;
 
     // identifier from cookie -> state value
     private final Cache<CacheKey, String> stateLookupForPendingRequests;
@@ -42,14 +41,14 @@ public class StandardSAMLStateManager implements SAMLStateManager {
     // identifier from cookie -> jwt or identity (and generate jwt on retrieval)
     private final Cache<CacheKey, String> jwtLookupForCompletedRequests;
 
-    public StandardSAMLStateManager(final JwtService jwtService) {
-        this(jwtService, 60, TimeUnit.SECONDS);
+    public StandardSAMLStateManager(final BearerTokenProvider bearerTokenProvider) {
+        this(bearerTokenProvider, 60, TimeUnit.SECONDS);
     }
 
-    public StandardSAMLStateManager(final JwtService jwtService, final int cacheExpiration, final TimeUnit units) {
-        this.jwtService = jwtService;
-        this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(cacheExpiration, units).build();
-        this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(cacheExpiration, units).build();
+    public StandardSAMLStateManager(final BearerTokenProvider bearerTokenProvider, final int cacheExpiration, final TimeUnit units) {
+        this.bearerTokenProvider = bearerTokenProvider;
+        this.stateLookupForPendingRequests = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, units).build();
+        this.jwtLookupForCompletedRequests = Caffeine.newBuilder().expireAfterWrite(cacheExpiration, units).build();
     }
 
     @Override
@@ -61,15 +60,11 @@ public class StandardSAMLStateManager implements SAMLStateManager {
         final CacheKey requestIdentifierKey = new CacheKey(requestIdentifier);
         final String state = IdentityProviderUtils.generateStateValue();
 
-        try {
-            synchronized (stateLookupForPendingRequests) {
-                final String cachedState = stateLookupForPendingRequests.get(requestIdentifierKey, () -> state);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(state, cachedState)) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+        synchronized (stateLookupForPendingRequests) {
+            final String cachedState = stateLookupForPendingRequests.get(requestIdentifierKey, key -> state);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(state, cachedState)) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login request state.");
         }
 
         return state;
@@ -108,17 +103,13 @@ public class StandardSAMLStateManager implements SAMLStateManager {
         }
 
         final CacheKey requestIdentifierKey = new CacheKey(requestIdentifier);
-        final String nifiJwt = jwtService.generateSignedToken(token);
-        try {
-            // cache the jwt for later retrieval
-            synchronized (jwtLookupForCompletedRequests) {
-                final String cachedJwt = jwtLookupForCompletedRequests.get(requestIdentifierKey, () -> nifiJwt);
-                if (!IdentityProviderUtils.timeConstantEqualityCheck(nifiJwt, cachedJwt)) {
-                    throw new IllegalStateException("An existing login request is already in progress.");
-                }
+        final String bearerToken = bearerTokenProvider.getBearerToken(token);
+        // cache the jwt for later retrieval
+        synchronized (jwtLookupForCompletedRequests) {
+            final String cachedJwt = jwtLookupForCompletedRequests.get(requestIdentifierKey, key -> bearerToken);
+            if (!IdentityProviderUtils.timeConstantEqualityCheck(bearerToken, cachedJwt)) {
+                throw new IllegalStateException("An existing login request is already in progress.");
             }
-        } catch (final ExecutionException e) {
-            throw new IllegalStateException("Unable to store the login authentication token.");
         }
     }
 
@@ -138,9 +129,5 @@ public class StandardSAMLStateManager implements SAMLStateManager {
 
             return jwt;
         }
-    }
-
-    public void setJwtService(JwtService jwtService) {
-        this.jwtService = jwtService;
     }
 }

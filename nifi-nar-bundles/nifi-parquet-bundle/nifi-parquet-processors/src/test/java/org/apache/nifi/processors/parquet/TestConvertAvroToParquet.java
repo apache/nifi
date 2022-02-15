@@ -18,7 +18,6 @@ package org.apache.nifi.processors.parquet;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.io.Resources;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileWriter;
@@ -29,7 +28,6 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
@@ -41,43 +39,49 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.example.GroupReadSupport;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.HashMap;
+
 import static org.apache.parquet.format.converter.ParquetMetadataConverter.NO_FILTER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for ConvertAvroToParquet processor
  */
 public class TestConvertAvroToParquet {
 
-    private ConvertAvroToParquet processor;
     private TestRunner runner;
 
-    private List<GenericRecord> records = new ArrayList<>();
-    File tmpAvro = new File("target/test.avro");
-    File tmpParquet = new File("target/test.parquet");
+    private final List<GenericRecord> records = new ArrayList<>();
+    private File tmpAvro;
+    private File tmpParquet;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        processor = new ConvertAvroToParquet();
+        tmpAvro = File.createTempFile(TestConvertAvroToParquet.class.getSimpleName(), ".avro");
+        tmpAvro.deleteOnExit();
+
+        tmpParquet = File.createTempFile(TestConvertAvroToParquet.class.getSimpleName(), ".parquet");
+        tmpParquet.deleteOnExit();
+
+        ConvertAvroToParquet processor = new ConvertAvroToParquet();
         runner = TestRunners.newTestRunner(processor);
 
-        Schema schema = new Schema.Parser().parse(Resources.getResource("avro/all-minus-enum.avsc").openStream());
+        Schema schema = new Schema.Parser().parse(getClass().getResourceAsStream("/avro/all-minus-enum.avsc"));
 
-        DataFileWriter<Object> awriter = new DataFileWriter<Object>(new GenericDatumWriter<Object>());
+        DataFileWriter<Object> awriter = new DataFileWriter<>(new GenericDatumWriter<>());
         GenericData.Record nestedRecord = new GenericRecordBuilder(
                 schema.getField("mynestedrecord").schema())
                 .set("mynestedint", 1).build();
@@ -92,7 +96,7 @@ public class TestConvertAvroToParquet {
                 .set("mybytes", ByteBuffer.wrap("hello".getBytes(Charsets.UTF_8)))
                 .set("mystring", "hello")
                 .set("mynestedrecord", nestedRecord)
-                .set("myarray", new GenericData.Array<Integer>(Schema.createArray(Schema.create(Schema.Type.INT)), Arrays.asList(1, 2)))
+                .set("myarray", new GenericData.Array<>(Schema.createArray(Schema.create(Schema.Type.INT)), Arrays.asList(1, 2)))
                 .set("mymap", ImmutableMap.of("a", 1, "b", 2))
                 .set("myfixed", new GenericData.Fixed(Schema.createFixed("ignored", null, null, 1), new byte[] { (byte) 65 }))
                 .build();
@@ -102,19 +106,17 @@ public class TestConvertAvroToParquet {
         awriter.flush();
         awriter.close();
 
-        DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
-        DataFileReader<GenericRecord> dataFileReader = new DataFileReader<GenericRecord>(tmpAvro, datumReader);
+        DatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
+        DataFileReader<GenericRecord> dataFileReader = new DataFileReader<>(tmpAvro, datumReader);
         GenericRecord record1 = null;
         while (dataFileReader.hasNext()) {
             record1 = dataFileReader.next(record1);
             records.add(record1);
         }
-
     }
 
     @Test
-    public void test_Processor() throws Exception {
-
+    public void testProcessor() throws Exception {
         FileInputStream fileInputStream = new FileInputStream(tmpAvro);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int readedBytes;
@@ -124,9 +126,7 @@ public class TestConvertAvroToParquet {
         }
         out.close();
 
-        Map<String, String> attributes = new HashMap<String, String>() {{
-            put(CoreAttributes.FILENAME.key(), "test.avro");
-        }};
+        Map<String, String> attributes = Collections.singletonMap(CoreAttributes.FILENAME.key(), "test.avro");
         runner.enqueue(out.toByteArray(), attributes);
         runner.run();
 
@@ -134,16 +134,12 @@ public class TestConvertAvroToParquet {
 
         MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToParquet.SUCCESS).get(0);
 
-        // assert meta data
         assertEquals("1", resultFlowFile.getAttribute(ConvertAvroToParquet.RECORD_COUNT_ATTRIBUTE));
         assertEquals("test.parquet", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
-
-
     }
 
     @Test
-    public void test_Meta_Info() throws Exception {
-
+    public void testMetaInfo() throws Exception {
         FileInputStream fileInputStream = new FileInputStream(tmpAvro);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int readedBytes;
@@ -153,14 +149,11 @@ public class TestConvertAvroToParquet {
         }
         out.close();
 
-        Map<String, String> attributes = new HashMap<String, String>() {{
-            put(CoreAttributes.FILENAME.key(), "test.avro");
-        }};
+        Map<String, String> attributes = Collections.singletonMap(CoreAttributes.FILENAME.key(), "test.avro");
         runner.enqueue(out.toByteArray(), attributes);
         runner.run();
         MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToParquet.SUCCESS).get(0);
 
-        // Save the flowfile
         byte[] resultContents = runner.getContentAsByteArray(resultFlowFile);
         FileOutputStream fos = new FileOutputStream(tmpParquet);
         fos.write(resultContents);
@@ -168,11 +161,9 @@ public class TestConvertAvroToParquet {
         fos.close();
 
         Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.getLocal(conf);
         ParquetMetadata metaData;
         metaData = ParquetFileReader.readFooter(conf, new Path(tmpParquet.getAbsolutePath()), NO_FILTER);
 
-        // #number of records
         long nParquetRecords = 0;
         for(BlockMetaData meta : metaData.getBlocks()){
             nParquetRecords += meta.getRowCount();
@@ -183,9 +174,7 @@ public class TestConvertAvroToParquet {
     }
 
     @Test
-    public void test_Data() throws Exception {
-
-
+    public void testData() throws Exception {
         FileInputStream fileInputStream = new FileInputStream(tmpAvro);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         int readedBytes;
@@ -195,14 +184,11 @@ public class TestConvertAvroToParquet {
         }
         out.close();
 
-        Map<String, String> attributes = new HashMap<String, String>() {{
-            put(CoreAttributes.FILENAME.key(), "test.avro");
-        }};
+        Map<String, String> attributes = Collections.singletonMap(CoreAttributes.FILENAME.key(), "test.avro");
         runner.enqueue(out.toByteArray(), attributes);
         runner.run();
         MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToParquet.SUCCESS).get(0);
 
-        // Save the flowfile
         byte[] resultContents = runner.getContentAsByteArray(resultFlowFile);
         FileOutputStream fos = new FileOutputStream(tmpParquet);
         fos.write(resultContents);
@@ -210,17 +196,15 @@ public class TestConvertAvroToParquet {
         fos.close();
 
         Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.getLocal(conf);
         ParquetReader<Group> reader = ParquetReader.builder(new GroupReadSupport(), new Path(tmpParquet.getAbsolutePath()))
                         .withConf(conf)
                         .build();
 
-        List<Group> parquetRecords = new ArrayList<Group>();
+        List<Group> parquetRecords = new ArrayList<>();
 
         Group current;
         current = reader.read();
         while (current != null) {
-            assertTrue(current instanceof Group);
             parquetRecords.add(current);
             current = reader.read();
         }
@@ -230,7 +214,7 @@ public class TestConvertAvroToParquet {
         // Primitive
         assertEquals(firstRecord.getInteger("myint", 0), 1);
         assertEquals(firstRecord.getLong("mylong", 0), 2);
-        assertEquals(firstRecord.getBoolean("myboolean", 0), true);
+        assertTrue(firstRecord.getBoolean("myboolean", 0));
         assertEquals(firstRecord.getFloat("myfloat", 0), 3.1, 0.0001);
         assertEquals(firstRecord.getDouble("mydouble", 0), 4.1, 0.001);
         assertEquals(firstRecord.getString("mybytes", 0), "hello");
@@ -249,15 +233,5 @@ public class TestConvertAvroToParquet {
 
         // Fixed
         assertEquals(firstRecord.getString("myfixed",0), "A");
-
     }
-
-    @After
-    public void cleanup(){
-        tmpAvro.delete();
-        tmpParquet.delete();
-
-    }
-
-
 }

@@ -141,7 +141,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             if (jsonTypeSetting.equals(JSON_TYPE_STANDARD)) {
                 asJson = getObjectWriter(objectMapper, prettyPrintSetting).writeValueAsString(document);
             } else {
-                asJson = document.toJson(new JsonWriterSettings(true));
+                asJson = document.toJson(JsonWriterSettings.builder().indent(true).build());
             }
             builder
                     .append(asJson)

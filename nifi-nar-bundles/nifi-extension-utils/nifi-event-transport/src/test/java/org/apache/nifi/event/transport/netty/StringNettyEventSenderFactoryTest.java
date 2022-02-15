@@ -19,14 +19,16 @@ package org.apache.nifi.event.transport.netty;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
+import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.ClientAuth;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +36,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import javax.net.ssl.SSLContext;
-import java.io.File;
-import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -50,7 +52,7 @@ import static org.junit.Assert.assertThrows;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StringNettyEventSenderFactoryTest {
-    private static final String ADDRESS = "127.0.0.1";
+    private static final InetAddress ADDRESS;
 
     private static final int MAX_FRAME_LENGTH = 1024;
 
@@ -65,6 +67,14 @@ public class StringNettyEventSenderFactoryTest {
     private static final String DELIMITER = "\n";
 
     private static final int SINGLE_THREAD = 1;
+
+    static {
+        try {
+            ADDRESS = InetAddress.getByName("127.0.0.1");
+        } catch (final UnknownHostException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
 
     @Mock
     private ComponentLog log;
@@ -130,13 +140,15 @@ public class StringNettyEventSenderFactoryTest {
         assertNotNull("Message not received", messageReceived);
         final String eventReceived = new String(messageReceived.getMessage(), CHARSET);
         assertEquals("Message not matched", MESSAGE, eventReceived);
-        assertEquals("Sender not matched", ADDRESS, messageReceived.getSender());
+        assertEquals("Sender not matched", ADDRESS.getHostAddress(), messageReceived.getSender());
     }
 
     private NettyEventSenderFactory<String> getEventSenderFactory(final int port) {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
-                ADDRESS, port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
+                ADDRESS.getHostAddress(), port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
         senderFactory.setTimeout(DEFAULT_TIMEOUT);
+        senderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        senderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         return senderFactory;
     }
 
@@ -144,15 +156,13 @@ public class StringNettyEventSenderFactoryTest {
         final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(log,
                 ADDRESS, port, TransportProtocol.TCP, DELIMITER.getBytes(), MAX_FRAME_LENGTH, messages);
         factory.setWorkerThreads(SINGLE_THREAD);
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
+        factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         return factory;
     }
 
-    private SSLContext getSslContext() throws GeneralSecurityException, IOException {
-        final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
-        final File keystoreFile = new File(tlsConfiguration.getKeystorePath());
-        keystoreFile.deleteOnExit();
-        final File truststoreFile = new File(tlsConfiguration.getTruststorePath());
-        truststoreFile.deleteOnExit();
+    private SSLContext getSslContext() throws GeneralSecurityException {
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
         return SslContextFactory.createSslContext(tlsConfiguration);
     }
 }

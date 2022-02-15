@@ -1147,6 +1147,28 @@ For NiFi Registry 0.2.0 and forward, the location of the H2 database is specifie
 
 `nifi.registry.db.url=jdbc:h2:./database/nifi-registry-primary;`
 
+==== Changing password in existing H2 database
+
+1. Download H2 driver from official repository https://www.h2database.com/html/download.html and place it somewhere accessible to NiFi Registry user
+
+2. Run H2 database shell
+
+  java -cp h2*.jar org.h2.tools.Shell
+
+3. Connect to database
+
+  Welcome to H2 Shell 1.4.200 (2019-10-14)
+  Exit with Ctrl+C
+  URL       jdbc:h2:./database/nifi-registry-primary
+  Driver    org.h2.Driver
+  User      nifireg
+  Password  
+  Connected
+
+4. Change password
+
+  ALTER USER nifireg SET PASSWORD 'NEW_PASSWORD';
+
 === Postgres
 
 Postgres provides the option to use an externally located database that also supports high availability.

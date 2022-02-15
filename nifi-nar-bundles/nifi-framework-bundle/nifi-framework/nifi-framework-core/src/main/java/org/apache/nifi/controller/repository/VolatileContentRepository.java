@@ -135,8 +135,8 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ResourceClaimManager claimManager) {
-        this.claimManager = claimManager;
+    public void initialize(final ContentRepositoryContext context) {
+        this.claimManager = context.getResourceClaimManager();
 
         for (int i = 0; i < 3; i++) {
             executor.scheduleWithFixedDelay(new CleanupOldClaims(), 1000, 10, TimeUnit.MILLISECONDS);

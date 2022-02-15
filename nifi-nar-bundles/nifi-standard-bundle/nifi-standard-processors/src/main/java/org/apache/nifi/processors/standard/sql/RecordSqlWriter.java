@@ -70,7 +70,7 @@ public class RecordSqlWriter implements SqlWriter {
             if (fullRecordSet == null) {
                 final Schema avroSchema = JdbcCommon.createSchema(resultSet, options);
                 final RecordSchema recordAvroSchema = AvroTypeUtil.createSchema(avroSchema);
-                fullRecordSet = new ResultSetRecordSetWithCallback(resultSet, recordAvroSchema, callback, options.getDefaultPrecision(), options.getDefaultScale());
+                fullRecordSet = new ResultSetRecordSetWithCallback(resultSet, recordAvroSchema, callback, options.getDefaultPrecision(), options.getDefaultScale(), options.isUseLogicalTypes());
                 writeSchema = recordSetWriterFactory.getSchema(originalAttributes, fullRecordSet.getSchema());
             }
             recordSet = (maxRowsPerFlowFile > 0) ? fullRecordSet.limit(maxRowsPerFlowFile) : fullRecordSet;
@@ -135,8 +135,8 @@ public class RecordSqlWriter implements SqlWriter {
         private final ResultSetRowCallback callback;
 
         ResultSetRecordSetWithCallback(ResultSet rs, RecordSchema readerSchema, ResultSetRowCallback callback,
-                                       final int defaultPrecision, final int defaultScale) throws SQLException {
-            super(rs, readerSchema, defaultPrecision, defaultScale);
+                                       final int defaultPrecision, final int defaultScale, final boolean useLogicalTypes) throws SQLException {
+            super(rs, readerSchema, defaultPrecision, defaultScale, useLogicalTypes);
             this.callback = callback;
         }
 

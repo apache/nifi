@@ -26,8 +26,7 @@ import org.apache.nifi.syslog.keyproviders.SimpleKeyProvider;
 import org.apache.nifi.syslog.parsers.StrictSyslog5424Parser;
 import org.apache.nifi.syslog.utils.NifiStructuredDataPolicy;
 import org.apache.nifi.syslog.utils.NilHandlingPolicy;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,8 +38,10 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSyslog5424RecordReader {
     private static final Charset CHARSET = Charset.forName("UTF-8");
@@ -79,40 +80,40 @@ public class TestSyslog5424RecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
-            Assert.assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(expectedAppName, record.getAsString(Syslog5424Attributes.APP_NAME.key()));
-            Assert.assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
-            Assert.assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
-            Assert.assertEquals(expectedMessageId, record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
-            Assert.assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
+            assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
+            assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(expectedAppName, record.getAsString(Syslog5424Attributes.APP_NAME.key()));
+            assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
+            assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
+            assertEquals(expectedMessageId, record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
+            assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
-            Assert.assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
+            assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
             Map<String,Object> structured = (Map<String,Object>)record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
 
-            Assert.assertTrue(structured.containsKey("exampleSDID@32473"));
+            assertTrue(structured.containsKey("exampleSDID@32473"));
             Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
 
-            Assert.assertTrue(example1.containsKey("iut"));
-            Assert.assertTrue(example1.containsKey("eventSource"));
-            Assert.assertTrue(example1.containsKey("eventID"));
-            Assert.assertEquals(expectedIUT1, example1.get("iut").toString());
-            Assert.assertEquals(expectedEventSource1, example1.get("eventSource").toString());
-            Assert.assertEquals(expectedEventID1, example1.get("eventID").toString());
+            assertTrue(example1.containsKey("iut"));
+            assertTrue(example1.containsKey("eventSource"));
+            assertTrue(example1.containsKey("eventID"));
+            assertEquals(expectedIUT1, example1.get("iut").toString());
+            assertEquals(expectedEventSource1, example1.get("eventSource").toString());
+            assertEquals(expectedEventID1, example1.get("eventID").toString());
 
-            Assert.assertTrue(structured.containsKey("exampleSDID@32480"));
+            assertTrue(structured.containsKey("exampleSDID@32480"));
             Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
 
-            Assert.assertTrue(example2.containsKey("iut"));
-            Assert.assertTrue(example2.containsKey("eventSource"));
-            Assert.assertTrue(example2.containsKey("eventID"));
-            Assert.assertEquals(expectedIUT2, example2.get("iut").toString());
-            Assert.assertEquals(expectedEventSource2, example2.get("eventSource").toString());
-            Assert.assertEquals(expectedEventID2, example2.get("eventID").toString());
+            assertTrue(example2.containsKey("iut"));
+            assertTrue(example2.containsKey("eventSource"));
+            assertTrue(example2.containsKey("eventID"));
+            assertEquals(expectedIUT2, example2.get("iut").toString());
+            assertEquals(expectedEventSource2, example2.get("eventSource").toString());
+            assertEquals(expectedEventID2, example2.get("eventID").toString());
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
@@ -131,40 +132,40 @@ public class TestSyslog5424RecordReader {
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
 
-            Assert.assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
-            Assert.assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
-            Assert.assertEquals(expectedAppName, record.getAsString(Syslog5424Attributes.APP_NAME.key()));
-            Assert.assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
-            Assert.assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
-            Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
-            Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
-            Assert.assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
-            Assert.assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
-            Assert.assertNull(record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
-            Assert.assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
+            assertEquals(expectedVersion, record.getAsString(SyslogAttributes.VERSION.key()));
+            assertEquals(expectedMessage, record.getAsString(SyslogAttributes.BODY.key()));
+            assertEquals(expectedAppName, record.getAsString(Syslog5424Attributes.APP_NAME.key()));
+            assertEquals(expectedHostName, record.getAsString(SyslogAttributes.HOSTNAME.key()));
+            assertEquals(expectedPri, record.getAsString(SyslogAttributes.PRIORITY.key()));
+            assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
+            assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
+            assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
+            assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
+            assertNull(record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
+            assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
-            Assert.assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
+            assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
             Map<String,Object> structured = (Map<String,Object>)record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
 
-            Assert.assertTrue(structured.containsKey("exampleSDID@32473"));
+            assertTrue(structured.containsKey("exampleSDID@32473"));
             Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");
 
-            Assert.assertTrue(example1.containsKey("iut"));
-            Assert.assertTrue(example1.containsKey("eventSource"));
-            Assert.assertTrue(example1.containsKey("eventID"));
-            Assert.assertEquals(expectedIUT1, example1.get("iut").toString());
-            Assert.assertEquals(expectedEventSource1, example1.get("eventSource").toString());
-            Assert.assertEquals(expectedEventID1, example1.get("eventID").toString());
+            assertTrue(example1.containsKey("iut"));
+            assertTrue(example1.containsKey("eventSource"));
+            assertTrue(example1.containsKey("eventID"));
+            assertEquals(expectedIUT1, example1.get("iut").toString());
+            assertEquals(expectedEventSource1, example1.get("eventSource").toString());
+            assertEquals(expectedEventID1, example1.get("eventID").toString());
 
-            Assert.assertTrue(structured.containsKey("exampleSDID@32480"));
+            assertTrue(structured.containsKey("exampleSDID@32480"));
             Map<String, Object> example2 = (Map<String, Object>) structured.get("exampleSDID@32480");
 
-            Assert.assertTrue(example2.containsKey("iut"));
-            Assert.assertTrue(example2.containsKey("eventSource"));
-            Assert.assertTrue(example2.containsKey("eventID"));
-            Assert.assertEquals(expectedIUT2, example2.get("iut").toString());
-            Assert.assertEquals(expectedEventSource2, example2.get("eventSource").toString());
-            Assert.assertEquals(expectedEventID2, example2.get("eventID").toString());
+            assertTrue(example2.containsKey("iut"));
+            assertTrue(example2.containsKey("eventSource"));
+            assertTrue(example2.containsKey("eventID"));
+            assertEquals(expectedIUT2, example2.get("iut").toString());
+            assertEquals(expectedEventSource2, example2.get("eventSource").toString());
+            assertEquals(expectedEventID2, example2.get("eventID").toString());
             assertNull(deserializer.nextRecord());
             deserializer.close();
         }
@@ -186,7 +187,7 @@ public class TestSyslog5424RecordReader {
                 count++;
                 record = deserializer.nextRecord();
             }
-            Assert.assertEquals(count, 3);
+            assertEquals(count, 3);
             deserializer.close();
         }
     }
@@ -212,8 +213,8 @@ public class TestSyslog5424RecordReader {
                     exceptionCount++;
                 }
             }
-            Assert.assertEquals(count, 3);
-            Assert.assertEquals(exceptionCount,1);
+            assertEquals(count, 3);
+            assertEquals(exceptionCount,1);
             deserializer.close();
         }
     }

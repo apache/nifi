@@ -39,8 +39,8 @@ public class ByteArrayNettyEventSenderFactory extends NettyEventSenderFactory<by
     public ByteArrayNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
         super(address, port, protocol);
         final List<ChannelHandler> handlers = new ArrayList<>();
-        handlers.add(new LogExceptionChannelHandler(log));
         handlers.add(new ByteArrayEncoder());
+        handlers.add(new LogExceptionChannelHandler(log));
         setHandlerSupplier(() -> handlers);
     }
 }

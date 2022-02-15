@@ -98,6 +98,24 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .defaultValue("10")
         .required(true)
         .build();
+    public static final PropertyDescriptor HEADER_SEPARATOR = new PropertyDescriptor.Builder()
+       .name("header.separator")
+       .displayName("Header Separator")
+       .description("The character that is used to separate key-value for header in String. The value must only one character."
+               + "Otherwise you will get an error message")
+       .addValidator(StandardValidators.SINGLE_CHAR_VALIDATOR)
+       .defaultValue(",")
+       .required(false)
+       .build();
+    static final PropertyDescriptor REMOVE_CURLY_BRACES = new PropertyDescriptor.Builder()
+        .name("remove.curly.braces")
+        .displayName("Remove Curly Braces")
+        .description("If true Remove Curly Braces, Curly Braces in the header will be automatically remove.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .defaultValue("False")
+        .allowableValues("True", "False")
+        .required(false)
+        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -112,6 +130,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         properties.add(QUEUE);
         properties.add(AUTO_ACKNOWLEDGE);
         properties.add(BATCH_SIZE);
+        properties.add(REMOVE_CURLY_BRACES);
+        properties.add(HEADER_SEPARATOR);
         properties.addAll(getCommonPropertyDescriptors());
         propertyDescriptors = Collections.unmodifiableList(properties);
 
@@ -149,7 +169,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
             final BasicProperties amqpProperties = response.getProps();
             final Envelope envelope = response.getEnvelope();
-            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope);
+            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope, context.getProperty(REMOVE_CURLY_BRACES).asBoolean(),
+                    context.getProperty(HEADER_SEPARATOR).toString().charAt(0));
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
@@ -163,12 +184,12 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
     }
 
-    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope) {
+    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope, boolean removeCurlyBraces,  Character valueSeperatorForHeaders) {
         final Map<String, String> attributes = new HashMap<>();
         addAttribute(attributes, ATTRIBUTES_PREFIX + "appId", properties.getAppId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentEncoding", properties.getContentEncoding());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentType", properties.getContentType());
-        addAttribute(attributes, ATTRIBUTES_PREFIX + "headers", properties.getHeaders());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "headers", buildHeaders(properties.getHeaders(), removeCurlyBraces,valueSeperatorForHeaders));
         addAttribute(attributes, ATTRIBUTES_PREFIX + "deliveryMode", properties.getDeliveryMode());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "priority", properties.getPriority());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "correlationId", properties.getCorrelationId());
@@ -190,6 +211,33 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
 
         attributes.put(attributeName, value.toString());
+    }
+
+    private String buildHeaders(Map<String, Object> headers,  boolean removeCurlyBraces,Character valueSeparatorForHeaders) {
+        if (headers == null) {
+            return null;
+        }
+        String headerString = convertMapToString(headers,valueSeparatorForHeaders);
+
+        if (!removeCurlyBraces) {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append("{").append(headerString).append("}");
+            headerString = stringBuilder.toString();
+        }
+        return headerString;
+    }
+
+    public static String convertMapToString(Map<String, Object> headers,Character valueSeparatorForHeaders) {
+        StringBuilder stringBuilder = new StringBuilder();
+        boolean notFirst = false;
+        for (Map.Entry<String, Object> entry : headers.entrySet()) {
+            if (notFirst) {
+                stringBuilder.append(valueSeparatorForHeaders);
+            }
+            stringBuilder.append(entry.getKey()).append("=").append(entry.getValue().toString());
+            notFirst = true;
+        }
+        return stringBuilder.toString();
     }
 
     @Override

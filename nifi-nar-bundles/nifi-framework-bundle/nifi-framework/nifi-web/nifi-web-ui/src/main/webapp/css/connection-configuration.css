@@ -123,3 +123,11 @@ div.undefined {
     height: 32px;
     padding: 0px 10px;
 }
+
+#prioritizer-selected .draggable-control {
+    float: right;
+}
+
+#prioritizer-selected .fa-remove {
+    color: #fff;
+}

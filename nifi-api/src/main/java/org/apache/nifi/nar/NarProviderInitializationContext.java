@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import javax.net.ssl.SSLContext;
 import java.util.Map;
 
 /**
@@ -27,4 +28,10 @@ public interface NarProviderInitializationContext {
      * @return Returns with the available properties.
      */
     Map<String, String> getProperties();
+
+    /**
+     * @return Returns an SSLContext created from NiFi's keystore/truststore
+     */
+    SSLContext getNiFiSSLContext();
+
 }
