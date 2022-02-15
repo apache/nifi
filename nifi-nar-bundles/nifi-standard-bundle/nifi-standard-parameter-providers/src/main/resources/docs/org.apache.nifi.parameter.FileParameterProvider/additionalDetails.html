@@ -85,26 +85,18 @@ sys.access.key  sys.admin.password sys.admin.username
         you should simply provide the following configuration to the FileParameterProvider:
 
         <ul>
-            <li><b>Sensitive Parameter Regex</b> - .*\.(password|key)</li>
-            <li><b>Non-Sensitive Parameter Regex</b> - .*</li>
-            <li><b>Grouped Parameter Directories</b> - /etc/secrets/system-credentials</li>
+            <li><b>Parameter Group Directories</b> - /etc/secrets/system-credentials</li>
         </ul>
     </p>
 
     <p>
-        In this configuration, only a Parameter Context named 'system-credentials' (ignoring case) will receive these
-        parameters when the provider's parameters are applied:
+        The 'system-credentials' parameter context will then contain the following parameters:
 
         <ul>
-            <li><b>sys.access.key (sensitive)</b> - my-key</li>
-            <li><b>sys.admin.username (non-sensitive)</b> - my-username</li>
-            <li><b>sys.admin.password (sensitive)</b> - my-password</li>
+            <li><b>sys.access.key</b> - my-key</li>
+            <li><b>sys.admin.username</b> - my-username</li>
+            <li><b>sys.admin.password</b> - my-password</li>
         </ul>
-    </p>
-
-    <p>
-        If you wish these parameters to apply to any referencing Parameter Context, regardless of name, specify
-        the /etc/secrets/system-credentials directory in the Ungrouped Parameter Directories instead.
     </p>
 </body>
 </html>
