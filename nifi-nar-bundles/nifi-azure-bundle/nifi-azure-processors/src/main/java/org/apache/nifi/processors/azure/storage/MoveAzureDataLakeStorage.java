@@ -180,10 +180,10 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
 
                 fileClient = fileClient.renameWithResponse(destinationFileSystem,
                                 destinationPath + fileName,
-                        sourceConditions,
-                        destConditions,
-                        null,
-                        null)
+                                sourceConditions,
+                                destConditions,
+                                null,
+                                null)
                         .getValue();
 
                 final Map<String, String> attributes = new HashMap<>();
@@ -200,16 +200,12 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
             } catch (DataLakeStorageException dlsException) {
-                if (dlsException.getStatusCode() == 409) {
-                    if (conflictResolution.equals(IGNORE_RESOLUTION)) {
-                        session.transfer(flowFile, REL_SUCCESS);
-                        String warningMessage = String.format("File with the same name already exists. " +
-                                "Remote file not modified. " +
-                                "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                        getLogger().warn(warningMessage, new Object[]{flowFile});
-                    } else {
-                        throw dlsException;
-                    }
+                if (dlsException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
+                    session.transfer(flowFile, REL_SUCCESS);
+                    String warningMessage = String.format("File with the same name already exists. " +
+                            "Remote file not modified. " +
+                            "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
+                    getLogger().warn(warningMessage, flowFile);
                 } else {
                     throw dlsException;
                 }
