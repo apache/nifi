@@ -51,6 +51,12 @@ public class ProcessorConfigDTO {
     private Map<String, String> defaultConcurrentTasks;
     private Map<String, String> defaultSchedulingPeriod;
 
+    //retry configurations
+    private Integer retryCount;
+    private Set<String> retriedRelationships;
+    private String backoffMechanism;
+    private String maxBackoffPeriod;
+
     public ProcessorConfigDTO() {
 
     }
@@ -308,4 +314,48 @@ public class ProcessorConfigDTO {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
     }
 
+    @ApiModelProperty(
+            value = "Overall number of retries."
+    )
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    @ApiModelProperty(
+            value = "All the relationships should be retried."
+    )
+    public Set<String> getRetriedRelationships() {
+        return retriedRelationships;
+    }
+
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+        this.retriedRelationships = retriedRelationships;
+    }
+
+    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
+            value = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
+            allowableValues = "PENALIZE_FLOWFILE, YIELD_PROCESSOR"
+    )
+    public String getBackoffMechanism() {
+        return backoffMechanism;
+    }
+
+    public void setBackoffMechanism(String backoffMechanism) {
+        this.backoffMechanism = backoffMechanism;
+    }
+
+    @ApiModelProperty(
+            value = "Maximum amount of time to be waited during a retry period."
+    )
+    public String getMaxBackoffPeriod() {
+        return maxBackoffPeriod;
+    }
+
+    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+        this.maxBackoffPeriod = maxBackoffPeriod;
+    }
 }

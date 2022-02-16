@@ -205,17 +205,14 @@ public class AttributesToJSON extends AbstractProcessor {
         return result;
     }
 
-    private Set<String> buildAtrs(String atrList, Set<String> atrsToExclude) {
+    private Set<String> buildAtrs(String atrList) {
         //If list of attributes specified get only those attributes. Otherwise write them all
         if (StringUtils.isNotBlank(atrList)) {
             String[] ats = StringUtils.split(atrList, AT_LIST_SEPARATOR);
             if (ats != null) {
                 Set<String> result = new HashSet<>(ats.length);
                 for (String str : ats) {
-                    String trim = str.trim();
-                    if (!atrsToExclude.contains(trim)) {
-                        result.add(trim);
-                    }
+                    result.add(str.trim());
                 }
                 return result;
             }
@@ -228,7 +225,7 @@ public class AttributesToJSON extends AbstractProcessor {
         attributesToRemove = context.getProperty(INCLUDE_CORE_ATTRIBUTES).asBoolean() ? Collections.EMPTY_SET : Arrays.stream(CoreAttributes.values())
                 .map(CoreAttributes::key)
                 .collect(Collectors.toSet());
-        attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue(), attributesToRemove);
+        attributes = buildAtrs(context.getProperty(ATTRIBUTES_LIST).getValue());
         nullValueForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         destinationContent = DESTINATION_CONTENT.equals(context.getProperty(DESTINATION).getValue());
         if(context.getProperty(ATTRIBUTES_REGEX).isSet()) {

@@ -493,6 +493,12 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
             </dependency>
+            <!-- Set snappy-java version for compatibility across multiple Java versions -->
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.8.4</version>
+            </dependency>
             <!-- Override Log4j 2 libraries for transitive dependencies -->
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>

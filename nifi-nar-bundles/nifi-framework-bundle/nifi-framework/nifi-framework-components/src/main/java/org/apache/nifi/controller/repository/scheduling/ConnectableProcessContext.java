@@ -287,4 +287,15 @@ public class ConnectableProcessContext implements ProcessContext {
     public boolean isConnectedToCluster() {
         throw new UnsupportedOperationException();
     }
+
+
+    @Override
+    public boolean isRelationshipRetried(Relationship relationship) {
+        return false;
+    }
+
+    @Override
+    public int getRetryCount() {
+        return 0;
+    }
 }

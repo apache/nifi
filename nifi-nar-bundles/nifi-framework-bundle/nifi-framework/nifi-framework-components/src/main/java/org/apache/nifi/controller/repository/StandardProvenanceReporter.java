@@ -74,6 +74,11 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
+    public void removeEventsForFlowFile(final String uuid) {
+        events.removeIf(event -> event.getFlowFileUuid().equals(uuid));
+    }
+
+    @Override
     public void clear() {
         events.clear();
 

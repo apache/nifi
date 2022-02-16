@@ -75,10 +75,11 @@ public class OffloadIT extends NiFiSystemIT {
         final NodeDTO node2Dto = getNodeDTO(5672);
 
         disconnectNode(node2Dto);
+        waitForNodeStatus(node2Dto, "DISCONNECTED");
 
         final String nodeId = node2Dto.getNodeId();
         getClientUtil().offloadNode(nodeId);
-        waitFor(this::isNodeOffloaded);
+        waitForNodeStatus(node2Dto, "OFFLOADED");
 
         getClientUtil().connectNode(nodeId);
         waitForAllNodesConnected();

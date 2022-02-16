@@ -20,7 +20,9 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
+import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -36,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -192,6 +195,7 @@ public abstract class NiFiSystemIT {
                 final ClusteSummaryEntity clusterSummary = client.getFlowClient().getClusterSummary();
                 final int connectedNodeCount = clusterSummary.getClusterSummary().getConnectedNodeCount();
                 if (connectedNodeCount == expectedNumberOfNodes) {
+                    logger.info("Wait successful, {} nodes connected", expectedNumberOfNodes);
                     return;
                 }
 
@@ -324,6 +328,21 @@ public abstract class NiFiSystemIT {
 
             Thread.sleep(delayMillis);
         }
+    }
+
+    protected void waitForNodeStatus(final NodeDTO nodeDto, final String status) throws InterruptedException {
+        waitFor(() -> {
+            try {
+                final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
+                final Collection<NodeDTO> nodes = clusterEntity.getCluster().getNodes();
+                final NodeDTO nodeDtoMatch = nodes.stream()
+                        .filter(n -> n.getApiPort().equals(nodeDto.getApiPort())).findFirst().get();
+                return nodeDtoMatch.getStatus().equals(status);
+            } catch (final Exception e) {
+                logger.error("Failed to determine node status", e);
+            }
+            return false;
+        });
     }
 
     protected void waitForQueueNotEmpty(final String connectionId) throws InterruptedException {

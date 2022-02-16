@@ -89,6 +89,7 @@ The following table lists the default ports used by NiFi and the corresponding p
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
 |Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
 |Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
+|Listener Bootstrap Port          | `nifi.listener.bootstrap.port`        | _random ephemeral_
 |==================================================================================================================================================
 
 NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `9443`.
@@ -2748,6 +2749,7 @@ configured recipients whenever NiFi is stopped.
 |`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory. The default value is `./diagnostics`.
 |`nifi.diagnostics.on.shutdown.max.filecount`|This property specifies the maximum permitted number of diagnostic files. If the limit is exceeded, the oldest files are deleted. The default value is `10`.
 |`nifi.diagnostics.on.shutdown.max.directory.size`|This property specifies the maximum permitted size of the diagnostics directory. If the limit is exceeded, the oldest files are deleted. The default value is `10 MB`.
+|`nifi.bootstrap.listen.port`|This property defines the port used to listen for communications from NiFi. If this property is missing, empty, or `0`, a random ephemeral port is used.
 |====
 
 [[notification_services]]
@@ -3924,6 +3926,15 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. It can be set to the identifier from a provider in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication. The default value is `single-user-provider`.
 |`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
 |`nifi.security.ocsp.responder.certificate`|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
+|====
+
+=== Bootstrap Properties
+
+These properties pertain to the connection NiFi uses to receive communications from NiFi Bootstrap.
+
+|====
+|*Property*|*Description*
+|`nifi.listener.bootstrap.port`|This property defines the port used to listen for communications from NiFi Bootstrap. If this property is missing, empty, or `0`, a random ephemeral port is used.
 |====
 
 === Identity Mapping Properties

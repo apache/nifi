@@ -44,6 +44,11 @@ public class VersionedProcessor extends VersionedComponent
     private Set<String> autoTerminatedRelationships;
     private ScheduledState scheduledState;
 
+    private Integer retryCount;
+    private Set<String> retriedRelationships;
+    private String backoffMechanism;
+    private String maxBackoffPeriod;
+
     @ApiModelProperty("The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy.")
     public String getSchedulingPeriod() {
         return schedulingPeriod;
@@ -204,4 +209,48 @@ public class VersionedProcessor extends VersionedComponent
         return ComponentType.PROCESSOR;
     }
 
+    @ApiModelProperty(
+            value = "Overall number of retries."
+    )
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    @ApiModelProperty(
+            value = "All the relationships should be retried."
+    )
+    public Set<String> getRetriedRelationships() {
+        return retriedRelationships;
+    }
+
+    public void setRetriedRelationships(Set<String> retriedRelationships) {
+        this.retriedRelationships = retriedRelationships;
+    }
+
+    @ApiModelProperty(
+            value = "Determines whether the FlowFile should be penalized or the processor should be yielded between retries.",
+            allowableValues = "PENALIZE_FLOWFILE, YIELD_PROCESSOR"
+    )
+    public String getBackoffMechanism() {
+        return backoffMechanism;
+    }
+
+    public void setBackoffMechanism(String backoffMechanism) {
+        this.backoffMechanism = backoffMechanism;
+    }
+
+    @ApiModelProperty(
+            value = "Maximum amount of time to be waited during a retry period."
+    )
+    public String getMaxBackoffPeriod() {
+        return maxBackoffPeriod;
+    }
+
+    public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+        this.maxBackoffPeriod = maxBackoffPeriod;
+    }
 }

@@ -699,7 +699,7 @@
                             var remoteProcessGroupEntity = {
                                 'state': 'TRANSMITTING'
                             };
-                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            var startRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(d.id) + '/run-status', remoteProcessGroupEntity);
                             startRequests.push(startRemoteProcessGroups.done(function (response) {}));
 
                             startRequests.push(updateResource(uri, entity).done(function (response) {
@@ -817,7 +817,7 @@
                             var remoteProcessGroupEntity = {
                                 'state': 'STOPPED'
                             };
-                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/run-status', remoteProcessGroupEntity);
+                            var stopRemoteProcessGroups = updateResource(config.urls.api + '/remote-process-groups/process-group/' + encodeURIComponent(d.id) + '/run-status', remoteProcessGroupEntity);
                             stopRequests.push(stopRemoteProcessGroups.done(function (response) {}));
 
                             stopRequests.push(updateResource(uri, entity).done(function (response) {
