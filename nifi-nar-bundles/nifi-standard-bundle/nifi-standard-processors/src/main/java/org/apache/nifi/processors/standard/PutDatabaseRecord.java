@@ -1206,10 +1206,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                         if (settings.escapeColumnNames) {
                             sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                                    .append(normalizedColName)
+                                    .append(desc.getColumnName())
                                     .append(tableSchema.getQuotedIdentifierString());
                         } else {
-                            sqlBuilder.append(normalizedColName);
+                            sqlBuilder.append(desc.getColumnName());
                         }
                         sqlBuilder.append(" = ?");
                         includedColumns.add(i);
