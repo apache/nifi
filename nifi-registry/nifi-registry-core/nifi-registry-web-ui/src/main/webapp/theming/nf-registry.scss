@@ -31,6 +31,7 @@ $mat-font-url: 'node_modules/@covalent/core/common/styles/font/';
 @import 'components/administration/workflow/structureElements';
 @import 'components/explorer/grid-list/structureElements';
 @import 'components/explorer/dialogs/structureElements';
+@import 'components/explorer/dialogs/aboutElements';
 
 @include covalent-material-icons;
 

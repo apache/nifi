@@ -991,12 +991,12 @@ NfRegistryApi.prototype = {
      *
      * Returns {*}
      */
-    getRegistryVersion: function (action, resource) {
-        return this.http.get('../nifi-registry-api/version').pipe(
+    getRegistryAboutVersion: function () {
+        return this.http.get('../nifi-registry-api/about').pipe(
             map(function (response) {
                 return response;
             }),
-            catchError(function (error) {
+            catchError(function () {
                 // If failed, return an empty object.
                 return of({});
             })

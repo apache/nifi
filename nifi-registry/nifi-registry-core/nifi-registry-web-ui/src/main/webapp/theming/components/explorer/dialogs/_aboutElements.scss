@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,22 +15,9 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
-import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog'
-
-export interface DialogData {
-    registryAboutVersion: string
-}
-
-@Component({
-    selector: 'nifi-registry-explorer-about-dialog',
-    templateUrl: './nf-registry-explorer-about.html'
-})
-export class NfRegistryExplorerAbout {
-    /**
-     * NfRegistryExplorerAbout constructor.
-     *
-     * @param DialogData - The data to be injected into the dialog
-     */
-    constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) { }
+#nf-registry-about-pic {
+    position: relative;
+    background: url('assets/images/registry-logo-web-app.svg') #fff no-repeat center center;
+    height: 150px;
+    margin-bottom: 30px;
 }

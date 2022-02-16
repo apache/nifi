@@ -15,12 +15,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<div class="pad-sm">
-    <h2 mat-dialog-title>About Nifi Registry</h2>
-    <mat-dialog-content class="mat-typography">
-        <p>Registry Version: {{ data.registryVersion }}</p>
-    </mat-dialog-content>
-    <mat-dialog-actions align="end">
-        <button mat-button mat-dialog-close>Close</button>
-    </mat-dialog-actions>
+<h2 mat-dialog-title>About Nifi Registry</h2>
+<div id="nf-registry-about-dialog" class="pad-sm mat-typography">
+    <div id="nf-registry-about-pic-container">
+        <div id="nf-registry-about-pic"></div>
+    </div>
+    <div id="nf-registry-about-version-info">
+        <p>Registry Version: {{ data.registryAboutVersion }}</p>
+    </div>
+    <div id="nf-registry-about-description">
+        <p>
+            Registry — a subproject of Apache NiFi — is a complementary application that provides
+            a central location for storage and management of shared resources across one or more
+            instances of NiFi and/or MiNiFi.
+        </p>
+    </div>
 </div>
+<mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Close</button>
+</mat-dialog-actions>

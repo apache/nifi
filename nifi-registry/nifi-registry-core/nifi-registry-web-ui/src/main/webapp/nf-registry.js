@@ -61,7 +61,7 @@ NfRegistry.prototype = {
             self.nfRegistryService.registry.config = registryConfig;
         });
 
-        this.nfRegistryApi.getRegistryVersion().subscribe(function (registryVersion) {
+        this.nfRegistryApi.getRegistryAboutVersion().subscribe(function (registryVersion) {
             self.nfRegistryService.registry.version = registryVersion;
         });
     },
@@ -110,6 +110,8 @@ NfRegistry.prototype = {
     },
     showAboutDialog: function () {
         this.matDialog.open(NfRegistryExplorerAbout, {
+            width: '550px',
+            height: '440px',
             data: this.nfRegistryService.registry.version
         });
     }
