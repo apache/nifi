@@ -185,6 +185,8 @@ public class StatelessBootstrap {
             throw new IOException("Could not get a listing of the NAR directory");
         }
 
+        logger.debug("NAR directory used to find files to allow being loaded by Stateless Extension Classloaders from parent {}: {}", parent, narDirectory);
+
         final Set<URL> urls = new HashSet<>();
         findClassLoaderUrls(parent, urls);
 
@@ -207,12 +209,14 @@ public class StatelessBootstrap {
                 filesAllowed.add(file.getName());
             }
         }
+        logger.debug("The following JAR files are proposed to be blocked from being loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesBlocked);
+        logger.debug("Of the full list above, the following JAR files will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesAllowed);
 
         classesBlocked.removeAll(classesAllowed);
         filesBlocked.removeAll(filesAllowed);
+        logger.debug("The final list of JAR files blocked from being loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesBlocked);
 
-        logger.debug("Blocking the following JAR files from being loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesBlocked);
-        logger.debug("Blocking the following classes from being loaded by Stateless Extension ClassLoaders from parent {}: {}", parent, classesBlocked);
+        logger.debug("The final list of classes blocked from being loaded by Stateless Extension ClassLoaders from parent {}: {}", parent, classesBlocked);
 
         final BlockListClassLoader blockingClassLoader = new BlockListClassLoader(parent, classesBlocked);
         return blockingClassLoader;
