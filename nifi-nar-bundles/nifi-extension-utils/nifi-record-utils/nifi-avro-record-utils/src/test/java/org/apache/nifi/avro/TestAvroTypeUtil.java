@@ -123,6 +123,29 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testExtractAvroSchemaWithDefaults() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("string", RecordFieldType.STRING.getDataType(), "hello"));
+        fields.add(new RecordField("int", RecordFieldType.INT.getDataType(), 17));
+        fields.add(new RecordField("long", RecordFieldType.LONG.getDataType(), 42));
+        fields.add(new RecordField("float", RecordFieldType.FLOAT.getDataType(), 2.4F));
+        fields.add(new RecordField("double", RecordFieldType.DOUBLE.getDataType(), 28.1D));
+        fields.add(new RecordField("stringArray", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), new String[0]));
+        fields.add(new RecordField("intArray", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()), new Integer[0]));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Schema avroSchema = AvroTypeUtil.extractAvroSchema(schema);
+
+        assertEquals("hello", avroSchema.getField("string").defaultVal());
+        assertEquals(17, avroSchema.getField("int").defaultVal());
+        assertEquals(42L, avroSchema.getField("long").defaultVal());
+        assertEquals(2.4D, (double) avroSchema.getField("float").defaultVal(), 0.002D); // Even though we provide a Float, avro converts it into a Double value.
+        assertEquals(28.1D, (double) avroSchema.getField("double").defaultVal(), 0.002D);
+        assertEquals(new ArrayList<String>(), avroSchema.getField("stringArray").defaultVal());
+        assertEquals(new ArrayList<Integer>(), avroSchema.getField("intArray").defaultVal());
+    }
+
+    @Test
     public void testAvroDefaultValueWithFieldInSchemaButNotRecord() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
