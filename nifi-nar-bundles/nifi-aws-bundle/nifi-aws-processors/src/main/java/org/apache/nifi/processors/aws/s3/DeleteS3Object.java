@@ -102,6 +102,6 @@ public class DeleteS3Object extends AbstractS3Processor {
         final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
-        session.getProvenanceReporter().send(flowFile, "DELETE " + url, transferMillis);
+        session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object deleted");
     }
 }
