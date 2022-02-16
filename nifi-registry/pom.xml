@@ -96,12 +96,6 @@
                 <artifactId>apache-jstl</artifactId>
                 <scope>compile</scope>
             </dependency>
-	    <!-- lib/shared -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.5</version>
-            </dependency>
         <!-- lib/java11 -->
             <dependency>
                 <groupId>jakarta.xml.bind</groupId>

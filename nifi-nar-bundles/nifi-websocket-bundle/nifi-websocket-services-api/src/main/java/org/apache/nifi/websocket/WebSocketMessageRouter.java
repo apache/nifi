@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,10 +101,7 @@ public class WebSocketMessageRouter {
     }
 
     public void sendMessage(final String sessionId, final SendMessage sendMessage) throws IOException {
-        if (!StringUtils.isEmpty(sessionId)) {
-            final WebSocketSession session = getSessionOrFail(sessionId);
-            sendMessage.send(session);
-        } else {
+        if (sessionId == null || sessionId.isEmpty()) {
             //The sessionID is not specified so broadcast the message to all connected client sessions.
             sessions.keySet().forEach(itrSessionId -> {
                 try {
@@ -115,6 +111,9 @@ public class WebSocketMessageRouter {
                     logger.warn("Failed to send message to session {} due to {}", itrSessionId, e, e);
                 }
             });
+        } else {
+            final WebSocketSession session = getSessionOrFail(sessionId);
+            sendMessage.send(session);
         }
     }
 
