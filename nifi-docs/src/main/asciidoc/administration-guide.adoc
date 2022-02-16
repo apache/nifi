@@ -2209,7 +2209,7 @@ configured in the _state-management.xml_ file. See <<state_providers>> for more 
 ** `nifi.cluster.node.protocol.port` - Set this to an open port that is higher than 1024 (anything lower requires root).
 ** `nifi.cluster.node.protocol.max.threads` - The maximum number of threads that should be used to communicate with other nodes in the cluster. This property
 defaults to `50`. A thread pool is used for replicating requests to all nodes. The thread pool will increase the number of active threads to the limit
-set by this property. It is typically recommended that this property be set to 4-8 times the number of nodes in your cluster.
+set by this property. It is typically recommended that this property be set to 4-8 times the number of nodes in your cluster. There could be up to `n+2` threads for a given request, where `n` = number of nodes in your cluster. As an example, if 4 requests are made, a 5 node cluster will use `4 * 7 = 28` threads.
 ** `nifi.zookeeper.connect.string` - The Connect String that is needed to connect to Apache ZooKeeper. This is a comma-separated list
 of hostname:port pairs. For example, `localhost:2181,localhost:2182,localhost:2183`. This should contain a list of all ZooKeeper
 instances in the ZooKeeper quorum.
@@ -3990,7 +3990,7 @@ Configure these properties for cluster nodes.
 |`nifi.cluster.is.node`|Set this to `true` if the instance is a node in a cluster. The default value is `false`.
 |`nifi.cluster.node.address`|The fully qualified address of the node. It is blank by default.
 |`nifi.cluster.node.protocol.port`|The node's protocol port. It is blank by default.
-|`nifi.cluster.node.protocol.max.threads`|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`.
+|`nifi.cluster.node.protocol.max.threads`|The maximum number of threads that should be used to communicate with other nodes in the cluster. This property defaults to `50`. When a request is made to one node, it must be forwarded to the coordinator. The coordinator then replicates it to all nodes. There could be up to `n+2` threads for a given request, where `n` = number of nodes in your cluster. As an example, if 4 requests are made, a 5 node cluster will use `4 * 7 = 28` threads.
 |`nifi.cluster.node.event.history.size`|When the state of a node in the cluster is changed, an event is generated
 and can be viewed in the Cluster page. This value indicates how many events to keep in memory for each node. The default value is `25`.
 |`nifi.cluster.node.connection.timeout`|When connecting to another node in the cluster, specifies how long this node should wait before considering
