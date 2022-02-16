@@ -124,16 +124,18 @@ public class AvroTypeUtil {
         return avroSchema;
     }
 
-    private static Field buildAvroField(final RecordField recordField, String fieldNamePrefix) {
+    private static Field buildAvroField(final RecordField recordField, final String fieldNamePrefix) {
         final Schema schema = buildAvroSchema(recordField.getDataType(), recordField.getFieldName(), fieldNamePrefix, recordField.isNullable());
 
         final Field field;
         final String recordFieldName = recordField.getFieldName();
         if (isValidAvroFieldName(recordFieldName)) {
-            field = new Field(recordField.getFieldName(), schema, null, recordField.getDefaultValue());
+            final Object avroDefaultValue = convertToAvroObject(recordField.getDefaultValue(), schema);
+            field = new Field(recordField.getFieldName(), schema, null, avroDefaultValue);
         } else {
             final String validName = createValidAvroFieldName(recordField.getFieldName());
-            field = new Field(validName, schema, null, recordField.getDefaultValue());
+            final Object avroDefaultValue = convertToAvroObject(recordField.getDefaultValue(), schema);
+            field = new Field(validName, schema, null, avroDefaultValue);
             field.addAlias(recordField.getFieldName());
         }
 
