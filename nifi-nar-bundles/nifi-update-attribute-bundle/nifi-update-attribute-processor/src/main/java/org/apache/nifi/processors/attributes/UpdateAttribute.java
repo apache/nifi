@@ -226,6 +226,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     }
 
     @Override
+    public boolean isStateful(final ProcessContext context) {
+        return !context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE);
+    }
+
+    @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         PropertyDescriptor.Builder propertyBuilder = new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)

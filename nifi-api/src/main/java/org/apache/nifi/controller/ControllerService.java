@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -176,5 +177,14 @@ public interface ControllerService extends ConfigurableComponent {
      * @throws org.apache.nifi.reporting.InitializationException if unable to init
      */
     void initialize(ControllerServiceInitializationContext context) throws InitializationException;
+
+    /**
+     * Indicates whether this controller service, configured with the given {@link ConfigurationContext}, stores state.
+     * @param context provides access to convenience methods for obtaining property values
+     * @return True if this controller service stores state
+     */
+    default boolean isStateful(ConfigurationContext context) {
+        return this.getClass().isAnnotationPresent(Stateful.class);
+    }
 
 }
