@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.websocket;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.flowfile.FlowFile;

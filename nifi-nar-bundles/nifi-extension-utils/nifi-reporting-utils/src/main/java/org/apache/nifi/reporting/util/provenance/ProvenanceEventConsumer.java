@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.util.provenance;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
@@ -92,25 +91,25 @@ public class ProvenanceEventConsumer {
     }
 
     public void setComponentTypeRegex(final String componentTypeRegex) {
-        if (!StringUtils.isBlank(componentTypeRegex)) {
+        if (isNotEmpty(componentTypeRegex)) {
             this.componentTypeRegex = Pattern.compile(componentTypeRegex);
         }
     }
 
     public void setComponentTypeRegexExclude(final String componentTypeRegex) {
-        if (!StringUtils.isBlank(componentTypeRegex)) {
+        if (isNotEmpty(componentTypeRegex)) {
             this.componentTypeRegexExclude = Pattern.compile(componentTypeRegex);
         }
     }
 
     public void setComponentNameRegex(final String componentNameRegex) {
-        if (!StringUtils.isBlank(componentNameRegex)) {
+        if (isNotEmpty(componentNameRegex)) {
             this.componentNameRegex = Pattern.compile(componentNameRegex);
         }
     }
 
     public void setComponentNameRegexExclude(final String componentNameRegexExclude) {
-        if (!StringUtils.isBlank(componentNameRegexExclude)) {
+        if (isNotEmpty(componentNameRegexExclude)) {
             this.componentNameRegexExclude = Pattern.compile(componentNameRegexExclude);
         }
     }
@@ -255,12 +254,12 @@ public class ProvenanceEventConsumer {
     }
 
 
-    private boolean isFilteringEnabled() {
+    protected boolean isFilteringEnabled() {
         // Collect all non-blank patterns
         boolean anyPatternPresent = Stream.of(componentTypeRegex, componentTypeRegexExclude, componentNameRegex, componentNameRegexExclude)
                 .filter(Objects::nonNull)
                 .map(Pattern::toString)
-                .anyMatch(StringUtils::isNotBlank);
+                .anyMatch(this::isNotEmpty);
 
         // Collect all non-empty lists
         boolean anyListPresent = Stream.of(eventTypes, eventTypesExclude, componentIds, componentIdsExclude)
@@ -296,7 +295,7 @@ public class ProvenanceEventConsumer {
                         continue;
                     }
                     final String processGroupId = componentMapHolder.getProcessGroupId(componentId, provenanceEventRecord.getComponentType());
-                    if (!StringUtils.isEmpty(processGroupId)) {
+                    if (!isEmpty(processGroupId)) {
 
                         // Check if the process group or any parent process group is specified as a target component ID.
                         if (componentIdsExclude.contains(processGroupId)) {
@@ -319,7 +318,7 @@ public class ProvenanceEventConsumer {
                         continue;
                     }
                     final String processGroupId = componentMapHolder.getProcessGroupId(componentId, provenanceEventRecord.getComponentType());
-                    if (StringUtils.isEmpty(processGroupId)) {
+                    if (isEmpty(processGroupId)) {
                         continue;
                     }
                     if (!componentIds.contains(processGroupId)) {
@@ -359,4 +358,11 @@ public class ProvenanceEventConsumer {
         }
     }
 
+    private boolean isNotEmpty(final String string) {
+        return !isEmpty(string);
+    }
+
+    private boolean isEmpty(final String string) {
+        return string == null || string.isEmpty();
+    }
 }
