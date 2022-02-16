@@ -24,16 +24,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 @ApiModel
-public class RegistryVersion {
-    private String registryVersion;
+public class RegistryAbout {
+    private String registryAboutVersion;
 
     /**
      * Container for the version string of this Registry.
      *
-     * @param registryVersion the version string for this Registry
+     * @param registryAboutVersion the version string for this Registry
      */
-    public RegistryVersion(String registryVersion) {
-        this.registryVersion = registryVersion;
+    public RegistryAbout(String registryAboutVersion) {
+        this.registryAboutVersion = registryAboutVersion;
     }
 
     /**
@@ -43,7 +43,7 @@ public class RegistryVersion {
             value = "The version string for this Nifi Registry",
             readOnly = true
     )
-    public String getRegistryVersion() {
-        return registryVersion;
+    public String getRegistryAboutVersion() {
+        return registryAboutVersion;
     }
 }

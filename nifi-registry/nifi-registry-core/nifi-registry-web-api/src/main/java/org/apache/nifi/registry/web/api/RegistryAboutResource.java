@@ -20,7 +20,7 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.Authorization;
 import org.apache.nifi.registry.NiFiRegistryApiApplication;
-import org.apache.nifi.registry.RegistryVersion;
+import org.apache.nifi.registry.RegistryAbout;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,16 +33,16 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 @Component
-@Path("/version")
+@Path("/about")
 @Api(
-        value = "version",
+        value = "about",
         description = "Retrieves the version information for this NiFi Registry.",
         authorizations = { @Authorization("Authorization") }
 )
-public class VersionResource extends ApplicationResource {
+public class RegistryAboutResource extends ApplicationResource {
 
     @Autowired
-    public VersionResource(
+    public RegistryAboutResource(
             final ServiceFacade serviceFacade,
             final EventService eventService) {
         super(serviceFacade, eventService);
@@ -53,11 +53,11 @@ public class VersionResource extends ApplicationResource {
     @ApiOperation(
             value = "Get version",
             notes = "Gets the NiFi Registry version.",
-            response = RegistryVersion.class
+            response = RegistryAbout.class
     )
     public Response getVersion() {
         final String implVersion = NiFiRegistryApiApplication.class.getPackage().getImplementationVersion();
-        final RegistryVersion version = new RegistryVersion(implVersion);
+        final RegistryAbout version = new RegistryAbout(implVersion);
         return Response.status(Response.Status.OK).entity(version).build();
     }
 }
