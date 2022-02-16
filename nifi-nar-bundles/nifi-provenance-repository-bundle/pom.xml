@@ -61,11 +61,6 @@
                 <artifactId>lucene-backward-codecs</artifactId>
                 <version>${lucene.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>3.9</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
