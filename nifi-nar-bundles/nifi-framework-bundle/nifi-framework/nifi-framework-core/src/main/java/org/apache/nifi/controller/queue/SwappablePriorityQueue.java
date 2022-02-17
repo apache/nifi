@@ -23,6 +23,7 @@ import org.apache.nifi.controller.repository.IncompleteSwapFileException;
 import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
@@ -438,6 +439,31 @@ public class SwappablePriorityQueue {
     public boolean isActiveQueueEmpty() {
         final FlowFileQueueSize queueSize = getFlowFileQueueSize();
         return queueSize.getActiveCount() == 0 && queueSize.getSwappedCount() == 0;
+    }
+
+    public FlowFileAvailability getFlowFileAvailability() {
+        // If queue is empty, avoid obtaining a lock.
+        if (isActiveQueueEmpty()) {
+            return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
+        }
+
+        final FlowFileRecord top;
+        readLock.lock();
+        try {
+            top = activeQueue.peek();
+        } finally {
+            readLock.unlock("isFlowFileAvailable");
+        }
+
+        if (top == null) {
+            return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
+        }
+
+        if (top.isPenalized()) {
+            return FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED;
+        }
+
+        return FlowFileAvailability.FLOWFILE_AVAILABLE;
     }
 
     public void acknowledge(final FlowFileRecord flowFile) {

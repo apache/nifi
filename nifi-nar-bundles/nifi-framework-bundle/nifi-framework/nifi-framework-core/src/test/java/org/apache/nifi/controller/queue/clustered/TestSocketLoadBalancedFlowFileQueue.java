@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.MockSwapManager;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.NopConnectionEventListener;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
@@ -139,6 +140,22 @@ public class TestSocketLoadBalancedFlowFileQueue {
             "localhost", nodePort++, "localhost", nodePort++, nodePort++, true, Collections.emptySet());
     }
 
+    @Test
+    public void testFlowFileAvailability() {
+        assertTrue(queue.isEmpty());
+        assertSame(FlowFileAvailability.ACTIVE_QUEUE_EMPTY, queue.getFlowFileAvailability());
+
+        final MockFlowFileRecord penalizedFlowFile = new MockFlowFileRecord(0L);
+        penalizedFlowFile.setPenaltyExpiration(System.currentTimeMillis() + 500_000L);
+        queue.put(penalizedFlowFile);
+
+        assertFalse(queue.isEmpty());
+        assertSame(FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED, queue.getFlowFileAvailability());
+
+        penalizedFlowFile.setPenaltyExpiration(System.currentTimeMillis() - 1);
+        assertFalse(queue.isEmpty());
+        assertSame(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+    }
 
     @Test
     public void testPriorities() {

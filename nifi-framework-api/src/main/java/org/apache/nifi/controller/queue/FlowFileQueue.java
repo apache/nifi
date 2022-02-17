@@ -18,6 +18,7 @@ package org.apache.nifi.controller.queue;
 
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
@@ -108,6 +109,11 @@ public interface FlowFileQueue {
      * @return true if no items queue; false otherwise
      */
     boolean isEmpty();
+
+    /**
+     * @return the FlowFile Availability for this queue
+     */
+    FlowFileAvailability getFlowFileAvailability();
 
     /**
      * @return <code>true</code> if the queue is empty or contains only FlowFiles that already are being processed

@@ -708,7 +708,7 @@ public final class DtoFactory {
         dto.setBackPressureObjectThreshold(flowFileQueue.getBackPressureObjectThreshold());
         dto.setBackPressureDataSizeThreshold(flowFileQueue.getBackPressureDataSizeThreshold());
         dto.setFlowFileExpiration(flowFileQueue.getFlowFileExpiration());
-        dto.setPrioritizers(new ArrayList<String>());
+        dto.setPrioritizers(new ArrayList<>());
         for (final FlowFilePrioritizer comparator : flowFileQueue.getPriorities()) {
             dto.getPrioritizers().add(comparator.getClass().getCanonicalName());
         }
@@ -717,7 +717,7 @@ public final class DtoFactory {
         for (final Relationship selectedRelationship : connection.getRelationships()) {
             if (!Relationship.ANONYMOUS.equals(selectedRelationship)) {
                 if (dto.getSelectedRelationships() == null) {
-                    dto.setSelectedRelationships(new TreeSet<String>(Collator.getInstance(Locale.US)));
+                    dto.setSelectedRelationships(new TreeSet<>(Collator.getInstance(Locale.US)));
                 }
 
                 dto.getSelectedRelationships().add(selectedRelationship.getName());
@@ -728,7 +728,7 @@ public final class DtoFactory {
         for (final Relationship availableRelationship : connection.getSource().getRelationships()) {
             if (!Relationship.ANONYMOUS.equals(availableRelationship)) {
                 if (dto.getAvailableRelationships() == null) {
-                    dto.setAvailableRelationships(new TreeSet<String>(Collator.getInstance(Locale.US)));
+                    dto.setAvailableRelationships(new TreeSet<>(Collator.getInstance(Locale.US)));
                 }
 
                 dto.getAvailableRelationships().add(availableRelationship.getName());
@@ -1177,6 +1177,7 @@ public final class DtoFactory {
 
         snapshot.setFlowFilesQueued(connectionStatus.getQueuedCount());
         snapshot.setBytesQueued(connectionStatus.getQueuedBytes());
+        snapshot.setFlowFileAvailability(connectionStatus.getFlowFileAvailability().name());
 
         snapshot.setFlowFilesIn(connectionStatus.getInputCount());
         snapshot.setBytesIn(connectionStatus.getInputBytes());
