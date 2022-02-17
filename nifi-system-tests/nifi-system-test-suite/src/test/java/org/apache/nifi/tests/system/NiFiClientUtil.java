@@ -108,7 +108,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -290,6 +289,10 @@ public class NiFiClientUtil {
 
     public BundleDTO getTestBundle() {
         return new BundleDTO(NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ReportingTaskEntity createReportingTask(final String type) throws NiFiClientException, IOException {
+        return createReportingTask(NiFiSystemIT.TEST_REPORTING_TASK_PACKAGE + "." + type, getTestBundle());
     }
 
     public ReportingTaskEntity createReportingTask(final String type, final BundleDTO bundle) throws NiFiClientException, IOException {

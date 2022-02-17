@@ -167,6 +167,7 @@ public class InMemoryFlowRegistry implements FlowRegistry {
         flowSnapshot.setExternalControllerServices(externalFlow.getExternalControllerServices());
         flowSnapshot.setFlowContents(externalFlow.getFlowContents());
         flowSnapshot.setParameterContexts(externalFlow.getParameterContexts());
+        flowSnapshot.setParameterProviders(externalFlow.getParameterProviders());
         flowSnapshot.setSnapshotMetadata(snapshotMetadata);
         flowSnapshot.setFlow(versionedFlow);
 

@@ -56,7 +56,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-parameter-providers</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>

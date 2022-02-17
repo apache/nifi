@@ -107,6 +107,7 @@ public class FetchParams extends AbstractNiFiCommand<ParamProviderResult> {
                 if (groupConfiguration.getParameterSensitivities() == null) {
                     groupConfiguration.setParameterSensitivities(new HashMap<>());
                 }
+                groupConfiguration.setSynchronized(true);
                 final Set<String> paramNames = groupConfiguration.getParameterSensitivities().keySet();
                 paramNames.forEach(paramName -> {
                     ParameterSensitivity sensitivity = ParameterSensitivity.SENSITIVE;

@@ -22,7 +22,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class VerifiableParameterProviderSystemIT extends NiFiSystemIT {
 
@@ -128,14 +128,14 @@ public class VerifiableParameterProviderSystemIT extends NiFiSystemIT {
 
         // Even though processor does not implement VerifiableProcessor, validation should still be run
         final Map<String, String> properties = new HashMap<>();
-        properties.put("Parameters", "filename=./logs\n" +
+        properties.put("parameters", "filename=./logs\n" +
                 "text=Hello World");
 
         final List<ConfigVerificationResultDTO> resultList = getClientUtil().verifyParameterProviderConfig(parameterProvider.getId(), properties);
         assertEquals(1, resultList.size());
 
         // Even though GenerateFlowFile is not connected, it should be valid because connections are not considered when verifying the processor
-        assertEquals("Unexpected results: " + resultList, Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome());
+        assertEquals(Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome(), "Unexpected results: " + resultList);
     }
 
 }

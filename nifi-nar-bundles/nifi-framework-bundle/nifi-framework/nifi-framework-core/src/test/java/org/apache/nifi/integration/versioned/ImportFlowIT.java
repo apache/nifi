@@ -701,7 +701,7 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
     private void setParameter(Parameter parameter) {
         ParameterContext rootParameterContext = getFlowController().getFlowManager().getParameterContextManager().getParameterContext("unimportant");
         if (rootParameterContext == null) {
-            rootParameterContext = getFlowController().getFlowManager().createParameterContext("unimportant", "unimportant", Collections.emptyMap(), Collections.emptyList());
+            rootParameterContext = getFlowController().getFlowManager().createParameterContext("unimportant", "unimportant", Collections.emptyMap(), Collections.emptyList(), null);
             getRootGroup().setParameterContext(rootParameterContext);
         }
 

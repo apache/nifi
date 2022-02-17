@@ -151,11 +151,11 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "Not Specified");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(0, parameterProvider.getOnRemovedArgs());
-        Assert.assertEquals(0, parameterProvider.getOnRemovedNoArgs());
+        assertEquals(0, parameterProvider.getOnRemovedArgs());
+        assertEquals(0, parameterProvider.getOnRemovedNoArgs());
 
-        Assert.assertEquals(1, parameterProvider.getOnShutdownArgs());
-        Assert.assertEquals(1, parameterProvider.getOnShutdownNoArgs());
+        assertEquals(1, parameterProvider.getOnShutdownArgs());
+        assertEquals(1, parameterProvider.getOnShutdownNoArgs());
     }
 
     @Test

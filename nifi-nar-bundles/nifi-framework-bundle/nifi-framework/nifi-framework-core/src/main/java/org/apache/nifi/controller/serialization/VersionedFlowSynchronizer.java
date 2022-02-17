@@ -578,27 +578,29 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         for (final VersionedParameterProvider versionedParameterProvider : dataflow.getParameterProviders()) {
             final ParameterProviderNode existing = controller.getFlowManager().getParameterProvider(versionedParameterProvider.getInstanceIdentifier());
             if (existing == null) {
-                addParameterProvider(controller, versionedParameterProvider);
+                addParameterProvider(controller, versionedParameterProvider, controller.getEncryptor());
             } else if (affectedComponentSet.isParameterProviderAffected(existing.getIdentifier())) {
-                updateParameterProvider(existing, versionedParameterProvider);
+                updateParameterProvider(existing, versionedParameterProvider, controller.getEncryptor());
             }
         }
     }
 
-    private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider) {
+    private void addParameterProvider(final FlowController controller, final VersionedParameterProvider parameterProvider, final PropertyEncryptor encryptor) {
         final BundleCoordinate coordinate = createBundleCoordinate(parameterProvider.getBundle(), parameterProvider.getType());
 
         final ParameterProviderNode parameterProviderNode = controller.getFlowManager()
                 .createParameterProvider(parameterProvider.getType(), parameterProvider.getInstanceIdentifier(), coordinate, false);
-        updateParameterProvider(parameterProviderNode, parameterProvider);
+        updateParameterProvider(parameterProviderNode, parameterProvider, encryptor);
     }
 
-    private void updateParameterProvider(final ParameterProviderNode parameterProviderNode, final VersionedParameterProvider parameterProvider) {
+    private void updateParameterProvider(final ParameterProviderNode parameterProviderNode, final VersionedParameterProvider parameterProvider,
+                                         final  PropertyEncryptor encryptor) {
         parameterProviderNode.setName(parameterProvider.getName());
         parameterProviderNode.setComments(parameterProvider.getComments());
 
         parameterProviderNode.setAnnotationData(parameterProvider.getAnnotationData());
-        parameterProviderNode.setProperties(parameterProvider.getProperties());
+        final Map<String, String> decryptedProperties = decryptProperties(parameterProvider.getProperties(), encryptor);
+        parameterProviderNode.setProperties(decryptedProperties);
     }
 
     private void inheritParameterContexts(final FlowController controller, final VersionedDataflow dataflow) {

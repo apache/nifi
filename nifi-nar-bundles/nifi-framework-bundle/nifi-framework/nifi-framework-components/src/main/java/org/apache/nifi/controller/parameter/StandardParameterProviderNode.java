@@ -29,6 +29,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -253,6 +254,11 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         } finally {
             writeLock.unlock();
         }
+    }
+
+    @Override
+    protected List<ValidationResult> validateConfig() {
+        return Collections.emptyList();
     }
 
     @Override

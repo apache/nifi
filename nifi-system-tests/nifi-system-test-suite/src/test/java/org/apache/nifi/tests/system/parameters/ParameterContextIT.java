@@ -35,7 +35,6 @@ import org.apache.nifi.web.api.entity.ParameterProviderApplyParametersRequestEnt
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProvidedParameterNameGroupEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -57,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends NiFiSystemIT {
@@ -219,7 +219,8 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForInvalidProcessor(processorId);
     }
 
-    @Test(timeout=30000)
+    @Test
+    @Timeout(30)
     public void testSetParameterProviders() throws NiFiClientException, IOException, InterruptedException {
         final ProcessorEntity countEvents = getClientUtil().createProcessor("CountEvents");
         final Map<String, String> properties = new HashMap<>();

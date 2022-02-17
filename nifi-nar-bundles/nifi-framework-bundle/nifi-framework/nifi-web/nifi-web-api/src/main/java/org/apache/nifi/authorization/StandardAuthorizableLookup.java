@@ -1059,7 +1059,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContext() {
+        public ParameterContext getParameterContext() {
             return null;
         }
 

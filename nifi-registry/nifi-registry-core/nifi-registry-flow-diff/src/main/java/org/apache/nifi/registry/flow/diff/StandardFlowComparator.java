@@ -206,7 +206,7 @@ public class StandardFlowComparator implements FlowComparator {
                 parameterProviderA.getPropertyDescriptors(), parameterProviderB.getPropertyDescriptors(), differences);
     }
 
-    private void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
+    void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
         if (compareComponents(contextA, contextB, differences)) {
             return;
         }
