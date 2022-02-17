@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.graph;
 
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -50,12 +51,11 @@ public class ITNeo4JCypherExecutor {
     @BeforeEach
     public void setUp() throws Exception {
         clientService = new Neo4JCypherClientService();
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", clientService);
         runner.setProperty(clientService, Neo4JCypherClientService.USERNAME, user);
         runner.setProperty(clientService, Neo4JCypherClientService.PASSWORD, password);
         runner.enableControllerService(clientService);
-        runner.setProperty(MockProcessor.CLIENT, "clientService");
         driver = GraphDatabase.driver(neo4jUrl, AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 

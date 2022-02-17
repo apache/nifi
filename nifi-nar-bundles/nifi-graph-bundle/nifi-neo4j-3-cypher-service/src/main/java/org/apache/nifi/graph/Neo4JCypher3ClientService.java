@@ -54,7 +54,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Provides a client service for managing connections to a Neo4J 3.X database. Configuration information for " +
         "the Neo4J driver that corresponds to most of the settings for this service can be found here: " +
         "https://neo4j.com/docs/driver-manual/current/client-applications/#driver-configuration")
-public class Neo4JCypher3xClientService extends AbstractControllerService implements GraphClientService {
+public class Neo4JCypher3ClientService extends AbstractControllerService implements GraphClientService {
     public static final PropertyDescriptor CONNECTION_URL = new PropertyDescriptor.Builder()
             .name("neo4j-connection-url")
             .displayName("Neo4j Connection URL")
@@ -306,8 +306,7 @@ public class Neo4JCypher3xClientService extends AbstractControllerService implem
 
             return resultAttributes;
         } catch (Exception ex) {
-            getLogger().error("", ex);
-            throw new ProcessException(ex);
+            throw new ProcessException("Query execution failed", ex);
         }
     }
 

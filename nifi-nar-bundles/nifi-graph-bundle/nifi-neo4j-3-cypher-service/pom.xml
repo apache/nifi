@@ -15,7 +15,7 @@
         <artifactId>nifi-graph-bundle</artifactId>
         <version>1.16.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-neo4j-3x-cypher-service</artifactId>
+    <artifactId>nifi-neo4j-3-cypher-service</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>

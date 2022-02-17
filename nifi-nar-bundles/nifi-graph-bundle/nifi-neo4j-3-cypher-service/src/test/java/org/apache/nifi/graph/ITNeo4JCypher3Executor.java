@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.graph;
 
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -37,7 +38,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Neo4J Cypher integration tests.  Please set the neo4j url, user and password according to your setup.
  */
-public class ITNeo4JCypherExecutor {
+public class ITNeo4JCypher3Executor {
     protected TestRunner runner;
     protected Driver driver;
     protected String neo4jUrl = "bolt://localhost:7687";
@@ -49,13 +50,12 @@ public class ITNeo4JCypherExecutor {
 
     @Before
     public void setUp() throws Exception {
-        clientService = new Neo4JCypher3xClientService();
-        runner = TestRunners.newTestRunner(MockProcessor.class);
+        clientService = new Neo4JCypher3ClientService();
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("clientService", clientService);
-        runner.setProperty(clientService, Neo4JCypher3xClientService.USERNAME, user);
-        runner.setProperty(clientService, Neo4JCypher3xClientService.PASSWORD, password);
+        runner.setProperty(clientService, Neo4JCypher3ClientService.USERNAME, user);
+        runner.setProperty(clientService, Neo4JCypher3ClientService.PASSWORD, password);
         runner.enableControllerService(clientService);
-        runner.setProperty(MockProcessor.CLIENT, "clientService");
         driver = GraphDatabase.driver(neo4jUrl, AuthTokens.basic(user, password));
         executeSession("match (n) detach delete n");
 

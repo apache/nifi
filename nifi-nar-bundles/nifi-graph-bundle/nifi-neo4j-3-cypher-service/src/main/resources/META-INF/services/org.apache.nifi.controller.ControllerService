@@ -13,4 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.nifi.graph.Neo4JCypher3xClientService
+org.apache.nifi.graph.Neo4JCypher3ClientService

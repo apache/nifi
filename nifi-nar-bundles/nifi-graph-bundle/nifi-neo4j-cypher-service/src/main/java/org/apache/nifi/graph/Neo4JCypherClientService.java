@@ -287,8 +287,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
 
             return resultAttributes;
         } catch (Exception ex) {
-            getLogger().error("", ex);
-            throw new ProcessException(ex);
+            throw new ProcessException("Query execution failed", ex);
         }
     }
 
