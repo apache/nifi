@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.DeleteVersionRequest;
 
@@ -87,7 +87,7 @@ public class DeleteS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonS3 s3 = getClient();
+        final AmazonS3Client s3 = getClient();
 
         // Deletes a key on Amazon S3
         try {
@@ -108,7 +108,9 @@ public class DeleteS3Object extends AbstractS3Processor {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
+        final String url = s3.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", flowFile, transferMillis);
+        session.getProvenanceReporter().invokeRemoteProcess(flowFile, url, "Object deleted");
     }
 }
