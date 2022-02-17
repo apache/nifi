@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.aws.s3;
 
 import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -163,7 +163,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
-        final AmazonS3 client = getConfiguration(context).getClient();
+        final AmazonS3Client client = getConfiguration(context).getClient();
         final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
 
         try {
@@ -204,7 +204,7 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
-        final AmazonS3 client = getClient();
+        final AmazonS3Client client = getClient();
         final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
 
         try (final S3Object s3Object = client.getObject(request)) {
@@ -277,9 +277,10 @@ public class FetchS3Object extends AbstractS3Processor {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
+        final String url = client.getResourceUrl(bucket, key);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
-        session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
+        session.getProvenanceReporter().fetch(flowFile, url, transferMillis);
     }
 
     private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
