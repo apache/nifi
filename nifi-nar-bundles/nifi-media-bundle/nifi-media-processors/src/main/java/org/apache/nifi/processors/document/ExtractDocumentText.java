@@ -18,7 +18,6 @@ package org.apache.nifi.processors.document;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -47,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ExtractDocumentText extends AbstractProcessor {
     private static final String TEXT_PLAIN = "text/plain";
 
-    public static final String FIELD_MAX_TEXT_LENGTH = "MAX_TEXT_LENGTH";
+    public static final String FIELD_MAX_TEXT_LENGTH = "max-text-length";
     public static final String FIELD_SUCCESS = "success";
     public static final String FIELD_FAILURE = "failure";
 
@@ -60,10 +59,10 @@ public class ExtractDocumentText extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name(FIELD_SUCCESS)
-            .description("Successfully extract content.").build();
+            .description("Content extraction successful").build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name(FIELD_FAILURE)
-            .description("Failed to extract content.").build();
+            .description("Content extraction failed").build();
 
     private List<PropertyDescriptor> descriptors = Collections.unmodifiableList(Arrays.asList(MAX_TEXT_LENGTH));
     private Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -78,16 +77,11 @@ public class ExtractDocumentText extends AbstractProcessor {
         return descriptors;
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        return;
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
-            flowFile = session.create();
+            return;
         }
 
         final int maxTextLength = context.getProperty(MAX_TEXT_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
@@ -95,32 +89,27 @@ public class ExtractDocumentText extends AbstractProcessor {
 
         try {
             final AtomicReference<String> type = new AtomicReference<>();
-            final AtomicReference<Boolean> wasError = new AtomicReference<>(false);
+            final AtomicReference<Boolean> exceptionThrown = new AtomicReference<>(false);
 
             flowFile = session.write(flowFile, (inputStream, outputStream) -> {
-                if (inputStream != null) {
-                    BufferedInputStream buffStream = new BufferedInputStream(inputStream);
-                    Tika tika = new Tika();
-                    String text = "";
-                    try {
-                        type.set(tika.detect(buffStream, filename));
-                        tika.setMaxStringLength(maxTextLength);
-                        text = tika.parseToString(buffStream);
+                BufferedInputStream buffStream = new BufferedInputStream(inputStream);
+                Tika tika = new Tika();
+                String text = "";
+                try {
+                    type.set(tika.detect(buffStream, filename));
+                    tika.setMaxStringLength(maxTextLength);
+                    text = tika.parseToString(buffStream);
 
-                    } catch (TikaException e) {
-                        getLogger().error("Apache Tika failed to parse input " + e.getLocalizedMessage());
-                        wasError.set(true);
-                    }
-
-                    outputStream.write(text.getBytes());
-                    buffStream.close();
-                } else {
-                    getLogger().error("Input file was null");
-                    wasError.set(true);
+                } catch (TikaException e) {
+                    getLogger().error("Parsing failed ", e);
+                    exceptionThrown.set(true);
                 }
+
+                outputStream.write(text.getBytes());
+                buffStream.close();
             });
 
-            if (wasError.get()) {
+            if (exceptionThrown.get()) {
                 session.transfer(flowFile, REL_FAILURE);
             } else {
 
@@ -132,11 +121,10 @@ public class ExtractDocumentText extends AbstractProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (final Throwable t) {
-            getLogger().error("Unable to process ExtractTextProcessor file " + t.getLocalizedMessage());
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("Unable to process ExtractTextProcessor file {} " +
+                    "{} failed to process due to {}; rolling back session", new Object[]{ t.getLocalizedMessage(), this, t});
             // not sure about this one
             session.transfer(flowFile, REL_FAILURE);
-            throw t;
         }
     }
 }
