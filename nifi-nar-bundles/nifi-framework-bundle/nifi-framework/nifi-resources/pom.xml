@@ -64,7 +64,7 @@
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
 
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
-        <nifi.content.claim.max.appendable.size>1 MB</nifi.content.claim.max.appendable.size>
+        <nifi.content.claim.max.appendable.size>50 KB</nifi.content.claim.max.appendable.size>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
         <nifi.content.repository.archive.max.retention.period>7 days</nifi.content.repository.archive.max.retention.period>
         <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>

@@ -209,6 +209,11 @@ public class ByteArrayContentRepository implements ContentRepository {
     }
 
     @Override
+    public long size(final ResourceClaim claim) throws IOException {
+        return 0;
+    }
+
+    @Override
     public InputStream read(final ContentClaim claim) {
         final ByteArrayContentClaim byteArrayContentClaim = verifyClaim(claim);
         return byteArrayContentClaim.read();

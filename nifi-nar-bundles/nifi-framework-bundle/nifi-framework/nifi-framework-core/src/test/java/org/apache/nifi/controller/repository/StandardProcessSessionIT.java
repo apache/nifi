@@ -3431,6 +3431,11 @@ public class StandardProcessSessionIT {
         }
 
         @Override
+        public long size(final ResourceClaim claim) throws IOException {
+            return Files.size(getPath(claim));
+        }
+
+        @Override
         public InputStream read(ContentClaim claim) throws IOException {
             if (disableRead) {
                 throw new IOException("Reading from repo is disabled by unit test");
