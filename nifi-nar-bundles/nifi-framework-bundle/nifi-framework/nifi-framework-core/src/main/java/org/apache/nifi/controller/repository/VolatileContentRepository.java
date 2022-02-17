@@ -16,6 +16,20 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
+import org.apache.nifi.controller.repository.io.MemoryManager;
+import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FilterOutputStream;
@@ -39,19 +53,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardContentClaim;
-import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
-import org.apache.nifi.controller.repository.io.MemoryManager;
-import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -456,6 +457,11 @@ public class VolatileContentRepository implements ContentRepository {
 
         final ContentClaim backupClaim = getBackupClaim(claim);
         return backupClaim == null ? getContent(claim).getSize() : getBackupRepository().size(claim);
+    }
+
+    @Override
+    public long size(final ResourceClaim claim) throws IOException {
+        return 0;
     }
 
     @Override

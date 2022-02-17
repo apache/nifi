@@ -245,6 +245,11 @@ public class StatelessFileSystemContentRepository implements ContentRepository {
     }
 
     @Override
+    public long size(final ResourceClaim claim) throws IOException {
+        return 0;
+    }
+
+    @Override
     public InputStream read(final ContentClaim claim) throws IOException {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);

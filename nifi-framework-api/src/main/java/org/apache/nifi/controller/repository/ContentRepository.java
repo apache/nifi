@@ -243,6 +243,13 @@ public interface ContentRepository {
     long size(ContentClaim claim) throws IOException;
 
     /**
+     * @param claim to get size of
+     * @return size in bytes of the file/object backing the given resource claim, or 0 if this operation is not supported by the implementation
+     * @throws IOException if size check failed
+     */
+    long size(ResourceClaim claim) throws IOException;
+
+    /**
      * Provides access to the input stream for the given claim
      *
      * @param claim to read from
