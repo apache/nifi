@@ -33,6 +33,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -51,9 +52,13 @@ public class SetSensitivePropertiesKey {
 
     protected static final String CONFIGURATION_FILE = "nifi.flow.configuration.file";
 
+    protected static final String CONFIGURATION_JSON_FILE = "nifi.flow.configuration.json.file";
+
+    private static final List<String> CONFIGURATION_FILES = Arrays.asList(CONFIGURATION_FILE, CONFIGURATION_JSON_FILE);
+
     private static final int MINIMUM_REQUIRED_LENGTH = 12;
 
-    private static final String FLOW_XML_PREFIX = "flow.xml.";
+    private static final String FLOW_PREFIX = "nifi.flow.";
 
     private static final String GZ_EXTENSION = ".gz";
 
@@ -82,7 +87,6 @@ public class SetSensitivePropertiesKey {
         final File propertiesFile = new File(propertiesFilePath);
         final Properties properties = loadProperties(propertiesFile);
 
-        final File flowConfigurationFile = getFlowConfigurationFile(properties);
         try {
             storeProperties(propertiesFile, outputPropertiesKey);
             System.out.printf("NiFi Properties Processed [%s]%n", propertiesFilePath);
@@ -91,15 +95,27 @@ public class SetSensitivePropertiesKey {
             throw new UncheckedIOException(message, e);
         }
 
-        if (flowConfigurationFile.exists()) {
-            final String algorithm = getAlgorithm(properties);
-            final PropertyEncryptor outputEncryptor = getPropertyEncryptor(outputPropertiesKey, algorithm);
-            processFlowConfiguration(properties, outputEncryptor);
+        processFlowConfigurationFiles(properties, outputPropertiesKey);
+    }
+
+    private static void processFlowConfigurationFiles(final Properties properties, final String outputPropertiesKey) {
+        final String algorithm = getAlgorithm(properties);
+        final PropertyEncryptor outputEncryptor = getPropertyEncryptor(outputPropertiesKey, algorithm);
+
+        for (final String configurationFilePropertyName : CONFIGURATION_FILES) {
+            final String configurationFileProperty = properties.getProperty(configurationFilePropertyName);
+            if (configurationFileProperty == null || configurationFileProperty.isEmpty()) {
+                System.out.printf("Flow Configuration Property not specified [%s]%n", configurationFileProperty);
+            } else {
+                final File configurationFile = new File(configurationFileProperty);
+                if (configurationFile.exists()) {
+                    processFlowConfiguration(configurationFile, properties, outputEncryptor);
+                }
+            }
         }
     }
 
-    private static void processFlowConfiguration(final Properties properties, final PropertyEncryptor outputEncryptor) {
-        final File flowConfigurationFile = getFlowConfigurationFile(properties);
+    private static void processFlowConfiguration(final File flowConfigurationFile, final Properties properties, final PropertyEncryptor outputEncryptor) {
         try (final InputStream flowInputStream = new GZIPInputStream(new FileInputStream(flowConfigurationFile))) {
             final File flowOutputFile = getFlowOutputFile();
             final Path flowOutputPath = flowOutputFile.toPath();
@@ -115,7 +131,7 @@ public class SetSensitivePropertiesKey {
             final Path flowConfigurationPath = flowConfigurationFile.toPath();
             Files.move(flowOutputPath, flowConfigurationPath, StandardCopyOption.REPLACE_EXISTING);
             System.out.printf("Flow Configuration Processed [%s]%n", flowConfigurationPath);
-        } catch (final IOException|RuntimeException e) {
+        } catch (final IOException | RuntimeException e) {
             System.err.printf("Failed to process Flow Configuration [%s]%n", flowConfigurationFile);
             e.printStackTrace();
         }
@@ -138,7 +154,7 @@ public class SetSensitivePropertiesKey {
     }
 
     private static File getFlowOutputFile() throws IOException {
-        final File flowOutputFile = File.createTempFile(FLOW_XML_PREFIX, GZ_EXTENSION);
+        final File flowOutputFile = File.createTempFile(FLOW_PREFIX, GZ_EXTENSION);
         flowOutputFile.deleteOnExit();
         return flowOutputFile;
     }
@@ -169,9 +185,5 @@ public class SetSensitivePropertiesKey {
 
     private static PropertyEncryptor getPropertyEncryptor(final String propertiesKey, final String propertiesAlgorithm) {
         return new PropertyEncryptorBuilder(propertiesKey).setAlgorithm(propertiesAlgorithm).build();
-    }
-
-    private static File getFlowConfigurationFile(final Properties properties) {
-        return new File(properties.getProperty(CONFIGURATION_FILE));
     }
 }

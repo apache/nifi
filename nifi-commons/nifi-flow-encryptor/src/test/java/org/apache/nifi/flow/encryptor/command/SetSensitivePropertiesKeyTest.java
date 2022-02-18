@@ -21,9 +21,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,11 +35,27 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SetSensitivePropertiesKeyTest {
-    private static final String FLOW_CONTENTS = "<property><value>PROPERTY</value></property>";
+    private static final String TEMP_FILE_PREFIX = SetSensitivePropertiesKeyTest.class.getSimpleName();
+
+    private static final String FLOW_CONTENTS_JSON = "{\"property\":\"value\"}";
+
+    private static final String FLOW_CONTENTS_XML = "<property><value>PROPERTY</value></property>";
+
+    private static final String JSON_GZ = ".json.gz";
+
+    private static final String XML_GZ = ".xml.gz";
+
+    private static final String PROPERTIES_EXTENSION = ".properties";
+
+    private static final String BLANK_PROPERTIES = "/blank.nifi.properties";
+
+    private static final String POPULATED_PROPERTIES = "/populated.nifi.properties";
+
+    private static final String LEGACY_BLANK_PROPERTIES = "/legacy-blank.nifi.properties";
 
     @AfterEach
     public void clearProperties() {
@@ -51,8 +69,9 @@ public class SetSensitivePropertiesKeyTest {
 
     @Test
     public void testMainBlankKeyAndAlgorithm() throws IOException, URISyntaxException {
-        final Path flowConfiguration = getFlowConfiguration();
-        final Path propertiesPath = getNiFiProperties(flowConfiguration, "/blank.nifi.properties");
+        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
+        final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
+        final Path propertiesPath = getNiFiProperties(flowConfiguration, flowConfigurationJson, BLANK_PROPERTIES);
 
         System.setProperty(SetSensitivePropertiesKey.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
@@ -60,13 +79,13 @@ public class SetSensitivePropertiesKeyTest {
         SetSensitivePropertiesKey.main(new String[]{sensitivePropertiesKey});
 
         assertPropertiesKeyUpdated(propertiesPath, sensitivePropertiesKey);
-        assertTrue("Flow Configuration not found", flowConfiguration.toFile().exists());
     }
 
     @Test
     public void testMainPopulatedKeyAndAlgorithm() throws IOException, URISyntaxException {
-        final Path flowConfiguration = getFlowConfiguration();
-        final Path propertiesPath = getNiFiProperties(flowConfiguration, "/populated.nifi.properties");
+        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
+        final Path flowConfigurationJson = getFlowConfiguration(FLOW_CONTENTS_JSON, JSON_GZ);
+        final Path propertiesPath = getNiFiProperties(flowConfiguration, flowConfigurationJson, POPULATED_PROPERTIES);
 
         System.setProperty(SetSensitivePropertiesKey.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
@@ -74,7 +93,19 @@ public class SetSensitivePropertiesKeyTest {
         SetSensitivePropertiesKey.main(new String[]{sensitivePropertiesKey});
 
         assertPropertiesKeyUpdated(propertiesPath, sensitivePropertiesKey);
-        assertTrue("Flow Configuration not found", flowConfiguration.toFile().exists());
+    }
+
+    @Test
+    public void testMainLegacyBlankKeyAndAlgorithm() throws IOException, URISyntaxException {
+        final Path flowConfiguration = getFlowConfiguration(FLOW_CONTENTS_XML, XML_GZ);
+        final Path propertiesPath = getNiFiProperties(flowConfiguration, null, LEGACY_BLANK_PROPERTIES);
+
+        System.setProperty(SetSensitivePropertiesKey.PROPERTIES_FILE_PATH, propertiesPath.toString());
+
+        final String sensitivePropertiesKey = UUID.randomUUID().toString();
+        SetSensitivePropertiesKey.main(new String[]{sensitivePropertiesKey});
+
+        assertPropertiesKeyUpdated(propertiesPath, sensitivePropertiesKey);
     }
 
     private void assertPropertiesKeyUpdated(final Path propertiesPath, final String sensitivePropertiesKey) throws IOException {
@@ -82,37 +113,51 @@ public class SetSensitivePropertiesKeyTest {
                 .stream()
                 .filter(line -> line.startsWith(SetSensitivePropertiesKey.PROPS_KEY))
                 .findFirst();
-        assertTrue("Sensitive Key Property not found", keyProperty.isPresent());
+        assertTrue(keyProperty.isPresent(), "Sensitive Key Property not found");
 
         final String expectedProperty = String.format("%s=%s", SetSensitivePropertiesKey.PROPS_KEY, sensitivePropertiesKey);
-        assertEquals("Sensitive Key Property not updated", expectedProperty, keyProperty.get());
+        assertEquals(expectedProperty, keyProperty.get(), "Sensitive Key Property not updated");
     }
 
-    private Path getNiFiProperties(final Path flowConfigurationPath, String propertiesResource) throws IOException, URISyntaxException {
-        final Path sourcePropertiesPath = Paths.get(SetSensitivePropertiesKey.class.getResource(propertiesResource).toURI());
+    private Path getNiFiProperties(
+            final Path flowConfigurationPath,
+            final Path flowConfigurationJsonPath,
+            String propertiesResource
+    ) throws IOException, URISyntaxException {
+        final Path sourcePropertiesPath = Paths.get(getResourceUrl(propertiesResource).toURI());
         final List<String> sourceProperties = Files.readAllLines(sourcePropertiesPath);
         final List<String> flowProperties = sourceProperties.stream().map(line -> {
             if (line.startsWith(SetSensitivePropertiesKey.CONFIGURATION_FILE)) {
-                return line + flowConfigurationPath.toString();
+                return line + flowConfigurationPath;
+            } else if (line.startsWith(SetSensitivePropertiesKey.CONFIGURATION_JSON_FILE)) {
+                return flowConfigurationJsonPath == null ? line : line + flowConfigurationJsonPath;
             } else {
                 return line;
             }
         }).collect(Collectors.toList());
 
-        final Path propertiesPath = Files.createTempFile(SetSensitivePropertiesKey.class.getSimpleName(), ".properties");
+        final Path propertiesPath = Files.createTempFile(TEMP_FILE_PREFIX, PROPERTIES_EXTENSION);
         propertiesPath.toFile().deleteOnExit();
         Files.write(propertiesPath, flowProperties);
         return propertiesPath;
     }
 
-    private Path getFlowConfiguration() throws IOException {
-        final Path flowConfigurationPath = Files.createTempFile(SetSensitivePropertiesKey.class.getSimpleName(), ".xml.gz");
+    private Path getFlowConfiguration(final String contents, final String extension) throws IOException {
+        final Path flowConfigurationPath = Files.createTempFile(TEMP_FILE_PREFIX, extension);
         final File flowConfigurationFile = flowConfigurationPath.toFile();
         flowConfigurationFile.deleteOnExit();
 
         try (final GZIPOutputStream outputStream = new GZIPOutputStream(new FileOutputStream(flowConfigurationFile))) {
-            outputStream.write(FLOW_CONTENTS.getBytes(StandardCharsets.UTF_8));
+            outputStream.write(contents.getBytes(StandardCharsets.UTF_8));
         }
         return flowConfigurationPath;
+    }
+
+    private URL getResourceUrl(String resource) throws FileNotFoundException {
+        final URL resourceUrl = SetSensitivePropertiesKey.class.getResource(resource);
+        if (resourceUrl == null) {
+            throw new FileNotFoundException(String.format("Resource [%s] not found", resource));
+        }
+        return resourceUrl;
     }
 }
