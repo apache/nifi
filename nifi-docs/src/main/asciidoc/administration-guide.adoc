@@ -4334,13 +4334,20 @@ For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Co
 
 ==== Updating the Sensitive Properties Key
 
-Starting with version 1.14.0, NiFi requires a value for 'nifi.sensitive.props.key' in _nifi.properties_.
+Starting with version 1.14.0, NiFi requires a value for `nifi.sensitive.props.key` in _nifi.properties_.
 
-The following command can be used to read an existing _flow.json.gz_ configuration and set a new sensitive properties key in _nifi.properties_:
+The following command can be used to read an existing flow configuration and set a new sensitive properties key in _nifi.properties_:
 
 ```
 $ ./bin/nifi.sh set-sensitive-properties-key <sensitivePropertiesKey>
 ```
+
+The command reads the following flow configuration file properties from _nifi.properties_:
+
+- `nifi.flow.configuration.file`
+- `nifi.flow.configuration.json.file`
+
+The command checks for the existence of each file and updates the sensitive property values found.
 
 The minimum required length for a new sensitive properties key is 12 characters.
 
