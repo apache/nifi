@@ -16,29 +16,28 @@
  */
 package org.apache.nifi.processors.document;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.tika.Tika;
-import org.apache.tika.exception.TikaException;
 
-import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Tags({"extract, text, pdf, word, excel, powerpoint, office"})
 @CapabilityDescription("Run Apache Tika text extraction to extra the text from supported binary file formats such as PDF " +
@@ -46,35 +45,20 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ExtractDocumentText extends AbstractProcessor {
     private static final String TEXT_PLAIN = "text/plain";
 
-    public static final String FIELD_MAX_TEXT_LENGTH = "max-text-length";
-    public static final String FIELD_SUCCESS = "success";
-    public static final String FIELD_FAILURE = "failure";
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original")
+            .description("On successful extraction, the original flowfile goes here").build();
 
-    public static final PropertyDescriptor MAX_TEXT_LENGTH = new PropertyDescriptor.Builder()
-            .name(FIELD_MAX_TEXT_LENGTH)
-            .displayName("Max Output Text Length")
-            .description("The maximum length of text to retrieve. This is used to limit memory usage for " +
-                    "dealing with large files. Specify -1 for unlimited length.")
-            .required(false).defaultValue("-1").addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES).build();
+    public static final Relationship REL_EXTRACTED = new Relationship.Builder().name("extracted")
+            .description("On successful extraction, the extracted content goes here").build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name(FIELD_SUCCESS)
-            .description("Content extraction successful").build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name(FIELD_FAILURE)
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
             .description("Content extraction failed").build();
 
-    private List<PropertyDescriptor> descriptors = Collections.unmodifiableList(Arrays.asList(MAX_TEXT_LENGTH));
-    private Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
+    private Set<Relationship> relationships = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_ORIGINAL, REL_EXTRACTED, REL_FAILURE)));
 
     @Override
     public Set<Relationship> getRelationships() {
         return this.relationships;
-    }
-
-    @Override
-    public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
     }
 
     @Override
@@ -84,47 +68,29 @@ public class ExtractDocumentText extends AbstractProcessor {
             return;
         }
 
-        final int maxTextLength = context.getProperty(MAX_TEXT_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
-        final String filename = flowFile.getAttribute("filename");
-
-        try {
-            final AtomicReference<String> type = new AtomicReference<>();
-            final AtomicReference<Boolean> exceptionThrown = new AtomicReference<>(false);
-
-            flowFile = session.write(flowFile, (inputStream, outputStream) -> {
-                BufferedInputStream buffStream = new BufferedInputStream(inputStream);
-                Tika tika = new Tika();
-                String text = "";
-                try {
-                    type.set(tika.detect(buffStream, filename));
-                    tika.setMaxStringLength(maxTextLength);
-                    text = tika.parseToString(buffStream);
-
-                } catch (TikaException e) {
-                    getLogger().error("Parsing failed ", e);
-                    exceptionThrown.set(true);
-                }
-
-                outputStream.write(text.getBytes());
-                buffStream.close();
-            });
-
-            if (exceptionThrown.get()) {
-                session.transfer(flowFile, REL_FAILURE);
-            } else {
-
+        FlowFile extracted = session.create(flowFile);
+        boolean error = false;
+        String mimeType = null;
+        try (InputStream is = session.read(flowFile);
+             Reader tikaReader = new Tika().parse(is);
+             OutputStream os = session.write(extracted);
+             OutputStreamWriter writer = new OutputStreamWriter(os)) {
+            IOUtils.copy(tikaReader, writer);
+            is.reset();
+            mimeType = new Tika().detect(is, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        } catch (final Throwable t) {
+            getLogger().error("Extraction Failed {}", flowFile, t);
+            session.remove(extracted);
+            session.transfer(flowFile, REL_FAILURE);
+        } finally {
+            if (!error) {
                 Map<String, String> mimeAttrs = new HashMap<>();
                 mimeAttrs.put("mime.type", TEXT_PLAIN);
-                mimeAttrs.put("orig.mime.type", type.get());
-
-                flowFile = session.putAllAttributes(flowFile, mimeAttrs);
-                session.transfer(flowFile, REL_SUCCESS);
+                mimeAttrs.put("orig.mime.type", mimeType);
+                extracted = session.putAllAttributes(extracted, mimeAttrs);
+                session.transfer(extracted, REL_EXTRACTED);
+                session.transfer(flowFile, REL_ORIGINAL);
             }
-        } catch (final Throwable t) {
-            getLogger().error("Unable to process ExtractTextProcessor file {} " +
-                    "{} failed to process due to {}; rolling back session", new Object[]{ t.getLocalizedMessage(), this, t});
-            // not sure about this one
-            session.transfer(flowFile, REL_FAILURE);
         }
     }
 }

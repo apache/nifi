@@ -25,13 +25,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
@@ -47,102 +44,79 @@ public class ExtractDocumentTextTest {
 
     @Test
     @DisplayName("Should support PDF types without exceptions being thrown")
-    public void processorShouldSupportPDF() {
-        try {
-            final String filename = "simple.pdf";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void processorShouldSupportPDF() throws Exception {
+        final String filename = "simple.pdf";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
-            try {
-                String result = new String(mockFile.toByteArray(), "UTF-8");
-                String trimmedResult = result.trim();
-                assertTrue(trimmedResult.startsWith("A Simple PDF File"));
-            } catch (UnsupportedEncodingException e) {
-            }
+            String result = new String(mockFile.toByteArray(), "UTF-8");
+            String trimmedResult = result.trim();
+            assertTrue(trimmedResult.startsWith("A Simple PDF File"));
         }
     }
 
     @Test
     @DisplayName("Should support MS Word DOC types without throwing exceptions")
-    public void processorShouldSupportDOC() {
-        try {
-            final String filename = "simple.doc";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void processorShouldSupportDOC() throws Exception {
+        final String filename = "simple.doc";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
-            try {
-                String result = new String(mockFile.toByteArray(), "UTF-8");
-                String trimmedResult = result.trim();
-                assertTrue(trimmedResult.startsWith("A Simple WORD DOC File"));
-            } catch (UnsupportedEncodingException e) {
-            }
+            String result = new String(mockFile.toByteArray(), "UTF-8");
+            String trimmedResult = result.trim();
+            assertTrue(trimmedResult.startsWith("A Simple WORD DOC File"));
         }
     }
 
     @Test
     @DisplayName("Should support MS Word DOCX types without exception")
-    public void processorShouldSupportDOCX() {
-        try {
-            final String filename = "simple.docx";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void processorShouldSupportDOCX() throws Exception {
+        final String filename = "simple.docx";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
         testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
 
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
-            try {
-                String result = new String(mockFile.toByteArray(), "UTF-8");
-                String trimmedResult = result.trim();
-                assertTrue(trimmedResult.startsWith("A Simple WORD DOCX File"));
-            } catch (UnsupportedEncodingException e) {
-            }
+            String result = new String(mockFile.toByteArray(), "UTF-8");
+            String trimmedResult = result.trim();
+            assertTrue(trimmedResult.startsWith("A Simple WORD DOCX File"));
         }
     }
 
     @Test
     @DisplayName("The PDF mime type should be discovered when examining a PDF")
-    public void shouldFindPDFMimeTypeWhenProcessingPDFs() {
-        try {
-            final String filename = "simple.pdf";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void shouldFindPDFMimeTypeWhenProcessingPDFs() throws Exception {
+        final String filename = "simple.pdf";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractDocumentText.REL_SUCCESS);
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_EXTRACTED, 1);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_ORIGINAL, 1);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -153,21 +127,19 @@ public class ExtractDocumentTextTest {
 
     @Test
     @DisplayName("DOC mime type should be discovered when processing a MS Word doc file")
-    public void shouldFindDOCMimeTypeWhenProcessingMSWordDoc() {
-        try {
-            final String filename = "simple.doc";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void shouldFindDOCMimeTypeWhenProcessingMSWordDoc() throws Exception {
+        final String filename = "simple.doc";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractDocumentText.REL_SUCCESS);
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_EXTRACTED, 1);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_ORIGINAL, 1);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -178,21 +150,19 @@ public class ExtractDocumentTextTest {
 
     @Test
     @DisplayName("Should discover DOCX mime type when processing docx file")
-    public void shouldFindDOCXMimeType() {
-        try {
-            final String filename = "simple.docx";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void shouldFindDOCXMimeType() throws Exception {
+        final String filename = "simple.docx";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractDocumentText.REL_SUCCESS);
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_EXTRACTED, 1);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_ORIGINAL, 1);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
@@ -203,56 +173,22 @@ public class ExtractDocumentTextTest {
 
     @Test
     @DisplayName("Unlimited text length should be the default setting")
-    public void unlimitedTextShouldBeDefault() {
-        try {
-            final String filename = "big.pdf";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
+    public void unlimitedTextShouldBeDefault() throws Exception {
+        final String filename = "big.pdf";
+        MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
+        Map<String, String> attrs = Collections.singletonMap("filename", filename);
+        flowFile.putAttributes(attrs);
 
         testRunner.assertValid();
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(ExtractDocumentText.REL_SUCCESS);
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_FAILURE, 0);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_EXTRACTED, 1);
+        testRunner.assertTransferCount(ExtractDocumentText.REL_ORIGINAL, 1);
+        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_EXTRACTED);
         for (MockFlowFile mockFile : successFiles) {
-            try {
-                String result = new String(mockFile.toByteArray(), "UTF-8");
-                assertTrue(result.length() > 100);
-            } catch (UnsupportedEncodingException e) {
-
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("When running with a text limit, length should be <= the limit")
-    public void testTextLimit() {
-        try {
-            final String filename = "simple.pdf";
-            MockFlowFile flowFile = testRunner.enqueue(new FileInputStream("src/test/resources/" + filename));
-            Map<String, String> attrs = Collections.singletonMap("filename", filename);
-            flowFile.putAttributes(attrs);
-        } catch (FileNotFoundException e) {
-
-        }
-
-        testRunner.setProperty(ExtractDocumentText.MAX_TEXT_LENGTH, "100");
-        testRunner.assertValid();
-        testRunner.run();
-
-        testRunner.assertAllFlowFilesTransferred(ExtractDocumentText.REL_SUCCESS);
-        List<MockFlowFile> successFiles = testRunner.getFlowFilesForRelationship(ExtractDocumentText.REL_SUCCESS);
-        for (MockFlowFile mockFile : successFiles) {
-            try {
-                String result = new String(mockFile.toByteArray(), "UTF-8");
-                assertFalse(result.length() > 100);
-            } catch (UnsupportedEncodingException e) {
-
-            }
+            String result = new String(mockFile.toByteArray(), "UTF-8");
+            assertTrue(result.length() > 100);
         }
     }
 }
