@@ -341,7 +341,50 @@ public class MapRecord implements Record {
 
     @Override
     public Map<String, Object> toMap() {
-        return Collections.unmodifiableMap(values);
+        return toMap(false);
+    }
+
+    public Map<String, Object> toMap(boolean convertSubRecords) {
+        if (convertSubRecords) {
+            Map<String, Object> newMap = new HashMap<>();
+            values.forEach((key, value) -> {
+                Object valueToAdd;
+
+                if (value instanceof MapRecord) {
+                    valueToAdd = ((MapRecord) value).toMap(true);
+                } else if (value != null
+                        && value.getClass().isArray()
+                        && ((Object[]) value)[0] instanceof MapRecord) {
+                    Object[] records = (Object[]) value;
+                    Map<String, Object>[] maps = new Map[records.length];
+                    for (int index = 0; index < records.length; index++) {
+                        maps[index] = ((MapRecord) records[index]).toMap(true);
+                    }
+                    valueToAdd = maps;
+                } else if (value instanceof List) {
+                    List valueList = (List) value;
+                    if (!valueList.isEmpty() && valueList.get(0) instanceof MapRecord) {
+                        List<Map<String, Object>> newRecords = new ArrayList<>();
+                        for (Object o : valueList) {
+                            MapRecord rec = (MapRecord) o;
+                            newRecords.add(rec.toMap(true));
+                        }
+
+                        valueToAdd = newRecords;
+                    } else {
+                        valueToAdd = value;
+                    }
+                } else {
+                    valueToAdd = value;
+                }
+
+                newMap.put(key, valueToAdd);
+            });
+
+            return newMap;
+        } else {
+            return Collections.unmodifiableMap(values);
+        }
     }
 
     @Override
