@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 
 public class RunOnceIT extends NiFiSystemIT {
 
-    @Test
+    @Test(timeout = 10000L)
     public void testRunOnce() throws NiFiClientException, IOException, InterruptedException {
         ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "1 sec");
@@ -46,5 +46,18 @@ public class RunOnceIT extends NiFiSystemIT {
 
         assertEquals("Stopped", actualRunStatus);
         assertEquals(1, getConnectionQueueSize(generateToTerminate.getId()));
+
+        // Test CRON_DRIVEN Strategy
+        getClientUtil().updateProcessorSchedulingStrategy(generate, "CRON_DRIVEN");
+        getClientUtil().updateProcessorSchedulingPeriod(generate, "* * * * * ?");
+
+        getNifiClient().getProcessorClient().runProcessorOnce(generate);
+
+        waitForQueueCount(generateToTerminate.getId(), 2);
+
+        actualRunStatus = actualGenerate.getStatus().getRunStatus();
+
+        assertEquals("Stopped", actualRunStatus);
+        assertEquals(2, getConnectionQueueSize(generateToTerminate.getId()));
     }
 }
