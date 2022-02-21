@@ -72,8 +72,8 @@ import java.util.stream.Collectors;
         description = "The Batch of FlowFiles will be stored in memory until the bulk operation is performed.")
 public class PutElasticsearchJson extends AbstractPutElasticsearch {
     static final Relationship REL_FAILED_DOCUMENTS = new Relationship.Builder()
-            .name("errors").description("If \"Output Error Documents\" is set, any FlowFile that failed to process the " +
-                    "way it was configured will be sent to this relationship as part of a failed document set.")
+            .name("errors").description("If a \"Output Error Documents\" is set, any FlowFile(s) corresponding to Elasticsearch document(s) " +
+                            "that resulted in an \"error\" (within Elasticsearch) will be routed here.")
             .autoTerminateDefault(true).build();
 
     static final PropertyDescriptor ID_ATTRIBUTE = new PropertyDescriptor.Builder()
@@ -109,11 +109,10 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .build();
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
-        .name("put-es-not_found-is-error")
+        .name("put-es-json-not_found-is-error")
         .displayName("Treat \"Not Found\" as Error")
-        .description("If \"" + OUTPUT_ERROR_DOCUMENTS.getName() + "\" is true, \"not_found\" Elasticsearch Documents " +
-                "will be routed to the \"" + REL_SUCCESS.getName() + "\" (true) or the \"" + REL_FAILED_DOCUMENTS.getName() +
-                "\" (false) relationship.")
+        .description("If true, \"not_found\" Elasticsearch Documents will be routed to the \"" + REL_SUCCESS.getName() +
+                "\" (true) or the \"" + REL_FAILED_DOCUMENTS.getName() + "\" (false) relationship.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -130,7 +129,6 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     )));
 
     private boolean outputErrors;
-    private boolean notFoundIsSuccessful;
     private final ObjectMapper inputMapper = new ObjectMapper();
 
     @Override

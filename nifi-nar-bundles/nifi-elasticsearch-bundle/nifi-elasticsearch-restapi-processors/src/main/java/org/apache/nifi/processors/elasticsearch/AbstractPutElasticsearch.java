@@ -81,6 +81,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
     ));
 
     boolean logErrors;
+    boolean notFoundIsSuccessful;
     ObjectMapper errorMapper;
 
     volatile ElasticSearchClientService clientService;

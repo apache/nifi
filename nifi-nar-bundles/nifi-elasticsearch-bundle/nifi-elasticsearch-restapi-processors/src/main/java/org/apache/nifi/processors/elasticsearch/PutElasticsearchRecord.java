@@ -97,13 +97,13 @@ import java.util.function.Predicate;
         description = "The Batch of Records will be stored in memory until the bulk operation is performed.")
 public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final Relationship REL_FAILED_RECORDS = new Relationship.Builder()
-            .name("errors").description("If a \"Result Record Writer\" is set, any record that failed to process the way it was " +
-                    "configured will be sent to this relationship as part of a failed record set.")
+            .name("errors").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
+                    "that resulted in an \"error\" (within Elasticsearch) will be routed here.")
             .autoTerminateDefault(true).build();
 
     static final Relationship REL_SUCCESSFUL_RECORDS = new Relationship.Builder()
-            .name("successful").description("If a \"Result Record Writer\" is set, any record that successfully processed the way it was " +
-                    "configured will be sent to this relationship as part of a successful record set.")
+            .name("successful_records").description("If a \"Result Record Writer\" is set, any Record(s) corresponding to Elasticsearch document(s) " +
+                    "that did not result in an \"error\" (within Elasticsearch) will be routed here.")
             .autoTerminateDefault(true).build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -215,11 +215,10 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .build();
 
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
-        .name("put-es-not_found-is-error")
+        .name("put-es-record-not_found-is-error")
         .displayName("Treat \"Not Found\" as Error")
-        .description("If a \"" + RESULT_RECORD_WRITER.getName() + "\" is set, \"not_found\" Elasticsearch Documents " +
-                "associated Records will be routed to the \"" + REL_SUCCESSFUL_RECORDS.getName() + "\" (true) or the \""
-                + REL_FAILED_RECORDS.getName() + "\" (false) relationship.")
+        .description("If set, \"not_found\" Elasticsearch Documents associated Records will be routed to the \"" +
+                REL_SUCCESSFUL_RECORDS.getName() + "\" (true) or the \"" + REL_FAILED_RECORDS.getName() + "\" (false) relationship.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -276,8 +275,6 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     private RecordPathCache recordPathCache;
     private RecordReaderFactory readerFactory;
     private RecordSetWriterFactory writerFactory;
-
-    private boolean notFoundIsSuccessful;
 
     private volatile String dateFormat;
     private volatile String timeFormat;
