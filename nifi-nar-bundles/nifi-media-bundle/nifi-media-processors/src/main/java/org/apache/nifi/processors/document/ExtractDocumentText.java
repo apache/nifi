@@ -70,15 +70,13 @@ public class ExtractDocumentText extends AbstractProcessor {
 
         FlowFile extracted = session.create(flowFile);
         boolean error = false;
-        String mimeType = null;
         try (InputStream is = session.read(flowFile);
              Reader tikaReader = new Tika().parse(is);
              OutputStream os = session.write(extracted);
              OutputStreamWriter writer = new OutputStreamWriter(os)) {
             IOUtils.copy(tikaReader, writer);
-            is.reset();
-            mimeType = new Tika().detect(is, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
         } catch (final Throwable t) {
+            error = true;
             getLogger().error("Extraction Failed {}", flowFile, t);
             session.remove(extracted);
             session.transfer(flowFile, REL_FAILURE);
@@ -86,7 +84,6 @@ public class ExtractDocumentText extends AbstractProcessor {
             if (!error) {
                 Map<String, String> mimeAttrs = new HashMap<>();
                 mimeAttrs.put("mime.type", TEXT_PLAIN);
-                mimeAttrs.put("orig.mime.type", mimeType);
                 extracted = session.putAllAttributes(extracted, mimeAttrs);
                 session.transfer(extracted, REL_EXTRACTED);
                 session.transfer(flowFile, REL_ORIGINAL);

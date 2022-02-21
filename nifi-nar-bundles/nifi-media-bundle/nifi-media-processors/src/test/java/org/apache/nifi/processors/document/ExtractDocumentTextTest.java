@@ -33,8 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class ExtractDocumentTextTest {
-
-    private static final String ORIG_MIME_TYPE_ATTR = "orig.mime.type";
     private TestRunner testRunner;
 
     @BeforeEach
@@ -120,8 +118,6 @@ public class ExtractDocumentTextTest {
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            mockFile.assertAttributeExists(ORIG_MIME_TYPE_ATTR);
-            mockFile.assertAttributeEquals(ORIG_MIME_TYPE_ATTR, "application/pdf");
         }
     }
 
@@ -143,8 +139,6 @@ public class ExtractDocumentTextTest {
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            mockFile.assertAttributeExists(ORIG_MIME_TYPE_ATTR);
-            mockFile.assertAttributeEquals(ORIG_MIME_TYPE_ATTR, "application/msword");
         }
     }
 
@@ -166,8 +160,6 @@ public class ExtractDocumentTextTest {
         for (MockFlowFile mockFile : successFiles) {
             mockFile.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
             mockFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
-            mockFile.assertAttributeExists(ORIG_MIME_TYPE_ATTR);
-            mockFile.assertAttributeEquals(ORIG_MIME_TYPE_ATTR, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         }
     }
 
