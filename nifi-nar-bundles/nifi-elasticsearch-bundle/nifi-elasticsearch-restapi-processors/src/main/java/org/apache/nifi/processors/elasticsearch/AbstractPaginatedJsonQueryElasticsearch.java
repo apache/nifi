@@ -109,6 +109,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
         descriptors.add(AGGREGATION_RESULTS_SPLIT);
         descriptors.add(PAGINATION_TYPE);
         descriptors.add(PAGINATION_KEEP_ALIVE);
+        descriptors.add(OUTPUT_NO_HITS);
 
         paginatedPropertyDescriptors = Collections.unmodifiableList(descriptors);
     }
@@ -282,7 +283,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
      * SearchResponse is processed, i.e. this approach allows recursion for paginated queries, but is unnecessary for single-response queries.
      */
     @Override
-    List<FlowFile> handleHits(final List<Map<String, Object>> hits, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
+    List<FlowFile> handleHits(final List<Map<String, Object>> hits, final boolean newQuery, final PaginatedJsonQueryParameters paginatedJsonQueryParameters,
                               final ProcessSession session, final FlowFile parent, final Map<String, String> attributes,
                               final List<FlowFile> hitsFlowFiles, final String transitUri, final StopWatch stopWatch) throws IOException {
         paginatedJsonQueryParameters.incrementPageCount();
@@ -298,7 +299,7 @@ public abstract class AbstractPaginatedJsonQueryElasticsearch extends AbstractJs
                 hitsFlowFiles.clear();
             }
         } else {
-            super.handleHits(hits, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles, transitUri, stopWatch);
+            super.handleHits(hits, newQuery, paginatedJsonQueryParameters, session, parent, attributes, hitsFlowFiles, transitUri, stopWatch);
         }
 
         return hitsFlowFiles;
