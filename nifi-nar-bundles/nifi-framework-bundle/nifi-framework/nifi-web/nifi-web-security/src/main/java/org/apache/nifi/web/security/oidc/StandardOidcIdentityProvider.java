@@ -53,6 +53,20 @@ import com.nimbusds.openid.connect.sdk.token.OIDCTokens;
 import com.nimbusds.openid.connect.sdk.validators.AccessTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.IDTokenValidator;
 import com.nimbusds.openid.connect.sdk.validators.InvalidHashException;
+import net.minidev.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authentication.exception.IdentityAccessException;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
@@ -63,14 +77,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import net.minidev.json.JSONObject;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authentication.exception.IdentityAccessException;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 /**
@@ -88,6 +94,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private IDTokenValidator tokenValidator;
     private ClientID clientId;
     private Secret clientSecret;
+    private SSLContext sslContext;
 
     /**
      * Creates a new StandardOidcIdentityProvider.
@@ -110,6 +117,11 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             return;
         }
 
+        // Set up trust store SSLContext
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            setSslContext();
+        }
+
         validateOIDCConfiguration();
 
         try {
@@ -120,6 +132,15 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         }
 
         validateOIDCProviderMetadata();
+    }
+
+    private void setSslContext() {
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            throw new RuntimeException("Unable to establish an SSL context for OIDC identity provider from nifi.properties", e);
+        }
     }
 
     /**
@@ -166,7 +187,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
             } else if (JWSAlgorithm.HS256.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS384.equals(preferredJwsAlgorithm) || JWSAlgorithm.HS512.equals(preferredJwsAlgorithm)) {
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, clientSecret);
             } else {
-                final ResourceRetriever retriever = new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+                final ResourceRetriever retriever = getResourceRetriever();
                 tokenValidator = new IDTokenValidator(oidcProviderMetadata.getIssuer(), clientId, preferredJwsAlgorithm, oidcProviderMetadata.getJWKSetURI().toURL(), retriever);
             }
         } catch (final Exception e) {
@@ -245,9 +266,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private OIDCProviderMetadata retrieveOidcProviderMetadata(final String discoveryUri) throws IOException, ParseException {
         final URL url = new URL(discoveryUri);
         final HTTPRequest httpRequest = new HTTPRequest(HTTPRequest.Method.GET, url);
-        httpRequest.setConnectTimeout(oidcConnectTimeout);
-        httpRequest.setReadTimeout(oidcReadTimeout);
-
+        setHttpRequestProperties(httpRequest);
         final HTTPResponse httpResponse = httpRequest.send();
 
         if (httpResponse.getStatusCode() != 200) {
@@ -485,10 +504,24 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     }
 
     private HTTPRequest formHTTPRequest(Request request) {
-        final HTTPRequest httpRequest = request.toHTTPRequest();
+        return setHttpRequestProperties(request.toHTTPRequest());
+    }
+
+    private HTTPRequest setHttpRequestProperties(final HTTPRequest httpRequest) {
         httpRequest.setConnectTimeout(oidcConnectTimeout);
         httpRequest.setReadTimeout(oidcReadTimeout);
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            httpRequest.setSSLSocketFactory(sslContext.getSocketFactory());
+        }
         return httpRequest;
+    }
+
+    private ResourceRetriever getResourceRetriever() {
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout, 0, true, sslContext.getSocketFactory());
+        } else {
+            return new DefaultResourceRetriever(oidcConnectTimeout, oidcReadTimeout);
+        }
     }
 
     private ClientAuthentication createClientAuthentication() {

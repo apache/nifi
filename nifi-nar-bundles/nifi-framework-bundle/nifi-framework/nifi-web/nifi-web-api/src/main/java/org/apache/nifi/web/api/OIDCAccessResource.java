@@ -38,16 +38,21 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.oidc.OidcService;
+import org.apache.nifi.web.security.oidc.TruststoreStrategy;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.PreDestroy;
+import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -89,19 +94,9 @@ public class OIDCAccessResource extends ApplicationResource {
 
     private OidcService oidcService;
     private BearerTokenProvider bearerTokenProvider;
-    private final CloseableHttpClient httpClient;
 
     public OIDCAccessResource() {
-        RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(msTimeout)
-                .setConnectionRequestTimeout(msTimeout)
-                .setSocketTimeout(msTimeout)
-                .build();
 
-        httpClient = HttpClientBuilder
-                .create()
-                .setDefaultRequestConfig(config)
-                .build();
     }
 
     @GET
@@ -437,7 +432,7 @@ public class OIDCAccessResource extends ApplicationResource {
      * @throws IOException exceptional case for communication error with the OpenId Connect Provider
      */
     private void revokeEndpointRequest(@Context HttpServletResponse httpServletResponse, String accessToken, URI revokeEndpoint) throws IOException {
-
+        final CloseableHttpClient httpClient = getHttpClient();
         HttpPost httpPost = new HttpPost(revokeEndpoint);
 
         List<NameValuePair> params = new ArrayList<>();
@@ -455,12 +450,27 @@ public class OIDCAccessResource extends ApplicationResource {
                 logger.error("There was an error logging out of the OpenId Connect Provider. " +
                         "Response status: " + response.getStatusLine().getStatusCode());
             }
+        } finally {
+            httpClient.close();
         }
     }
 
-    @PreDestroy
-    public void closeClient() throws IOException {
-        httpClient.close();
+    private CloseableHttpClient getHttpClient() {
+        RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(msTimeout)
+                .setConnectionRequestTimeout(msTimeout)
+                .setSocketTimeout(msTimeout)
+                .build();
+
+        HttpClientBuilder builder = HttpClientBuilder
+                .create()
+                .setDefaultRequestConfig(config);
+
+        if (TruststoreStrategy.NIFI.name().equals(properties.getOidcClientTruststoreStrategy())) {
+            builder.setSSLContext(getSslContext());
+        }
+
+        return builder.build();
     }
 
     private AuthenticationResponse parseOidcResponse(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
@@ -512,6 +522,15 @@ public class OIDCAccessResource extends ApplicationResource {
 
             forwardToMessagePage(httpServletRequest, httpServletResponse, getForwardPageTitle(isLogin), "Purposed state does not match " +
                     "the stored state. Unable to continue login/logout process.");
+        }
+    }
+
+    private SSLContext getSslContext() {
+        TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        try {
+            return SslContextFactory.createSslContext(tlsConfiguration);
+        } catch (TlsException e) {
+            throw new RuntimeException("Unable to establish an SSL context for OIDC access resource from nifi.properties", e);
         }
     }
 
