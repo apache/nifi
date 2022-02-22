@@ -239,6 +239,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
         waitForValidProcessor(generate.getId());
         waitForValidProcessor(evaluate.getId());
+        Thread.sleep(3000L);
 
         getClientUtil().startProcessGroupComponents("root");
 
@@ -266,6 +267,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Stop process group so we can change the Parameter Context, then change the context and restart.
         getClientUtil().stopProcessGroupComponents("root");
         setParameterContext("root", secondContextEntity);
+        Thread.sleep(3000L);
         getClientUtil().startProcessGroupComponents("root");
 
         // Wait for the 'no.el.evaluation' counter to be set

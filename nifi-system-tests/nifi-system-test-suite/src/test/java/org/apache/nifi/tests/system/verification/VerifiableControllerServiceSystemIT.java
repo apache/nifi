@@ -150,6 +150,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
         assertThrows(NiFiClientException.class, () -> {
             getClientUtil().verifyControllerServiceConfig(service.getId(), properties);
         });
+        getClientUtil().disableControllerService(service);
     }
 
 

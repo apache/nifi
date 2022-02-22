@@ -101,6 +101,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         getClientUtil().setAutoTerminatedRelationships(terminate, "success");
         getClientUtil().createConnection(generateFlowFile, terminate, "success");
+        Thread.sleep(1000L);
 
         generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
 
@@ -151,6 +152,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         getClientUtil().setAutoTerminatedRelationships(terminate, "success");
         getClientUtil().createConnection(generateFlowFile, terminate, "success");
+        Thread.sleep(1000L);
 
         generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
 

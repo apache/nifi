@@ -1151,7 +1151,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getProcessorClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getProcessorClient().getConfigVerificationRequest(processorId, results.getRequest().getRequestId());
         }
@@ -1182,7 +1182,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getControllerServicesClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getControllerServicesClient().getConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
         }
@@ -1203,7 +1203,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getReportingTasksClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getReportingTasksClient().getConfigVerificationRequest(taskId, results.getRequest().getRequestId());
         }

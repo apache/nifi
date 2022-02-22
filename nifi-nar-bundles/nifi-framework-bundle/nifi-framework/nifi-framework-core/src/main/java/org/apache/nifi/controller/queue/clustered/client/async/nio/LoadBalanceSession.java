@@ -436,13 +436,13 @@ public class LoadBalanceSession {
         buffer.put((byte) protocolVersion);
         buffer.rewind();
 
-        readTimeout = System.currentTimeMillis() + timeoutMillis;
+        readTimeout = System.currentTimeMillis() + 1000L;  // bail out on this socket if the handshake is not acknowledged immediately
         phase = TransactionPhase.RECEIVE_PROTOCOL_VERSION_ACKNOWLEDGMENT;
         return buffer;
     }
 
     private boolean receiveProtocolVersionAcknowledgment() throws IOException {
-        logger.debug("Confirming Transaction Complete for Peer {}", peerDescription);
+        logger.debug("Confirming Protocol Version for Peer {}", peerDescription);
 
         final OptionalInt ackResponse = channel.read();
         if (!ackResponse.isPresent()) {

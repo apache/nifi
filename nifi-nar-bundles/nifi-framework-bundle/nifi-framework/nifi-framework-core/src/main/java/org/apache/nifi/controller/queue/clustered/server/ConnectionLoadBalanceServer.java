@@ -159,7 +159,7 @@ public class ConnectionLoadBalanceServer {
 
             while (!stopped) {
                 try {
-                    peerDescription = socket.getRemoteSocketAddress().toString();
+                    peerDescription = socket.getLocalSocketAddress() + "::" + socket.getRemoteSocketAddress();
 
                     logger.debug("Receiving FlowFiles from Peer {}", peerDescription);
                     loadBalanceProtocol.receiveFlowFiles(socket, in, out);
@@ -169,8 +169,10 @@ public class ConnectionLoadBalanceServer {
                         break;
                     }
                 } catch (final Exception e) {
+                    stopped = true;
                     if (socket != null) {
                         try {
+                            logger.debug("closing socket");
                             socket.close();
                         } catch (final IOException ioe) {
                             e.addSuppressed(ioe);
@@ -186,7 +188,6 @@ public class ConnectionLoadBalanceServer {
                         logger.error("Failed to communicate with Peer {}", peerDescription, e);
                         eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
                     }
-                    return;
                 }
             }
         }

@@ -49,6 +49,7 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
 
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(generator, terminate, "success");
+        Thread.sleep(3000L);
 
         getNifiClient().getProcessorClient().startProcessor(generator);
         waitForQueueCount(connection.getId(), 1);

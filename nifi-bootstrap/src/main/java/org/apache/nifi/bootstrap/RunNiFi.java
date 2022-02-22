@@ -116,7 +116,7 @@ public class RunNiFi {
     public static final String PID_KEY = "pid";
 
     public static final int STARTUP_WAIT_SECONDS = 60;
-    public static final long GRACEFUL_SHUTDOWN_RETRY_MILLIS = 2000L;
+    public static final long GRACEFUL_SHUTDOWN_RETRY_MILLIS = 1000L;
 
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
     public static final String DECOMMISSION_CMD = "DECOMMISSION";
@@ -1056,7 +1056,7 @@ public class RunNiFi {
             logger.error("Failed to delete pid file {}; this file should be cleaned up manually", pidFile);
         }
 
-        logger.info("NiFi has finished shutting down.");
+        logger.info("NiFi has finished shutting down. (PID={})", pid);
     }
 
     private static List<String> getChildProcesses(final String ppid) throws IOException {
@@ -1327,7 +1327,7 @@ public class RunNiFi {
             cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
         }
 
-        shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
+        shutdownHook = new ShutdownHook(process, pid, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
 
         final String hostname = getHostname();
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
@@ -1400,7 +1400,7 @@ public class RunNiFi {
                             cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
                         }
 
-                        shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
+                        shutdownHook = new ShutdownHook(process, pid, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
                         runtime.addShutdownHook(shutdownHook);
 
                         final boolean started = waitForStart();

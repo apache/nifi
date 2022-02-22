@@ -140,6 +140,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 removedPartition.getFailureCallback().onTransactionFailed(flowFilesSent, TransactionFailureCallback.TransactionPhase.SENDING);
             }
         }
+        stop();
     }
 
     public synchronized int getRegisteredConnectionCount() {
@@ -439,7 +440,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 socketChannel = createChannel();
                 socketChannel.configureBlocking(true);
 
-                peerChannel = createPeerChannel(socketChannel, nodeIdentifier.toString());
+                peerChannel = createPeerChannel(socketChannel, socketChannel.getLocalAddress() + "::" + nodeIdentifier.toString());
                 channel = peerChannel;
             }
 
