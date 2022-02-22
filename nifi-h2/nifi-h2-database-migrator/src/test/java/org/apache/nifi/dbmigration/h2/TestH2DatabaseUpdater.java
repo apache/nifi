@@ -1,14 +1,3 @@
-package org.apache.nifi.dbmigration.h2;
-
-import org.junit.jupiter.api.Test;
-
-import java.io.File;
-import java.nio.file.Paths;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -25,16 +14,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.dbmigration.h2;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestH2DatabaseUpdater {
+
+    public static final String AUDIT_DB_PATH = "./src/test/resources/nifi-flow-audit";
+    public static final String AUDIT_DB_PATH_FILE = AUDIT_DB_PATH + ".mv.db";
+    public static final String AUDIT_DB_PATH_FILE_ORIGINAL = "./src/test/resources/orig.nifi-flow-audit";
 
     @Test
     public void testMigration() throws Exception {
-        final String dbPathNoExtension = "./src/test/resources/nifi-flow-audit";
-        final String dbFilePath = dbPathNoExtension + ".mv.db";
-        final File dbFile = new File(dbPathNoExtension);
+        final File dbFile = new File(AUDIT_DB_PATH);
         final String migrationDbUrl = H2DatabaseUpdater.H2_URL_PREFIX + dbFile + ";LOCK_MODE=3";
 
-        final File newDbFile = new File(dbFilePath);
+        final File newDbFile = new File(AUDIT_DB_PATH_FILE);
         H2DatabaseUpdater.checkAndPerformMigration(dbFile, migrationDbUrl, "nf", "nf");
 
         // Verify the export, backup, and new database files were created
@@ -43,16 +48,24 @@ public class TestH2DatabaseUpdater {
 
         File dbDir = dbFile.getParentFile();
         File[] backupFiles = dbDir.listFiles((dir, name) -> name.endsWith(H2DatabaseMigrator.BACKUP_FILE_POSTFIX) && name.startsWith(dbFile.getName()));
-        assertNotNull(backupFiles);
-        // The database and its trace file should exist after the initial connection is made, so they both should be backed up
-        assertEquals(2, backupFiles.length);
-        assertTrue(newDbFile.exists());
+        try {
+            assertNotNull(backupFiles);
 
-        // Remove the export and backup files
-        exportFile.delete();
-        for (File f : backupFiles) {
-            f.delete();
+            // The database and its trace file should exist after the initial connection is made, so they both should be backed up
+            assertEquals(2, backupFiles.length);
+            assertTrue(newDbFile.exists());
+        } finally {
+            // Remove the export and backup files
+            exportFile.delete();
+            for (File f : backupFiles) {
+                f.delete();
+            }
         }
+    }
+
+    @AfterEach
+    public void restoreOriginalDatabases() throws Exception {
+        Files.copy(Paths.get(AUDIT_DB_PATH_FILE_ORIGINAL), Paths.get(AUDIT_DB_PATH_FILE), REPLACE_EXISTING);
     }
 
 }

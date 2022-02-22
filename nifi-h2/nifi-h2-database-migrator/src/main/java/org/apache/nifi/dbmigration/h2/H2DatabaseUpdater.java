@@ -39,13 +39,14 @@ public class H2DatabaseUpdater {
     private static final JdbcDataSource migrationDataSource = new JdbcDataSource();
 
     public static void checkAndPerformMigration(final File dbFile, final String dbUrl, final String user, final String pass) throws Exception {
-        try {
-            // Attempt to connect with the latest driver
-            migrationDataSource.setURL(dbUrl);
-            migrationDataSource.setUser(user);
-            migrationDataSource.setPassword(pass);
-            migrationDataSource.getConnection();
+
+        // Attempt to connect with the latest driver
+        migrationDataSource.setURL(dbUrl);
+        migrationDataSource.setUser(user);
+        migrationDataSource.setPassword(pass);
+        try (Connection connection = migrationDataSource.getConnection()) {
             return;
+
         } catch (JdbcSQLNonTransientException jsqlnte) {
             // Migration/version issues will be caused by an MVStoreException
             final Throwable exceptionCause = jsqlnte.getCause();
@@ -58,10 +59,10 @@ public class H2DatabaseUpdater {
                 }
             }
         } catch (SQLException sqle) {
-            throw new RuntimeException("Error getting connection to H2 database unrelated to migration issues", sqle);
+            throw new RuntimeException(String.format("H2 connection failed URL [%s] File [%s]", dbUrl, dbFile), sqle);
         }
         // At this point it is known that migration should be attempted
-        logger.info("H2 database version 1 detected, the database will be migrated to version 2. Existing files will be backed up to the same directory.");
+        logger.info("H2 1.4 database detected [{}]: starting migration to H2 2.1", dbFile);
         H2DatabaseMigrator.exportAndBackup(dbUrl, dbFile.getAbsolutePath(), user, pass);
 
         // The export file has been created and the DB has been backed up, now create a new one with the same name and run the SQL script to import the database
@@ -73,9 +74,9 @@ public class H2DatabaseUpdater {
             s.execute("RUNSCRIPT FROM '" + exportSqlLocation + "'");
 
         } catch (SQLException sqle) {
-            throw new IOException("Error creating database for import", sqle);
+            throw new IOException(String.format("H2 import database creation failed URL [%s]", dbUrl), sqle);
         }
 
-        logger.info("H2 Database Migration process for " + dbFile.getName() + " completed successfully");
+        logger.info("H2 1.4 to 2.1 migration completed [{}]", dbFile);
     }
 }

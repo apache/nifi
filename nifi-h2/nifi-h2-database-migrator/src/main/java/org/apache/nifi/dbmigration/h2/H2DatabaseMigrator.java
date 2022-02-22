@@ -54,8 +54,8 @@ public class H2DatabaseMigrator {
             conn = migrationDataSource.getConnection();
             s = conn.createStatement();
         } catch (SQLException sqle) {
-            logger.error("Could not connect to the database with the legacy driver, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState());
-            throw new RuntimeException(sqle);
+            final String message = String.format("H2 1.4 connection failed URL [%s] Path [%s] SQL State [%s]", dbUrl, dbPath, sqle.getSQLState());
+            throw new RuntimeException(message, sqle);
         }
 
         try {
@@ -67,39 +67,46 @@ public class H2DatabaseMigrator {
             } catch (SQLException se2) {
                 // Ignore, the error will be handled
             }
-            logger.error("Export of the database with the legacy driver failed, cause: " + sqle.getMessage() + ", SQL State = " + sqle.getSQLState());
-            throw new RuntimeException(sqle);
+            final String message = String.format("H2 1.4 export failed URL [%s] Path [%s] SQL State [%s]", dbUrl, dbPath, sqle.getSQLState());
+            throw new RuntimeException(message, sqle);
         }
 
-        try {
-            s.close();
-            conn.close();
-        } catch (SQLException se2) {
-            // Ignore, all connections should be severed when the process exits
-        }
+        closeQuietly(s);
+        closeQuietly(conn);
 
         // Verify the export file exists
         if (!Files.exists(Paths.get(exportFile))) {
-            logger.error("Export of the database with the legacy driver failed, no export file was created");
-            throw new RuntimeException("Export of the database with the legacy driver failed, no export file was created");
+            throw new RuntimeException(String.format("H2 1.4 export failed URL [%s] Path [%s] Export File not found [%s]", dbUrl, dbPath, exportFile));
         }
 
         // Now that the export file exists, backup (rename) the DB files so the main process with the newer H2 driver can create and import the previous database
         File dbDir = new File(dbPath).getParentFile();
         File[] dbFiles = dbDir.listFiles((dir, name) -> !name.endsWith(EXPORT_FILE_POSTFIX) && name.startsWith(dbPathFile.getName()));
         if (dbFiles == null || dbFiles.length == 0) {
-            logger.error("Backing up the legacy database failed, no database files were found.");
-            throw new RuntimeException("Backing up the legacy database failed, no database files were found.");
+            throw new RuntimeException(String.format("H2 1.4 backup failed URL [%s] Path [%s] no database files found", dbUrl, dbPath));
         }
 
         for (File dbFile : dbFiles) {
             File dbBackupFile = new File(dbFile.getAbsolutePath() + BACKUP_FILE_POSTFIX);
             if (!dbFile.renameTo(dbBackupFile)) {
-                logger.error("Backing up the legacy database failed, " + dbFile.getName() + " could not be renamed.");
-                throw new RuntimeException("Backing up the legacy database failed, " + dbFile.getName() + " could not be renamed.");
+                throw new RuntimeException(String.format("H2 1.4 backup failed URL [%s] Path [%s] rename failed [%s]", dbUrl, dbPath, dbFile));
             }
         }
+    }
 
-        // exit gracefully so the H2 migrator can proceed with rebuilding the database
+    private static void closeQuietly(final Statement statement) {
+        try {
+            statement.close();
+        } catch (final SQLException e) {
+            // Ignore, nothing to be done
+        }
+    }
+
+    private static void closeQuietly(final Connection connection) {
+        try {
+            connection.close();
+        } catch (final SQLException e) {
+            // Ignore, nothing to be done
+        }
     }
 }
