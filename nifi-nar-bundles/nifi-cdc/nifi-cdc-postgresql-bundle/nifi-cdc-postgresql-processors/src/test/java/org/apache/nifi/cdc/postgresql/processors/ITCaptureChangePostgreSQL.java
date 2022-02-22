@@ -105,7 +105,7 @@ import org.postgresql.util.PSQLException;
  * For example:
  *
  * <code>
- * $ export PG_JDBC_DRIVER_LOCATION="/var/tmp/postgresql-42.3.1.jar";
+ * $ export PG_JDBC_DRIVER_LOCATION="/usr/share/java/postgresql-42.3.1.jar";
  * $ export PG_JDBC_DRIVER_NAME="org.postgresql.Driver";
  * $ export PG_HOST="192.168.56.101";
  * $ export PG_PORT="5432";

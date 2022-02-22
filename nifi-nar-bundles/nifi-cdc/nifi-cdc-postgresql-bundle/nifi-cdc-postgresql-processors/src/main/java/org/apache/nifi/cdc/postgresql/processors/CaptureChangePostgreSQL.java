@@ -127,7 +127,7 @@ public class CaptureChangePostgreSQL extends AbstractProcessor {
             .name("cdc-postgresql-driver-locations")
             .displayName("PostgreSQL Driver Location(s)")
             .description(
-                    "Comma-separated list of files/folders containing the PostgreSQL driver JAR and its dependencies (if any). For example '/var/tmp/postgresql-42.3.1.jar'")
+                    "Comma-separated list of files/folders containing the PostgreSQL driver JAR and its dependencies (if any). For example '/usr/share/java/postgresql-42.3.1.jar'")
             .defaultValue(null)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
