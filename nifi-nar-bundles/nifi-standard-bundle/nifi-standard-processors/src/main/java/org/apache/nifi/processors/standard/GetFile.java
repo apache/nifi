@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
@@ -70,7 +69,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
@@ -205,7 +203,6 @@ public class GetFile extends AbstractProcessor {
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
-    private final AtomicReference<FileFilter> fileFilterRef = new AtomicReference<>();
 
     private final BlockingQueue<File> fileQueue = new LinkedBlockingQueue<>();
     private final Set<File> inProcess = new HashSet<>();    // guarded by queueLock
@@ -250,18 +247,16 @@ public class GetFile extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        fileFilterRef.set(createFileFilter(context));
         fileQueue.clear();
     }
 
-    private FileFilter createFileFilter(final ProcessContext context) {
+    private FileFilter createFileFilter(final ProcessContext context, final Path inputDirectory) {
         final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
         final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAge = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final boolean ignoreHidden = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
         final Pattern filePattern = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
-        final String indir = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
         final boolean recurseDirs = context.getProperty(RECURSE).asBoolean();
         final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
         final Pattern pathPattern = (!recurseDirs || pathPatternStr == null) ? null : Pattern.compile(pathPatternStr);
@@ -287,11 +282,13 @@ public class GetFile extends AbstractProcessor {
                     return false;
                 }
                 if (pathPattern != null) {
-                    Path reldir = Paths.get(indir).relativize(file.toPath()).getParent();
-                    if (reldir != null && !reldir.toString().isEmpty()) {
-                        if (!pathPattern.matcher(reldir.toString()).matches()) {
-                            return false;
-                        }
+                    final Path relativePath = inputDirectory.relativize(file.toPath()).getParent();
+                    if (relativePath == null || relativePath.toString().isEmpty()) {
+                        return false;
+                    }
+
+                    if (!pathPattern.matcher(relativePath.toString()).matches()) {
+                        return false;
                     }
                 }
                 //Verify that we have at least read permissions on the file we're considering grabbing
@@ -378,12 +375,13 @@ public class GetFile extends AbstractProcessor {
         final File directory = new File(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
         final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final ComponentLog logger = getLogger();
+        final FileFilter fileFilter = createFileFilter(context, directory.toPath());
 
         if (fileQueue.size() < 100) {
             final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
             if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
                 try {
-                    final Set<File> listing = performListing(directory, fileFilterRef.get(), context.getProperty(RECURSE).asBoolean().booleanValue());
+                    final Set<File> listing = performListing(directory, fileFilter, context.getProperty(RECURSE).asBoolean());
 
                     queueLock.lock();
                     try {
