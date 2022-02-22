@@ -285,6 +285,31 @@ public class TestListFile {
     }
 
     @Test
+    public void testPathFilterOnlyPicksUpMatchingFiles() throws IOException {
+        final File aaa = new File(TESTDIR, "aaa");
+        assertTrue(aaa.mkdirs() || aaa.exists());
+
+        final File bbb = new File(TESTDIR, "bbb");
+        assertTrue(bbb.mkdirs() || bbb.exists());
+
+        final File file1 = new File(aaa, "1.txt");
+        final File file2 = new File(bbb, "2.txt");
+        final File file3 = new File(TESTDIR, "3.txt");
+
+        final long tenSecondsAgo = System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(10L);
+        for (final File file : Arrays.asList(file1, file2, file3)) {
+            assertTrue(file.createNewFile() || file.exists());
+            assertTrue(file.setLastModified(tenSecondsAgo));
+        }
+
+        runner.setProperty(ListFile.DIRECTORY, TESTDIR);
+        runner.setProperty(ListFile.PATH_FILTER, ".+");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS, 2);
+    }
+
+    @Test
     public void testFilterAge() throws Exception {
 
         final File file1 = new File(TESTDIR + "/age1.txt");
@@ -651,7 +676,7 @@ public class TestListFile {
         assertEquals(4, successFiles1.size());
 
         // filter path on pattern subdir1
-        runner.setProperty(ListFile.PATH_FILTER, "subdir1");
+        runner.setProperty(ListFile.PATH_FILTER, "subdir1.*");
         runner.setProperty(ListFile.RECURSE, "true");
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 3 match the filter.");
         runNext();
@@ -660,7 +685,7 @@ public class TestListFile {
         assertEquals(3, successFiles2.size());
 
         // filter path on pattern subdir2
-        runner.setProperty(ListFile.PATH_FILTER, "subdir2");
+        runner.setProperty(ListFile.PATH_FILTER, ".*/subdir2");
         runner.setProperty(ListFile.RECURSE, "true");
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 1 matches the filter.");
         runNext();

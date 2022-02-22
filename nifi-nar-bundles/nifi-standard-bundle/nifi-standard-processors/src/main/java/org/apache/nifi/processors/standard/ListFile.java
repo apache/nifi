@@ -56,7 +56,6 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileOwnerAttributeView;
@@ -81,7 +80,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -275,7 +273,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     private volatile boolean includeFileAttributes;
     private volatile PerformanceTracker performanceTracker;
     private volatile long performanceLoggingTimestamp = System.currentTimeMillis();
-    private final AtomicReference<BiPredicate<Path, BasicFileAttributes>> fileFilterRef = new AtomicReference<>();
 
     public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
@@ -350,7 +347,6 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         } else {
             performanceTracker = new UntrackedPerformanceTracker(getLogger(), maxDiskOperationMillis);
         }
-        fileFilterRef.set(createFileFilter(context, performanceTracker, true));
 
         final long millisToKeepStats = TimeUnit.MINUTES.toMillis(15);
         final MonitorActiveTasks monitorTask = new MonitorActiveTasks(performanceTracker, getLogger(), maxDiskOperationMillis, maxListingMillis, millisToKeepStats);
@@ -520,13 +516,14 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final BiPredicate<Path, BasicFileAttributes> fileFilter;
         final PerformanceTracker performanceTracker;
         if (listingMode == ListingMode.EXECUTION) {
-            fileFilter = fileFilterRef.get();
             performanceTracker = this.performanceTracker;
+            fileFilter = createFileFilter(context, performanceTracker, applyFilters, basePath);
         } else {
             final long maxDiskOperationMillis = context.getProperty(MAX_DISK_OPERATION_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
             performanceTracker = new UntrackedPerformanceTracker(getLogger(), maxDiskOperationMillis);
-            fileFilter = createFileFilter(context, performanceTracker, applyFilters);
+            fileFilter = createFileFilter(context, performanceTracker, applyFilters, basePath);
         }
+
         int maxDepth = recurse ? Integer.MAX_VALUE : 1;
 
         final BiPredicate<Path, BasicFileAttributes> matcher = new BiPredicate<Path, BasicFileAttributes>() {
@@ -664,7 +661,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     }
 
     private BiPredicate<Path, BasicFileAttributes> createFileFilter(final ProcessContext context, final PerformanceTracker performanceTracker,
-                                                                    final boolean applyFilters) {
+                                                                    final boolean applyFilters, final Path basePath) {
         final long minSize = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxSize = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
         final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -672,12 +669,9 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         final boolean ignoreHidden = context.getProperty(IGNORE_HIDDEN_FILES).asBoolean();
         final String fileFilter = context.getProperty(FILE_FILTER).getValue();
         final Pattern filePattern = Pattern.compile(fileFilter);
-        final String indir = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
         final boolean recurseDirs = context.getProperty(RECURSE).asBoolean();
         final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
         final Pattern pathPattern = (!recurseDirs || pathPatternStr == null) ? null : Pattern.compile(pathPatternStr);
-
-        final Path basePath = Paths.get(indir);
 
         return (path, attributes) -> {
             if (!applyFilters) {
@@ -706,10 +700,12 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             final File file = path.toFile();
 
             if (pathPattern != null) {
-                if (relativePath != null && !relativePath.toString().isEmpty()) {
-                    if (!pathPattern.matcher(relativePath.toString()).matches()) {
-                        return false;
-                    }
+                if (relativePath == null || relativePath.toString().isEmpty()) {
+                    return false;
+                }
+
+                if (!pathPattern.matcher(relativePath.toString()).matches()) {
+                    return false;
                 }
             }
 
