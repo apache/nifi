@@ -51,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -70,6 +71,11 @@ import java.util.stream.Collectors;
         resource = SystemResource.MEMORY,
         description = "The Batch of FlowFiles will be stored in memory until the bulk operation is performed.")
 public class PutElasticsearchJson extends AbstractPutElasticsearch {
+    static final Relationship REL_FAILED_DOCUMENTS = new Relationship.Builder()
+            .name("errors").description("If a \"Output Error Documents\" is set, any FlowFile(s) corresponding to Elasticsearch document(s) " +
+                            "that resulted in an \"error\" (within Elasticsearch) will be routed here.")
+            .autoTerminateDefault(true).build();
+
     static final PropertyDescriptor ID_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("put-es-json-id-attr")
             .displayName("Identifier Attribute")
@@ -95,21 +101,28 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .name("put-es-json-error-documents")
         .displayName("Output Error Documents")
         .description("If this configuration property is true, the response from Elasticsearch will be examined for failed documents " +
-                "and the failed documents will be sent to the \"errors\" relationship.")
+                "and the FlowFile(s) associated with the failed document(s) will be sent to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
         .build();
 
-    static final Relationship REL_FAILED_DOCUMENTS = new Relationship.Builder()
-            .name("errors").description("If \"" + OUTPUT_ERROR_DOCUMENTS.getDisplayName() + "\" is set, " +
-                    "any FlowFile that failed to process the way it was configured will be sent to this relationship " +
-                    "as part of a failed document set.")
-            .autoTerminateDefault(true).build();
+    static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
+        .name("put-es-json-not_found-is-error")
+        .displayName("Treat \"Not Found\" as Error")
+        .description("If true, \"not_found\" Elasticsearch Document associated FlowFiles will be routed to the \"" + REL_SUCCESS.getName() +
+                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(false)
+        .dependsOn(OUTPUT_ERROR_DOCUMENTS, "true")
+        .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE, LOG_ERROR_RESPONSES, OUTPUT_ERROR_DOCUMENTS
+        ID_ATTRIBUTE, INDEX_OP, INDEX, TYPE, BATCH_SIZE, CHARSET, CLIENT_SERVICE, LOG_ERROR_RESPONSES,
+        OUTPUT_ERROR_DOCUMENTS, NOT_FOUND_IS_SUCCESSFUL
     ));
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_DOCUMENTS
@@ -133,6 +146,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         super.onScheduled(context);
 
         this.outputErrors = context.getProperty(OUTPUT_ERROR_DOCUMENTS).asBoolean();
+        this.notFoundIsSuccessful = context.getProperty(NOT_FOUND_IS_SUCCESSFUL).asBoolean();
     }
 
     @Override
@@ -183,8 +197,28 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
             try {
                 final List<FlowFile> errorDocuments = indexDocuments(operations, originals, context);
                 session.transfer(errorDocuments, REL_FAILED_DOCUMENTS);
+                errorDocuments.forEach(e ->
+                        session.getProvenanceReporter().send(
+                                e,
+                                clientService.getTransitUrl(
+                                        context.getProperty(INDEX).evaluateAttributeExpressions(e).getValue(),
+                                        context.getProperty(TYPE).evaluateAttributeExpressions(e).getValue()
+                                ),
+                                "Elasticsearch _bulk operation error"
+                        )
+                );
 
-                session.transfer(originals.stream().filter(f -> !errorDocuments.contains(f)).collect(Collectors.toList()), REL_SUCCESS);
+                final List<FlowFile> successfulDocuments = originals.stream().filter(f -> !errorDocuments.contains(f)).collect(Collectors.toList());
+                session.transfer(successfulDocuments, REL_SUCCESS);
+                successfulDocuments.forEach(s ->
+                        session.getProvenanceReporter().send(
+                                s,
+                                clientService.getTransitUrl(
+                                        context.getProperty(INDEX).evaluateAttributeExpressions(s).getValue(),
+                                        context.getProperty(TYPE).evaluateAttributeExpressions(s).getValue()
+                                )
+                        )
+                );
             } catch (final ElasticsearchException ese) {
                 final String msg = String.format("Encountered a server-side problem with Elasticsearch. %s",
                         ese.isElastic() ? "Routing to retry." : "Routing to failure");
@@ -205,16 +239,28 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context) throws JsonProcessingException {
         final IndexOperationResponse response = clientService.bulk(operations, getUrlQueryParameters(context, originals.get(0)));
         final List<FlowFile> errorDocuments = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
+
+        List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
         if (response.hasErrors()) {
             logElasticsearchDocumentErrors(response);
 
             if (outputErrors) {
-                findElasticsearchErrorIndices(response).forEach(index -> errorDocuments.add(originals.get(index)));
+                errorItemFilters.add(isElasticsearchError());
             }
         }
+
+        if (!notFoundIsSuccessful) {
+            errorItemFilters.add(isElasticsearchNotFound());
+        }
+        if (!errorItemFilters.isEmpty()) {
+            findElasticsearchResponseIndices(response, errorItemFilters.toArray(new Predicate[0]))
+                    .forEach(index -> errorDocuments.add(originals.get((Integer) index)));
+        }
+
         return errorDocuments;
     }
 }

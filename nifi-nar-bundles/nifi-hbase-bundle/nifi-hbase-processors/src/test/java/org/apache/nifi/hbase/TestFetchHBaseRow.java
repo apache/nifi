@@ -27,6 +27,7 @@ import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class TestFetchHBaseRow {
@@ -124,7 +125,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testFetchToAttributesWithStringValues() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
@@ -182,7 +183,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testFetchToAttributesWithBase64Values() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
@@ -238,7 +239,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testFetchToContentWithStringValues() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
@@ -293,7 +294,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testFetchSpecificColumnsToContentWithBase64() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 
@@ -332,7 +333,7 @@ public class TestFetchHBaseRow {
 
     @Test
     public void testFetchToContentWithQualifierAndValueJSON() {
-        final Map<String, String> cells = new HashMap<>();
+        final Map<String, String> cells = new LinkedHashMap<>();
         cells.put("cq1", "val1");
         cells.put("cq2", "val2");
 

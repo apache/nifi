@@ -100,10 +100,6 @@ public interface ElasticsearchRestProcessor {
             .name("retry")
             .description("All flowfiles that fail due to server/cluster availability go to this relationship.")
             .build();
-    Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All flowfiles that succeed in being transferred into Elasticsearch go here.")
-            .build();
 
     default String getQuery(final FlowFile input, final ProcessContext context, final ProcessSession session) throws IOException {
         String retVal = null;

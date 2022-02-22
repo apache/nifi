@@ -908,6 +908,16 @@ public class FileSystemRepository implements ContentRepository {
     }
 
     @Override
+    public long size(final ResourceClaim claim) throws IOException {
+        final Path path = getPath(claim);
+        if (path == null) {
+            return 0L;
+        }
+
+        return Files.size(path);
+    }
+
+    @Override
     public InputStream read(final ResourceClaim claim) throws IOException {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);

@@ -52,6 +52,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.removeProperty(AbstractJsonQueryElasticsearch.QUERY_ATTRIBUTE)
         runner.removeProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT)
         runner.removeProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT)
+        runner.removeProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS)
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
         if (processor instanceof SearchElasticsearch) {
@@ -82,13 +83,14 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, "not-json")
         runner.setProperty(AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT, "not-enum")
         runner.setProperty(AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT, "not-enum2")
+        runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "not-boolean")
 
         final String expectedAllowedSplitHits = processor instanceof AbstractPaginatedJsonQueryElasticsearch
             ? [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT, AbstractPaginatedJsonQueryElasticsearch.FLOWFILE_PER_QUERY].join(", ")
             : [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT].join(", ")
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner.&run)
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 7 validation failures:\n" +
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 8 validation failures:\n" +
                 "'%s' validated against 'not-json' is invalid because %s is not a valid JSON representation due to Unrecognized token 'not': was expecting (JSON String, Number, Array, Object or token 'null', 'true' or 'false')\n" +
                 " at [Source: (String)\"not-json\"; line: 1, column: 4]\n" +
                 "'%s' validated against '' is invalid because %s cannot be empty\n" +
@@ -96,6 +98,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 "'%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist\n" +
                 "'%s' validated against 'not-enum2' is invalid because Given value not found in allowed set '%s'\n" +
                 "'%s' validated against 'not-enum' is invalid because Given value not found in allowed set '%s'\n" +
+                "'%s' validated against 'not-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
                 "'%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier\n",
                 AbstractJsonQueryElasticsearch.QUERY.getName(), AbstractJsonQueryElasticsearch.QUERY.getName(),
                 AbstractJsonQueryElasticsearch.INDEX.getName(), AbstractJsonQueryElasticsearch.INDEX.getName(),
@@ -103,6 +106,7 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName(),
                 AbstractJsonQueryElasticsearch.SEARCH_RESULTS_SPLIT.getName(), expectedAllowedSplitHits,
                 AbstractJsonQueryElasticsearch.AGGREGATION_RESULTS_SPLIT.getName(), [AbstractJsonQueryElasticsearch.FLOWFILE_PER_RESPONSE, AbstractJsonQueryElasticsearch.FLOWFILE_PER_HIT].join(", "),
+                AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS.getName(),
                 AbstractJsonQueryElasticsearch.CLIENT_SERVICE.getDisplayName()
         )))
     }
@@ -135,6 +139,45 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
                 { hit ->
                     hit.assertAttributeEquals("hit.count", "1")
                     assertOutputContent(hit.getContent(), 1, false)
+                    assertThat(
+                            runner.getProvenanceEvents().stream().filter({ pe ->
+                                pe.getEventType() == ProvenanceEventType.RECEIVE &&
+                                        pe.getAttribute("uuid") == hit.getAttribute("uuid")
+                            }).count(),
+                            is(1L)
+                    )
+                }
+        )
+    }
+
+    @Test
+    void testNoHits() throws Exception {
+        // test no hits (no output)
+        final TestRunner runner = createRunner(false)
+        final TestElasticsearchClientService service = getService(runner)
+        service.setMaxPages(0)
+        runner.setProperty(AbstractJsonQueryElasticsearch.QUERY, prettyPrint(toJson([query: [ match_all: [:] ]])))
+        runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "false")
+        runOnce(runner)
+        testCounts(runner, isInput() ? 1 : 0, 0, 0, 0)
+        assertThat(
+                runner.getProvenanceEvents().stream().filter({ pe ->
+                    pe.getEventType() == ProvenanceEventType.RECEIVE &&
+                            pe.getAttribute("uuid") == hits.getAttribute("uuid")
+                }).count(),
+                is(0L)
+        )
+        reset(runner)
+
+
+        // test not hits (with output)
+        runner.setProperty(AbstractJsonQueryElasticsearch.OUTPUT_NO_HITS, "true")
+        runOnce(runner)
+        testCounts(runner, isInput() ? 1 : 0, 1, 0, 0)
+        runner.getFlowFilesForRelationship(AbstractJsonQueryElasticsearch.REL_HITS).forEach(
+                { hit ->
+                    hit.assertAttributeEquals("hit.count", "0")
+                    assertOutputContent(hit.getContent(), 0, false)
                     assertThat(
                             runner.getProvenanceEvents().stream().filter({ pe ->
                                 pe.getEventType() == ProvenanceEventType.RECEIVE &&
@@ -302,7 +345,9 @@ abstract class AbstractJsonQueryElasticsearchTest<P extends AbstractJsonQueryEla
         if (ndjson) {
             assertThat(content.split("\n").length, is(count))
         } else {
-            if (count == 1) {
+            if (count == 0) {
+                assertThat(content, is(""))
+            } else if (count == 1) {
                 assertThat(content.startsWith("{") && content.endsWith("}"), is(true))
             } else {
                 assertThat(content.startsWith("[") && content.endsWith("]"), is(true))
