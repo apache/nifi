@@ -60,7 +60,7 @@ public class ForkEnrichment extends AbstractProcessor {
 
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
-        .description("The incoming FlowFile will be routed to this relationship.")
+        .description("The incoming FlowFile will be routed to this relationship, after adding appropriate attributes.")
         .build();
     static final Relationship REL_ENRICHMENT = new Relationship.Builder()
         .name("enrichment")

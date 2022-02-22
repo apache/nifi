@@ -98,7 +98,7 @@ public class CommaSeparatedRecordReader extends AbstractControllerService implem
                         if (useNullForEmptyString && trimmed.isEmpty()) {
                             valueMap.put(fieldName, null);
                         } else {
-                            valueMap.put(fieldName, values[i].trim());
+                            valueMap.put(fieldName, trimmed);
                         }
                     }
 

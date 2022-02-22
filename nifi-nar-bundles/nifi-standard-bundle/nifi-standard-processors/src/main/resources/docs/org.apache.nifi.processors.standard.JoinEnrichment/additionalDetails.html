@@ -118,11 +118,11 @@ This strategy would produce output the looks like this (assuming a JSON Writer):
         "original": {
             "id": 832,
             "name": "Jane Doe",
-            "age": 55
+            "age": 22
         },
         "enrichment": {
             "id": 832,
-            "email": "john.doe@nifi.apache.org"
+            "email": "jane.doe@nifi.apache.org"
         }
     }, {
         "original": {
@@ -213,7 +213,7 @@ Joined using the following enrichment content:
             "id": 48202,
             "phone": "555-555-5555",
             "email": "john.doe@nifi.apache.org"
-        },
+        }
     }, {
         "customerDetails": {
             "id": 5512,
@@ -408,7 +408,7 @@ There are a couple of options that will help to mitigate these concerns.
 <ol>
     <li>
         Split into smaller chunks. It is generally ill-advised to split Record-oriented data into many tiny FlowFiles, as NiFi tends to perform best with larger FlowFiles. The sweet spot for NiFi
-        tends to be around 300 KB to 3 MB in size. So we do not want to break a large FlowFile with 100,000 records into 100,000 FlowFiles each with 1 record. It may be advantages, though, before
+        tends to be around 300 KB to 3 MB in size. So we do not want to break a large FlowFile with 100,000 records into 100,000 FlowFiles each with 1 record. It may be advantageous, though, before
         the ForkEnrichment processor to break that FlowFile into 100 FlowFiles, each 1,000 records; or 10 FlowFiles, each 10,000 records. This typically results in a smaller amount of enrichment
         data so that we don't need to hold as much in memory.
     </li>

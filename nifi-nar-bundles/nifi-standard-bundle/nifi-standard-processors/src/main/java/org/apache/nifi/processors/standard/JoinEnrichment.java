@@ -135,7 +135,6 @@ public class JoinEnrichment extends BinFiles {
         .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
 
-    // TODO: Include in docs: What to do if we need something more complex like a script: Use Wrapper strategy to correlate the records and then use a ScriptedTransformRecord.
     static final PropertyDescriptor JOIN_STRATEGY = new PropertyDescriptor.Builder()
         .name("Join Strategy")
         .displayName("Join Strategy")
@@ -167,8 +166,8 @@ public class JoinEnrichment extends BinFiles {
         .dependsOn(JOIN_STRATEGY, JOIN_SQL)
         .build();
     static final PropertyDescriptor INSERTION_RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("Record Path")
-        .displayName("Record Path")
+        .name("Insertion Record Path")
+        .displayName("Insertion Record Path")
         .description("Specifies where in the 'original' Record the 'enrichment' Record's fields should be inserted. Note that if the RecordPath " +
             "does not point to any existing field in the original Record, the enrichment will not be inserted.")
         .required(true)
@@ -178,10 +177,10 @@ public class JoinEnrichment extends BinFiles {
         .build();
 
     static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Max Bin Age")
-        .displayName("Max Bin Age")
-        .description("Once one of the FlowFiles to be merged arrives at the processor, specifies the maximum amount of time to wait for the other before timing out and routing the one that has " +
-            "arrived to the 'timeout' relationship.")
+        .name("Timeout")
+        .displayName("Timeout")
+        .description("Specifies the maximum amount of time to wait for the second FlowFile once the first arrives at the processor, after which point the first " +
+            "FlowFile will be routed to the 'timeout' relationship.")
         .required(true)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("10 min")
@@ -207,7 +206,7 @@ public class JoinEnrichment extends BinFiles {
     // Relationships
     static final Relationship REL_JOINED = new Relationship.Builder()
         .name("joined")
-        .description("The resultant FlowFile that has Records that are joined together from both the original FlowFile and the enrichment FlowFile will be routed to this relationship")
+        .description("The resultant FlowFile with Records joined together from both the original and enrichment FlowFiles will be routed to this relationship")
         .build();
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
         .name("original")
