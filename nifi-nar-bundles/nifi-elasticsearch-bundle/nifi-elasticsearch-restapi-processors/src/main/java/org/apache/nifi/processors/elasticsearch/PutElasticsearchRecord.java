@@ -217,8 +217,8 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-record-not_found-is-error")
         .displayName("Treat \"Not Found\" as Error")
-        .description("If set, \"not_found\" Elasticsearch Documents associated Records will be routed to the \"" +
-                REL_SUCCESSFUL_RECORDS.getName() + "\" (true) or the \"" + REL_FAILED_RECORDS.getName() + "\" (false) relationship.")
+        .description("If true, \"not_found\" Elasticsearch Document associated Records will be routed to the \"" +
+                REL_SUCCESSFUL_RECORDS.getName() + "\" relationship, otherwise to the \"" + REL_FAILED_RECORDS.getName() + "\" relationship.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")

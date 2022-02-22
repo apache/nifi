@@ -101,7 +101,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
         .name("put-es-json-error-documents")
         .displayName("Output Error Documents")
         .description("If this configuration property is true, the response from Elasticsearch will be examined for failed documents " +
-                "and the failed documents will be sent to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
+                "and the FlowFile(s) associated with the failed document(s) will be sent to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -111,8 +111,8 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     static final PropertyDescriptor NOT_FOUND_IS_SUCCESSFUL = new PropertyDescriptor.Builder()
         .name("put-es-json-not_found-is-error")
         .displayName("Treat \"Not Found\" as Error")
-        .description("If true, \"not_found\" Elasticsearch Documents will be routed to the \"" + REL_SUCCESS.getName() +
-                "\" (true) or the \"" + REL_FAILED_DOCUMENTS.getName() + "\" (false) relationship.")
+        .description("If true, \"not_found\" Elasticsearch Document associated FlowFiles will be routed to the \"" + REL_SUCCESS.getName() +
+                "\" relationship, otherwise to the \"" + REL_FAILED_DOCUMENTS.getName() + "\" relationship.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
         .defaultValue("true")
