@@ -1,0 +1,92 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.salesforce.util;
+
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.apache.nifi.processor.exception.ProcessException;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.function.Supplier;
+
+public class SalesforceRestService {
+    private String version;
+    private final String baseUrl;
+    private final Supplier<String> accessTokenProvider;
+
+    private final OkHttpClient httpClient = new OkHttpClient.Builder().build();
+
+    public SalesforceRestService(String version, String baseUrl, Supplier<String> accessTokenProvider) {
+        this.version = version;
+        this.baseUrl = baseUrl;
+        this.accessTokenProvider = accessTokenProvider;
+    }
+
+    public String describeSObject(String sObject) {
+        String url = baseUrl + "/services/data/v" + version + "/sobjects/" + sObject + "/describe?maxRecords=1";
+
+        Request request = new Request.Builder()
+            .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
+            .url(url)
+            .get()
+            .build();
+
+        return request(request);
+    }
+
+    public String query(String query) {
+        String url = baseUrl + "/services/data/v" + version + "/query";
+
+        HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
+            .addQueryParameter("q", query)
+            .build();
+
+        HashMap<String, String> queryParams = new HashMap<>();
+        queryParams.put("q", query);
+
+        Request request = new Request.Builder()
+            .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
+            .url(httpUrl)
+            .get()
+            .build();
+
+        return request(request);
+    }
+
+    private String request(Request request) {
+        try (Response response = httpClient.newCall(request).execute()) {
+            if (response.code() != 200) {
+                throw new ProcessException("Invalid response" +
+                    " Code: " + response.code() +
+                    " Message: " + response.message() +
+                    " Body: " + (response.body() == null ? null : response.body().string())
+                );
+            }
+
+            String schema = response.body().string();
+
+            return schema;
+        } catch (IOException e) {
+            e.printStackTrace();
+
+            throw new ProcessException("Snowflake REST call failed", e);
+        }
+    }
+}

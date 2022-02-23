@@ -1,0 +1,76 @@
+{
+  "fields": [
+    {
+      "defaultValue": null,
+      "name": "ExampleInt",
+      "nillable": true,
+      "soapType": "xns:int"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleLong",
+      "nillable": true,
+      "soapType": "xns:long"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleDouble",
+      "nillable": true,
+      "soapType": "xns:double"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleBoolean",
+      "nillable": true,
+      "soapType": "xns:boolean"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleID",
+      "nillable": true,
+      "soapType": "xns:ID"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleString",
+      "nillable": true,
+      "soapType": "xns:string"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleJson",
+      "nillable": true,
+      "soapType": "xns:json"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleBase64Binary",
+      "nillable": true,
+      "soapType": "xns:base64Binary"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleAnyType",
+      "nillable": true,
+      "soapType": "xns:anyType"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleDate",
+      "nillable": true,
+      "soapType": "xsd:date"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleDateTime",
+      "nillable": true,
+      "soapType": "xsd:dateTime"
+    },
+    {
+      "defaultValue": null,
+      "name": "ExampleTime",
+      "nillable": true,
+      "soapType": "xsd:time"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "SObjectWithUnknownFieldType",
+  "fields": [
+    {
+      "defaultValue": null,
+      "name": "FieldWithUnknownType",
+      "nillable": true,
+      "soapType": "xsd:unknown"
+    }
+  ]
+}
