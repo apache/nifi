@@ -521,7 +521,7 @@ public class TestPutKudu {
 
         final PartialRow row = buildPartialRowDateField(dateFieldValue, Type.STRING);
         final String column = row.getString(DATE_FIELD);
-        assertEquals("Partial Row Field not matched", ISO_8601_YEAR_MONTH_DAY, column);
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, column, "Partial Row Field not matched");
     }
 
     @Test
@@ -543,7 +543,7 @@ public class TestPutKudu {
         final PartialRow row = buildPartialRowTimestampField(timestampFieldValue);
         final Timestamp timestamp = row.getTimestamp(TIMESTAMP_FIELD);
         final Timestamp expected = Timestamp.valueOf(timestampFieldValue.toString());
-        assertEquals("Partial Row Timestamp Field not matched", expected, timestamp);
+        assertEquals(expected, timestamp, "Partial Row Timestamp Field not matched");
     }
 
     private PartialRow buildPartialRowTimestampField(final Object timestampFieldValue) {
