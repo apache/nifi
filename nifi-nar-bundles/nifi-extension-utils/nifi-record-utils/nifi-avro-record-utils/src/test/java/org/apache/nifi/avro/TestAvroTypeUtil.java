@@ -1155,6 +1155,17 @@ public class TestAvroTypeUtil {
         assertEquals(expected, actual.toString());
     }
 
+    @Test
+    public void testBuildEnumSchema() {
+        final List<RecordField> fields = new ArrayList<>();
+
+        final DataType enumDataType = RecordFieldType.ENUM.getEnumDataType(Arrays.asList("YES", "NO"));
+        fields.add(new RecordField("enumField", enumDataType));
+        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        Schema actual = AvroTypeUtil.extractAvroSchema(recordSchema);
+        assertNotNull(actual);
+    }
+
     private MapRecord givenRecordContainingNumericMap() {
 
         final Map<String, Object> numberValues = new HashMap<>();
