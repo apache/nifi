@@ -20,11 +20,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestCassandraSessionProvider {
 
@@ -44,14 +46,14 @@ public class TestCassandraSessionProvider {
     public void testGetPropertyDescriptors() {
         List<PropertyDescriptor> properties = sessionProvider.getPropertyDescriptors();
 
-        Assertions.assertEquals(10, properties.size());
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.CLIENT_AUTH));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.CONSISTENCY_LEVEL));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.CONTACT_POINTS));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.KEYSPACE));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.PASSWORD));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.PROP_SSL_CONTEXT_SERVICE));
-        Assertions.assertTrue(properties.contains(CassandraSessionProvider.USERNAME));
+        assertEquals(10, properties.size());
+        assertTrue(properties.contains(CassandraSessionProvider.CLIENT_AUTH));
+        assertTrue(properties.contains(CassandraSessionProvider.CONSISTENCY_LEVEL));
+        assertTrue(properties.contains(CassandraSessionProvider.CONTACT_POINTS));
+        assertTrue(properties.contains(CassandraSessionProvider.KEYSPACE));
+        assertTrue(properties.contains(CassandraSessionProvider.PASSWORD));
+        assertTrue(properties.contains(CassandraSessionProvider.PROP_SSL_CONTEXT_SERVICE));
+        assertTrue(properties.contains(CassandraSessionProvider.USERNAME));
     }
 
 }

@@ -35,7 +35,6 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +52,9 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -148,9 +150,9 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-        Assertions.assertNotNull(files);
-        Assertions.assertEquals(1, files.size(), "One file should be transferred to success");
-        Assertions.assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
+        assertNotNull(files);
+        assertEquals(1, files.size(), "One file should be transferred to success");
+        assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
                         + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
                         + "\"registered\":\"false\",\"scale\":1.0,\"metric\":2.0},"
@@ -185,9 +187,9 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-        Assertions.assertNotNull(files);
-        Assertions.assertEquals(1, files.size(), "One file should be transferred to success");
-        Assertions.assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
+        assertNotNull(files);
+        assertEquals(1, files.size(), "One file should be transferred to success");
+        assertEquals("{\"results\":[{\"user_id\":\"user1\",\"first_name\":\"Joe\",\"last_name\":\"Smith\","
                         + "\"emails\":[\"jsmith@notareal.com\"],\"top_places\":[\"New York, NY\",\"Santa Clara, CA\"],"
                         + "\"todo\":{\"2016-01-03 05:00:00+0000\":\"Set my alarm \\\"for\\\" a month from now\"},"
                         + "\"registered\":\"false\",\"scale\":1.0,\"metric\":2.0},"
@@ -209,8 +211,8 @@ public class QueryCassandraTest {
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
         List<MockFlowFile> files = testRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-        Assertions.assertNotNull(files);
-        Assertions.assertEquals(1, files.size(), "One file should be transferred to success");
+        assertNotNull(files);
+        assertEquals(1, files.size(), "One file should be transferred to success");
     }
 
     @Test
@@ -256,113 +258,113 @@ public class QueryCassandraTest {
     public void testCreateSchemaOneColumn() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSetOneColumn();
         Schema schema = QueryCassandra.createSchema(rs);
-        Assertions.assertNotNull(schema);
-        Assertions.assertEquals(schema.getName(), "users");
+        assertNotNull(schema);
+        assertEquals(schema.getName(), "users");
     }
 
     @Test
     public void testCreateSchema() throws Exception {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         Schema schema = QueryCassandra.createSchema(rs);
-        Assertions.assertNotNull(schema);
-        Assertions.assertEquals(Schema.Type.RECORD, schema.getType());
+        assertNotNull(schema);
+        assertEquals(Schema.Type.RECORD, schema.getType());
 
         // Check record fields, starting with user_id
         Schema.Field field = schema.getField("user_id");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         Schema fieldSchema = field.schema();
         Schema.Type type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
 
         field = schema.getField("first_name");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
 
         field = schema.getField("last_name");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, fieldSchema.getTypes().get(1).getType());
 
         field = schema.getField("emails");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
         // Should be a union of null and array
-        Assertions.assertEquals(Schema.Type.UNION, type);
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
         Schema arraySchema = fieldSchema.getTypes().get(1);
         // Assert individual array element types are unions of null and String
         Schema elementSchema = arraySchema.getElementType();
-        Assertions.assertEquals(Schema.Type.UNION, elementSchema.getType());
-        Assertions.assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.UNION, elementSchema.getType());
+        assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
 
         field = schema.getField("top_places");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
         // Should be a union of null and array
-        Assertions.assertEquals(Schema.Type.UNION, type);
-        Assertions.assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.ARRAY, fieldSchema.getTypes().get(1).getType());
         arraySchema = fieldSchema.getTypes().get(1);
         // Assert individual array element types are unions of null and String
         elementSchema = arraySchema.getElementType();
-        Assertions.assertEquals(Schema.Type.UNION, elementSchema.getType());
-        Assertions.assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.UNION, elementSchema.getType());
+        assertEquals(Schema.Type.NULL, elementSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, elementSchema.getTypes().get(1).getType());
 
         field = schema.getField("todo");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
         // Should be a union of null and map
-        Assertions.assertEquals(Schema.Type.UNION, type);
-        Assertions.assertEquals(Schema.Type.MAP, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.MAP, fieldSchema.getTypes().get(1).getType());
         Schema mapSchema = fieldSchema.getTypes().get(1);
         // Assert individual map value types are unions of null and String
         Schema valueSchema = mapSchema.getValueType();
-        Assertions.assertEquals(Schema.Type.NULL, valueSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.STRING, valueSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, valueSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.STRING, valueSchema.getTypes().get(1).getType());
 
         field = schema.getField("registered");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.BOOLEAN, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.BOOLEAN, fieldSchema.getTypes().get(1).getType());
 
         field = schema.getField("scale");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.FLOAT, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.FLOAT, fieldSchema.getTypes().get(1).getType());
 
         field = schema.getField("metric");
-        Assertions.assertNotNull(field);
+        assertNotNull(field);
         fieldSchema = field.schema();
         type = fieldSchema.getType();
-        Assertions.assertEquals(Schema.Type.UNION, type);
+        assertEquals(Schema.Type.UNION, type);
         // Assert individual union types, first is null
-        Assertions.assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
-        Assertions.assertEquals(Schema.Type.DOUBLE, fieldSchema.getTypes().get(1).getType());
+        assertEquals(Schema.Type.NULL, fieldSchema.getTypes().get(0).getType());
+        assertEquals(Schema.Type.DOUBLE, fieldSchema.getTypes().get(1).getType());
     }
 
     @Test
@@ -370,7 +372,7 @@ public class QueryCassandraTest {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToAvroStream(rs, baos, 0, null);
-        Assertions.assertEquals(2, numberOfRows);
+        assertEquals(2, numberOfRows);
     }
 
     @Test
@@ -378,7 +380,7 @@ public class QueryCassandraTest {
         ResultSet rs = CassandraQueryTestUtil.createMockResultSet();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToJsonStream(rs, baos, StandardCharsets.UTF_8, 0, null);
-        Assertions.assertEquals(2, numberOfRows);
+        assertEquals(2, numberOfRows);
     }
 
     @Test
@@ -391,11 +393,11 @@ public class QueryCassandraTest {
 
         long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, baos,
             StandardCharsets.UTF_8, 0, null);
-        Assertions.assertEquals(1, numberOfRows);
+        assertEquals(1, numberOfRows);
 
         Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
         String date = map.get("results").get(0).get("date");
-        Assertions.assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
     }
 
     @Test
@@ -410,11 +412,11 @@ public class QueryCassandraTest {
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
 
         long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, baos, StandardCharsets.UTF_8, 0, null);
-        Assertions.assertEquals(1, numberOfRows);
+        assertEquals(1, numberOfRows);
 
         Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
         String date = map.get("results").get(0).get("date");
-        Assertions.assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
     }
 
     private void setUpStandardProcessorConfig() {
@@ -459,7 +461,7 @@ public class QueryCassandraTest {
                     when(mockSession.executeAsync(anyString())).thenReturn(future);
                 }
             } catch (Exception e) {
-                Assertions.fail(e.getMessage());
+                fail(e.getMessage());
             }
             return mockCluster;
         }
