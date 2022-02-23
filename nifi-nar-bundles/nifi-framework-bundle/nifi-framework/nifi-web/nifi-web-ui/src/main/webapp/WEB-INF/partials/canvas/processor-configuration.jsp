@@ -217,7 +217,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Automatically terminate / retry relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate or retry FlowFiles sent to a given relationship if it is not defined elsewhere."></div>
+                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."></div>
                         </div>
                         <div class="setting-field">
                             <div id="auto-action-relationship-names"></div>
