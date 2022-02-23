@@ -25,7 +25,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.validation.EnablingServiceValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -55,6 +57,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class TestAbstractComponentNode {
@@ -66,6 +71,7 @@ public class TestAbstractComponentNode {
         assertEquals(ValidationStatus.VALIDATING, status);
     }
 
+    @Test
     public void testOnParametersModified() {
         final AtomicLong validationCount = new AtomicLong(0L);
         final ValidationTrigger validationTrigger = new ValidationTrigger() {
@@ -89,10 +95,6 @@ public class TestAbstractComponentNode {
             }
         };
 
-        final Map<String, String> properties = new HashMap<>();
-        properties.put("abc", "#{abc}");
-        node.setProperties(properties);
-
         final ParameterContext context = Mockito.mock(ParameterContext.class);
         final ParameterDescriptor paramDescriptor = new ParameterDescriptor.Builder()
             .name("abc")
@@ -100,16 +102,71 @@ public class TestAbstractComponentNode {
             .sensitive(false)
             .build();
         final Parameter param = new Parameter(paramDescriptor, "123");
-        Mockito.doReturn(param).when(context).getParameter("abc");
+        Mockito.doReturn(Optional.of(param)).when(context).getParameter("abc");
+        node.setParameterContext(context);
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("abc", "#{abc}");
+        node.setProperties(properties);
+
+        assertEquals(1, propertyModifications.size());
+        PropertyModification mod = propertyModifications.get(0);
+        assertNull(mod.getPreviousValue());
+        assertEquals("123", mod.getUpdatedValue());
+        propertyModifications.clear();
 
         final Map<String, ParameterUpdate> updatedParameters = new HashMap<>();
-        updatedParameters.put("abc", new MockParameterUpdate("abc", "xyz", "123", false));
+        updatedParameters.put("abc", new MockParameterUpdate("abc", "old-value", "123", false));
         node.onParametersModified(updatedParameters);
 
         assertEquals(1, propertyModifications.size());
-        final PropertyModification mod = propertyModifications.get(0);
-        assertEquals("xyz", mod.getPreviousValue());
+        mod = propertyModifications.get(0);
+        assertEquals("old-value", mod.getPreviousValue());
         assertEquals("123", mod.getUpdatedValue());
+    }
+
+    @Test
+    public void testMismatchedSensitiveFlags() {
+        final LocalComponentNode node = new LocalComponentNode();
+
+        final ParameterContext context = Mockito.mock(ParameterContext.class);
+        final ParameterDescriptor paramDescriptor = new ParameterDescriptor.Builder()
+            .name("abc")
+            .description("")
+            .sensitive(true)
+            .build();
+        final Parameter param = new Parameter(paramDescriptor, "123");
+        Mockito.doReturn(Optional.of(param)).when(context).getParameter("abc");
+        node.setParameterContext(context);
+
+        final String propertyValue = "#{abc}";
+        final PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder()
+            .name("abc")
+            .sensitive(false)
+            .dynamic(true)
+            .addValidator(Validator.VALID)
+            .build();
+
+        final Map<String, String> properties = new HashMap<>();
+        properties.put("abc", propertyValue);
+        node.verifyCanUpdateProperties(properties);
+        node.setProperties(properties);
+
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        Mockito.when(validationContext.getProperties()).thenReturn(Collections.singletonMap(propertyDescriptor, propertyValue));
+        Mockito.when(validationContext.getAllProperties()).thenReturn(properties);
+        Mockito.when(validationContext.isDependencySatisfied(Mockito.any(PropertyDescriptor.class), Mockito.any(Function.class))).thenReturn(true);
+        Mockito.when(validationContext.getReferencedParameters(Mockito.anyString())).thenReturn(Collections.singleton("abc"));
+        Mockito.when(validationContext.isParameterDefined("abc")).thenReturn(true);
+
+        final ValidationState validationState = node.performValidation(validationContext);
+        assertSame(ValidationStatus.INVALID, validationState.getStatus());
+
+        final Collection<ValidationResult> results = validationState.getValidationErrors();
+        assertEquals(1, results.size());
+        final ValidationResult result = results.iterator().next();
+        assertFalse(result.isValid());
+        assertTrue(result.getExplanation().toLowerCase().contains("sensitivity"));
     }
 
     @Test(timeout = 10000)
@@ -191,30 +248,17 @@ public class TestAbstractComponentNode {
         return context;
     }
 
-    private static class ValidationControlledAbstractComponentNode extends AbstractComponentNode {
-        private final long pauseMillis;
+    private static class LocalComponentNode extends AbstractComponentNode {
         private volatile ParameterContext paramContext = null;
 
-        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
-            this(pauseMillis, validationTrigger, Mockito.mock(ControllerServiceProvider.class));
+        public LocalComponentNode() {
+            this(Mockito.mock(ControllerServiceProvider.class), Mockito.mock(ValidationTrigger.class));
         }
 
-        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger, final ControllerServiceProvider controllerServiceProvider) {
+        public LocalComponentNode(final ControllerServiceProvider controllerServiceProvider, final ValidationTrigger validationTrigger) {
             super("id", Mockito.mock(ValidationContextFactory.class), controllerServiceProvider, "unit test component",
-                    ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
-                    Mockito.mock(ExtensionManager.class), validationTrigger, false);
-
-            this.pauseMillis = pauseMillis;
-        }
-
-        @Override
-        protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
-            try {
-                Thread.sleep(pauseMillis);
-            } catch (final InterruptedException ie) {
-            }
-
-            return null;
+                ValidationControlledAbstractComponentNode.class.getCanonicalName(), Mockito.mock(ComponentVariableRegistry.class), Mockito.mock(ReloadComponent.class),
+                Mockito.mock(ExtensionManager.class), validationTrigger, false);
         }
 
         @Override
@@ -228,7 +272,17 @@ public class TestAbstractComponentNode {
 
         @Override
         public ConfigurableComponent getComponent() {
-            return Mockito.mock(ConfigurableComponent.class);
+            final ConfigurableComponent component = Mockito.mock(ConfigurableComponent.class);
+            Mockito.when(component.getPropertyDescriptor(Mockito.anyString())).thenAnswer(invocation -> {
+                final String propertyName = invocation.getArgument(0, String.class);
+                return new PropertyDescriptor.Builder()
+                    .name(propertyName)
+                    .addValidator(Validator.VALID)
+                    .dynamic(true)
+                    .build();
+            });
+
+            return component;
         }
 
         @Override
@@ -287,6 +341,30 @@ public class TestAbstractComponentNode {
 
         protected void setParameterContext(final ParameterContext parameterContext) {
             this.paramContext = parameterContext;
+        }
+    }
+
+
+    private static class ValidationControlledAbstractComponentNode extends LocalComponentNode {
+        private final long pauseMillis;
+
+        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger) {
+            this(pauseMillis, validationTrigger, Mockito.mock(ControllerServiceProvider.class));
+        }
+
+        public ValidationControlledAbstractComponentNode(final long pauseMillis, final ValidationTrigger validationTrigger, final ControllerServiceProvider controllerServiceProvider) {
+            super(controllerServiceProvider, validationTrigger);
+            this.pauseMillis = pauseMillis;
+        }
+
+        @Override
+        protected Collection<ValidationResult> computeValidationErrors(ValidationContext context) {
+            try {
+                Thread.sleep(pauseMillis);
+            } catch (final InterruptedException ie) {
+            }
+
+            return null;
         }
     }
 
