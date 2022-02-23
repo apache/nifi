@@ -87,19 +87,14 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     }
 
     protected void uploadFile(String directory, String filename, String fileContent) {
-        byte[] fileContentBytes = fileContent.getBytes();
-
-        DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-        DataLakeFileClient fileClient = directoryClient.createFile(filename);
-
-        PutAzureDataLakeStorage.uploadContent(fileClient, new ByteArrayInputStream(fileContentBytes), fileContentBytes.length);
+        uploadFile(directory, filename, fileContent.getBytes());
     }
 
     protected void uploadFile(TestFile testFile) {
         uploadFile(testFile.getDirectory(), testFile.getFilename(), testFile.getFileContent());
     }
 
-    protected void uploadFileData(String directory, String filename, byte[] fileData) {
+    protected void uploadFile(String directory, String filename, byte[] fileData) {
         DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
         DataLakeFileClient fileClient = directoryClient.createFile(filename);
 
@@ -107,15 +102,13 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     }
 
     protected void createDirectoryAndUploadFile(String directory, String filename, String fileContent) {
-        createDirectory(directory);
-
-        uploadFile(directory, filename, fileContent);
+        createDirectoryAndUploadFile(directory, filename, fileContent.getBytes());
     }
 
-    protected void createDirectoryAndUploadFileData(String directory, String filename, byte[] fileData) {
+    protected void createDirectoryAndUploadFile(String directory, String filename, byte[] fileData) {
         createDirectory(directory);
 
-        uploadFileData(directory, filename, fileData);
+        uploadFile(directory, filename, fileData);
     }
 
     protected void createDirectoryAndUploadFile(TestFile testFile) {

@@ -154,19 +154,21 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             final String destinationDirectory = evaluateDirectoryProperty(context, flowFile, DESTINATION_DIRECTORY);
             final String fileName = evaluateFileNameProperty(context, flowFile);
 
-            String destinationPath = destinationDirectory;
-            if (!destinationDirectory.isEmpty() && ! sourceDirectory.isEmpty()) {
+            final String destinationPath;
+            if (!destinationDirectory.isEmpty() && !sourceDirectory.isEmpty()) {
                 destinationPath = destinationDirectory + "/";
+            } else {
+                destinationPath = destinationDirectory;
             }
 
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient sourceFileSystemClient = storageClient.getFileSystemClient(sourceFileSystem);
-            final DataLakeDirectoryClient sourceDataLakeDirectoryClient = sourceFileSystemClient.getDirectoryClient(sourceDirectory);
+            final DataLakeDirectoryClient sourceDirectoryClient = sourceFileSystemClient.getDirectoryClient(sourceDirectory);
             final DataLakeFileSystemClient destinationFileSystemClient = storageClient.getFileSystemClient(destinationFileSystem);
             final DataLakeDirectoryClient destinationDirectoryClient = destinationFileSystemClient.getDirectoryClient(destinationDirectory);
-            DataLakeFileClient fileClient = sourceDataLakeDirectoryClient.getFileClient(fileName);
+            DataLakeFileClient sourceFileClient = sourceDirectoryClient.getFileClient(fileName);
             final DataLakeRequestConditions sourceConditions = new DataLakeRequestConditions();
-            final DataLakeRequestConditions destConditions = new DataLakeRequestConditions();
+            final DataLakeRequestConditions destinationConditions = new DataLakeRequestConditions();
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
 
             try {
@@ -175,13 +177,13 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 }
 
                 if (!conflictResolution.equals(REPLACE_RESOLUTION)) {
-                    destConditions.setIfNoneMatch("*");
+                    destinationConditions.setIfNoneMatch("*");
                 }
 
-                fileClient = fileClient.renameWithResponse(destinationFileSystem,
+                final DataLakeFileClient destinationFileClient = sourceFileClient.renameWithResponse(destinationFileSystem,
                                 destinationPath + fileName,
                                 sourceConditions,
-                                destConditions,
+                                destinationConditions,
                                 null,
                                 null)
                         .getValue();
@@ -192,13 +194,13 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 attributes.put(ATTR_NAME_FILESYSTEM, destinationFileSystem);
                 attributes.put(ATTR_NAME_DIRECTORY, destinationDirectory);
                 attributes.put(ATTR_NAME_FILENAME, fileName);
-                attributes.put(ATTR_NAME_PRIMARY_URI, fileClient.getFileUrl());
-                attributes.put(ATTR_NAME_LENGTH, String.valueOf(fileClient.getProperties().getFileSize()));
+                attributes.put(ATTR_NAME_PRIMARY_URI, destinationFileClient.getFileUrl());
+                attributes.put(ATTR_NAME_LENGTH, String.valueOf(destinationFileClient.getProperties().getFileSize()));
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
+                session.getProvenanceReporter().send(flowFile, sourceFileClient.getFileUrl(), transferMillis);
             } catch (DataLakeStorageException dlsException) {
                 if (dlsException.getStatusCode() == 409 && conflictResolution.equals(IGNORE_RESOLUTION)) {
                     session.transfer(flowFile, REL_SUCCESS);

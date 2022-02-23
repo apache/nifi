@@ -72,7 +72,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToExistingDirectory() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         createDirectory(DESTINATION_DIRECTORY);
 
         runProcessor(FILE_DATA);
@@ -82,7 +82,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToExistingDirectoryWithReplaceResolution() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         createDirectory(DESTINATION_DIRECTORY);
 
         runner.setProperty(MoveAzureDataLakeStorage.CONFLICT_RESOLUTION, MoveAzureDataLakeStorage.REPLACE_RESOLUTION);
@@ -94,7 +94,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToExistingDirectoryWithIgnoreResolution() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         createDirectory(DESTINATION_DIRECTORY);
 
         runner.setProperty(MoveAzureDataLakeStorage.CONFLICT_RESOLUTION, MoveAzureDataLakeStorage.IGNORE_RESOLUTION);
@@ -106,7 +106,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToNonExistingDirectory() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
         runProcessor(FILE_DATA);
 
@@ -117,7 +117,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testMoveFileToDeepDirectory() throws Exception {
         String sourceDirectory = "dir1/dir2";
         String destinationDirectory = sourceDirectory + "/dir3/dir4";
-        createDirectoryAndUploadFileData(sourceDirectory, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(sourceDirectory, FILE_NAME, FILE_DATA);
 
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, sourceDirectory);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, destinationDirectory);
@@ -129,7 +129,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToRootDirectory() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
         String rootDirectory = "";
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, rootDirectory);
@@ -142,7 +142,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testMoveEmptyFile() throws Exception {
         byte[] fileData = new byte[0];
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, fileData);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, fileData);
 
         runProcessor(fileData);
 
@@ -155,7 +155,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         byte[] fileData = new byte[120_000_000];
         random.nextBytes(fileData);
 
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, fileData);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, fileData);
 
         runProcessor(fileData);
 
@@ -164,7 +164,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithNonExistingFileSystem() {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM, "dummy");
 
@@ -175,7 +175,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithInvalidFileName() {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
 
         runner.setProperty(MoveAzureDataLakeStorage.FILE, "/file1");
 
@@ -189,7 +189,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         String sourceDirectory = "dir 1";
         String destinationDirectory = "dest dir1";
         String fileName = "file 1";
-        createDirectoryAndUploadFileData(sourceDirectory, fileName, FILE_DATA);
+        createDirectoryAndUploadFile(sourceDirectory, fileName, FILE_DATA);
 
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, sourceDirectory);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_DIRECTORY, destinationDirectory);
@@ -202,7 +202,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToExistingFileWithFailResolution() {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         fileSystemClient.createFile(String.format("%s/%s", DESTINATION_DIRECTORY, FILE_NAME));
 
         runner.setProperty(MoveAzureDataLakeStorage.CONFLICT_RESOLUTION, MoveAzureDataLakeStorage.FAIL_RESOLUTION);
@@ -214,7 +214,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileToExistingFileWithReplaceResolution() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         fileSystemClient.createFile(String.format("%s/%s", DESTINATION_DIRECTORY, FILE_NAME));
 
         runner.setProperty(MoveAzureDataLakeStorage.CONFLICT_RESOLUTION, MoveAzureDataLakeStorage.REPLACE_RESOLUTION);
@@ -227,7 +227,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testMoveFileToExistingFileWithIgnoreResolution() throws Exception {
         String fileContent = "destination";
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         createDirectoryAndUploadFile(DESTINATION_DIRECTORY, FILE_NAME, fileContent);
 
         runner.setProperty(MoveAzureDataLakeStorage.CONFLICT_RESOLUTION, MoveAzureDataLakeStorage.IGNORE_RESOLUTION);
@@ -239,7 +239,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithEL() throws Exception {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         Map<String, String> attributes = createAttributesMap(FILE_DATA);
         setELProperties();
 
@@ -250,7 +250,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithELButFilesystemIsNotSpecified() {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         Map<String, String> attributes = createAttributesMap(FILE_DATA);
         attributes.remove(EL_FILESYSTEM);
         setELProperties();
@@ -262,7 +262,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testMoveFileWithELButFileNameIsNotSpecified() {
-        createDirectoryAndUploadFileData(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         Map<String, String> attributes = createAttributesMap(FILE_DATA);
         attributes.remove(EL_FILE_NAME);
         setELProperties();
