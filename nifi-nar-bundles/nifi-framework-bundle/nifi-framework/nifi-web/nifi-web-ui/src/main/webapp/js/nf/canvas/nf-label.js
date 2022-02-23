@@ -449,6 +449,7 @@
          */
         add: function (labelEntities, options) {
             var selectAll = false;
+            var transition = false;
             if (nfCommon.isDefinedAndNotNull(options)) {
                 selectAll = nfCommon.isDefinedAndNotNull(options.selectAll) ? options.selectAll : selectAll;
             }
@@ -481,7 +482,8 @@
             var entered = renderLabels(selection.enter(), selectAll);
 
             // update
-            updateLabels(selection.merge(entered));
+            var updated = selection.merge(entered);
+            updated.call(updateLabels).call(nfCanvasUtils.position, transition).call(sort);
         },
 
         /**
