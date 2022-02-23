@@ -45,7 +45,7 @@ import static org.mockito.Mockito.when;
 public class ITListenGRPC {
     private static final String HOST = "localhost";
     private static final String SOURCE_SYSTEM_UUID = "FAKE_UUID";
-    
+
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> props = new HashMap<>();
         props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
