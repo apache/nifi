@@ -98,7 +98,7 @@ public class MonitorMemory extends AbstractReportingTask {
         // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
         memPoolAllowableValues = ManagementFactory.getMemoryPoolMXBeans()
                 .stream()
-                .filter(MemoryPoolMXBean::isUsageThresholdSupported)
+                .filter(MemoryPoolMXBean::isCollectionUsageThresholdSupported)
                 .map(MemoryPoolMXBean::getName)
                 .map(AllowableValue::new)
                 .toArray(AllowableValue[]::new);
@@ -188,10 +188,11 @@ public class MonitorMemory extends AbstractReportingTask {
                     } else {
                         final String percentage = thresholdValue.substring(0, thresholdValue.length() - 1);
                         final double pct = Double.parseDouble(percentage) / 100D;
-                        calculatedThreshold = (long) (monitoredBean.getUsage().getMax() * pct);
+                        calculatedThreshold = (long) (monitoredBean.getCollectionUsage().getMax() * pct);
                     }
-                    if (monitoredBean.isUsageThresholdSupported()) {
-                        monitoredBean.setUsageThreshold(calculatedThreshold);
+
+                    if (monitoredBean.isCollectionUsageThresholdSupported()) {
+                        monitoredBean.setCollectionUsageThreshold(calculatedThreshold);
                     }
                 }
             }
@@ -209,7 +210,7 @@ public class MonitorMemory extends AbstractReportingTask {
             return;
         }
 
-        final MemoryUsage usage = bean.getUsage();
+        final MemoryUsage usage = bean.getCollectionUsage();
         if (usage == null) {
             getLogger().warn("{} could not determine memory usage for pool with name {}", new Object[] {this,
                     context.getProperty(MEMORY_POOL_PROPERTY)});
@@ -217,7 +218,7 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        if (bean.isUsageThresholdSupported() && bean.isUsageThresholdExceeded()) {
+        if (bean.isCollectionUsageThresholdSupported() && bean.isCollectionUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }
