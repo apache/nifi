@@ -18,7 +18,7 @@ package org.apache.nifi.registry.db;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.dbmigration.h2.H2DatabaseUpdater;
+import org.apache.nifi.h2.database.migration.H2DatabaseUpdater;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

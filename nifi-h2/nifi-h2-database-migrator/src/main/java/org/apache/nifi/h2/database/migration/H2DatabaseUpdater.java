@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.dbmigration.h2;
+package org.apache.nifi.h2.database.migration;
 
 import org.h2.jdbc.JdbcSQLNonTransientException;
 import org.h2.jdbcx.JdbcDataSource;
@@ -24,6 +24,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -36,9 +38,9 @@ public class H2DatabaseUpdater {
     public static final String EXPORT_FILE_POSTFIX = ".sql";
     public static final String H2_URL_PREFIX = "jdbc:h2:";
 
-    private static final JdbcDataSource migrationDataSource = new JdbcDataSource();
+    public static void checkAndPerformMigration(final String dbPathNoExtension, final String dbUrl, final String user, final String pass) throws Exception {
 
-    public static void checkAndPerformMigration(final File dbFile, final String dbUrl, final String user, final String pass) throws Exception {
+        final JdbcDataSource migrationDataSource = new JdbcDataSource();
 
         // Attempt to connect with the latest driver
         migrationDataSource.setURL(dbUrl);
@@ -59,24 +61,26 @@ public class H2DatabaseUpdater {
                 }
             }
         } catch (SQLException sqle) {
-            throw new RuntimeException(String.format("H2 connection failed URL [%s] File [%s]", dbUrl, dbFile), sqle);
+            throw new RuntimeException(String.format("H2 connection failed URL [%s] File [%s]", dbUrl, dbPathNoExtension), sqle);
         }
         // At this point it is known that migration should be attempted
-        logger.info("H2 1.4 database detected [{}]: starting migration to H2 2.1", dbFile);
-        H2DatabaseMigrator.exportAndBackup(dbUrl, dbFile.getAbsolutePath(), user, pass);
+        logger.info("H2 1.4 database detected [{}]: starting migration to H2 2.1", dbPathNoExtension);
+        H2DatabaseMigrator.exportAndBackup(dbUrl, dbPathNoExtension, user, pass);
 
         // The export file has been created and the DB has been backed up, now create a new one with the same name and run the SQL script to import the database
         try (Connection migrationConnection = migrationDataSource.getConnection();
              Statement s = migrationConnection.createStatement()) {
+            final Path dbFilePath = Paths.get(dbPathNoExtension);
+            final String dbDirectory = dbFilePath.getParent().toFile().getAbsolutePath();
             // use RUNSCRIPT to recreate the database
-            final String exportSqlLocation = dbFile.getParentFile().getAbsolutePath() + File.separator
-                    + H2DatabaseUpdater.EXPORT_FILE_PREFIX + dbFile.getName() + H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
+            final String exportSqlLocation = dbDirectory + File.separator
+                    + H2DatabaseUpdater.EXPORT_FILE_PREFIX + dbFilePath.toFile().getName() + H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
             s.execute("RUNSCRIPT FROM '" + exportSqlLocation + "'");
 
         } catch (SQLException sqle) {
             throw new IOException(String.format("H2 import database creation failed URL [%s]", dbUrl), sqle);
         }
 
-        logger.info("H2 1.4 to 2.1 migration completed [{}]", dbFile);
+        logger.info("H2 1.4 to 2.1 migration completed [{}]", dbPathNoExtension);
     }
 }

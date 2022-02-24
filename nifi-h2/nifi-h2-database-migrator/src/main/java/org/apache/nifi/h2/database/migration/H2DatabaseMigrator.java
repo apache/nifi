@@ -14,11 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.dbmigration.h2;
+package org.apache.nifi.h2.database.migration;
 
 import org.apache.nifi.org.h2.jdbcx.JdbcDataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -27,13 +25,10 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.apache.nifi.dbmigration.h2.H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
-import static org.apache.nifi.dbmigration.h2.H2DatabaseUpdater.EXPORT_FILE_PREFIX;
+import static org.apache.nifi.h2.database.migration.H2DatabaseUpdater.EXPORT_FILE_POSTFIX;
+import static org.apache.nifi.h2.database.migration.H2DatabaseUpdater.EXPORT_FILE_PREFIX;
 
 public class H2DatabaseMigrator {
-
-    private static final Logger logger = LoggerFactory.getLogger(H2DatabaseMigrator.class);
-
     public static final String BACKUP_FILE_POSTFIX = ".migration_backup";
 
     public static void exportAndBackup(final String dbUrl, final String dbPath, final String user, final String pass) {
