@@ -849,9 +849,8 @@
          * Enable all controller services in the specified ProcessGroup.
          *
          * @argument {selection} selection      The selection
-         * @argument {cb} callback              The function to call when request is processed
          */
-         enableAllControllerServices: function (selection,cb) {
+         enableAllControllerServices: function (selection) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -860,16 +859,16 @@
                 };
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/controller-services', entity).done(updateProcessGroup);
             } else {
-                var componentsToStart = selection.filter(function (d) {
+                var componentsToEnable = selection.filter(function (d) {
                     return nfCanvasUtils.isProcessGroup(d3.select(this));
                 });
 
-                // ensure there are some component to start
-                if (!componentsToStart.empty()) {
-                    var startRequests = [];
+                // ensure there are some component to enable and only one
+                if (!componentsToEnable.empty() && selection.size() === 1) {
+                    var enableRequests = [];
 
-                    // start each selected component
-                    componentsToStart.each(function (d) {
+                    // enable each selected component
+                    componentsToEnable.each(function (d) {
                         var selected = d3.select(this);
 
                         // prepare the request
@@ -880,21 +879,16 @@
                             'state': 'ENABLED'
                         };
 
-                        startRequests.push(updateResource(uri, entity).done(function (response) {
+                        enableRequests.push(updateResource(uri, entity).done(function (response) {
                             nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
                         }));
                     });
 
                     // inform Angular app once the updates have completed
-                    if (startRequests.length > 0) {
-                        $.when.apply(window, startRequests).always(function () {
+                    if (enableRequests.length > 0) {
+                        $.when.apply(window, enableRequests).always(function () {
                             nfNgBridge.digest();
-                            if(typeof cb == 'function'){
-                                cb();
-                            }
                         });
-                    } else if(typeof cb == 'function'){
-                         cb();
                     }
                 }
             }
@@ -904,9 +898,8 @@
          * Disable all controller services in the specified ProcessGroup.
          *
          * @argument {selection} selection      The selection
-         * @argument {cb} callback              The function to call when request is processed
          */
-         disableAllControllerServices: function (selection,cb) {
+         disableAllControllerServices: function (selection) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -915,16 +908,16 @@
                 };
                 updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/controller-services', entity).done(updateProcessGroup);
             } else {
-                var componentsToStop = selection.filter(function (d) {
+                var componentsToDisable = selection.filter(function (d) {
                     return nfCanvasUtils.isProcessGroup(d3.select(this));
                 });
 
-                // ensure there are some component to stop
-                if (!componentsToStop.empty()) {
-                    var stopRequests = [];
+                // ensure there are some component to disable and only one
+                if (!componentsToDisable.empty() && selection.size() === 1) {
+                    var disableRequests = [];
 
                     // stop each selected component
-                    componentsToStop.each(function (d) {
+                    componentsToDisable.each(function (d) {
                         var selected = d3.select(this);
 
                         // prepare the request
@@ -935,21 +928,16 @@
                             'state': 'DISABLED'
                         };
 
-                        stopRequests.push(updateResource(uri, entity).done(function (response) {
+                        disableRequests.push(updateResource(uri, entity).done(function (response) {
                             nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
                         }));
                     });
 
                     // inform Angular app once the updates have completed
-                    if (stopRequests.length > 0) {
-                        $.when.apply(window, stopRequests).always(function () {
+                    if (disableRequests.length > 0) {
+                        $.when.apply(window, disableRequests).always(function () {
                             nfNgBridge.digest();
-                            if(typeof cb == 'function'){
-                                cb();
-                            }
                         });
-                    } else if(typeof cb == 'function'){
-                         cb();
                     }
                 }
             }
