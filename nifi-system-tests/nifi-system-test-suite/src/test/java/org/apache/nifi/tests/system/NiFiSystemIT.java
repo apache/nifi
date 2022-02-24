@@ -165,11 +165,11 @@ public abstract class NiFiSystemIT {
         return false;
     }
 
-    protected void destroyFlow() throws NiFiClientException, IOException {
+    protected void destroyFlow() throws NiFiClientException, IOException, InterruptedException {
         getClientUtil().stopProcessGroupComponents("root");
         getClientUtil().disableControllerServices("root", true);
-        getClientUtil().disableControllerLevelServices();
         getClientUtil().stopReportingTasks();
+        getClientUtil().disableControllerLevelServices();
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
