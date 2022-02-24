@@ -23,10 +23,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -58,6 +61,14 @@ import static org.apache.nifi.processors.aws.credentials.provider.factory.Creden
         "Default credentials support EC2 instance profile/role, default user profile, environment variables, etc. " +
         "Additional options include access key / secret key pairs, credentials file, named profile, and assume role credentials.")
 @Tags({ "aws", "credentials","provider" })
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.ACCESS_ENVIRONMENT_CREDENTIALS,
+                        explanation = "The default configuration can read environment variables and system properties for credentials"
+                )
+        }
+)
 public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AWSCredentialsProviderService {
 
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
