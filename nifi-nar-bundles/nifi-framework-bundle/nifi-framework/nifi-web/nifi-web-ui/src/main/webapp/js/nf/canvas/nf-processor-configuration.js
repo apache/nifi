@@ -367,11 +367,17 @@
         }
 
         // relationships
-        processorConfigDto['autoTerminatedRelationships'] = marshalRelationships('terminate');
-        processorConfigDto['retriedRelationships'] = marshalRelationships('retry');
-        processorConfigDto['retryCount'] = $('#retry-attempt-count').val();
-        processorConfigDto['backoffMechanism'] = $("input:radio[name ='backoffPolicy']:checked").val();
-        processorConfigDto['maxBackoffPeriod'] = $('#max-backoff-period').val();
+        var autoTerminatedRelationships = marshalRelationships('terminate');
+        var retriedRelationships = marshalRelationships('retry');
+
+        processorConfigDto['autoTerminatedRelationships'] = autoTerminatedRelationships;
+        processorConfigDto['retriedRelationships'] = retriedRelationships;
+
+        if (retriedRelationships.length > 0) {
+            processorConfigDto['retryCount'] = $('#retry-attempt-count').val();
+            processorConfigDto['backoffMechanism'] = $("input:radio[name ='backoffPolicy']:checked").val();
+            processorConfigDto['maxBackoffPeriod'] = $('#max-backoff-period').val();
+        }
 
         // properties
         var properties = $('#processor-properties').propertytable('marshalProperties');
