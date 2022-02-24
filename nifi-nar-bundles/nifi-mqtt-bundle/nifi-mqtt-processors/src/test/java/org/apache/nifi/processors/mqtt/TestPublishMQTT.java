@@ -24,10 +24,8 @@ import org.apache.nifi.util.TestRunners;
 import org.eclipse.paho.client.mqttv3.IMqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import java.io.File;
 import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,17 +64,5 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         testRunner.setProperty(PublishMQTT.PROP_RETAIN, "false");
         topic = "testTopic";
         testRunner.setProperty(PublishMQTT.PROP_TOPIC, topic);
-    }
-
-
-    @AfterEach
-    public void tearDown() {
-        final File folder =  new File("./target");
-        final File[] files = folder.listFiles((dir, name) -> name.matches( "moquette_store.mapdb.*" ));
-        for ( final File file : files ) {
-            if ( !file.delete() ) {
-                System.err.println( "Can't remove " + file.getAbsolutePath() );
-            }
-        }
     }
 }

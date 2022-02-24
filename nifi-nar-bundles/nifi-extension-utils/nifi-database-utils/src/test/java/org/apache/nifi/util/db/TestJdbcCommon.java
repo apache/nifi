@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -91,7 +92,9 @@ public class TestJdbcCommon {
 
     @BeforeAll
     public static void setup() throws ClassNotFoundException, SQLException, IOException {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
 
         String location = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
@@ -102,6 +105,8 @@ public class TestJdbcCommon {
             stmt.executeUpdate(createTable);
         }
     }
+
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @Test
     public void testCreateSchema() throws ClassNotFoundException, SQLException {

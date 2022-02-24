@@ -20,13 +20,15 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -37,11 +39,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class TestJdbcTypesH2 {
-
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-    }
 
     String createTable = "    CREATE TABLE `users` ( "
             + "  `id` int(11) NOT NULL AUTO_INCREMENT, "
@@ -79,6 +76,11 @@ public class TestJdbcTypesH2 {
                 .resolve("db")
                 .toFile()
                 .getAbsolutePath();
+    }
+
+    @AfterEach
+    public void afterEach() throws IOException {
+        FileUtils.deleteFile(new File(dbPath), true);
     }
 
     @Test

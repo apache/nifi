@@ -49,6 +49,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.isNotNull;
@@ -138,13 +139,8 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        try {
-            authorizer.onConfigured(configurationContext);
-            fail("Should have thrown exception");
-        } catch (AuthorizerCreationException e) {
-            // want to make sure this exception is from our authorizer code
-            verifyOnlyAuthorizeCreationExceptions(e);
-        }
+        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class, () ->authorizer.onConfigured(configurationContext));
+        verifyOnlyAuthorizeCreationExceptions(e);
     }
 
     @Test

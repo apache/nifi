@@ -23,6 +23,7 @@ import org.apache.avro.io.DatumReader;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -55,6 +56,15 @@ public class TestJdbcHugeStream {
     @BeforeAll
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
+    }
+
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+
+    @BeforeAll
+    public static void setDerbyLog() {
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
     @Test

@@ -40,9 +40,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestJdbcClobReadable {
 
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+
     @BeforeAll
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+    public static void setDerbyLog() {
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
     String createTable = "create table users ("
