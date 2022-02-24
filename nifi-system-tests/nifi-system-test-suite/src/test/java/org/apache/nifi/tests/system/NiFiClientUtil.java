@@ -416,6 +416,12 @@ public class NiFiClientUtil {
         return updateProcessorConfig(currentEntity, config);
     }
 
+    public ProcessorEntity updateProcessorSchedulingStrategy(final ProcessorEntity currentEntity, final String schedulingStrategy) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setSchedulingStrategy(schedulingStrategy);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
     public ProcessorEntity updateProcessorConfig(final ProcessorEntity currentEntity, final ProcessorConfigDTO config) throws NiFiClientException, IOException {
         final ProcessorDTO processorDto = new ProcessorDTO();
         processorDto.setConfig(config);
