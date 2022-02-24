@@ -316,11 +316,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             running.set(false);
 
             if (clusterCoordinator != null) {
-                final Thread shutdownClusterCoordinator = new Thread(clusterCoordinator::shutdown);
-
-                shutdownClusterCoordinator.setDaemon(true);
-                shutdownClusterCoordinator.setName("Shutdown Cluster Coordinator");
-                shutdownClusterCoordinator.start();
+                try {
+                    clusterCoordinator.shutdown();
+                } catch (final Throwable t) {
+                    logger.error("Failed to properly shutdown coordinator", t);
+                }
             }
 
             if (!controller.isTerminated()) {
