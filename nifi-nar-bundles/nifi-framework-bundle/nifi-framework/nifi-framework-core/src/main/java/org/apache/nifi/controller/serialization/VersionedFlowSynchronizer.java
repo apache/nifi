@@ -47,6 +47,7 @@ import org.apache.nifi.controller.inheritance.FlowInheritability;
 import org.apache.nifi.controller.inheritance.FlowInheritabilityCheck;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
@@ -484,7 +485,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         taskNode.setSchedulingStrategy(SchedulingStrategy.valueOf(reportingTask.getSchedulingStrategy()));
 
         taskNode.setAnnotationData(reportingTask.getAnnotationData());
-        taskNode.setProperties(reportingTask.getProperties());
+
+        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties());
+        taskNode.setProperties(decryptedProperties);
 
         // enable/disable/start according to the ScheduledState
         switch (reportingTask.getScheduledState()) {
@@ -652,16 +655,18 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // Service B's references won't be updated. To avoid this, we create them all first, and then configure/update
         // them so that when AbstractComponentNode#setProperty is called, it properly establishes that reference.
         final List<VersionedControllerService> controllerServices = dataflow.getControllerServices();
+        final Set<ControllerServiceNode> controllerServicesAdded = new HashSet<>();
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (serviceNode == null) {
-                addRootControllerService(controller, versionedControllerService);
+                final ControllerServiceNode added = addRootControllerService(controller, versionedControllerService);
+                controllerServicesAdded.add(added);
             }
         }
 
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
-            if (affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
+            if (controllerServicesAdded.contains(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
                 updateRootControllerService(serviceNode, versionedControllerService);
             }
         }
@@ -687,12 +692,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void addRootControllerService(final FlowController controller, final VersionedControllerService versionedControllerService) {
+    private ControllerServiceNode addRootControllerService(final FlowController controller, final VersionedControllerService versionedControllerService) {
         final BundleCoordinate bundleCoordinate = createBundleCoordinate(versionedControllerService.getBundle(), versionedControllerService.getType());
         final ControllerServiceNode serviceNode = controller.getFlowManager().createControllerService(versionedControllerService.getType(),
             versionedControllerService.getInstanceIdentifier(), bundleCoordinate,Collections.emptySet(), true, true, null);
 
         controller.getFlowManager().addRootControllerService(serviceNode);
+        return serviceNode;
     }
 
     private void updateRootControllerService(final ControllerServiceNode serviceNode, final VersionedControllerService versionedControllerService) {
@@ -701,9 +707,32 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             serviceNode.setName(versionedControllerService.getName());
             serviceNode.setAnnotationData(versionedControllerService.getAnnotationData());
             serviceNode.setComments(versionedControllerService.getComments());
-            serviceNode.setProperties(versionedControllerService.getProperties());
+
+            final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties());
+            serviceNode.setProperties(decryptedProperties);
         } finally {
             serviceNode.resumeValidationTrigger();
+        }
+    }
+
+    private Map<String, String> decryptProperties(final Map<String, String> encrypted) {
+        final Map<String, String> decrypted = new HashMap<>(encrypted.size());
+        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value)));
+        return decrypted;
+    }
+
+    private String decrypt(final String value) {
+        if (value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX)) {
+            try {
+                return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
+            } catch (EncryptionException e) {
+                final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
+                    "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
+                logger.error(moreDescriptiveMessage, e);
+                throw new EncryptionException(moreDescriptiveMessage, e);
+            }
+        } else {
+            return value;
         }
     }
 
