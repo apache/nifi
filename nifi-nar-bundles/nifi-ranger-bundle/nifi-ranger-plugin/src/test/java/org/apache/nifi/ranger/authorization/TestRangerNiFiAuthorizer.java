@@ -51,7 +51,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.isNotNull;
 import static org.mockito.Mockito.argThat;
 import static org.mockito.Mockito.eq;
@@ -154,13 +153,9 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        try {
-            authorizer.onConfigured(configurationContext);
-            fail("Should have thrown exception");
-        } catch (AuthorizerCreationException e) {
-            // want to make sure this exception is from our authorizer code
-            verifyOnlyAuthorizeCreationExceptions(e);
-        }
+        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
+        verifyOnlyAuthorizeCreationExceptions(e);
     }
 
     @Test
@@ -175,13 +170,9 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        try {
-            authorizer.onConfigured(configurationContext);
-            fail("Should have thrown exception");
-        } catch (AuthorizerCreationException e) {
-            // want to make sure this exception is from our authorizer code
-            verifyOnlyAuthorizeCreationExceptions(e);
-        }
+        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
+        verifyOnlyAuthorizeCreationExceptions(e);
     }
 
     private void verifyOnlyAuthorizeCreationExceptions(AuthorizerCreationException e) {
@@ -209,22 +200,19 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        try {
-            authorizer.onConfigured(configurationContext);
-            fail("Should have thrown exception");
-        } catch (AuthorizerCreationException e) {
-            // getting a LoginException here means we attempted to login which is what we want
-            boolean foundLoginException = false;
-            Throwable cause = e.getCause();
-            while (cause != null) {
-                if (cause instanceof LoginException) {
-                    foundLoginException = true;
-                    break;
-                }
-                cause = cause.getCause();
+        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
+                () -> authorizer.onConfigured(configurationContext));
+        // getting a LoginException here means we attempted to login which is what we want
+        boolean foundLoginException = false;
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof LoginException) {
+                foundLoginException = true;
+                break;
             }
-            assertTrue(foundLoginException);
+            cause = cause.getCause();
         }
+        assertTrue(foundLoginException);
     }
 
     @Test
