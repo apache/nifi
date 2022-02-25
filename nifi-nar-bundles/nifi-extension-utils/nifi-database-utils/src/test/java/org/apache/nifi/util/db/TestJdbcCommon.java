@@ -27,7 +27,11 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -65,6 +69,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
@@ -72,6 +77,7 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -90,19 +96,37 @@ public class TestJdbcCommon {
      */
     static protected Connection con;
 
+    private File tempFile;
+
     @BeforeAll
-    public static void setup() throws ClassNotFoundException, SQLException, IOException {
+    public static void beforeAll() throws ClassNotFoundException {
         final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
         derbyLog.deleteOnExit();
         System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+    }
 
-        String location = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
-                .resolve("db")
-                .toFile().getAbsolutePath();
+    @AfterAll
+    public static void clearDerbyLog() {
+        System.clearProperty(DERBY_LOG_PROPERTY);
+    }
+
+    @BeforeEach
+    public void setup() throws ClassNotFoundException, SQLException, IOException {
+        tempFile = new File(System.getProperty("java.io.tmpdir"), (this.getClass().getSimpleName() + "-" + UUID.randomUUID()));
+        String location = tempFile.getAbsolutePath();
         con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
         try (final Statement stmt = con.createStatement()) {
             stmt.executeUpdate(createTable);
+        }
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (tempFile.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+//            FileUtils.deleteFile(tempFile, true);
         }
     }
 

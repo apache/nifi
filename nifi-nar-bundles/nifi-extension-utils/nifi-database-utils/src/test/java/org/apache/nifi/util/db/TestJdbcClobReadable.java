@@ -20,6 +20,8 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -37,6 +39,7 @@ import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestJdbcClobReadable {
 
@@ -47,6 +50,17 @@ public class TestJdbcClobReadable {
         final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
         derbyLog.deleteOnExit();
         System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (folder != null) {
+            FileUtils.deleteFile(folder, true);
+
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+            FileUtils.deleteFile(folder, true);
+        }
     }
 
     String createTable = "create table users ("
@@ -83,8 +97,10 @@ public class TestJdbcClobReadable {
         assertNotNull(clazz);
     }
 
+    private File folder;
+
     private void validateClob(String someClob) throws SQLException, ClassNotFoundException, IOException {
-        File folder = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+        folder = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
                 .resolve("db")
                 .toFile();
         final Connection con = createConnection(folder.getAbsolutePath());

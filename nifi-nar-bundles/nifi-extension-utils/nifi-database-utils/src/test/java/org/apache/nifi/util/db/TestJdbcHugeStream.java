@@ -20,7 +20,10 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -38,6 +41,7 @@ import java.sql.Statement;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test streaming using large number of result set rows. 1. Read data from
@@ -52,12 +56,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  */
 public class TestJdbcHugeStream {
-
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-    }
-
     private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @BeforeAll
@@ -67,12 +65,29 @@ public class TestJdbcHugeStream {
         System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
     }
 
+    private File tempFile;
+
+    @BeforeEach
+    public void setup() throws IOException {
+        tempFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+                .resolve("db")
+                .toFile();
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (tempFile != null) {
+            FileUtils.deleteFile(tempFile, true);
+
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+            FileUtils.deleteFile(tempFile, true);
+        }
+    }
+
     @Test
     public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
-        String path = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
-                .resolve("db")
-                .toFile()
-                .getAbsolutePath();
+        String path = tempFile.getAbsolutePath();
         try (final Connection con = createConnection(path)) {
             loadTestData2Database(con, 100, 100, 100);
 
