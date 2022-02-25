@@ -70,10 +70,6 @@ public class CorrelationAttributePartitioner implements FlowFilePartitioner {
 
     private int findIndex(final long hash, final int partitions) {
         final Random random = new Random(hash);
-        int index = random.nextInt();
-        while (index < 0 && index >= partitions) {
-            index = random.nextInt();
-        }
-        return index;
+        return random.nextInt(partitions);
     }
 }
