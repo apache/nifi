@@ -1757,6 +1757,8 @@ These algorithms use a strong Key Derivation Function to derive a secret key of 
 Each Key Derivation Function uses a static salt in order to support flow configuration comparison across cluster nodes.
 Each Key Derivation Function also uses default iteration and cost parameters as defined in the associated secure hashing implementation class.
 
+[[property-encryption-algorithms]]
+=== Property Encryption Algorithms
 The following strong encryption methods can be configured in the `nifi.sensitive.props.algorithm` property:
 
 * `NIFI_ARGON2_AES_GCM_128`
@@ -4331,6 +4333,23 @@ where:
 * `-x` tells Encrypt-Config to only process the sensitive properties
 
 For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
+
+==== Updating the Sensitive Properties Algorithm
+
+The following command can be used to read an existing flow configuration and set a new sensitive properties algorithm in _nifi.properties_:
+
+```
+$ ./bin/nifi.sh set-sensitive-properties-algorithm <algorithm>
+```
+
+The command reads the following flow configuration file properties from _nifi.properties_:
+
+- `nifi.flow.configuration.file`
+- `nifi.flow.configuration.json.file`
+
+The command checks for the existence of each file and updates the sensitive property values found.
+
+See <<property-encryption-algorithms>> for supported values.
 
 ==== Updating the Sensitive Properties Key
 
