@@ -22,9 +22,9 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.UUID;
 
-public class SetSensitivePropertiesKeyTest {
+public class SetSensitivePropertiesAlgorithmTest {
+    private static final String REQUESTED_ALGORITHM = "NIFI_PBKDF2_AES_GCM_256";
 
     @AfterEach
     public void clearProperties() {
@@ -33,17 +33,16 @@ public class SetSensitivePropertiesKeyTest {
 
     @Test
     public void testMainNoArguments() {
-        SetSensitivePropertiesKey.main(new String[]{});
+        SetSensitivePropertiesAlgorithm.main(new String[]{});
     }
 
     @Test
-    public void testMainBlankKeyAndAlgorithm() throws IOException, URISyntaxException {
-        final Path propertiesPath = FlowEncryptorCommandTest.getBlankNiFiProperties();
+    public void testMainPopulatedKeyAndAlgorithm() throws IOException, URISyntaxException {
+        final Path propertiesPath = FlowEncryptorCommandTest.getPopulatedNiFiProperties();
         System.setProperty(FlowEncryptorCommand.PROPERTIES_FILE_PATH, propertiesPath.toString());
 
-        final String sensitivePropertiesKey = UUID.randomUUID().toString();
-        SetSensitivePropertiesKey.main(new String[]{sensitivePropertiesKey});
+        SetSensitivePropertiesAlgorithm.main(new String[]{REQUESTED_ALGORITHM});
 
-        FlowEncryptorCommandTest.assertPropertiesKeyUpdated(propertiesPath, sensitivePropertiesKey);
+        FlowEncryptorCommandTest.assertPropertiesAlgorithmUpdated(propertiesPath, REQUESTED_ALGORITHM);
     }
 }

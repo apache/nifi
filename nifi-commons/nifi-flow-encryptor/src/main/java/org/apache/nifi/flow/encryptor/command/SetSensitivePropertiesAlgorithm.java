@@ -17,24 +17,19 @@
 package org.apache.nifi.flow.encryptor.command;
 
 /**
- * Set Sensitive Properties Key for NiFi Properties and update encrypted Flow Configuration
+ * Set Sensitive Properties Algorithm for NiFi Properties and update encrypted Flow Configuration
  */
-public class SetSensitivePropertiesKey {
-    private static final int MINIMUM_REQUIRED_LENGTH = 12;
+public class SetSensitivePropertiesAlgorithm {
 
     public static void main(final String[] arguments) {
         if (arguments.length == 1) {
-            final String outputPropertiesKey = arguments[0];
-            if (outputPropertiesKey.length() < MINIMUM_REQUIRED_LENGTH) {
-                System.err.printf("Sensitive Properties Key length less than required [%d]%n", MINIMUM_REQUIRED_LENGTH);
-            } else {
-                final FlowEncryptorCommand command = new FlowEncryptorCommand();
-                command.setRequestedPropertiesKey(outputPropertiesKey);
-                command.run();
-            }
+            final String algorithm = arguments[0];
+            final FlowEncryptorCommand command = new FlowEncryptorCommand();
+            command.setRequestedPropertiesAlgorithm(algorithm);
+            command.run();
         } else {
             System.err.printf("Unexpected number of arguments [%d]%n", arguments.length);
-            System.err.printf("Usage: %s <sensitivePropertiesKey>%n", SetSensitivePropertiesKey.class.getSimpleName());
+            System.err.printf("Usage: %s <algorithm>%n", SetSensitivePropertiesAlgorithm.class.getSimpleName());
         }
     }
 }
