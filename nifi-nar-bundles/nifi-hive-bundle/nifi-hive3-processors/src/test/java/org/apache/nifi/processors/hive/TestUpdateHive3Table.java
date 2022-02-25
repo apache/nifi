@@ -38,10 +38,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -59,8 +58,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -124,15 +123,15 @@ public class TestUpdateHive3Table {
             new String[]{"Location:", "hdfs://mycluster:8020/warehouse/tablespace/managed/hive/_newTable", null}
     };
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    @TempDir
+    public File tempDir;
 
     private TestRunner runner;
     private MockUpdateHive3Table processor;
 
     private Schema schema;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user.avsc"), StandardCharsets.UTF_8);
@@ -196,7 +195,6 @@ public class TestUpdateHive3Table {
     public void testSetup() throws Exception {
         configure(processor, 0);
         runner.assertNotValid();
-        final File tempDir = folder.getRoot();
         final File dbDir = new File(tempDir, "db");
         final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);

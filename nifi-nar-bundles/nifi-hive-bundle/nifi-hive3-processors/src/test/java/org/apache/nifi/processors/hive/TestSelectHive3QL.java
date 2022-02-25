@@ -35,9 +35,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveJdbcCommon;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,8 +66,8 @@ import static org.apache.nifi.util.hive.HiveJdbcCommon.AVRO;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.CSV_MIME_TYPE;
 import static org.apache.nifi.util.hive.HiveJdbcCommon.MIME_TYPE_AVRO_BINARY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSelectHive3QL {
 
@@ -79,7 +79,6 @@ public class TestSelectHive3QL {
     private static final String BIRTH_DATE = "1956-11-22";
     private static final String BIG_NUMBER = "12345678.12";
     private static final String CREATED_ON = "1962-09-23 03:23:34.234";
-
 
     static {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -102,15 +101,14 @@ public class TestSelectHive3QL {
             + " from persons PER"
             + " where PER.ID > 10";
 
+    private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
-    private TestRunner runner;
-
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
@@ -122,7 +120,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testIncomingConnectionWithNoFlowFile() throws InitializationException {
+    public void testIncomingConnectionWithNoFlowFile() {
         runner.setIncomingConnection(true);
         runner.setProperty(SelectHive3QL.HIVEQL_SELECT_QUERY, "SELECT * FROM persons");
         runner.run();
@@ -161,7 +159,6 @@ public class TestSelectHive3QL {
         final ProvenanceEventRecord provenance3 = provenanceEvents.get(3);
         assertEquals(ProvenanceEventType.DROP, provenance3.getEventType());
     }
-
 
     @Test
     public void testWithNullIntColumn() throws SQLException {
@@ -275,7 +272,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testWithBadSQL() throws SQLException {
+    public void testWithBadSQL() {
         final String BAD_SQL = "create table TEST_NO_ROWS (id integer)";
 
         // Test with incoming flow file (it should be routed to failure intact, i.e. same content and no parent)
@@ -408,7 +405,7 @@ public class TestSelectHive3QL {
 
     public TestRunner doOnTrigger(final String query, final boolean incomingFlowFile, String outputFormat,
                                   String preQueries, String postQueries)
-            throws InitializationException, ClassNotFoundException, SQLException, IOException {
+            throws SQLException {
 
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -456,7 +453,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testMaxRowsPerFlowFileAvro() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMaxRowsPerFlowFileAvro() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -525,7 +522,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testParametrizedQuery() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testParametrizedQuery() throws SQLException {
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
         Statement stmt = con.createStatement();
@@ -552,7 +549,7 @@ public class TestSelectHive3QL {
         Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("hiveql.args.1.value", "1");
         attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
-        runner.enqueue("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id = ?", attributes );
+        runner.enqueue("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id = ?", attributes);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(SelectHive3QL.REL_SUCCESS, 1);
@@ -575,7 +572,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testMaxRowsPerFlowFileCSV() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMaxRowsPerFlowFileCSV() throws SQLException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -648,7 +645,7 @@ public class TestSelectHive3QL {
     }
 
     @Test
-    public void testMaxRowsPerFlowFileWithMaxFragments() throws ClassNotFoundException, SQLException, InitializationException, IOException {
+    public void testMaxRowsPerFlowFileWithMaxFragments() throws SQLException, IOException {
 
         // load test data to database
         final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
@@ -803,7 +800,6 @@ public class TestSelectHive3QL {
         assertEquals(expectedBigNumber, record.get("BIG_NUMBER"));
         assertEquals(expectedCreatedOn, record.get("CREATED_ON"));
 
-
         runner.clearTransferState();
     }
 
@@ -834,7 +830,7 @@ public class TestSelectHive3QL {
     /**
      * Simple implementation only for SelectHive3QL processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive3DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive3DBCPService {
 
         @Override
         public String getIdentifier() {

@@ -30,7 +30,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -40,8 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestNiFiRecordSerDe {
 
@@ -139,11 +139,11 @@ public class TestNiFiRecordSerDe {
 
         Object deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, input)));
 
-        assertArrayEquals(expected, ((List)deserialized).toArray());
+        assertArrayEquals(expected, ((List) deserialized).toArray());
     }
 
     @Test
-    public void testStructField() throws SerDeException{
+    public void testStructField() throws SerDeException {
         NiFiRecordSerDe serDe = createSerDe("structc",
                 "struct<age:int,name:string>"
         );
@@ -172,39 +172,39 @@ public class TestNiFiRecordSerDe {
     }
 
     @Test
-    public void testSimpleArray() throws SerDeException{
+    public void testSimpleArray() throws SerDeException {
         long now = System.currentTimeMillis();
         Date hiveDate = new Date();
         hiveDate.setTimeInMillis(now);
         Timestamp hiveTs = new Timestamp();
         hiveTs.setTimeInMillis(now);
 
-        testSimpleArray("tinyint", RecordFieldType.BYTE.getDataType(), new Byte[] { 5, 29 },
-                new Byte[] { 5, 29 });
-        testSimpleArray("smallint", RecordFieldType.SHORT.getDataType(), new Short[] { 5, 29 },
-                new Short[] { 5, 29 });
-        testSimpleArray("int", RecordFieldType.INT.getDataType(), new Object[] { 1, 2, 3 ,4, 5 },
-                new Object[] { 1, 2, 3, 4, 5 });
-        testSimpleArray("bigint", RecordFieldType.LONG.getDataType(), new Object[] { 298767L, 89876L },
-                new Object[] { 298767L, 89876L });
-        testSimpleArray("boolean", RecordFieldType.BOOLEAN.getDataType(), new Object[] { true, false },
-                new Object[] { true, false });
-        testSimpleArray("float", RecordFieldType.FLOAT.getDataType(), new Object[] { 1.23f, 3.14f },
-                new Object[] { 1.23f, 3.14f });
-        testSimpleArray("double", RecordFieldType.DOUBLE.getDataType(), new Object[] { 1.235, 3.142, 1.0 },
-                new Object[] { 1.235, 3.142, 1.0 });
-        testSimpleArray("string", RecordFieldType.STRING.getDataType(), new Object[] { "sasa", "wewe" },
-                new Object[] { "sasa", "wewe" });
-        testSimpleArray("varchar(20)", RecordFieldType.STRING.getDataType(), new Object[] { "niko", "fiti", "sema"},
-                new Object[]  { "niko", "fiti", "sema" });
-        testSimpleArray("char(1)", RecordFieldType.CHAR.getDataType(), new Object[] { 'a', 'b', 'c' },
-                new Object[] { "a", "b", "c"});
-        testSimpleArray("date", RecordFieldType.DATE.getDataType(), new Object[] { new java.sql.Date(now)},
-                new Object[] { hiveDate });
-        testSimpleArray("timestamp", RecordFieldType.TIMESTAMP.getDataType(), new Object[] { new java.sql.Timestamp(now)},
-                new Object[] { hiveTs });
-        testSimpleArray("decimal(10,2)", RecordFieldType.DOUBLE.getDataType(), new Object[] { 3.45, 1.25 },
-                new Object[] { HiveDecimal.create(3.45), HiveDecimal.create(1.25)});
+        testSimpleArray("tinyint", RecordFieldType.BYTE.getDataType(), new Byte[]{5, 29},
+                new Byte[]{5, 29});
+        testSimpleArray("smallint", RecordFieldType.SHORT.getDataType(), new Short[]{5, 29},
+                new Short[]{5, 29});
+        testSimpleArray("int", RecordFieldType.INT.getDataType(), new Object[]{1, 2, 3, 4, 5},
+                new Object[]{1, 2, 3, 4, 5});
+        testSimpleArray("bigint", RecordFieldType.LONG.getDataType(), new Object[]{298767L, 89876L},
+                new Object[]{298767L, 89876L});
+        testSimpleArray("boolean", RecordFieldType.BOOLEAN.getDataType(), new Object[]{true, false},
+                new Object[]{true, false});
+        testSimpleArray("float", RecordFieldType.FLOAT.getDataType(), new Object[]{1.23f, 3.14f},
+                new Object[]{1.23f, 3.14f});
+        testSimpleArray("double", RecordFieldType.DOUBLE.getDataType(), new Object[]{1.235, 3.142, 1.0},
+                new Object[]{1.235, 3.142, 1.0});
+        testSimpleArray("string", RecordFieldType.STRING.getDataType(), new Object[]{"sasa", "wewe"},
+                new Object[]{"sasa", "wewe"});
+        testSimpleArray("varchar(20)", RecordFieldType.STRING.getDataType(), new Object[]{"niko", "fiti", "sema"},
+                new Object[]{"niko", "fiti", "sema"});
+        testSimpleArray("char(1)", RecordFieldType.CHAR.getDataType(), new Object[]{'a', 'b', 'c'},
+                new Object[]{"a", "b", "c"});
+        testSimpleArray("date", RecordFieldType.DATE.getDataType(), new Object[]{new java.sql.Date(now)},
+                new Object[]{hiveDate});
+        testSimpleArray("timestamp", RecordFieldType.TIMESTAMP.getDataType(), new Object[]{new java.sql.Timestamp(now)},
+                new Object[]{hiveTs});
+        testSimpleArray("decimal(10,2)", RecordFieldType.DOUBLE.getDataType(), new Object[]{3.45, 1.25},
+                new Object[]{HiveDecimal.create(3.45), HiveDecimal.create(1.25)});
     }
 
     public void testSimpleArray(String typeName, DataType elementDataType, Object[] values, Object[] expected) throws SerDeException {
@@ -220,17 +220,17 @@ public class TestNiFiRecordSerDe {
             put("listc", values);
         }})));
 
-        List<Object> fields = (List<Object>)deserialized;
+        List<Object> fields = (List<Object>) deserialized;
         assertEquals(1, fields.size());
         List<Object> nested = (List<Object>) fields.get(0);
 
-        for(int i=0; i<expected.length; i++){
+        for (int i = 0; i < expected.length; i++) {
             assertEquals(expected[i], nested.get(i));
         }
     }
 
     @Test
-    public void testStructArray() throws SerDeException{
+    public void testStructArray() throws SerDeException {
         NiFiRecordSerDe serDe = createSerDe("listc",
                 "array<struct<age:int,name:string>>"
         );
@@ -266,9 +266,9 @@ public class TestNiFiRecordSerDe {
     }
 
     @Test
-    public void testSimpleMap() throws SerDeException{
-        testSimpleMap("string", "tinyint", RecordFieldType.BYTE.getDataType(), createMap((byte)89, (byte)2), objectMap(createMap((byte)89, (byte)2)));
-        testSimpleMap("string", "smallint", RecordFieldType.SHORT.getDataType(), createMap((short)89, (short)209), objectMap(createMap((short)89, (short)209)));
+    public void testSimpleMap() throws SerDeException {
+        testSimpleMap("string", "tinyint", RecordFieldType.BYTE.getDataType(), createMap((byte) 89, (byte) 2), objectMap(createMap((byte) 89, (byte) 2)));
+        testSimpleMap("string", "smallint", RecordFieldType.SHORT.getDataType(), createMap((short) 89, (short) 209), objectMap(createMap((short) 89, (short) 209)));
         testSimpleMap("string", "int", RecordFieldType.INT.getDataType(), createMap(90, 87), objectMap(createMap(90, 87)));
         testSimpleMap("string", "bigint", RecordFieldType.BIGINT.getDataType(), createMap(87888L, 876L, 123L), objectMap(createMap(87888L, 876L, 123L)));
         testSimpleMap("string", "boolean", RecordFieldType.BOOLEAN.getDataType(), createMap(false, true, true, false), objectMap(createMap(false, true, true, false)));
@@ -290,19 +290,19 @@ public class TestNiFiRecordSerDe {
         )));
     }
 
-    private Map<String,Object> createMap(Object... keyValues){
-        Map<String,Object> map = new HashMap<>(keyValues.length);
-        for(int i=0; i<keyValues.length; i++){
+    private Map<String, Object> createMap(Object... keyValues) {
+        Map<String, Object> map = new HashMap<>(keyValues.length);
+        for (int i = 0; i < keyValues.length; i++) {
             map.put("key." + i, keyValues[i]);
         }
-        return  map;
+        return map;
     }
 
-    Map<Object,Object> objectMap(Map<String,Object> input){
+    Map<Object, Object> objectMap(Map<String, Object> input) {
         return new HashMap<>(input);
     }
 
-    private void testSimpleMap(String keyType, String valueType, DataType fieldType, Map<String, Object> fields, Map<Object, Object> expected) throws SerDeException{
+    private void testSimpleMap(String keyType, String valueType, DataType fieldType, Map<String, Object> fields, Map<Object, Object> expected) throws SerDeException {
         NiFiRecordSerDe serDe = createSerDe("mapc",
                 "map<" + keyType + "," + valueType + ">"
         );
@@ -310,21 +310,21 @@ public class TestNiFiRecordSerDe {
                 new RecordField("mapc", RecordFieldType.MAP.getMapDataType(fieldType))
         ));
 
-        Object deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, new HashMap<String, Object>(){
+        Object deserialized = serDe.deserialize(new ObjectWritable(new MapRecord(schema, new HashMap<String, Object>() {
             {
                 put("mapc", fields);
             }
         })));
-        List<Object> desFields = (List<Object>)deserialized;
+        List<Object> desFields = (List<Object>) deserialized;
         assertEquals(1, desFields.size());
-        Map<Object,Object> map = (Map<Object, Object>)desFields.get(0);
-        for(Map.Entry<Object, Object> entry: expected.entrySet()){
+        Map<Object, Object> map = (Map<Object, Object>) desFields.get(0);
+        for (Map.Entry<Object, Object> entry : expected.entrySet()) {
             assertEquals(entry.getValue(), map.get(entry.getKey()));
         }
     }
 
     @Test
-    public void testStructMap() throws SerDeException{
+    public void testStructMap() throws SerDeException {
         NiFiRecordSerDe serDe = createSerDe(
                 "mapc",
                 "map<string,struct<id:int,balance:decimal(18,2)>>"
@@ -362,12 +362,12 @@ public class TestNiFiRecordSerDe {
         assertEquals(expected, deserialized);
     }
 
-    NiFiRecordSerDe createSerDe(String columnNames, String typeInfo) throws SerDeException{
+    NiFiRecordSerDe createSerDe(String columnNames, String typeInfo) throws SerDeException {
         Properties props = new Properties();
         props.setProperty(serdeConstants.LIST_COLUMNS, columnNames);
         props.setProperty(serdeConstants.LIST_COLUMN_TYPES, typeInfo);
         NiFiRecordSerDe serDe = new NiFiRecordSerDe(null, new MockComponentLog("logger", new Object())); //reader isn't used
         serDe.initialize(null, props); //conf isn't used
-        return  serDe;
+        return serDe;
     }
 }

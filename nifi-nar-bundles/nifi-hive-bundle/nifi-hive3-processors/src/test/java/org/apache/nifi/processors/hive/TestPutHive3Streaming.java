@@ -74,10 +74,11 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -104,12 +105,12 @@ import java.util.function.BiFunction;
 import static org.apache.nifi.processors.hive.AbstractHive3QLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
 import static org.apache.nifi.processors.hive.PutHive3Streaming.KERBEROS_CREDENTIALS_SERVICE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -134,12 +135,12 @@ public class TestPutHive3Streaming {
     private UserGroupInformation ugi;
     private Schema schema;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+        Assumptions.assumeFalse(SystemUtils.IS_OS_WINDOWS, "Test only runs on *nix");
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
 
         final String avroSchema = IOUtils.toString(new FileInputStream("src/test/resources/user.avsc"), StandardCharsets.UTF_8);
@@ -297,7 +298,7 @@ public class TestPutHive3Streaming {
         verify(hiveConfigurator, times(1)).authenticate(eq(hiveConf), any(KerberosUser.class));
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     public void testSetupWithKerberosAuthFailed() throws Exception {
         configure(processor, 0);
         runner.setProperty(PutHive3Streaming.METASTORE_URI, "thrift://localhost:9083");
@@ -312,8 +313,8 @@ public class TestPutHive3Streaming {
         runner.setProperty(kcs, MockKerberosCredentialsService.KEYTAB, "src/test/resources/core-site-security.xml");
         runner.setProperty(KERBEROS_CREDENTIALS_SERVICE, "kcs");
         runner.enableControllerService(kcs);
-        runner.assertNotValid();
-        runner.run();
+        Assertions.assertThrows(AssertionError.class, () -> runner.assertNotValid());
+        Assertions.assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test

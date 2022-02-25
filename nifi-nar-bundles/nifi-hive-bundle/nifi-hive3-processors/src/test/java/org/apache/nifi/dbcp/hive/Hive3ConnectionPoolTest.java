@@ -17,20 +17,6 @@
 
 package org.apache.nifi.dbcp.hive;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.UndeclaredThrowableException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,12 +27,25 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class Hive3ConnectionPoolTest {
     private UserGroupInformation userGroupInformation;
@@ -54,9 +53,9 @@ public class Hive3ConnectionPoolTest {
     private BasicDataSource basicDataSource;
     private ComponentLog componentLog;
     private KerberosProperties kerberosProperties;
-    private File krb5conf = new File("src/test/resources/krb5.conf");
+    private final File krb5conf = new File("src/test/resources/krb5.conf");
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         // have to initialize this system property before anything else
         System.setProperty("java.security.krb5.conf", krb5conf.getAbsolutePath());
@@ -70,7 +69,7 @@ public class Hive3ConnectionPoolTest {
 
         when(userGroupInformation.doAs(isA(PrivilegedExceptionAction.class))).thenAnswer(invocation -> {
             try {
-                return ((PrivilegedExceptionAction) invocation.getArguments()[0]).run();
+                return ((PrivilegedExceptionAction<?>) invocation.getArguments()[0]).run();
             } catch (IOException | Error | RuntimeException | InterruptedException e) {
                 throw e;
             } catch (Throwable e) {
@@ -113,7 +112,7 @@ public class Hive3ConnectionPoolTest {
         kerberosPropertiesField.set(hive3ConnectionPool, kerberosProperties);
     }
 
-    @Test(expected = ProcessException.class)
+    @Test
     public void testGetConnectionSqlException() throws SQLException {
         SQLException sqlException = new SQLException("bad sql");
         when(basicDataSource.getConnection()).thenThrow(sqlException);
@@ -121,7 +120,6 @@ public class Hive3ConnectionPoolTest {
             hive3ConnectionPool.getConnection();
         } catch (ProcessException e) {
             assertEquals(sqlException, e.getCause());
-            throw e;
         }
     }
 
@@ -170,7 +168,6 @@ public class Hive3ConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("soft.min.evictable.idle"), SOFT_MIN_EVICTABLE_IDLE_TIME);
         registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
 
-
         MockConfigurationContext context = new MockConfigurationContext(props, null, registry);
         hive3ConnectionPool.onConfigured(context);
 
@@ -185,8 +182,8 @@ public class Hive3ConnectionPoolTest {
         assertEquals(URL, hive3ConnectionPool.getConnectionURL());
     }
 
-    @Ignore("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
-    @Test(expected = InitializationException.class)
+    @Disabled("Kerberos does not seem to be properly handled in Travis build, but, locally, this test should successfully run")
+    @Test
     public void testKerberosAuthException() throws Exception {
         final String URL = "jdbc:hive2://localhost:10000/default";
         final String conf = "src/test/resources/hive-site-security.xml";
