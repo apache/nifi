@@ -2701,6 +2701,17 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         return stream;
     }
 
+    private int countNulls(final Object... values) {
+        int nullCount = 0;
+        for (final Object value : values) {
+            if (value == null) {
+                nullCount++;
+            }
+        }
+
+        return nullCount;
+    }
+
     private String getReplayFailureReason(final ProvenanceEventRecord event) {
         // Check that the event is a valid type.
         final ProvenanceEventType type = event.getEventType();
@@ -2714,19 +2725,24 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final String contentClaimSection = event.getPreviousContentClaimSection();
         final String contentClaimContainer = event.getPreviousContentClaimContainer();
 
-        if (contentSize == null || contentClaimId == null || contentClaimSection == null || contentClaimContainer == null) {
+        // All content fields must be null or no content fields can be null.
+        final int nullCount = countNulls(contentSize, contentClaimId, contentClaimSection, contentClaimContainer);
+        if (nullCount > 0 && nullCount < 4) {
             return "Cannot replay data from Provenance Event because the event does not contain the required Content Claim";
         }
 
-        try {
-            final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false, false);
-            final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
+        // If event references a content claim, check that the content claim is still accessible.
+        if (nullCount == 0) {
+            try {
+                final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false, false);
+                final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
 
-            if (!contentRepository.isAccessible(contentClaim)) {
-                return "Content is no longer available in Content Repository";
+                if (!contentRepository.isAccessible(contentClaim)) {
+                    return "Content is no longer available in Content Repository";
+                }
+            } catch (final IOException ioe) {
+                return "Failed to determine whether or not content was available in Content Repository due to " + ioe.toString();
             }
-        } catch (final IOException ioe) {
-            return "Failed to determine whether or not content was available in Content Repository due to " + ioe.toString();
         }
 
         // Make sure that the source queue exists
@@ -2776,7 +2792,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final String contentClaimSection = event.getPreviousContentClaimSection();
         final String contentClaimContainer = event.getPreviousContentClaimContainer();
 
-        if (contentSize == null || contentClaimId == null || contentClaimSection == null || contentClaimContainer == null) {
+        // All content fields must be null or no content fields can be null.
+        final int nullCount = countNulls(contentSize, contentClaimId, contentClaimSection, contentClaimContainer);
+        if (nullCount > 0 && nullCount < 4) {
             throw new IllegalArgumentException("Cannot replay data from Provenance Event because the event does not contain the required Content Claim");
         }
 
@@ -2798,30 +2816,35 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new IllegalStateException("Cannot replay data from Provenance Event because the Source FlowFile Queue with ID " + event.getSourceQueueIdentifier() + " no longer exists");
         }
 
-        // Create the ContentClaim. To do so, we first need the appropriate Resource Claim. Because we don't know whether or
-        // not the Resource Claim is still active, we first call ResourceClaimManager.getResourceClaim. If this returns
-        // null, then we know that the Resource Claim is no longer active and can just create a new one that is not writable.
-        // It's critical though that we first call getResourceClaim because otherwise, if the Resource Claim is active and we
-        // create a new one that is not writable, we could end up archiving or destroying the Resource Claim while it's still
-        // being written to by the Content Repository. This is important only because we are creating a FlowFile with this Resource
-        // Claim. If, for instance, we are simply creating the claim to request its content, as in #getContentAvailability, etc.
-        // then this is not necessary.
-        ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(event.getPreviousContentClaimContainer(),
+        final StandardContentClaim contentClaim;
+        if (contentClaimContainer == null) {
+            contentClaim = null;
+        } else {
+            // Create the ContentClaim. To do so, we first need the appropriate Resource Claim. Because we don't know whether or
+            // not the Resource Claim is still active, we first call ResourceClaimManager.getResourceClaim. If this returns
+            // null, then we know that the Resource Claim is no longer active and can just create a new one that is not writable.
+            // It's critical though that we first call getResourceClaim because otherwise, if the Resource Claim is active and we
+            // create a new one that is not writable, we could end up archiving or destroying the Resource Claim while it's still
+            // being written to by the Content Repository. This is important only because we are creating a FlowFile with this Resource
+            // Claim. If, for instance, we are simply creating the claim to request its content, as in #getContentAvailability, etc.
+            // then this is not necessary.
+            ResourceClaim resourceClaim = resourceClaimManager.getResourceClaim(event.getPreviousContentClaimContainer(),
                 event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier());
-        if (resourceClaim == null) {
-            resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
+            if (resourceClaim == null) {
+                resourceClaim = resourceClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
                     event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false, false);
-        }
+            }
 
-        // Increment Claimant Count, since we will now be referencing the Content Claim
-        resourceClaimManager.incrementClaimantCount(resourceClaim);
-        final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset().longValue();
-        final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
-        contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
+            // Increment Claimant Count, since we will now be referencing the Content Claim
+            resourceClaimManager.incrementClaimantCount(resourceClaim);
+            final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset();
+            contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
+            contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
 
-        if (!contentRepository.isAccessible(contentClaim)) {
-            resourceClaimManager.decrementClaimantCount(resourceClaim);
-            throw new IllegalStateException("Cannot replay data from Provenance Event because the data is no longer available in the Content Repository");
+            if (!contentRepository.isAccessible(contentClaim)) {
+                resourceClaimManager.decrementClaimantCount(resourceClaim);
+                throw new IllegalStateException("Cannot replay data from Provenance Event because the data is no longer available in the Content Repository");
+            }
         }
 
         final String parentUUID = event.getFlowFileUuid();
@@ -2845,7 +2868,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 .entryDate(System.currentTimeMillis())
                 .id(flowFileRepository.getNextFlowFileSequence())
                 .lineageStart(event.getLineageStartDate(), 0L)
-                .size(contentSize.longValue())
+                .size(Optional.ofNullable(contentSize).orElse(0L))
                 // Create a new UUID and add attributes indicating that this is a replay
                 .addAttribute("flowfile.replay", "true")
                 .addAttribute("flowfile.replay.timestamp", String.valueOf(new Date()))
