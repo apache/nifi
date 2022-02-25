@@ -172,7 +172,6 @@ public class ConnectionLoadBalanceServer {
                     stopped = true;
                     if (socket != null) {
                         try {
-                            logger.debug("closing socket");
                             socket.close();
                         } catch (final IOException ioe) {
                             e.addSuppressed(ioe);
