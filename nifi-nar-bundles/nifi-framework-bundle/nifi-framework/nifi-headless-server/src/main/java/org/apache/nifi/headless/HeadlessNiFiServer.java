@@ -232,6 +232,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             try {
                 if (narAutoLoader != null) {
                     narAutoLoader.stop();
+                    narAutoLoader = null;
                 }
             } catch (Exception e) {
                 logger.warn("Failed to stop NAR auto-loader", e);
