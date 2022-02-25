@@ -64,7 +64,8 @@ public class FlowDifferenceFilters {
             || isNewRelationshipAutoTerminatedAndDefaulted(difference, localGroup, flowManager)
             || isScheduledStateNew(difference)
             || isLocalScheduleStateChange(difference)
-            || isPropertyMissingFromGhostComponent(difference, flowManager);
+            || isPropertyMissingFromGhostComponent(difference, flowManager)
+            || isNewRetryConfigWithDefaultValue(difference, flowManager);
     }
 
     /**
@@ -143,6 +144,37 @@ public class FlowDifferenceFilters {
         return false;
     }
 
+    private static boolean isNewRetryConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof InstantiatedVersionedProcessor)) {
+            return false;
+        }
+
+        final DifferenceType type = fd.getDifferenceType();
+        final InstantiatedVersionedProcessor instantiatedProcessor = (InstantiatedVersionedProcessor) componentB;
+        final ProcessorNode processorNode = flowManager.getProcessorNode(instantiatedProcessor.getInstanceIdentifier());
+        if (processorNode == null) {
+            return false;
+        }
+
+        switch (type) {
+            case RETRIED_RELATIONSHIPS_CHANGED:
+                return processorNode.getRetriedRelationships().isEmpty();
+            case RETRY_COUNT_CHANGED:
+                return processorNode.getRetryCount() == ProcessorNode.DEFAULT_RETRY_COUNT;
+            case MAX_BACKOFF_PERIOD_CHANGED:
+                return ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
+            case BACKOFF_MECHANISM_CHANGED:
+                return ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
+            default:
+                return false;
+        }
+    }
 
     public static boolean isNewPropertyWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
         if (fd.getDifferenceType() != DifferenceType.PROPERTY_ADDED) {
