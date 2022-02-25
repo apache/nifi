@@ -20,6 +20,7 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -54,9 +55,7 @@ public class TestJdbcClobReadable {
 
     @AfterEach
     public void cleanup() throws IOException {
-        if (folder != null) {
-            FileUtils.deleteFile(folder, true);
-
+        if (folder != null && folder.exists()) {
             final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
             assertEquals("XJ015", exception.getSQLState());
             FileUtils.deleteFile(folder, true);
@@ -92,7 +91,9 @@ public class TestJdbcClobReadable {
 
     // many test use Derby as database, so ensure driver is available
     @Test
-    public void testDriverLoad() throws ClassNotFoundException {
+    public void testDriverLoad() throws ClassNotFoundException, SQLException {
+        //Adding this because apparently the driver gets unloaded and unregistered
+        DriverManager.registerDriver(new EmbeddedDriver());
         final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         assertNotNull(clazz);
     }
@@ -145,7 +146,7 @@ public class TestJdbcClobReadable {
     }
 
     private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
-
+        DriverManager.registerDriver(new EmbeddedDriver());
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }

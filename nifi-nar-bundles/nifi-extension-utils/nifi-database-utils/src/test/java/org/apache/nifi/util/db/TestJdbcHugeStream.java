@@ -20,6 +20,7 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
+import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -68,7 +69,8 @@ public class TestJdbcHugeStream {
     private File tempFile;
 
     @BeforeEach
-    public void setup() throws IOException {
+    public void setup() throws IOException, SQLException {
+        DriverManager.registerDriver(new EmbeddedDriver());
         tempFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
                 .resolve("db")
                 .toFile();
@@ -76,9 +78,7 @@ public class TestJdbcHugeStream {
 
     @AfterEach
     public void cleanup() throws IOException {
-        if (tempFile != null) {
-            FileUtils.deleteFile(tempFile, true);
-
+        if (tempFile != null && tempFile.exists()) {
             final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
             assertEquals("XJ015", exception.getSQLState());
             FileUtils.deleteFile(tempFile, true);

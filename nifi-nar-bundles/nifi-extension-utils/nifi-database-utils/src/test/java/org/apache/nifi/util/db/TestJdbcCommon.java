@@ -27,6 +27,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
+import org.apache.derby.jdbc.EmbeddedDriver;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -113,6 +114,7 @@ public class TestJdbcCommon {
 
     @BeforeEach
     public void setup() throws ClassNotFoundException, SQLException, IOException {
+        DriverManager.registerDriver(new EmbeddedDriver());
         tempFile = new File(System.getProperty("java.io.tmpdir"), (this.getClass().getSimpleName() + "-" + UUID.randomUUID()));
         String location = tempFile.getAbsolutePath();
         con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
@@ -126,7 +128,7 @@ public class TestJdbcCommon {
         if (tempFile.exists()) {
             final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
             assertEquals("XJ015", exception.getSQLState());
-//            FileUtils.deleteFile(tempFile, true);
+            FileUtils.deleteFile(tempFile, true);
         }
     }
 
