@@ -437,6 +437,43 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         waitFor(() -> isNodeDisconnectedDueToMissingConnection(5672, connection.getId()));
     }
 
+    @Test
+    public void testComponentStatesRestoredOnReconnect() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
+        final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
+
+        getClientUtil().startProcessor(generate);
+        waitForQueueCount(connection.getId(), 2);
+
+        // Shut down node 2
+        disconnectNode(2);
+
+        getClientUtil().stopProcessor(generate);
+        getClientUtil().startProcessor(terminate);
+
+        waitForQueueCount(connection.getId(), 0);
+
+        reconnectNode(2);
+        waitForAllNodesConnected();
+
+        getClientUtil().waitForStoppedProcessor(generate.getId());
+        waitForQueueCount(connection.getId(), 0);
+
+        switchClientToNode(2);
+
+        // Ensure that Node 2 has the correct state for each processor.
+        waitFor(() -> {
+            final ProcessorEntity latestTerminate = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(terminate.getId());
+            return "RUNNING".equalsIgnoreCase(latestTerminate.getComponent().getState());
+        });
+
+        waitFor(() -> {
+            final ProcessorEntity latestGenerate = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(generate.getId());
+            return "STOPPED".equalsIgnoreCase(latestGenerate.getComponent().getState());
+        });
+    }
+
     private boolean isNodeDisconnectedDueToMissingConnection(final int nodeApiPort, final String connectionId) throws NiFiClientException, IOException {
         final NodeDTO node2Dto = getNifiClient().getControllerClient().getNodes().getCluster().getNodes().stream()
             .filter(dto -> dto.getApiPort() == nodeApiPort)
