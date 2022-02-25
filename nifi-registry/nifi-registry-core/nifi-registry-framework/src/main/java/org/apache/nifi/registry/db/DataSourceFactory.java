@@ -101,7 +101,7 @@ public class DataSourceFactory {
 
             LOGGER.info("H2 database version 1 detected, the database will be migrated to version 2. Existing files will be backed up to the same directory.");
             try {
-                H2DatabaseUpdater.checkAndPerformMigration(databaseFile, migrationDbUrl, databaseUsername, databasePassword);
+                H2DatabaseUpdater.checkAndPerformMigration(databaseFile.getAbsolutePath(), migrationDbUrl, databaseUsername, databasePassword);
             } catch (Exception e) {
                 throw new RuntimeException("Error during H2 migration", e);
             }
