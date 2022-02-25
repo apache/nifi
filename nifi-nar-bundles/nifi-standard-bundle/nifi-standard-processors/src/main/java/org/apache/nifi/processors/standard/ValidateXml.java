@@ -21,6 +21,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,15 +40,21 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.security.xml.SafeXMLConfiguration;
 import org.xml.sax.SAXException;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import javax.xml.validation.Validator;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,26 +72,40 @@ import java.util.concurrent.atomic.AtomicReference;
     @WritesAttribute(attribute = "validatexml.invalid.error", description = "If the flow file is routed to the invalid relationship "
             + "the attribute will contain the error message resulting from the validation failure.")
 })
-@CapabilityDescription("Validates the contents of FlowFiles against a user-specified XML Schema file")
+@CapabilityDescription("Validates XML contained in a FlowFile. By default, the XML is contained in the FlowFile content. If the 'XML Source Attribute' property is set, the XML to be validated "
+        + "is contained in the specified attribute. It is not recommended to use attributes to hold large XML documents; doing so could adversely affect system performance. "
+        + "Full schema validation is performed if the processor is configured with the XSD schema details. Otherwise, the only validation performed is "
+        + "to ensure the XML syntax is correct and well-formed, e.g. all opening tags are properly closed.")
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "While this processor supports processing XML within attributes, it is strongly discouraged to hold "
+        + "large amounts of data in attributes. In general, attribute values should be as small as possible and hold no more than a couple hundred characters.")
 public class ValidateXml extends AbstractProcessor {
 
     public static final String ERROR_ATTRIBUTE_KEY = "validatexml.invalid.error";
 
     public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder()
             .name("Schema File")
-            .description("The path to the Schema file that is to be used for validation")
-            .required(true)
+            .displayName("Schema File")
+            .description("The file path or URL to the XSD Schema file that is to be used for validation. If this property is blank, only XML syntax/structure will be validated.")
+            .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL)
+            .build();
+    public static final PropertyDescriptor XML_SOURCE_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("XML Source Attribute")
+            .displayName("XML Source Attribute")
+            .description("The name of the attribute containing XML to be validated. If this property is blank, the FlowFile content will be validated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
             .build();
 
     public static final Relationship REL_VALID = new Relationship.Builder()
             .name("valid")
-            .description("FlowFiles that are successfully validated against the schema are routed to this relationship")
+            .description("FlowFiles that are successfully validated against the schema, if provided, or verified to be well-formed XML are routed to this relationship")
             .build();
     public static final Relationship REL_INVALID = new Relationship.Builder()
             .name("invalid")
-            .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
+            .description("FlowFiles that are not valid according to the specified schema or contain invalid XML are routed to this relationship")
             .build();
 
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
@@ -96,6 +118,7 @@ public class ValidateXml extends AbstractProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SCHEMA_FILE);
+        properties.add(XML_SOURCE_ATTRIBUTE);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -116,13 +139,13 @@ public class ValidateXml extends AbstractProcessor {
 
     @OnScheduled
     public void parseSchema(final ProcessContext context) throws SAXException {
-        try {
+        if (context.getProperty(SCHEMA_FILE).isSet()) {
             final URL url = context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().asResource().asURL();
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(SCHEMA_LANGUAGE);
             final Schema schema = schemaFactory.newSchema(url);
-            this.schemaRef.set(schema);
-        } catch (final SAXException e) {
-            throw e;
+            schemaRef.set(schema);
+        } else {
+            schemaRef.set(null);
         }
     }
 
@@ -134,35 +157,74 @@ public class ValidateXml extends AbstractProcessor {
         }
 
         final Schema schema = schemaRef.get();
-        final Validator validator = schema.newValidator();
+        final Validator validator = schema == null ? null : schema.newValidator();
         final ComponentLog logger = getLogger();
+        final boolean attributeContainsXML = context.getProperty(XML_SOURCE_ATTRIBUTE).isSet();
 
         for (FlowFile flowFile : flowFiles) {
             final AtomicBoolean valid = new AtomicBoolean(true);
-            final AtomicReference<Exception> exception = new AtomicReference<Exception>(null);
+            final AtomicReference<Exception> exception = new AtomicReference<>(null);
+            SafeXMLConfiguration safeXMLConfiguration = new SafeXMLConfiguration();
+            safeXMLConfiguration.setValidating(false);
 
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream in) throws IOException {
-                    try {
-                        validator.validate(new StreamSource(in));
-                    } catch (final IllegalArgumentException | SAXException e) {
-                        valid.set(false);
-                        exception.set(e);
-                    }
+            try {
+                DocumentBuilder docBuilder = safeXMLConfiguration.createDocumentBuilder();
+
+                if (attributeContainsXML) {
+                    // If XML source attribute is set, validate attribute value
+                    String xml = flowFile.getAttribute(context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
+                    ByteArrayInputStream bais = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+
+                    validate(validator, docBuilder, bais);
+                } else {
+                    // If XML source attribute is not set, validate flowfile content
+                    session.read(flowFile, new InputStreamCallback() {
+                        @Override
+                        public void process(final InputStream in) throws IOException {
+                            try {
+                                validate(validator, docBuilder, in);
+                            } catch (final IllegalArgumentException | SAXException e) {
+                                valid.set(false);
+                                exception.set(e);
+                            }
+                        }
+                    });
                 }
-            });
+            } catch (final IllegalArgumentException | SAXException | ParserConfigurationException | IOException e) {
+                valid.set(false);
+                exception.set(e);
+            }
 
+            // determine source location of XML for logging purposes
+            String xmlSource = attributeContainsXML ? "attribute '" + context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue() + "'" : "content";
             if (valid.get()) {
-                logger.debug("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                if (context.getProperty(SCHEMA_FILE).isSet()) {
+                    logger.debug("Successfully validated XML in {} of {} against schema; routing to 'valid'", xmlSource, flowFile);
+                } else {
+                    logger.debug("Successfully validated XML is well-formed in {} of {}; routing to 'valid'", xmlSource, flowFile);
+                }
                 session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             } else {
                 flowFile = session.putAttribute(flowFile, ERROR_ATTRIBUTE_KEY, exception.get().getLocalizedMessage());
-                logger.info("Failed to validate {} against schema due to {}; routing to 'invalid'", new Object[]{flowFile, exception.get().getLocalizedMessage()});
+                if (context.getProperty(SCHEMA_FILE).isSet()) {
+                    logger.info("Failed to validate XML in {} of {} against schema due to {}; routing to 'invalid'", xmlSource, flowFile, exception.get().getLocalizedMessage());
+                } else {
+                    logger.info("Failed to validate XML is well-formed in {} of {} due to {}; routing to 'invalid'", xmlSource, flowFile, exception.get().getLocalizedMessage());
+                }
                 session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             }
+        }
+    }
+
+    private void validate(final Validator validator, final DocumentBuilder docBuilder, final InputStream in) throws IllegalArgumentException, SAXException, IOException {
+        if (validator != null) {
+            // If schema is provided, validator will be non-null
+            validator.validate(new StreamSource(in));
+        } else {
+            // Only verify that the XML is well-formed; no schema check
+            docBuilder.parse(in);
         }
     }
 }
