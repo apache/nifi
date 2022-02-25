@@ -23,6 +23,12 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 
 public interface ProcessGroupSynchronizer {
 
+    /**
+     * Synchronize the given Process Group to match the proposed snaphsot
+     * @param group the Process Group to update
+     * @param proposedSnapshot the proposed/desired state for the process group
+     * @param synchronizationOptions options for how to synchronize the group
+     */
     void synchronize(ProcessGroup group, VersionedFlowSnapshot proposedSnapshot, GroupSynchronizationOptions synchronizationOptions) throws ProcessorInstantiationException;
 
     void verifyCanSynchronize(ProcessGroup group, VersionedProcessGroup proposed, boolean verifyConnectionRemoval);
