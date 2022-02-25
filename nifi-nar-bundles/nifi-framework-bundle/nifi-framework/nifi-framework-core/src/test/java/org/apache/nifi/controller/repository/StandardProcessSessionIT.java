@@ -1032,7 +1032,77 @@ public class StandardProcessSessionIT {
         assertEquals(5, onQueue.getSize());
     }
 
+    @Test
+    public void testWriteZeroBytesGivesNoContentClaim() throws IOException {
+        assertEquals(0, contentRepo.getExistingClaims().size());
 
+        final ContentClaim claim = contentRepo.create(false);
+        assertEquals(1, contentRepo.getExistingClaims().size());
+
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+            .contentClaim(claim)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis())
+            .build();
+        flowFileQueue.put(flowFileRecord);
+
+        // Get the FlowFile and write to it. This should leave us with 1 content claim.
+        FlowFile flowFile = session.get();
+        flowFile = session.putAttribute(flowFile, "filename", "1.txt");
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
+            }
+        });
+        session.transfer(flowFile);
+        session.commit();
+        assertEquals(1, contentRepo.getExistingClaims().size());
+
+        // Get FlowFile again and write to it, but write 0 bytes. Then rollback and ensure we still have 1 claim.
+        flowFile = session.get();
+        session.write(flowFile, out -> {});
+        session.transfer(flowFile);
+        assertEquals(1, contentRepo.getExistingClaims().size());
+        session.rollback();
+        assertEquals(1, contentRepo.getExistingClaims().size());
+
+        // Get FlowFile again and write to it, but write 0 bytes. Then commit and we should no longer have any existing claims.
+        flowFile = session.get();
+        session.write(flowFile, out -> {});
+        session.transfer(flowFile);
+        assertEquals(1, contentRepo.getExistingClaims().size());
+        session.commit();
+        assertEquals(0, contentRepo.getExistingClaims().size());
+
+        // If we append a byte, we should now have a content claim created for us. We can append 0 bytes any number of times, and it won't eliminate our claim.
+        flowFile = session.get();
+        session.append(flowFile, out -> out.write(8));
+        for (int i=0; i < 100; i++) {
+            session.append(flowFile, out -> {});
+        }
+        session.transfer(flowFile);
+        assertEquals(1, contentRepo.getExistingClaims().size());
+        session.commit();
+        assertEquals(1, contentRepo.getExistingClaims().size());
+        final ContentClaim loneClaim = contentRepo.getExistingClaims().iterator().next();
+        final byte[] contents;
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            contentRepo.exportTo(loneClaim, baos);
+            contents = baos.toByteArray();
+        }
+        assertArrayEquals(new byte[] {8}, contents);
+
+        // Session.importFrom with an empty InputStream should produce a FlowFile with no Content Claim.
+        flowFile = session.get();
+        try (final InputStream in = new ByteArrayInputStream(new byte[0])) {
+            session.importFrom(in, flowFile);
+        }
+        session.transfer(flowFile);
+        assertEquals(1, contentRepo.getExistingClaims().size());
+        session.commit();
+        assertEquals(0, contentRepo.getExistingClaims().size());
+    }
 
     @Test
     public void testModifyContentThenRollback() throws IOException {
@@ -1054,6 +1124,7 @@ public class StandardProcessSessionIT {
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
             }
         });
         session.transfer(flowFile);
@@ -1065,6 +1136,7 @@ public class StandardProcessSessionIT {
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
+                out.write("Hello".getBytes(StandardCharsets.UTF_8));
             }
         });
         session.transfer(flowFile);
@@ -2065,18 +2137,16 @@ public class StandardProcessSessionIT {
 
     @Test
     public void testContentModifiedEmittedAndNotAttributesModified() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
         final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
                 .id(1L)
                 .addAttribute("uuid", "000000000000-0000-0000-0000-00000000")
+                .contentClaim(claim)
                 .build();
         this.flowFileQueue.put(flowFile);
 
         FlowFile existingFlowFile = session.get();
-        existingFlowFile = session.write(existingFlowFile, new OutputStreamCallback() {
-            @Override
-            public void process(OutputStream out) throws IOException {
-            }
-        });
+        existingFlowFile = session.write(existingFlowFile, out -> {});
         existingFlowFile = session.putAttribute(existingFlowFile, "attr", "a");
         session.transfer(existingFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
@@ -3399,8 +3469,10 @@ public class StandardProcessSessionIT {
 
         @Override
         public long importFrom(InputStream content, ContentClaim claim) throws IOException {
-            Files.copy(content, getPath(claim));
-            final long size = Files.size(getPath(claim));
+            final long size;
+            try (final OutputStream out = write(claim)) {
+                size = StreamUtils.copy(content, out);
+            }
             ((StandardContentClaim) claim).setLength(size);
             return size;
         }
@@ -3417,7 +3489,9 @@ public class StandardProcessSessionIT {
 
         @Override
         public long exportTo(ContentClaim claim, OutputStream destination) throws IOException {
-            throw new UnsupportedOperationException();
+            try (final InputStream in = read(claim)) {
+                return StreamUtils.copy(in, destination);
+            }
         }
 
         @Override
