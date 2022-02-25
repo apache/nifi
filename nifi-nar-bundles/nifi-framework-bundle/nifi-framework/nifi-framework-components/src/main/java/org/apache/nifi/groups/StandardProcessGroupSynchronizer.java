@@ -108,6 +108,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -1696,33 +1697,59 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
 
         if (proposed.getInputPorts() != null) {
             for (final VersionedRemoteGroupPort port : proposed.getInputPorts()) {
-                if (port.getScheduledState() != org.apache.nifi.flow.ScheduledState.RUNNING) {
-                    continue;
-                }
-
-                final String portId = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), rpg.getIdentifier());
-                final RemoteGroupPort remoteGroupPort = rpg.getInputPort(portId);
+                final RemoteGroupPort remoteGroupPort = getRpgInputPort(port, rpg, componentIdGenerator);
                 if (remoteGroupPort != null) {
-                    context.getComponentScheduler().startComponent(remoteGroupPort);
+                    synchronizeTransmissionState(port, remoteGroupPort);
                 }
             }
         }
 
         if (proposed.getOutputPorts() != null) {
             for (final VersionedRemoteGroupPort port : proposed.getOutputPorts()) {
-                if (port.getScheduledState() != org.apache.nifi.flow.ScheduledState.RUNNING) {
-                    continue;
-                }
-
-                final String portId = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), rpg.getIdentifier());
-                final RemoteGroupPort remoteGroupPort = rpg.getOutputPort(portId);
+                final RemoteGroupPort remoteGroupPort = getRpgOutputPort(port, rpg, componentIdGenerator);
                 if (remoteGroupPort != null) {
-                    context.getComponentScheduler().startComponent(remoteGroupPort);
+                    synchronizeTransmissionState(port, remoteGroupPort);
                 }
             }
         }
     }
 
+    private RemoteGroupPort getRpgInputPort(final VersionedRemoteGroupPort port, final RemoteProcessGroup rpg, final ComponentIdGenerator componentIdGenerator) {
+        return getRpgPort(port, rpg, componentIdGenerator, RemoteProcessGroup::getInputPort);
+    }
+
+    private RemoteGroupPort getRpgOutputPort(final VersionedRemoteGroupPort port, final RemoteProcessGroup rpg, final ComponentIdGenerator componentIdGenerator) {
+        return getRpgPort(port, rpg, componentIdGenerator, RemoteProcessGroup::getOutputPort);
+    }
+
+    private RemoteGroupPort getRpgPort(final VersionedRemoteGroupPort port, final RemoteProcessGroup rpg, final ComponentIdGenerator componentIdGenerator,
+                                       final BiFunction<RemoteProcessGroup, String, RemoteGroupPort> portLookup) {
+        final String instanceId = port.getInstanceIdentifier();
+        if (instanceId != null) {
+            final RemoteGroupPort remoteGroupPort = portLookup.apply(rpg, instanceId);
+            if (remoteGroupPort != null) {
+                return remoteGroupPort;
+            }
+        }
+
+        final String portId = componentIdGenerator.generateUuid(port.getIdentifier(), port.getInstanceIdentifier(), rpg.getIdentifier());
+        final RemoteGroupPort remoteGroupPort = portLookup.apply(rpg, portId);
+        return remoteGroupPort;
+    }
+
+    private void synchronizeTransmissionState(final VersionedRemoteGroupPort versionedPort, final RemoteGroupPort remoteGroupPort) {
+        final ScheduledState portState = remoteGroupPort.getScheduledState();
+
+        if (versionedPort.getScheduledState() == org.apache.nifi.flow.ScheduledState.RUNNING) {
+            if (portState != ScheduledState.RUNNING) {
+                context.getComponentScheduler().startComponent(remoteGroupPort);
+            }
+        } else {
+            if (portState == ScheduledState.RUNNING) {
+                remoteGroupPort.getRemoteProcessGroup().stopTransmitting(remoteGroupPort);
+            }
+        }
+    }
 
     private RemoteProcessGroupPortDescriptor createPortDescriptor(final VersionedRemoteGroupPort proposed, final ComponentIdGenerator componentIdGenerator, final String rpgId) {
         final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
