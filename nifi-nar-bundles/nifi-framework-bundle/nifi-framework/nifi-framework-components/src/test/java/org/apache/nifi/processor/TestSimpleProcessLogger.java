@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
 
-import static org.apache.nifi.processor.SimpleProcessLogger.NEW_LINE_ARROW;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -35,11 +34,17 @@ import static org.mockito.Mockito.when;
 
 public class TestSimpleProcessLogger {
 
-    private static final String EXPECTED_CAUSES = "java.lang.RuntimeException: third" + System.lineSeparator() +
-            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: second" + System.lineSeparator() +
-            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: first";
+    private static final String FIRST_MESSAGE = "FIRST";
+    private static final String SECOND_MESSAGE = "SECOND";
+    private static final String THIRD_MESSAGE = "THIRD";
 
-    private final Exception e = new RuntimeException("first", new RuntimeException("second", new RuntimeException("third")));
+    private static final String EXPECTED_CAUSES = String.join(System.lineSeparator(),
+            String.format("%s: %s", IllegalArgumentException.class.getName(), FIRST_MESSAGE),
+            String.format("- Caused by: %s: %s", RuntimeException.class.getName(), SECOND_MESSAGE),
+            String.format("- Caused by: %s: %s", SecurityException.class.getName(), THIRD_MESSAGE)
+    );
+
+    private final Exception e = new IllegalArgumentException(FIRST_MESSAGE, new RuntimeException(SECOND_MESSAGE, new SecurityException(THIRD_MESSAGE)));
 
     private ReportingTask task;
 
