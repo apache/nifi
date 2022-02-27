@@ -131,17 +131,6 @@ public class AbstractHadoopTest {
             final List<String> locations = references.asLocations();
             processor.resetHDFSResources(locations, runner.getProcessContext());
         });
-
-//        try {
-//            final File brokenCoreSite = new File("src/test/resources/core-site-broken.xml");
-//            final ResourceReference brokenCoreSiteReference = new FileResourceReference(brokenCoreSite);
-//            final ResourceReferences references = new StandardResourceReferences(Collections.singletonList(brokenCoreSiteReference));
-//            final List<String> locations = references.asLocations();
-//            processor.resetHDFSResources(locations, runner.getProcessContext());
-//            Assert.fail("Should have thrown SocketTimeoutException");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
     }
 
     @Test

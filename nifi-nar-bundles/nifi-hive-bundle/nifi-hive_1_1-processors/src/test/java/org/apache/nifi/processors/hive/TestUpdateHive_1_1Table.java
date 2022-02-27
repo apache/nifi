@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hive;
 
-import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -37,6 +36,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -185,11 +185,10 @@ public class TestUpdateHive_1_1Table {
     }
 
     @Test
-    public void testSetup() throws Exception {
+    public void testSetup(@TempDir java.nio.file.Path tempDir) throws Exception {
         configure(processor, 0);
         runner.assertNotValid();
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockHiveConnectionPool(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);

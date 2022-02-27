@@ -33,7 +33,6 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
-import org.apache.log4j.BasicConfigurator;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -55,7 +54,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -99,11 +97,6 @@ public class PutORCTest {
     private Configuration testConf;
     private PutORC proc;
     private TestRunner testRunner;
-
-    @BeforeAll
-    public static void setupBeforeClass() {
-        BasicConfigurator.configure();
-    }
 
     @BeforeEach
     public void setup() throws IOException {

@@ -15,7 +15,6 @@ package org.apache.nifi.processors.hive;/*
  * limitations under the License.
  */
 
-import com.google.common.io.Files;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.dbcp.hive.HiveDBCPService;
@@ -26,10 +25,12 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -54,10 +55,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testDirectStatements() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testDirectStatements(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -101,10 +101,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadStatement() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatement(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -129,10 +128,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadStatementRollbackOnFailure(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -158,10 +156,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailAtBeginning() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailAtBeginning(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -183,10 +180,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailAtBeginningRollbackOnFailure() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailAtBeginningRollbackOnFailure(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -212,10 +208,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterType() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterType(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -249,10 +244,9 @@ public class TestPutHiveQL {
 
 
     @Test
-    public void testFailInMiddleWithBadParameterValue() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadParameterValue(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -298,10 +292,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadNumberFormat() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testFailInMiddleWithBadNumberFormat(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -348,10 +341,9 @@ public class TestPutHiveQL {
 
 
     @Test
-    public void testUsingSqlDataTypesWithNegativeValues() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testUsingSqlDataTypesWithNegativeValues(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -385,10 +377,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testStatementsWithPreparedParameters(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -453,10 +444,9 @@ public class TestPutHiveQL {
 
 
     @Test
-    public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testMultipleStatementsWithinFlowFile(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -504,10 +494,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testMultipleStatementsWithinFlowFilePlusEmbeddedDelimiter() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testMultipleStatementsWithinFlowFilePlusEmbeddedDelimiter(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -554,10 +543,9 @@ public class TestPutHiveQL {
 
 
     @Test
-    public void testWithNullParameter() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testWithNullParameter(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
@@ -596,10 +584,9 @@ public class TestPutHiveQL {
     }
 
     @Test
-    public void testInvalidStatement() throws InitializationException, ProcessException, SQLException, IOException {
+    public void testInvalidStatement(@TempDir Path tempDir) throws InitializationException, ProcessException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(PutHiveQL.class);
-        final File tempDir = Files.createTempDir();
-        final File dbDir = new File(tempDir, "db");
+        final File dbDir = tempDir.resolve("db").toFile();
         final DBCPService service = new MockDBCPService(dbDir.getAbsolutePath());
         runner.addControllerService("dbcp", service);
         runner.enableControllerService(service);
