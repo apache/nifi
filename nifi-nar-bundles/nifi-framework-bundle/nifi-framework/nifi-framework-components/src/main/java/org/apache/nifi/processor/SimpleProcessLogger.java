@@ -25,13 +25,12 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.LinkedList;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SimpleProcessLogger implements ComponentLog {
 
-    public static final String NEW_LINE_ARROW = "\u21B3";
-    public static final String CAUSES = NEW_LINE_ARROW + " causes: ";
+    private static final String CAUSED_BY = String.format("%n- Caused by: ");
 
     private final Logger logger;
     private final LogRepository logRepository;
@@ -522,11 +521,10 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     private String getCauses(final Throwable throwable) {
-        final LinkedList<String> causes = new LinkedList<>();
-        for (Throwable t = throwable; t != null; t = t.getCause()) {
-            causes.push(t.toString());
+        final List<String> causes = new ArrayList<>();
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            causes.add(cause.toString());
         }
-        return causes.stream().collect(Collectors.joining(System.lineSeparator() + CAUSES));
+        return String.join(CAUSED_BY, causes);
     }
-
 }
