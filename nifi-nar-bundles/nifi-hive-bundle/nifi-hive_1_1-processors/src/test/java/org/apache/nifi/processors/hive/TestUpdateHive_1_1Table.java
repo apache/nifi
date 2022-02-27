@@ -36,6 +36,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.stubbing.Answer;
 
@@ -60,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@DisabledOnOs(OS.WINDOWS)
 public class TestUpdateHive_1_1Table {
 
     private static final String TEST_CONF_PATH = "src/test/resources/core-site.xml";
