@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.c2.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Suppliers;
 import com.google.common.cache.CacheBuilder;
@@ -41,7 +40,6 @@ import org.apache.nifi.minifi.c2.api.util.Pair;
 import org.apache.nifi.minifi.c2.util.HttpRequestUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -60,7 +58,6 @@ import javax.ws.rs.core.UriInfo;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.MessageDigest;
@@ -71,7 +68,6 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -80,7 +76,6 @@ import java.util.stream.Collectors;
 
 import static javax.ws.rs.core.HttpHeaders.CONTENT_LENGTH;
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
-import static org.slf4j.MarkerFactory.getMarker;
 
 @Configuration
 @Path("/config")
@@ -194,8 +189,6 @@ public class ConfigService {
             @Context HttpServletRequest request, @Context HttpHeaders httpHeaders, @Context UriInfo uriInfo,
             @ApiParam(required = true) final C2Heartbeat heartbeat) {
 
-        logRequestEntry(heartbeat, heartbeat.getAgentId(), heartbeat.getIdentifier());
-
         try {
             authorizer.authorize(SecurityContextHolder.getContext().getAuthentication(), uriInfo);
         } catch (AuthorizationException e) {
@@ -239,7 +232,6 @@ public class ConfigService {
                 logger.error("Heartbeat processing failed", e);
                 response = Response.status(BAD_REQUEST).entity(e.getMessage()).build();
             }
-            logRequestProcessingFinished(heartbeat.getAgentId(), heartbeat.getIdentifier());
             return response;
         } catch (AuthorizationException e) {
             logger.warn(HttpRequestUtil.getClientString(request) + " not authorized to access " + uriInfo, e);
@@ -272,10 +264,6 @@ public class ConfigService {
     public Response acknowledge(
             @ApiParam(required = true) final C2OperationAck operationAck) {
 
-        Optional<String> agentId = getAgentId(operationAck);
-
-        agentId.ifPresent(id -> logRequestEntry(operationAck, id, operationAck.getOperationId()));
-
         final C2ProtocolContext ackContext = C2ProtocolContext.builder()
                 .baseUri(getBaseUri())
                 .contentLength(httpServletRequest.getHeader(CONTENT_LENGTH))
@@ -283,35 +271,8 @@ public class ConfigService {
 
         c2ProtocolService.processOperationAck(operationAck, ackContext);
 
-        agentId.ifPresent(id -> logRequestProcessingFinished(id, operationAck.getOperationId()));
-
         return Response.ok().build();
 
-    }
-
-    private Optional<String> getAgentId(C2OperationAck operationAck) {
-        Optional<String> agentId;
-        if (operationAck.getAgentInfo() != null) {
-            agentId = Optional.ofNullable(operationAck.getAgentInfo().getIdentifier());
-        } else {
-            agentId = Optional.empty();
-        }
-
-        return agentId;
-    }
-
-    private void logRequestEntry(Serializable request, String agentId, String requestId) {
-        Marker marker = getMarker(agentId);
-        logger.debug(marker, "Incoming request from agent [{}] with request id [{}]", agentId, requestId);
-        try {
-            logger.trace(marker, objectMapper.writeValueAsString(request));
-        } catch (JsonProcessingException e) {
-            logger.trace(marker, "Not able to serialise heartbeat {}", e.getMessage());
-        }
-    }
-
-    private void logRequestProcessingFinished(String agentId, String requestId) {
-        logger.debug(getMarker(agentId), "Request processing finished for agent [{}] with request id [{}]", agentId, requestId);
     }
 
     @GET

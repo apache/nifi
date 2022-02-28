@@ -24,10 +24,8 @@ import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationState;
 import org.apache.nifi.c2.protocol.api.OperationType;
-import org.apache.nifi.minifi.c2.util.LogMarkerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -49,9 +47,7 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
     @Override
     public void processOperationAck(final C2OperationAck operationAck, final C2ProtocolContext context) {
         // This service assumes there is a single Operation UPDATE to pass over the updated flow
-        Marker marker = LogMarkerUtil.getMarker(operationAck);
-
-        logger.debug(marker, "Received operation acknowledgement: {}; {}", operationAck, context);
+        logger.debug("Received operation acknowledgement: {}; {}", operationAck, context);
         // Remove the operator ID from the list of issued operations and log the state
         final String operationId = operationAck.getOperationId();
         try {
@@ -72,7 +68,7 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
             }
 
             if (!issuedOperationIds.remove(operationId)) {
-                logger.warn(marker, "Operation with ID " + operationId + " has either already been acknowledged or is unknown to this server");
+                logger.warn("Operation with ID " + operationId + " has either already been acknowledged or is unknown to this server");
             } else if (null != c2OperationState) {
                 final C2OperationState.OperationState operationState = c2OperationState.getState();
                 logger.debug("Operation with ID " + operationId + " acknowledged with a state of " + operationState.name() + "(" + opState.name() + "), details = "
@@ -85,7 +81,7 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
                     || operationAck.getDeviceInfo() != null
                     || operationAck.getFlowInfo() != null) {
                 final C2Heartbeat heartbeatInfo = toHeartbeat(operationAck);
-                logger.trace(marker, "Operation acknowledgement contains additional info. Processing as heartbeat: {}", heartbeatInfo);
+                logger.trace("Operation acknowledgement contains additional info. Processing as heartbeat: {}", heartbeatInfo);
                 processHeartbeat(heartbeatInfo, context);
             }
 

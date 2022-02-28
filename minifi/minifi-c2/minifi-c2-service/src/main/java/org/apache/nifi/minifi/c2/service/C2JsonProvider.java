@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.minifi.c2.service;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
@@ -33,10 +31,6 @@ public class C2JsonProvider extends JacksonJaxbJsonProvider {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     static {
-        // The Include.ALWAYS is for Jackson's "content" include which affects Maps and referential types,
-        // and we need to return null Map values to the front-end for the Map of property values so we use ALWAYS
-        objectMapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
-        objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
