@@ -54,7 +54,6 @@
 #processor-details div.relationship-name {
     display: inline-block;
     line-height: normal;
-    width: 340px;
 }
 
 div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.penalty-duration-setting, div.yield-duration-setting, div.scheduling-strategy-setting, div.execution-node-setting, div.bulletin-setting {
@@ -76,6 +75,24 @@ div.relationship-description {
 .processor-retry-relationship-container {
     margin-left: 16px;
     margin-top: 4px;
+    display: inline-block;
+}
+
+#details-processor-relationships-tab-content label {
+    color: #775351;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: inherit;
+    line-height: normal;
+}
+
+#details-processor-relationships-tab-content .yield-radio {
+    margin-left: 24px;
+}
+
+#details-processor-relationships-tab-content .details-backoff-policy-setting input,
+#details-processor-relationships-tab-content .details-backoff-policy-setting label {
     display: inline-block;
 }
 
