@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.function.Supplier;
 
 public class SalesforceRestService {
-    private String version;
+    private final String version;
     private final String baseUrl;
     private final Supplier<String> accessTokenProvider;
 
@@ -79,14 +79,9 @@ public class SalesforceRestService {
                     " Body: " + (response.body() == null ? null : response.body().string())
                 );
             }
-
-            String schema = response.body().string();
-
-            return schema;
+            return response.body().string();
         } catch (IOException e) {
-            e.printStackTrace();
-
-            throw new ProcessException("Snowflake REST call failed", e);
+            throw new ProcessException(String.format("Salesforce HTTP request failed [%s]", request.url()), e);
         }
     }
 }

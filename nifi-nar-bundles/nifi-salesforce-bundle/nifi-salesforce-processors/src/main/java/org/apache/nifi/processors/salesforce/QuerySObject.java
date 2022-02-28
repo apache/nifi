@@ -61,8 +61,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,7 +75,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -83,139 +82,139 @@ import java.util.stream.Collectors;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"salesforce", "sobject", "soql", "query", "select"})
 @CapabilityDescription("Retrieves records from a Salesforce SObject. Users can add arbitrary filter conditions by setting the 'Custom WHERE Condition' property."
-    + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
-    + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, fitering out all older records"
-    + " even for the first run. This processor is intended to be run on the Primary Node only."
-    + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output.")
+        + " Supports incremental retrieval: users can define a field in the 'Age Field' property that will be used to determine when the record was created."
+        + " When this property is set the processor will retrieve new records. It's also possible to define an initial cutoff value for the age, fitering out all older records"
+        + " even for the first run. This processor is intended to be run on the Primary Node only."
+        + " FlowFile attribute 'record.count' indicates how many records were retrieved and written to the output.")
 @Stateful(scopes = Scope.CLUSTER, description = "When 'Age Field' is set, after performing a query the time of execution is stored. Subsequent queries will be augmented"
-    + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
-    + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
-    + " the new node can pick up where the previous node left off, without duplicating the data.")
+        + " with an additional condition so that only records that are newer than the stored execution time (adjusted with the optional value of 'Age Delay') will be retrieved."
+        + " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected,"
+        + " the new node can pick up where the previous node left off, without duplicating the data.")
 @WritesAttributes({
-    @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
-    @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
+        @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
+        @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
 public class QuerySObject extends AbstractProcessor {
     static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
-        .name("sobject-name")
-        .displayName("SObject Name")
-        .description("The name of the sobject to be queried.")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("sobject-name")
+            .displayName("SObject Name")
+            .description("The name of the sobject to be queried.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
-        .name("field-names")
-        .displayName("Field Names")
-        .description("A coma-separated list of field names to be used in the query.")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("field-names")
+            .displayName("Field Names")
+            .description("A coma-separated list of field names to be used in the query.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
-        .name("custom-where-condition")
-        .displayName("Custom WHERE Condition")
-        .description("A custom expression to be added in the WHERE clause of the query.")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("custom-where-condition")
+            .displayName("Custom WHERE Condition")
+            .description("A custom expression to be added in the WHERE clause of the query.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
-        .name("age-field")
-        .displayName("Age Field")
-        .description("The name of a TIMESTAMP field that will be used to limit all and filter already retrieved records."
-            + " Only records that are older than the previous run time of this processor will be retrieved."
-        )
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("age-field")
+            .displayName("Age Field")
+            .description("The name of a TIMESTAMP field that will be used to limit all and filter already retrieved records."
+                    + " Only records that are older than the previous run time of this processor will be retrieved."
+            )
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
-        .name("initial-age-filter")
-        .displayName("Initial Age Filter")
-        .description("When 'Age Field' is set the value of this property will serve as a filter when this processor runs the first time."
-            + " Only records that are older than this value be retrieved."
-        )
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-        .build();
+            .name("initial-age-filter")
+            .displayName("Initial Age Filter")
+            .description("When 'Age Field' is set the value of this property will serve as a filter when this processor runs the first time."
+                    + " Only records that are older than this value be retrieved."
+            )
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
-        .name("age-delay")
-        .displayName("Age Delay")
-        .description("When 'Age Field' is set the age-based filter will be adjusted by this amount."
-            + " Only records that are older than the previous run time of this processor, by at least this amount, will be retrieved."
-        )
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .defaultValue("5 s")
-        .build();
+            .name("age-delay")
+            .displayName("Age Delay")
+            .description("When 'Age Field' is set the age-based filter will be adjusted by this amount."
+                    + " Only records that are older than the previous run time of this processor, by at least this amount, will be retrieved."
+            )
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("5 s")
+            .build();
 
     static final PropertyDescriptor BASE_URL = new PropertyDescriptor.Builder()
-        .name("salesforce-base-url")
-        .displayName("Base URL")
-        .description("")
-        .required(true)
-        .addValidator(Validator.VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .build();
+            .name("salesforce-base-url")
+            .displayName("Base URL")
+            .description("")
+            .required(true)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
 
     static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
-        .name("salesforce-api-version")
-        .displayName("API Version")
-        .description("")
-        .required(true)
-        .addValidator(Validator.VALID)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .defaultValue("46.0")
-        .build();
+            .name("salesforce-api-version")
+            .displayName("API Version")
+            .description("")
+            .required(true)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .defaultValue("46.0")
+            .build();
 
     static final PropertyDescriptor AUTH_SERVICE = new PropertyDescriptor.Builder()
-        .name("auth-service")
-        .displayName("Auth service")
-        .identifiesControllerService(OAuth2AccessTokenProvider.class)
-        .required(true)
-        .build();
+            .name("auth-service")
+            .displayName("Auth service")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(DateTimeUtils.TIMESTAMP_FORMAT)
-        .defaultValue("yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ")
-        .build();
+            .fromPropertyDescriptor(DateTimeUtils.TIMESTAMP_FORMAT)
+            .defaultValue("yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ")
+            .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
-        .description("Specifies the Controller Service to use for writing out the records")
-        .identifiesControllerService(RecordSetWriterFactory.class)
-        .required(true)
-        .build();
+            .name("record-writer")
+            .displayName("Record Writer")
+            .description("Specifies the Controller Service to use for writing out the records")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .build();
 
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
-        .name("include-zero-record-flowfiles")
-        .displayName("Include Zero Record FlowFiles")
-        .description("When converting an incoming FlowFile, if the conversion results in no data, "
-            + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
-        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-        .allowableValues("true", "false")
-        .defaultValue("false")
-        .required(true)
-        .build();
+            .name("include-zero-record-flowfiles")
+            .displayName("Include Zero Record FlowFiles")
+            .description("When converting an incoming FlowFile, if the conversion results in no data, "
+                    + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("For FlowFiles created as a result of a successful query.")
-        .build();
+            .name("success")
+            .description("For FlowFiles created as a result of a successful query.")
+            .build();
 
-    static final String LAST_AGE_FILTER = "last_age_filter";
+    private static final String LAST_AGE_FILTER = "last_age_filter";
 
-    volatile SalesforceToNifiSchemaConverter salesForceToRecordSchemaConverter;
-    volatile SalesforceRestService salesforceRestService;
+    private volatile SalesforceToNifiSchemaConverter salesForceToRecordSchemaConverter;
+    private volatile SalesforceRestService salesforceRestService;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
@@ -224,9 +223,9 @@ public class QuerySObject extends AbstractProcessor {
         String timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
 
         salesForceToRecordSchemaConverter = new SalesforceToNifiSchemaConverter(
-            dateFormat,
-            timestampFormat,
-            timeFormat
+                dateFormat,
+                timestampFormat,
+                timeFormat
         );
 
         String salesforceVersion = context.getProperty(API_VERSION).getValue();
@@ -234,32 +233,30 @@ public class QuerySObject extends AbstractProcessor {
         OAuth2AccessTokenProvider accessTokenProvider = context.getProperty(AUTH_SERVICE).asControllerService(OAuth2AccessTokenProvider.class);
 
         salesforceRestService = new SalesforceRestService(
-            salesforceVersion,
-            baseUrl,
-            () -> accessTokenProvider.getAccessDetails().getAccessToken()
+                salesforceVersion,
+                baseUrl,
+                () -> accessTokenProvider.getAccessDetails().getAccessToken()
         );
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
-            SOBJECT_NAME,
-            FIELD_NAMES,
-            CUSTOM_WHERE_CONDITION,
-            AGE_FIELD,
-            INITIAL_AGE_FILTER,
-            AGE_DELAY,
-            API_VERSION,
-            BASE_URL,
-            AUTH_SERVICE,
-            DateTimeUtils.DATE_FORMAT,
-            DateTimeUtils.TIME_FORMAT,
-            TIMESTAMP_FORMAT,
-            RECORD_WRITER,
-            INCLUDE_ZERO_RECORD_FLOWFILES
+        return Collections.unmodifiableList(Arrays.asList(
+                SOBJECT_NAME,
+                FIELD_NAMES,
+                CUSTOM_WHERE_CONDITION,
+                AGE_FIELD,
+                INITIAL_AGE_FILTER,
+                AGE_DELAY,
+                API_VERSION,
+                BASE_URL,
+                AUTH_SERVICE,
+                DateTimeUtils.DATE_FORMAT,
+                DateTimeUtils.TIME_FORMAT,
+                TIMESTAMP_FORMAT,
+                RECORD_WRITER,
+                INCLUDE_ZERO_RECORD_FLOWFILES
         ));
-
-        return properties;
     }
 
     @Override
@@ -275,21 +272,21 @@ public class QuerySObject extends AbstractProcessor {
 
         if (validationContext.getProperty(AGE_FIELD).isSet() && !validationContext.getProperty(TIMESTAMP_FORMAT).isSet()) {
             results.add(
-                new ValidationResult.Builder()
-                    .subject(AGE_FIELD.getDisplayName())
-                    .valid(false)
-                    .explanation("it requires " + TIMESTAMP_FORMAT.getDisplayName() + " also to be set.")
-                    .build()
+                    new ValidationResult.Builder()
+                            .subject(AGE_FIELD.getDisplayName())
+                            .valid(false)
+                            .explanation("it requires " + TIMESTAMP_FORMAT.getDisplayName() + " also to be set.")
+                            .build()
             );
         }
 
         if (validationContext.getProperty(INITIAL_AGE_FILTER).isSet() && !validationContext.getProperty(AGE_FIELD).isSet()) {
             results.add(
-                new ValidationResult.Builder()
-                    .subject(INITIAL_AGE_FILTER.getDisplayName())
-                    .valid(false)
-                    .explanation("it requires " + AGE_FIELD.getDisplayName() + " also to be set.")
-                    .build()
+                    new ValidationResult.Builder()
+                            .subject(INITIAL_AGE_FILTER.getDisplayName())
+                            .valid(false)
+                            .explanation("it requires " + AGE_FIELD.getDisplayName() + " also to be set.")
+                            .build()
             );
         }
 
@@ -317,8 +314,7 @@ public class QuerySObject extends AbstractProcessor {
             state = context.getStateManager().getState(Scope.CLUSTER);
             ageFilterLower = state.get(LAST_AGE_FILTER);
         } catch (IOException e) {
-            getLogger().error("Couldn't retrieve state", e);
-            throw new ProcessException(e);
+            throw new ProcessException("Last Age Filter state retrieval failed", e);
         }
 
         String ageFilterUpper;
@@ -331,21 +327,20 @@ public class QuerySObject extends AbstractProcessor {
             } else {
                 ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-
-            ageFilterUpper = new SimpleDateFormat(timestampFormat).format(java.sql.Timestamp.from(ageFilterUpperTime));
+            ageFilterUpper = DateTimeFormatter.ofPattern(timestampFormat).format(ageFilterUpperTime);
         }
 
         String describeSObjectResult = salesforceRestService.describeSObject(sObject);
         ConvertedSalesforceSchema convertedSalesforceSchema = convertSchema(describeSObjectResult, fields);
 
         String querySObject = buildQuery(
-            sObject,
-            fields,
-            customWhereClause,
-            ageField,
-            initialAgeFilter,
-            ageFilterLower,
-            ageFilterUpper
+                sObject,
+                fields,
+                customWhereClause,
+                ageField,
+                initialAgeFilter,
+                ageFilterLower,
+                ageFilterUpper
         );
         String querySObjectResult = salesforceRestService.query(querySObject);
 
@@ -359,30 +354,30 @@ public class QuerySObject extends AbstractProcessor {
         flowFile = session.write(flowFile, out -> {
             InputStream querySObjectResultInputStream = new ByteArrayInputStream(querySObjectResult.getBytes());
             try (
-                JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
-                    querySObjectResultInputStream,
-                    getLogger(),
-                    convertedSalesforceSchema.querySObjectResultSchema,
-                    dateFormat,
-                    timeFormat,
-                    timestampFormat
-                );
+                    JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
+                            querySObjectResultInputStream,
+                            getLogger(),
+                            convertedSalesforceSchema.querySObjectResultSchema,
+                            dateFormat,
+                            timeFormat,
+                            timestampFormat
+                    );
 
-                RecordSetWriter writer = writerFactory.createWriter(
-                    getLogger(),
-                    writerFactory.getSchema(
-                        originalAttributes,
-                        convertedSalesforceSchema.recordSchema
-                    ),
-                    out,
-                    originalAttributes
-                );
+                    RecordSetWriter writer = writerFactory.createWriter(
+                            getLogger(),
+                            writerFactory.getSchema(
+                                    originalAttributes,
+                                    convertedSalesforceSchema.recordSchema
+                            ),
+                            out,
+                            originalAttributes
+                    )
             ) {
                 writer.beginRecordSet();
 
                 Record querySObjectRecord;
                 while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
-                    List<Object> recordObjectList = Arrays.asList(querySObjectRecord.getAsArray("records"));
+                    Object[] recordObjectList = querySObjectRecord.getAsArray("records");
                     for (Object recordObject : recordObjectList) {
                         writer.write((Record) recordObject);
                     }
@@ -399,19 +394,12 @@ public class QuerySObject extends AbstractProcessor {
                 if (ageFilterUpper != null) {
                     Map<String, String> newState = new HashMap<>(state.toMap());
                     newState.put(LAST_AGE_FILTER, ageFilterUpper);
-                    try {
-                        context.getStateManager().setState(newState, Scope.CLUSTER);
-                    } catch (IOException e) {
-                        getLogger().error("Couldn't update state", e);
-                        throw new ProcessException(e);
-                    }
+                    updateState(context, newState);
                 }
             } catch (SchemaNotFoundException e) {
-                getLogger().error("Couldn't create record writer", e);
-                throw new ProcessException(e);
+                throw new ProcessException("Couldn't create record writer", e);
             } catch (MalformedRecordException e) {
-                getLogger().error("Couldn't read records from input", e);
-                throw new ProcessException(e);
+                throw new ProcessException("Couldn't read records from input", e);
             }
         });
 
@@ -424,7 +412,15 @@ public class QuerySObject extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
 
             session.adjustCounter("Records Processed", recordCount, false);
-            getLogger().info("Successfully written {} records for {}", new Object[]{recordCount, flowFile});
+            getLogger().info("Successfully written {} records for {}", recordCount, flowFile);
+        }
+    }
+
+    private void updateState(ProcessContext context, Map<String, String> newState) {
+        try {
+            context.getStateManager().setState(newState, Scope.CLUSTER);
+        } catch (IOException e) {
+            throw new ProcessException("Last Age Filter state update failed", e);
         }
     }
 
@@ -432,35 +428,33 @@ public class QuerySObject extends AbstractProcessor {
         try {
             RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(describeSObjectResult, fields);
 
-            RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("records", RecordFieldType.ARRAY.getArrayDataType(
-                    RecordFieldType.RECORD.getRecordDataType(
-                        recordSchema
-                    )
-                ))
+            RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
+                    new RecordField("records", RecordFieldType.ARRAY.getArrayDataType(
+                            RecordFieldType.RECORD.getRecordDataType(
+                                    recordSchema
+                            )
+                    ))
             ));
 
             return new ConvertedSalesforceSchema(querySObjectResultSchema, recordSchema);
         } catch (IOException e) {
-            getLogger().error("Couldn't convert Salesforce object description to NiFi schema", e);
-
-            throw new ProcessException(e);
+            throw new ProcessException("SObject to Record schema conversion failed", e);
         }
     }
 
     protected String buildQuery(
-        String sObject,
-        String fields,
-        String customWhereClause,
-        String ageField,
-        String initialAgeFilter,
-        String ageFilterLower,
-        String ageFilterUpper
+            String sObject,
+            String fields,
+            String customWhereClause,
+            String ageField,
+            String initialAgeFilter,
+            String ageFilterLower,
+            String ageFilterUpper
     ) {
         StringBuilder queryBuilder = new StringBuilder("SELECT ")
-            .append(fields)
-            .append(" FROM ")
-            .append(sObject);
+                .append(fields)
+                .append(" FROM ")
+                .append(sObject);
 
         List<String> whereItems = new ArrayList<>();
         if (customWhereClause != null) {
@@ -478,13 +472,11 @@ public class QuerySObject extends AbstractProcessor {
         }
 
         if (!whereItems.isEmpty()) {
-            String finalWhereClause = whereItems.stream().collect(Collectors.joining(" AND "));
-            queryBuilder.append(" WHERE " + finalWhereClause);
+            String finalWhereClause = String.join(" AND ", whereItems);
+            queryBuilder.append(" WHERE ").append(finalWhereClause);
         }
 
-        String query = queryBuilder.toString();
-
-        return query;
+        return queryBuilder.toString();
     }
 
     static class ConvertedSalesforceSchema {
