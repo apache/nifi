@@ -15,6 +15,8 @@
 -->
 
 <configuration scan="true" scanPeriod="30 seconds">
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook" />
+
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator">
         <resetJUL>true</resetJUL>
     </contextListener>

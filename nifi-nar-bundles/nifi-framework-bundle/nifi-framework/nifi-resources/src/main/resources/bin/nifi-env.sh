@@ -50,6 +50,9 @@ export NIFI_PID_DIR
 NIFI_LOG_DIR="$(setOrDefault "$NIFI_LOG_DIR" "$NIFI_HOME/logs")"
 export NIFI_LOG_DIR
 
+# Disable automatic Logback Initializer to avoid shutdown on web application termination
+export logbackDisableServletContainerInitializer="true"
+
 # Set to false to force the use of Keytab controller service in processors
 # that use Kerberos. If true, these processors will allow configuration of keytab
 # and principal directly within the processor. If false, these processors will be
