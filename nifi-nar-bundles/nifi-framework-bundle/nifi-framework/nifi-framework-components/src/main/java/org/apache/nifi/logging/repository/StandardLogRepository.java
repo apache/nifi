@@ -68,8 +68,8 @@ public class StandardLogRepository implements LogRepository {
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params) {
-        simplifyArgs(params);
         final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
+        simplifyArgs(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
@@ -80,8 +80,8 @@ public class StandardLogRepository implements LogRepository {
 
     @Override
     public void addLogMessage(final LogLevel level, final String format, final Object[] params, final Throwable t) {
-        simplifyArgs(params);
         final Optional<String> flowFileUuid = getFirstFlowFileUuidFromObjects(params);
+        simplifyArgs(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
         final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
                 .message(formattedMessage)
