@@ -63,6 +63,11 @@
         $(document).on('click', 'div.nf-checkbox', function () {
             var checkbox = $(this);
             var transitionToChecked = checkbox.hasClass('checkbox-unchecked');
+            var isDisabled = checkbox.hasClass('disabled');
+
+            if (isDisabled) {
+                return;
+            }
 
             if (transitionToChecked) {
                 checkbox.removeClass('checkbox-unchecked').addClass('checkbox-checked');
