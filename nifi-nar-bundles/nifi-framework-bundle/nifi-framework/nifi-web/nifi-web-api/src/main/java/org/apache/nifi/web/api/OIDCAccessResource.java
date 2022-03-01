@@ -22,7 +22,6 @@ import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.oauth2.sdk.http.HTTPResponse;
 import com.nimbusds.oauth2.sdk.id.State;
-import com.nimbusds.openid.connect.sdk.AuthenticationErrorResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponse;
 import com.nimbusds.openid.connect.sdk.AuthenticationResponseParser;
 import com.nimbusds.openid.connect.sdk.AuthenticationSuccessResponse;
@@ -82,8 +81,11 @@ import java.util.regex.Pattern;
 public class OIDCAccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(OIDCAccessResource.class);
+    private static final String OIDC_AUTHENTICATION_FAILED = "OIDC authentication attempt failed: ";
     private static final String OIDC_ID_TOKEN_AUTHN_ERROR = "Unable to exchange authorization for ID token: ";
-    private static final String OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG = "OpenId Connect support is not configured";
+    private static final String OIDC_IS_NOT_CONFIGURED_MESSAGE = "OIDC is not configured.";
+    private static final String OIDC_REQUEST_IDENTIFIER_NOT_FOUND = "The request identifier was not found in the request.";
+    private static final String OIDC_FAILED_TO_PARSE_REDIRECT_URI = "Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login/logout process.";
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
     private static final String ID_TOKEN_LOGOUT = "oidc_id_token_logout";
     private static final String STANDARD_LOGOUT = "oidc_standard_logout";
@@ -108,16 +110,12 @@ public class OIDCAccessResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT
     )
     public void oidcRequest(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
 
-        // ensure oidc is enabled
-        if (!oidcService.isOidcEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
-            return;
+        try {
+            validateOidcConfiguration();
+        } catch (AuthenticationNotSupportedException e) {
+            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, e.getMessage());
+            throw e;
         }
 
         // generate the authorization uri
@@ -136,10 +134,11 @@ public class OIDCAccessResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT
     )
     public void oidcCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-        final AuthenticationResponse oidcResponse = parseOidcResponse(httpServletRequest, httpServletResponse, LOGGING_IN);
-        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
 
-        if (requestIdentifier.isPresent() && oidcResponse != null && oidcResponse.indicatesSuccess()) {
+        final AuthenticationResponse oidcResponse = parseOidcResponse(httpServletRequest, httpServletResponse, LOGGING_IN);
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier(httpServletRequest);
+
+        if (requestIdentifier.isPresent() && oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
 
             final String oidcRequestIdentifier = requestIdentifier.get();
@@ -176,9 +175,7 @@ public class OIDCAccessResource extends ApplicationResource {
             removeOidcRequestCookie(httpServletResponse);
 
             // report the unsuccessful login
-            final AuthenticationErrorResponse errorOidcResponse = (AuthenticationErrorResponse) oidcResponse;
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "Unsuccessful login attempt: "
-                    + errorOidcResponse.getErrorObject().getDescription());
+            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "Unsuccessful login attempt.");
         }
     }
 
@@ -192,18 +189,15 @@ public class OIDCAccessResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT
     )
     public Response oidcExchange(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
+
+        try {
+            validateOidcConfiguration();
+        } catch (final AuthenticationNotSupportedException e) {
+            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
+            return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
 
-        // ensure oidc is enabled
-        if (!oidcService.isOidcEnabled()) {
-            logger.debug(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
-            return Response.status(Response.Status.CONFLICT).entity(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG).build();
-        }
-
-        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier(httpServletRequest);
         if (!requestIdentifier.isPresent()) {
             final String message = "The login request identifier was not found in the request. Unable to continue.";
             logger.warn(message);
@@ -232,12 +226,12 @@ public class OIDCAccessResource extends ApplicationResource {
             notes = NON_GUARANTEED_ENDPOINT
     )
     public void oidcLogout(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-        if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
-        }
 
-        if (!oidcService.isOidcEnabled()) {
-            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
+        try {
+            validateOidcConfiguration();
+        } catch (final AuthenticationNotSupportedException e) {
+            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
+            throw e;
         }
 
         final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
@@ -285,7 +279,7 @@ public class OIDCAccessResource extends ApplicationResource {
     )
     public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
         final AuthenticationResponse oidcResponse = parseOidcResponse(httpServletRequest, httpServletResponse, !LOGGING_IN);
-        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier(httpServletRequest);
 
         if (requestIdentifier.isPresent() && oidcResponse != null && oidcResponse.indicatesSuccess()) {
             final AuthenticationSuccessResponse successfulOidcResponse = (AuthenticationSuccessResponse) oidcResponse;
@@ -383,9 +377,7 @@ public class OIDCAccessResource extends ApplicationResource {
             removeOidcRequestCookie(httpServletResponse);
 
             // report the unsuccessful logout
-            final AuthenticationErrorResponse errorOidcResponse = (AuthenticationErrorResponse) oidcResponse;
-            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, "Unsuccessful logout attempt: "
-                    + errorOidcResponse.getErrorObject().getDescription());
+            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, "Unsuccessful logout attempt.");
         }
     }
 
@@ -473,46 +465,41 @@ public class OIDCAccessResource extends ApplicationResource {
         return builder.build();
     }
 
-    private AuthenticationResponse parseOidcResponse(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
+    protected AuthenticationResponse parseOidcResponse(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
         final String pageTitle = getForwardPageTitle(isLogin);
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
-            return null;
+        try {
+            validateOidcConfiguration();
+        } catch (final AuthenticationNotSupportedException e) {
+            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, e.getMessage());
+            throw e;
         }
 
-        // ensure oidc is enabled
-        if (!oidcService.isOidcEnabled()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
-            return null;
-        }
-
-        final Optional<String> requestIdentifier = getOidcRequestIdentifier();
+        final Optional<String> requestIdentifier = getOidcRequestIdentifier(httpServletRequest);
         if (!requestIdentifier.isPresent()) {
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle,"The request identifier was " +
-                    "not found in the request. Unable to continue.");
-            return null;
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, OIDC_REQUEST_IDENTIFIER_NOT_FOUND);
+            throw new IllegalStateException(OIDC_REQUEST_IDENTIFIER_NOT_FOUND);
         }
 
         final com.nimbusds.openid.connect.sdk.AuthenticationResponse oidcResponse;
+
         try {
             oidcResponse = AuthenticationResponseParser.parse(getRequestUri());
             return oidcResponse;
         } catch (final ParseException e) {
-            logger.error("Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login/logout process.");
+            logger.error(OIDC_FAILED_TO_PARSE_REDIRECT_URI);
 
             // remove the oidc request cookie
             removeOidcRequestCookie(httpServletResponse);
 
             // forward to the error page
-            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle,"Unable to parse the redirect URI " +
-                    "from the OpenId Connect Provider. Unable to continue login/logout process.");
-            return null;
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, OIDC_FAILED_TO_PARSE_REDIRECT_URI);
+            throw e;
         }
     }
 
-    private void checkOidcState(HttpServletResponse httpServletResponse, final String oidcRequestIdentifier, AuthenticationSuccessResponse successfulOidcResponse, boolean isLogin) throws Exception {
+    protected void checkOidcState(HttpServletResponse httpServletResponse, final String oidcRequestIdentifier, AuthenticationSuccessResponse successfulOidcResponse, boolean isLogin) throws Exception {
         // confirm state
         final State state = successfulOidcResponse.getState();
         if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {
@@ -534,11 +521,23 @@ public class OIDCAccessResource extends ApplicationResource {
         }
     }
 
+    private void validateOidcConfiguration() throws AuthenticationNotSupportedException {
+        // only consider user specific access over https
+        if (!httpServletRequest.isSecure()) {
+            throw new AuthenticationNotSupportedException(AccessResource.AUTHENTICATION_NOT_ENABLED_MSG);
+        }
+
+        // ensure OIDC is actually configured/enabled
+        if (!oidcService.isOidcEnabled()) {
+            throw new AuthenticationNotSupportedException(OIDC_IS_NOT_CONFIGURED_MESSAGE);
+        }
+    }
+
     private String getForwardPageTitle(boolean isLogin) {
         return isLogin ? ApplicationResource.LOGIN_ERROR_TITLE : ApplicationResource.LOGOUT_ERROR_TITLE;
     }
 
-    private String getOidcCallback() {
+    protected String getOidcCallback() {
         return generateResourceUri("access", "oidc", "callback");
     }
 
@@ -554,8 +553,8 @@ public class OIDCAccessResource extends ApplicationResource {
         applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER);
     }
 
-    private Optional<String> getOidcRequestIdentifier() {
-        return applicationCookieService.getCookieValue(httpServletRequest, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER);
+    private Optional<String> getOidcRequestIdentifier(final HttpServletRequest request) {
+        return applicationCookieService.getCookieValue(request, ApplicationCookieName.OIDC_REQUEST_IDENTIFIER);
     }
 
     public void setOidcService(OidcService oidcService) {
