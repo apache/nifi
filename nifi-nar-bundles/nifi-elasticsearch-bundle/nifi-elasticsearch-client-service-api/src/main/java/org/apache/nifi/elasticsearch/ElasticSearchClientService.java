@@ -196,6 +196,14 @@ public interface ElasticSearchClientService extends ControllerService {
     UpdateOperationResponse updateByQuery(String query, String index, String type, Map<String, String> requestParameters);
 
     /**
+     * Refresh index/indices.
+     *
+     * @param index The index to target, if omitted then all indices will be updated.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     */
+    void refresh(final String index, final Map<String, String> requestParameters);
+
+    /**
      * Get a document by ID.
      *
      * @param index The index that holds the document.

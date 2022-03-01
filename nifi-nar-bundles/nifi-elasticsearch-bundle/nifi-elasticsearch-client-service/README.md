@@ -43,7 +43,13 @@ mvn -P integration-tests,elasticsearch-oss,elasticsearch-6 clean verify
 
 ### Elasticsearch 7
 
-Test integration with Elasticsearch 7.x:
+[elasticsearch-oss](https://www.elastic.co/downloads/past-releases#elasticsearch-oss) was discontinued after `7.10.2`,
+so the use of `elasticsearch-oss` is unnecessary for newer versions.
+
+For 7.x, we have two separate profiles:
+
+1. `elasticsearch-7` that can be used with `oss` (no X-Pack) and `default` (with X-Pack) flavours
+2. `elasticsearch-7-no-oss` that can only be used with the `default` flavour (using a newer version of [elasticsearch](https://www.elastic.co/downloads/past-releases#elasticsearch))
 
 #### With X-Pack
 
@@ -51,10 +57,20 @@ Allows for testing of some X-Pack only features such as "Point in Time" querying
 
 ```bash
 mvn -P integration-tests,elasticsearch-default,elasticsearch-7 clean verify
+sleep 2
+mvn -P integration-tests,elasticsearch-default,elasticsearch-7-no-oss clean verify
 ```
 
 #### Without X-Pack
 
 ```bash
 mvn -P integration-tests,elasticsearch-oss,elasticsearch-7 clean verify
+```
+
+### Elasticsearch 8
+
+Test integration with Elasticsearch 8.x (with X-Pack):
+
+```bash
+mvn -P integration-tests,elasticsearch-default,elasticsearch-8 clean verify
 ```
