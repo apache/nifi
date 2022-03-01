@@ -83,20 +83,47 @@ div.processor-configuration-warning-icon:before {
     font-size: 16px;
 }
 
-#auto-terminate-relationship-names {
+#auto-action-relationship-names {
     border: 0 solid #CCCCCC;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 2px;
 }
 
+#processor-relationships-tab-content label {
+    color: #775351;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: inherit;
+    line-height: normal;
+}
+
+#processor-relationships-tab-content .yield-radio {
+    margin-left: 24px;
+}
+
+#processor-relationships-tab-content .backoff-policy-setting input,
+#processor-relationships-tab-content .backoff-policy-setting label {
+    display: inline-block;
+}
+
+#processor-relationships-tab-content .dialog-content div.settings-left {
+    margin-right: 24px;
+    width: 44%;
+}
+
+
 div.processor-relationship-container {
-    margin-bottom: 7px;
+    margin-bottom: 16px;
 }
 
 #processor-configuration div.relationship-name {
+    color: #000;
     display: inline-block;
+    font-weight: 400;
     line-height: normal;
+    max-width: 280px;
 }
 
 #run-duration-container {
