@@ -154,10 +154,10 @@ public class TestFlowDifferenceFilters {
     @Test
     public void testFilterPublicPortNameChangeWhenAllowRemoteAccess() {
         final VersionedPort portA = new VersionedPort();
-        portA.setAllowRemoteAccess(true);
+        portA.setAllowRemoteAccess(Boolean.TRUE);
 
         final VersionedPort portB = new VersionedPort();
-        portB.setAllowRemoteAccess(false);
+        portB.setAllowRemoteAccess(Boolean.FALSE);
 
         final StandardFlowDifference flowDifference = new StandardFlowDifference(
                 DifferenceType.NAME_CHANGED,
