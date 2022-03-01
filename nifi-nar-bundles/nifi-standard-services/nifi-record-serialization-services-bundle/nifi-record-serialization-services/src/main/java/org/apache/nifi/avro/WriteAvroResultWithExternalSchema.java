@@ -43,6 +43,7 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
     private final OutputStream buffered;
     private final DatumWriter<GenericRecord> datumWriter;
     private final BlockingQueue<BinaryEncoder> recycleQueue;
+    private boolean closed = false;
 
     public WriteAvroResultWithExternalSchema(final Schema avroSchema, final RecordSchema recordSchema, final SchemaAccessWriter schemaAccessWriter,
                                              final OutputStream out, final BlockingQueue<BinaryEncoder> recycleQueue, final ComponentLog logger) {
@@ -102,6 +103,11 @@ public class WriteAvroResultWithExternalSchema extends AbstractRecordSetWriter {
 
     @Override
     public void close() throws IOException {
+        if (closed) {
+            return;
+        }
+        closed = true;
+
         if (encoder != null) {
             flush();
             recycleQueue.offer(encoder);
