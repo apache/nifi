@@ -28,6 +28,7 @@
     <properties>
         <!-- use with integration-tests only -->
         <es.int.version>5.6.16</es.int.version>
+        <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
         <es.int.script.name>setup-5.script</es.int.script.name>
         <es.int.type.name>faketype</es.int.type.name>
         <es.int.path.conf>src/test/resources/conf-5/</es.int.path.conf>
@@ -214,11 +215,6 @@
                             <!-- use 3.0.0-M3 due to a classpath/class loader issue in -M5, expected to be fixed in M6+ -->
                             <version>3.0.0-M3</version>
                         </plugin>
-                        <plugin>
-                            <groupId>com.github.alexcojocaru</groupId>
-                            <artifactId>elasticsearch-maven-plugin</artifactId>
-                            <version>6.19</version>
-                        </plugin>
                     </plugins>
                 </pluginManagement>
             </build>
@@ -231,7 +227,8 @@
                 <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
-                <es.int.version>6.8.19</es.int.version>
+                <es.int.version>6.8.23</es.int.version>
+                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
                 <es.int.type.name>_doc</es.int.type.name>
                 <es.int.script.name>setup-6.script</es.int.script.name>
                 <es.int.path.conf />
@@ -245,14 +242,43 @@
             </activation>
             <properties>
                 <es.int.version>7.10.2</es.int.version>
+                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
                 <es.int.script.name>setup-7.script</es.int.script.name>
+                <es.int.type.name />
+                <es.int.path.conf />
+            </properties>
+        </profile>
+        <profile>
+            <!-- use with elasticsearch-default -->
+            <id>elasticsearch-7-no-oss</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>7.17.1</es.int.version>
+                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
+                <es.int.script.name>setup-7.script</es.int.script.name>
+                <es.int.type.name />
+                <es.int.path.conf />
+            </properties>
+        </profile>
+        <profile>
+            <!-- use with elasticsearch-default -->
+            <id>elasticsearch-8</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <es.int.version>8.0.1</es.int.version>
+                <alexcojocaru.plugin.version>6.20</alexcojocaru.plugin.version>
+                <es.int.script.name>setup-8.script</es.int.script.name>
                 <es.int.type.name />
                 <es.int.path.conf />
             </properties>
         </profile>
 
         <profile>
-            <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3-->
+            <!-- OSS Elasticsearch (no XPack features); required for ES 5.x or < 6.3 and option for 7.x up to 7.10.2 -->
             <id>elasticsearch-oss</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -273,6 +299,7 @@
                     <plugin>
                         <groupId>com.github.alexcojocaru</groupId>
                         <artifactId>elasticsearch-maven-plugin</artifactId>
+                        <version>${alexcojocaru.plugin.version}</version>
                         <configuration>
                             <clusterName>${es.int.clusterName}</clusterName>
                             <transportPort>${es.int.transportPort}</transportPort>
@@ -280,7 +307,7 @@
                             <version>${es.int.version}</version>
                             <timeout>${es.int.timeout}</timeout>
                             <logLevel>${es.int.logLevel}</logLevel>
-                            <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
                             <keepExistingData>false</keepExistingData>
                             <pathConf>${es.int.path.conf}</pathConf>
                         </configuration>
@@ -306,7 +333,7 @@
         </profile>
 
         <profile>
-            <!-- Elasticsearch (default) with XPack (only for ES 6.3+ although there are XPack permission problems in 6.x startup) -->
+            <!-- Elasticsearch (default) with XPack (only for ES 6.3+ & 7.x although there are XPack permission problems in 6.x startup) -->
             <id>elasticsearch-default</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -327,6 +354,7 @@
                     <plugin>
                         <groupId>com.github.alexcojocaru</groupId>
                         <artifactId>elasticsearch-maven-plugin</artifactId>
+                        <version>${alexcojocaru.plugin.version}</version>
                         <configuration>
                             <flavour>default</flavour>
                             <clusterName>${es.int.clusterName}</clusterName>
@@ -335,7 +363,7 @@
                             <version>${es.int.version}</version>
                             <timeout>${es.int.timeout}</timeout>
                             <logLevel>${es.int.logLevel}</logLevel>
-                            <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
+			                <pathInitScript>${project.basedir}/src/test/resources/${es.int.script.name}</pathInitScript>
                             <keepExistingData>false</keepExistingData>
                         </configuration>
                         <executions>

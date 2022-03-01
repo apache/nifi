@@ -389,7 +389,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         return new DeleteOperationResponse(watch.getDuration(TimeUnit.MILLISECONDS));
     }
 
-
+    @Override
     public UpdateOperationResponse updateByQuery(final String query, final String index, final String type, final Map<String, String> requestParameters) {
         final long start = System.currentTimeMillis();
         final Response response = runQuery("_update_by_query", query, index, type, requestParameters);
@@ -399,6 +399,21 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         parseResponse(response);
 
         return new UpdateOperationResponse(end - start);
+    }
+
+    @Override
+    public void refresh(final String index, final Map<String, String> requestParameters) {
+        try {
+            final StringBuilder endpoint = new StringBuilder();
+            if (StringUtils.isNotBlank(index) && !"/".equals(index)) {
+                endpoint.append(index);
+            }
+            endpoint.append("/_refresh");
+            final Response response = performRequest("POST", endpoint.toString(), requestParameters, null);
+            parseResponseWarningHeaders(response);
+        } catch (final Exception ex) {
+            throw new ElasticsearchException(ex);
+        }
     }
 
     @SuppressWarnings("unchecked")
