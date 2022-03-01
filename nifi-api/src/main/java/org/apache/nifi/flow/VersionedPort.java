@@ -23,7 +23,7 @@ public class VersionedPort extends VersionedComponent {
     private PortType type;
     private Integer concurrentlySchedulableTaskCount;
     private ScheduledState scheduledState;
-    private boolean allowRemoteAccess;
+    private Boolean allowRemoteAccess;
 
     @ApiModelProperty("The number of tasks that should be concurrently scheduled for the port.")
     public Integer getConcurrentlySchedulableTaskCount() {
@@ -53,11 +53,11 @@ public class VersionedPort extends VersionedComponent {
     }
 
     @ApiModelProperty("Whether or not this port allows remote access for site-to-site")
-    public boolean isAllowRemoteAccess() {
-        return allowRemoteAccess;
+    public Boolean isAllowRemoteAccess() {
+        return ((allowRemoteAccess != null) && allowRemoteAccess);
     }
 
-    public void setAllowRemoteAccess(boolean allowRemoteAccess) {
+    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
         this.allowRemoteAccess = allowRemoteAccess;
     }
 
