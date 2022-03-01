@@ -609,23 +609,48 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     for (final PropertyDependency dependency : dependencies) {
                         final Set<String> dependentValues = dependency.getDependentValues();
                         final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyDisplayName() + "> Property ";
-                        final String suffix;
+                        String suffix = "";
                         if (dependentValues == null) {
                             suffix = "has a value specified.";
-                        } else if (dependentValues.size() == 1) {
-                            final String requiredValue = dependentValues.iterator().next();
-                            suffix = "has a value of \"" + requiredValue + "\".";
                         } else {
-                            final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
-
-                            for (final String dependentValue : dependentValues) {
-                                sb.append("\"").append(dependentValue).append("\", ");
+                            PropertyDescriptor dependencyProperty = null;
+                            for (PropertyDescriptor prop : properties) {
+                                if (prop.getName().equals(dependency.getPropertyName())) {
+                                    dependencyProperty = prop;
+                                    break;
+                                }
                             }
+                            if (null == dependencyProperty) {
+                                throw new XMLStreamException("No property was found matching the name '" + dependency.getPropertyName() + "'");
+                            }
+                            if (dependentValues.size() == 1) {
+                                final String requiredValue = dependentValues.iterator().next();
+                                final List<AllowableValue> allowableValues = dependencyProperty.getAllowableValues();
+                                if (allowableValues != null) {
+                                    for (AllowableValue av : allowableValues) {
+                                        if (requiredValue.equals(av.getValue())) {
+                                            suffix = "has a value of \"" + av.getDisplayName() + "\".";
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
 
-                            // Delete the trailing ", "
-                            sb.setLength(sb.length() - 2);
+                                for (final String dependentValue : dependentValues) {
+                                    for (AllowableValue av : dependencyProperty.getAllowableValues()) {
+                                        if (dependentValue.equals(av.getValue())) {
+                                            sb.append("\"").append(av.getDisplayName()).append("\", ");
+                                            break;
+                                        }
+                                    }
+                                }
 
-                            suffix = sb.toString();
+                                // Delete the trailing ", "
+                                sb.setLength(sb.length() - 2);
+
+                                suffix = sb.toString();
+                            }
                         }
 
                         final String elementName = dependencies.size() > 1 ? "li" : "strong";
