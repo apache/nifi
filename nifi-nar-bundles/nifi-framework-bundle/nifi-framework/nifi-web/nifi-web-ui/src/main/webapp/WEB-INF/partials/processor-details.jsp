@@ -80,17 +80,6 @@
                     </div>
                 </div>
                 <div class="spacer">&nbsp;</div>
-                <div class="settings-right">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Automatically terminate relationships
-                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate FlowFiles sent to all relationships in bold."></div>
-                        </div>
-                        <div class="setting-field">
-                            <div id="read-only-auto-terminate-relationship-names"></div>
-                        </div>
-                    </div>
-                </div>
             </div>
             <div id="details-scheduling-tab-content" class="details-tab">
                 <div class="settings-left">
@@ -155,6 +144,52 @@
             </div>
             <div id="details-processor-properties-tab-content" class="details-tab">
                 <div id="read-only-processor-properties"></div>
+            </div>
+            <div id="details-processor-relationships-tab-content" class="configuration-tab">
+                <div class="settings-left">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Automatically terminate / retry relationships
+                            <div class="fa fa-question-circle" alt="Info" title="Will automatically terminate and/or retry FlowFiles sent to a given relationship if it is not defined elsewhere. If both terminate and retry are selected, any retry logic will happen first, then auto-termination."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="read-only-auto-action-relationship-names"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="settings-right">
+                    <div class="details-retry-count-setting setting">
+                        <div class="setting-name">
+                            Number of Retry Attempts
+                            <div class="fa fa-question-circle" alt="Info" title="For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere."></div>
+                        </div>
+                        <div class="setting-field">
+                            <span type="text" id="details-retry-attempt-count" class="small-setting-input"></span>
+                        </div>
+                    </div>
+                    <div class="details-backoff-policy-setting setting">
+                        <div class="setting-name">
+                            Retry Back Off Policy
+                            <div class="fa fa-question-circle" alt="Info" title="Penalize: Retry attempts will occur in time, but the processor will continue to process other FlowFiles.&#013;&#013;Yield: No other FlowFile processing will occur until all retry attempts have been made."></div>
+                        </div>
+                        <fieldset class="setting-field" disabled>
+                            <input type="radio" id="penalizeFlowFile" name="backoffPolicy" value="PENALIZE_FLOWFILE">
+                            <label for="penalizeFlowFile">Penalize</label>
+
+                            <input type="radio" class="yield-radio" id="yieldEntireProcessor" name="backoffPolicy" value="YIELD_PROCESSOR">
+                            <label for="yieldEntireProcessor">Yield</label>
+                        </fieldset>
+                    </div>
+                    <div class="details-max-backoff-setting setting">
+                        <div class="setting-name">
+                            Retry Maximum Back Off Period
+                            <div class="fa fa-question-circle" alt="Info" title="Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs."></div>
+                        </div>
+                        <div class="setting-field">
+                            <span type="text" id="details-max-backoff-period" class="small-setting-input">
+                        </div>
+                    </div>
+                </div>
             </div>
             <div id="details-processor-comments-tab-content" class="details-tab">
                 <div class="setting">
