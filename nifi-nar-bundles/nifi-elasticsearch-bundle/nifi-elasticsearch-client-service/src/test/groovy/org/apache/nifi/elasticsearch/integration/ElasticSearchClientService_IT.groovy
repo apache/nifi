@@ -58,6 +58,7 @@ class ElasticSearchClientService_IT {
 
     static final ComparableVersion VERSION = new ComparableVersion(System.getProperty("es_version", "0.0.0"))
     static final ComparableVersion ES_7_10 = new ComparableVersion("7.10")
+    static final ComparableVersion ES_8_0 = new ComparableVersion("8.0")
 
     static final String FLAVOUR = System.getProperty("es_flavour")
     static final String DEFAULT = "default"
@@ -117,6 +118,8 @@ class ElasticSearchClientService_IT {
             ex.printStackTrace()
             throw ex
         }
+
+        service.refresh(null, null);
     }
 
     @After
@@ -223,9 +226,13 @@ class ElasticSearchClientService_IT {
 
     @Test
     void testSearchWarnings() {
+        Assume.assumeTrue("Requires version <8.0 (no search API deprecations yet for 8.x)", VERSION < ES_8_0)
+
         String query
         String type = TYPE
-        if (VERSION.toString().startsWith("7.")) {
+        if (VERSION.toString().startsWith("8.")) {
+            // TODO: something that's deprecated when the 8.x branch progresses to include search-API deprecations
+        } else if (VERSION.toString().startsWith("7.")) {
             // querying with _type in ES 7.x is deprecated
             query = prettyPrint(toJson([size: 1, query: [match_all: [:]]]))
             type = "a-type"

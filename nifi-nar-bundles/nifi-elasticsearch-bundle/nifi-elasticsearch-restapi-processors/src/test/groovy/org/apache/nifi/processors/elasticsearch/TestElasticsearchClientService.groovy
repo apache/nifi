@@ -98,6 +98,10 @@ class TestElasticsearchClientService extends AbstractControllerService implement
     }
 
     @Override
+    void refresh(final String index, final Map<String, String> requestParameters) {
+    }
+
+    @Override
     Map<String, Object> get(String index, String type, String id, Map<String, String> requestParameters) {
         common(throwErrorInGet || throwNotFoundInGet, requestParameters)
         return [ "msg": "one" ]
