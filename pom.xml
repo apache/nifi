@@ -105,7 +105,7 @@
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <org.slf4j.version>1.7.35</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.45.v20220203</jetty.version>
         <jackson.version>2.13.1</jackson.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
