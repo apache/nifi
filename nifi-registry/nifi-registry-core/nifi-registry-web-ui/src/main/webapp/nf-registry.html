@@ -80,7 +80,7 @@ limitations under the License.
                 <a matTooltip="Help" href="{{nfRegistryService.documentation.link}}" target="_blank"><i class="fa fa-question-circle help-icon" aria-hidden="true"></i></a>
             </div>
             <button matTooltip="About" mat-ripple class="pad-right-sm"
-                    (click)="showAboutDialog()"mat-icon-button>
+                    (click)="showAboutDialog()" mat-icon-button>
                 <i class="fa fa-info help-icon" aria-hidden="true"></i>
             </button>
             <button matTooltip="Settings" mat-ripple *ngIf="nfRegistryService.currentUser.resourcePermissions.anyTopLevelResource.canRead && nfRegistryService.perspective === 'explorer'" mat-icon-button

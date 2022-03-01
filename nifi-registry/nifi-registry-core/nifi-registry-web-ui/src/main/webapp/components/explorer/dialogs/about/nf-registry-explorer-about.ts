@@ -16,7 +16,7 @@
  */
 
 import { Component, Inject } from '@angular/core';
-import { MatDialog, MAT_DIALOG_DATA } from '@angular/material/dialog'
+import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 
 export interface DialogData {
     registryAboutVersion: string
@@ -30,7 +30,7 @@ export class NfRegistryExplorerAbout {
     /**
      * NfRegistryExplorerAbout constructor.
      *
-     * @param DialogData - The data to be injected into the dialog
+     * @param data - The data to be injected into the dialog
      */
     constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) { }
 }
