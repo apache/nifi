@@ -92,26 +92,26 @@ import static org.apache.commons.codec.binary.StringUtils.getBytesUtf8;
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @SystemResourceConsideration(resource = SystemResource.MEMORY,
-    description = "The HashSet filter type will grow memory space proportionate to the number of unique records processed. " +
-        "The BloomFilter type will use constant memory regardless of the number of records processed.")
+        description = "The HashSet filter type will grow memory space proportionate to the number of unique records processed. " +
+                "The BloomFilter type will use constant memory regardless of the number of records processed.")
 @SystemResourceConsideration(resource = SystemResource.CPU,
-    description =  "If a more advanced hash algorithm is chosen, the amount of time required to hash any particular " +
-            "record could increase substantially."
+        description = "If a more advanced hash algorithm is chosen, the amount of time required to hash any particular " +
+                "record could increase substantially."
 )
 @Tags({"text", "record", "update", "change", "replace", "modify", "distinct", "unique",
-    "filter", "hash", "dupe", "duplicate", "dedupe"})
+        "filter", "hash", "dupe", "duplicate", "dedupe"})
 @CapabilityDescription("This processor attempts to deduplicate a record set in memory using either a hashset or a bloom filter. " +
         "It operates on a per-file basis rather than across an entire data set that spans multiple files.")
 @WritesAttribute(attribute = "record.count", description = "The number of records processed.")
 @DynamicProperty(
-    name = "RecordPath",
-    value = "An expression language statement used to determine how the RecordPath is resolved. " +
-            "The following variables are availible: ${field.name}, ${field.value}, ${field.type}",
-    description = "The name of each user-defined property must be a valid RecordPath.")
+        name = "RecordPath",
+        value = "An expression language statement used to determine how the RecordPath is resolved. " +
+                "The following variables are availible: ${field.name}, ${field.value}, ${field.type}",
+        description = "The name of each user-defined property must be a valid RecordPath.")
 @SeeAlso(classNames = {
-    "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService",
-    "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
-    "org.apache.nifi.processors.standard.DetectDuplicate"
+        "org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService",
+        "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+        "org.apache.nifi.processors.standard.DetectDuplicate"
 })
 public class DeduplicateRecords extends AbstractProcessor {
     public static final char JOIN_CHAR = '~';
@@ -227,7 +227,10 @@ public class DeduplicateRecords extends AbstractProcessor {
     static final PropertyDescriptor FILTER_TYPE = new PropertyDescriptor.Builder()
             .name("filter-type")
             .displayName("Filter Type")
-            .description("The filter used to determine whether a record has been seen before based on the matching RecordPath criteria.")
+            .description("The filter used to determine whether a record has been seen before based on the matching RecordPath " +
+                    "criteria. If hash set is selected, a Java HashSet object will be used to deduplicate all encountered " +
+                    "records. If the bloom filter option is selected, a bloom filter will be used. The bloom filter option is " +
+                    "less memory intensive, but has a chance of having false positives.")
             .allowableValues(
                     HASH_SET_VALUE,
                     BLOOM_FILTER_VALUE
@@ -409,12 +412,12 @@ public class DeduplicateRecords extends AbstractProcessor {
                     .equals(context.getProperty(HASH_SET_VALUE.getValue()));
             final int filterCapacity = context.getProperty(FILTER_CAPACITY_HINT).asInteger();
             return useHashSet
-                ? new HashSetFilterWrapper(new HashSet<>(filterCapacity))
-                : new BloomFilterWrapper(BloomFilter.create(
+                    ? new HashSetFilterWrapper(new HashSet<>(filterCapacity))
+                    : new BloomFilterWrapper(BloomFilter.create(
                     Funnels.stringFunnel(Charset.defaultCharset()),
                     filterCapacity,
                     context.getProperty(BLOOM_FILTER_FPP).asDouble()
-                ));
+            ));
         } else {
             return new DistributedMapCacheClientWrapper(mapCacheClient);
         }
@@ -434,7 +437,22 @@ public class DeduplicateRecords extends AbstractProcessor {
 
         long index = 0;
 
-        try {
+        WriteResult nonDuplicatesWriteResult = null;
+        WriteResult duplicatesWriteResult = null;
+        String duplicateMimeType = null;
+        String nonDuplicateMimeType = null;
+
+        boolean error = false;
+        try (
+                final InputStream inputStream = session.read(flowFile);
+                final RecordReader reader = readerFactory.createRecordReader(flowFile, inputStream, logger);
+                final OutputStream nonDupeStream = session.write(nonDuplicatesFlowFile);
+                final OutputStream dupeStream = session.write(duplicatesFlowFile);
+                final RecordSetWriter nonDuplicatesWriter = writerFactory
+                        .createWriter(getLogger(), writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema()), nonDupeStream, nonDuplicatesFlowFile);
+                final RecordSetWriter duplicatesWriter = writerFactory
+                        .createWriter(getLogger(), writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema()), dupeStream, duplicatesFlowFile);
+        ) {
             final FilterWrapper filter = getFilter(context);
 
             final String recordHashingAlgorithm = context.getProperty(RECORD_HASHING_ALGORITHM).getValue();
@@ -442,18 +460,6 @@ public class DeduplicateRecords extends AbstractProcessor {
                     ? null
                     : DigestUtils.getDigest(recordHashingAlgorithm);
             final Boolean matchWholeRecord = context.getProperties().keySet().stream().noneMatch(p -> p.isDynamic());
-
-            final InputStream inputStream = session.read(flowFile);
-
-            final RecordReader reader = readerFactory.createRecordReader(flowFile, inputStream, logger);
-
-            final RecordSchema writeSchema = writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema());
-
-            final OutputStream nonDupeStream = session.write(nonDuplicatesFlowFile);
-            final OutputStream dupeStream = session.write(duplicatesFlowFile);
-
-            final RecordSetWriter nonDuplicatesWriter = writerFactory.createWriter(getLogger(), writeSchema, nonDupeStream, nonDuplicatesFlowFile);
-            final RecordSetWriter duplicatesWriter = writerFactory.createWriter(getLogger(), writeSchema, dupeStream, duplicatesFlowFile);
 
             nonDuplicatesWriter.beginRecordSet();
             duplicatesWriter.beginRecordSet();
@@ -497,36 +503,35 @@ public class DeduplicateRecords extends AbstractProcessor {
                 index++;
             }
 
+            duplicateMimeType = duplicatesWriter.getMimeType();
+            nonDuplicateMimeType = nonDuplicatesWriter.getMimeType();
             // Route Non-Duplicates FlowFile
-            final WriteResult nonDuplicatesWriteResult = nonDuplicatesWriter.finishRecordSet();
+            nonDuplicatesWriteResult = nonDuplicatesWriter.finishRecordSet();
             // Route Duplicates FlowFile
-            final WriteResult duplicatesWriteResult = duplicatesWriter.finishRecordSet();
-
-            reader.close();
-            inputStream.close();
-            nonDuplicatesWriter.close();
-            nonDupeStream.close();
-            duplicatesWriter.close();
-            dupeStream.close();
-
-            final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean();
-
-            session.adjustCounter("Records Processed",
-                    nonDuplicatesWriteResult.getRecordCount() + duplicatesWriteResult.getRecordCount(), false);
-
-            sendOrRemove(session, duplicatesFlowFile, REL_DUPLICATE, duplicatesWriter.getMimeType(),
-                    includeZeroRecordFlowFiles, duplicatesWriteResult);
-
-            sendOrRemove(session, nonDuplicatesFlowFile, REL_NON_DUPLICATE, nonDuplicatesWriter.getMimeType(),
-                    includeZeroRecordFlowFiles, nonDuplicatesWriteResult);
-
-            session.transfer(flowFile, REL_ORIGINAL);
+            duplicatesWriteResult = duplicatesWriter.finishRecordSet();
 
         } catch (final Exception e) {
             logger.error("Failed in detecting duplicate records at index " + index, e);
-            session.remove(duplicatesFlowFile);
-            session.remove(nonDuplicatesFlowFile);
-            session.transfer(flowFile, REL_FAILURE);
+            error = true;
+        } finally {
+            if (!error) {
+                final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean();
+
+                session.adjustCounter("Records Processed",
+                        nonDuplicatesWriteResult.getRecordCount() + duplicatesWriteResult.getRecordCount(), false);
+
+                sendOrRemove(session, duplicatesFlowFile, REL_DUPLICATE, duplicateMimeType,
+                        includeZeroRecordFlowFiles, duplicatesWriteResult);
+
+                sendOrRemove(session, nonDuplicatesFlowFile, REL_NON_DUPLICATE, nonDuplicateMimeType,
+                        includeZeroRecordFlowFiles, nonDuplicatesWriteResult);
+
+                session.transfer(flowFile, REL_ORIGINAL);
+            } else {
+                session.remove(duplicatesFlowFile);
+                session.remove(nonDuplicatesFlowFile);
+                session.transfer(flowFile, REL_FAILURE);
+            }
         }
     }
 
@@ -536,7 +541,7 @@ public class DeduplicateRecords extends AbstractProcessor {
                               String mimeType,
                               boolean includeZeroRecordFlowFiles,
                               WriteResult writeResult) {
-        if(!includeZeroRecordFlowFiles && writeResult.getRecordCount() == 0) {
+        if (!includeZeroRecordFlowFiles && writeResult.getRecordCount() == 0) {
             session.remove(outputFlowFile);
         } else {
             Map<String, String> attributes = new HashMap<>();
@@ -586,13 +591,15 @@ public class DeduplicateRecords extends AbstractProcessor {
 
     private abstract static class FilterWrapper {
         public static FilterWrapper create(Object filter) {
-            if(filter instanceof HashSet) {
+            if (filter instanceof HashSet) {
                 return new HashSetFilterWrapper((HashSet<String>) filter);
             } else {
                 return new BloomFilterWrapper((BloomFilter<String>) filter);
             }
         }
+
         public abstract boolean contains(String value);
+
         public abstract void put(String value);
     }
 
@@ -660,7 +667,7 @@ public class DeduplicateRecords extends AbstractProcessor {
     }
 
     private static final Serializer<String> STRING_SERIALIZER = (value, output) -> output.write(value.getBytes(StandardCharsets.UTF_8));
-    private static final Serializer<Boolean> BOOLEAN_SERIALIZER = (value, output) -> output.write((byte)(value ? 1 : 0));
+    private static final Serializer<Boolean> BOOLEAN_SERIALIZER = (value, output) -> output.write((byte) (value ? 1 : 0));
 
     private static class CacheValue implements Serializable {
 
