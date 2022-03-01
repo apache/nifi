@@ -78,7 +78,7 @@
 
         // build the retry checkbox element
         var retryCheckbox = $('<div class="processor-retry-relationship nf-checkbox disabled"></div>');
-        var retryLabel = $('<div class="retry-name nf-checkbox-label ellipsis"></div>').text('retry');
+        var retryLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('retry');
         if (relationship.retry === true) {
             retryCheckbox.addClass('checkbox-checked');
         } else {
@@ -137,12 +137,6 @@
                     if ($(this).text() === 'Properties') {
                         $('#read-only-processor-properties').propertytable('resetTableSize');
                     }
-
-                    // show the border if processor relationship names if necessary
-                    var processorRelationships = $('#read-only-auto-action-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
                 }
             });
 
@@ -153,7 +147,7 @@
                 handler: {
                     close: function () {
                         // empty the relationship list
-                        $('#read-only-auto-action-relationship-names').css('border-width', '0').empty();
+                        $('#read-only-auto-action-relationship-names').empty();
 
                         // clear the property grid
                         $('#read-only-processor-properties').propertytable('clear');
@@ -445,12 +439,6 @@
 
                 // add ellipsis if necessary
                 $('#processor-details div.relationship-name').ellipsis();
-
-                // show the border if necessary
-                var processorRelationships = $('#read-only-auto-action-relationship-names');
-                if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                    processorRelationships.css('border-width', '1px');
-                }
             }).fail(nfErrorHandler.handleAjaxError);
         }
     };

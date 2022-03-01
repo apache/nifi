@@ -176,7 +176,7 @@
 
         // build the retry checkbox element
         var retryCheckbox = $('<div class="processor-retry-relationship nf-checkbox"></div>');
-        var retryLabel = $('<div class="retry-name nf-checkbox-label ellipsis"></div>').text('retry');
+        var retryLabel = $('<div class="relationship-name nf-checkbox-label ellipsis"></div>').text('retry');
         if (relationship.retry === true) {
             retryCheckbox.addClass('checkbox-checked');
         } else {
@@ -616,12 +616,6 @@
 
                     // close all fields currently being edited
                     $('#processor-properties').propertytable('saveRow');
-
-                    // show the border around the processor relationships if necessary
-                    var processorRelationships = $('#auto-action-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
                 }
             });
 
@@ -632,7 +626,7 @@
                 handler: {
                     close: function () {
                         // empty the relationship list
-                        $('#auto-action-relationship-names').css('border-width', '0').empty();
+                        $('#auto-action-relationship-names').empty();
 
                         // cancel any active edits and clear the table
                         $('#processor-properties').propertytable('cancelEdit').propertytable('clear');
@@ -1110,12 +1104,6 @@
 
                     // add ellipsis if necessary
                     $('#processor-configuration div.relationship-name').ellipsis();
-
-                    // show the border if necessary
-                    var processorRelationships = $('#auto-action-relationship-names');
-                    if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > Math.round(processorRelationships.innerHeight())) {
-                        processorRelationships.css('border-width', '1px');
-                    }
 
                     // Ensure the properties table has rendered correctly if initially selected
                     if ($('#processor-configuration-tabs').find('.selected-tab').text() === 'Properties') {
