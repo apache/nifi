@@ -494,15 +494,20 @@ public class DeduplicateRecords extends AbstractProcessor {
                     recordHash = fieldValue.getValue().toString();
                 }
 
-                if(filter.contains(recordHash)) {
+                if (filter.contains(recordHash)) {
                     duplicatesWriter.write(record);
                 } else {
                     nonDuplicatesWriter.write(record);
+                    filter.put(recordHash);
                 }
 
-                filter.put(recordHash);
                 index++;
             }
+
+            // Route Non-Duplicates FlowFile
+            final WriteResult nonDuplicatesWriteResult = nonDuplicatesWriter.finishRecordSet();
+            // Route Duplicates FlowFile
+            final WriteResult duplicatesWriteResult = duplicatesWriter.finishRecordSet();
 
             reader.close();
             inputStream.close();
@@ -512,11 +517,6 @@ public class DeduplicateRecords extends AbstractProcessor {
             dupeStream.close();
 
             final boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean();
-
-            // Route Non-Duplicates FlowFile
-            final WriteResult nonDuplicatesWriteResult = nonDuplicatesWriter.finishRecordSet();
-            // Route Duplicates FlowFile
-            final WriteResult duplicatesWriteResult = duplicatesWriter.finishRecordSet();
 
             session.adjustCounter("Records Processed",
                     nonDuplicatesWriteResult.getRecordCount() + duplicatesWriteResult.getRecordCount(), false);
@@ -551,7 +551,10 @@ public class DeduplicateRecords extends AbstractProcessor {
             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
             attributes.put(CoreAttributes.MIME_TYPE.key(), mimeType);
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
-            getLogger().info("Successfully found {} unique records for {}", new Object[] {writeResult.getRecordCount(), outputFlowFile});
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug("Successfully found {} unique records for {}",
+                        new Object[]{writeResult.getRecordCount(), outputFlowFile});
+            }
 
             session.transfer(outputFlowFile, targetRelationship);
         }

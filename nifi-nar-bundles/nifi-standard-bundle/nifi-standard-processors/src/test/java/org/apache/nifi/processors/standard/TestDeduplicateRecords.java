@@ -77,8 +77,6 @@ public class TestDeduplicateRecords {
         // INCLUDE_ZERO_RECORD_FLOWFILES
         runner.setProperty(DeduplicateRecords.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
 
-        // CACHE_ENTRY_IDENTIFIER
-
         runner.assertValid();
     }
 
