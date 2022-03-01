@@ -142,7 +142,7 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
-        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE));
+        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -155,14 +155,14 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_UNPROCESSED, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_UNPROCESSED).get(0);
-        Assertions.assertEquals("1", flowFile.getAttribute(PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE));
+        Assertions.assertEquals("1", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
     public void testRetryAfterUnprocessed() throws Exception {
         final TestRunner runner = getTestRunner();
 
-        runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"), Collections.singletonMap(PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE, "1"));
+        runner.enqueue(new FileInputStream("src/test/resources/dynamodb/multipleChunks.json"), Collections.singletonMap(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, "1"));
         runner.run();
 
         Assertions.assertEquals(1, captor.getAllValues().size());
@@ -170,7 +170,7 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_SUCCESS, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_SUCCESS).get(0);
-        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE));
+        Assertions.assertEquals("2", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
@@ -183,14 +183,14 @@ public class PutDynamoDBRecordTest {
 
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDynamoDBRecord.REL_FAILURE).get(0);
-        Assertions.assertEquals("0", flowFile.getAttribute(PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE));
+        Assertions.assertEquals("0", flowFile.getAttribute(PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE));
     }
 
     @Test
     public void testGeneratedPartitionKey() throws Exception {
         final TestRunner runner = getTestRunner();
-        runner.setProperty(PutDynamoDBRecord.PARTITION_STRATEGY, PutDynamoDBRecord.PARTITION_GENERATED);
-        runner.setProperty(PutDynamoDBRecord.PARTITION_FIELD, "generated");
+        runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_STRATEGY, PutDynamoDBRecord.PARTITION_GENERATED);
+        runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "generated");
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
@@ -228,7 +228,7 @@ public class PutDynamoDBRecordTest {
     @Test
     public void testPartitionFieldIsMissing() throws Exception {
         final TestRunner runner = getTestRunner();
-        runner.setProperty(PutDynamoDBRecord.PARTITION_FIELD, "unknownField");
+        runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "unknownField");
 
         runner.enqueue(new FileInputStream("src/test/resources/dynamodb/singleInput.json"));
         runner.run();
@@ -273,8 +273,8 @@ public class PutDynamoDBRecordTest {
         runner.setProperty(PutDynamoDBRecord.RECORD_READER, "recordReader");
         runner.setProperty(PutDynamoDBRecord.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentialProviderService");
         runner.setProperty(PutDynamoDBRecord.TABLE, TABLE_NAME);
-        runner.setProperty(PutDynamoDBRecord.PARTITION_STRATEGY, PutDynamoDBRecord.PARTITION_BY_FIELD);
-        runner.setProperty(PutDynamoDBRecord.PARTITION_FIELD, "partition");
+        runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_STRATEGY, PutDynamoDBRecord.PARTITION_BY_FIELD);
+        runner.setProperty(PutDynamoDBRecord.PARTITION_KEY_FIELD, "partition");
         runner.setProperty(PutDynamoDBRecord.SORT_KEY_FIELD, PutDynamoDBRecord.SORT_NONE);
         return runner;
     }

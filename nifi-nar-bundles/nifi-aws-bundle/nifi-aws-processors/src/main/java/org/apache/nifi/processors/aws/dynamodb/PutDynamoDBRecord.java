@@ -42,6 +42,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SplitRecordSetHandler;
@@ -67,21 +68,21 @@ import java.util.UUID;
         "with the necessary attribute to retry later without duplicating the already executed inserts."
 )
 @WritesAttributes({
-        @WritesAttribute(attribute = PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "Dynamo db unprocessed keys"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "Dynamod db range key error"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "Dynamo db key not found"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "Dynamo db exception message"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "Dynamo db error code"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "Dynamo db error message"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "Dynamo db error type"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "Dynamo db error service"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "Dynamo db error is retryable"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "Dynamo db error request id"),
-        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "Dynamo db error status code"),
+        @WritesAttribute(attribute = PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_UNPROCESSED, description = "DynamoDB unprocessed keys"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_RANGE_KEY_VALUE_ERROR, description = "DynamoDB range key error"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_KEY_ERROR_NOT_FOUND, description = "DynamoDB key not found"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_EXCEPTION_MESSAGE, description = "DynamoDB exception message"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_CODE, description = "DynamoDB error code"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_MESSAGE, description = "DynamoDB error message"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_TYPE, description = "DynamoDB error type"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_SERVICE, description = "DynamoDB error service"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE, description = "DynamoDB error is retryable"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_REQUEST_ID, description = "DynamoDB error request id"),
+        @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "DynamoDB error status code"),
         @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_IO_ERROR, description = "IO exception message on creating item")
 })
-@ReadsAttribute(attribute = PutDynamoDBRecord.CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0")
+@ReadsAttribute(attribute = PutDynamoDBRecord.DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, description = "Number of chunks successfully inserted into DynamoDB. If not set, it is considered as 0")
 @SystemResourceConsiderations({
         @SystemResourceConsideration(resource = SystemResource.MEMORY),
         @SystemResourceConsideration(resource = SystemResource.NETWORK)
@@ -94,23 +95,22 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
      */
     private static final int MAXIMUM_CHUNK_SIZE = 25;
 
-    static final String CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";
+    static final String DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";
 
-    static final AllowableValue PARTITION_BY_FIELD = new AllowableValue("by-field", "Partition by field",
-            "Uses the value of the Record field identified by the \"Partition Field\" property as partition field.");
-    static final AllowableValue PARTITION_BY_ATTRIBUTE = new AllowableValue("by-attribute", "Partition by attribute",
-            "Uses an incoming FlowFile attribute identified by \"Partition Attribute\" as the value of the partition key and the value of the \"Partition Field\" as field name " +
-            "The incoming Records must not contain field with the same name defined by the \"Partition Field\". " +
-            "With this strategy, it is recommended to use sort key as without sort key DynamoDB will not allow multiple Items with the same partition value.");
-    static final AllowableValue PARTITION_GENERATED = new AllowableValue("generated", "Generated",
-            "The processor will use the value of \"Partition Field\" property for name and a generated UUID as value for the partition key.");
+    static final AllowableValue PARTITION_BY_FIELD = new AllowableValue("ByField", "Partition By Field",
+            "Uses the value of the Record field identified by the \"Partition Field\" property as partition key value.");
+    static final AllowableValue PARTITION_BY_ATTRIBUTE = new AllowableValue("ByAttribute", "Partition By Attribute",
+            "Uses an incoming FlowFile attribute identified by \"Partition Attribute\" as the value of the partition key. " +
+            "The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
+    static final AllowableValue PARTITION_GENERATED = new AllowableValue("Generated", "Generated UUID",
+            "Uses a generated UUID as value for the partition key. The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
 
-    static final AllowableValue SORT_NONE = new AllowableValue("none", "None",
+    static final AllowableValue SORT_NONE = new AllowableValue("None", "None",
             "The processor will not assign sort key to the inserted Items.");
-    static final AllowableValue SORT_BY_FIELD = new AllowableValue("by-field", "Sort by field",
-            "With this strategy, the processor will use the name and value of the field identified by \"Sort Key Field\" as sort key.");
-    static final AllowableValue SORT_BY_SEQUENCE = new AllowableValue("by-sequence", "Generate sequence",
-            "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. The field name is determined by \"Sort Key Field\" as sort key.");
+    static final AllowableValue SORT_BY_FIELD = new AllowableValue("ByField", "Sort By Field",
+            "With this strategy, the processor will use the value of the field identified by \"Sort Key Field\" as sort key value.");
+    static final AllowableValue SORT_BY_SEQUENCE = new AllowableValue("BySequence", "Generate Sequence",
+            "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -120,33 +120,35 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor PARTITION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("partition-strategy")
-            .displayName("Partition Strategy")
+    static final PropertyDescriptor PARTITION_KEY_STRATEGY = new PropertyDescriptor.Builder()
+            .name("partition-key-strategy")
+            .displayName("Partition Key Strategy")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(PARTITION_BY_FIELD, PARTITION_BY_ATTRIBUTE, PARTITION_GENERATED)
             .defaultValue(PARTITION_BY_FIELD.getValue())
-            .description("Defines the strategy the processor uses to assign partition key to the inserted Items. Partition key is also known as hash key.")
+            .description("Defines the strategy the processor uses to assign partition key value to the inserted Items.")
             .build();
 
-    static final PropertyDescriptor PARTITION_FIELD = new PropertyDescriptor.Builder()
-            .name("partition-field")
-            .displayName("Partition Field")
+    static final PropertyDescriptor PARTITION_KEY_FIELD = new PropertyDescriptor.Builder()
+            .name("partition-key-field")
+            .displayName("Partition Key Field")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("The name of the Item field will be used as partition key. Depending on the \"Partition Strategy\" this might be a field from the incoming Record or a generated one.")
+            .description(
+                    "Defines the name of the partition key field in the DynamoDB table. Partition key is also known as hash key. " +
+                    "Depending on the \"Partition Key Strategy\" the field value might come from the incoming Record or a generated one.")
             .build();
 
-    static final PropertyDescriptor PARTITION_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("partition-attribute")
-            .displayName("Partition Attribute")
+    static final PropertyDescriptor PARTITION_KEY_ATTRIBUTE = new PropertyDescriptor.Builder()
+            .name("partition-key-attribute")
+            .displayName("Partition Key Attribute")
             .required(true)
-            .dependsOn(PARTITION_STRATEGY, PARTITION_BY_ATTRIBUTE)
+            .dependsOn(PARTITION_KEY_STRATEGY, PARTITION_BY_ATTRIBUTE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("Specifies the FlowFile attribute will be used as the value of the partition key when using \"Partition by attribute\" partition strategy.")
+            .description("Specifies the FlowFile attribute that will be used as the value of the partition key when using \"Partition by attribute\" partition key strategy.")
             .build();
 
     static final PropertyDescriptor SORT_KEY_STRATEGY = new PropertyDescriptor.Builder()
@@ -156,7 +158,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(SORT_NONE, SORT_BY_FIELD, SORT_BY_SEQUENCE)
             .defaultValue(SORT_NONE.getValue())
-            .description("Defines the strategy the processor uses to assign sort key to the inserted Items. Sort key is also known as range key.")
+            .description("Defines the strategy the processor uses to assign sort key to the inserted Items.")
             .build();
 
     static final PropertyDescriptor SORT_KEY_FIELD = new PropertyDescriptor.Builder()
@@ -166,28 +168,27 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             .dependsOn(SORT_KEY_STRATEGY, SORT_BY_FIELD, SORT_BY_SEQUENCE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .description("Specifies which field will be used as sort key when the sort key strategy is set to \"Sort by field\".")
+            .description("Defines the name of the sort key field in the DynamoDB table. Sort key is also known as range key.")
             .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = Arrays.asList(
+            RECORD_READER,
+            new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE).required(true).build(),
+            REGION,
+            TABLE,
+            PARTITION_KEY_STRATEGY,
+            PARTITION_KEY_FIELD,
+            PARTITION_KEY_ATTRIBUTE,
+            SORT_KEY_STRATEGY,
+            SORT_KEY_FIELD,
+            TIMEOUT,
+            ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
+            SSL_CONTEXT_SERVICE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(
-                RECORD_READER,
-                new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE).required(true).build(),
-                TABLE,
-                PARTITION_STRATEGY,
-                PARTITION_FIELD,
-                PARTITION_ATTRIBUTE,
-                SORT_KEY_STRATEGY,
-                SORT_KEY_FIELD,
-                REGION,
-                TIMEOUT,
-                PROXY_HOST,
-                PROXY_HOST_PORT,
-                PROXY_USERNAME,
-                PROXY_PASSWORD,
-                SSL_CONTEXT_SERVICE
-        );
+        return PROPERTIES;
     }
 
     @Override
@@ -197,7 +198,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final int alreadyProcessedChunks = flowFile.getAttribute(CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.valueOf(flowFile.getAttribute(CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
+        final int alreadyProcessedChunks = flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.valueOf(flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(), context, flowFile.getAttributes(), getLogger());
         final SplitRecordSetHandler.RecordHandlerResult result;
@@ -213,7 +214,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
-        attributes.put(CHUNKS_PROCESSED_ATTRIBUTE, String.valueOf(result.getSuccessfulChunks()));
+        attributes.put(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE, String.valueOf(result.getSuccessfulChunks()));
         final FlowFile outgoingFlowFile = session.putAllAttributes(flowFile, attributes);
 
         if (result.isSuccess()) {
@@ -289,7 +290,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         private Item convert(final Record record) {
-            final String partitionField  = context.getProperty(PARTITION_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
             final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
             final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
 
@@ -308,9 +309,9 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         private void addPartition(final Record record, final Item result) {
-            final String partitionStrategy = context.getProperty(PARTITION_STRATEGY).getValue();
-            final String partitionField  = context.getProperty(PARTITION_FIELD).evaluateAttributeExpressions().getValue();
-            final String partitionAttribute = context.getProperty(PARTITION_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+            final String partitionStrategy = context.getProperty(PARTITION_KEY_STRATEGY).getValue();
+            final String partitionField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
 
             if (PARTITION_BY_FIELD.getValue().equals(partitionStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(partitionField)) {
@@ -320,7 +321,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                 result.withKeyComponent(partitionField, record.getValue(partitionField));
             } else if (PARTITION_BY_ATTRIBUTE.getValue().equals(partitionStrategy)) {
                 if (record.getSchema().getFieldNames().contains(partitionField)) {
-                    throw new ProcessException("Cannot reuse existing field with Partition Strategy \"By attribute\"");
+                    throw new ProcessException("Cannot reuse existing field with Partition Key Strategy \"By Attribute\"");
                 }
 
                 if (!flowFileAttributes.containsKey(partitionAttribute)) {
@@ -330,12 +331,12 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                 result.withKeyComponent(partitionField, flowFileAttributes.get(partitionAttribute));
             } else if (PARTITION_GENERATED.getValue().equals(partitionStrategy)) {
                 if (record.getSchema().getFieldNames().contains(partitionField)) {
-                    throw new ProcessException("Cannot reuse existing field with Partition Strategy \"Generated\"");
+                    throw new ProcessException("Cannot reuse existing field with Partition Key Strategy \"Generated UUID\"");
                 }
 
                 result.withKeyComponent(partitionField, UUID.randomUUID().toString());
             } else {
-                throw new ProcessException("Unknown Partition Strategy \"" + partitionStrategy + "\"");
+                throw new ProcessException("Unknown Partition Key Strategy \"" + partitionStrategy + "\"");
             }
         }
 
@@ -345,7 +346,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
             if (SORT_BY_FIELD.getValue().equals(sortKeyStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException("By field sort strategy needs the \"sort key field\" to present in the record");
+                    throw new ProcessException("By field sort strategy needs the \"Sort Key Field\" to present in the record");
                 }
 
                 result.withKeyComponent(sortKeyField, record.getValue(sortKeyField));

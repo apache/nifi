@@ -257,7 +257,7 @@ public class TestCEFReader {
     }
 
     private void triggerProcessor(final String input) throws FileNotFoundException {
-            runner.enqueue(new FileInputStream(input));
+        runner.enqueue(new FileInputStream(input));
         runner.run();
         runner.assertAllFlowFilesTransferred(TestCEFProcessor.SUCCESS);
     }

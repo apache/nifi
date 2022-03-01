@@ -82,31 +82,31 @@
         The processor supports multiple strategies for assigning partition key and sort key to the inserted Items. These are:
     </p>
 
-    <h3>Partition strategies</h3>
+    <h3>Partition Key Strategies</h3>
 
-    <h4>Partition by field</h4>
+    <h4>Partition By Field</h4>
 
     <p>
-        The processors assigns one of the record field as partition key. The name of the record field is specified by the "Partition Field" attribute and the value will be the value of the record field with the same name.
+        The processors assigns one of the record field as partition key. The name of the record field is specified by the "Partition Key Field" attribute and the value will be the value of the record field with the same name.
     </p>
 
-    <h4>Partition by attribute</h4>
+    <h4>Partition By Attribute</h4>
 
     <p>
         The processor assigns the value of a FlowFile attribute as partition key. With this strategy all the Items within a FlowFile will share the same partition case and it is suggested to use a sort key in order to meet the primary key requirements of the DynamoDB.
-        The property "Partition Field" defines the name of the Item field and the property "Partition Attribute" will specify which attribute's value will be assigned to the partition key.
-        With this strategy the "Partition Field" must be different from the fields consisted by the incoming records.
+        The property "Partition Key Field" defines the name of the Item field and the property "Partition Key Attribute" will specify which attribute's value will be assigned to the partition key.
+        With this strategy the "Partition Key Field" must be different from the fields consisted by the incoming records.
     </p>
 
-    <h4>Generated</h4>
+    <h4>Generated UUID</h4>
 
     <p>
         By using this strategy the processor will generate a UUID identifier for every single Item. This identifier will be used as value for the partition key.
-        The name of the field used as partition key is defined by the property "Partition Field".
-        With this strategy the "Partition Field" must be different from the fields consisted by the incoming records.
+        The name of the field used as partition key is defined by the property "Partition Key Field".
+        With this strategy the "Partition Key Field" must be different from the fields consisted by the incoming records.
     </p>
 
-    <h3>Sort key strategies</h3>
+    <h3>Sort Key Strategies</h3>
 
     <h4>None</h4>
 
@@ -114,14 +114,14 @@
         No sort key will be assigned to the Item. In case of the table definition expects it, using this strategy will result unsuccessful inserts.
     </p>
 
-    <h4>Sort by field</h4>
+    <h4>Sort By Field</h4>
 
     <p>
         The processors assigns one of the record field as sort key. The name of the record field is specified by the "Sort Key Field" attribute and the value will be the value of the record field with the same name.
         With this strategy the "Sort Key Field" must be different from the fields consisted by the incoming records.
     </p>
 
-    <h4>Generate sequence</h4>
+    <h4>Generate Sequence</h4>
 
     <p>
         The processor assigns a generated value to every Item based on the original record's position in the incoming FlowFile (regardless of the chunks).
@@ -138,9 +138,9 @@
     <h4>Setup</h4>
 
     <ul>
-        <li>Partition Strategy: Partition by field</li>
-        <li>Partition Field: class</li>
-        <li>Sort Key Strategy: Sort by field</li>
+        <li>Partition Key Strategy: Partition by field</li>
+        <li>Partition Key Field: class</li>
+        <li>Sort Key Strategy: Sort By Field</li>
         <li>Sort Key Field: size</li>
     </ul>
 
@@ -175,10 +175,10 @@
     <h4>Setup</h4>
 
     <ul>
-        <li>Partition Strategy: Partition by attribute</li>
-        <li>Partition Field: source</li>
-        <li>Partition Attribute: filename</li>
-        <li>Sort Key Strategy: Generate sequence</li>
+        <li>Partition Key Strategy: Partition By Attribute</li>
+        <li>Partition Key Field: source</li>
+        <li>Partition Key Attribute: filename</li>
+        <li>Sort Key Strategy: Generate Sequence</li>
         <li>Sort Key Field: sort</li>
     </ul>
 
@@ -228,8 +228,8 @@
     <h4>Setup</h4>
 
     <ul>
-        <li>Partition Strategy: Generated</li>
-        <li>Partition Field: identifier</li>
+        <li>Partition Key Strategy: Generated UUID</li>
+        <li>Partition Key Field: identifier</li>
         <li>Sort Key Strategy: None</li>
     </ul>
 
