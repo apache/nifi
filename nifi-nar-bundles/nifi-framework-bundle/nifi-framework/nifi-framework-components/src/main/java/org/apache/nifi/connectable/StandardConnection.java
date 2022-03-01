@@ -529,7 +529,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         }
 
         // Source is a funnel and is running. We need to then check all of its upstream components.
-        for (final Connection incoming : source.getIncomingConnections()) {
+        for (final Connection incoming : sourceComponent.getIncomingConnections()) {
             verifySourceStoppedOrFunnel(incoming);
         }
     }
