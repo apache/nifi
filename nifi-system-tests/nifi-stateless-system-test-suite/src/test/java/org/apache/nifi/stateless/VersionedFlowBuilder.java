@@ -80,7 +80,7 @@ public class VersionedFlowBuilder {
 
     public VersionedPort createOutputPort(final String portName, final VersionedProcessGroup group) {
         final VersionedPort port = new VersionedPort();
-        port.setAllowRemoteAccess(false);
+        port.setAllowRemoteAccess(Boolean.FALSE);
         port.setComponentType(ComponentType.OUTPUT_PORT);
         port.setConcurrentlySchedulableTaskCount(1);
         port.setGroupIdentifier(group.getIdentifier());
@@ -100,7 +100,7 @@ public class VersionedFlowBuilder {
 
     public VersionedPort createInputPort(final String portName, final VersionedProcessGroup group) {
         final VersionedPort port = new VersionedPort();
-        port.setAllowRemoteAccess(false);
+        port.setAllowRemoteAccess(Boolean.FALSE);
         port.setComponentType(ComponentType.INPUT_PORT);
         port.setConcurrentlySchedulableTaskCount(1);
         port.setGroupIdentifier(group.getIdentifier());

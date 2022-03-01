@@ -654,13 +654,7 @@ public class NiFiRegistryFlowMapper {
         versionedPort.setPosition(mapPosition(port.getPosition()));
         versionedPort.setType(PortType.valueOf(port.getConnectableType().name()));
         versionedPort.setScheduledState(mapScheduledState(port.getScheduledState()));
-
-        if (port instanceof PublicPort) {
-            versionedPort.setAllowRemoteAccess(true);
-        } else {
-            versionedPort.setAllowRemoteAccess(false);
-        }
-
+        versionedPort.setAllowRemoteAccess(port instanceof PublicPort);
         versionedPort.setScheduledState(flowMappingOptions.getStateLookup().getState(port));
 
         return versionedPort;
