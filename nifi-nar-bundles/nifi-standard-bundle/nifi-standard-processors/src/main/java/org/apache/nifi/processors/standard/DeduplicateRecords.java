@@ -114,6 +114,7 @@ import static org.apache.commons.codec.binary.StringUtils.getBytesUtf8;
     "org.apache.nifi.processors.standard.DetectDuplicate"
 })
 public class DeduplicateRecords extends AbstractProcessor {
+    public static final char JOIN_CHAR = '~';
 
     private static final String FIELD_NAME = "field.name";
     private static final String FIELD_VALUE = "field.value";
@@ -127,13 +128,9 @@ public class DeduplicateRecords extends AbstractProcessor {
     static final AllowableValue NONE_ALGORITHM_VALUE = new AllowableValue("none", "None",
             "Do not use a hashing algorithm. The value of resolved RecordPaths will be combined with tildes (~) to form the unique record key. " +
                     "This may use significantly more storage depending on the size and shape or your data.");
-    static final AllowableValue MD5_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.MD5, "MD5",
-            "The MD5 message-digest algorithm.");
-    static final AllowableValue SHA1_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_1, "SHA-1",
-            "The SHA-1 cryptographic hash algorithm.");
-    static final AllowableValue SHA256_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA3_256, "SHA-256",
+    static final AllowableValue SHA256_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_256, "SHA-256",
             "The SHA-256 cryptographic hash algorithm.");
-    static final AllowableValue SHA512_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA3_512, "SHA-512",
+    static final AllowableValue SHA512_ALGORITHM_VALUE = new AllowableValue(MessageDigestAlgorithms.SHA_512, "SHA-512",
             "The SHA-512 cryptographic hash algorithm.");
 
     static final AllowableValue HASH_SET_VALUE = new AllowableValue("hash-set", "HashSet",
@@ -219,8 +216,6 @@ public class DeduplicateRecords extends AbstractProcessor {
             .description("The algorithm used to hash the combined set of resolved RecordPath values for cache storage.")
             .allowableValues(
                     NONE_ALGORITHM_VALUE,
-                    MD5_ALGORITHM_VALUE,
-                    SHA1_ALGORITHM_VALUE,
                     SHA256_ALGORITHM_VALUE,
                     SHA512_ALGORITHM_VALUE
             )
@@ -425,8 +420,6 @@ public class DeduplicateRecords extends AbstractProcessor {
         }
     }
 
-    public static final char JOIN_CHAR = '~';
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final FlowFile flowFile = session.get();
@@ -439,9 +432,9 @@ public class DeduplicateRecords extends AbstractProcessor {
         FlowFile nonDuplicatesFlowFile = session.create(flowFile);
         FlowFile duplicatesFlowFile = session.create(flowFile);
 
-        try {
-            final long now = System.currentTimeMillis();
+        long index = 0;
 
+        try {
             final FilterWrapper filter = getFilter(context);
 
             final String recordHashingAlgorithm = context.getProperty(RECORD_HASHING_ALGORITHM).getValue();
@@ -466,7 +459,6 @@ public class DeduplicateRecords extends AbstractProcessor {
             duplicatesWriter.beginRecordSet();
             Record record;
 
-            long index = 0;
             while ((record = reader.nextRecord()) != null) {
                 String recordValue;
 
@@ -479,6 +471,7 @@ public class DeduplicateRecords extends AbstractProcessor {
                 String recordHash = messageDigest != null
                         ? Hex.encodeHexString(messageDigest.digest(getBytesUtf8(recordValue)))
                         : recordValue;
+                messageDigest.reset();
 
                 if (!useInMemoryStrategy && context.getProperty(CACHE_IDENTIFIER).isSet()) {
                     Map<String, String> additional = new HashMap<>();
@@ -530,7 +523,7 @@ public class DeduplicateRecords extends AbstractProcessor {
             session.transfer(flowFile, REL_ORIGINAL);
 
         } catch (final Exception e) {
-            logger.error("Failed in detecting duplicate records.", e);
+            logger.error("Failed in detecting duplicate records at index " + index, e);
             session.remove(duplicatesFlowFile);
             session.remove(nonDuplicatesFlowFile);
             session.transfer(flowFile, REL_FAILURE);
@@ -553,7 +546,7 @@ public class DeduplicateRecords extends AbstractProcessor {
             outputFlowFile = session.putAllAttributes(outputFlowFile, attributes);
             if (getLogger().isDebugEnabled()) {
                 getLogger().debug("Successfully found {} unique records for {}",
-                        new Object[]{writeResult.getRecordCount(), outputFlowFile});
+                        writeResult.getRecordCount(), outputFlowFile);
             }
 
             session.transfer(outputFlowFile, targetRelationship);
@@ -653,7 +646,7 @@ public class DeduplicateRecords extends AbstractProcessor {
             try {
                 return client.containsKey(value, STRING_SERIALIZER);
             } catch (IOException e) {
-                throw new ProcessException(e);
+                throw new ProcessException("Distributed Map lookup failed", e);
             }
         }
 

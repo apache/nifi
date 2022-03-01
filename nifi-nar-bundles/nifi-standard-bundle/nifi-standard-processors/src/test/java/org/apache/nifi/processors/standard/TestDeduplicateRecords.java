@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
@@ -27,16 +28,16 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestDeduplicateRecords {
 
@@ -44,16 +45,7 @@ public class TestDeduplicateRecords {
     private MockRecordParser reader;
     private MockRecordWriter writer;
 
-    @BeforeClass
-    public static void beforeClass() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DeduplicateRecords", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDeduplicateRecords", "debug");
-    }
-
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(DeduplicateRecords.class);
 
@@ -68,7 +60,7 @@ public class TestDeduplicateRecords {
 
         runner.setProperty(DeduplicateRecords.RECORD_READER, "reader");
         runner.setProperty(DeduplicateRecords.RECORD_WRITER, "writer");
-        runner.setProperty(DeduplicateRecords.RECORD_HASHING_ALGORITHM, DeduplicateRecords.SHA1_ALGORITHM_VALUE);
+        runner.setProperty(DeduplicateRecords.RECORD_HASHING_ALGORITHM, DeduplicateRecords.SHA256_ALGORITHM_VALUE);
 
         reader.addSchemaField("firstName", RecordFieldType.STRING);
         reader.addSchemaField("middleName", RecordFieldType.STRING);
@@ -198,8 +190,12 @@ public class TestDeduplicateRecords {
         runner.assertNotValid();
     }
 
-    public static final String FIRST_KEY = "2875ba79836587028a920875a18ee5dceb837587";
-    public static final String SECOND_KEY = "6eeba6ecf9d263582f463890be339dbecbaf23c8";
+    public static final String FIRST_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecords.JOIN_CHAR), Arrays.asList(
+            "John", "Q", "Smith"
+    )));
+    public static final String SECOND_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecords.JOIN_CHAR), Arrays.asList(
+            "Jack", "Z", "Brown"
+    )));
 
     @Test
     public void testDeduplicateWithDMC() throws Exception {
