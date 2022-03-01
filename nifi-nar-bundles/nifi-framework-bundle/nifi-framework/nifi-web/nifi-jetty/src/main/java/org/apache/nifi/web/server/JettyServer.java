@@ -647,10 +647,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             // Load the API docs
             final File webApiDocsDir = getWebApiDocsDir();
 
-            // Create the servlet which will serve the static resources
-            ServletHolder defaultHolder = new ServletHolder("default", DefaultServlet.class);
-            defaultHolder.setInitParameter("dirAllowed", "false");
-
             ServletHolder docs = new ServletHolder("docs", DefaultServlet.class);
             docs.setInitParameter("resourceBase", docsDir.getPath());
             docs.setInitParameter("dirAllowed", "false");
@@ -667,10 +663,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             docsContext.addServlet(components, "/components/*");
             docsContext.addServlet(restApi, "/rest-api/*");
 
-            docsContext.addServlet(defaultHolder, "/");
-
-            logger.info("Loading documents web app with context path set to " + docsContext.getContextPath());
-
+            logger.info("Loading Docs [{}] Context Path [{}]", docsDir.getAbsolutePath(), docsContext.getContextPath());
         } catch (Exception ex) {
             logger.error("Unhandled Exception in createDocsWebApp: " + ex.getMessage());
             startUpFailure(ex);
