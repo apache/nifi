@@ -201,7 +201,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                     return;
                 } catch (final Exception e) {
                     try {
-                        Thread.sleep(100L);
+                        Thread.sleep(1000L);
                     } catch (InterruptedException ex) {
                     }
 
@@ -213,13 +213,16 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         @Override
         public void stop() {
             if (runNiFi == null) {
+                logger.info("NiFi Shutdown Ignored (runNiFi==null) [{}]", instanceDirectory.getName());
                 return;
             }
 
             logger.info("NiFi Shutdown Started [{}]", instanceDirectory.getName());
 
             try {
-                runNiFi.stop();
+                do {
+                    runNiFi.stop();
+                } while (runNiFi.status() != 3);
                 logger.info("NiFi Shutdown Completed [{}]", instanceDirectory.getName());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to stop NiFi", e);
