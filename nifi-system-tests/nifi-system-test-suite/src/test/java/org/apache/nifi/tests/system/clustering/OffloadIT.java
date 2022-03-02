@@ -85,27 +85,6 @@ public class OffloadIT extends NiFiSystemIT {
         waitForAllNodesConnected();
     }
 
-    private boolean isNodeOffloaded() {
-        final ClusterEntity clusterEntity;
-        try {
-            clusterEntity = getNifiClient().getControllerClient().getNodes();
-        } catch (final Exception e) {
-            logger.error("Failed to determine if node is offloaded", e);
-            return false;
-        }
-
-        final Collection<NodeDTO> nodeDtos = clusterEntity.getCluster().getNodes();
-
-        for (final NodeDTO dto : nodeDtos) {
-            final String status = dto.getStatus();
-            if (status.equalsIgnoreCase("OFFLOADED")) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private NodeDTO getNodeDTO(final int apiPort) throws NiFiClientException, IOException {
         final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
         final NodeDTO node2Dto = clusterEntity.getCluster().getNodes().stream()

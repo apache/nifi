@@ -289,17 +289,26 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         assertEquals(serviceId, procProperties.get("Count Service"));
         assertEquals(countService.getId(), serviceId);
         assertEquals(count.getId(), node2CountProc.getId());
-        waitFor(() -> node2CountProc.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final ProcessorDTO updatedNode2CountProc = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(node2CountProc.getId()).getComponent();
+            return updatedNode2CountProc.getState().equals(RUNNING_STATE);
+        });
 
         final PortDTO node2InputPort = node2GroupContents.getInputPorts().iterator().next().getComponent();
         assertEquals(inPort.getId(), node2InputPort.getId());
         assertEquals(inPort.getComponent().getName(), node2InputPort.getName());
-        waitFor(() -> node2InputPort.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final PortDTO updatedNode2InputPort = getNifiClient().getInputPortClient(DO_NOT_REPLICATE).getInputPort(node2InputPort.getId()).getComponent();
+            return updatedNode2InputPort.getState().equals(RUNNING_STATE);
+        });
 
         final PortDTO node2OutputPort = node2GroupContents.getOutputPorts().iterator().next().getComponent();
         assertEquals(outPort.getId(), node2OutputPort.getId());
         assertEquals(outPort.getComponent().getName(), node2OutputPort.getName());
-        waitFor(() -> node2OutputPort.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final PortDTO updatedNode2OutputPort = getNifiClient().getOutputPortClient(DO_NOT_REPLICATE).getOutputPort(node2OutputPort.getId()).getComponent();
+            return updatedNode2OutputPort.getState().equals(RUNNING_STATE);
+        });
 
         final ControllerServiceEntity node2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId());
         assertEquals(sleepService.getId(), node2SleepService.getId());
@@ -308,8 +317,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
             return updatedNode2SleepService.getComponent().getState().equals(ENABLED_STATE);
         });
 
-        final ReportingTaskEntity node2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
-        waitFor(() -> node2ReportingTask.getComponent().getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final ReportingTaskEntity updatedNode2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
+            return updatedNode2ReportingTask.getComponent().getState().equals(RUNNING_STATE);
+        });
 
         final ParameterContextEntity node2Context = getNifiClient().getParamContextClient(DO_NOT_REPLICATE).getParamContext(context.getId(), false);
         final String node2ParamValue = node2Context.getComponent().getParameters().stream()
@@ -634,24 +645,38 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         assertEquals(serviceId, procProperties.get("Count Service"));
         assertEquals(countService.getId(), serviceId);
         assertEquals(count.getId(), node2CountProc.getId());
-        waitFor(() -> node2CountProc.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final ProcessorDTO updatedNode2CountProc = getNifiClient().getProcessorClient(DO_NOT_REPLICATE).getProcessor(node2CountProc.getId()).getComponent();
+            return updatedNode2CountProc.getState().equals(RUNNING_STATE);
+        });
 
         final PortDTO node2InputPort = node2GroupContents.getInputPorts().iterator().next().getComponent();
         assertEquals(inPort.getId(), node2InputPort.getId());
         assertEquals(inPort.getComponent().getName(), node2InputPort.getName());
-        waitFor(() -> node2InputPort.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final PortDTO updatedNode2InputPort = getNifiClient().getInputPortClient(DO_NOT_REPLICATE).getInputPort(node2InputPort.getId()).getComponent();
+            return updatedNode2InputPort.getState().equals(RUNNING_STATE);
+        });
 
         final PortDTO node2OutputPort = node2GroupContents.getOutputPorts().iterator().next().getComponent();
         assertEquals(outPort.getId(), node2OutputPort.getId());
         assertEquals(outPort.getComponent().getName(), node2OutputPort.getName());
-        waitFor(() -> node2OutputPort.getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final PortDTO updatedNode2OutputPort = getNifiClient().getOutputPortClient(DO_NOT_REPLICATE).getOutputPort(node2OutputPort.getId()).getComponent();
+            return updatedNode2OutputPort.getState().equals(RUNNING_STATE);
+        });
 
         final ControllerServiceEntity node2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId());
         assertEquals(sleepService.getId(), node2SleepService.getId());
-        waitFor(() -> node2SleepService.getComponent().getState().equals("ENABLED"));
+        waitFor(() -> {
+            final ControllerServiceDTO updatedNode2SleepService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(sleepService.getId()).getComponent();
+            return updatedNode2SleepService.getState().equals("ENABLED");
+        });
 
-        final ReportingTaskEntity node2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
-        waitFor(() -> node2ReportingTask.getComponent().getState().equals(RUNNING_STATE));
+        waitFor(() -> {
+            final ReportingTaskEntity updatedNode2ReportingTask = getNifiClient().getReportingTasksClient(DO_NOT_REPLICATE).getReportingTask(reportingTask.getId());
+            return updatedNode2ReportingTask.getComponent().getState().equals(RUNNING_STATE);
+        });
     }
 
 
@@ -822,8 +847,9 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");
         final ConnectionEntity connection = getClientUtil().createConnection(generate, terminate, "success");
-        getClientUtil().startProcessor(terminate);
         getClientUtil().startProcessor(generate);
+        waitForMinQueueCount(connection.getId(), 1);
+        getClientUtil().startProcessor(terminate);
 
         waitForQueueCount(connection.getId(), 0);
 

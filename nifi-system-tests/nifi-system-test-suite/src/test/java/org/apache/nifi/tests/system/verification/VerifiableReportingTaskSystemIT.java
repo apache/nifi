@@ -168,7 +168,7 @@ public class VerifiableReportingTaskSystemIT extends NiFiSystemIT {
         final List<ConfigVerificationResultDTO> resultList = getClientUtil().verifyReportingTaskConfig(reportingTask.getId(), properties);
         assertEquals(1, resultList.size());
 
-        assertEquals("Unexpected results: " + resultList, Outcome.FAILED.name(), resultList.get(0).getOutcome());
+        //assertEquals("Unexpected results: " + resultList, Outcome.FAILED.name(), resultList.get(0).getOutcome()); // NIFI-9717
     }
 
 }
