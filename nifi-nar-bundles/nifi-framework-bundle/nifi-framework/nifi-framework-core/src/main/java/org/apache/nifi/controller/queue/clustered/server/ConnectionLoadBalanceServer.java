@@ -155,20 +155,21 @@ public class ConnectionLoadBalanceServer {
 
         @Override
         public void run() {
-            String peerDescription = "<Unknown Client>";
+            String channelDescription = "<Unknown Channel>";
 
             while (!stopped) {
                 try {
-                    peerDescription = socket.getRemoteSocketAddress().toString();
+                    channelDescription = socket.getLocalSocketAddress() + "::" + socket.getRemoteSocketAddress();
 
-                    logger.debug("Receiving FlowFiles from Peer {}", peerDescription);
+                    logger.debug("Receiving FlowFiles from Channel {}", channelDescription);
                     loadBalanceProtocol.receiveFlowFiles(socket, in, out);
 
                     if (socket.isClosed()) {
-                        logger.debug("Finished Receiving FlowFiles from Peer {}", peerDescription);
+                        logger.debug("Finished Receiving FlowFiles from Channel {}", channelDescription);
                         break;
                     }
                 } catch (final Exception e) {
+                    stopped = true;
                     if (socket != null) {
                         try {
                             socket.close();
@@ -181,12 +182,11 @@ public class ConnectionLoadBalanceServer {
                     especially repeat and have a long stacktrace, and are not likely to be resolved instantaneously. Suppressing
                     them for a period of time is helpful */
                     if (CertificateUtils.isTlsError(e)) {
-                        handleTlsError(peerDescription, e);
+                        handleTlsError(channelDescription, e);
                     } else {
-                        logger.error("Failed to communicate with Peer {}", peerDescription, e);
+                        logger.error("Failed to communicate over Channel {}", channelDescription, e);
                         eventReporter.reportEvent(Severity.ERROR, "Load Balanced Connection", "Failed to receive FlowFiles for Load Balancing due to " + e);
                     }
-                    return;
                 }
             }
         }
@@ -196,12 +196,12 @@ public class ConnectionLoadBalanceServer {
          * ({@link org.apache.nifi.security.util.TlsException}, {@link SSLPeerUnverifiedException},
          * {@link java.security.cert.CertificateException}, etc.) to the log, based on how recently it was last seen.
          *
-         * @param peerDescription the peer's String representation for the log message
+         * @param channelDescription the channel's String representation for the log message
          * @param e               the exception
          * @return true if the error was printed at ERROR severity and reported to the event reporter
          */
-        private boolean handleTlsError(String peerDescription, Throwable e) {
-            final String populatedMessage = "Failed to communicate with Peer " + peerDescription + " due to " + e.getLocalizedMessage();
+        private boolean handleTlsError(String channelDescription, Throwable e) {
+            final String populatedMessage = "Failed to communicate over Channel " + channelDescription + " due to " + e.getLocalizedMessage();
             // If the exception has been seen recently, log as debug
             if (tlsErrorRecentlySeen()) {
                 logger.debug(populatedMessage);

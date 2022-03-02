@@ -113,21 +113,23 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     @Override
     public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
         String peerDescription = socket.getInetAddress().getHostName();
+        String channelDescription = socket.getLocalSocketAddress() + "::" + socket.getRemoteSocketAddress();
         if (socket instanceof SSLSocket) {
             logger.debug("Connection received from peer {}", peerDescription);
 
             peerDescription = authorizer.authorize((SSLSocket) socket);
+            channelDescription = peerDescription + "::" + channelDescription;
             logger.debug("Client Identities are authorized to load balance data for peer {}", peerDescription);
         }
 
-        final int version = negotiateProtocolVersion(in, out, peerDescription);
+        final int version = negotiateProtocolVersion(in, out, peerDescription, channelDescription);
 
         if (version == SOCKET_CLOSED) {
             socket.close();
             return;
         }
         if (version == NO_DATA_AVAILABLE) {
-            logger.debug("No data is available from {}", socket.getRemoteSocketAddress());
+            logger.debug("No data is available from {}", peerDescription);
             return;
         }
 
@@ -135,7 +137,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     }
 
 
-    protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription) throws IOException {
+    protected int negotiateProtocolVersion(final InputStream in, final OutputStream out, final String peerDescription, final String channelDescription) throws IOException {
         final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
 
         for (int i=0;; i++) {
@@ -159,7 +161,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
             final boolean supported = negotiator.isVersionSupported(requestedVersion);
             if (supported) {
-                logger.debug("Peer {} requested version {} of the Load Balance Protocol. Accepting version.", peerDescription, requestedVersion);
+                logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. Accepting version.", peerDescription, requestedVersion, channelDescription);
 
                 out.write(VERSION_ACCEPTED);
                 out.flush();
@@ -168,15 +170,16 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
             final Integer preferredVersion = negotiator.getPreferredVersion(requestedVersion);
             if (preferredVersion == null) {
-                logger.debug("Peer {} requested version {} of the Load Balance Protocol. This version is not acceptable. Aborting communications.", peerDescription, requestedVersion);
-
+                logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. This version is not acceptable. Aborting communications.",
+                        peerDescription, requestedVersion, channelDescription);
                 out.write(ABORT_PROTOCOL_NEGOTIATION);
                 out.flush();
                 throw new IOException("Peer " + peerDescription + " requested that we use version " + requestedVersion
-                    + " of the Load Balance Protocol, but this version is unacceptable. Aborted communications.");
+                    + " of the Load Balance Protocol over Channel " + channelDescription + ", but this version is unacceptable. Aborted communications.");
             }
 
-            logger.debug("Peer {} requested version {} of the Load Balance Protocol. Requesting that peer change to version {} instead.", peerDescription, requestedVersion, preferredVersion);
+            logger.debug("Peer {} requested version {} of the Load Balance Protocol over Channel {}. Requesting that peer change to version {} instead.",
+                    peerDescription, requestedVersion, channelDescription, preferredVersion);
 
             out.write(REQEUST_DIFFERENT_VERSION);
             out.write(preferredVersion);
