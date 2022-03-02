@@ -65,7 +65,9 @@ public class FlowDifferenceFilters {
             || isScheduledStateNew(difference)
             || isLocalScheduleStateChange(difference)
             || isPropertyMissingFromGhostComponent(difference, flowManager)
-            || isNewRetryConfigWithDefaultValue(difference, flowManager);
+            || isNewRetryConfigWithDefaultValue(difference, flowManager)
+            || isNewZIndexLabelConfigWithDefaultValue(difference, flowManager)
+            || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager);
     }
 
     /**
@@ -141,6 +143,44 @@ public class FlowDifferenceFilters {
             }
         }
 
+        return false;
+    }
+
+    private static boolean isNewZIndexLabelConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof VersionedLabel)) {
+            return false;
+        }
+
+        final VersionedLabel versionedLabel = (VersionedLabel) componentB;
+        final DifferenceType type = fd.getDifferenceType();
+        if (type == DifferenceType.ZINDEX_CHANGED) {
+            return versionedLabel.getzIndex() == 0;
+        }
+        return false;
+    }
+
+    private static boolean isNewZIndexConnectionConfigWithDefaultValue(final FlowDifference fd, final FlowManager flowManager) {
+        final Object valueA = fd.getValueA();
+        if (valueA != null) {
+            return false;
+        }
+
+        final VersionedComponent componentB = fd.getComponentB();
+        if (!(componentB instanceof VersionedConnection)) {
+            return false;
+        }
+
+        final VersionedConnection versionedConnection = (VersionedConnection) componentB;
+        final DifferenceType type = fd.getDifferenceType();
+        if (type == DifferenceType.ZINDEX_CHANGED) {
+            return versionedConnection.getzIndex() == 0;
+        }
         return false;
     }
 
