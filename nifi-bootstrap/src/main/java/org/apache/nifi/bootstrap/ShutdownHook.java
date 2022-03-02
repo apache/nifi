@@ -27,14 +27,16 @@ import java.util.concurrent.TimeUnit;
 public class ShutdownHook extends Thread {
 
     private final Process nifiProcess;
+    private final Long pid;
     private final RunNiFi runner;
     private final int gracefulShutdownSeconds;
     private final ExecutorService executor;
 
     private volatile String secretKey;
 
-    public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final String secretKey, final int gracefulShutdownSeconds, final ExecutorService executor) {
+    public ShutdownHook(final Process nifiProcess, final Long pid, final RunNiFi runner, final String secretKey, final int gracefulShutdownSeconds, final ExecutorService executor) {
         this.nifiProcess = nifiProcess;
+        this.pid = pid;
         this.runner = runner;
         this.secretKey = secretKey;
         this.gracefulShutdownSeconds = gracefulShutdownSeconds;
@@ -51,7 +53,7 @@ public class ShutdownHook extends Thread {
         runner.setAutoRestartNiFi(false);
         final int ccPort = runner.getNiFiCommandControlPort();
         if (ccPort > 0) {
-            System.out.println("Initiating Shutdown of NiFi...");
+            System.out.printf("NiFi PID [%d] shutdown started%n", pid);
 
             try {
                 final Socket socket = new Socket("localhost", ccPort);
@@ -66,7 +68,7 @@ public class ShutdownHook extends Thread {
         }
 
         runner.notifyStop();
-        System.out.println("Waiting for Apache NiFi to finish shutting down...");
+        System.out.printf("NiFi PID [%d] shutdown in progress...%n", pid);
         final long startWait = System.nanoTime();
         while (RunNiFi.isAlive(nifiProcess)) {
             final long waitNanos = System.nanoTime() - startWait;
