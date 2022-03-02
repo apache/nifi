@@ -155,7 +155,7 @@ public class StandardServiceFacade implements ServiceFacade {
     public Bucket getBucket(final String bucketIdentifier) {
         authorizeBucketAccess(RequestAction.READ, bucketIdentifier);
 
-        final Bucket bucket = entityService.get(() -> registryService.getBucket(bucketIdentifier));
+        final Bucket bucket = getRevisableEntity(() -> registryService.getBucket(bucketIdentifier));
         permissionsService.populateBucketPermissions(bucket);
         linkService.populateLinks(bucket);
         return bucket;
@@ -169,7 +169,7 @@ public class StandardServiceFacade implements ServiceFacade {
             return Collections.emptyList();
         }
 
-        final List<Bucket> buckets = entityService.getEntities(() -> registryService.getBuckets(authorizedBucketIds));
+        final List<Bucket> buckets = getRevisableEntities(() -> registryService.getBuckets(authorizedBucketIds));
         permissionsService.populateBucketPermissions(buckets);
         linkService.populateLinks(buckets);
         return buckets;
@@ -209,7 +209,7 @@ public class StandardServiceFacade implements ServiceFacade {
         authorizeBucketAccess(RequestAction.READ, bucketIdentifier);
 
         final List<BucketItem> items = registryService.getBucketItems(bucketIdentifier);
-        entityService.populateRevisions(items);
+        populateRevisableEntities(items);
         permissionsService.populateItemPermissions(items);
         linkService.populateLinks(items);
         return items;
@@ -224,7 +224,7 @@ public class StandardServiceFacade implements ServiceFacade {
         }
 
         final List<BucketItem> items = registryService.getBucketItems(authorizedBucketIds);
-        entityService.populateRevisions(items);
+        populateRevisableEntities(items);
         permissionsService.populateItemPermissions(items);
         linkService.populateLinks(items);
         return items;
@@ -254,7 +254,7 @@ public class StandardServiceFacade implements ServiceFacade {
     public VersionedFlow getFlow(final String bucketIdentifier, final String flowIdentifier) {
         authorizeBucketAccess(RequestAction.READ, bucketIdentifier);
 
-        final VersionedFlow flow = entityService.get(
+        final VersionedFlow flow = getRevisableEntity(
                 () -> registryService.getFlow(bucketIdentifier, flowIdentifier));
         permissionsService.populateItemPermissions(flow);
         linkService.populateLinks(flow);
@@ -263,7 +263,7 @@ public class StandardServiceFacade implements ServiceFacade {
 
     @Override
     public VersionedFlow getFlow(final String flowIdentifier) {
-        final VersionedFlow flow =  entityService.get(() -> registryService.getFlow(flowIdentifier));
+        final VersionedFlow flow =  getRevisableEntity(() -> registryService.getFlow(flowIdentifier));
         authorizeBucketAccess(RequestAction.READ, flow);
 
         permissionsService.populateItemPermissions(flow);
@@ -275,7 +275,7 @@ public class StandardServiceFacade implements ServiceFacade {
     public List<VersionedFlow> getFlows(final String bucketIdentifier) {
         authorizeBucketAccess(RequestAction.READ, bucketIdentifier);
 
-        final List<VersionedFlow> flows = entityService.getEntities(() -> registryService.getFlows(bucketIdentifier));
+        final List<VersionedFlow> flows = getRevisableEntities(() -> registryService.getFlows(bucketIdentifier));
         permissionsService.populateItemPermissions(flows);
         linkService.populateLinks(flows);
         return flows;
@@ -866,14 +866,14 @@ public class StandardServiceFacade implements ServiceFacade {
     public List<User> getUsers() {
         verifyAuthorizerIsManaged();
         authorizeTenantsAccess(RequestAction.READ);
-        return entityService.getEntities(() -> authorizationService.getUsers());
+        return getRevisableEntities(() -> authorizationService.getUsers());
     }
 
     @Override
     public User getUser(final String identifier) {
         verifyAuthorizerIsManaged();
         authorizeTenantsAccess(RequestAction.READ);
-        return entityService.get(() -> authorizationService.getUser(identifier));
+        return getRevisableEntity(() -> authorizationService.getUser(identifier));
     }
 
     @Override
@@ -918,14 +918,14 @@ public class StandardServiceFacade implements ServiceFacade {
     public List<UserGroup> getUserGroups() {
         verifyAuthorizerIsManaged();
         authorizeTenantsAccess(RequestAction.READ);
-        return entityService.getEntities(() -> authorizationService.getUserGroups());
+        return getRevisableEntities(() -> authorizationService.getUserGroups());
     }
 
     @Override
     public UserGroup getUserGroup(final String identifier) {
         verifyAuthorizerIsManaged();
         authorizeTenantsAccess(RequestAction.READ);
-        return entityService.get(() -> authorizationService.getUserGroup(identifier));
+        return getRevisableEntity(() -> authorizationService.getUserGroup(identifier));
     }
 
     @Override
@@ -972,21 +972,21 @@ public class StandardServiceFacade implements ServiceFacade {
     public AccessPolicy getAccessPolicy(final String identifier) {
         verifyAuthorizerIsManaged();
         authorizePoliciesAccess(RequestAction.READ);
-        return entityService.get(() -> authorizationService.getAccessPolicy(identifier));
+        return getRevisableEntity(() -> authorizationService.getAccessPolicy(identifier));
     }
 
     @Override
     public AccessPolicy getAccessPolicy(final String resource, final RequestAction action) {
         verifyAuthorizerIsManaged();
         authorizePoliciesAccess(RequestAction.READ);
-        return entityService.get(() -> authorizationService.getAccessPolicy(resource, action));
+        return getRevisableEntity(() -> authorizationService.getAccessPolicy(resource, action));
     }
 
     @Override
     public List<AccessPolicy> getAccessPolicies() {
         verifyAuthorizerIsManaged();
         authorizePoliciesAccess(RequestAction.READ);
-        return entityService.getEntities(() -> authorizationService.getAccessPolicies());
+        return getRevisableEntities(() -> authorizationService.getAccessPolicies());
     }
 
     @Override
@@ -1227,6 +1227,47 @@ public class StandardServiceFacade implements ServiceFacade {
 
         if (revision == null || revision.getVersion() == null) {
             throw new IllegalArgumentException("Revision info must be specified.");
+        }
+    }
+
+    private <T extends RevisableEntity> T getRevisableEntity(final Supplier<T> getEntity) {
+        if (!revisionFeature.isEnabled()) {
+            final T entity = getEntity.get();
+            if (entity.getRevision() == null) {
+                entity.setRevision(new RevisionInfo(null, 0L));
+            }
+            return entity;
+        } else {
+            return entityService.get(getEntity);
+        }
+    }
+
+    private <T extends RevisableEntity> List<T> getRevisableEntities(final Supplier<List<T>> getEntities) {
+        if (!revisionFeature.isEnabled()) {
+            final List<T> entities = getEntities.get();
+            for (final RevisableEntity entity : entities) {
+                if (entity.getRevision() == null) {
+                    entity.setRevision(new RevisionInfo(null, 0L));
+                }
+            }
+            return entities;
+        } else {
+            return entityService.getEntities(getEntities);
+        }
+    }
+
+    private void populateRevisableEntities(final List<?> entities) {
+        if (!revisionFeature.isEnabled()) {
+            for (final Object entity : entities) {
+                if (entity instanceof RevisableEntity) {
+                    final RevisableEntity revisableEntity = (RevisableEntity) entity;
+                    if (revisableEntity.getRevision() == null) {
+                        revisableEntity.setRevision(new RevisionInfo(null, 0L));
+                    }
+                }
+            }
+        } else {
+            entityService.populateRevisions(entities);
         }
     }
 
