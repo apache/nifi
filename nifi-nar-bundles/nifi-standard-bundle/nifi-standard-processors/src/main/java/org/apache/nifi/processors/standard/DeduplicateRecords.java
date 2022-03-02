@@ -65,8 +65,6 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -335,7 +333,6 @@ public class DeduplicateRecords extends AbstractProcessor {
                         "to access information about the field and the value of the field being evaluated.")
                 .required(false)
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .addValidator(new RecordPathPropertyNameValidator())
                 .build();
     }
@@ -383,16 +380,13 @@ public class DeduplicateRecords extends AbstractProcessor {
     private boolean useInMemoryStrategy;
 
     @OnScheduled
-    public void compileRecordPaths(final ProcessContext context) {
-        final List<String> recordPaths = new ArrayList<>();
-
-        recordPaths.addAll(context.getProperties().keySet().stream()
+    public void onScheduled(final ProcessContext context) {
+        this.recordPaths = context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .map(PropertyDescriptor::getName)
-                .collect(toList()));
+                .collect(toList());
 
         recordPathCache = new RecordPathCache(recordPaths.size());
-        this.recordPaths = recordPaths;
 
         if (context.getProperty(DISTRIBUTED_MAP_CACHE).isSet()) {
             mapCacheClient = context.getProperty(DISTRIBUTED_MAP_CACHE).asControllerService(DistributedMapCacheClient.class);
@@ -566,22 +560,10 @@ public class DeduplicateRecords extends AbstractProcessor {
             final RecordPathResult result = recordPath.evaluate(record);
             final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
 
-            if (recordPathPropertyValue.isExpressionLanguagePresent()) {
-                final Map<String, String> fieldVariables = new HashMap<>();
-                selectedFields.forEach(fieldVal -> {
-                    fieldVariables.clear();
-                    fieldVariables.put(FIELD_NAME, fieldVal.getField().getFieldName());
-                    fieldVariables.put(FIELD_VALUE, DataTypeUtils.toString(fieldVal.getValue(), (String) null));
-                    fieldVariables.put(FIELD_TYPE, fieldVal.getField().getDataType().getFieldType().name());
-
-                    fieldValues.add(recordPathPropertyValue.evaluateAttributeExpressions(flowFile, fieldVariables).getValue());
-                });
-            } else {
-                fieldValues.add(recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue());
-            }
+            fieldValues.add(recordPathPropertyValue.getValue());
 
             fieldValues.addAll(selectedFields.stream()
-                    .map(f -> recordPathPropertyValue.evaluateAttributeExpressions(flowFile).getValue())
+                    .map(f -> f.getValue().toString())
                     .collect(toList())
             );
         }
