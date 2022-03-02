@@ -79,11 +79,18 @@ public class TestDeduplicateRecords {
     }
 
     @Test
+    public void testInvalidRecordPathCausesValidationError() {
+        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
+        runner.setProperty("middle_name", "//////middleName");
+        runner.assertNotValid();
+    }
+
+    @Test
     public void testDetectDuplicatesHashSet() {
         commonEnqueue();
 
         runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
-        runner.setProperty("/middleName", "/middleName");
+        runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jane", "X", "Doe");
@@ -99,7 +106,7 @@ public class TestDeduplicateRecords {
         commonEnqueue();
         runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.BLOOM_FILTER_VALUE);
         runner.setProperty(DeduplicateRecords.BLOOM_FILTER_FPP, "0.10");
-        runner.setProperty("/middleName", "/middleName");
+        runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jane", "X", "Doe");
@@ -114,7 +121,7 @@ public class TestDeduplicateRecords {
     public void testNoDuplicatesHashSet() {
         commonEnqueue();
         runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
-        runner.setProperty("/middleName", "/middleName");
+        runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
         reader.addRecord("Jane", "X", "Doe");
@@ -130,7 +137,7 @@ public class TestDeduplicateRecords {
         commonEnqueue();
         runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.BLOOM_FILTER_VALUE);
         runner.setProperty(DeduplicateRecords.BLOOM_FILTER_FPP, "0.10");
-        runner.setProperty("/middleName", "/middleName}");
+        runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
         reader.addRecord("Jane", "X", "Doe");

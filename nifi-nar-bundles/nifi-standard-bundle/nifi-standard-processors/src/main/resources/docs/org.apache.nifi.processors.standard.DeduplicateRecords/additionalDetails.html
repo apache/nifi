@@ -49,5 +49,22 @@
             </ul>
         </li>
     </ol>
+    <h2>The role of dynamic properties</h2>
+    <p>Dynamic properties should have a human-readable name for the property name and a record path operation for the
+    value. The record path operations will be used to extract values from the record to assemble a unique identifier. Here is an example:</p>
+    <ul>
+        <li>firstName => /FirstName</li>
+        <li>lastName => /LastName</li>
+    </ul>
+    <p>Record:</p>
+    <pre>
+        {
+            "firstName": "John",
+            "lastName": "Smith"
+        }
+    </pre>
+    <p>Will yield an identifier that has "John" and "Smith" in it before a hash is generated from the final value.</p>
+    <p>If any record path is missing, it will cause an exception to be raised and the flowfile will be sent to the
+    failure relationship.</p>
 </body>
 </html>

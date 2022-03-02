@@ -119,7 +119,7 @@ public class DeduplicateRecords extends AbstractProcessor {
     private static final String FIELD_TYPE = "field.type";
 
     private volatile RecordPathCache recordPathCache;
-    private volatile List<String> recordPaths;
+    private volatile List<PropertyDescriptor> dynamicProperties;
 
     // VALUES
 
@@ -333,20 +333,15 @@ public class DeduplicateRecords extends AbstractProcessor {
                         "to access information about the field and the value of the field being evaluated.")
                 .required(false)
                 .dynamic(true)
-                .addValidator(new RecordPathPropertyNameValidator())
+                .addValidator(new RecordPathValidator())
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
                 .build();
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         RecordPathValidator recordPathValidator = new RecordPathValidator();
-        final List<ValidationResult> validationResults = context.getProperties().keySet().stream()
-                .filter(PropertyDescriptor::isDynamic)
-                .map(property -> recordPathValidator.validate(
-                        "User-defined Properties",
-                        property.getName(),
-                        context
-                )).collect(Collectors.toList());
+        List<ValidationResult> validationResults = new ArrayList<>();
 
         boolean useSingleFile = context.getProperty(DEDUPLICATION_STRATEGY).getValue().equals(OPTION_SINGLE_FILE.getValue());
 
@@ -381,12 +376,13 @@ public class DeduplicateRecords extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        this.recordPaths = context.getProperties().keySet().stream()
+        dynamicProperties = context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
-                .map(PropertyDescriptor::getName)
-                .collect(toList());
+                .collect(Collectors.toUnmodifiableList());
 
-        recordPathCache = new RecordPathCache(recordPaths.size());
+        int cacheSize = dynamicProperties.size();
+
+        recordPathCache = new RecordPathCache(cacheSize);
 
         if (context.getProperty(DISTRIBUTED_MAP_CACHE).isSet()) {
             mapCacheClient = context.getProperty(DISTRIBUTED_MAP_CACHE).asControllerService(DistributedMapCacheClient.class);
@@ -554,13 +550,13 @@ public class DeduplicateRecords extends AbstractProcessor {
 
     private String executeDynamicRecordPaths(ProcessContext context, Record record, FlowFile flowFile) {
         final List<String> fieldValues = new ArrayList<>();
-        for (final String recordPathText : recordPaths) {
-            final PropertyValue recordPathPropertyValue = context.getProperty(recordPathText);
-            final RecordPath recordPath = recordPathCache.getCompiled(recordPathText);
+        for (final PropertyDescriptor propertyDescriptor : dynamicProperties) {
+            final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+            final RecordPath recordPath = recordPathCache.getCompiled(value);
             final RecordPathResult result = recordPath.evaluate(record);
             final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
 
-            fieldValues.add(recordPathPropertyValue.getValue());
+            fieldValues.add(propertyDescriptor.getName());
 
             fieldValues.addAll(selectedFields.stream()
                     .map(f -> f.getValue().toString())
