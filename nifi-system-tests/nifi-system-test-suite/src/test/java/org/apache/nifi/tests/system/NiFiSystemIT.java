@@ -137,6 +137,9 @@ public abstract class NiFiSystemIT {
             if (destroyFlowFailure != null) {
                 throw destroyFlowFailure;
             }
+        } catch (final Exception e) {
+            logger.error("Failure during test case teardown", e);
+            throw e;
         } finally {
             if (nifiClient != null) {
                 nifiClient.close();
@@ -181,7 +184,7 @@ public abstract class NiFiSystemIT {
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes) {
-        waitForAllNodesConnected(expectedNumberOfNodes, 100L);
+        waitForAllNodesConnected(expectedNumberOfNodes, 1000L);
     }
 
     protected void waitForAllNodesConnected(final int expectedNumberOfNodes, final long sleepMillis) {
@@ -315,7 +318,7 @@ public abstract class NiFiSystemIT {
     }
 
     protected void waitFor(final ExceptionalBooleanSupplier condition) throws InterruptedException {
-        waitFor(condition, 10L);
+        waitFor(condition, 100L);
     }
 
     protected void waitFor(final ExceptionalBooleanSupplier condition, final long delayMillis) throws InterruptedException {
@@ -323,7 +326,9 @@ public abstract class NiFiSystemIT {
         while (!result) {
             try {
                 result = condition.getAsBoolean();
-            } catch (Exception ignore) {
+            } catch (final InterruptedException ie) {
+                throw ie;
+            } catch (final Exception ignored) {
             }
 
             Thread.sleep(delayMillis);
@@ -351,6 +356,14 @@ public abstract class NiFiSystemIT {
         waitForQueueCountToMatch(connectionId, size -> size > 0, "greater than 0");
 
         logger.info("Queue on Connection {} is not empty", connectionId);
+    }
+
+    protected void waitForMinQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
+        logger.info("Waiting for Queue Count of at least {} on Connection {}", queueSize, connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size >= queueSize, String.valueOf(queueSize));
+
+        logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
     }
 
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {

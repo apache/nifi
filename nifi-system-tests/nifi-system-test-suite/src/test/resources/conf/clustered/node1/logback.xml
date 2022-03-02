@@ -37,7 +37,7 @@
         </rollingPolicy>
         <immediateFlush>true</immediateFlush>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+            <pattern>%date %level [%thread] %logger %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -55,7 +55,7 @@
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+            <pattern>%date %level [%thread] %logger %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -84,13 +84,13 @@
             <maxHistory>5</maxHistory>
         </rollingPolicy>
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+            <pattern>%date %level [%thread] %logger %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%date %level [%thread] %logger{40} %msg%n</pattern>
+            <pattern>%date %level [%thread] %logger %msg%n</pattern>
         </encoder>
     </appender>
 
