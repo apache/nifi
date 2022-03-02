@@ -376,7 +376,7 @@ public class DeduplicateRecords extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         dynamicProperties = context.getProperties().keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
-                .collect(Collectors.toUnmodifiableList());
+                .collect(Collectors.toList());
 
         int cacheSize = dynamicProperties.size();
 
