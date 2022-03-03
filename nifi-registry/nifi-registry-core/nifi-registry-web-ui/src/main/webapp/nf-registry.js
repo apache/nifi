@@ -107,7 +107,7 @@ NfRegistry.annotations = [
         selector: 'nf-registry-app',
         templateUrl: './nf-registry.html',
         queries: {
-            sidenav: new ViewChild('sidenav')
+            sidenav: new ViewChild('sidenav', { static: true })
         },
         animations: [nfRegistryAnimations.flyInOutAnimation]
     })
