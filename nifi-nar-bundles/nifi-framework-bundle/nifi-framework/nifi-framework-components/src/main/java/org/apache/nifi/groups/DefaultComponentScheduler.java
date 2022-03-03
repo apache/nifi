@@ -23,6 +23,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.Collection;
@@ -62,5 +63,9 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
     @Override
     protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
         getControllerServiceProvider().enableControllerServices(controllerServices);
+    }
+
+    protected void startNow(final ReportingTaskNode reportingTask) {
+        reportingTask.start();
     }
 }
