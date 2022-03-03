@@ -26,10 +26,10 @@ public interface ProcessGroupSynchronizer {
     /**
      * Synchronize the given Process Group to match the proposed snaphsot
      * @param group the Process Group to update
-     * @param proposedSnapshot the proposed/desired state for the process group
+     * @param proposedFlow the proposed/desired state for the process group
      * @param synchronizationOptions options for how to synchronize the group
      */
-    void synchronize(ProcessGroup group, VersionedExternalFlow proposedSnapshot, GroupSynchronizationOptions synchronizationOptions) throws ProcessorInstantiationException;
+    void synchronize(ProcessGroup group, VersionedExternalFlow proposedFlow, GroupSynchronizationOptions synchronizationOptions) throws ProcessorInstantiationException;
 
     void verifyCanSynchronize(ProcessGroup group, VersionedProcessGroup proposed, boolean verifyConnectionRemoval);
 
