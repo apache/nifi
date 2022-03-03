@@ -62,7 +62,7 @@ import org.apache.nifi.groups.AbstractComponentScheduler;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
-import org.apache.nifi.groups.GroupSynchronizationOptions;
+import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
@@ -332,7 +332,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 allTemplates.forEach(template -> template.getProcessGroup().removeTemplate(template));
 
                 // Synchronize the root group
-                final GroupSynchronizationOptions syncOptions = new GroupSynchronizationOptions.Builder()
+                final FlowSynchronizationOptions syncOptions = new FlowSynchronizationOptions.Builder()
                     .componentIdGenerator(componentIdGenerator)
                     .componentScheduler(componentScheduler)
                     .ignoreLocalModifications(true)
@@ -1020,6 +1020,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         @Override
         protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
             flowController.getControllerServiceProvider().enableControllerServices(controllerServices);
+        }
+
+        protected void startNow(final ReportingTaskNode reportingTask) {
+            flowController.startReportingTask(reportingTask);
         }
     }
 }

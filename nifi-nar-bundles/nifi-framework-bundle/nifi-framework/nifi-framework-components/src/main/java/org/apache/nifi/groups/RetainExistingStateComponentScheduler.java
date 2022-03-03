@@ -18,6 +18,7 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -98,6 +99,11 @@ public class RetainExistingStateComponentScheduler implements ComponentScheduler
     @Override
     public void disableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
         delegate.disableControllerServicesAsync(controllerServices);
+    }
+
+    @Override
+    public void startReportingTask(final ReportingTaskNode reportingTask) {
+        delegate.startReportingTask(reportingTask);
     }
 
     @Override

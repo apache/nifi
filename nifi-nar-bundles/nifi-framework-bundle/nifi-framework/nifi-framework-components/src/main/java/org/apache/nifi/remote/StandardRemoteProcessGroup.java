@@ -497,7 +497,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     if (sendPort == null) {
                         sendPort = addInputPort(descriptor);
                         logger.info("Added Input Port {} with Name {} and Target Identifier {} to {}", sendPort.getIdentifier(), sendPort.getName(), sendPort.getTargetIdentifier(), this);
-                    } else {
+                    } else if (descriptor.getTargetId() != null) {
                         final String previousTargetId = sendPort.getTargetIdentifier();
                         sendPort.setTargetIdentifier(descriptor.getTargetId());
                         logger.info("Updated Target identifier for Input Port with Name {} from {} to {} for {}", descriptor.getName(), previousTargetId, descriptor.getTargetId(), this);

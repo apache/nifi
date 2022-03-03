@@ -125,4 +125,11 @@ public interface ReportingTaskNode extends ComponentNode {
      */
     List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
 
+    void start();
+
+    void stop();
+
+    void enable();
+
+    void disable();
 }

@@ -66,6 +66,8 @@ import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer;
+import org.apache.nifi.flow.synchronization.VersionedFlowSynchronizationContext;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
@@ -3787,7 +3789,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ComponentScheduler defaultComponentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
         final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler);
 
-        final GroupSynchronizationOptions synchronizationOptions = new GroupSynchronizationOptions.Builder()
+        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
             .componentScheduler(retainExistingStateScheduler)
             .ignoreLocalModifications(!verifyNotDirty)
@@ -3818,14 +3820,14 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final GroupSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
+    public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final FlowSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
         writeLock.lock();
         try {
             verifyCanUpdate(proposedSnapshot, true, !synchronizationOptions.isIgnoreLocalModifications());
 
-            final ProcessGroupSynchronizationContext groupSynchronizationContext = createGroupSynchronizationContext(
+            final VersionedFlowSynchronizationContext groupSynchronizationContext = createGroupSynchronizationContext(
                 synchronizationOptions.getComponentIdGenerator(), synchronizationOptions.getComponentScheduler(), flowMappingOptions);
-            final StandardProcessGroupSynchronizer synchronizer = new StandardProcessGroupSynchronizer(groupSynchronizationContext);
+            final StandardVersionedComponentSynchronizer synchronizer = new StandardVersionedComponentSynchronizer(groupSynchronizationContext);
 
             final StandardVersionControlInformation originalVci = this.versionControlInfo.get();
             try {
@@ -3963,9 +3965,9 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> proposedId;
-            final ProcessGroupSynchronizationContext groupSynchronizationContext = createGroupSynchronizationContext(
+            final VersionedFlowSynchronizationContext groupSynchronizationContext = createGroupSynchronizationContext(
                 componentIdGenerator, ComponentScheduler.NOP_SCHEDULER, FlowMappingOptions.DEFAULT_OPTIONS);
-            final StandardProcessGroupSynchronizer synchronizer = new StandardProcessGroupSynchronizer(groupSynchronizationContext);
+            final StandardVersionedComponentSynchronizer synchronizer = new StandardVersionedComponentSynchronizer(groupSynchronizationContext);
 
             synchronizer.verifyCanSynchronize(this, updatedFlow.getFlowContents(), verifyConnectionRemoval);
         } finally {
@@ -3973,9 +3975,9 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    private ProcessGroupSynchronizationContext createGroupSynchronizationContext(final ComponentIdGenerator componentIdGenerator, final ComponentScheduler componentScheduler,
-                                                                                 final FlowMappingOptions flowMappingOptions) {
-        return new ProcessGroupSynchronizationContext.Builder()
+    private VersionedFlowSynchronizationContext createGroupSynchronizationContext(final ComponentIdGenerator componentIdGenerator, final ComponentScheduler componentScheduler,
+                                                                                  final FlowMappingOptions flowMappingOptions) {
+        return new VersionedFlowSynchronizationContext.Builder()
             .componentIdGenerator(componentIdGenerator)
             .flowManager(flowManager)
             .flowRegistryClient(flowRegistryClient)

@@ -39,7 +39,7 @@ import org.apache.nifi.groups.DataValve;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileGate;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
-import org.apache.nifi.groups.GroupSynchronizationOptions;
+import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
@@ -719,7 +719,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final GroupSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
+    public void synchronizeFlow(final VersionedExternalFlow proposedSnapshot, final FlowSynchronizationOptions synchronizationOptions, final FlowMappingOptions flowMappingOptions) {
     }
 
     @Override

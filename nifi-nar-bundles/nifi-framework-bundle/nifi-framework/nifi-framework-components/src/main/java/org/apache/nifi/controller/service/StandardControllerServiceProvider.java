@@ -25,9 +25,12 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.groups.ComponentScheduler;
+import org.apache.nifi.groups.DefaultComponentScheduler;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
@@ -36,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -96,37 +100,54 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public Set<ComponentNode> scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+        return scheduleReferencingComponents(serviceNode, null, new DefaultComponentScheduler(this, VersionedComponentStateLookup.IDENTITY_LOOKUP));
+    }
+
+    public Set<ComponentNode> scheduleReferencingComponents(final ControllerServiceNode serviceNode, final Set<ComponentNode> candidates, final ComponentScheduler componentScheduler) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
-        final Set<ComponentNode> updated = new HashSet<>();
-
         // verify that  we can start all components (that are not disabled) before doing anything
         for (final ProcessorNode node : processors) {
+            if (candidates != null && !candidates.contains(node)) {
+                continue;
+            }
+
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 node.verifyCanStart();
-                updated.add(node);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
+            if (candidates != null && !candidates.contains(node)) {
+                continue;
+            }
+
             if (node.getScheduledState() != ScheduledState.DISABLED) {
                 node.verifyCanStart();
-                updated.add(node);
             }
         }
 
         // start all of the components that are not disabled
+        final Set<ComponentNode> updated = new HashSet<>();
         for (final ProcessorNode node : processors) {
+            if (candidates != null && !candidates.contains(node)) {
+                continue;
+            }
+
             if (node.getScheduledState() != ScheduledState.DISABLED) {
-                node.getProcessGroup().startProcessor(node, true);
+                componentScheduler.startComponent(node);
                 updated.add(node);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
+            if (candidates != null && !candidates.contains(node)) {
+                continue;
+            }
+
             if (node.getScheduledState() != ScheduledState.DISABLED) {
-                processScheduler.schedule(node);
+                componentScheduler.startReportingTask(node);
                 updated.add(node);
             }
         }
@@ -135,13 +156,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public Set<ComponentNode> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
+    public Map<ComponentNode, Future<Void>> unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         // find all of the schedulable components (processors, reporting tasks) that refer to this Controller Service,
         // or a service that references this controller service, etc.
         final List<ProcessorNode> processors = serviceNode.getReferences().findRecursiveReferences(ProcessorNode.class);
         final List<ReportingTaskNode> reportingTasks = serviceNode.getReferences().findRecursiveReferences(ReportingTaskNode.class);
 
-        final Set<ComponentNode> updated = new HashSet<>();
+        final Map<ComponentNode, Future<Void>> updated = new HashMap<>();
 
         // verify that  we can stop all components (that are running) before doing anything
         for (final ProcessorNode node : processors) {
@@ -158,14 +179,14 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         // stop all of the components that are running
         for (final ProcessorNode node : processors) {
             if (node.getScheduledState() == ScheduledState.RUNNING) {
-                node.getProcessGroup().stopProcessor(node);
-                updated.add(node);
+                final Future<Void> future = node.getProcessGroup().stopProcessor(node);
+                updated.put(node, future);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
             if (node.getScheduledState() == ScheduledState.RUNNING) {
-                processScheduler.unschedule(node);
-                updated.add(node);
+                final Future<Void> future = processScheduler.unschedule(node);
+                updated.put(node, future);
             }
         }
 

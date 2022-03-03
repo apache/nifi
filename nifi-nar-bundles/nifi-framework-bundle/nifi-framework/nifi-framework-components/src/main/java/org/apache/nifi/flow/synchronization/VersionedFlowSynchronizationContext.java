@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.groups;
+package org.apache.nifi.flow.synchronization;
 
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.groups.ComponentIdGenerator;
+import org.apache.nifi.groups.ComponentScheduler;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -30,7 +32,7 @@ import java.util.function.Function;
 
 import static java.util.Objects.requireNonNull;
 
-public class ProcessGroupSynchronizationContext {
+public class VersionedFlowSynchronizationContext {
     private final ComponentIdGenerator componentIdGenerator;
     private final FlowManager flowManager;
     private final FlowRegistryClient flowRegistryClient;
@@ -42,7 +44,7 @@ public class ProcessGroupSynchronizationContext {
     private final Function<ProcessorNode, ProcessContext> processContextFactory;
 
 
-    private ProcessGroupSynchronizationContext(final Builder builder) {
+    private VersionedFlowSynchronizationContext(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
         this.flowManager = builder.flowManager;
         this.flowRegistryClient = builder.flowRegistryClient;
@@ -146,7 +148,7 @@ public class ProcessGroupSynchronizationContext {
             return this;
         }
 
-        public ProcessGroupSynchronizationContext build() {
+        public VersionedFlowSynchronizationContext build() {
             requireNonNull(componentIdGenerator, "Component ID Generator must be set");
             requireNonNull(flowManager, "Flow Manager must be set");
             requireNonNull(flowRegistryClient, "Flow Registry Client must be set");
@@ -156,7 +158,7 @@ public class ProcessGroupSynchronizationContext {
             requireNonNull(componentScheduler, "Component Scheduler must be set");
             requireNonNull(flowMappingOptions, "Flow Mapping Options must be set");
             requireNonNull(processContextFactory, "Process Context Factory must be set");
-            return new ProcessGroupSynchronizationContext(this);
+            return new VersionedFlowSynchronizationContext(this);
         }
     }
 
