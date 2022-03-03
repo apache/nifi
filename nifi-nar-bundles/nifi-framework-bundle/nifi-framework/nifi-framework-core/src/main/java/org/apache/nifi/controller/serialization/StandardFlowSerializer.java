@@ -363,6 +363,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         parentElement.appendChild(element);
         addTextElement(element, "id", label.getIdentifier());
         addTextElement(element, "versionedComponentId", label.getVersionedComponentId());
+        addTextElement(element, "zIndex", label.getZIndex());
 
         addPosition(element, label.getPosition());
         addSize(element, label.getSize());

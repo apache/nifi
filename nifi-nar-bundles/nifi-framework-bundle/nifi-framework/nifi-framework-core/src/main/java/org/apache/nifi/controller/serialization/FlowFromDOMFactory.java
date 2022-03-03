@@ -399,6 +399,7 @@ public class FlowFromDOMFactory {
         final Size size = getSize(DomUtils.getChild(element, "size"));
         dto.setWidth(size.getWidth());
         dto.setHeight(size.getHeight());
+        dto.setzIndex(getLong(element, "zIndex"));
         dto.setStyle(getStyle(DomUtils.getChild(element, "styles")));
 
         return dto;

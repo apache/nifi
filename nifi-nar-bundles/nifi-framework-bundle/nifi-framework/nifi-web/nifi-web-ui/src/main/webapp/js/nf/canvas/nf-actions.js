@@ -212,6 +212,43 @@
             }).size() > 0;
     };
 
+    var moveComponentToFront = function (selection, componentManager) {
+        var datum = selection.datum();
+
+        // determine the current max zIndex
+        var maxZIndex = -1;
+        $.each(componentManager['get'](), function (_, otherComponent) {
+            if (datum.id !== otherComponent.id && otherComponent.zIndex > maxZIndex) {
+                maxZIndex = otherComponent.zIndex;
+            }
+        });
+
+        // ensure the edge wasn't already in front
+        if (maxZIndex >= 0) {
+            var zIndex = maxZIndex + 1;
+
+            // build the connection entity
+            var componentEntity = {
+                'revision': nfClient.getRevision(datum),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                'component': {
+                    'id': datum.id,
+                    'zIndex': zIndex
+                }
+            };
+
+            return $.ajax({
+                type: 'PUT',
+                url: datum.uri,
+                data: JSON.stringify(componentEntity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                componentManager['set'](response);
+            }).fail(nfErrorHandler.handleAjaxError);
+        }
+    }
+
     var nfActions = {
         /**
          * Initializes the actions.
@@ -2202,47 +2239,15 @@
          *
          * @param {selection} selection
          */
-        toFront: function (selection) {
-            if (selection.size() !== 1 || !nfCanvasUtils.isConnection(selection)) {
+         toFront: function (selection) {
+            if (selection.size() !== 1) {
                 return;
             }
 
-            // get the connection data
-            var connection = selection.datum();
-
-            // determine the current max zIndex
-            var maxZIndex = -1;
-            $.each(nfConnection.get(), function (_, otherConnection) {
-                if (connection.id !== otherConnection.id && otherConnection.zIndex > maxZIndex) {
-                    maxZIndex = otherConnection.zIndex;
-                }
-            });
-
-            // ensure the edge wasn't already in front
-            if (maxZIndex >= 0) {
-                // use one higher
-                var zIndex = maxZIndex + 1;
-
-                // build the connection entity
-                var connectionEntity = {
-                    'revision': nfClient.getRevision(connection),
-                    'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-                    'component': {
-                        'id': connection.id,
-                        'zIndex': zIndex
-                    }
-                };
-
-                // update the edge in question
-                $.ajax({
-                    type: 'PUT',
-                    url: connection.uri,
-                    data: JSON.stringify(connectionEntity),
-                    dataType: 'json',
-                    contentType: 'application/json'
-                }).done(function (response) {
-                    nfConnection.set(response);
-                }).fail(nfErrorHandler.handleAjaxError);
+            if (nfCanvasUtils.isConnection(selection)) {
+                moveComponentToFront(selection, nfConnection);
+            } else if (nfCanvasUtils.isLabel(selection)) {
+                moveComponentToFront(selection, nfLabel);
             }
         }
     };

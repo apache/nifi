@@ -23,6 +23,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 public class VersionedLabel extends VersionedComponent {
     private String label;
+    private Long zIndex;
 
     private Double width;
     private Double height;
@@ -64,6 +65,17 @@ public class VersionedLabel extends VersionedComponent {
 
     public void setWidth(Double width) {
         this.width = width;
+    }
+
+    @ApiModelProperty(
+            value = "The z index of the connection.",
+            name = "zIndex")  // Jackson maps this method name to JSON key "zIndex", but Swagger does not by default
+    public Long getzIndex() {
+        return zIndex;
+    }
+
+    public void setzIndex(Long zIndex) {
+        this.zIndex = zIndex;
     }
 
     @Override

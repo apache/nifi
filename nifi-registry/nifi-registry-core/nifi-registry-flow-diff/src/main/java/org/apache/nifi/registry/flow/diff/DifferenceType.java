@@ -256,6 +256,11 @@ public enum DifferenceType {
     LABEL_VALUE_CHANGED("Label Text Changed"),
 
     /**
+     * The zindex value is different in each of the components
+     */
+    ZINDEX_CHANGED("z-index Changed"),
+
+    /**
      * The variable does not exist in Flow A but exists in Flow B
      */
     VARIABLE_ADDED("Variable Added to Process Group"),
