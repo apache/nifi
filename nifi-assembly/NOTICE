@@ -964,6 +964,11 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Hosebird Client (hbc)
       Copyright 2013 Twitter, Inc.
+      
+  (ASLv2) Twitter API Client Library for Java
+    The following NOTICE information applies:
+      Twitter API Client Library for Java
+      Copyright 2022 Twitter, Inc.
 
   (ASLv2) GeoIP2 Java API
     The following NOTICE information applies:
