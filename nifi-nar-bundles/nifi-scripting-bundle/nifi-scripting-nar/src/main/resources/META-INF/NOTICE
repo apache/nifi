@@ -149,6 +149,9 @@ The following binary components are provided under the Apache Software License v
            - voluntary contributions made by Paul Eng on behalf of the
              Apache Software Foundation that were originally developed at iClick, Inc.,
              software copyright (c) 1999.
+  (ASLv2) Kotlin Compiler and Runtime
+      The following NOTICE information applies:
+        Copyright 2010-2020 JetBrains s.r.o and respective authors and developers
 
 ******************
 Eclipse Public License v1.0
