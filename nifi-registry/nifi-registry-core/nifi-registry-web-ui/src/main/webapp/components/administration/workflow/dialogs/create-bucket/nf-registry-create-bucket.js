@@ -88,8 +88,8 @@ NfRegistryCreateBucket.annotations = [
     new Component({
         templateUrl: './nf-registry-create-bucket.html',
         queries: {
-            newBucketName: new ViewChild('newBucketName'),
-            newBucketDescription: new ViewChild('newBucketDescription')
+            newBucketName: new ViewChild('newBucketName', { static: true }),
+            newBucketDescription: new ViewChild('newBucketDescription', { static: true })
         }
     })
 ];
