@@ -1637,6 +1637,41 @@
             return;
         }
 
+        // penalized icon
+        var connectionLabelContainer = updated.select('g.connection-label-container');
+        if (connectionLabelContainer.select('text.penalized-icon').empty()) {
+            connectionLabelContainer.select('g.queued-container')
+                .append('text')
+                .attrs({
+                    'class': 'penalized-icon',
+                    'y': 14
+                })
+                .text(function () {
+                    return '\uf252';
+                })
+                .append('title');
+        }
+
+        // determine whether or not to show the penalized icon
+        connectionLabelContainer.select('text.penalized-icon')
+            .classed('hidden', function (d) {
+                var flowFileAvailability = _.get(d, 'status.aggregateSnapshot.flowFileAvailability', null)
+                return flowFileAvailability !== 'HEAD_OF_QUEUE_PENALIZED';
+            })
+            .attr('x', function () {
+                var offset = 0;
+                if (!connectionLabelContainer.select('text.expiration-icon').classed('hidden')) {
+                    offset += 16;
+                }
+                if (!connectionLabelContainer.select('text.load-balance-icon').classed('hidden')) {
+                    offset += 16;
+                }
+                return 208 - offset;
+            })
+            .select('title').text(function () {
+                return 'A FlowFile is currently penalized and data cannot be processed at this time.';
+            });
+
         // update data size
         var dataSizeDeferred = $.Deferred(function (deferred) {
             // queued count value
