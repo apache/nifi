@@ -95,8 +95,6 @@ RUN ${NIFI_BASE_DIR}/scripts/fix-permissions.sh ${NIFI_BASE_DIR}
 
 ENV HOME=${NIFI_HOME}
 
-USER 1001
-
 # Apply configuration and start NiFi
 #
 # We need to use the exec form to avoid running our command in a subshell and omitting signals,
