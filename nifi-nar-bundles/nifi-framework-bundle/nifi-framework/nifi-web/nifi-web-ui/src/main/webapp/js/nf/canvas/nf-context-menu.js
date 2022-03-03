@@ -304,7 +304,7 @@
             return false;
         }
 
-        return nfCanvasUtils.isConnection(selection);
+        return nfCanvasUtils.isConnection(selection) || nfCanvasUtils.isLabel(selection);
     };
 
     /**

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.DimensionsDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 
@@ -28,6 +29,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO> {
 
     private DimensionsDTO dimensions;
+    private Long zIndex;
     private LabelDTO component;
 
     /**
@@ -54,5 +56,19 @@ public class LabelEntity extends ComponentEntity implements Permissible<LabelDTO
 
     public void setDimensions(DimensionsDTO dimensions) {
         this.dimensions = dimensions;
+    }
+
+    /**
+     * @return z index for this label
+     */
+    @ApiModelProperty(
+            value = "The z index of the label."
+    )
+    public Long getzIndex() {
+        return zIndex;
+    }
+
+    public void setzIndex(Long zIndex) {
+        this.zIndex = zIndex;
     }
 }
