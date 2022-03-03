@@ -220,9 +220,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             logger.info("NiFi Shutdown Started [{}]", instanceDirectory.getName());
 
             try {
-                do {
-                    runNiFi.stop();
-                } while (runNiFi.status() != 3);
+                runNiFi.stop();
                 logger.info("NiFi Shutdown Completed [{}]", instanceDirectory.getName());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to stop NiFi", e);
