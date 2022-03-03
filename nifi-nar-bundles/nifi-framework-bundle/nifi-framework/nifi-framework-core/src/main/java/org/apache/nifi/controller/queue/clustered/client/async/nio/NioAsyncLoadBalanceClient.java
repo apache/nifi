@@ -439,7 +439,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 socketChannel = createChannel();
                 socketChannel.configureBlocking(true);
 
-                peerChannel = createPeerChannel(socketChannel, socketChannel.getLocalAddress() + "::" + nodeIdentifier.toString());
+                peerChannel = createPeerChannel(socketChannel, socketChannel.getLocalAddress() + "::" + socketChannel.getRemoteAddress());
                 channel = peerChannel;
             }
 
