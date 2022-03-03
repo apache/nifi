@@ -59,6 +59,7 @@ import java.util.stream.Collectors;
  * component.
  */
 public final class StandardConnection implements Connection, ConnectionEventListener {
+    public static final long DEFAULT_Z_INDEX = 0;
 
     private final String id;
     private final AtomicReference<ProcessGroup> processGroup;
@@ -68,7 +69,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
     private final AtomicReference<Connectable> destination;
     private final AtomicReference<Collection<Relationship>> relationships;
     private final AtomicInteger labelIndex = new AtomicInteger(1);
-    private final AtomicLong zIndex = new AtomicLong(0L);
+    private final AtomicLong zIndex = new AtomicLong(DEFAULT_Z_INDEX);
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler scheduler;
     private final int hashCode;
