@@ -31,21 +31,22 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class SalesforceToNifiSchemaConverter {
+public class SalesforceToRecordSchemaConverter {
 
     private final String dateFormat;
     private final String dateTimeFormat;
     private final String timeFormat;
+    private final ObjectMapper objectMapper;
 
-    public SalesforceToNifiSchemaConverter(String dateFormat, String dateTimeFormat, String timeFormat) {
+    public SalesforceToRecordSchemaConverter(String dateFormat, String dateTimeFormat, String timeFormat) {
         this.dateFormat = dateFormat;
         this.dateTimeFormat = dateTimeFormat;
         this.timeFormat = timeFormat;
+        objectMapper = JsonUtils.createObjectMapper();
     }
 
     public RecordSchema convertSchema(final String describeSOjbectResultJsonString, final String fieldNamesOfInterest) throws IOException {
 
-        final ObjectMapper objectMapper = JsonUtils.createObjectMapper();
         final SObjectDescription sObjectDescription = objectMapper.readValue(describeSOjbectResultJsonString, SObjectDescription.class);
         final List<String> listOfFieldNamesOfInterest = Arrays.asList(fieldNamesOfInterest.toLowerCase().split("\\s*,\\s*"));
         final List<SObjectField> fields = sObjectDescription.getFields()

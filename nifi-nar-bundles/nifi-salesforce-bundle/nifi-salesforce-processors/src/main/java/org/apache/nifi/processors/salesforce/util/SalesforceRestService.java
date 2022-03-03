@@ -23,30 +23,32 @@ import okhttp3.Response;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class SalesforceRestService {
     private final String version;
     private final String baseUrl;
     private final Supplier<String> accessTokenProvider;
+    private final OkHttpClient httpClient;
 
-    private final OkHttpClient httpClient = new OkHttpClient.Builder().build();
-
-    public SalesforceRestService(String version, String baseUrl, Supplier<String> accessTokenProvider) {
+    public SalesforceRestService(String version, String baseUrl, Supplier<String> accessTokenProvider, int responseTimeoutMillis) {
         this.version = version;
         this.baseUrl = baseUrl;
         this.accessTokenProvider = accessTokenProvider;
+        httpClient = new OkHttpClient.Builder()
+                .readTimeout(responseTimeoutMillis, TimeUnit.MILLISECONDS)
+                .build();
     }
 
     public String describeSObject(String sObject) {
         String url = baseUrl + "/services/data/v" + version + "/sobjects/" + sObject + "/describe?maxRecords=1";
 
         Request request = new Request.Builder()
-            .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
-            .url(url)
-            .get()
-            .build();
+                .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
+                .url(url)
+                .get()
+                .build();
 
         return request(request);
     }
@@ -55,17 +57,14 @@ public class SalesforceRestService {
         String url = baseUrl + "/services/data/v" + version + "/query";
 
         HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
-            .addQueryParameter("q", query)
-            .build();
-
-        HashMap<String, String> queryParams = new HashMap<>();
-        queryParams.put("q", query);
+                .addQueryParameter("q", query)
+                .build();
 
         Request request = new Request.Builder()
-            .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
-            .url(httpUrl)
-            .get()
-            .build();
+                .addHeader("Authorization", "Bearer " + accessTokenProvider.get())
+                .url(httpUrl)
+                .get()
+                .build();
 
         return request(request);
     }
@@ -74,9 +73,9 @@ public class SalesforceRestService {
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.code() != 200) {
                 throw new ProcessException("Invalid response" +
-                    " Code: " + response.code() +
-                    " Message: " + response.message() +
-                    " Body: " + (response.body() == null ? null : response.body().string())
+                        " Code: " + response.code() +
+                        " Message: " + response.message() +
+                        " Body: " + (response.body() == null ? null : response.body().string())
                 );
             }
             return response.body().string();

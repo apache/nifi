@@ -45,7 +45,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.salesforce.util.SalesforceRestService;
-import org.apache.nifi.processors.salesforce.util.SalesforceToNifiSchemaConverter;
+import org.apache.nifi.processors.salesforce.util.SalesforceToRecordSchemaConverter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -62,6 +62,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -71,6 +72,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -95,24 +97,6 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
 public class QuerySObject extends AbstractProcessor {
-    static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
-            .name("sobject-name")
-            .displayName("SObject Name")
-            .description("The name of the sobject to be queried.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("field-names")
-            .displayName("Field Names")
-            .description("A coma-separated list of field names to be used in the query.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
             .name("custom-where-condition")
             .displayName("Custom WHERE Condition")
@@ -121,7 +105,22 @@ public class QuerySObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
+    static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
+            .name("sobject-name")
+            .displayName("SObject Name")
+            .description("The name of the sobject to be queried.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+    static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
+            .name("field-names")
+            .displayName("Field Names")
+            .description("A coma-separated list of field names to be used in the query.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
     static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
             .name("age-field")
             .displayName("Age Field")
@@ -159,7 +158,7 @@ public class QuerySObject extends AbstractProcessor {
     static final PropertyDescriptor BASE_URL = new PropertyDescriptor.Builder()
             .name("salesforce-base-url")
             .displayName("Base URL")
-            .description("")
+            .description("The URL of the Salesforce instance.")
             .required(true)
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -168,16 +167,17 @@ public class QuerySObject extends AbstractProcessor {
     static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
             .name("salesforce-api-version")
             .displayName("API Version")
-            .description("")
+            .description("The version of the Salesforce REST API.")
             .required(true)
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("46.0")
+            .defaultValue("54.0")
             .build();
 
     static final PropertyDescriptor AUTH_SERVICE = new PropertyDescriptor.Builder()
             .name("auth-service")
-            .displayName("Auth service")
+            .displayName("OAuth2 Access Token Provider")
+            .description("Controller service to handle Oauth2 authorization.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
             .build();
@@ -206,6 +206,16 @@ public class QuerySObject extends AbstractProcessor {
             .required(true)
             .build();
 
+    static final PropertyDescriptor RESPONSE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("salesforce-http-response-timeout")
+            .displayName("Response Timeout")
+            .description("Max wait time for a response from the Salesforce REST API.")
+            .required(true)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("For FlowFiles created as a result of a successful query.")
@@ -213,7 +223,7 @@ public class QuerySObject extends AbstractProcessor {
 
     private static final String LAST_AGE_FILTER = "last_age_filter";
 
-    private volatile SalesforceToNifiSchemaConverter salesForceToRecordSchemaConverter;
+    private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
 
     @OnScheduled
@@ -222,7 +232,7 @@ public class QuerySObject extends AbstractProcessor {
         String timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         String timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
 
-        salesForceToRecordSchemaConverter = new SalesforceToNifiSchemaConverter(
+        salesForceToRecordSchemaConverter = new SalesforceToRecordSchemaConverter(
                 dateFormat,
                 timestampFormat,
                 timeFormat
@@ -235,7 +245,8 @@ public class QuerySObject extends AbstractProcessor {
         salesforceRestService = new SalesforceRestService(
                 salesforceVersion,
                 baseUrl,
-                () -> accessTokenProvider.getAccessDetails().getAccessToken()
+                () -> accessTokenProvider.getAccessDetails().getAccessToken(),
+                context.getProperty(RESPONSE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()
         );
     }
 
@@ -255,7 +266,8 @@ public class QuerySObject extends AbstractProcessor {
                 DateTimeUtils.TIME_FORMAT,
                 TIMESTAMP_FORMAT,
                 RECORD_WRITER,
-                INCLUDE_ZERO_RECORD_FLOWFILES
+                INCLUDE_ZERO_RECORD_FLOWFILES,
+                RESPONSE_TIMEOUT
         ));
     }
 
@@ -327,7 +339,10 @@ public class QuerySObject extends AbstractProcessor {
             } else {
                 ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-            ageFilterUpper = DateTimeFormatter.ofPattern(timestampFormat).format(ageFilterUpperTime);
+            ageFilterUpper = DateTimeFormatter.ofPattern(timestampFormat)
+                    .withLocale(Locale.getDefault())
+                    .withZone(ZoneId.systemDefault())
+                    .format(ageFilterUpperTime);
         }
 
         String describeSObjectResult = salesforceRestService.describeSObject(sObject);

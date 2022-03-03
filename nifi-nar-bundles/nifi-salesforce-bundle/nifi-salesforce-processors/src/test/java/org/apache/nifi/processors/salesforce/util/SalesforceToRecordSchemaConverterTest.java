@@ -21,7 +21,6 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -34,15 +33,14 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@Disabled
-class SalesforceToNifiSchemaConverterTest {
+class SalesforceToRecordSchemaConverterTest {
 
     private static final String TEST_PATH = "src/test/resources/converter/";
     private static final String DATE_FORMAT = "yyyy-mm-dd";
     private static final String TIME_STAMP_FORMAT = "yyyy-mm-dd / hh:mm:ss";
     private static final String TIME_FORMAT = "hh:mm:ss";
 
-    private static final SalesforceToNifiSchemaConverter converter = new SalesforceToNifiSchemaConverter(DATE_FORMAT, TIME_STAMP_FORMAT, TIME_FORMAT);
+    private static final SalesforceToRecordSchemaConverter converter = new SalesforceToRecordSchemaConverter(DATE_FORMAT, TIME_STAMP_FORMAT, TIME_FORMAT);
 
     @Test
     void testConvertSchema() throws IOException {

@@ -47,9 +47,10 @@ class SalesforceRestServiceIT implements SalesforceConfigAware {
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = initOAuth2AccessTokenProvider(runner);
 
         testSubject = new SalesforceRestService(
-            VERSION,
-            BASE_URL,
-            () -> oauth2AccessTokenProvider.getAccessDetails().getAccessToken()
+                VERSION,
+                BASE_URL,
+                () -> oauth2AccessTokenProvider.getAccessDetails().getAccessToken(),
+                20
         );
     }
 
