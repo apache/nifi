@@ -185,12 +185,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         this.processorRef = new AtomicReference<>(processorDetails);
 
         identifier = new AtomicReference<>(uuid);
-        destinations = new HashMap<>();
-        connections = new HashMap<>();
+        destinations = new ConcurrentHashMap<>();
+        connections = new ConcurrentHashMap<>();
         incomingConnections = new AtomicReference<>(new ArrayList<>());
         lossTolerant = new AtomicBoolean(false);
-        final Set<Relationship> emptySetOfRelationships = new HashSet<>();
-        undefinedRelationshipsToTerminate = new AtomicReference<>(emptySetOfRelationships);
+        undefinedRelationshipsToTerminate = new AtomicReference<>(Collections.emptySet());
         comments = new AtomicReference<>("");
         schedulingPeriod = new AtomicReference<>("0 sec");
         schedulingNanos = new AtomicLong(MINIMUM_SCHEDULING_NANOS);
@@ -405,24 +404,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public boolean isAutoTerminated(final Relationship relationship) {
-        if (relationship.isAutoTerminated() && getConnections(relationship).isEmpty()) {
-            return true;
-        }
-        final Set<Relationship> terminatable = undefinedRelationshipsToTerminate.get();
-        return terminatable == null ? false : terminatable.contains(relationship);
+        final boolean markedAutoTerminate = relationship.isAutoTerminated() || undefinedRelationshipsToTerminate.get().contains(relationship);
+        return markedAutoTerminate && getConnections(relationship).isEmpty();
     }
 
     @Override
     public void setAutoTerminatedRelationships(final Set<Relationship> terminate) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
-        }
-
-        for (final Relationship rel : terminate) {
-            if (!getConnections(rel).isEmpty()) {
-                throw new IllegalStateException("Cannot mark relationship '" + rel.getName()
-                        + "' as auto-terminated because Connection already exists with this relationship");
-            }
         }
 
         undefinedRelationshipsToTerminate.set(new HashSet<>(terminate));
@@ -726,8 +715,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     @Override
     public Set<Connection> getConnections(final Relationship relationship) {
         final Set<Connection> applicableConnections = connections.get(relationship);
-        return (applicableConnections == null) ? Collections.<Connection> emptySet()
-                : Collections.unmodifiableSet(applicableConnections);
+        return (applicableConnections == null) ? Collections.emptySet() : Collections.unmodifiableSet(applicableConnections);
     }
 
     @Override

@@ -18,6 +18,7 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
 
@@ -33,6 +34,8 @@ public interface ComponentScheduler {
     void enableControllerServicesAsync(Collection<ControllerServiceNode> controllerServices);
 
     void disableControllerServicesAsync(Collection<ControllerServiceNode> controllerServices);
+
+    void startReportingTask(ReportingTaskNode reportingTask);
 
     void pause();
 
@@ -58,6 +61,9 @@ public interface ComponentScheduler {
 
         @Override
         public void disableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
+        }
+
+        public void startReportingTask(final ReportingTaskNode reportingTask) {
         }
 
         @Override

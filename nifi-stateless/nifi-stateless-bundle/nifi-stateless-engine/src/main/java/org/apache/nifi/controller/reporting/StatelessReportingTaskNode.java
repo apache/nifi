@@ -57,6 +57,24 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
     }
 
     @Override
+    public void start() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void stop() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void enable() {
+    }
+
+    @Override
+    public void disable() {
+    }
+
+    @Override
     public Class<?> getComponentClass() {
         return null;
     }
@@ -80,4 +98,6 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
     public Resource getResource() {
         return null;
     }
+
+
 }

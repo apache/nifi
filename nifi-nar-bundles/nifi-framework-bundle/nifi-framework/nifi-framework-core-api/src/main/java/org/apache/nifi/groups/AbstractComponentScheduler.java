@@ -25,6 +25,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,8 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     private final VersionedComponentStateLookup stateLookup;
 
     private final AtomicLong pauseCount = new AtomicLong(0L);
-    private final Queue<Connectable> toStart = new LinkedBlockingQueue<>();
+    private final Queue<Connectable> connectablesToStart = new LinkedBlockingQueue<>();
+    private final Queue<ReportingTaskNode> reportingTasksToStart = new LinkedBlockingQueue<>();
     private final Queue<ControllerServiceNode> toEnable = new LinkedBlockingQueue<>();
 
     public AbstractComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
@@ -67,9 +69,15 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
         enableNow(toEnable);
 
         Connectable connectable;
-        while ((connectable = toStart.poll()) != null) {
+        while ((connectable = connectablesToStart.poll()) != null) {
             logger.debug("{} starting {}", this, connectable);
             startNow(connectable);
+        }
+
+        ReportingTaskNode taskNode;
+        while ((taskNode = reportingTasksToStart.poll()) != null) {
+            logger.debug("{} starting {}", this, taskNode);
+            startNow(taskNode);
         }
     }
 
@@ -180,7 +188,7 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
     public void startComponent(final Connectable component) {
         if (isPaused()) {
             logger.debug("{} called to start {} but paused so will queue it for start later", this, component);
-            toStart.offer(component);
+            connectablesToStart.offer(component);
         } else {
             logger.debug("{} starting {} now", this, component);
             startNow(component);
@@ -228,7 +236,19 @@ public abstract class AbstractComponentScheduler implements ComponentScheduler {
         return serviceProvider;
     }
 
+    public void startReportingTask(final ReportingTaskNode reportingTask) {
+        if (isPaused()) {
+            logger.debug("{} called to start {} but paused so will queue it for start later", this, reportingTask);
+            reportingTasksToStart.offer(reportingTask);
+        } else {
+            logger.debug("{} starting {} now", this, reportingTask);
+            startNow(reportingTask);
+        }
+    }
+
     protected abstract void startNow(Connectable component);
 
     protected abstract void enableNow(Collection<ControllerServiceNode> controllerServices);
+
+    protected abstract void startNow(ReportingTaskNode reportingTask);
 }

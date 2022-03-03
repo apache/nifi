@@ -269,16 +269,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void unschedule(final ReportingTaskNode taskNode) {
+    public Future<Void> unschedule(final ReportingTaskNode taskNode) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(taskNode), false);
         if (!lifecycleState.isScheduled()) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         taskNode.verifyCanStop();
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
         final ReportingTask reportingTask = taskNode.getReportingTask();
         taskNode.setScheduledState(ScheduledState.STOPPED);
+
+        final CompletableFuture<Void> future = new CompletableFuture<>();
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
             @Override
@@ -304,12 +306,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     if (lifecycleState.getActiveThreadCount() == 0 && lifecycleState.mustCallOnStoppedMethods()) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
+                        future.complete(null);
                     }
                 }
             }
         };
 
         componentLifeCycleThreadPool.execute(unscheduleReportingTaskRunnable);
+        return future;
     }
 
     /**

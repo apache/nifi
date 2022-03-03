@@ -17,7 +17,9 @@
 
 package org.apache.nifi.groups;
 
-public class GroupSynchronizationOptions {
+import java.time.Duration;
+
+public class FlowSynchronizationOptions {
     private final ComponentIdGenerator componentIdGenerator;
     private final ComponentScheduler componentScheduler;
     private final PropertyDecryptor propertyDecryptor;
@@ -27,8 +29,10 @@ public class GroupSynchronizationOptions {
     private final boolean updateGroupVersionControlSnapshot;
     private final boolean updateExistingVariables;
     private final boolean updateRpgUrls;
+    private final Duration componentStopTimeout;
+    private final ComponentStopTimeoutAction timeoutAction;
 
-    private GroupSynchronizationOptions(final Builder builder) {
+    private FlowSynchronizationOptions(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
         this.componentScheduler = builder.componentScheduler;
         this.propertyDecryptor = builder.propertyDecryptor;
@@ -38,6 +42,8 @@ public class GroupSynchronizationOptions {
         this.updateGroupVersionControlSnapshot = builder.updateGroupVersionControlSnapshot;
         this.updateExistingVariables = builder.updateExistingVariables;
         this.updateRpgUrls = builder.updateRpgUrls;
+        this.componentStopTimeout = builder.componentStopTimeout;
+        this.timeoutAction = builder.timeoutAction;
     }
 
     public ComponentIdGenerator getComponentIdGenerator() {
@@ -76,6 +82,13 @@ public class GroupSynchronizationOptions {
         return propertyDecryptor;
     }
 
+    public Duration getComponentStopTimeout() {
+        return componentStopTimeout;
+    }
+
+    public ComponentStopTimeoutAction getComponentStopTimeoutAction() {
+        return timeoutAction;
+    }
 
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
@@ -87,6 +100,9 @@ public class GroupSynchronizationOptions {
         private boolean updateExistingVariables = false;
         private boolean updateRpgUrls = false;
         private PropertyDecryptor propertyDecryptor = value -> value;
+        private Duration componentStopTimeout = Duration.ofSeconds(30);
+        private ComponentStopTimeoutAction timeoutAction = ComponentStopTimeoutAction.THROW_TIMEOUT_EXCEPTION;
+
 
         /**
          * Specifies the Component ID Generator to use for generating UUID's of components that are to be added to a ProcessGroup
@@ -190,8 +206,28 @@ public class GroupSynchronizationOptions {
             return this;
         }
 
+        /**
+         * When stopping or disabling a component, specifies how long to wait for the component to be fully stopped/disabled
+         * @param duration the duration to wait when stopping or disabling a component
+         * @return the builder
+         */
+        public Builder componentStopTimeout(final Duration duration) {
+            this.componentStopTimeout = duration;
+            return this;
+        }
 
-        public GroupSynchronizationOptions build() {
+        /**
+         * If the component doesn't stop/disable in time, specifies what action should be taken
+         * @param action the action to take
+         * @return the builder
+         */
+        public Builder componentStopTimeoutAction(final ComponentStopTimeoutAction action) {
+            this.timeoutAction = action;
+            return this;
+        }
+
+
+        public FlowSynchronizationOptions build() {
             if (componentIdGenerator == null) {
                 throw new IllegalStateException("Must set Component ID Generator");
             }
@@ -199,10 +235,10 @@ public class GroupSynchronizationOptions {
                 throw new IllegalStateException("Must set Component Scheduler");
             }
 
-            return new GroupSynchronizationOptions(this);
+            return new FlowSynchronizationOptions(this);
         }
 
-        public static Builder from(final GroupSynchronizationOptions options) {
+        public static Builder from(final FlowSynchronizationOptions options) {
             final Builder builder = new Builder();
             builder.componentIdGenerator = options.getComponentIdGenerator();
             builder.componentScheduler = options.getComponentScheduler();
@@ -213,8 +249,23 @@ public class GroupSynchronizationOptions {
             builder.updateExistingVariables = options.isUpdateExistingVariables();
             builder.updateRpgUrls = options.isUpdateRpgUrls();
             builder.propertyDecryptor = options.getPropertyDecryptor();
+            builder.componentStopTimeout = options.getComponentStopTimeout();
+            builder.timeoutAction = options.getComponentStopTimeoutAction();
 
             return builder;
         }
+    }
+
+    public enum ComponentStopTimeoutAction {
+        /**
+         * If the timeout occurs, a {@link java.util.concurrent.TimeoutException TimeoutException} should be thrown
+         */
+        THROW_TIMEOUT_EXCEPTION,
+
+        /**
+         * If a timeout occurs when stopping a processor, the Processor should be terminated and no Exception should be thrown.
+         * If a Controller Service or Reporting Task fails to stop/disable in time, a {@link java.util.concurrent.TimeoutException} will still be thrown.
+         */
+        TERMINATE;
     }
 }
