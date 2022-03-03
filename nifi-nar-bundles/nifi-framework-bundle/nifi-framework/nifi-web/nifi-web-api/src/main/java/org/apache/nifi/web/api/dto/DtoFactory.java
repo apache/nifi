@@ -811,6 +811,7 @@ public final class DtoFactory {
         dto.setLabel(label.getValue());
         dto.setParentGroupId(label.getProcessGroup().getIdentifier());
         dto.setVersionedComponentId(label.getVersionedComponentId().orElse(null));
+        dto.setzIndex(label.getZIndex());
 
         return dto;
     }
@@ -4103,6 +4104,7 @@ public final class DtoFactory {
         copy.setWidth(original.getWidth());
         copy.setHeight(original.getHeight());
         copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setzIndex(original.getzIndex());
 
         return copy;
     }

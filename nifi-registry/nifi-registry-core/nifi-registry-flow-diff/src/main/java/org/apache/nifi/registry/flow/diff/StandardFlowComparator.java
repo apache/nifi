@@ -375,6 +375,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getHeight);
         addIfDifferent(differences, DifferenceType.POSITION_CHANGED, labelA, labelB, VersionedLabel::getWidth);
         addIfDifferent(differences, DifferenceType.STYLE_CHANGED, labelA, labelB, VersionedLabel::getStyle);
+        addIfDifferent(differences, DifferenceType.ZINDEX_CHANGED, labelA, labelB, VersionedLabel::getzIndex);
     }
 
     private void compare(final VersionedPort portA, final VersionedPort portB, final Set<FlowDifference> differences) {
@@ -500,6 +501,7 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.PRIORITIZERS_CHANGED, connectionA, connectionB, VersionedConnection::getPrioritizers);
         addIfDifferent(differences, DifferenceType.SELECTED_RELATIONSHIPS_CHANGED, connectionA, connectionB, VersionedConnection::getSelectedRelationships);
         addIfDifferent(differences, DifferenceType.SOURCE_CHANGED, connectionA, connectionB, c -> c.getSource().getId());
+        addIfDifferent(differences, DifferenceType.ZINDEX_CHANGED, connectionA, connectionB, VersionedConnection::getzIndex);
 
         addIfDifferent(differences, DifferenceType.LOAD_BALANCE_STRATEGY_CHANGED, connectionA, connectionB,
                 conn -> conn.getLoadBalanceStrategy() == null ? DEFAULT_LOAD_BALANCE_STRATEGY : conn.getLoadBalanceStrategy());
