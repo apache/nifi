@@ -92,7 +92,7 @@ NfRegistryAddUser.annotations = [
     new Component({
         templateUrl: './nf-registry-add-user.html',
         queries: {
-            newUserInput: new ViewChild('newUserInput')
+            newUserInput: new ViewChild('newUserInput', { static: true })
         }
     })
 ];
