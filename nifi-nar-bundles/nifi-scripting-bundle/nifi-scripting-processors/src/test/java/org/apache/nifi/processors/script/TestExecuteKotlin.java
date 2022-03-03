@@ -45,8 +45,8 @@ public class TestExecuteKotlin extends BaseScriptTest {
         final TestRunner runner = TestRunners.newTestRunner(new ExecuteScript());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "kotlin");
-        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/kotlin/test_onTrigger.kts");
-        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/kotlin");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "src/test/resources/kotlin/test_onTrigger.kts");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "src/test/resources/kotlin");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
