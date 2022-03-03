@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<authorizers>
+    <userGroupProvider>
+        <identifier>ldap-user-group-provider</identifier>
+        <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
+        <property name="Authentication Strategy">START_TLS</property>
+
+        <property name="Manager DN">someuser</property>
+        <property name="Manager Password">thisIsABadPassword</property>
+
+        <property name="TLS - Keystore"></property>
+        <property name="TLS - Keystore Password">thisIsABadPassword</property>
+        <property name="TLS - Keystore Type"></property>
+        <property name="TLS - Truststore"></property>
+        <property name="TLS - Truststore Password">thisIsABadPassword</property>
+        <property name="TLS - Truststore Type"></property>
+        <property name="TLS - Client Auth"></property>
+        <property name="TLS - Protocol"></property>
+        <property name="TLS - Shutdown Gracefully"></property>
+
+        <property name="Referral Strategy">FOLLOW</property>
+        <property name="Connect Timeout">10 secs</property>
+        <property name="Read Timeout">10 secs</property>
+
+        <property name="Url"></property>
+        <property name="Page Size"></property>
+        <property name="Sync Interval">30 mins</property>
+
+        <property name="User Search Base"></property>
+        <property name="User Object Class">person</property>
+        <property name="User Search Scope">ONE_LEVEL</property>
+        <property name="User Search Filter"></property>
+        <property name="User Identity Attribute"></property>
+        <property name="User Group Name Attribute"></property>
+        <property name="User Group Name Attribute - Referenced Group Attribute"></property>
+
+        <property name="Group Search Base"></property>
+        <property name="Group Object Class">group</property>
+        <property name="Group Search Scope">ONE_LEVEL</property>
+        <property name="Group Search Filter"></property>
+        <property name="Group Name Attribute"></property>
+        <property name="Group Member Attribute"></property>
+        <property name="Group Member Attribute - Referenced User Attribute"></property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>file-access-policy-provider</identifier>
+        <class>org.apache.nifi.authorization.FileAccessPolicyProvider</class>
+        <property name="User Group Provider">ldap-user-group-provider</property>
+        <property name="Authorizations File">./conf/authorizations.xml</property>
+        <property name="Initial Admin Identity"></property>
+        <property name="Legacy Authorized Users File"></property>
+
+        <property name="Node Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">file-access-policy-provider</property>
+    </authorizer>
+    <userGroupProvider>
+        <identifier>aad-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.azure.AzureGraphUserGroupProvider</class>
+        <property name="Refresh Delay">5 mins</property>
+        <property name="Authority Endpoint">https://login.microsoftonline.com</property>
+        <property name="Directory ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Application ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Client Secret">thisIsABadPassword</property>
+        <property name="Group Filter Prefix"></property>
+        <property name="Group Filter Suffix"></property>
+        <property name="Group Filter Substring"></property>
+        <property name="Group Filter List Inclusion"></property>
+        <property name="Page Size"></property>
+        <property name="Claim for Username">upn</property>
+    </userGroupProvider>
+</authorizers>

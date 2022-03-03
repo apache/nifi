@@ -93,7 +93,9 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
     private static final int LIP_PASSWORD_LINE_COUNT = 3
     private static final int AUTHORIZERS_PASSWORD_LINE_COUNT = 3
+    private static final int AUTHORIZERS_SECRET_LINE_COUNT = 1
     private final String PASSWORD_PROP_REGEX = "<property[^>]* name=\".* Password\""
+    private final String SECRET_PROP_REGEX = "<property[^>]* name=\".* Secret\""
 
     private static final EncryptionMethod DEFAULT_ENCRYPTION_METHOD = EncryptionMethod.MD5_256AES
     private static final String WFXCTR = ConfigEncryptionTool.WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
@@ -2257,7 +2259,6 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 def originalParsedXml = new XmlSlurper().parseText(originalXmlContent)
                 def updatedParsedXml = new XmlSlurper().parseText(updatedXmlContent)
                 assert originalParsedXml != updatedParsedXml
-//                assert originalParsedXml.'**'.findAll { it.@encryption } != updatedParsedXml.'**'.findAll { it.@encryption }
 
                 def encryptedValues = updatedParsedXml.provider.find {
                     it.identifier == 'ldap-provider'
@@ -2322,6 +2323,40 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
         assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
         assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        // Some lines were not encrypted originally so the encryption attribute would not have been updated
+        assert passwordLines.any { it =~ "encryption=\"none\"" }
+    }
+
+    @Test
+    void testShouldDecryptAzureAuthorizers() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-encrypted-azure.xml"
+        String propertyName = "Manager Password"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+
+        // Sanity check for decryption
+        String cipherText = "zOfN7Fy4XnHmd/x0||rTLB/FXB4CLFsCunBwtNMR2hYtj7CdvgF7iFgNNr49g1pw=="
+        String EXPECTED_PASSWORD = "thisIsABadPassword"
+        final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
+
+        tool.keyHex = KEY_HEX_128
+
+        def lines = workingFile.readLines()
+
+        // Act
+        def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
+
+        // Assert
+        def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX || it =~ SECRET_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT + AUTHORIZERS_SECRET_LINE_COUNT
+        assert passwordLines.every { it =~ EXPECTED_PASSWORD }
         // Some lines were not encrypted originally so the encryption attribute would not have been updated
         assert passwordLines.any { it =~ "encryption=\"none\"" }
     }
@@ -2450,6 +2485,47 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         assert passwordLines.every { !it.contains(">thisIsABadPassword<") }
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
+            String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
+            logger.info("Cipher text: ${ct}")
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
+        }
+    }
+
+    @Test
+    void testShouldEncryptAzureAuthorizer() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-azure.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        tool.keyHex = KEY_HEX
+        String encryptionScheme = "encryption=\"aes/gcm/${getKeyLength(KEY_HEX)}\""
+
+        def lines = workingFile.readLines()
+        logger.info("Read lines: \n${lines.join("\n")}")
+
+        final SensitivePropertyProvider spp = DEFAULT_PROVIDER_FACTORY.getProvider(tool.protectionScheme)
+
+        // Act
+        def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
+
+        // Assert
+        def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
+        def secretLines = encryptedLines.findAll { it =~ SECRET_PROP_REGEX }
+        assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+        assert secretLines.size() == AUTHORIZERS_SECRET_LINE_COUNT
+        def combinedLines = passwordLines + secretLines
+        assert combinedLines.every { !it.contains(">thisIsABadPassword<") }
+        assert combinedLines.every { it.contains(encryptionScheme) }
+        combinedLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
@@ -2679,6 +2755,41 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
         // Ensure the replacement actually occurred
         assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT
+    }
+
+    @Test
+    void testSerializeAuthorizersShouldOutputAzureProvider() {
+        // Arrange
+        String authorizersPath = "src/test/resources/authorizers-populated-azure.xml"
+        File authorizersFile = new File(authorizersPath)
+
+        setupTmpDir()
+
+        File workingFile = new File("target/tmp/tmp-authorizers.xml")
+        workingFile.delete()
+        Files.copy(authorizersFile.toPath(), workingFile.toPath())
+        ConfigEncryptionTool tool = new ConfigEncryptionTool()
+        tool.isVerbose = true
+
+        def lines = workingFile.readLines()
+
+        String plainXml = workingFile.text
+        String encryptedXml = tool.encryptAuthorizers(plainXml, KEY_HEX)
+
+        // Act
+        def serializedLines = tool.serializeAuthorizersAndPreserveFormat(encryptedXml, workingFile)
+
+        // Assert
+
+        // Some empty lines will be removed
+        def trimmedLines = lines.collect { it.trim() }.findAll { it }
+        def trimmedSerializedLines = serializedLines.collect { it.trim() }.findAll { it }
+        assert trimmedLines.size() == trimmedSerializedLines.size()
+
+        // Ensure the replacement actually occurred
+        assert trimmedSerializedLines.findAll { it =~ "encryption=" }.size() == AUTHORIZERS_PASSWORD_LINE_COUNT + AUTHORIZERS_SECRET_LINE_COUNT
+        assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.LDAP_USER_GROUP_PROVIDER_CLASS }
+        assert trimmedSerializedLines.find {it =~ ConfigEncryptionTool.AZURE_USER_GROUP_PROVIDER_CLASS }
     }
 
     @Test
