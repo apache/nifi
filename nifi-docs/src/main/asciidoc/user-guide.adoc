@@ -550,17 +550,6 @@ to its log, the Processor also will generate a Bulletin. This setting indicates 
 shown in the User Interface. By default, the Bulletin level is set to `WARN`, which means it will display all warning and error-level
 bulletins.
 
-The right-hand side of the Settings tab contains an 'Automatically Terminate Relationships' section. Each of the Relationships that is
-defined by the Processor is listed here, along with its description. In order for a Processor to be considered valid and
-able to run, each Relationship defined by the Processor must be either connected to a downstream component or auto-terminated.
-If a Relationship is auto-terminated, any FlowFile that is routed to that Relationship will be removed from the flow and
-its processing considered complete. Any Relationship that is already connected to a downstream component cannot be auto-terminated.
-The Relationship must first be removed from any Connection that uses it. Additionally, for any Relationship that is selected to be
-auto-terminated, the auto-termination status will be cleared (turned off) if the Relationship is added to a Connection.
-
-
-
-
 ==== Scheduling Tab
 
 The second tab in the Processor Configuration dialog is the Scheduling Tab:
@@ -713,6 +702,32 @@ Some processors also have an Advanced User Interface (UI) built into them. For e
 Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services>> section.
 
 image:create-service-ssl-context.png["Create Service"]
+
+==== Relationships Tab
+
+The Relationships tab contains an 'Automatically Terminate / Retry Relationships' section. Each of the Relationships that is defined by the Processor is listed here, along with its description.
+
+image::relationships-tab.png["Relationships Tab"]
+
+===== Automatically Terminate
+In order for a Processor to be considered valid and able to run, each Relationship defined by the Processor must be either connected to a downstream component or auto-terminated. If a Relationship is auto-terminated, any FlowFile that is routed to that Relationship will be removed from the flow and its processing considered complete. Any Relationship that is already connected to a downstream component cannot be auto-terminated. The Relationship must first be removed from any Connection that uses it. Additionally, for any Relationship that is selected to be auto-terminated, the auto-termination status will be cleared (turned off) if the Relationship is added to a Connection.
+
+===== Automatically Retry
+Users can also configure whether or not FlowFiles routed to a given Relationship should be retried.
+
+====== Number of Retry Attempts
+For relationships set to retry, this number indicates how many times a FlowFile will attempt to reprocess before it is routed elsewhere.
+
+====== Retry Back Off Policy
+When a FlowFile is to be retried, the user can configure the backoff policy with two options:
+
+* Penalize - Retry attempts will occur in time, but the processor will continue to process other FlowFiles.
+* Yield - No other FlowFile processing will occur until all retry attempts have been made.
+
+====== Retry Maximum Back Off Period
+Initial retries are based on the Penalty/Yield Duration time specified in the Settings tab. The duration time is repeatedly doubled for every subsequent retry attempt. This number indicates the maximum allowable time period before another retry attempt occurs.
+
+NOTE: If both terminate and retry are selected, any retry logic will happen first, then auto-termination.
 
 ==== Comments Tab
 
