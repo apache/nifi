@@ -26,11 +26,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.sql.Connection;
@@ -41,30 +41,37 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUpdateDatabaseTable {
 
     private static final String createPersons = "CREATE TABLE \"persons\" (\"id\" integer primary key, \"name\" varchar(100), \"code\" integer)";
 
-    @ClassRule
-    public static TemporaryFolder folder = new TemporaryFolder();
+    @TempDir
+    public static File tempDir;
+
+    private static String derbyErrorFile;
 
     private TestRunner runner;
     private UpdateDatabaseTable processor;
     private static DBCPService service;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupClass() throws ProcessException {
+        derbyErrorFile = System.getProperty("derby.stream.error.file", "");
         System.setProperty("derby.stream.error.file", "target/derby.log");
-        final File tempDir = folder.getRoot();
         final File dbDir = new File(tempDir, "db");
         service = new MockDBCPService(dbDir.getAbsolutePath());
     }
 
-    @Before
+    @AfterAll
+    public static void restoreDefaults() {
+        System.setProperty("derby.stream.error.file", derbyErrorFile);
+    }
+
+    @BeforeEach
     public void setup() {
         processor = new UpdateDatabaseTable();
         try {

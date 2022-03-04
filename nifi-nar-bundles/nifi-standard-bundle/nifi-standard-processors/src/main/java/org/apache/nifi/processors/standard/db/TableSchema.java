@@ -37,7 +37,7 @@ public class TableSchema {
     private final String tableName;
 
     public TableSchema(final String tableName, final List<ColumnDescription> columnDescriptions, final boolean translateColumnNames,
-                       final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
+                        final Set<String> primaryKeyColumnNames, final String quotedIdentifierString) {
         this.tableName = tableName;
         this.columns = new LinkedHashMap<>();
         this.primaryKeyColumnNames = primaryKeyColumnNames;
