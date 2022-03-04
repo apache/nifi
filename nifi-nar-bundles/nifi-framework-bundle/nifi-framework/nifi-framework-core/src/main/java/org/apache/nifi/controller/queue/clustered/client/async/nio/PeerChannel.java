@@ -141,8 +141,9 @@ public class PeerChannel implements Closeable {
         }
 
         final int bytesRead = socketChannel.read(streamBuffer);
-        if (bytesRead < 1) {
-            return bytesRead;
+        // Check the contents of stream buffer to determine whether data is available for reading
+        if (streamBuffer.remaining() < 1) {
+            return streamBuffer.remaining();
         }
 
         if (bytesRead > 0) {
@@ -263,6 +264,11 @@ public class PeerChannel implements Closeable {
 
             switch (result.getStatus()) {
                 case OK:
+                    if (SSLEngineResult.HandshakeStatus.FINISHED == result.getHandshakeStatus()) {
+                        // RFC 8446 Section 4.6 describes Post-Handshake Messages for TLS 1.3
+                        // Break out of switch statement to call SSLEngine.unwrap() again
+                        break;
+                    }
                     destinationBuffer.flip();
                     return true;
                 case CLOSED:
