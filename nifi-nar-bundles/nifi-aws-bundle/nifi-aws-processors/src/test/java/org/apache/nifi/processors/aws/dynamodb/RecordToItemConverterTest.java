@@ -24,7 +24,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -98,9 +97,9 @@ class RecordToItemConverterTest {
         Assertions.assertEquals(BigDecimal.valueOf(10), item.get("bigint"));
 
         // DynamoDB uses string to represent time and date
-        Assert.assertTrue(item.get("timestamp") instanceof String);
-        Assert.assertTrue(item.get("date") instanceof String);
-        Assert.assertTrue(item.get("time") instanceof String);
+        Assertions.assertTrue(item.get("timestamp") instanceof String);
+        Assertions.assertTrue(item.get("date") instanceof String);
+        Assertions.assertTrue(item.get("time") instanceof String);
 
         // Character is unknown type for DynamoDB, as well as enum
         Assertions.assertEquals("c", item.get("char"));

@@ -38,21 +38,20 @@ public abstract class SplitRecordSetHandler {
 
     public final RecordHandlerResult handle(final RecordSet recordSet, final int alreadyProcessedChunks) throws IOException {
         Record record;
-        int currentChunkNumber = 1;
+        int currentChunkNumber = 0;
         int currentChunkSize = 0;
 
         while ((record = recordSet.next()) != null) {
-            if (currentChunkSize < maximumChunkSize) {
-                addToChunk(record);
-                currentChunkSize++;
-            } else {
+            addToChunk(record);
+            currentChunkSize++;
+
+            if (currentChunkSize == maximumChunkSize) {
                 try {
-                    handleChunk(alreadyProcessedChunks >= currentChunkNumber);
-                    addToChunk(record);
+                    handleChunk(alreadyProcessedChunks > currentChunkNumber);
                     currentChunkNumber++;
-                    currentChunkSize = 1;
+                    currentChunkSize = 0;
                 } catch (final SplitRecordSetHandlerException e) {
-                    return new RecordHandlerResult(currentChunkNumber - 1, e);
+                    return new RecordHandlerResult(currentChunkNumber, e);
                 }
             }
         }
@@ -60,15 +59,11 @@ public abstract class SplitRecordSetHandler {
         // Handling the last, not fully filled chunk
         if (currentChunkSize != 0) {
             try {
-                handleChunk(alreadyProcessedChunks >= currentChunkNumber);
+                handleChunk(alreadyProcessedChunks > currentChunkNumber);
+                currentChunkNumber++;
             } catch (final SplitRecordSetHandlerException e) {
-                return new RecordHandlerResult(currentChunkNumber - 1, e);
+                return new RecordHandlerResult(currentChunkNumber, e);
             }
-        }
-
-        // The incoming RecordSet was empty
-        if (currentChunkSize == 0 && currentChunkNumber == 1) {
-            currentChunkNumber = 0;
         }
 
         return new RecordHandlerResult(currentChunkNumber);

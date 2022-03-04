@@ -42,7 +42,7 @@
         <li>DynamoDB stores time and date related information as Strings.</li>
         <li>Internal record structures are converted into maps.</li>
         <li>Choice is not a supported data type, regardless of the actual wrapped data type, values enveloped in Choice are handled as Strings.</li>
-        <li>Unknown data types are handles as stings.</li>
+        <li>Unknown data types are handled as stings.</li>
     </ul>
 
     <h2>Limitations</h2>
@@ -87,13 +87,13 @@
     <h4>Partition By Field</h4>
 
     <p>
-        The processors assigns one of the record field as partition key. The name of the record field is specified by the "Partition Key Field" attribute and the value will be the value of the record field with the same name.
+        The processors assigns one of the record fields as partition key. The name of the record field is specified by the "Partition Key Field" property and the value will be the value of the record field with the same name.
     </p>
 
     <h4>Partition By Attribute</h4>
 
     <p>
-        The processor assigns the value of a FlowFile attribute as partition key. With this strategy all the Items within a FlowFile will share the same partition case and it is suggested to use a sort key in order to meet the primary key requirements of the DynamoDB.
+        The processor assigns the value of a FlowFile attribute as partition key. With this strategy all the Items within a FlowFile will share the same partition key value and it is suggested to use for tables also having a sort key in order to meet the primary key requirements of the DynamoDB.
         The property "Partition Key Field" defines the name of the Item field and the property "Partition Key Attribute" will specify which attribute's value will be assigned to the partition key.
         With this strategy the "Partition Key Field" must be different from the fields consisted by the incoming records.
     </p>
@@ -104,6 +104,7 @@
         By using this strategy the processor will generate a UUID identifier for every single Item. This identifier will be used as value for the partition key.
         The name of the field used as partition key is defined by the property "Partition Key Field".
         With this strategy the "Partition Key Field" must be different from the fields consisted by the incoming records.
+        When using this strategy, the partition key in the DynamoDB table must have String data type.
     </p>
 
     <h3>Sort Key Strategies</h3>
@@ -117,7 +118,7 @@
     <h4>Sort By Field</h4>
 
     <p>
-        The processors assigns one of the record field as sort key. The name of the record field is specified by the "Sort Key Field" attribute and the value will be the value of the record field with the same name.
+        The processors assigns one of the record fields as sort key. The name of the record field is specified by the "Sort Key Field" property and the value will be the value of the record field with the same name.
         With this strategy the "Sort Key Field" must be different from the fields consisted by the incoming records.
     </p>
 
@@ -128,6 +129,7 @@
         The first Item will have the sort key 1, the second will have sort key 2 and so on. The generated keys are unique within a given FlowFile.
         The name of the record field is specified by the "Sort Key Field" attribute.
         With this strategy the "Sort Key Field" must be different from the fields consisted by the incoming records.
+        When using this strategy, the sort key in the DynamoDB table must have Number data type.
 
     </p>
 
@@ -138,7 +140,7 @@
     <h4>Setup</h4>
 
     <ul>
-        <li>Partition Key Strategy: Partition by field</li>
+        <li>Partition Key Strategy: Partition By Field</li>
         <li>Partition Key Field: class</li>
         <li>Sort Key Strategy: Sort By Field</li>
         <li>Sort Key Field: size</li>
@@ -209,7 +211,7 @@
         <li>subtype: Number field with value 4</li>
         <li>class: String field with value "t"</li>
         <li>size: Number field with value 1</li>
-        <li>sort: Number field with value 1</li>
+        <li>sort: Number field with value 1 and serving as sort key</li>
     </ul>
 
     <h5>Second Item</h5>
@@ -220,7 +222,7 @@
         <li>subtype: Number field with value 5</li>
         <li>class: String field with value "m"</li>
         <li>size: Number field with value 2</li>
-        <li>sort: Number field with value 2</li>
+        <li>sort: Number field with value 2 and serving as sort key</li>
     </ul>
 
     <h3>Using generated partition key</h3>

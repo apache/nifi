@@ -98,9 +98,9 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     static final String DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE = "dynamodb.chunks.processed";
 
     static final AllowableValue PARTITION_BY_FIELD = new AllowableValue("ByField", "Partition By Field",
-            "Uses the value of the Record field identified by the \"Partition Field\" property as partition key value.");
+            "Uses the value of the Record field identified by the \"Partition Key Field\" property as partition key value.");
     static final AllowableValue PARTITION_BY_ATTRIBUTE = new AllowableValue("ByAttribute", "Partition By Attribute",
-            "Uses an incoming FlowFile attribute identified by \"Partition Attribute\" as the value of the partition key. " +
+            "Uses an incoming FlowFile attribute identified by \"Partition Key Attribute\" as the value of the partition key. " +
             "The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
     static final AllowableValue PARTITION_GENERATED = new AllowableValue("Generated", "Generated UUID",
             "Uses a generated UUID as value for the partition key. The incoming Records must not contain field with the same name defined by the \"Partition Key Field\".");
@@ -108,7 +108,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     static final AllowableValue SORT_NONE = new AllowableValue("None", "None",
             "The processor will not assign sort key to the inserted Items.");
     static final AllowableValue SORT_BY_FIELD = new AllowableValue("ByField", "Sort By Field",
-            "With this strategy, the processor will use the value of the field identified by \"Sort Key Field\" as sort key value.");
+            "Uses the value of the Record field identified by the \"Sort Key Field\" property as sort key value.");
     static final AllowableValue SORT_BY_SEQUENCE = new AllowableValue("BySequence", "Generate Sequence",
             "The processor will assign a number for every item based on the original record's position in the incoming FlowFile. This will be used as sort key value.");
 
@@ -198,7 +198,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             return;
         }
 
-        final int alreadyProcessedChunks = flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.valueOf(flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
+        final int alreadyProcessedChunks = flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE) != null ? Integer.parseInt(flowFile.getAttribute(DYNAMODB_CHUNKS_PROCESSED_ATTRIBUTE)) : 0;
         final RecordReaderFactory recordParserFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         final SplitRecordSetHandler handler = new DynamoDbSplitRecordSetHandler(MAXIMUM_CHUNK_SIZE, getDynamoDB(), context, flowFile.getAttributes(), getLogger());
         final SplitRecordSetHandler.RecordHandlerResult result;
@@ -219,18 +219,16 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
         if (result.isSuccess()) {
             session.transfer(outgoingFlowFile, REL_SUCCESS);
-        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof ProvisionedThroughputExceededException) {
-            /**
-             * When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
-             * should be retried at a later time. We yield the processor and the the FlowFile is considered unprocessed (partially processed) due to temporary write limitations.
-             * More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
-             */
+        } else if (result.getThrowable().getCause() instanceof ProvisionedThroughputExceededException) {
+             // When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
+             // should be retried at a later time. We yield the processor and the FlowFile is considered unprocessed (partially processed) due to temporary write limitations.
+             // More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
             context.yield();
             session.transfer(outgoingFlowFile, REL_UNPROCESSED);
-        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof AmazonClientException) {
+        } else if (result.getThrowable().getCause() instanceof AmazonClientException) {
             getLogger().error("Could not process FlowFile due to client exception: " + result.getThrowable().getMessage(), result.getThrowable());
             session.transfer(processClientException(session, Collections.singletonList(outgoingFlowFile), (AmazonClientException) result.getThrowable().getCause()), REL_FAILURE);
-        } else if (result.getThrowable().getCause() != null && result.getThrowable().getCause() instanceof AmazonServiceException) {
+        } else if (result.getThrowable().getCause() instanceof AmazonServiceException) {
             getLogger().error("Could not process FlowFile due to server exception: " + result.getThrowable().getMessage(), result.getThrowable());
             session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AmazonServiceException) result.getThrowable().getCause()), REL_FAILURE);
         } else {
@@ -270,8 +268,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
                     final BatchWriteItemOutcome outcome = dynamoDB.batchWriteItem(accumulator);
 
                     if (!outcome.getUnprocessedItems().isEmpty()) {
-                        logger.error("Could not insert all items. The unprocessed items are: " + outcome.getUnprocessedItems().toString());
-                        throw new SplitRecordSetHandlerException("Could not insert all items");
+                        throw new SplitRecordSetHandlerException("Could not insert all items. The unprocessed items are: " + outcome.getUnprocessedItems().toString());
                     }
                 } else {
                     logger.debug("Skipping chunk as was already processed");
@@ -290,7 +287,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         }
 
         private Item convert(final Record record) {
-            final String partitionField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
             final String sortKeyStrategy  = context.getProperty(SORT_KEY_STRATEGY).getValue();
             final String sortKeyField  = context.getProperty(SORT_KEY_FIELD).evaluateAttributeExpressions().getValue();
 
@@ -299,44 +296,44 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
             record.getSchema()
                     .getFields()
                     .stream()
-                    .filter(field -> !field.getFieldName().equals(partitionField))
+                    .filter(field -> !field.getFieldName().equals(partitionKeyField))
                     .filter(field -> SORT_NONE.getValue().equals(sortKeyStrategy) || !field.getFieldName().equals(sortKeyField))
                     .forEach(field -> RecordToItemConverter.addField(record, result, field.getDataType().getFieldType(), field.getFieldName()));
 
-            addPartition(record, result);
+            addPartitionKey(record, result);
             addSortKey(record, result);
             return result;
         }
 
-        private void addPartition(final Record record, final Item result) {
-            final String partitionStrategy = context.getProperty(PARTITION_KEY_STRATEGY).getValue();
-            final String partitionField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
-            final String partitionAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
+        private void addPartitionKey(final Record record, final Item result) {
+            final String partitionKeyStrategy = context.getProperty(PARTITION_KEY_STRATEGY).getValue();
+            final String partitionKeyField  = context.getProperty(PARTITION_KEY_FIELD).evaluateAttributeExpressions().getValue();
+            final String partitionKeyAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
 
-            if (PARTITION_BY_FIELD.getValue().equals(partitionStrategy)) {
-                if (!record.getSchema().getFieldNames().contains(partitionField)) {
-                    throw new ProcessException("\"By field partition\" strategy needs the \"Partition Field\" to present in the record");
+            if (PARTITION_BY_FIELD.getValue().equals(partitionKeyStrategy)) {
+                if (!record.getSchema().getFieldNames().contains(partitionKeyField)) {
+                    throw new ProcessException("\"" + PARTITION_BY_FIELD.getDisplayName() + "\" strategy needs the \"" + PARTITION_KEY_FIELD.getDefaultValue() +"\" to present in the record");
                 }
 
-                result.withKeyComponent(partitionField, record.getValue(partitionField));
-            } else if (PARTITION_BY_ATTRIBUTE.getValue().equals(partitionStrategy)) {
-                if (record.getSchema().getFieldNames().contains(partitionField)) {
-                    throw new ProcessException("Cannot reuse existing field with Partition Key Strategy \"By Attribute\"");
+                result.withKeyComponent(partitionKeyField, record.getValue(partitionKeyField));
+            } else if (PARTITION_BY_ATTRIBUTE.getValue().equals(partitionKeyStrategy)) {
+                if (record.getSchema().getFieldNames().contains(partitionKeyField)) {
+                    throw new ProcessException("Cannot reuse existing field with " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + PARTITION_BY_ATTRIBUTE.getDisplayName() + "\"");
                 }
 
-                if (!flowFileAttributes.containsKey(partitionAttribute)) {
-                    throw new ProcessException("Missing attribute");
+                if (!flowFileAttributes.containsKey(partitionKeyAttribute)) {
+                    throw new ProcessException("Missing attribute \"" + partitionKeyAttribute + "\"" );
                 }
 
-                result.withKeyComponent(partitionField, flowFileAttributes.get(partitionAttribute));
-            } else if (PARTITION_GENERATED.getValue().equals(partitionStrategy)) {
-                if (record.getSchema().getFieldNames().contains(partitionField)) {
-                    throw new ProcessException("Cannot reuse existing field with Partition Key Strategy \"Generated UUID\"");
+                result.withKeyComponent(partitionKeyField, flowFileAttributes.get(partitionKeyAttribute));
+            } else if (PARTITION_GENERATED.getValue().equals(partitionKeyStrategy)) {
+                if (record.getSchema().getFieldNames().contains(partitionKeyField)) {
+                    throw new ProcessException("Cannot reuse existing field with " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + PARTITION_GENERATED.getDisplayName() + "\"");
                 }
 
-                result.withKeyComponent(partitionField, UUID.randomUUID().toString());
+                result.withKeyComponent(partitionKeyField, UUID.randomUUID().toString());
             } else {
-                throw new ProcessException("Unknown Partition Key Strategy \"" + partitionStrategy + "\"");
+                throw new ProcessException("Unknown " + PARTITION_KEY_STRATEGY.getDisplayName() + " \"" + partitionKeyStrategy + "\"");
             }
         }
 
@@ -346,20 +343,20 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
             if (SORT_BY_FIELD.getValue().equals(sortKeyStrategy)) {
                 if (!record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException("By field sort strategy needs the \"Sort Key Field\" to present in the record");
+                    throw new ProcessException(SORT_BY_FIELD.getDisplayName() + " strategy needs the \"" + SORT_KEY_FIELD.getDisplayName() + "\" to present in the record");
                 }
 
                 result.withKeyComponent(sortKeyField, record.getValue(sortKeyField));
             } else if (SORT_BY_SEQUENCE.getValue().equals(sortKeyStrategy)) {
                 if (record.getSchema().getFieldNames().contains(sortKeyField)) {
-                    throw new ProcessException("Cannot reuse existing field with sort key strategy \"Generated sequence\"");
+                    throw new ProcessException("Cannot reuse existing field with " + SORT_KEY_STRATEGY.getDisplayName() + "  \"" + SORT_BY_SEQUENCE.getDisplayName() +"\"");
                 }
 
                 result.withKeyComponent(sortKeyField, itemCounter);
             } else if (SORT_NONE.getValue().equals(sortKeyStrategy)) {
-                logger.debug("None sort key strategy was applied");
+                logger.debug("No " + SORT_KEY_STRATEGY.getDisplayName() + " was applied");
             } else {
-                throw new ProcessException("Unknown Sort Key Strategy \"" + sortKeyStrategy + "\"");
+                throw new ProcessException("Unknown " + SORT_KEY_STRATEGY.getDisplayName() + " \"" + sortKeyStrategy + "\"");
             }
         }
     }
