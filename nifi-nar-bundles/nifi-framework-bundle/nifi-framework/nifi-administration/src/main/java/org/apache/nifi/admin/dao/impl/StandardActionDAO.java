@@ -95,7 +95,7 @@ public class StandardActionDAO implements ActionDAO {
     // action details
     // --------------
     private static final String INSERT_CONFIGURE_DETAILS = "INSERT INTO CONFIGURE_DETAILS ("
-            + "ACTION_ID, NAME, VALUE, PREVIOUS_VALUE"
+            + "ACTION_ID, NAME, \"VALUE\", PREVIOUS_VALUE"
             + ") VALUES ("
             + "?, "
             + "?, "
