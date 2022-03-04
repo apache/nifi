@@ -45,10 +45,11 @@ public class TestHive2JDBC {
 
     /**
      * If a provenance event does not have table name attributes,
-     * then a database lineage should be created.
+     * then a table lineage is created with table name 'unknown'.
+     * Database lineage cannot be sent to Atlas because hive_db is not a DataSet entity.
      */
     @Test
-    public void testDatabaseLineage() {
+    public void testUnknownTableLineage() {
         final String processorName = "PutHiveQL";
         final String transitUri = "jdbc:hive2://0.example.com:10000/database_A";
         final ProvenanceEventRecord record = Mockito.mock(ProvenanceEventRecord.class);
@@ -69,9 +70,9 @@ public class TestHive2JDBC {
         assertEquals(0, refs.getInputs().size());
         assertEquals(1, refs.getOutputs().size());
         Referenceable ref = refs.getOutputs().iterator().next();
-        assertEquals("hive_db", ref.getTypeName());
-        assertEquals("database_a", ref.get(ATTR_NAME));
-        assertEquals("database_a@namespace1", ref.get(ATTR_QUALIFIED_NAME));
+        assertEquals("hive_table", ref.getTypeName());
+        assertEquals("unknown", ref.get(ATTR_NAME));
+        assertEquals("database_a.unknown@namespace1", ref.get(ATTR_QUALIFIED_NAME));
     }
 
     /**
