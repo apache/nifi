@@ -103,7 +103,7 @@
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
-        <org.slf4j.version>1.7.35</org.slf4j.version>
+        <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.45.v20220203</jetty.version>
         <jackson.version>2.13.1</jackson.version>
