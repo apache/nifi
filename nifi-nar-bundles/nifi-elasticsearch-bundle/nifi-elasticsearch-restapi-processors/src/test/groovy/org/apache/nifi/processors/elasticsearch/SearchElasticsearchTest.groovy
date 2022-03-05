@@ -107,6 +107,10 @@ class SearchElasticsearchTest extends AbstractPaginatedJsonQueryElasticsearchTes
         while (expiration.isAfter(Instant.now())) {
             Thread.sleep(10)
         }
+        if ("true".equalsIgnoreCase(System.getenv("CI"))) {
+            // allow extra time if running in CI Pipeline to prevent intermittent timing-issue failures
+            Thread.sleep(1000)
+        }
         service.resetPageCount()
         runner.clearTransferState()
 
