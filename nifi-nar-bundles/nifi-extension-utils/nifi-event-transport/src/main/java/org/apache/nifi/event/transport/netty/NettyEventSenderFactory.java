@@ -61,6 +61,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private Duration timeout = Duration.ofSeconds(30);
 
+    private Duration idleTimeout = Duration.ofSeconds(0);
+
     private int maxConnections = Runtime.getRuntime().availableProcessors() * 2;
 
     private Supplier<List<ChannelHandler>> handlerSupplier = () -> Collections.emptyList();
@@ -113,6 +115,13 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      */
     public void setTimeout(final Duration timeout) {
         this.timeout = Objects.requireNonNull(timeout, "Timeout required");
+    }
+
+    /**
+     * Set the idle timeout period for outgoing client connections
+     */
+    public void setIdleTimeout(final Duration idleTimeout) {
+        this.idleTimeout = Objects.requireNonNull(idleTimeout, "Timeout required");
     }
 
     /**
@@ -205,6 +214,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
                 ? new StandardChannelInitializer<>(handlerSupplier)
                 : new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
         channelInitializer.setWriteTimeout(timeout);
+        channelInitializer.setIdleTimeout(idleTimeout);
         return channelInitializer;
     }
 }
