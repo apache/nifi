@@ -85,6 +85,11 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SAS_TOKEN.getAllowableValue())
             .build();
 
+    public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.MANAGED_IDENTITY.getAllowableValue())
+            .build();
+
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID)
             .required(true)
@@ -109,6 +114,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             CREDENTIALS_TYPE,
             ACCOUNT_KEY,
             SAS_TOKEN,
+            MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET
@@ -140,12 +146,13 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
                 String sasToken = context.getProperty(SAS_TOKEN).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithSasToken(accountName, endpointSuffix, sasToken);
             case MANAGED_IDENTITY:
-                return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix);
+                String managedIdentityClientId = context.getProperty(MANAGED_IDENTITY_CLIENT_ID).getValue();
+                return AzureStorageCredentialsDetails_v12.createWithManagedIdentity(accountName, endpointSuffix, managedIdentityClientId);
             case SERVICE_PRINCIPAL:
-                String tenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
-                String clientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
-                String clientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
-                return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix, tenantId, clientId, clientSecret);
+                String servicePrincipalTenantId = context.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue();
+                String servicePrincipalClientId = context.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue();
+                String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
+                return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix, servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret);
             default:
                 throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
         }

@@ -130,13 +130,15 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
                 clientBuilder.credential(new AzureSasCredential(credentialsDetails.getSasToken()));
                 break;
             case MANAGED_IDENTITY:
-                clientBuilder.credential(new ManagedIdentityCredentialBuilder().build());
+                clientBuilder.credential(new ManagedIdentityCredentialBuilder()
+                                .clientId(credentialsDetails.getManagedIdentityClientId())
+                        .build());
                 break;
             case SERVICE_PRINCIPAL:
                 clientBuilder.credential(new ClientSecretCredentialBuilder()
-                        .tenantId(credentialsDetails.getTenantId())
-                        .clientId(credentialsDetails.getClientId())
-                        .clientSecret(credentialsDetails.getClientSecret())
+                        .tenantId(credentialsDetails.getServicePrincipalTenantId())
+                        .clientId(credentialsDetails.getServicePrincipalClientId())
+                        .clientSecret(credentialsDetails.getServicePrincipalClientSecret())
                         .build());
                 break;
             case ACCESS_TOKEN:

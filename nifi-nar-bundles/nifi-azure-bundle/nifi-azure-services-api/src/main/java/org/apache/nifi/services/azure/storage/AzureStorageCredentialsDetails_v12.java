@@ -25,22 +25,24 @@ public class AzureStorageCredentialsDetails_v12 {
     private final AzureStorageCredentialsType credentialsType;
     private final String accountKey;
     private final String sasToken;
-    private final String tenantId;
-    private final String clientId;
-    private final String clientSecret;
+    private final String managedIdentityClientId;
+    private final String servicePrincipalTenantId;
+    private final String servicePrincipalClientId;
+    private final String servicePrincipalClientSecret;
     private final AccessToken accessToken;
 
     private AzureStorageCredentialsDetails_v12(
-            String accountName, String endpointSuffix, AzureStorageCredentialsType credentialsType, String accountKey,
-            String sasToken, String tenantId, String clientId, String clientSecret, AccessToken accessToken) {
+            String accountName, String endpointSuffix, AzureStorageCredentialsType credentialsType, String accountKey, String sasToken, String managedIdentityClientId,
+            String servicePrincipalTenantId, String servicePrincipalClientId, String servicePrincipalClientSecret, AccessToken accessToken) {
         this.accountName = accountName;
         this.endpointSuffix = endpointSuffix;
         this.credentialsType = credentialsType;
         this.accountKey = accountKey;
         this.sasToken = sasToken;
-        this.tenantId = tenantId;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
+        this.managedIdentityClientId = managedIdentityClientId;
+        this.servicePrincipalTenantId = servicePrincipalTenantId;
+        this.servicePrincipalClientId = servicePrincipalClientId;
+        this.servicePrincipalClientSecret = servicePrincipalClientSecret;
         this.accessToken = accessToken;
     }
 
@@ -64,16 +66,20 @@ public class AzureStorageCredentialsDetails_v12 {
         return sasToken;
     }
 
-    public String getTenantId() {
-        return tenantId;
+    public String getManagedIdentityClientId() {
+        return managedIdentityClientId;
     }
 
-    public String getClientId() {
-        return clientId;
+    public String getServicePrincipalTenantId() {
+        return servicePrincipalTenantId;
     }
 
-    public String getClientSecret() {
-        return clientSecret;
+    public String getServicePrincipalClientId() {
+        return servicePrincipalClientId;
+    }
+
+    public String getServicePrincipalClientSecret() {
+        return servicePrincipalClientSecret;
     }
 
     public AccessToken getAccessToken() {
@@ -84,35 +90,37 @@ public class AzureStorageCredentialsDetails_v12 {
             String accountName,
             String endpointSuffix,
             String accountKey) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCOUNT_KEY, accountKey, null, null, null, null, null);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCOUNT_KEY, accountKey, null, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithSasToken(
             String accountName,
             String endpointSuffix,
             String sasToken) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SAS_TOKEN, null, sasToken, null, null, null, null);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SAS_TOKEN, null, sasToken, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithManagedIdentity(
             String accountName,
-            String endpointSuffix) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.MANAGED_IDENTITY, null, null, null, null, null, null);
+            String endpointSuffix,
+            String managedIdentityClientId) {
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.MANAGED_IDENTITY, null, null, managedIdentityClientId, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithServicePrincipal(
             String accountName,
             String endpointSuffix,
-            String tenantId,
-            String clientId,
-            String clientSecret) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SERVICE_PRINCIPAL, null, null, tenantId, clientId, clientSecret, null);
+            String servicePrincipalTenantId,
+            String servicePrincipalClientId,
+            String servicePrincipalClientSecret) {
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SERVICE_PRINCIPAL, null, null, null,
+                servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithAccessToken(
             String accountName,
             String endpointSuffix,
             AccessToken accessToken) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null, null, null, accessToken);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null, null, null, null, accessToken);
     }
 }

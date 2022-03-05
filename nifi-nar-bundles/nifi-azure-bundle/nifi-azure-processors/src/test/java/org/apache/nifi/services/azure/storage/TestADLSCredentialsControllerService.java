@@ -41,6 +41,7 @@ public class TestADLSCredentialsControllerService {
     private static final String ACCOUNT_KEY_VALUE = "AccountKey";
     private static final String SAS_TOKEN_VALUE = "SasToken";
     private static final String END_POINT_SUFFIX_VALUE = "end.point.suffix";
+    private static final String MANAGED_IDENTITY_CLIENT_ID_VALUE = "ManagedIdentityClientID";
     private static final String SERVICE_PRINCIPAL_TENANT_ID_VALUE = "ServicePrincipalTenantID";
     private static final String SERVICE_PRINCIPAL_CLIENT_ID_VALUE = "ServicePrincipalClientID";
     private static final String SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE = "ServicePrincipalClientSecret";
@@ -255,6 +256,16 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testNotValidBecauseManagedIdentityClientIdSpecifiedButUseManagedIdentityIsFalse() {
+        configureAccountName();
+        configureAccountKey();
+
+        configureManagedIdentityClientId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
     public void testNotValidBecauseNoTenantIdSpecifiedForServicePrincipal() {
         configureAccountName();
 
@@ -300,6 +311,7 @@ public class TestADLSCredentialsControllerService {
         assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertFalse(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
         assertNotNull(actual.getEndpointSuffix());
         assertNull(actual.getServicePrincipalTenantId());
         assertNull(actual.getServicePrincipalClientId());
@@ -322,6 +334,7 @@ public class TestADLSCredentialsControllerService {
         assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertFalse(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
         assertNotNull(actual.getEndpointSuffix());
         assertNull(actual.getServicePrincipalTenantId());
         assertNull(actual.getServicePrincipalClientId());
@@ -344,6 +357,7 @@ public class TestADLSCredentialsControllerService {
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
         assertNull(actual.getAccountKey());
         assertFalse(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
         assertNotNull(actual.getEndpointSuffix());
         assertNull(actual.getServicePrincipalTenantId());
         assertNull(actual.getServicePrincipalClientId());
@@ -362,6 +376,7 @@ public class TestADLSCredentialsControllerService {
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
         assertNull(actual.getAccountKey());
         assertFalse(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
         assertNotNull(actual.getEndpointSuffix());
         assertNull(actual.getServicePrincipalTenantId());
         assertNull(actual.getServicePrincipalClientId());
@@ -369,7 +384,7 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithUseManagedIdentity() throws Exception {
+    public void testGetCredentialsDetailsWithSystemAssignedManagedIdentity() throws Exception {
         // GIVEN
         configureAccountName();
         configureUseManagedIdentity();
@@ -382,6 +397,31 @@ public class TestADLSCredentialsControllerService {
         // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertTrue(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
+        assertNull(actual.getAccountKey());
+        assertNull(actual.getSasToken());
+        assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
+    }
+
+    @Test
+    public void testGetCredentialsDetailsWithUserAssignedManagedIdentity() throws Exception {
+        // GIVEN
+        configureAccountName();
+        configureUseManagedIdentity();
+        configureManagedIdentityClientId();
+
+        runner.enableControllerService(credentialsService);
+
+        // WHEN
+        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        // THEN
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        assertTrue(actual.getUseManagedIdentity());
+        assertEquals(MANAGED_IDENTITY_CLIENT_ID_VALUE, actual.getManagedIdentityClientId());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertNotNull(actual.getEndpointSuffix());
@@ -408,6 +448,7 @@ public class TestADLSCredentialsControllerService {
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertFalse(actual.getUseManagedIdentity());
+        assertNull(actual.getManagedIdentityClientId());
         assertNotNull(actual.getEndpointSuffix());
         assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
         assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getServicePrincipalClientId());
@@ -473,6 +514,10 @@ public class TestADLSCredentialsControllerService {
 
     private void configureUseManagedIdentity() {
         runner.setProperty(credentialsService, ADLSCredentialsControllerService.USE_MANAGED_IDENTITY, "true");
+    }
+
+    private void configureManagedIdentityClientId() {
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.MANAGED_IDENTITY_CLIENT_ID, MANAGED_IDENTITY_CLIENT_ID_VALUE);
     }
 
     private void configureEndpointSuffix() {
