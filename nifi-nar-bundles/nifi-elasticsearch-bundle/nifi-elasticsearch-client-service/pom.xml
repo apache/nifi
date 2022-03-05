@@ -228,7 +228,6 @@
             </activation>
             <properties>
                 <es.int.version>6.8.23</es.int.version>
-                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
                 <es.int.type.name>_doc</es.int.type.name>
                 <es.int.script.name>setup-6.script</es.int.script.name>
                 <es.int.path.conf />
@@ -242,7 +241,6 @@
             </activation>
             <properties>
                 <es.int.version>7.10.2</es.int.version>
-                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
                 <es.int.script.name>setup-7.script</es.int.script.name>
                 <es.int.type.name />
                 <es.int.path.conf />
@@ -256,7 +254,6 @@
             </activation>
             <properties>
                 <es.int.version>7.17.1</es.int.version>
-                <alexcojocaru.plugin.version>6.19</alexcojocaru.plugin.version>
                 <es.int.script.name>setup-7.script</es.int.script.name>
                 <es.int.type.name />
                 <es.int.path.conf />
@@ -270,7 +267,8 @@
             </activation>
             <properties>
                 <es.int.version>8.0.1</es.int.version>
-                <alexcojocaru.plugin.version>6.20</alexcojocaru.plugin.version>
+                <!-- elasticsearch-maven-plugin version 6.20+ required for Elasticsearch 8.x+ -->
+                <alexcojocaru.plugin.version>6.22</alexcojocaru.plugin.version>
                 <es.int.script.name>setup-8.script</es.int.script.name>
                 <es.int.type.name />
                 <es.int.path.conf />
