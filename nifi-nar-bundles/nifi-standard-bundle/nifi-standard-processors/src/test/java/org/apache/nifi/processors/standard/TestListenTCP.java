@@ -189,7 +189,7 @@ public class TestListenTCP {
             eventSenderFactory.setSslContext(sslContext);
         }
 
-        eventSenderFactory.setTimeout(SENDER_TIMEOUT);
+        eventSenderFactory.setConnectionTimeout(SENDER_TIMEOUT);
         try (final EventSender<byte[]> eventSender = eventSenderFactory.getEventSender()) {
             eventSender.sendEvent(messages);
         }

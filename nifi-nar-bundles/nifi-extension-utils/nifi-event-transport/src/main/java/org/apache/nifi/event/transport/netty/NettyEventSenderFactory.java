@@ -59,7 +59,9 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private final TransportProtocol protocol;
 
-    private Duration timeout = Duration.ofSeconds(30);
+    private Duration connectionTimeout = Duration.ofSeconds(30);
+
+    private Duration idleTimeout = Duration.ofSeconds(30);
 
     private int maxConnections = Runtime.getRuntime().availableProcessors() * 2;
 
@@ -111,8 +113,15 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      *
      * @param timeout Timeout Duration
      */
-    public void setTimeout(final Duration timeout) {
-        this.timeout = Objects.requireNonNull(timeout, "Timeout required");
+    public void setConnectionTimeout(final Duration timeout) {
+        this.connectionTimeout = Objects.requireNonNull(timeout, "Timeout required");
+    }
+
+    /**
+     * Set the idle timeout period for outgoing client connections
+     */
+    public void setIdleTimeout(final Duration idleTimeout) {
+        this.idleTimeout = Objects.requireNonNull(idleTimeout, "Timeout required");
     }
 
     /**
@@ -174,7 +183,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     }
 
     private void setChannelOptions(final Bootstrap bootstrap) {
-        final int timeoutMilliseconds = (int) timeout.toMillis();
+        final int timeoutMilliseconds = (int) connectionTimeout.toMillis();
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMilliseconds);
         if (socketSendBufferSize != null) {
             bootstrap.option(ChannelOption.SO_SNDBUF, socketSendBufferSize);
@@ -195,7 +204,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
                 handler,
                 ChannelHealthChecker.ACTIVE,
                 FixedChannelPool.AcquireTimeoutAction.FAIL,
-                timeout.toMillis(),
+                connectionTimeout.toMillis(),
                 maxConnections,
                 MAX_PENDING_ACQUIRES);
     }
@@ -204,7 +213,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
                 ? new StandardChannelInitializer<>(handlerSupplier)
                 : new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
-        channelInitializer.setWriteTimeout(timeout);
+        channelInitializer.setWriteTimeout(connectionTimeout);
+        channelInitializer.setIdleTimeout(idleTimeout);
         return channelInitializer;
     }
 }

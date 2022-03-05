@@ -146,7 +146,7 @@ public class StringNettyEventSenderFactoryTest {
     private NettyEventSenderFactory<String> getEventSenderFactory(final int port) {
         final StringNettyEventSenderFactory senderFactory = new StringNettyEventSenderFactory(log,
                 ADDRESS.getHostAddress(), port, TransportProtocol.TCP, CHARSET, LineEnding.UNIX);
-        senderFactory.setTimeout(DEFAULT_TIMEOUT);
+        senderFactory.setConnectionTimeout(DEFAULT_TIMEOUT);
         senderFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         senderFactory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
         return senderFactory;

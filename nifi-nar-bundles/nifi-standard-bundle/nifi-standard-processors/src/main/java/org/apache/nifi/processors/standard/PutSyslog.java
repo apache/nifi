@@ -284,7 +284,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
         factory.setMaxConnections(context.getMaxConcurrentTasks());
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        factory.setTimeout(Duration.ofMillis(timeout));
+        factory.setConnectionTimeout(Duration.ofMillis(timeout));
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {
