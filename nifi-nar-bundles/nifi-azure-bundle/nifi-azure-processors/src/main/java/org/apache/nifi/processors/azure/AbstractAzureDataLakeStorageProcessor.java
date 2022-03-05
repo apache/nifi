@@ -129,6 +129,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final AccessToken accessToken = credentialsDetails.getAccessToken();
         final String endpointSuffix = credentialsDetails.getEndpointSuffix();
         final boolean useManagedIdentity = credentialsDetails.getUseManagedIdentity();
+        final String managedIdentityClientId = credentialsDetails.getManagedIdentityClientId();
         final String servicePrincipalTenantId = credentialsDetails.getServicePrincipalTenantId();
         final String servicePrincipalClientId = credentialsDetails.getServicePrincipalClientId();
         final String servicePrincipalClientSecret = credentialsDetails.getServicePrincipalClientSecret();
@@ -151,6 +152,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
                     .buildClient();
         } else if (useManagedIdentity) {
             final ManagedIdentityCredential misCredential = new ManagedIdentityCredentialBuilder()
+                    .clientId(managedIdentityClientId)
                     .build();
             storageClient = new DataLakeServiceClientBuilder()
                     .endpoint(endpoint)
