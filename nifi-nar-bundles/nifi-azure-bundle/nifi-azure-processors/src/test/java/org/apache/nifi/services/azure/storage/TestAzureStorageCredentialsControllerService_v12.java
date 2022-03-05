@@ -165,9 +165,9 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         assertEquals(ACCOUNT_KEY, actual.getCredentialsType());
         assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
         assertNull(actual.getSasToken());
-        assertNull(actual.getTenantId());
-        assertNull(actual.getClientId());
-        assertNull(actual.getClientSecret());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -185,9 +185,9 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         assertEquals(SAS_TOKEN, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
-        assertNull(actual.getTenantId());
-        assertNull(actual.getClientId());
-        assertNull(actual.getClientSecret());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -204,9 +204,9 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         assertEquals(MANAGED_IDENTITY, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
-        assertNull(actual.getTenantId());
-        assertNull(actual.getClientId());
-        assertNull(actual.getClientSecret());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -226,9 +226,9 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         assertEquals(SERVICE_PRINCIPAL, actual.getCredentialsType());
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
-        assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getTenantId());
-        assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getClientId());
-        assertEquals(SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE, actual.getClientSecret());
+        assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
+        assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getServicePrincipalClientId());
+        assertEquals(SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE, actual.getServicePrincipalClientSecret());
     }
 
     @Test
