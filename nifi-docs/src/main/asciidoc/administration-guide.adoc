@@ -76,6 +76,35 @@ NOTE: For security purposes, when no security configuration is provided NiFi wil
 
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
+== Build a Custom Distribution
+
+The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The following Maven profiles are available to administrators that want to simplify the process of building in-house distributions of Apache NiFi that contain the additional functionality that is normally excluded from the official binary releases.
+
+|==================================================================================================================================================
+| Package                                         | Maven Profile       | Description
+| Apache Accumulo Bundle | include-accumulo   | Adds support for https://accumulo.apache.org:[Apache Accumulo].
+| Apache Atlas Bundle | include-atlas | Adds support for the Apache Atlas data governance tool. The functionality from this bundle is based around reporting tasks that integrate with https://atlas.apache.org/#/:[Apache Atlas].
+| Apache Hive 1.1 Bundle | include-hive1_1 | Adds support for Apache Hive 1.1.X.
+| Apache Hive 3 Bundle | include-hive3 | Adds support for Apache Hive 3.X
+| Apache Ranger Bundle | include-ranger | Adds support for https://ranger.apache.org:[Apache Ranger].
+| ASN1 Support | include-asn1 | Adds support for ASN1
+| Graph Database Bundle | include-graph     | Adds support for various common graph database scenarios. Support is currently for https://neo4j.com/developer/cypher/:[Cypher] and https://tinkerpop.apache.org/gremlin.html:[Gremlin]-compatible databases such as Neo4J and JanusGraph. Includes controller services that provide driver functionality and a suite of processors for ingestion and querying.
+| GRPC Bundle | include-grpc | **This profile is active in official builds and should be active** Provides support for the GRPC protocol.
+| Media Bundle | include-media | The media bundle provides functionality based on https://tika.apache.org:[Apache Tika] for extracting content and metadata from various types of binary formats supported by Apache Tika (ex. PDF, Microsoft Office).
+| Rules Engine Bundle | include-rules | Adds support for creating scripted rules engines that can be integrated into existing flows. These rules engines can provide flexibility to people who need more complex flow logic or are more comfortable with flow decision-making using custom code.
+| Snowflake Bundle | include-snowflake | Adds support for integration with the https://www.snowflake.com:[Snowflake platform].
+| SQL Reporting Bundle | include-sql-reporting | Adds reporting tasks that are designed to use SQL to update a RDBMS with metrics and other related data from Apache NiFi.
+|==================================================================================================================================================
+
+To execute build, download either Java 8 or Java 11 from https://www.adoptium.net:[Adoptium] or whichever distribution of the JDK your team uses (Adoptium is the rebranding of AdoptOpenJDK which is one of the most popular). Java 8 and 11 are the only officially supported JVMs releases. Then install https://maven.apache.org:[Apache Maven].
+
+The next step is to download a copy of the Apache NiFi source code from the https://nifi.apache.org/download.html:[NiFi download page]. The reason you need the source build is that it includes a module called `nifi-assembly` which is the Maven module that builds a binary distribution. Expand the archive and a Maven in similar to the following example which includes GRPC, graph database and Tika support:
+
+`cd <nifi_source_folder>/nifi-assembly`
+
+`mvn install -Pinclude-grpc,include-graph,include-media`
+
+
 == Port Configuration
 
 === NiFi
