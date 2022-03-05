@@ -22,9 +22,9 @@
     <properties>
         <azure-eventhubs.version>3.3.0</azure-eventhubs.version>
         <azure-eventhubs-eph.version>3.3.0</azure-eventhubs-eph.version>
-        <azure-keyvault.version>1.2.4</azure-keyvault.version>
-        <azure-storage-file-datalake.version>12.7.1</azure-storage-file-datalake.version>
-        <azure-storage-blob.version>12.14.1</azure-storage-blob.version>
+        <azure-keyvault.version>1.2.6</azure-keyvault.version>
+        <azure-storage-file-datalake.version>12.7.4</azure-storage-file-datalake.version>
+        <azure-storage-blob.version>12.14.4</azure-storage-blob.version>
     </properties>
     <dependencies>
         <dependency>

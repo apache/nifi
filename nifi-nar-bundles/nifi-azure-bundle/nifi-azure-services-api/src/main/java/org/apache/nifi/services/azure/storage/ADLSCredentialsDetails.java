@@ -28,6 +28,7 @@ public class ADLSCredentialsDetails {
     private final AccessToken accessToken;
 
     private final boolean useManagedIdentity;
+    private final String managedIdentityClientId;
 
     private final String servicePrincipalTenantId;
     private final String servicePrincipalClientId;
@@ -40,6 +41,7 @@ public class ADLSCredentialsDetails {
             String endpointSuffix,
             AccessToken accessToken,
             boolean useManagedIdentity,
+            String managedIdentityClientId,
             String servicePrincipalTenantId,
             String servicePrincipalClientId,
             String servicePrincipalClientSecret
@@ -50,6 +52,7 @@ public class ADLSCredentialsDetails {
         this.endpointSuffix = endpointSuffix;
         this.accessToken = accessToken;
         this.useManagedIdentity = useManagedIdentity;
+        this.managedIdentityClientId = managedIdentityClientId;
         this.servicePrincipalTenantId = servicePrincipalTenantId;
         this.servicePrincipalClientId = servicePrincipalClientId;
         this.servicePrincipalClientSecret = servicePrincipalClientSecret;
@@ -79,6 +82,10 @@ public class ADLSCredentialsDetails {
         return useManagedIdentity;
     }
 
+    public String getManagedIdentityClientId() {
+        return managedIdentityClientId;
+    }
+
     public String getServicePrincipalTenantId() {
         return servicePrincipalTenantId;
     }
@@ -98,6 +105,7 @@ public class ADLSCredentialsDetails {
         private String endpointSuffix;
         private AccessToken accessToken;
         private boolean useManagedIdentity;
+        private String managedIdentityClientId;
         private String servicePrincipalTenantId;
         private String servicePrincipalClientId;
         private String servicePrincipalClientSecret;
@@ -138,6 +146,11 @@ public class ADLSCredentialsDetails {
             return this;
         }
 
+        public Builder setManagedIdentityClientId(String useManagedIdentityClientId) {
+            this.managedIdentityClientId = useManagedIdentityClientId;
+            return this;
+        }
+
         public Builder setServicePrincipalTenantId(String servicePrincipalTenantId) {
             this.servicePrincipalTenantId = servicePrincipalTenantId;
             return this;
@@ -154,7 +167,7 @@ public class ADLSCredentialsDetails {
         }
 
         public ADLSCredentialsDetails build() {
-            return new ADLSCredentialsDetails(accountName, accountKey, sasToken, endpointSuffix, accessToken, useManagedIdentity,
+            return new ADLSCredentialsDetails(accountName, accountKey, sasToken, endpointSuffix, accessToken, useManagedIdentity, managedIdentityClientId,
                     servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret);
         }
     }
