@@ -183,7 +183,6 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void putAttributes(final Map<String, String> attrs) {
-        System.out.println("******************putattributes " + attrs.getClass());
         attributes.putAll(attrs);
     }
 
