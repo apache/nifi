@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -549,7 +550,7 @@ public class MockProcessSession implements ProcessSession {
 
         final Map<String, String> updatedAttributes;
         if (attrs.containsKey(CoreAttributes.UUID.key())) {
-            updatedAttributes = new HashMap<>(attrs);
+            updatedAttributes = new LinkedHashMap<>(attrs);
             updatedAttributes.remove(CoreAttributes.UUID.key());
         } else {
             updatedAttributes = attrs;
