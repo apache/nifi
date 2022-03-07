@@ -289,7 +289,6 @@ public class AttributesToCSV extends AbstractProcessor {
 
         final Set<String> attributeList = attributeListStringToSet(context.getProperty(ATTRIBUTES_LIST).evaluateAttributeExpressions(original).getValue());
         final Map<String, String> atrList = buildAttributesMapForFlowFile(original, attributeList, pattern);
-        System.out.println("****************** atrList " + atrList.getClass());
 
         //escape attribute values
         int index = 0;
