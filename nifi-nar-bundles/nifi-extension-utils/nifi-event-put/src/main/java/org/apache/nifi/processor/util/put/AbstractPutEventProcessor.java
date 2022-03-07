@@ -78,7 +78,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .build();
     public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
             .Builder().name("Idle Connection Expiration")
-            .description("The amount of time a connection should be held open without being used before closing the connection. A value of 0 will disable this feature.")
+            .description("The amount of time a connection should be held open without being used before closing the connection. A value of 0 seconds will disable this feature.")
             .required(true)
             .defaultValue("15 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
