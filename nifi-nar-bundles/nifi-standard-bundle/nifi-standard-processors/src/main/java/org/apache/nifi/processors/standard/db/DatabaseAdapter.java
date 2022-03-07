@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Interface for RDBMS/JDBC-specific code.
@@ -151,18 +152,28 @@ public interface DatabaseAdapter {
         return false;
     }
 
-    default String getCreateTableStatement(final TableSchema tableSchema, final boolean quoteTableName, final boolean quoteColumnNames) {
+    /**
+     * Generates a CREATE TABLE statement using the specified table schema
+     * @param tableSchema The table schema including column information
+     * @param quoteTableName Whether to quote the table name in the generated DDL
+     * @param quoteColumnNames Whether to quote column names in the generated DDL
+     * @return A String containing DDL to create the specified table
+     */
+    default String getCreateTableStatement(TableSchema tableSchema, boolean quoteTableName, boolean quoteColumnNames) {
         StringBuilder createTableStatement = new StringBuilder();
 
         List<ColumnDescription> columns = tableSchema.getColumnsAsList();
         List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
+        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         for (ColumnDescription column : columns) {
             StringBuilder sb = new StringBuilder()
                     .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
                     .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
-                    .append(getSQLForDataType(column.getDataType()));
+                    .append(getSQLForDataType(column.getDataType()))
+                    .append(column.isNullable() ? "" : " NOT NULL")
+                    .append(primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
             columnsAndDatatypes.add(sb.toString());
         }
 

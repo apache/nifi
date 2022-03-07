@@ -24,6 +24,7 @@ import org.apache.nifi.processors.standard.db.TableSchema;
 import java.sql.JDBCType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static java.sql.Types.CHAR;
 import static java.sql.Types.CLOB;
@@ -121,14 +122,16 @@ public class DerbyDatabaseAdapter implements DatabaseAdapter {
 
         List<ColumnDescription> columns = tableSchema.getColumnsAsList();
         List<String> columnsAndDatatypes = new ArrayList<>(columns.size());
+        Set<String> primaryKeyColumnNames = tableSchema.getPrimaryKeyColumnNames();
         for (ColumnDescription column : columns) {
-            String dataType = getSQLForDataType(column.getDataType());
             StringBuilder sb = new StringBuilder()
                     .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(column.getColumnName())
                     .append(quoteColumnNames ? getColumnQuoteString() : "")
                     .append(" ")
-                    .append(dataType);
+                    .append(getSQLForDataType(column.getDataType()))
+                    .append(column.isNullable() ? "" : " NOT NULL")
+                    .append(primaryKeyColumnNames != null && primaryKeyColumnNames.contains(column.getColumnName()) ? " PRIMARY KEY" : "");
             columnsAndDatatypes.add(sb.toString());
         }
 

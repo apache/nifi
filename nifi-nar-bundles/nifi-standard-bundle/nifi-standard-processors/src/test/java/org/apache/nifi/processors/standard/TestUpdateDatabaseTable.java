@@ -121,7 +121,7 @@ public class TestUpdateDatabaseTable {
         // Columns 2,3,4 are Column Name, Column Index, and Column Type
         assertEquals("id", rs.getString(2));
         assertEquals(1, rs.getInt(3));
-        assertEquals("INTEGER", rs.getString(4));
+        assertEquals("INTEGER NOT NULL", rs.getString(4));
 
         assertTrue(rs.next());
         assertEquals("name", rs.getString(2));

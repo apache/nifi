@@ -63,6 +63,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -75,7 +76,8 @@ import java.util.Set;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 
 @Tags({"metadata", "jdbc", "database", "table", "update", "alter"})
-@CapabilityDescription("This processor uses a JDBC connection and incoming records to generate any database table changes needed to support the incoming records.")
+@CapabilityDescription("This processor uses a JDBC connection and incoming records to generate any database table changes needed to support the incoming records. It expects a 'flat' record layout, "
+        + "meaning none of the top-level record fields has nested fields that are intended to become columns themselves.")
 @WritesAttributes({
         @WritesAttribute(attribute = "output.table", description = "This attribute is written on the flow files routed to the 'success' "
                 + "and 'failure' relationships, and contains the target table name."),
@@ -113,7 +115,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CATALOG_NAME = new PropertyDescriptor.Builder()
-            .name("put-db-record-catalog-name")
+            .name("updatedatabasetable-catalog-name")
             .displayName("Catalog Name")
             .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
@@ -123,7 +125,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("put-db-record-schema-name")
+            .name("updatedatabasetable-schema-name")
             .displayName("Schema Name")
             .description("The name of the database schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly.")
@@ -150,6 +152,19 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .allowableValues(CREATE_IF_NOT_EXISTS, FAIL_IF_NOT_EXISTS)
             .defaultValue(FAIL_IF_NOT_EXISTS.getValue())
+            .build();
+
+    static final PropertyDescriptor PRIMARY_KEY_FIELDS = new PropertyDescriptor.Builder()
+            .name("updatedatabasetable-primary-keys")
+            .displayName("Primary Key Fields")
+            .description("A comma-separated list of record field names that uniquely identifies a row in the database. This property is only used if the specified table needs to be created, "
+                    + "in which case the Primary Key Fields will be used to specify the primary keys of the newly-created table. IMPORTANT: Primary Key Fields must match the record field "
+                    + "names exactly unless 'Quote Column Identifiers' is false and the database allows for case-insensitive column names. In practice it is best to specify Primary Key Fields "
+                    + "that exactly match the record field names, and those will become the column names in the created table.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .dependsOn(CREATE_TABLE, CREATE_IF_NOT_EXISTS)
             .build();
 
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new PropertyDescriptor.Builder()
@@ -268,6 +283,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         pds.add(SCHEMA_NAME);
         pds.add(TABLE_NAME);
         pds.add(CREATE_TABLE);
+        pds.add(PRIMARY_KEY_FIELDS);
         pds.add(TRANSLATE_FIELD_NAMES);
         pds.add(UPDATE_FIELD_NAMES);
         pds.add(QUOTE_TABLE_IDENTIFIER);
@@ -287,8 +303,8 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
         final boolean recordWriterFactorySet = validationContext.getProperty(RECORD_WRITER_FACTORY).isSet();
         final boolean updateFieldNames = validationContext.getProperty(UPDATE_FIELD_NAMES).asBoolean();
 
@@ -307,7 +323,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -319,6 +335,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         final String catalogName = context.getProperty(CATALOG_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String schemaName = context.getProperty(SCHEMA_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String primaryKeyFields = context.getProperty(PRIMARY_KEY_FIELDS).evaluateAttributeExpressions(flowFile).getValue();
         final ComponentLog log = getLogger();
 
         try {
@@ -360,14 +377,25 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 throw new ProcessException("Record Writer must be set if 'Update Field Names' is true");
             }
             final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-            DatabaseAdapter databaseAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
+            final DatabaseAdapter databaseAdapter = dbAdapters.get(context.getProperty(DB_TYPE).getValue());
             try (final Connection connection = dbcpService.getConnection()) {
                 final boolean quoteTableName = context.getProperty(QUOTE_TABLE_IDENTIFIER).asBoolean();
                 final boolean quoteColumnNames = context.getProperty(QUOTE_COLUMN_IDENTIFIERS).asBoolean();
-
                 final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
-                OutputMetadataHolder outputMetadataHolder = checkAndUpdateTableSchema(connection, databaseAdapter, recordSchema,
-                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames, updateFieldNames, quoteTableName, quoteColumnNames);
+
+                // If table may need to be created, parse the primary key field names and pass along
+                final Set<String> primaryKeyColumnNames;
+                if (createIfNotExists && primaryKeyFields != null) {
+                    primaryKeyColumnNames = new HashSet<>();
+                    Arrays.stream(primaryKeyFields.split(","))
+                            .filter(path -> path != null && !path.trim().isEmpty())
+                            .map(String::trim)
+                            .forEach(primaryKeyColumnNames::add);
+                } else {
+                    primaryKeyColumnNames = null;
+                }
+                final OutputMetadataHolder outputMetadataHolder = checkAndUpdateTableSchema(connection, databaseAdapter, recordSchema,
+                        catalogName, schemaName, tableName, createIfNotExists, translateFieldNames, updateFieldNames, primaryKeyColumnNames, quoteTableName, quoteColumnNames);
                 if (outputMetadataHolder != null) {
                     // The output schema changed (i.e. field names were updated), so write out the corresponding FlowFile
                     try {
@@ -388,7 +416,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                                 throw new IOException("Unable to create RecordReader", e);
                             }
 
-                            WriteResult writeResult = updateRecords(recordSchema, outputMetadataHolder, recordReader, recordSetWriter);
+                            final WriteResult writeResult = updateRecords(recordSchema, outputMetadataHolder, recordReader, recordSetWriter);
                             recordSetWriter.flush();
                             recordSetWriter.close();
                             attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
@@ -400,7 +428,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         // Since we are wrapping the exceptions above there should always be a cause
                         // but it's possible it might not have a message. This handles that by logging
                         // the name of the class thrown.
-                        Throwable c = e.getCause();
+                        final Throwable c = e.getCause();
                         if (c != null) {
                             session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
                         } else {
@@ -432,10 +460,10 @@ public class UpdateDatabaseTable extends AbstractProcessor {
     private synchronized OutputMetadataHolder checkAndUpdateTableSchema(final Connection conn, final DatabaseAdapter databaseAdapter, final RecordSchema schema,
                                                                         final String catalogName, final String schemaName, final String tableName,
                                                                         final boolean createIfNotExists, final boolean translateFieldNames, final boolean updateFieldNames,
-                                                                        final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
+                                                                        final Set<String> primaryKeyColumnNames, final boolean quoteTableName, final boolean quoteColumnNames) throws IOException {
         // Read in the current table metadata, compare it to the reader's schema, and
         // add any columns from the schema that are missing in the table
-        try (Statement s = conn.createStatement()) {
+        try (final Statement s = conn.createStatement()) {
             // Determine whether the table exists
             TableSchema tableSchema = null;
             try {
@@ -444,7 +472,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 // Do nothing, the value will be populated if necessary
             }
 
-            List<ColumnDescription> columns = new ArrayList<>();
+            final List<ColumnDescription> columns = new ArrayList<>();
             boolean tableCreated = false;
             if (tableSchema == null) {
                 if (createIfNotExists) {
@@ -457,9 +485,9 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                         getLogger().debug("Adding column " + recordFieldName + " to table " + tableName);
                     }
 
-                    tableSchema = new TableSchema(tableName, columns, translateFieldNames, null, databaseAdapter.getColumnQuoteString());
+                    tableSchema = new TableSchema(tableName, columns, translateFieldNames, primaryKeyColumnNames, databaseAdapter.getColumnQuoteString());
 
-                    String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
+                    final String createTableSql = databaseAdapter.getCreateTableStatement(tableSchema, quoteTableName, quoteColumnNames);
 
                     if (StringUtils.isNotEmpty(createTableSql)) {
                         // Perform the table create
@@ -474,12 +502,12 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 }
             }
 
-            List<String> dbColumns = new ArrayList<>();
+            final List<String> dbColumns = new ArrayList<>();
             for (final ColumnDescription columnDescription : tableSchema.getColumnsAsList()) {
                 dbColumns.add(ColumnDescription.normalizeColumnName(columnDescription.getColumnName(), translateFieldNames));
             }
 
-            List<ColumnDescription> columnsToAdd = new ArrayList<>();
+            final List<ColumnDescription> columnsToAdd = new ArrayList<>();
             // If the table wasn't newly created, alter it accordingly
             if (!tableCreated) {
                 // Handle new columns
@@ -512,25 +540,25 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             }
 
             // If updating field names, return a new RecordSchema, otherwise return null
-            OutputMetadataHolder outputMetadataHolder;
+            final OutputMetadataHolder outputMetadataHolder;
             if (updateFieldNames) {
-                List<RecordField> inputRecordFields = schema.getFields();
-                List<RecordField> outputRecordFields = new ArrayList<>();
-                Map<String, String> fieldMap = new HashMap<>();
+                final List<RecordField> inputRecordFields = schema.getFields();
+                final List<RecordField> outputRecordFields = new ArrayList<>();
+                final Map<String, String> fieldMap = new HashMap<>();
                 boolean needsUpdating = false;
 
                 for (RecordField inputRecordField : inputRecordFields) {
                     final String inputRecordFieldName = inputRecordField.getFieldName();
                     boolean found = false;
-                    for (String hiveColumnName : dbColumns) {
-                        if (inputRecordFieldName.equalsIgnoreCase(hiveColumnName)) {
+                    for (final String columnName : dbColumns) {
+                        if (inputRecordFieldName.equalsIgnoreCase(columnName)) {
                             // Set a flag if the field name doesn't match the column name exactly. This overall flag will determine whether
                             // the records need updating (if true) or not (if false)
-                            if (!inputRecordFieldName.equals(hiveColumnName)) {
+                            if (!inputRecordFieldName.equals(columnName)) {
                                 needsUpdating = true;
                             }
-                            fieldMap.put(inputRecordFieldName, hiveColumnName);
-                            outputRecordFields.add(new RecordField(hiveColumnName, inputRecordField.getDataType(), inputRecordField.getDefaultValue(), inputRecordField.isNullable()));
+                            fieldMap.put(inputRecordFieldName, columnName);
+                            outputRecordFields.add(new RecordField(columnName, inputRecordField.getDataType(), inputRecordField.getDefaultValue(), inputRecordField.isNullable()));
                             found = true;
                             break;
                         }
@@ -563,7 +591,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
                 for (Map.Entry<String, String> mapping : outputMetadataHolder.getFieldMap().entrySet()) {
                     outputRecordFields.put(mapping.getValue(), inputRecord.getValue(mapping.getKey()));
                 }
-                Record outputRecord = new MapRecord(outputMetadataHolder.getOutputSchema(), outputRecordFields);
+                final Record outputRecord = new MapRecord(outputMetadataHolder.getOutputSchema(), outputRecordFields);
                 writer.write(outputRecord);
             }
             return writer.finishRecordSet();
@@ -575,7 +603,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     private String getJdbcUrl(final Connection connection) {
         try {
-            DatabaseMetaData databaseMetaData = connection.getMetaData();
+            final DatabaseMetaData databaseMetaData = connection.getMetaData();
             if (databaseMetaData != null) {
                 return databaseMetaData.getURL();
             }
@@ -590,7 +618,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         private final RecordSchema outputSchema;
         private final Map<String, String> fieldMap;
 
-        public OutputMetadataHolder(RecordSchema outputSchema, Map<String, String> fieldMap) {
+        public OutputMetadataHolder(final RecordSchema outputSchema, final Map<String, String> fieldMap) {
             this.outputSchema = outputSchema;
             this.fieldMap = fieldMap;
         }
