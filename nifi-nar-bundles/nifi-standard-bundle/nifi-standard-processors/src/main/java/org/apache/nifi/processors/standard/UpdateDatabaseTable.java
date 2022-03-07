@@ -286,6 +286,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         pds.add(PRIMARY_KEY_FIELDS);
         pds.add(TRANSLATE_FIELD_NAMES);
         pds.add(UPDATE_FIELD_NAMES);
+        pds.add(RECORD_WRITER_FACTORY);
         pds.add(QUOTE_TABLE_IDENTIFIER);
         pds.add(QUOTE_COLUMN_IDENTIFIERS);
         pds.add(QUERY_TIMEOUT);
