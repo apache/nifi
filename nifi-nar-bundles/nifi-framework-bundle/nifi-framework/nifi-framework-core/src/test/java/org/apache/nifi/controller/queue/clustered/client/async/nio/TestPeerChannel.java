@@ -171,7 +171,6 @@ public class TestPeerChannel {
             startServer(group, serverSocketAddress.getPort(), enabledProtocol, countDownLatch);
 
             socketChannel.connect(serverSocketAddress);
-            socketChannel.configureBlocking(false);
             final SSLEngine sslEngine = createSslEngine(enabledProtocol, CLIENT_CHANNEL);
 
             final PeerChannel peerChannel = new PeerChannel(socketChannel, sslEngine, serverSocketAddress.toString());
