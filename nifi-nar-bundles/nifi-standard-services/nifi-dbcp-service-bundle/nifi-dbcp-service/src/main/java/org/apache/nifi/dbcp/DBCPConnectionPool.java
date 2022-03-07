@@ -411,7 +411,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         KerberosUser kerberosUser = null;
         try {
-            kerberosUser = getKerberosUser(context, Collections.emptyMap());
+            kerberosUser = getKerberosUser(context);
             if (kerberosUser != null) {
                 results.add(new ConfigVerificationResult.Builder()
                         .verificationStepName("Configure Kerberos User")
@@ -430,7 +430,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
         final BasicDataSource dataSource = new BasicDataSource();
         try {
-            configureDataSource(dataSource, kerberosUser, context, variables);
+            configureDataSource(dataSource, kerberosUser, context);
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Configure Data Source")
                     .outcome(SUCCESSFUL)
@@ -490,27 +490,27 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        kerberosUser = getKerberosUser(context, Collections.emptyMap());
+        kerberosUser = getKerberosUser(context);
         dataSource = new BasicDataSource();
-        configureDataSource(dataSource, kerberosUser, context, Collections.emptyMap());
+        configureDataSource(dataSource, kerberosUser, context);
     }
 
     private void configureDataSource(final BasicDataSource dataSource, final KerberosUser kerberosUser,
-                                     final ConfigurationContext context, final Map<String, String> variables) throws InitializationException {
-        final String dburl = getUrl(context, variables);
+                                     final ConfigurationContext context) throws InitializationException {
+        final String dburl = getUrl(context);
 
-        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions(variables).getValue();
-        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions(variables).getValue();
-        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions(variables).getValue();
-        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions(variables).asInteger();
-        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions(variables).getValue();
-        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions(variables));
-        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions(variables).asInteger();
-        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions(variables).asInteger();
-        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions(variables));
-        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions(variables));
-        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions(variables));
-        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions(variables));
+        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
+        final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
+        final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
+        final Integer minIdle = context.getProperty(MIN_IDLE).evaluateAttributeExpressions().asInteger();
+        final Integer maxIdle = context.getProperty(MAX_IDLE).evaluateAttributeExpressions().asInteger();
+        final Long maxConnLifetimeMillis = extractMillisWithInfinite(context.getProperty(MAX_CONN_LIFETIME).evaluateAttributeExpressions());
+        final Long timeBetweenEvictionRunsMillis = extractMillisWithInfinite(context.getProperty(EVICTION_RUN_PERIOD).evaluateAttributeExpressions());
+        final Long minEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
+        final Long softMinEvictableIdleTimeMillis = extractMillisWithInfinite(context.getProperty(SOFT_MIN_EVICTABLE_IDLE_TIME).evaluateAttributeExpressions());
 
         if (kerberosUser != null) {
             try {
@@ -556,11 +556,11 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         });
     }
 
-    private KerberosUser getKerberosUser(final ConfigurationContext context, final Map<String, String> variables) {
+    private KerberosUser getKerberosUser(final ConfigurationContext context) {
         KerberosUser kerberosUser = null;
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final KerberosUserService kerberosUserService = context.getProperty(KERBEROS_USER_SERVICE).asControllerService(KerberosUserService.class);
-        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions(variables).getValue();
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         if (kerberosUserService != null) {
@@ -573,12 +573,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         return kerberosUser;
     }
 
-    protected String getUrl(final ConfigurationContext context) {
-        return getUrl(context, Collections.emptyMap());
-    }
-
-    private String getUrl(final ConfigurationContext context, final Map<String, String> variables) {
-        return context.getProperty(DATABASE_URL).evaluateAttributeExpressions(variables).getValue();
+    protected String getUrl(ConfigurationContext context) {
+        return context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
     }
 
     protected Driver getDriver(final String driverName, final String url) {

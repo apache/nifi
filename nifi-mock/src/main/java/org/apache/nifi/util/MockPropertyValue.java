@@ -97,6 +97,16 @@ public class MockPropertyValue implements PropertyValue {
             return;
         }
 
+        // language scope is not null, we have attributes available but scope is not equal to FF attributes
+        // it means that we're not evaluating against flow file attributes even though attributes are available
+        if (attributesAvailable && !ExpressionLanguageScope.FLOWFILE_ATTRIBUTES.equals(expressionLanguageScope)) {
+            throw new IllegalStateException("Attempting to evaluate expression language for " + propertyDescriptor.getName()
+                    + " using flow file attributes but the scope evaluation is set to " + expressionLanguageScope + ". The"
+                    + " proper scope should be set in the property descriptor using"
+                    + " PropertyDescriptor.Builder.expressionLanguageSupported(ExpressionLanguageScope)");
+        }
+
+
         // we check if the input requirement is INPUT_FORBIDDEN
         // in that case, we don't care if attributes are not available even though scope is FLOWFILE_ATTRIBUTES
         // it likely means that the property has been defined in a common/abstract class used by multiple processors with
