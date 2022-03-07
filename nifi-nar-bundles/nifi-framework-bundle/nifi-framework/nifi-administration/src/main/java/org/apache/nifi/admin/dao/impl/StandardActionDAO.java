@@ -176,7 +176,7 @@ public class StandardActionDAO implements ActionDAO {
             + "ON CD.ACTION_ID = A.ID "
             + "WHERE A.SOURCE_ID = ?";
 
-    private static final String SELECT_PREVIOUS_VALUES = "SELECT CD.VALUE, "
+    private static final String SELECT_PREVIOUS_VALUES = "SELECT CD.\"VALUE\", "
             + "A.ACTION_TIMESTAMP, "
             + "A.IDENTITY "
             + "FROM CONFIGURE_DETAILS CD "
