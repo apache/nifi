@@ -50,7 +50,37 @@ public class PeerChannel implements Closeable {
 
     @Override
     public void close() throws IOException {
-        socketChannel.close();
+        try {
+            if (sslEngine == null) {
+                logger.debug("Closing Peer Channel [{}] SSLEngine not configured", peerDescription);
+            } else {
+                logger.debug("Closing Peer Channel [{}] SSLEngine close started", peerDescription);
+                sslEngine.closeOutbound();
+
+                final ByteBuffer inputBuffer = ByteBuffer.allocate(0);
+                final ByteBuffer outputBuffer = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
+
+                SSLEngineResult wrapResult = sslEngine.wrap(inputBuffer, outputBuffer);
+                SSLEngineResult.Status status = wrapResult.getStatus();
+                outputBuffer.flip();
+                if (SSLEngineResult.Status.OK == status) {
+                    write(outputBuffer);
+                    outputBuffer.clear();
+                    wrapResult = sslEngine.wrap(inputBuffer, outputBuffer);
+                    status = wrapResult.getStatus();
+                }
+                if (SSLEngineResult.Status.CLOSED == status) {
+                    write(outputBuffer);
+                } else {
+                    throw new SSLException(String.format("Closing Peer Channel [%s] Invalid Wrap Result Status [%s]", peerDescription, status));
+                }
+
+                logger.debug("Closing Peer Channel [{}] SSLEngine close completed", peerDescription);
+            }
+        } finally {
+            logger.debug("Closing Peer Channel [{}] Socket Channel close started", peerDescription);
+            socketChannel.close();
+        }
     }
 
     public boolean isConnected() {
