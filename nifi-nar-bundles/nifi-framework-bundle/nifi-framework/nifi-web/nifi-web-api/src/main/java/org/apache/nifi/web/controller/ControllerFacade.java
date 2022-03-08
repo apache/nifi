@@ -31,8 +31,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -64,17 +62,15 @@ import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
-import org.apache.nifi.extension.manifest.ExtensionManifest;
-import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -91,9 +87,6 @@ import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
-import org.apache.nifi.runtime.manifest.impl.SchedulingDefaultsFactory;
-import org.apache.nifi.runtime.manifest.impl.StandardRuntimeManifestBuilder;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -126,8 +119,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.WebApplicationException;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.Collator;
@@ -141,7 +132,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TimeZone;
@@ -155,9 +145,6 @@ public class ControllerFacade implements Authorizable {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
-    private static final String RUNTIME_MANIFEST_IDENTIFIER = "nifi";
-    private static final String RUNTIME_TYPE = "nifi";
-
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
@@ -168,7 +155,7 @@ public class ControllerFacade implements Authorizable {
     private DtoFactory dtoFactory;
     private SearchQueryParser searchQueryParser;
     private ControllerSearchService controllerSearchService;
-    private ExtensionManifestParser extensionManifestParser;
+    private RuntimeManifestService runtimeManifestService;
 
     private ProcessGroup getRootGroup() {
         return flowController.getFlowManager().getRootGroup();
@@ -587,53 +574,7 @@ public class ControllerFacade implements Authorizable {
      * @return the runtime manifest
      */
     public RuntimeManifest getRuntimeManifest() {
-        final ExtensionManager extensionManager = getExtensionManager();
-        final Set<Bundle> allBundles = extensionManager.getAllBundles();
-
-        final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
-        final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
-        final Date frameworkBuildDate = frameworkDetails.getBuildTimestampDate();
-
-        final BuildInfo buildInfo = new BuildInfo();
-        buildInfo.setVersion(frameworkDetails.getCoordinate().getVersion());
-        buildInfo.setRevision(frameworkDetails.getBuildRevision());
-        buildInfo.setCompiler(frameworkDetails.getBuildJdk());
-        buildInfo.setTimestamp(frameworkBuildDate == null ? null : frameworkBuildDate.getTime());
-
-        final RuntimeManifestBuilder manifestBuilder = new StandardRuntimeManifestBuilder()
-                .identifier(RUNTIME_MANIFEST_IDENTIFIER)
-                .runtimeType(RUNTIME_TYPE)
-                .version(buildInfo.getVersion())
-                .schedulingDefaults(SchedulingDefaultsFactory.getNifiSchedulingDefaults())
-                .buildInfo(buildInfo);
-
-        for (final Bundle bundle : allBundles) {
-            getExtensionManifest(bundle).ifPresent(em -> manifestBuilder.addBundle(em));
-        }
-
-        return manifestBuilder.build();
-    }
-
-    private Optional<ExtensionManifest> getExtensionManifest(final Bundle bundle) {
-        final BundleDetails bundleDetails = bundle.getBundleDetails();
-        final File manifestFile = new File(bundleDetails.getWorkingDirectory(), "META-INF/docs/extension-manifest.xml");
-        if (!manifestFile.exists()) {
-            logger.warn("Unable to find extension manifest for [{}] at [{}]...", bundleDetails.getCoordinate(), manifestFile.getAbsolutePath());
-            return Optional.empty();
-        }
-
-        try (final InputStream inputStream = new FileInputStream(manifestFile)) {
-            final ExtensionManifest extensionManifest = extensionManifestParser.parse(inputStream);
-            // Newer NARs will have these fields populated in extension-manifest.xml, but older NARs will not, so we can
-            // set the values from the BundleCoordinate which already has the group, artifact id, and version
-            extensionManifest.setGroupId(bundleDetails.getCoordinate().getGroup());
-            extensionManifest.setArtifactId(bundleDetails.getCoordinate().getId());
-            extensionManifest.setVersion(bundleDetails.getCoordinate().getVersion());
-            return Optional.of(extensionManifest);
-        } catch (final IOException e) {
-            logger.error("Unable to load extension manifest for bundle [{}]", bundleDetails.getCoordinate(), e);
-            return Optional.empty();
-        }
+        return runtimeManifestService.getManifest();
     }
 
     /**
@@ -1760,7 +1701,7 @@ public class ControllerFacade implements Authorizable {
         this.controllerSearchService = controllerSearchService;
     }
 
-    public void setExtensionManifestParser(ExtensionManifestParser extensionManifestParser) {
-        this.extensionManifestParser = extensionManifestParser;
+    public void setRuntimeManifestService(RuntimeManifestService runtimeManifestService) {
+        this.runtimeManifestService = runtimeManifestService;
     }
 }
