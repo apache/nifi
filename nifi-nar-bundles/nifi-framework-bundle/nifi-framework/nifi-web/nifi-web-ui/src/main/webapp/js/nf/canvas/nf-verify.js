@@ -539,6 +539,10 @@
             }
         };
 
+        var actionFormatter = function (row, cell, value, columnDef, dataContext) {
+            return '<div title="Delete" class="delete-attribute pointer fa fa-trash"></div>';
+        };
+
         // define the column model for the referenced attributes table
         var referencedAttributesColumns = [
             {
@@ -557,6 +561,13 @@
                 sortable: true,
                 resizable: true,
                 cssClass: 'pointer'
+            },
+            {
+                id: "actions",
+                name: "&nbsp;",
+                minWidth: 10,
+                width: 10,
+                formatter: actionFormatter
             }
         ];
 
@@ -597,6 +608,14 @@
 
                 // prevents standard edit logic
                 e.stopImmediatePropagation();
+            } else if (referencedAttributesGrid.getColumns()[args.cell].id === 'actions') {
+                var attribute = referencedAttributesData.getItem(args.row);
+
+                var target = $(e.target);
+                if (target.hasClass('delete-attribute')) {
+                    // remove the attribute from the table
+                    referencedAttributesData.deleteItem(attribute.id);
+                }
             }
         });
         referencedAttributesGrid.onBeforeCellEditorDestroy.subscribe(function (e, args) {
