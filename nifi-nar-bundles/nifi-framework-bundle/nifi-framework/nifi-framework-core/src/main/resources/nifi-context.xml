@@ -67,6 +67,15 @@
         <property name="authorizer" ref="authorizer" />
     </bean>
 
+    <!-- extension manifest parser -->
+    <bean id="extensionManifestParser" class="org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser" />
+
+    <!-- runtime manifest generator -->
+    <bean id="runtimeManifestService" class="org.apache.nifi.manifest.StandardRuntimeManifestService" >
+        <constructor-arg ref="extensionManager" />
+        <constructor-arg ref="extensionManifestParser" />
+    </bean>
+
     <!-- bulletin repository -->
     <bean id="bulletinRepository" class="org.apache.nifi.events.VolatileBulletinRepository" />
 
