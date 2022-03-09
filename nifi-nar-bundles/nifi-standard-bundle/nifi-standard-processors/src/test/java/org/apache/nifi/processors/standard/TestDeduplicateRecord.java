@@ -39,7 +39,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class TestDeduplicateRecords {
+public class TestDeduplicateRecord {
 
     private TestRunner runner;
     private MockRecordParser reader;
@@ -47,7 +47,7 @@ public class TestDeduplicateRecords {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(DeduplicateRecords.class);
+        runner = TestRunners.newTestRunner(DeduplicateRecord.class);
 
         // RECORD_READER, RECORD_WRITER
         reader = new MockRecordParser();
@@ -58,16 +58,16 @@ public class TestDeduplicateRecords {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
-        runner.setProperty(DeduplicateRecords.RECORD_READER, "reader");
-        runner.setProperty(DeduplicateRecords.RECORD_WRITER, "writer");
-        runner.setProperty(DeduplicateRecords.RECORD_HASHING_ALGORITHM, DeduplicateRecords.SHA256_ALGORITHM_VALUE);
+        runner.setProperty(DeduplicateRecord.RECORD_READER, "reader");
+        runner.setProperty(DeduplicateRecord.RECORD_WRITER, "writer");
+        runner.setProperty(DeduplicateRecord.RECORD_HASHING_ALGORITHM, DeduplicateRecord.SHA256_ALGORITHM_VALUE);
 
         reader.addSchemaField("firstName", RecordFieldType.STRING);
         reader.addSchemaField("middleName", RecordFieldType.STRING);
         reader.addSchemaField("lastName", RecordFieldType.STRING);
 
         // INCLUDE_ZERO_RECORD_FLOWFILES
-        runner.setProperty(DeduplicateRecords.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
+        runner.setProperty(DeduplicateRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
 
         runner.assertValid();
     }
@@ -80,7 +80,7 @@ public class TestDeduplicateRecords {
 
     @Test
     public void testInvalidRecordPathCausesValidationError() {
-        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
+        runner.setProperty(DeduplicateRecord.FILTER_TYPE, DeduplicateRecord.HASH_SET_VALUE);
         runner.setProperty("middle_name", "//////middleName");
         runner.assertNotValid();
     }
@@ -89,7 +89,7 @@ public class TestDeduplicateRecords {
     public void testDetectDuplicatesHashSet() {
         commonEnqueue();
 
-        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
+        runner.setProperty(DeduplicateRecord.FILTER_TYPE, DeduplicateRecord.HASH_SET_VALUE);
         runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("John", "Q", "Smith");
@@ -104,8 +104,8 @@ public class TestDeduplicateRecords {
     @Test
     public void testDetectDuplicatesBloomFilter() {
         commonEnqueue();
-        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.BLOOM_FILTER_VALUE);
-        runner.setProperty(DeduplicateRecords.BLOOM_FILTER_FPP, "0.10");
+        runner.setProperty(DeduplicateRecord.FILTER_TYPE, DeduplicateRecord.BLOOM_FILTER_VALUE);
+        runner.setProperty(DeduplicateRecord.BLOOM_FILTER_FPP, "0.10");
         runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("John", "Q", "Smith");
@@ -120,7 +120,7 @@ public class TestDeduplicateRecords {
     @Test
     public void testNoDuplicatesHashSet() {
         commonEnqueue();
-        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.HASH_SET_VALUE);
+        runner.setProperty(DeduplicateRecord.FILTER_TYPE, DeduplicateRecord.HASH_SET_VALUE);
         runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
@@ -135,8 +135,8 @@ public class TestDeduplicateRecords {
     @Test
     public void testNoDuplicatesBloomFilter() {
         commonEnqueue();
-        runner.setProperty(DeduplicateRecords.FILTER_TYPE, DeduplicateRecords.BLOOM_FILTER_VALUE);
-        runner.setProperty(DeduplicateRecords.BLOOM_FILTER_FPP, "0.10");
+        runner.setProperty(DeduplicateRecord.FILTER_TYPE, DeduplicateRecord.BLOOM_FILTER_VALUE);
+        runner.setProperty(DeduplicateRecord.BLOOM_FILTER_FPP, "0.10");
         runner.setProperty("middle_name", "/middleName");
         reader.addRecord("John", "Q", "Smith");
         reader.addRecord("Jack", "Z", "Brown");
@@ -193,14 +193,14 @@ public class TestDeduplicateRecords {
 
     @Test
     public void testMultipleFileDeduplicationRequiresDMC() {
-        runner.setProperty(DeduplicateRecords.DEDUPLICATION_STRATEGY, DeduplicateRecords.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.assertNotValid();
     }
 
-    public static final String FIRST_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecords.JOIN_CHAR), Arrays.asList(
+    public static final String FIRST_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
             "John", "Q", "Smith"
     )));
-    public static final String SECOND_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecords.JOIN_CHAR), Arrays.asList(
+    public static final String SECOND_KEY = DigestUtils.sha256Hex(String.join(String.valueOf(DeduplicateRecord.JOIN_CHAR), Arrays.asList(
             "Jack", "Z", "Brown"
     )));
 
@@ -208,8 +208,8 @@ public class TestDeduplicateRecords {
     public void testDeduplicateWithDMC() throws Exception {
         DistributedMapCacheClient dmc = new MockCacheService<>();
         runner.addControllerService("dmc", dmc);
-        runner.setProperty(DeduplicateRecords.DISTRIBUTED_MAP_CACHE, "dmc");
-        runner.setProperty(DeduplicateRecords.DEDUPLICATION_STRATEGY, DeduplicateRecords.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
         runner.enableControllerService(dmc);
         runner.assertValid();
 
@@ -231,9 +231,9 @@ public class TestDeduplicateRecords {
     public void testDeduplicateWithDMCAndCacheIdentifier() throws Exception {
         DistributedMapCacheClient dmc = new MockCacheService<>();
         runner.addControllerService("dmc", dmc);
-        runner.setProperty(DeduplicateRecords.DISTRIBUTED_MAP_CACHE, "dmc");
-        runner.setProperty(DeduplicateRecords.DEDUPLICATION_STRATEGY, DeduplicateRecords.OPTION_MULTIPLE_FILES.getValue());
-        runner.setProperty(DeduplicateRecords.CACHE_IDENTIFIER, "concat('${user.name}', '${record.hash.value}')");
+        runner.setProperty(DeduplicateRecord.DISTRIBUTED_MAP_CACHE, "dmc");
+        runner.setProperty(DeduplicateRecord.DEDUPLICATION_STRATEGY, DeduplicateRecord.OPTION_MULTIPLE_FILES.getValue());
+        runner.setProperty(DeduplicateRecord.CACHE_IDENTIFIER, "concat('${user.name}', '${record.hash.value}')");
         runner.enableControllerService(dmc);
         runner.assertValid();
 
@@ -255,17 +255,17 @@ public class TestDeduplicateRecords {
     }
 
     void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
-        runner.assertTransferCount(DeduplicateRecords.REL_DUPLICATE, duplicates);
-        runner.assertTransferCount(DeduplicateRecords.REL_NON_DUPLICATE, notDuplicates);
-        runner.assertTransferCount(DeduplicateRecords.REL_ORIGINAL, original);
-        runner.assertTransferCount(DeduplicateRecords.REL_FAILURE, failure);
+        runner.assertTransferCount(DeduplicateRecord.REL_DUPLICATE, duplicates);
+        runner.assertTransferCount(DeduplicateRecord.REL_NON_DUPLICATE, notDuplicates);
+        runner.assertTransferCount(DeduplicateRecord.REL_ORIGINAL, original);
+        runner.assertTransferCount(DeduplicateRecord.REL_FAILURE, failure);
 
-        List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecords.REL_DUPLICATE);
+        List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_DUPLICATE);
         if (duplicateFlowFile != null) {
             assertEquals(String.valueOf(dupeCount), duplicateFlowFile.get(0).getAttribute("record.count"));
         }
 
-        List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecords.REL_NON_DUPLICATE);
+        List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_NON_DUPLICATE);
         if (nonDuplicateFlowFile != null) {
             assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.get(0).getAttribute("record.count"));
         }

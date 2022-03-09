@@ -109,7 +109,7 @@ import static org.apache.commons.codec.binary.StringUtils.getBytesUtf8;
         "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
         "org.apache.nifi.processors.standard.DetectDuplicate"
 })
-public class DeduplicateRecords extends AbstractProcessor {
+public class DeduplicateRecord extends AbstractProcessor {
     public static final char JOIN_CHAR = '~';
 
     private static final String FIELD_NAME = "field.name";
