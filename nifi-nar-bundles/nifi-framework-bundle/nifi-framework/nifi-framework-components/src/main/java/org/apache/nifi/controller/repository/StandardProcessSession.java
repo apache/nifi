@@ -1599,11 +1599,24 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             if (repoRecord.getTransferRelationship() != null) {
-                flowFilesOut--;
-                contentSizeOut -= flowFile.getSize();
+                final Relationship transferRelationship = repoRecord.getTransferRelationship();
+                final Collection<Connection> destinations = context.getConnections(transferRelationship);
+                final int numDestinations = destinations.size();
+                final boolean autoTerminated = numDestinations == 0 && context.getConnectable().isAutoTerminated(transferRelationship);
 
-                newOwner.flowFilesOut++;
-                newOwner.contentSizeOut += flowFile.getSize();
+                if (autoTerminated) {
+                    removedCount--;
+                    removedBytes -= flowFile.getSize();
+
+                    newOwner.removedCount++;
+                    newOwner.removedBytes += flowFile.getSize();
+                } else {
+                    flowFilesOut--;
+                    contentSizeOut -= flowFile.getSize();
+
+                    newOwner.flowFilesOut++;
+                    newOwner.contentSizeOut += flowFile.getSize();
+                }
             }
 
             final List<ProvenanceEventRecord> events = generatedProvenanceEvents.remove(flowFile);
