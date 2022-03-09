@@ -2453,6 +2453,39 @@ public class StandardProcessSessionIT {
     }
 
     @Test
+    public void testMigrateAfterTransferToAutoTerminatedRelationship() {
+        final long start = System.currentTimeMillis();
+
+        FlowFile flowFile = session.create();
+        flowFile = session.write(flowFile, out -> out.write("Hello".getBytes(StandardCharsets.UTF_8)));
+
+        final StandardProcessSession newSession = new StandardProcessSession(context, () -> false);
+
+        when(connectable.getConnections(any(Relationship.class))).thenReturn(Collections.emptySet());
+        when(connectable.isAutoTerminated(any(Relationship.class))).thenReturn(true);
+
+        session.transfer(flowFile, new Relationship.Builder().name("success").build());
+        session.migrate(newSession, Collections.singleton(flowFile));
+
+        session.commit();
+
+        RepositoryStatusReport report = flowFileEventRepository.reportTransferEvents(start - 1);
+        FlowFileEvent event = report.getReportEntries().values().iterator().next();
+        assertEquals(0, event.getFlowFilesRemoved());
+        assertEquals(0, event.getContentSizeRemoved());
+        assertEquals(0, event.getFlowFilesOut());
+        assertEquals(0, event.getContentSizeOut());
+
+        newSession.commit();
+        report = flowFileEventRepository.reportTransferEvents(start - 1);
+        event = report.getReportEntries().values().iterator().next();
+        assertEquals(1, event.getFlowFilesRemoved());
+        assertEquals(5, event.getContentSizeRemoved());
+        assertEquals(0, event.getFlowFilesOut());
+        assertEquals(0, event.getContentSizeOut());
+    }
+
+    @Test
     public void testNewFlowFileModifiedMultipleTimesHasTransientClaimsOnCommit() {
         FlowFile flowFile = session.create();
         for (int i = 0; i < 5; i++) {
