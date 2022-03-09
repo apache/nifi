@@ -17,6 +17,8 @@
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -26,10 +28,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.DelimiterBasedFrameDecoder;
-import io.netty.handler.codec.Delimiters;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -47,16 +45,14 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.util.OptionalInt;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,25 +66,23 @@ public class TestPeerChannel {
 
     private static final boolean SERVER_CHANNEL = false;
 
+    private static final long READ_SLEEP_INTERVAL = 500;
+
     private static final int CHANNEL_TIMEOUT = 15000;
 
     private static final int SOCKET_TIMEOUT = 5000;
 
-    private static final int MAX_MESSAGE_LENGTH = 1024;
-
     private static final long SHUTDOWN_TIMEOUT = 100;
-
-    private static final int SINGLE_COUNT_DOWN = 1;
-
-    private static final String MESSAGE = "PING\n";
-
-    private static final byte[] MESSAGE_BYTES = MESSAGE.getBytes(StandardCharsets.UTF_8);
 
     private static final String TLS_1_3 = "TLSv1.3";
 
     private static final String TLS_1_2 = "TLSv1.2";
 
     private static final String TLS_1_3_SUPPORTED = "isTls13Supported";
+
+    private static final int PROTOCOL_VERSION = 1;
+
+    private static final int VERSION_ACCEPTED = 0x10;
 
     private static SSLContext sslContext;
 
@@ -107,8 +101,7 @@ public class TestPeerChannel {
     public void testConnectedClose() throws IOException {
         final String enabledProtocol = getEnabledProtocol();
 
-        final CountDownLatch countDownLatch = getSingleCountDownLatch();
-        processChannel(enabledProtocol, countDownLatch, peerChannel -> {});
+        processChannel(enabledProtocol, peerChannel -> {});
     }
 
     @Test
@@ -125,42 +118,45 @@ public class TestPeerChannel {
     }
 
     private void assertWriteReadSuccess(final String enabledProtocol) throws IOException {
-        final CountDownLatch countDownLatch = getSingleCountDownLatch();
-
-        processChannel(enabledProtocol, countDownLatch, peerChannel -> {
+        processChannel(enabledProtocol, peerChannel -> {
             try {
                 peerChannel.performHandshake();
 
-                final ByteBuffer messageBuffer = ByteBuffer.wrap(MESSAGE_BYTES);
-                final ByteBuffer encryptedBuffer = peerChannel.prepareForWrite(messageBuffer);
-                peerChannel.write(encryptedBuffer);
+                final byte[] version = new byte[]{PROTOCOL_VERSION};
+                final ByteBuffer versionBuffer = ByteBuffer.wrap(version);
+                final ByteBuffer encryptedVersionBuffer = peerChannel.prepareForWrite(versionBuffer);
+                peerChannel.write(encryptedVersionBuffer);
 
-                awaitCountDownLatch(countDownLatch);
+                final int firstByteRead = read(peerChannel);
+                assertEquals(PROTOCOL_VERSION, firstByteRead, "Peer Channel first byte read not matched");
 
-                final OptionalInt firstRead = peerChannel.read();
-                assertTrue(firstRead.isPresent(), "Peer Channel read failed");
+                final byte[] versionAccepted = new byte[]{VERSION_ACCEPTED};
+                final ByteBuffer versionAcceptedBuffer = ByteBuffer.wrap(versionAccepted);
+                final ByteBuffer encryptedVersionAcceptedBuffer = peerChannel.prepareForWrite(versionAcceptedBuffer);
+                peerChannel.write(encryptedVersionAcceptedBuffer);
 
-                final int firstByteRead = firstRead.getAsInt();
-                assertEquals(MESSAGE_BYTES[0], firstByteRead, "First byte read not matched");
-
-                final int expectedBytesRemaining = MESSAGE_BYTES.length - 1;
-                final ByteBuffer readBuffer = ByteBuffer.allocate(expectedBytesRemaining);
-                final int bytesRead = peerChannel.read(readBuffer);
-                readBuffer.flip();
-                assertEquals(expectedBytesRemaining, bytesRead, "Expected bytes read not matched");
-
-                final byte[] messageBytes = new byte[MESSAGE_BYTES.length];
-                messageBytes[0] = (byte) firstByteRead;
-                readBuffer.get(messageBytes, 1, readBuffer.limit());
-
-                assertArrayEquals(MESSAGE_BYTES,messageBytes, "Message read not matched");
+                final int secondByteRead = read(peerChannel);
+                assertEquals(VERSION_ACCEPTED, secondByteRead, "Peer Channel second byte read not matched");
             } catch (final IOException e) {
                 throw new UncheckedIOException(String.format("Channel Failed for %s", enabledProtocol), e);
             }
         });
     }
 
-    private void processChannel(final String enabledProtocol, final CountDownLatch countDownLatch, final Consumer<PeerChannel> channelConsumer) throws IOException {
+    private int read(final PeerChannel peerChannel) throws IOException {
+        OptionalInt read = peerChannel.read();
+        while (!read.isPresent()) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(READ_SLEEP_INTERVAL);
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Peer Channel read sleep interrupted", e);
+            }
+            read = peerChannel.read();
+        }
+        return read.getAsInt();
+    }
+
+    private void processChannel(final String enabledProtocol, final Consumer<PeerChannel> channelConsumer) throws IOException {
         final EventLoopGroup group = new NioEventLoopGroup(GROUP_THREADS);
 
         try (final SocketChannel socketChannel = SocketChannel.open()) {
@@ -168,7 +164,7 @@ public class TestPeerChannel {
             socket.setSoTimeout(SOCKET_TIMEOUT);
 
             final InetSocketAddress serverSocketAddress = getServerSocketAddress();
-            startServer(group, serverSocketAddress.getPort(), enabledProtocol, countDownLatch);
+            startServer(group, serverSocketAddress.getPort(), enabledProtocol);
 
             socketChannel.connect(serverSocketAddress);
             final SSLEngine sslEngine = createSslEngine(enabledProtocol, CLIENT_CHANNEL);
@@ -176,6 +172,7 @@ public class TestPeerChannel {
             final PeerChannel peerChannel = new PeerChannel(socketChannel, sslEngine, serverSocketAddress.toString());
             assertConnectedOpen(peerChannel);
 
+            socketChannel.configureBlocking(false);
             channelConsumer.accept(peerChannel);
 
             peerChannel.close();
@@ -195,7 +192,7 @@ public class TestPeerChannel {
         assertFalse(peerChannel.isOpen(), "Channel open");
     }
 
-    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol, final CountDownLatch countDownLatch) {
+    private void startServer(final EventLoopGroup group, final int port, final String enabledProtocol) {
         final ServerBootstrap bootstrap = new ServerBootstrap();
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
@@ -205,11 +202,22 @@ public class TestPeerChannel {
                 final ChannelPipeline pipeline = channel.pipeline();
                 final SSLEngine sslEngine = createSslEngine(enabledProtocol, SERVER_CHANNEL);
                 setPipelineHandlers(pipeline, sslEngine);
-                pipeline.addLast(new SimpleChannelInboundHandler<String>() {
+                pipeline.addLast(new SimpleChannelInboundHandler<ByteBuf>() {
+                    private int protocolVersion;
+
                     @Override
-                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, String s) throws Exception {
-                        channelHandlerContext.channel().writeAndFlush(MESSAGE).sync();
-                        countDownLatch.countDown();
+                    protected void channelRead0(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf) throws Exception {
+                        if (byteBuf.readableBytes() == 1) {
+                            final int read = byteBuf.readByte();
+                            if (PROTOCOL_VERSION == read) {
+                                protocolVersion = read;
+                                channelHandlerContext.writeAndFlush(Unpooled.wrappedBuffer(new byte[]{PROTOCOL_VERSION}));
+                            } else if (protocolVersion == PROTOCOL_VERSION) {
+                                channelHandlerContext.writeAndFlush(Unpooled.wrappedBuffer(new byte[]{VERSION_ACCEPTED}));
+                            } else {
+                                throw new SocketException(String.format("Unexpected Integer [%d] read", read));
+                            }
+                        }
                     }
                 });
             }
@@ -229,17 +237,6 @@ public class TestPeerChannel {
 
     private void setPipelineHandlers(final ChannelPipeline pipeline, final SSLEngine sslEngine) {
         pipeline.addLast(new SslHandler(sslEngine));
-        pipeline.addLast(new DelimiterBasedFrameDecoder(MAX_MESSAGE_LENGTH, Delimiters.lineDelimiter()));
-        pipeline.addLast(new StringDecoder());
-        pipeline.addLast(new StringEncoder());
-    }
-
-    private void awaitCountDownLatch(final CountDownLatch countDownLatch) throws IOException {
-        try {
-            countDownLatch.await();
-        } catch (final InterruptedException e) {
-            throw new IOException("Count Down Interrupted", e);
-        }
     }
 
     private void shutdownGroup(final EventLoopGroup group) {
@@ -249,10 +246,6 @@ public class TestPeerChannel {
     private InetSocketAddress getServerSocketAddress() {
         final int port = NetworkUtils.getAvailableTcpPort();
         return new InetSocketAddress(LOCALHOST, port);
-    }
-
-    private CountDownLatch getSingleCountDownLatch() {
-        return new CountDownLatch(SINGLE_COUNT_DOWN);
     }
 
     private String getEnabledProtocol() {
