@@ -26,15 +26,16 @@ import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser;
 import org.apache.nifi.nar.ExtensionManager;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +47,7 @@ public class StandardRuntimeManifestServiceTest {
     private ExtensionManifestParser extensionManifestParser;
     private RuntimeManifestService runtimeManifestService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         final BundleDetails frameworkBundleDetails = new BundleDetails.Builder()
                 .coordinate(new BundleCoordinate("org.apache.nifi", "nifi-framework-nar", "1.16.0"))
