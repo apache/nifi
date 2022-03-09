@@ -102,7 +102,7 @@ The next step is to download a copy of the Apache NiFi source code from the http
 
 `cd <nifi_source_folder>/nifi-assembly`
 
-`mvn install -Pinclude-grpc,include-graph,include-media`
+`mvn clean install -Pinclude-grpc,include-graph,include-media`
 
 
 == Port Configuration
