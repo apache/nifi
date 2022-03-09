@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -201,7 +202,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
-                return getArrayDataType(rs, columnIndex, useLogicalTypes);
+                return getArrayDataType(rs, readerSchema, columnIndex, useLogicalTypes);
             case Types.BINARY:
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
@@ -282,7 +283,21 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private DataType getArrayDataType(final ResultSet rs, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
+    private DataType getArrayDataType(final ResultSet rs, final RecordSchema readerSchema, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
+        // We first want to check if the Reader Schema can tell us what the type of the array is.
+        final String columnName = rs.getMetaData().getColumnName(columnIndex);
+        final Optional<RecordField> optionalRecordField = readerSchema.getField(columnName);
+        if (optionalRecordField.isPresent()) {
+            final RecordField recordField = optionalRecordField.get();
+            final DataType dataType = recordField.getDataType();
+            if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                if (arrayDataType.getElementType() != null) {
+                    return dataType;
+                }
+            }
+        }
+
         // The JDBC API does not allow us to know what the base type of an array is through the metadata.
         // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
         // the base type. However, if the base type is, itself, an array, we will simply return a base type of
