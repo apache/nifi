@@ -219,20 +219,35 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
         if (result.isSuccess()) {
             session.transfer(outgoingFlowFile, REL_SUCCESS);
-        } else if (result.getThrowable().getCause() instanceof ProvisionedThroughputExceededException) {
-             // When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
-             // should be retried at a later time. We yield the processor and the FlowFile is considered unprocessed (partially processed) due to temporary write limitations.
-             // More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
+        } else {
+            handleError(context, session, result, outgoingFlowFile);
+        }
+    }
+
+    private void handleError(
+            final ProcessContext context,
+            final ProcessSession session,
+            final SplitRecordSetHandler.RecordHandlerResult result,
+            final FlowFile outgoingFlowFile
+    ) {
+        final Throwable error = result.getThrowable();
+        final Throwable cause = error.getCause();
+        final String message = error.getMessage();
+
+        if (cause instanceof ProvisionedThroughputExceededException) {
+            // When DynamoDB returns with {@code ProvisionedThroughputExceededException}, the client reached it's write limitation and
+            // should be retried at a later time. We yield the processor and the FlowFile is considered unprocessed (partially processed) due to temporary write limitations.
+            // More about throughput limitations: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadWriteCapacityMode.html
             context.yield();
             session.transfer(outgoingFlowFile, REL_UNPROCESSED);
-        } else if (result.getThrowable().getCause() instanceof AmazonClientException) {
-            getLogger().error("Could not process FlowFile due to client exception: " + result.getThrowable().getMessage(), result.getThrowable());
-            session.transfer(processClientException(session, Collections.singletonList(outgoingFlowFile), (AmazonClientException) result.getThrowable().getCause()), REL_FAILURE);
-        } else if (result.getThrowable().getCause() instanceof AmazonServiceException) {
-            getLogger().error("Could not process FlowFile due to server exception: " + result.getThrowable().getMessage(), result.getThrowable());
-            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AmazonServiceException) result.getThrowable().getCause()), REL_FAILURE);
+        } else if (cause instanceof AmazonServiceException) {
+            getLogger().error("Could not process FlowFile due to server exception: " + message, error);
+            session.transfer(processServiceException(session, Collections.singletonList(outgoingFlowFile), (AmazonServiceException) cause), REL_FAILURE);
+        } else if (cause instanceof AmazonClientException) {
+            getLogger().error("Could not process FlowFile due to client exception: " + message, error);
+            session.transfer(processClientException(session, Collections.singletonList(outgoingFlowFile), (AmazonClientException) cause), REL_FAILURE);
         } else {
-            getLogger().error("Could not process FlowFile: " + result.getThrowable().getMessage(), result.getThrowable());
+            getLogger().error("Could not process FlowFile: " + message, error);
             session.transfer(outgoingFlowFile, REL_FAILURE);
         }
     }
