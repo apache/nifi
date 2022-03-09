@@ -52,7 +52,11 @@ public class PeerChannel implements Closeable {
         this.peerDescription = peerDescription;
     }
 
-
+    /**
+     * Close Socket Channel and process SSLEngine close notifications when configured
+     *
+     * @throws IOException Thrown on failure to close Socket Channel or process SSLEngine operations
+     */
     @Override
     public void close() throws IOException {
         try {
@@ -62,6 +66,7 @@ public class PeerChannel implements Closeable {
                 logger.debug("Closing Peer Channel [{}] SSLEngine close started", peerDescription);
                 sslEngine.closeOutbound();
 
+                // Send TLS close notification packets available after initiating SSLEngine.closeOutbound()
                 final ByteBuffer inputBuffer = ByteBuffer.allocate(0);
                 final ByteBuffer outputBuffer = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
 
@@ -100,6 +105,13 @@ public class PeerChannel implements Closeable {
         return peerDescription;
     }
 
+    /**
+     * Write one byte to the channel
+     *
+     * @param b Byte to be written
+     * @return Status of write operation returns true on success
+     * @throws IOException Thrown on failure to write to the Socket Channel
+     */
     public boolean write(final byte b) throws IOException {
         singleByteBuffer.clear();
         singleByteBuffer.put(b);
@@ -110,13 +122,18 @@ public class PeerChannel implements Closeable {
         return bytesWritten > 0;
     }
 
+    /**
+     * Read one byte as an unsigned integer from the channel
+     *
+     * @return Returns empty when zero bytes are available and returns negative one when the channel is closed
+     * @throws IOException Thrown on failure to read from Socket Channel
+     */
     public OptionalInt read() throws IOException {
         singleByteBuffer.clear();
         final int bytesRead = read(singleByteBuffer);
         if (bytesRead < 0) {
              return OptionalInt.of(END_OF_FILE);
-        }
-        if (bytesRead == EMPTY_BUFFER) {
+        } else if (bytesRead == EMPTY_BUFFER) {
             return OptionalInt.empty();
         }
 
@@ -125,9 +142,6 @@ public class PeerChannel implements Closeable {
         final byte read = singleByteBuffer.get();
         return OptionalInt.of(read & 0xFF);
     }
-
-
-
 
     /**
      * Reads the given ByteBuffer of data and returns a new ByteBuffer (which is "flipped" / ready to be read). The newly returned
@@ -143,7 +157,6 @@ public class PeerChannel implements Closeable {
         if (sslEngine == null) {
             return plaintext;
         }
-
 
         ByteBuffer prepared = ByteBuffer.allocate(Math.min(85, plaintext.capacity() - plaintext.position()));
         while (plaintext.hasRemaining()) {
@@ -165,11 +178,24 @@ public class PeerChannel implements Closeable {
         return prepared;
     }
 
+    /**
+     * Write prepared buffer to Socket Channel
+     *
+     * @param preparedBuffer Buffer must contain bytes processed through prepareForWrite() when TLS is enabled
+     * @return Number of bytes written according to SocketChannel.write()
+     * @throws IOException Thrown on failure to write to the Socket Channel
+     */
     public int write(final ByteBuffer preparedBuffer) throws IOException {
         return socketChannel.write(preparedBuffer);
     }
 
-
+    /**
+     * Read application data bytes into the provided buffer
+     *
+     * @param dst Buffer to be populated with application data bytes
+     * @return Number of bytes read into the provided buffer
+     * @throws IOException Thrown on failure to read from the Socket Channel
+     */
     public int read(final ByteBuffer dst) throws IOException {
         // If we have data ready to go, then go ahead and copy it.
         final int bytesCopied = copy(applicationBuffer, dst);
@@ -276,9 +302,6 @@ public class PeerChannel implements Closeable {
         }
     }
 
-
-
-
     /**
      * Attempts to decrypt the given buffer of data, writing the result into {@link #destinationBuffer}. If successful, will return <code>true</code>.
      * If more data is needed in order to perform the decryption, will return <code>false</code>.
@@ -324,7 +347,11 @@ public class PeerChannel implements Closeable {
         }
     }
 
-
+    /**
+     * Perform TLS handshake when SSLEngine configured
+     *
+     * @throws IOException Thrown on failure to handle socket communication or TLS packet processing
+     */
     public void performHandshake() throws IOException {
         if (sslEngine == null) {
             return;
