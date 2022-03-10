@@ -27,8 +27,6 @@ import org.apache.nifi.web.security.jwt.provider.StandardBearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -37,13 +35,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import static org.apache.nifi.web.api.cookie.ApplicationCookieName.OIDC_REQUEST_IDENTIFIER;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 
-@RunWith(JUnit4.class)
 public class OIDCAccessResourceTest {
 
     final static String REQUEST_IDENTIFIER = "an-identifier";
@@ -129,12 +125,7 @@ public class OIDCAccessResourceTest {
 
         @Override
         protected URI getCookieResourceUri() {
-            try {
-                return new URI(RESOURCE_URI);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-                return null;
-            }
+            return URI.create(RESOURCE_URI);
         }
 
         private AuthenticationResponse getSuccessResponse() {
