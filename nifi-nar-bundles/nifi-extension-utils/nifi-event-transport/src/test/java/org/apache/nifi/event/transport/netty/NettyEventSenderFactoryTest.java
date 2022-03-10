@@ -42,7 +42,7 @@ public class NettyEventSenderFactoryTest {
     public void testSendEventTcpException() throws Exception {
         final int port = NetworkUtils.getAvailableTcpPort();
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.TCP);
-        factory.setConnectionTimeout(DEFAULT_TIMEOUT);
+        factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());
@@ -58,7 +58,7 @@ public class NettyEventSenderFactoryTest {
     public void testSendEventCloseUdp() throws Exception {
         final int port = NetworkUtils.getAvailableUdpPort();
         final NettyEventSenderFactory<ByteBuf> factory = new NettyEventSenderFactory<>(ADDRESS, port, TransportProtocol.UDP);
-        factory.setConnectionTimeout(DEFAULT_TIMEOUT);
+        factory.setTimeout(DEFAULT_TIMEOUT);
         factory.setWorkerThreads(SINGLE_THREAD);
         factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         factory.setShutdownTimeout(ShutdownTimeout.QUICK.getDuration());

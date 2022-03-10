@@ -251,7 +251,7 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int idleTimeout = context.getProperty(IDLE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
-        factory.setConnectionTimeout(Duration.ofMillis(timeout));
+        factory.setTimeout(Duration.ofMillis(timeout));
         factory.setIdleTimeout(Duration.ofSeconds(idleTimeout));
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);

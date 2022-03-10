@@ -201,7 +201,7 @@ public class TestListenSyslog {
 
     private void sendMessages(final TransportProtocol protocol, final int port, final LineEnding lineEnding, final String... messages) throws Exception {
         final StringNettyEventSenderFactory eventSenderFactory = new StringNettyEventSenderFactory(runner.getLogger(), LOCALHOST_ADDRESS, port, protocol, CHARSET, lineEnding);
-        eventSenderFactory.setConnectionTimeout(SENDER_TIMEOUT);
+        eventSenderFactory.setTimeout(SENDER_TIMEOUT);
         try (final EventSender<String> eventSender = eventSenderFactory.getEventSender()) {
             for (final String message : messages) {
                 eventSender.sendEvent(message);

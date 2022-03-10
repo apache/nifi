@@ -59,7 +59,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private final TransportProtocol protocol;
 
-    private Duration connectionTimeout = Duration.ofSeconds(30);
+    private Duration timeout = Duration.ofSeconds(30);
 
     private Duration idleTimeout = Duration.ofSeconds(30);
 
@@ -113,8 +113,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
      *
      * @param timeout Timeout Duration
      */
-    public void setConnectionTimeout(final Duration timeout) {
-        this.connectionTimeout = Objects.requireNonNull(timeout, "Timeout required");
+    public void setTimeout(final Duration timeout) {
+        this.timeout = Objects.requireNonNull(timeout, "Timeout required");
     }
 
     /**
@@ -183,7 +183,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     }
 
     private void setChannelOptions(final Bootstrap bootstrap) {
-        final int timeoutMilliseconds = (int) connectionTimeout.toMillis();
+        final int timeoutMilliseconds = (int) timeout.toMillis();
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMilliseconds);
         if (socketSendBufferSize != null) {
             bootstrap.option(ChannelOption.SO_SNDBUF, socketSendBufferSize);
@@ -204,7 +204,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
                 handler,
                 ChannelHealthChecker.ACTIVE,
                 FixedChannelPool.AcquireTimeoutAction.FAIL,
-                connectionTimeout.toMillis(),
+                timeout.toMillis(),
                 maxConnections,
                 MAX_PENDING_ACQUIRES);
     }
@@ -213,7 +213,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
                 ? new StandardChannelInitializer<>(handlerSupplier)
                 : new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
-        channelInitializer.setWriteTimeout(connectionTimeout);
+        channelInitializer.setWriteTimeout(timeout);
         channelInitializer.setIdleTimeout(idleTimeout);
         return channelInitializer;
     }

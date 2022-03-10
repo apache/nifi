@@ -246,7 +246,7 @@ public class TestListenRELP {
             eventSenderFactory.setSslContext(sslContext);
         }
 
-        eventSenderFactory.setConnectionTimeout(SENDER_TIMEOUT);
+        eventSenderFactory.setTimeout(SENDER_TIMEOUT);
         try (final EventSender<byte[]> eventSender = eventSenderFactory.getEventSender()) {
             eventSender.sendEvent(relpMessages);
         }
