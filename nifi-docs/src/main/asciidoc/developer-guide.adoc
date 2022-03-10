@@ -2606,7 +2606,7 @@ used to represent the similar content through an array of strings.
 
 === Standard Build Instructions
 
-The following command is used to generae a standard binary distribution of Apache NiFi:
+The following command is used to generate a standard binary distribution of Apache NiFi:
 
 `mvn clean install -Pinclude-grpc,contrib-check`
 
