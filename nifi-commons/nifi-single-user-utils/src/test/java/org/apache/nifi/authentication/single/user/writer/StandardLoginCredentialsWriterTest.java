@@ -19,7 +19,9 @@ package org.apache.nifi.authentication.single.user.writer;
 import org.apache.nifi.authentication.single.user.SingleUserCredentials;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +29,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class StandardLoginCredentialsWriterTest {
@@ -37,6 +41,19 @@ public class StandardLoginCredentialsWriterTest {
     private static final String XML_SUFFIX = ".xml";
 
     private static final String PROVIDER_CLASS = SingleUserCredentials.class.getName();
+
+    @Test
+    public void testWriteLoginCredentialsProvidersNotFound() {
+        final File providersNotFound = new File(UUID.randomUUID().toString());
+        assertFalse(providersNotFound.exists());
+
+        final StandardLoginCredentialsWriter writer = new StandardLoginCredentialsWriter(providersNotFound);
+
+        final String username = UUID.randomUUID().toString();
+        final String password = UUID.randomUUID().toString();
+        final SingleUserCredentials credentials = new SingleUserCredentials(username, password, PROVIDER_CLASS);
+        assertThrows(UncheckedIOException.class, () -> writer.writeLoginCredentials(credentials));
+    }
 
     @Test
     public void testWriteLoginCredentialsBlankProviders() throws IOException, URISyntaxException {
