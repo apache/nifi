@@ -2345,21 +2345,18 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         String cipherText = "zOfN7Fy4XnHmd/x0||rTLB/FXB4CLFsCunBwtNMR2hYtj7CdvgF7iFgNNr49g1pw=="
         String EXPECTED_PASSWORD = "thisIsABadPassword"
         final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
-        assert spp.unprotect(cipherText, ldapPropertyContext(propertyName)) == EXPECTED_PASSWORD
 
         tool.keyHex = KEY_HEX_128
 
         def lines = workingFile.readLines()
-        logger.info("Read lines: \n${lines.join("\n")}")
 
         // Act
         def decryptedLines = tool.decryptAuthorizers(lines.join("\n")).split("\n")
-        logger.info("Decrypted lines: \n${decryptedLines.join("\n")}")
 
         // Assert
         def passwordLines = decryptedLines.findAll { it =~ PASSWORD_PROP_REGEX || it =~ SECRET_PROP_REGEX }
         assert passwordLines.size() == AUTHORIZERS_PASSWORD_LINE_COUNT + AUTHORIZERS_SECRET_LINE_COUNT
-        assert passwordLines.every { it =~ ">thisIsABadPassword<" }
+        assert passwordLines.every { it =~ EXPECTED_PASSWORD }
         // Some lines were not encrypted originally so the encryption attribute would not have been updated
         assert passwordLines.any { it =~ "encryption=\"none\"" }
     }
@@ -2519,7 +2516,6 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
         // Act
         def encryptedLines = tool.encryptAuthorizers(lines.join("\n")).split("\n")
-        logger.info("Encrypted lines: \n${encryptedLines.join("\n")}")
 
         // Assert
         def passwordLines = encryptedLines.findAll { it =~ PASSWORD_PROP_REGEX }
@@ -2776,15 +2772,12 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         tool.isVerbose = true
 
         def lines = workingFile.readLines()
-        logger.info("Read lines: \n${lines.join("\n")}")
 
         String plainXml = workingFile.text
         String encryptedXml = tool.encryptAuthorizers(plainXml, KEY_HEX)
-        logger.info("Encrypted XML: \n${encryptedXml}")
 
         // Act
         def serializedLines = tool.serializeAuthorizersAndPreserveFormat(encryptedXml, workingFile)
-        logger.info("Serialized lines: \n${serializedLines.join("\n")}")
 
         // Assert
 
