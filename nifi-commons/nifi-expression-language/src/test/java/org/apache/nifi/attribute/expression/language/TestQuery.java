@@ -38,6 +38,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -48,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
@@ -289,12 +294,73 @@ public class TestQuery {
     }
 
     @Test
+    public void testInstantToNumber() {
+        final Query query = Query.compile("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):toNumber()}");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", "2013/11/18 10:22:27.678");
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
+        assertEquals(1384788147678L, result.getValue());
+    }
+
+    @Test
+    public void testInstantToNanos() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toNanos()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(TimeUnit.SECONDS.toNanos(instant.getEpochSecond()) + instant.getNano(), result.getValue());
+    }
+
+    @Test
+    public void testInstantToMicros() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toMicros()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(ChronoUnit.MICROS.between(Instant.EPOCH, instant), result.getValue());
+    }
+
+    @Test
     public void testAddOneDayToDate() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
         verifyEquals("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):toNumber():plus(86400000):toDate():format('yyyy/MM/dd HH:mm:ss.SSS')}", attributes, "2013/11/19 10:22:27.678");
         verifyEquals("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):plus(86400000):format('yyyy/MM/dd HH:mm:ss.SSS')}", attributes, "2013/11/19 10:22:27.678");
+    }
+
+    @Test
+    public void testAddOneDayToInstant() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", "2013/11/18 10:22:27.678");
+
+        verifyEquals("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):toNumber():plus(86400000)" +
+                ":toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):formatInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}", attributes, "2013/11/19 10:22:27.678");
+        verifyEquals("${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):plus(86400000)" +
+                ":format('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}", attributes, "2013/11/19 10:22:27.678");
     }
 
     @Test
@@ -311,6 +377,23 @@ public class TestQuery {
         final long millis = date.getTime() % 1000L;
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.STRING, result.getResultType());
+        assertEquals(formatted, result.getValue());
+    }
+
+    @Test
+    @Disabled("Requires specific locale")
+    public void implicitInstantConversion() {
+        final Instant instant = Instant.now();
+        final Query query = Query.compile("${dateTime:formatInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York')}");
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", instant.toString());
+
+        final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss.SSS", Locale.US)
+                .withZone(ZoneId.of("America/New_York"));
+        final String formatted = dtf.format(instant);
 
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());
@@ -859,6 +942,26 @@ public class TestQuery {
     }
 
     @Test
+    public void testInstantEscapeQuotes() {
+        final long timestamp = 1403620278642L;
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", String.valueOf(timestamp));
+
+        final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+
+        final String query = "startDateTime=\"${date:toNumber():toInstant('yyyy/MM/dd HH:mm:ss.SSS', 'America/New_York'):formatInstant(\"" + format + "\", 'America/New_York')}\"";
+        final String result = Query.evaluateExpressions(query, attributes, null);
+
+        final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US)
+                .withZone(ZoneId.of("America/New_York"))
+                .format(Instant.ofEpochMilli(timestamp));
+        assertEquals("startDateTime=\"" + expectedTime + "\"", result);
+
+        final List<Range> ranges = Query.extractExpressionRanges(query);
+        assertEquals(1, ranges.size());
+    }
+
+    @Test
     public void testDateConversion() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("date", "1403620278642");
@@ -869,6 +972,19 @@ public class TestQuery {
         verifyEquals("${date:toNumber():toDate():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():toNumber():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():toNumber():toDate():toNumber():toDate():toNumber():format('yyyy')}", attributes, "2014");
+    }
+
+    @Test
+    public void testInstantConversion() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("instant", "1403620278642");
+
+        verifyEquals("${instant:formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toNumber():toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
+        verifyEquals("${instant:toInstant():toNumber():toInstant():toNumber():toInstant():toNumber():formatInstant('yyyy', 'America/New_York')}", attributes, "2014");
     }
 
     @Test
@@ -1181,6 +1297,39 @@ public class TestQuery {
         assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):toDate('yyyy/MM/dd'):format('D')}", attributes, null));
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
+    }
+
+    @Test
+    public void testInstant() {
+        final Calendar now = Calendar.getInstance();
+        final int year = now.get(Calendar.YEAR);
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("entryDate", String.valueOf(now.getTimeInMillis()));
+
+        verifyEquals("${entryDate:toNumber():toInstant():formatInstant('yyyy', 'America/New_York')}", attributes, String.valueOf(year));
+
+        // test for not existing attribute (NIFI-1962)
+        assertEquals("", Query.evaluateExpressions("${notExistingAtt:toInstant()}", attributes, null));
+
+        attributes.clear();
+        attributes.put("month", "3");
+        attributes.put("day", "4");
+        attributes.put("year", "2013");
+        attributes.put("hour", "16");
+        attributes.put("minute", "22");
+        attributes.put("second", "59");
+
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append(${month}):append('/'):append(${day}):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, null));
+
+        assertEquals("63", Query.evaluateExpressions("${year:append('/'):append('${month}'):append('/'):append('${day}'):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, null));
+
+        verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):append(' ')" +
+                ":append(${hour}):append(':'):append(${minute}):append(':'):append(${second}):toInstant('yyyy/M/d HH:mm:ss', 'America/New_York')" +
+                ":formatInstant('D', 'America/New_York')}", attributes, "63");
     }
 
     @Test
@@ -1691,6 +1840,15 @@ public class TestQuery {
         verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'GMT')}", attributes, "2013/09/17 16:26:43.000Z");
         verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'Europe/Paris')}", attributes, "2013/09/17 18:26:43.000Z");
         verifyEquals("${blue:toDate('yyyyMMddHHmmss', 'GMT'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'America/Los_Angeles')}", attributes, "2013/09/17 09:26:43.000Z");
+    }
+
+    @Test
+    public void testInstantFormatConversion() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("blue", "20130917162643");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'GMT')}", attributes, "2013/09/17 16:26:43.000Z");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'Europe/Paris')}", attributes, "2013/09/17 18:26:43.000Z");
+        verifyEquals("${blue:toInstant('yyyyMMddHHmmss', 'GMT'):formatInstant(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\", 'America/Los_Angeles')}", attributes, "2013/09/17 09:26:43.000Z");
     }
 
     @Test

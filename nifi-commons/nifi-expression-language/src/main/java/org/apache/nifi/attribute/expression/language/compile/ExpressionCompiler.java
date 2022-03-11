@@ -31,12 +31,15 @@ import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.InstantEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.EpochTimeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.InstantCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.NumberCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.StringCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.WholeNumberCastEvaluator;
@@ -63,6 +66,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.InEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.InstantFormatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.JsonPathAddEvaluator;
@@ -83,6 +87,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.NotEva
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NotNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NowEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToDateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.NumberToInstantEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OneUpSequenceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PadLeftEvaluator;
@@ -98,6 +103,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Replac
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StartsWithEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToDateEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.StringToInstantEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringAfterEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringAfterLastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.SubstringBeforeEvaluator;
@@ -139,12 +145,15 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.net.UnknownHostException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_MICROS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_NANOS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
@@ -173,6 +182,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FALSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT_INSTANT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FROM_RADIX;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_DELIMITED_FIELD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
@@ -229,6 +239,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.THREAD;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DECIMAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_INSTANT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LITERAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LOWER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_NUMBER;
@@ -498,6 +509,7 @@ public class ExpressionCompiler {
                 return (Evaluator<Long>) evaluator;
             case STRING:
             case DATE:
+            case INSTANT:
             case DECIMAL:
             case NUMBER:
                 return addToken(new WholeNumberCastEvaluator(evaluator), evaluator.getToken());
@@ -538,6 +550,7 @@ public class ExpressionCompiler {
                 return (Evaluator<Number>) evaluator;
             case STRING:
             case DATE:
+            case INSTANT:
             case DECIMAL:
             case WHOLE_NUMBER:
                 return addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
@@ -557,6 +570,18 @@ public class ExpressionCompiler {
         }
 
         return new DateCastEvaluator(evaluator);
+    }
+
+    private InstantEvaluator toInstantEvaluator(final Evaluator<?> evaluator) {
+        return toInstantEvaluator(evaluator, null);
+    }
+
+    private InstantEvaluator toInstantEvaluator(final Evaluator<?> evaluator, final String location) {
+        if (evaluator.getResultType() == ResultType.INSTANT) {
+            return (InstantEvaluator) evaluator;
+        }
+
+        return new InstantCastEvaluator(evaluator);
     }
 
     private Evaluator<?> buildFunctionEvaluator(final Tree tree, final Evaluator<?> subjectEvaluator, final List<Evaluator<?>> argEvaluators) {
@@ -843,6 +868,15 @@ public class ExpressionCompiler {
                     return addToken(new NumberToDateEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toDate");
                 }
             }
+            case TO_INSTANT: {
+                if (argEvaluators.isEmpty()) {
+                    return addToken(new NumberToInstantEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toInstant");
+                } else if (subjectEvaluator.getResultType() == ResultType.STRING && argEvaluators.size() == 2) {
+                    return addToken(new StringToInstantEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "toInstant");
+                } else {
+                    return addToken(new NumberToInstantEvaluator(toWholeNumberEvaluator(subjectEvaluator)), "toInstant");
+                }
+            }
             case TO_NUMBER: {
                 verifyArgCount(argEvaluators, 0, "toNumber");
                 switch (subjectEvaluator.getResultType()) {
@@ -851,6 +885,7 @@ public class ExpressionCompiler {
                     case DECIMAL:
                     case NUMBER:
                     case DATE:
+                    case INSTANT:
                         return addToken(toWholeNumberEvaluator(subjectEvaluator), "toNumber");
                     default:
                         throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
@@ -865,10 +900,27 @@ public class ExpressionCompiler {
                     case STRING:
                     case NUMBER:
                     case DATE:
+                    case INSTANT:
                         return addToken(toDecimalEvaluator(subjectEvaluator), "toDecimal");
                     default:
                         throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
                             ", " + ResultType.WHOLE_NUMBER + ", or " + ResultType.DATE);
+                }
+            }
+            case TO_MICROS: {
+                verifyArgCount(argEvaluators, 0, "toMicros");
+                if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
+                    return addToken(new EpochTimeEvaluator(ChronoUnit.MICROS, subjectEvaluator), "toMicros");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
+                }
+            }
+            case TO_NANOS: {
+                verifyArgCount(argEvaluators, 0, "toNanos");
+                if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
+                    return addToken(new EpochTimeEvaluator(ChronoUnit.NANOS, subjectEvaluator), "toNanos");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
                 }
             }
             case TO_RADIX: {
@@ -928,6 +980,13 @@ public class ExpressionCompiler {
                     return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "format");
                 } else {
                     throw new AttributeExpressionLanguageParsingException("format() function takes 1 or 2 arguments");
+                }
+            }
+            case FORMAT_INSTANT: {
+                 if (argEvaluators.size() == 2) {
+                    return addToken(new InstantFormatEvaluator(toInstantEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)), toStringEvaluator(argEvaluators.get(1))), "format");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("format() function takes 2 arguments");
                 }
             }
             case OR: {

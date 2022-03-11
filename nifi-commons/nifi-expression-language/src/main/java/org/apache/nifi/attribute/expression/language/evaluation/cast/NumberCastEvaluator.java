@@ -20,6 +20,7 @@ import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.InstantQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -59,14 +60,14 @@ public class NumberCastEvaluator extends NumberEvaluator {
             case STRING:
                 final String trimmed = ((StringQueryResult) result).getValue().trim();
                 NumberParsing.ParseResultType parseType = NumberParsing.parse(trimmed);
-                switch (parseType){
+                switch (parseType) {
                     case DECIMAL:
                         return new NumberQueryResult(Double.valueOf(trimmed));
                     case WHOLE_NUMBER:
                         Long resultValue;
                         try {
                             resultValue = Long.valueOf(trimmed);
-                        } catch (NumberFormatException e){
+                        } catch (NumberFormatException e) {
                             // Will only occur if trimmed is a hex number
                             resultValue = Long.decode(trimmed);
                         }
@@ -77,6 +78,8 @@ public class NumberCastEvaluator extends NumberEvaluator {
                 }
             case DATE:
                 return new NumberQueryResult(((DateQueryResult) result).getValue().getTime());
+            case INSTANT:
+                return new NumberQueryResult(((InstantQueryResult) result).getValue().toEpochMilli());
             default:
                 return new NumberQueryResult(null);
         }

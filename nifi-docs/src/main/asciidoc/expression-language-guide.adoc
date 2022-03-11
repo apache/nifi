@@ -2233,8 +2233,43 @@ In order to run the correct method, the parameter types must be correct. The Exp
 |============================================================================
 
 
+[[formatInstant]]
+[.function]
+=== formatInstant
 
+*Description*: [.description]#Formats an Instant, number or string according to the format specified by the argument.
 
+The first argument must be a String that is a valid Java DateTimeFormatter format.
+The second argument must be a String that is a valid time zone.
+The Subject is expected to be an Instant, String or Number that represents the number of milliseconds since Midnight GMT on January 1, 1970 or a String with one of the following
+
+DateTimeFormatter syntaxes:#
+
+- _ISO_OFFSET_ such as '2011-12-03T10:15:30+01:00'
+- _ISO_INSTANT_ such as '2011-12-03T10:15:30Z'
+- _RFC_1123_ such as 'Thu, 01 Dec 1994 16:00:00 GMT'
+
+*Subject Type*: [.subject]#Instant or Number or String#
+
+*Arguments*:
+
+- [.argName]#_format_# : [.argDesc]#The format to use in the Java DateTimeFormatter syntax#
+- [.argName]#_time zone_# : [.argDesc]#Optional argument that specifies the time zone to use (in the Java TimeZone syntax)#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the attribute "time" has the value "1647884009479", timeIsoOffset has the value "2022-12-03T10:15:30+01:00",
+timeIsoInstant has the value "2022-12-03T10:15:30Z" and "timeRFC1123" has the value "Thu, 01 Dec 2022 16:00:00 GMT",
+then the following Expressions will yield the following results:
+
+.format Examples
+|============================================================================
+| Expression | Value
+| `${time:formatInstant("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "GMT")}` | `2022/03/21 17:33:29.479Z`
+| `${timeIsoOffset:formatInstant("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "Asia/Tokyo")}` | `2022/12/03 18:15:30.000Z`
+| `${timeIsoInstant:formatInstant("yyyy/MM/dd", "Asia/Tokyo")}` | `2022/12/03 19:15:30.000Z`
+| `${timeRFC1123:formatInstant("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "GMT")}` | `2022/12/01 16:00:00.000Z`
+|============================================================================
 
 [.function]
 === toDate
@@ -2264,6 +2299,61 @@ chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/M
 
 
 
+[.function]
+=== toInstant
+
+*Description*: [.description]#Converts a String or Number into an Instant data type, based on the format specified by the argument. In case of
+String format nanosecond precision date parsing is supported. The argument
+must be a String that is a valid Java DateTimeFormatter syntax. The Subject is expected to be a String that is formatted
+according the argument or a number which represents the datetime in milliseconds. The datetime will be evaluated using the
+time zone specified in the second argument.#
+
+*Subject Type*: [.subject]#String or Number#
+
+*Arguments*:
+
+- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java DateTimeFormatter syntax.#
+- [.argName]#_time zone_# : [.argDesc]#Required argument that specifies the time zone to use when parsing the Subject, in the Java TimeZone syntax.#
+
+
+*Return Type*: [.returnType]#Instant#
+
+*Examples*: If the attribute "time" has the value "2014/12/31 15:36:03.264Z" then the expression `${time:toInstant("yyyy/MM/dd HH:mm:ss.SSS'Z'", "GMT")}` will result in an Instant data type for
+15:36:03.264 GMT on December 31, 2014.
+
+Often, this function is used in conjunction with the <<formatInstant>> function to change the format of a date/time. For example,
+if the attribute "dateTime" has the value "12-24-2014 12:06:59" and we want to change the format to "2014/12/24", we can do so by
+chaining together the two functions: `${dateTime:toInstant('MM-dd-yyyy HH:mm:ss', 'GMT'):formatInstant('yyyy/MM/dd', 'GMT')}`.
+
+[.function]
+=== toMicros
+
+*Description*: [.description]#Converts an Instant Subject into a Number with microsecond precision#
+
+*Subject Type*: [.subject]#Instant#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If the "dateTime" attribute has the value of "2022/03/18 10:22:27.678234567", then the Expression
+`${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSSSSSSSS', 'America/New_York'):toMicros()}` converts the Instant value of
+the attribute to 1647613347678234 microseconds since epoch.
+
+[.function]
+=== toNanos
+
+*Description*: [.description]#Converts an Instant Subject into a Number with nanosecond precision#
+
+*Subject Type*: [.subject]#Instant#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If the "dateTime" attribute has the value of "2022/03/18 10:22:27.678234567", then the Expression
+`${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSSSSSSSS', 'America/New_York'):toNanos()}` converts the Instant value of
+the attribute to 1647613347678234567 nanoseconds since epoch.
 
 [.function]
 === now
