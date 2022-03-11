@@ -38,7 +38,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.XmlFlowSynchronizer;
-import org.apache.nifi.controller.flow.StandardFlowManager;
+import org.apache.nifi.flow.StandardFlowManager;
 import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.queue.ConnectionEventListener;

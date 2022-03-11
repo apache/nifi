@@ -2495,4 +2495,17 @@ public interface NiFiServiceFacade {
      */
     ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
 
+    /**
+     * Lays out all components within the given Process Group
+     * @param processGroupId the ID of the process group to automatically layout
+     * @return the ProcessGroupEntity representing the process group
+     */
+    ProcessGroupEntity layoutComponents(String processGroupId);
+
+    /**
+     * Aligns components within the Process Group
+     * @param processGroupId the ID of the Process Group to automatically align components
+     * @return the ProcessGroupEntity representing the process group
+     */
+    ProcessGroupEntity alignComponents(String processGroupId);
 }

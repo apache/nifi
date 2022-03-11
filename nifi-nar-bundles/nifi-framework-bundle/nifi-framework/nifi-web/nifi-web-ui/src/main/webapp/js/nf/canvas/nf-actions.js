@@ -1810,6 +1810,56 @@
         },
 
         /**
+         * Automatically lays out components in the selected process group
+         *
+         * @param {selection} selection
+         */
+        autoLayout: function (selection) {
+            // get selected ProcessGroup id
+            var pgId = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pgId) + '/layout';
+
+            // build the entity
+            var entity = {
+                'processGroupId': pgId
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pgId);
+                })
+            }
+        },
+
+        /**
+         * Automatically aligns components vertically and horizontally in the selected process group
+         *
+         * @param {selection} selection
+         */
+        autoAlign: function (selection) {
+            // get selected ProcessGroup id
+            var pgId = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pgId) + '/alignment';
+
+            // build the entity
+            var entity = {
+                'processGroupId': pgId
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pgId);
+                })
+            }
+        },
+
+        /**
          * Aligns the components in the specified selection vertically along the center of the components.
          *
          * @param {array} selection      The selection

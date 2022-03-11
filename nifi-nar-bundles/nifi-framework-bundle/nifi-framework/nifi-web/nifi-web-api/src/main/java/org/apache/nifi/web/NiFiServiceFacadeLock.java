@@ -150,6 +150,18 @@ public class NiFiServiceFacadeLock {
         return proceedWithReadLock(proceedingJoinPoint);
     }
 
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* layout*(..))")
+    public Object layoutLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
+    @Around("within(org.apache.nifi.web.NiFiServiceFacade+) && "
+        + "execution(* align*(..))")
+    public Object alignmentLock(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        return proceedWithWriteLock(proceedingJoinPoint);
+    }
+
 
     private Object proceedWithReadLock(final ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         final long beforeLock = System.nanoTime();

@@ -849,9 +849,13 @@
         {id: 'show-source-menu-item', condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-left', text: 'Go to source', action: 'showSource'}},
         {id: 'show-destination-menu-item', condition: isConnection, menuItem: {clazz: 'fa fa-long-arrow-right', text: 'Go to destination', action: 'showDestination'}},
         {separator: true},
-        {id: 'align-menu-item', groupMenuItem: {clazz: 'fa', text: 'Align'}, menuItems: [
-            {id: 'align-horizontal-menu-item', condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Horizontally', action: 'alignHorizontal'}},
-            {id: 'align-vertical-menu-item', condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Vertically', action: 'alignVertical'}}
+        {id: 'align-menu-item', groupMenuItem: {clazz: 'fa', text: 'Arrange'}, menuItems: [
+            {id: 'align-horizontal-menu-item', condition: canAlign, menuItem: { clazz: 'fa fa-align-center fa-rotate-90', text: 'Align Horizontally', action: 'alignHorizontal'}},
+            {id: 'align-vertical-menu-item', condition: canAlign, menuItem: {clazz: 'fa fa-align-center', text: 'Align Vertically', action: 'alignVertical'}},
+            {id: 'auto-align-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-th-large', text: 'Auto Align Components', action: 'autoAlign'}},
+            {id: 'auto-align-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'fa fa-th-large', text: 'Auto Align Components', action: 'autoAlign'}},
+            {id: 'auto-layout-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-th', text: 'Auto Layout Components', action: 'autoLayout'}},
+            {id: 'auto-layout-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'fa fa-th', text: 'Auto Layout Components', action: 'autoLayout'}}
         ]},
         {id: 'to-front-menu-item', condition: canMoveToFront, menuItem: {clazz: 'fa fa-clone', text: 'Bring to front', action: 'toFront'}},
         {id: 'center-menu-item', condition: isNotConnection, menuItem: {clazz: 'fa fa-crosshairs', text: 'Center in view', action: 'center'}},

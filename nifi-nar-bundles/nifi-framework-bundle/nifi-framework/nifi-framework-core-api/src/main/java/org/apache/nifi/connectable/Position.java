@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.connectable;
 
+import java.util.Objects;
+
 public class Position {
 
     private final double x;
@@ -32,5 +34,27 @@ public class Position {
 
     public double getY() {
         return y;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final Position position = (Position) o;
+        return Double.compare(position.x, x) == 0 && Double.compare(position.y, y) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(x, y);
+    }
+
+    @Override
+    public String toString() {
+        return "Position[x=" + x + ", y=" + y + "]";
     }
 }

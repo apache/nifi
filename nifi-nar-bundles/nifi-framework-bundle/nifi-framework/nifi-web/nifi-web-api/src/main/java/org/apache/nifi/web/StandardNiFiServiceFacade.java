@@ -83,6 +83,10 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.flow.layout.ConnectedComponentAlignment;
+import org.apache.nifi.flow.layout.FlowAlignment;
+import org.apache.nifi.flow.layout.FlowLayout;
+import org.apache.nifi.flow.layout.SourceToTerminalLayout;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
@@ -5846,6 +5850,30 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyPublicOutputPortUniqueness(final String portId, final String portName) {
         outputPortDAO.verifyPublicPortUniqueness(portId, portName);
+    }
+
+    @Override
+    public ProcessGroupEntity layoutComponents(final String processGroupId) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+
+        final FlowLayout layout = new SourceToTerminalLayout();
+        layout.layout(processGroup);
+
+        controllerFacade.save();
+
+        return getProcessGroup(processGroupId);
+    }
+
+    @Override
+    public ProcessGroupEntity alignComponents(final String processGroupId) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
+
+        final FlowAlignment alignment = new ConnectedComponentAlignment();
+        alignment.alignComponents(processGroup);
+
+        controllerFacade.save();
+
+        return getProcessGroup(processGroupId);
     }
 
     /**

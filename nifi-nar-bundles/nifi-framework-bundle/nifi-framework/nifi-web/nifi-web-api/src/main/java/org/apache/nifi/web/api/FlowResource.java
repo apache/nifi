@@ -92,6 +92,7 @@ import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupLayoutEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorTypesEntity;
@@ -620,6 +621,108 @@ public class FlowResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
+
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/layout")
+    @ApiOperation(
+        value = "Automatically lays out the components in the specified Process Group.",
+        response = ProcessGroupEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response layoutComponents(
+        @ApiParam(value = "The process group id.", required = true) @PathParam("id") String groupId,
+        @ApiParam(value = "The layout entity", required = true) final ProcessGroupLayoutEntity layoutEntity
+    ) {
+        if (layoutEntity == null) {
+            throw new IllegalArgumentException("Layout Entity must be specified.");
+        }
+
+        // ensure the same id is being used
+        if (!groupId.equals(layoutEntity.getProcessGroupId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                + "not equal the process group id of the requested resource (%s).", layoutEntity.getProcessGroupId(), groupId));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, layoutEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(layoutEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(serviceFacade, layoutEntity,
+            lookup -> authorizeFlow(),
+            () -> {},
+            entity -> {
+                final ProcessGroupEntity updatedEntity = serviceFacade.layoutComponents(entity.getProcessGroupId());
+                return generateOkResponse(updatedEntity).build();
+            }
+        );
+    }
+
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-groups/{id}/alignment")
+    @ApiOperation(
+        value = "Automatically aligns the components in the specified Process Group.",
+        response = ProcessGroupEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response alignComponents(
+        @ApiParam(value = "The process group id.", required = true) @PathParam("id") String groupId,
+        @ApiParam(value = "The alignment entity", required = true) final ProcessGroupLayoutEntity alignmentEntity
+    ) {
+        if (alignmentEntity == null) {
+            throw new IllegalArgumentException("Layout Entity must be specified.");
+        }
+
+        // ensure the same id is being used
+        if (!groupId.equals(alignmentEntity.getProcessGroupId())) {
+            throw new IllegalArgumentException(String.format("The process group id (%s) in the request body does "
+                + "not equal the process group id of the requested resource (%s).", alignmentEntity.getProcessGroupId(), groupId));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, alignmentEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(alignmentEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(serviceFacade, alignmentEntity,
+            lookup -> authorizeFlow(),
+            () -> {},
+            entity -> {
+                final ProcessGroupEntity updatedEntity = serviceFacade.alignComponents(entity.getProcessGroupId());
+                return generateOkResponse(updatedEntity).build();
+            }
+        );
+    }
+
 
     /**
      * Updates the specified process group.
