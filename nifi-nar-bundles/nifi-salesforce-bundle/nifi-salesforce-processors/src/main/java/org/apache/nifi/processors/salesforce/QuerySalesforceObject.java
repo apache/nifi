@@ -74,6 +74,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -311,7 +312,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
         String dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         String timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
-        String timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        String timestampFormat = context.getProperty(TIMESTAMP_FORMAT).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean();
 
@@ -338,7 +339,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
             } else {
                 ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-            ageFilterUpper = new SimpleDateFormat(timestampFormat).format(Date.from(ageFilterUpperTime));
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(timestampFormat);
+            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            ageFilterUpper = simpleDateFormat.format(Date.from(ageFilterUpperTime));
         }
 
         String describeSObjectResult = salesforceRestService.describeSObject(sObject);
