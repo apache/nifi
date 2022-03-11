@@ -21,9 +21,7 @@ import NfRegistryService from 'services/nf-registry.service';
 import NfStorage from 'services/nf-storage.service';
 import nfRegistryAnimations from 'nf-registry.animations';
 import NfRegistryApi from 'services/nf-registry.api';
-import { NfRegistryExplorerAbout } from 'components/explorer/dialogs/about/nf-registry-explorer-about';
 import { Router } from '@angular/router';
-import { MatDialog } from '@angular/material/dialog';
 
 /**
  * NfRegistry constructor.
@@ -34,17 +32,15 @@ import { MatDialog } from '@angular/material/dialog';
  * @param nfRegistryApi     The api service.
  * @param changeDetectorRef     The change detector ref.
  * @param router                The angular router module.
- * @param matDialog             The angular material dialog service
  * @constructor
  */
-function NfRegistry(http, nfStorage, nfRegistryService, nfRegistryApi, changeDetectorRef, router, matDialog) {
+function NfRegistry(http, nfStorage, nfRegistryService, nfRegistryApi, changeDetectorRef, router) {
     this.http = http;
     this.nfStorage = nfStorage;
     this.nfRegistryService = nfRegistryService;
     this.nfRegistryApi = nfRegistryApi;
     this.cd = changeDetectorRef;
     this.router = router;
-    this.matDialog = matDialog;
 }
 
 NfRegistry.prototype = {
@@ -104,13 +100,11 @@ NfRegistry.prototype = {
             self.router.navigateByUrl('login');
         }
     },
+    /**
+     * Show the NiFi Registry About dialog window.
+     */
     showAboutDialog: function () {
         this.nfRegistryApi.showRegistryAboutDialog();
-        this.matDialog.open(NfRegistryExplorerAbout, {
-            width: '550px',
-            height: '440px',
-            data: this.nfRegistryService.registry.version
-        });
     }
 };
 
@@ -131,8 +125,7 @@ NfRegistry.parameters = [
     NfRegistryService,
     NfRegistryApi,
     ChangeDetectorRef,
-    Router,
-    MatDialog
+    Router
 ];
 
 export default NfRegistry;

@@ -994,7 +994,6 @@ NfRegistryApi.prototype = {
      * @returns {*}
      */
     showRegistryAboutDialog: function () {
-        //var self = this;
         this.http.get(config.urls.about).pipe(
             map((response) => response),
             catchError(() => of({}))
