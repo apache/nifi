@@ -460,6 +460,8 @@ public class SwappablePriorityQueue {
                     // Because we cannot obtain the write lock while already holding the read lock, we set a flag so that we
                     // can migrate swap to active queue only after we've released the read lock.
                     mustMigrateSwapToActive = true;
+                } else if (swapQueue.isEmpty()) {
+                    return FlowFileAvailability.ACTIVE_QUEUE_EMPTY;
                 } else {
                     top = swapQueue.get(0);
                 }
