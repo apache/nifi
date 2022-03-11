@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.h2.database.migration;
 
-import org.h2.jdbcx.JdbcDataSource;
+import org.apache.nifi.org.h2.jdbcx.JdbcDataSource;
 
 import java.io.File;
 import java.nio.file.Files;
