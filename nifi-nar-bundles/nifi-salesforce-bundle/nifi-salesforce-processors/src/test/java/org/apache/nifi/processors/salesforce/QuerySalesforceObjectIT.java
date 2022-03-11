@@ -36,17 +36,17 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 /**
  * Set constants in {@link SalesforceConfigAware}
  */
-class QuerySObjectIT implements SalesforceConfigAware {
+class QuerySalesforceObjectIT implements SalesforceConfigAware {
     private TestRunner runner;
 
     @BeforeEach
     void setUp() throws Exception {
-        Processor querySObject = new QuerySObject();
+        Processor querySObject = new QuerySalesforceObject();
 
         runner = TestRunners.newTestRunner(querySObject);
 
         StandardOauth2AccessTokenProvider oauth2AccessTokenProvider = initOAuth2AccessTokenProvider(runner);
-        runner.setProperty(QuerySObject.AUTH_SERVICE, oauth2AccessTokenProvider.getIdentifier());
+        runner.setProperty(QuerySalesforceObject.AUTH_SERVICE, oauth2AccessTokenProvider.getIdentifier());
     }
 
     @AfterEach
@@ -63,18 +63,18 @@ class QuerySObjectIT implements SalesforceConfigAware {
         runner.addControllerService("writer", writer);
         runner.enableControllerService(writer);
 
-        runner.setProperty(QuerySObject.SOBJECT_NAME, sObjectName);
-        runner.setProperty(QuerySObject.FIELD_NAMES, fieldNames);
-        runner.setProperty(QuerySObject.API_VERSION, VERSION);
-        runner.setProperty(QuerySObject.BASE_URL, BASE_URL);
+        runner.setProperty(QuerySalesforceObject.SOBJECT_NAME, sObjectName);
+        runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
+        runner.setProperty(QuerySalesforceObject.API_VERSION, VERSION);
+        runner.setProperty(QuerySalesforceObject.BASE_URL, BASE_URL);
         runner.setProperty(DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ");
-        runner.setProperty(QuerySObject.RECORD_WRITER, writer.getIdentifier());
-        runner.setProperty(QuerySObject.AGE_FIELD, "CreatedDate");
-        runner.setProperty(QuerySObject.INITIAL_AGE_FILTER, "2022-01-06T08:43:24.000+0000");
+        runner.setProperty(QuerySalesforceObject.RECORD_WRITER, writer.getIdentifier());
+        runner.setProperty(QuerySalesforceObject.AGE_FIELD, "CreatedDate");
+        runner.setProperty(QuerySalesforceObject.INITIAL_AGE_FILTER, "2022-01-06T08:43:24.000+0000");
 
         runner.run();
 
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(QuerySObject.REL_SUCCESS);
+        List<MockFlowFile> results = runner.getFlowFilesForRelationship(QuerySalesforceObject.REL_SUCCESS);
 
         assertNotNull(results.get(0).getContent());
     }

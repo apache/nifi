@@ -61,9 +61,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,7 +72,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -96,7 +95,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
-public class QuerySObject extends AbstractProcessor {
+public class QuerySalesforceObject extends AbstractProcessor {
     public static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
             .name("custom-where-condition")
             .displayName("Custom WHERE Condition")
@@ -339,10 +338,7 @@ public class QuerySObject extends AbstractProcessor {
             } else {
                 ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-            ageFilterUpper = DateTimeFormatter.ofPattern(timestampFormat)
-                    .withLocale(Locale.getDefault())
-                    .withZone(ZoneId.systemDefault())
-                    .format(ageFilterUpperTime);
+            ageFilterUpper = new SimpleDateFormat(timestampFormat).format(Date.from(ageFilterUpperTime));
         }
 
         String describeSObjectResult = salesforceRestService.describeSObject(sObject);
