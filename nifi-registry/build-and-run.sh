@@ -23,11 +23,10 @@ SKIP_UI=$1
 ./${REGISTRY_SCRIPT} stop
 
 if [ "$SKIP_UI" == "skipUi" ]; then
-  mvn clean install -Pcontrib-check --projects \!nifi-registry-web-ui
+  CMND="mvn clean install -Pcontrib-check --projects \!nifi-registry-web-ui"
 else
-  mvn clean install -Pcontrib-check
+  CMND="mvn clean install -Pcontrib-check"
 fi
 
-./${REGISTRY_SCRIPT} start
-
-tail -n 500 -f ${REGISTRY_DIR}/logs/nifi-registry-app.log
+# Don't actually start the registry if the build didn't succeed. 
+${CMND} && ./${REGISTRY_SCRIPT} start && tail -n 500 -f ${REGISTRY_DIR}/logs/nifi-registry-app.log

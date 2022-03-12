@@ -20,6 +20,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FdsDialogService } from '@nifi-fds/core';
 import { of } from 'rxjs';
 import { map, catchError, take, switchMap } from 'rxjs/operators';
+import { NfRegistryExplorerAbout } from '../components/explorer/dialogs/about/nf-registry-explorer-about';
 
 var MILLIS_PER_SECOND = 1000;
 var headers = new Headers({'Content-Type': 'application/json'});
@@ -28,7 +29,8 @@ var config = {
     urls: {
         currentUser: '../nifi-registry-api/access',
         kerberos: '../nifi-registry-api/access/token/kerberos',
-        oidc: '../nifi-registry-api/access/oidc/exchange'
+        oidc: '../nifi-registry-api/access/oidc/exchange',
+        about: '../nifi-registry-api/about'
     }
 };
 
@@ -985,8 +987,24 @@ NfRegistryApi.prototype = {
                 return of({});
             })
         );
+    },
+    /**
+     * Show the NiFi Registry About dialog.
+     *
+     * @returns {*}
+     */
+    showRegistryAboutDialog: function () {
+        this.http.get(config.urls.about).pipe(
+            map((response) => response),
+            catchError(() => of({}))
+        ).subscribe((versionInfo) => {
+            this.dialogService.open(NfRegistryExplorerAbout, {
+                width: '550px',
+                height: '440px',
+                data: versionInfo
+            });
+        });
     }
-
 };
 
 NfRegistryApi.parameters = [

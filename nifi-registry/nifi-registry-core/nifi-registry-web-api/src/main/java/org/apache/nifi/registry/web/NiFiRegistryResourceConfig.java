@@ -28,6 +28,7 @@ import org.apache.nifi.registry.web.api.ExtensionResource;
 import org.apache.nifi.registry.web.api.FlowResource;
 import org.apache.nifi.registry.web.api.ItemResource;
 import org.apache.nifi.registry.web.api.TenantResource;
+import org.apache.nifi.registry.web.api.RegistryAboutResource;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
@@ -70,6 +71,7 @@ public class NiFiRegistryResourceConfig extends ResourceConfig {
         register(ItemResource.class);
         register(TenantResource.class);
         register(ConfigResource.class);
+        register(RegistryAboutResource.class);
 
         // register multipart feature
         register(MultiPartFeature.class);
