@@ -34,6 +34,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Properties;
 
 /**
@@ -47,6 +49,7 @@ public class RuntimeManifestGenerator {
     private static final String PROJECT_VERSION_PROPERTY = "Project-Version";
     private static final String BUILD_REVISION = "Build-Revision";
     private static final String BUILD_TIMESTAMP = "Build-Timestamp";
+    private static final String BUILD_TIMESTAMP_FORMAT = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private static final String BUILD_JDK = "Build-Jdk";
     private static final String BUILD_JDK_VENDOR = "Build-Jdk-Vendor";
 
@@ -75,10 +78,19 @@ public class RuntimeManifestGenerator {
         final String buildJdk = buildProperties.getProperty(BUILD_JDK);
         final String buildJdkVendor = buildProperties.getProperty(BUILD_JDK_VENDOR);
 
+        long buildTimestampMillis;
+        try {
+            final SimpleDateFormat buildTimestampFormat = new SimpleDateFormat(BUILD_TIMESTAMP_FORMAT);
+            final Date buildTimestampDate = buildTimestampFormat.parse(buildTimestamp);
+            buildTimestampMillis = buildTimestampDate.getTime();
+        } catch (Exception e) {
+            buildTimestampMillis = System.currentTimeMillis();
+        }
+
         final BuildInfo buildInfo = new BuildInfo();
         buildInfo.setVersion(runtimeVersion);
         buildInfo.setRevision(buildRevision);
-        buildInfo.setTimestamp(Long.valueOf(buildTimestamp));
+        buildInfo.setTimestamp(buildTimestampMillis);
         buildInfo.setCompiler(buildJdkVendor + " " + buildJdk);
 
         final RuntimeManifest runtimeManifest = new StandardRuntimeManifestBuilder()
