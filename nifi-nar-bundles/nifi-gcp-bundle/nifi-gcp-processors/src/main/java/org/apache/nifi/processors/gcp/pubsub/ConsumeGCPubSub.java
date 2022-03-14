@@ -50,7 +50,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -83,7 +82,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.SERIALIZED_
         @WritesAttribute(attribute = MSG_PUBLISH_TIME_ATTRIBUTE, description = MSG_PUBLISH_TIME_DESCRIPTION),
         @WritesAttribute(attribute = DYNAMIC_ATTRIBUTES_ATTRIBUTE, description = DYNAMIC_ATTRIBUTES_DESCRIPTION)
 })
-public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
+public class ConsumeGCPubSub extends AbstractGCPubSubWithProxyProcessor {
 
     private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.subscriptions.consume");
 
@@ -99,7 +98,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     private SubscriberStub subscriber = null;
     private PullRequest pullRequest;
 
-    private AtomicReference<Exception> storedException = new AtomicReference<>();
+    private final AtomicReference<Exception> storedException = new AtomicReference<>();
 
     @OnScheduled
     public void onScheduled(ProcessContext context) {
@@ -191,10 +190,10 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                SUBSCRIPTION,
-                BATCH_SIZE));
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(SUBSCRIPTION);
+        descriptors.add(BATCH_SIZE);
+        return Collections.unmodifiableList(descriptors);
     }
 
     @Override
@@ -271,6 +270,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
         final SubscriberStubSettings subscriberStubSettings = SubscriberStubSettings.newBuilder()
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                .setTransportChannelProvider(getTransportChannelProvider(context))
                 .build();
 
         return GrpcSubscriberStub.create(subscriberStubSettings);
