@@ -61,7 +61,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private Duration timeout = Duration.ofSeconds(30);
 
-    private Duration idleTimeout = Duration.ofSeconds(30);
+    private Duration idleTimeout = Duration.ofSeconds(0);
 
     private int maxConnections = Runtime.getRuntime().availableProcessors() * 2;
 

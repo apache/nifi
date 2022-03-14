@@ -39,7 +39,7 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
 
     private Duration writeTimeout = Duration.ofSeconds(30);
 
-    private Duration idleTimeout = Duration.ofSeconds(30);
+    private Duration idleTimeout = Duration.ofSeconds(0);
 
     /**
      * Standard Channel Initializer with handlers
