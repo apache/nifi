@@ -708,6 +708,7 @@ public class NiFiClientUtil {
             runStatusEntity.setRevision(service.getRevision());
             runStatusEntity.setState(ActivateControllerServicesEntity.STATE_DISABLED);
             nifiClient.getControllerServicesClient().activateControllerService(service.getId(), runStatusEntity);
+            waitForControllerServiceRunStatus(service.getId(), ActivateControllerServicesEntity.STATE_DISABLED);
         }
     }
 
@@ -716,6 +717,25 @@ public class NiFiClientUtil {
         for (final ControllerServiceEntity service : services.getControllerServices()) {
             service.setDisconnectedNodeAcknowledged(true);
             nifiClient.getControllerServicesClient().deleteControllerService(service);
+        }
+    }
+
+    public void waitForControllerServiceRunStatus(final String id, final String requestedRunStatus) throws NiFiClientException, IOException {
+        while (true) {
+            final ControllerServiceEntity serviceEntity = nifiClient.getControllerServicesClient().getControllerService(id);
+            final String runStatus = serviceEntity.getStatus().getRunStatus();
+            if (requestedRunStatus.equals(runStatus)) {
+                logger.info("Controller Service [{}] run status [{}] found", id, runStatus);
+                break;
+            }
+
+            logger.info("Controller Service [{}] run status [{}] not matched [{}]: sleeping before retrying", id, runStatus, requestedRunStatus);
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                Assert.fail(e.toString());
+            }
         }
     }
 
