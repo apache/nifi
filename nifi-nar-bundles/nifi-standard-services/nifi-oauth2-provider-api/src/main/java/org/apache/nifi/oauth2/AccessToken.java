@@ -17,10 +17,11 @@
 
 package org.apache.nifi.oauth2;
 
-import java.time.Duration;
 import java.time.Instant;
 
 public class AccessToken {
+    private static final int EXPIRY_MARGIN_SECONDS = 5;
+
     private String accessToken;
     private String refreshToken;
     private String tokenType;
@@ -28,8 +29,6 @@ public class AccessToken {
     private String scopes;
 
     private final Instant fetchTime;
-
-    public static final int EXPIRY_MARGIN = 5000;
 
     public AccessToken() {
         this.fetchTime = Instant.now();
@@ -89,8 +88,7 @@ public class AccessToken {
     }
 
     public boolean isExpired() {
-        boolean expired = Duration.between(Instant.now(), fetchTime.plusSeconds(expiresIn - EXPIRY_MARGIN)).isNegative();
-
-        return expired;
+        final Instant expirationTime = fetchTime.plusSeconds(expiresIn).plusSeconds(EXPIRY_MARGIN_SECONDS);
+        return Instant.now().isAfter(expirationTime);
     }
 }
