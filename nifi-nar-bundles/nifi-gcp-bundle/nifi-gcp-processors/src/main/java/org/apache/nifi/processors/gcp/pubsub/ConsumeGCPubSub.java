@@ -271,7 +271,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
         final SubscriberStubSettings subscriberStubSettings = SubscriberStubSettings.newBuilder()
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
-                .setChannelProvider(getTransportChannelProvider(context))
+                .setTransportChannelProvider(getTransportChannelProvider(context))
                 .build();
 
         return GrpcSubscriberStub.create(subscriberStubSettings);
