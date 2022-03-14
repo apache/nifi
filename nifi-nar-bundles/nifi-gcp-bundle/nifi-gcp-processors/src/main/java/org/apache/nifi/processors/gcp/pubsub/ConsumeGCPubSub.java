@@ -191,10 +191,10 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                SUBSCRIPTION,
-                BATCH_SIZE));
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(SUBSCRIPTION);
+        descriptors.add(BATCH_SIZE);
+        return descriptors;
     }
 
     @Override
@@ -250,9 +250,9 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
         }
 
         AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
-            .addAllAckIds(ackIds)
-            .setSubscription(subscriptionName)
-            .build();
+                .addAllAckIds(ackIds)
+                .setSubscription(subscriptionName)
+                .build();
         subscriber.acknowledgeCallable().call(acknowledgeRequest);
     }
 
@@ -271,6 +271,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     private SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
         final SubscriberStubSettings subscriberStubSettings = SubscriberStubSettings.newBuilder()
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                .setChannelProvider(getTransportChannelProvider(context))
                 .build();
 
         return GrpcSubscriberStub.create(subscriberStubSettings);

@@ -86,7 +86,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
         + "will be read into memory to be sent as a PubSub message.")
-public class PublishGCPubSub extends AbstractGCPubSubProcessor{
+public class PublishGCPubSub extends AbstractGCPubSubProcessor {
     private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.topics.publish");
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
@@ -108,10 +108,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.unmodifiableList(Arrays.asList(PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
-                TOPIC_NAME,
-                BATCH_SIZE));
+        final List<PropertyDescriptor> descriptors = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        descriptors.add(TOPIC_NAME);
+        descriptors.add(BATCH_SIZE);
+        return descriptors;
     }
 
     @Override
@@ -250,7 +250,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                 } catch (InterruptedException | ExecutionException e) {
                     if (e.getCause() instanceof DeadlineExceededException) {
                         getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {} but attempting again may succeed " +
-                                        "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
+                                "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
                         session.transfer(flowFile, REL_RETRY);
                     } else {
                         getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}", new Object[]{topicName, e});
@@ -313,9 +313,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
         return Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                .setChannelProvider(getTransportChannelProvider(context))
                 .setBatchingSettings(BatchingSettings.newBuilder()
-                .setElementCountThreshold(batchSize)
-                .setIsEnabled(true)
-                .build());
+                        .setElementCountThreshold(batchSize)
+                        .setIsEnabled(true)
+                        .build());
     }
 }
