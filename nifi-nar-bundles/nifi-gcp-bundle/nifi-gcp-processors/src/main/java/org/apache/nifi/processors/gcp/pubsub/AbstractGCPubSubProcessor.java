@@ -148,8 +148,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
                                                             proxyConfiguration.getProxyServerPort()))
                                                     .setTargetAddress((InetSocketAddress) socketAddress)
                                                     .build();
-                                        }
-                                        else {
+                                        } else {
                                             return null;
                                         }
                                     }
