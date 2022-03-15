@@ -202,12 +202,13 @@ public class TlsHelper {
     }
 
     private static void outputAsPem(Object pemObj, String filename, File directory, String extension) throws IOException {
-        OutputStream outputStream = new FileOutputStream(new File(directory,  TlsHelper.escapeFilename(filename) + extension));
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
-        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter);
-        JcaMiscPEMGenerator pemGen = new JcaMiscPEMGenerator(pemObj);
-        pemWriter.writeObject(pemGen);
-        pemWriter.close();
+        try (OutputStream outputStream = new FileOutputStream(new File(directory,  TlsHelper.escapeFilename(filename) + extension))) {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+            JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter);
+            JcaMiscPEMGenerator pemGen = new JcaMiscPEMGenerator(pemObj);
+            pemWriter.writeObject(pemGen);
+            pemWriter.close();
+        }
     }
 
     private static KeyPairGenerator createKeyPairGenerator(String algorithm, int keySize) throws NoSuchAlgorithmException {

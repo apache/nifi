@@ -27,40 +27,31 @@ import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({ISPEnrichIP.class})
-@SuppressWarnings("WeakerAccess")
 public class TestISPEnrichIP {
     DatabaseReader databaseReader;
     ISPEnrichIP ispEnrichIP;
     TestRunner testRunner;
 
-    @Before
-    public void setUp() throws Exception {
-        mockStatic(InetAddress.class);
+    @BeforeEach
+    public void setUp() {
         databaseReader = mock(DatabaseReader.class);
         ispEnrichIP = new TestableIspEnrichIP();
         testRunner = TestRunners.newTestRunner(ispEnrichIP);
@@ -198,7 +189,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldFlowToNotFoundWhenIOExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -221,7 +211,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldFlowToNotFoundWhenExceptionThrownFromMaxMind() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -243,7 +232,6 @@ public class TestISPEnrichIP {
         assertEquals(0, found.size());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void whenInetAddressThrowsUnknownHostFlowFileShouldBeSentToNotFound() throws Exception {
         testRunner.setProperty(ISPEnrichIP.GEO_DATABASE_FILE, "./");
@@ -251,8 +239,6 @@ public class TestISPEnrichIP {
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ip", "somenonexistentdomain.comm");
-
-        when(InetAddress.getByName("somenonexistentdomain.comm")).thenThrow(UnknownHostException.class);
 
         testRunner.enqueue(new byte[0], attributes);
 
@@ -302,13 +288,11 @@ public class TestISPEnrichIP {
         return new ObjectMapper().readerFor(IspResponse.class).with(inject).readValue(maxMindIspResponse);
     }
 
-
     class TestableIspEnrichIP extends ISPEnrichIP {
         @OnScheduled
         @Override
-        public void onScheduled(ProcessContext context) throws IOException {
+        public void onScheduled(ProcessContext context) {
             databaseReaderRef.set(databaseReader);
         }
     }
-
 }

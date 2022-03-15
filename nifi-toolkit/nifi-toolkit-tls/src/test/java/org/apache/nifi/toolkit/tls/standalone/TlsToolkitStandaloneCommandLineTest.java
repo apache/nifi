@@ -23,9 +23,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,7 +37,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Random;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -57,7 +53,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.internal.stubbing.defaultanswers.ForwardsInvocations;
 
 public class TlsToolkitStandaloneCommandLineTest {
     private SecureRandom secureRandom;
@@ -76,9 +71,7 @@ public class TlsToolkitStandaloneCommandLineTest {
 
     @Before
     public void setup() throws IOException {
-
-        secureRandom = mock(SecureRandom.class);
-        doAnswer(new ForwardsInvocations(new Random())).when(secureRandom).nextBytes(any(byte[].class));
+        secureRandom = new SecureRandom();
         tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine(new PasswordUtil(secureRandom));
         outputFolder = tempFolder.newFolder("splitKeystoreOutputDir");
     }

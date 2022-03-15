@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import io.questdb.MessageBusImpl;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
@@ -123,7 +122,7 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
         this.persistFrequency = persistFrequency;
         daysToKeepNodeData = getDaysToKeepNodeData(niFiProperties);
         daysToKeepComponentData = getDaysToKeepComponentData(niFiProperties);
-        dbContext = new QuestDbContext(new CairoEngine(configuration), new MessageBusImpl());
+        dbContext = new QuestDbContext(new CairoEngine(configuration));
 
         nodeStatusStorage = new QuestDbNodeStatusStorage(dbContext);
         garbageCollectionStatusStorage = new QuestDbGarbageCollectionStatusStorage(dbContext);

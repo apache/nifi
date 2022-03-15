@@ -294,7 +294,6 @@ class TestUtil {
         def protectedDoc = new XmlParser().parseText(protectedXml)
 
         def sensitiveProperties = callbackToGetNodesToVerify(originalDoc)
-        assert sensitiveProperties && sensitiveProperties.size > 0  // necessary as so many key assertions are based on at least one sensitive prop
         def populatedSensitiveProperties = sensitiveProperties.findAll { node ->
             node.text()
         }
