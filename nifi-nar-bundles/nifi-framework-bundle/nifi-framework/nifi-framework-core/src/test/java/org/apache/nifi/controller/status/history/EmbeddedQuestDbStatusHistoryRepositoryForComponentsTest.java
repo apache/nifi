@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 public class EmbeddedQuestDbStatusHistoryRepositoryForComponentsTest extends AbstractEmbeddedQuestDbStatusHistoryRepositoryTest {
 
     @Test
-    public void testReadingEmptyRepository() throws Exception {
+    public void testReadingEmptyRepository() {
         // when
         final StatusHistory result = testSubject.getProcessGroupStatusHistory(ROOT_GROUP_ID, START, END, PREFERRED_DATA_POINTS);
 

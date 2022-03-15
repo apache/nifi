@@ -124,7 +124,7 @@
             <plugin>
                 <groupId>io.swagger.codegen.v3</groupId>
                 <artifactId>swagger-codegen-maven-plugin</artifactId>
-                <version>3.0.31</version>
+                <version>3.0.33</version>
                 <executions>
                     <execution>
                         <phase>compile</phase>
@@ -138,7 +138,14 @@
                             <templateDirectory>src/main/resources/templates</templateDirectory>
                         </configuration>
                     </execution>
-                </executions>
+	        </executions>
+            <dependencies>
+                <dependency>
+                    <groupId>com.github.jknack</groupId>
+                    <artifactId>handlebars</artifactId>
+                    <version>4.3.0</version>
+                </dependency>
+            </dependencies>
             </plugin>
             <plugin>
                 <groupId>com.googlecode.maven-download-plugin</groupId>

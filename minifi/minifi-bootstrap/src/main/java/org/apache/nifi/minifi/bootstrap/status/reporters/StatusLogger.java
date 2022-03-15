@@ -36,7 +36,7 @@ public class StatusLogger extends PeriodicStatusReporter {
     private volatile LogLevel logLevel;
     private volatile String statusQuery;
 
-    private static final Logger logger = LoggerFactory.getLogger(StatusLogger.class);
+    protected static Logger logger = LoggerFactory.getLogger(StatusLogger.class);
 
 
     public static final String LOGGER_STATUS_REPORTER_PROPERTY_PREFIX = STATUS_REPORTER_PROPERTY_PREFIX + ".log";

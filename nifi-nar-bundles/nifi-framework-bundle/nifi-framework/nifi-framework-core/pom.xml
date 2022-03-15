@@ -147,8 +147,8 @@
         </dependency>
         <dependency>
             <groupId>org.questdb</groupId>
-            <artifactId>core</artifactId>
-            <version>4.2.1</version>
+            <artifactId>questdb</artifactId>
+            <version>6.2.1-jdk8</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
