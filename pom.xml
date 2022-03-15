@@ -354,9 +354,10 @@
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
+                <artifactId>testcontainers-bom</artifactId>
                 <version>${testcontainers.version}</version>
-                <scope>test</scope>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.testcontainers</groupId>
@@ -784,6 +785,7 @@
                         <releaseProfiles>apache-release</releaseProfiles>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <goals>deploy</goals>
+                        <!--suppress UnresolvedMavenProperty -->
                         <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
                         <pushChanges>false</pushChanges>
                         <localCheckout>true</localCheckout>
@@ -1035,7 +1037,7 @@
                                 <id>check-style</id>
                                 <phase>validate</phase>
                                 <configuration>
-                                    <encoding>UTF-8</encoding>
+                                    <inputEncoding>UTF-8</inputEncoding>
                                     <excludes>**/generated-sources/**/*</excludes>
                                     <sourceDirectories>
                                         <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>

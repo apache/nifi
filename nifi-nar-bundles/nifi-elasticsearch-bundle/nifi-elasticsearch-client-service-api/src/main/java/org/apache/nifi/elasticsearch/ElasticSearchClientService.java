@@ -22,6 +22,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -33,7 +34,7 @@ import java.util.Map;
 
 @Tags({"elasticsearch", "client"})
 @CapabilityDescription("A controller service for accessing an Elasticsearch client.")
-public interface ElasticSearchClientService extends ControllerService {
+public interface ElasticSearchClientService extends ControllerService, VerifiableControllerService {
     PropertyDescriptor HTTP_HOSTS = new PropertyDescriptor.Builder()
             .name("el-cs-http-hosts")
             .displayName("HTTP Hosts")
@@ -202,6 +203,14 @@ public interface ElasticSearchClientService extends ControllerService {
      * @param requestParameters A collection of URL request parameters. Optional.
      */
     void refresh(final String index, final Map<String, String> requestParameters);
+
+    /**
+     * Check whether an index exists.
+     *
+     * @param index The index to target, if omitted then all indices will be updated.
+     * @param requestParameters A collection of URL request parameters. Optional.
+     */
+    boolean exists(final String index, final Map<String, String> requestParameters);
 
     /**
      * Get a document by ID.

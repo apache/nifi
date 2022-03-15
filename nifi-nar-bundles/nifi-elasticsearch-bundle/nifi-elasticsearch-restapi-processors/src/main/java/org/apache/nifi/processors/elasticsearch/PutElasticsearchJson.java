@@ -55,7 +55,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "put", "index"})
+@Tags({"json", "elasticsearch", "elasticsearch5", "elasticsearch6", "elasticsearch7", "elasticsearch8", "put", "index"})
 @CapabilityDescription("An Elasticsearch put processor that uses the official Elastic REST client libraries.")
 @WritesAttributes({
         @WritesAttribute(attribute = "elasticsearch.put.error", description = "The error message provided by Elasticsearch if there is an error indexing the document.")
@@ -200,7 +200,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 errorDocuments.forEach(e ->
                         session.getProvenanceReporter().send(
                                 e,
-                                clientService.getTransitUrl(
+                                clientService.get().getTransitUrl(
                                         context.getProperty(INDEX).evaluateAttributeExpressions(e).getValue(),
                                         context.getProperty(TYPE).evaluateAttributeExpressions(e).getValue()
                                 ),
@@ -213,7 +213,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
                 successfulDocuments.forEach(s ->
                         session.getProvenanceReporter().send(
                                 s,
-                                clientService.getTransitUrl(
+                                clientService.get().getTransitUrl(
                                         context.getProperty(INDEX).evaluateAttributeExpressions(s).getValue(),
                                         context.getProperty(TYPE).evaluateAttributeExpressions(s).getValue()
                                 )
@@ -241,7 +241,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
 
     @SuppressWarnings("unchecked")
     private List<FlowFile> indexDocuments(final List<IndexOperationRequest> operations, final List<FlowFile> originals, final ProcessContext context) throws JsonProcessingException {
-        final IndexOperationResponse response = clientService.bulk(operations, getUrlQueryParameters(context, originals.get(0)));
+        final IndexOperationResponse response = clientService.get().bulk(operations, getUrlQueryParameters(context, originals.get(0)));
         final List<FlowFile> errorDocuments = new ArrayList<>(response.getItems() == null ? 0 : response.getItems().size());
 
         List<Predicate<Map<String, Object>>> errorItemFilters = new ArrayList<>(2);
