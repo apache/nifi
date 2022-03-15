@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import io.questdb.MessageBusImpl;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
@@ -242,14 +241,14 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     private QuestDbContext givenDbContext() {
         final CairoConfiguration configuration = new DefaultCairoConfiguration(path);
         final CairoEngine engine = new CairoEngine(configuration);
-        return new QuestDbContext(engine, new MessageBusImpl());
+        return new QuestDbContext(engine);
     }
 
     private void givenTableIsCreated(final QuestDbContext dbContext) throws Exception {
         dbContext.getCompiler().compile(CREATE_TABLE, dbContext.getSqlExecutionContext());
     }
 
-    private void givenTableIsPopulated(final String... dates) throws Exception {
+    private void givenTableIsPopulated(final String... dates) {
         int value = 0;
 
         for (final String date : dates) {
@@ -257,12 +256,12 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         }
     }
 
-    private void givenTableIsPopulated(final String date, final int value) throws Exception {
+    private void givenTableIsPopulated(final String date, final int value) {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z");
         final ZonedDateTime parsedDate = ZonedDateTime.parse(date, formatter);
 
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
-        final TableWriter tableWriter = dbContext.getEngine().getWriter(executionContext.getCairoSecurityContext(), "measurements");
+        final TableWriter tableWriter = dbContext.getEngine().getWriter(executionContext.getCairoSecurityContext(), "measurements", "testing");
 
         final TableWriter.Row row = tableWriter.newRow(TimeUnit.MILLISECONDS.toMicros(parsedDate.toInstant().toEpochMilli()));
         row.putInt(1, value);
@@ -272,7 +271,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         tableWriter.close();
     }
 
-    private void whenRollOverIsExecuted(final String executedAt) throws Exception {
+    private void whenRollOverIsExecuted(final String executedAt) {
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z");
         final ZonedDateTime executionTime = ZonedDateTime.parse(executedAt, formatter);
 

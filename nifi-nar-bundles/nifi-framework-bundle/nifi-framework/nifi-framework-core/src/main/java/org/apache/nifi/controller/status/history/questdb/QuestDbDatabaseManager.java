@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.status.history.questdb;
 
-import io.questdb.MessageBusImpl;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
@@ -40,7 +39,7 @@ import java.util.stream.Collectors;
  */
 public final class QuestDbDatabaseManager {
     private enum DatabaseStatus {
-        HEALTHY, NON_EXISTING, CORRUPTED;
+        HEALTHY, NON_EXISTING, CORRUPTED
     }
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuestDbDatabaseManager.class);
@@ -112,7 +111,7 @@ public final class QuestDbDatabaseManager {
 
         for (final String expectedTable : expectedTables) {
             if (!databaseFiles.containsKey(expectedTable) || !databaseFiles.get(expectedTable).isDirectory()) {
-                LOGGER.error("Missing table during database status check: ", expectedTable);
+                LOGGER.error("Missing table during database status check: {}", expectedTable);
                 return false;
             }
         }
@@ -124,7 +123,7 @@ public final class QuestDbDatabaseManager {
         final CairoConfiguration configuration = new DefaultCairoConfiguration(persistLocation.toFile().getAbsolutePath());
 
         try (
-            final CairoEngine engine = new CairoEngine(configuration);
+            final CairoEngine engine = new CairoEngine(configuration)
         ) {
             LOGGER.info("Connection to database was successful");
             return true;
@@ -148,9 +147,9 @@ public final class QuestDbDatabaseManager {
 
         try (
             final CairoEngine engine = new CairoEngine(configuration);
-            final SqlCompiler compiler = new SqlCompiler(engine);
+            final SqlCompiler compiler = new SqlCompiler(engine)
         ) {
-            final SqlExecutionContext context = new SqlExecutionContextImpl(engine.getConfiguration(), new MessageBusImpl(), 1);
+            final SqlExecutionContext context = new SqlExecutionContextImpl(engine, 1);
 
             // Node status tables
             compiler.compile(QuestDbQueries.CREATE_GARBAGE_COLLECTION_STATUS, context);
