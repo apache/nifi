@@ -101,12 +101,13 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> propertyDescriptors;
 
-    AtomicReference<ElasticSearchClientService> clientService;
     String splitUpHits;
     private String splitUpAggregations;
     private boolean outputNoHits;
 
     final ObjectMapper mapper = new ObjectMapper();
+
+    final AtomicReference<ElasticSearchClientService> clientService = new AtomicReference<>(null);
 
     static {
         final Set<Relationship> rels = new HashSet<>();
@@ -150,9 +151,14 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
                 .build();
     }
 
+    @Override
+    public boolean isIndexNotExistSuccessful() {
+        return false;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        clientService = new AtomicReference<>(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
+        clientService.set(context.getProperty(CLIENT_SERVICE).asControllerService(ElasticSearchClientService.class));
 
         splitUpHits = context.getProperty(SEARCH_RESULTS_SPLIT).getValue();
         splitUpAggregations = context.getProperty(AGGREGATION_RESULTS_SPLIT).getValue();
@@ -162,7 +168,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
 
     @OnStopped
     public void onStopped() {
-        this.clientService = null;
+        clientService.set(null);
     }
 
     @Override
@@ -286,6 +292,7 @@ public abstract class AbstractJsonQueryElasticsearch<Q extends JsonQueryParamete
      * for paginated queries, the List could contain one (or more) FlowFiles, to which further hits may be appended when the next
      * SearchResponse is processed, i.e. this approach allows recursion for paginated queries, but is unnecessary for single-response queries.
      */
+    @SuppressWarnings("unused")
     List<FlowFile> handleHits(final List<Map<String, Object>> hits, final boolean newQuery, final Q queryJsonParameters, final ProcessSession session,
                               final FlowFile parent, final Map<String, String> attributes, final List<FlowFile> hitsFlowFiles,
                               final String transitUri, final StopWatch stopWatch) throws IOException {

@@ -17,7 +17,10 @@
 
 package org.apache.nifi.elasticsearch;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +36,11 @@ public class TestElasticSearchClientService extends AbstractControllerService im
         data.put("password", "testing1234");
         data.put("email", "john.smith@test.com");
         data.put("position", "Software Engineer");
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verify(ConfigurationContext context, ComponentLog verificationLogger, Map<String, String> variables) {
+        return null;
     }
 
     @Override
@@ -72,6 +80,11 @@ public class TestElasticSearchClientService extends AbstractControllerService im
 
     @Override
     public void refresh(final String index, final Map<String, String> requestParameters) {
+    }
+
+    @Override
+    public boolean exists(final String index, final Map<String, String> requestParameters) {
+        return true;
     }
 
     @Override
