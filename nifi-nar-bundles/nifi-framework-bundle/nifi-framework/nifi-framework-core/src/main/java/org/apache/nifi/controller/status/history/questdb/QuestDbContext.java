@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.status.history.questdb;
 
-import io.questdb.MessageBus;
 import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.griffin.SqlCompiler;
@@ -25,11 +24,9 @@ import io.questdb.griffin.SqlExecutionContextImpl;
 
 public class QuestDbContext {
     private final CairoEngine engine;
-    private final MessageBus messageBus;
 
-    public QuestDbContext(final CairoEngine engine, final MessageBus messageBus) {
+    public QuestDbContext(final CairoEngine engine) {
         this.engine = engine;
-        this.messageBus = messageBus;
     }
 
     public CairoEngine getEngine() {
@@ -41,11 +38,11 @@ public class QuestDbContext {
     }
 
     public SqlExecutionContext getSqlExecutionContext() {
-        return new SqlExecutionContextImpl(engine.getConfiguration(), messageBus, 1);
+        return new SqlExecutionContextImpl(engine, 1);
     }
 
     public SqlCompiler getCompiler() {
-        return new SqlCompiler(engine, messageBus);
+        return new SqlCompiler(engine);
     }
 
     public void close() {

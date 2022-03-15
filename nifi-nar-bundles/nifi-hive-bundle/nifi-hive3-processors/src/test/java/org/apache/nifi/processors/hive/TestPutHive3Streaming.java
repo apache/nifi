@@ -76,7 +76,9 @@ import org.apache.nifi.util.hive.HiveOptions;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayInputStream;
@@ -122,6 +124,7 @@ import static org.mockito.Mockito.when;
  * Unit tests for PutHive3Streaming processor.
  */
 @DisabledOnOs(OS.WINDOWS)
+@DisabledOnJre(value = JRE.JAVA_17, disabledReason = "Hive3 StringInternUtils illegal reflective access")
 public class TestPutHive3Streaming {
 
     private static final String TEST_CONF_PATH = "src/test/resources/core-site.xml";

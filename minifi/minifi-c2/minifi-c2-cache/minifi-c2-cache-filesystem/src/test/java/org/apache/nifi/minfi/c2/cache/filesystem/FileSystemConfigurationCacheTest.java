@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minfi.c2.cache.filesystem;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -33,29 +33,16 @@ import org.apache.nifi.minifi.c2.api.InvalidParameterException;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
 import org.apache.nifi.minifi.c2.api.cache.WriteableConfiguration;
 import org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.junit.jupiter.api.Test;
 
 public class FileSystemConfigurationCacheTest {
-
-  @Rule
-  public final EnvironmentVariables environmentVariables = new EnvironmentVariables();
-
-  @Before
-  public void before() {
-    File resourcesDirectory = new File("src/test/resources/");
-    environmentVariables.set("C2_SERVER_HOME", resourcesDirectory.getAbsolutePath());
-  }
+  private static final String PATH_ROOT = "src/test/resources/files";
 
   @Test
   public void getConfigurationTest() throws IOException, ConfigurationProviderException {
-
-    final String pathRoot = "files";
     final String pathPattern = "config";
 
-    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(pathRoot, pathPattern);
+    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(PATH_ROOT, pathPattern);
 
     Map<String, List<String>> parameters = new HashMap<>();
 
@@ -66,16 +53,13 @@ public class FileSystemConfigurationCacheTest {
     assertEquals("config.text.yaml.v1", configuration.getName());
     assertEquals("1", configuration.getVersion());
     assertTrue(configuration.exists());
-
   }
 
   @Test
   public void getNonexistantConfigurationTest() throws IOException, ConfigurationProviderException {
-
-    final String pathRoot = "files";
     final String pathPattern = "config";
 
-    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(pathRoot, pathPattern);
+    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(PATH_ROOT, pathPattern);
 
     Map<String, List<String>> parameters = new HashMap<>();
 
@@ -86,16 +70,13 @@ public class FileSystemConfigurationCacheTest {
     assertEquals("config.test.contenttype.v1", configuration.getName());
     assertEquals("1", configuration.getVersion());
     assertFalse(configuration.exists());
-
   }
 
   @Test
   public void getCachedConfigurationsTest() throws IOException, ConfigurationProviderException {
-
-    final String pathRoot = "files";
     final String pathPattern = "config";
 
-    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(pathRoot, pathPattern);
+    FileSystemConfigurationCache cache = new FileSystemConfigurationCache(PATH_ROOT, pathPattern);
 
     Map<String, List<String>> parameters = new HashMap<>();
 
@@ -104,13 +85,10 @@ public class FileSystemConfigurationCacheTest {
     Stream<WriteableConfiguration> configs = info.getCachedConfigurations();
 
     assertEquals(1, configs.count());
-
   }
 
-  @Test(expected = InvalidParameterException.class)
-  public void getConfigurationInvalidParametersTest() throws IOException,
-      InvalidParameterException {
-
+  @Test
+  public void getConfigurationInvalidParametersTest() throws IOException {
     final String pathRoot = "files";
     final String pathPattern = "${test}/config";
 
@@ -118,8 +96,6 @@ public class FileSystemConfigurationCacheTest {
 
     Map<String, List<String>> parameters = new HashMap<>();
 
-    cache.getCacheFileInfo("test/contenttype", parameters);
-
+    assertThrows(InvalidParameterException.class, () -> cache.getCacheFileInfo("test/contenttype", parameters));
   }
-
 }

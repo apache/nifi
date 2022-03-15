@@ -20,14 +20,12 @@ package org.apache.nifi.minifi.bootstrap.status.reporters;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.util.Properties;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -37,6 +35,7 @@ import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.ENC
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.LOGGING_LEVEL_KEY;
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.QUERY_KEY;
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.REPORT_PERIOD_KEY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 
 public class StatusLoggerTest {
@@ -52,57 +51,51 @@ public class StatusLoggerTest {
     private QueryableStatusAggregator queryableStatusAggregator;
     private FlowStatusReport flowStatusReport;
 
-    @Before
-    public void init() throws IOException, NoSuchFieldException, IllegalAccessException {
+    @BeforeEach
+    public void init() throws IOException {
         statusLogger = Mockito.spy(new StatusLogger());
 
         logger = Mockito.mock(Logger.class);
+        StatusLogger.logger = logger;
+
         queryableStatusAggregator = Mockito.mock(QueryableStatusAggregator.class);
         flowStatusReport = Mockito.mock(FlowStatusReport.class);
 
         Mockito.when(flowStatusReport.toString()).thenReturn(MOCK_STATUS);
 
-        Field field = StatusLogger.class.getDeclaredField("logger");
-        field.setAccessible(true);
-        Field modifiersField = Field.class.getDeclaredField("modifiers");
-        modifiersField.setAccessible(true);
-        modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-        field.set(null, logger);
-
-
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenReturn(flowStatusReport);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFailedInitDueToFatalLogLevel() {
         Properties properties = new Properties();
         properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.FATAL.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
 
-        statusLogger.initialize(properties, queryableStatusAggregator);
+        assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFailedInitDueToNoPeriod() {
         Properties properties = new Properties();
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
 
-        statusLogger.initialize(properties, queryableStatusAggregator);
+        assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testFailedInitDueToNoQuery() {
         Properties properties = new Properties();
         properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
 
-        statusLogger.initialize(properties, queryableStatusAggregator);
+        assertThrows(IllegalStateException.class, () -> statusLogger.initialize(properties, queryableStatusAggregator));
     }
 
     @Test
-    public void TestTrace() {
+    public void testTrace() {
         statusLogger.initialize(getProperties(LogLevel.TRACE), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
@@ -111,7 +104,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestDebug() {
+    public void testDebug() {
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
@@ -120,7 +113,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestInfo() {
+    public void testInfo() {
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
@@ -129,7 +122,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestWarn() {
+    public void testWarn() {
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
@@ -138,7 +131,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestError() {
+    public void testError() {
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
         statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
@@ -148,7 +141,7 @@ public class StatusLoggerTest {
 
     // Exception testing
     @Test
-    public void TestTraceException() throws IOException {
+    public void testTraceException() throws IOException {
         Properties properties = new Properties();
         properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.TRACE.name());
@@ -165,7 +158,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestDebugException() throws IOException {
+    public void testDebugException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
@@ -177,7 +170,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestInfoException() throws IOException {
+    public void testInfoException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
@@ -189,7 +182,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestWarnException() throws IOException {
+    public void testWarnException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
@@ -201,7 +194,7 @@ public class StatusLoggerTest {
     }
 
     @Test
-    public void TestErrorException() throws IOException {
+    public void testErrorException() throws IOException {
         IOException ioException = new IOException("This is an expected test exception");
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 

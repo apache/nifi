@@ -129,25 +129,6 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldConvertLegacyX509Certificate() {
-        // Arrange
-        final X509Certificate EXPECTED_NEW_CERTIFICATE = generateCertificate(SUBJECT_DN)
-        logger.info("Expected certificate: ${EXPECTED_NEW_CERTIFICATE.class.canonicalName} ${EXPECTED_NEW_CERTIFICATE.subjectDN.toString()} (${EXPECTED_NEW_CERTIFICATE.getSerialNumber()})")
-
-        // Form the legacy certificate
-        final javax.security.cert.X509Certificate LEGACY_CERTIFICATE = generateLegacyCertificate(EXPECTED_NEW_CERTIFICATE)
-        logger.info("Legacy certificate: ${LEGACY_CERTIFICATE.class.canonicalName} ${LEGACY_CERTIFICATE.subjectDN.toString()} (${LEGACY_CERTIFICATE.getSerialNumber()})")
-
-        // Act
-        X509Certificate convertedCertificate = CertificateUtils.convertLegacyX509Certificate(LEGACY_CERTIFICATE)
-        logger.info("Converted certificate: ${convertedCertificate.class.canonicalName} ${convertedCertificate.subjectDN.toString()} (${convertedCertificate.getSerialNumber()})")
-
-        // Assert
-        assert convertedCertificate instanceof X509Certificate
-        assert convertedCertificate == EXPECTED_NEW_CERTIFICATE
-    }
-
-    @Test
     void testShouldConvertAbstractX509Certificate() {
         // Arrange
         final X509Certificate EXPECTED_NEW_CERTIFICATE = generateCertificate(SUBJECT_DN)

@@ -22,14 +22,9 @@ import org.apache.nifi.toolkit.tls.configuration.StandaloneConfig
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator
 import org.bouncycastle.util.io.pem.PemWriter
-import org.junit.BeforeClass
-import org.junit.Rule
-import org.junit.Test
-import org.junit.rules.TemporaryFolder
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
 
 import java.nio.file.Files
 import java.security.KeyPair
@@ -38,32 +33,24 @@ import java.security.Security
 import java.security.SignatureException
 import java.security.cert.X509Certificate
 
-@RunWith(JUnit4.class)
-class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(TlsToolkitStandaloneGroovyTest.class)
+import static org.junit.jupiter.api.Assertions.assertThrows
 
+class TlsToolkitStandaloneGroovyTest {
     private final String TEST_SRC_DIR = "src/test/resources/"
     private final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA"
     private final String DEFAULT_SIGNING_ALGORITHM = "SHA256WITHRSA"
 
-    @Rule
-    public TemporaryFolder tmpDir = new TemporaryFolder()
-
-    @BeforeClass
-    static void setUpOnce() throws Exception {
+    @BeforeAll
+    static void setProvider() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
-
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
     }
 
     @Test
-    void testShouldVerifyCertificateSignatureWhenSelfSigned() {
+    void testShouldVerifyCertificateSignatureWhenSelfSigned(@TempDir File tempDir) {
         // Arrange
 
         // Create a temp directory for this test and populate it with the nifi-cert.pem and nifi-key.key files
-        File baseDir = createBaseDirAndPopulateWithCAFiles()
+        File baseDir = createBaseDirAndPopulateWithCAFiles(tempDir)
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a self-signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -86,16 +73,13 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
      * The certificate under examination is self-signed, but there is another signing cert which will be iterated over first, fail, and then the self-signed signature will be validated.
      */
     @Test
-    void testShouldVerifyCertificateSignatureWithMultipleSigningCerts() {
-        // Arrange
-
+    void testShouldVerifyCertificateSignatureWithMultipleSigningCerts(@TempDir File tempDir) {
         // Create a temp directory for this test and populate it with the nifi-cert.pem and nifi-key.key files
-        File baseDir = createBaseDirAndPopulateWithCAFiles()
+        File baseDir = createBaseDirAndPopulateWithCAFiles(tempDir)
 
         // Create a different cert and persist it to the base dir
         X509Certificate otherCert = generateX509Certificate()
         File otherCertFile = writeCertificateToPEMFile(otherCert, "${baseDir.path}/other.pem")
-        logger.info("Wrote other CA cert to ${otherCertFile.path}")
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a self-signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -111,38 +95,26 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
 
         // Act
         standalone.createNifiKeystoresAndTrustStores(standaloneConfig)
-
-        // Assert
-
-        // The test will fail with an exception if the certificate is not signed by a known certificate
     }
 
     /**
      * The certificate under examination is signed with the external signing cert.
      */
     @Test
-    void testShouldVerifyCertificateSignatureWithAdditionalSigningCert() {
-        // Arrange
-
-        // Create a temp directory for this test
-        File baseDir = createBaseDir()
-
+    void testShouldVerifyCertificateSignatureWithAdditionalSigningCert(@TempDir File baseDir) {
         // Create a root CA, create an intermediate CA, use the root to sign the intermediate and then provide the root
         KeyPair rootKeyPair = generateKeyPair()
         X509Certificate rootCert = generateX509Certificate("CN=Root CA", rootKeyPair)
 
         File rootCertFile = writeCertificateToPEMFile(rootCert, "${baseDir.path}/root.pem")
-        logger.info("Wrote root CA cert to ${rootCertFile.path}")
 
         KeyPair intermediateKeyPair = generateKeyPair()
         X509Certificate intermediateCert = CertificateUtils.generateIssuedCertificate("CN=Intermediate CA", intermediateKeyPair.getPublic(), rootCert, rootKeyPair, DEFAULT_SIGNING_ALGORITHM, 1)
 
         File intermediateCertFile = writeCertificateToPEMFile(intermediateCert, "${baseDir.path}/nifi-cert.pem")
-        logger.info("Wrote intermediate CA cert to ${intermediateCertFile.path}")
 
         // Write the private key of the intermediate cert to nifi-key.key
         File intermediateKeyFile = writePrivateKeyToFile(intermediateKeyPair, "${baseDir}/nifi-key.key")
-        logger.info("Wrote intermediate private key to ${intermediateKeyFile.path}")
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -158,19 +130,10 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
 
         // Act
         standalone.createNifiKeystoresAndTrustStores(standaloneConfig)
-
-        // Assert
-
-        // The test will fail with an exception if the certificate is not signed by a known certificate
     }
 
     @Test
-    void testShouldNotVerifyCertificateSignatureWithWrongSigningCert() {
-        // Arrange
-
-        // Create a temp directory for this test
-        File baseDir = createBaseDir()
-
+    void testShouldNotVerifyCertificateSignatureWithWrongSigningCert(@TempDir File baseDir) {
         // Create a root CA, create an intermediate CA, use the root to sign the intermediate and then do not provide the root
         KeyPair rootKeyPair = generateKeyPair()
         X509Certificate rootCert = generateX509Certificate("CN=Root CA", rootKeyPair)
@@ -179,11 +142,9 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
         X509Certificate intermediateCert = CertificateUtils.generateIssuedCertificate("CN=Intermediate CA", intermediateKeyPair.getPublic(), rootCert, rootKeyPair, DEFAULT_SIGNING_ALGORITHM, 1)
 
         File intermediateCertFile = writeCertificateToPEMFile(intermediateCert, "${baseDir.path}/nifi-cert.pem")
-        logger.info("Wrote intermediate CA cert to ${intermediateCertFile.path}")
 
         // Write the private key of the intermediate cert to nifi-key.key
         File intermediateKeyFile = writePrivateKeyToFile(intermediateKeyPair, "${baseDir.path}/nifi-key.key")
-        logger.info("Wrote intermediate private key to ${intermediateKeyFile.path}")
 
         // Make a standalone config which doesn't trigger any keystore generation and just has a signed cert and key
         StandaloneConfig standaloneConfig = new StandaloneConfig()
@@ -194,14 +155,7 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
 
         TlsToolkitStandalone standalone = new TlsToolkitStandalone()
 
-        // Act
-        def msg = shouldFail(SignatureException) {
-            standalone.createNifiKeystoresAndTrustStores(standaloneConfig)
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg =~ 'The signing certificate was not signed by any known certificates'
+        assertThrows(SignatureException.class, () -> standalone.createNifiKeystoresAndTrustStores(standaloneConfig))
     }
 
     private static File writePrivateKeyToFile(KeyPair intermediateKeyPair, String destination) {
@@ -212,16 +166,8 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
         intermediateKeyFile
     }
 
-    private File createBaseDirAndPopulateWithCAFiles() {
-        File baseDir = createBaseDir()
-
+    private File createBaseDirAndPopulateWithCAFiles(File baseDir) {
         populateBaseDirWithCAFiles(baseDir)
-    }
-
-    private File createBaseDir() {
-        File baseDir = tmpDir.newFolder()
-        logger.info("Created base dir at ${baseDir.path}")
-        baseDir
     }
 
     private File populateBaseDirWithCAFiles(File baseDir) {
@@ -229,10 +175,8 @@ class TlsToolkitStandaloneGroovyTest extends GroovyTestCase {
         File keyFile = new File(TEST_SRC_DIR, "rootCert.key")
         File destinationCertFile = new File(baseDir.path, "nifi-cert.pem")
         Files.copy(certificateFile.toPath(), destinationCertFile.toPath())
-        logger.info("Wrote certificate to ${destinationCertFile.path}")
         File destinationKeyFile = new File(baseDir.path, "nifi-key.key")
         Files.copy(keyFile.toPath(), destinationKeyFile.toPath())
-        logger.info("Wrote private key to ${destinationKeyFile.path}")
 
         baseDir
     }

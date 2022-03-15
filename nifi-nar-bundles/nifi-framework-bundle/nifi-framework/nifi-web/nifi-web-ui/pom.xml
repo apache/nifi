@@ -888,7 +888,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-war-plugin</artifactId>
-                        <version>2.5</version>
+                        <version>3.3.2</version>
                         <configuration>
                             <packagingIncludes>
                                 assets/**/*,

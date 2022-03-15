@@ -52,7 +52,9 @@ public class FileSystemConfigurationCache implements ConfigurationCache {
      * @throws IOException Thrown if the path cannot be created.
      */
     public FileSystemConfigurationCache(String pathRoot, String pathPattern) throws IOException {
-        this.pathRoot = Paths.get(System.getenv("C2_SERVER_HOME")).resolve(pathRoot).toAbsolutePath();
+        final String serverHome = System.getenv("C2_SERVER_HOME");
+        final String homePath = serverHome == null ? "." : serverHome;
+        this.pathRoot = Paths.get(homePath).resolve(pathRoot).toAbsolutePath();
         Files.createDirectories(this.pathRoot);
         this.pathPattern = pathPattern;
     }

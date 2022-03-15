@@ -42,7 +42,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -138,8 +137,7 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class, () ->authorizer.onConfigured(configurationContext));
-        verifyOnlyAuthorizeCreationExceptions(e);
+        assertThrows(AuthorizerCreationException.class, () ->authorizer.onConfigured(configurationContext));
     }
 
     @Test
@@ -153,9 +151,7 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
-                () -> authorizer.onConfigured(configurationContext));
-        verifyOnlyAuthorizeCreationExceptions(e);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(configurationContext));
     }
 
     @Test
@@ -170,22 +166,7 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
-                () -> authorizer.onConfigured(configurationContext));
-        verifyOnlyAuthorizeCreationExceptions(e);
-    }
-
-    private void verifyOnlyAuthorizeCreationExceptions(AuthorizerCreationException e) {
-        boolean foundOtherException = false;
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            if (!(cause instanceof AuthorizerCreationException)) {
-                foundOtherException = true;
-                break;
-            }
-            cause = cause.getCause();
-        }
-        assertFalse(foundOtherException);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(configurationContext));
     }
 
     @Test
@@ -200,19 +181,7 @@ public class TestRangerNiFiAuthorizer {
         authorizer = new MockRangerNiFiAuthorizer(rangerBasePlugin);
         authorizer.setNiFiProperties(nifiProperties);
 
-        AuthorizerCreationException e = assertThrows(AuthorizerCreationException.class,
-                () -> authorizer.onConfigured(configurationContext));
-        // getting a LoginException here means we attempted to login which is what we want
-        boolean foundLoginException = false;
-        Throwable cause = e.getCause();
-        while (cause != null) {
-            if (cause instanceof LoginException) {
-                foundLoginException = true;
-                break;
-            }
-            cause = cause.getCause();
-        }
-        assertTrue(foundLoginException);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.onConfigured(configurationContext));
     }
 
     @Test
