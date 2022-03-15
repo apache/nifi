@@ -140,7 +140,7 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor imp
                                     @Override
                                     public ProxiedSocketAddress proxyFor(SocketAddress socketAddress)
                                             throws IOException {
-                                        if (Proxy.Type.HTTP.equals(proxyConfiguration.getProxyType()) && proxyConfiguration.hasCredential()) {
+                                        if (Proxy.Type.HTTP.equals(proxyConfiguration.getProxyType())) {
                                             return HttpConnectProxiedSocketAddress.newBuilder()
                                                     .setUsername(proxyConfiguration.getProxyUserName())
                                                     .setPassword(proxyConfiguration.getProxyUserPassword())
