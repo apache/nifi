@@ -39,6 +39,7 @@ env:
   MAVEN_RUN_ARGUMENTS: >-
     package
     verify
+    -P contrib-check
     -P integration-tests
   MAVEN_PROJECTS: >-
     -pl nifi-system-tests/nifi-system-test-suite
