@@ -23,12 +23,12 @@ import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.stream.io.ByteCountingInputStream
 import org.apache.nifi.stream.io.ByteCountingOutputStream
+import org.apache.nifi.stream.io.exception.BytePatternNotFoundException
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
 import org.junit.Assume
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
+import org.junit.Assert
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -54,14 +54,6 @@ class PasswordBasedEncryptorGroovyTest {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -515,5 +507,206 @@ class PasswordBasedEncryptorGroovyTest {
 
         assert encryptor.flowfileAttributes.get("encryptcontent.kdf_salt") == EXPECTED_KDF_SALT
         assert (29..54)*.toString().contains(encryptor.flowfileAttributes.get("encryptcontent.kdf_salt_length"))
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingSalt() throws Exception {
+        // Arrange
+        final int OPENSSL_EVP_HEADER_SIZE = 8
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        def encryptionMethodsAndKdfs = [
+                (KeyDerivationFunction.OPENSSL_EVP_BYTES_TO_KEY): EncryptionMethod.MD5_128AES,
+                (KeyDerivationFunction.BCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.SCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.PBKDF2)                  : EncryptionMethod.AES_CBC
+        ]
+
+        // Act
+        encryptionMethodsAndKdfs.each { KeyDerivationFunction kdf, EncryptionMethod encryptionMethod ->
+            PBECipherProvider cipherProvider = (PBECipherProvider) CipherProviderFactory.getCipherProvider(kdf)
+
+            OutputStream cipherStream = new ByteArrayOutputStream()
+            OutputStream recoveredStream = new ByteArrayOutputStream()
+
+            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD.toCharArray(), kdf)
+
+            StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+            StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+            encryptionCallback.process(plainStream, cipherStream)
+
+            final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+
+            // reads the salt
+            InputStream saltInputStream = new ByteArrayInputStream(cipherBytes)
+            final byte[] saltBytes = cipherProvider.readSalt(saltInputStream)
+
+            int skipLength = saltBytes.length
+            if (cipherProvider instanceof org.apache.nifi.security.util.crypto.OpenSSLPKCS5CipherProvider) {
+                skipLength += OPENSSL_EVP_HEADER_SIZE
+            }
+
+            InputStream cipherInputStream = new ByteArrayInputStream(cipherBytes)
+            cipherInputStream.skip(skipLength)
+
+            Exception exception = Assert.assertThrows(Exception.class, () -> {
+                decryptionCallback.process(cipherInputStream, recoveredStream)
+            })
+
+            // Assert
+            if (!(cipherProvider instanceof OpenSSLPKCS5CipherProvider)) {
+                assert exception.getCause() instanceof IllegalArgumentException
+            }
+
+            // This is necessary to run multiple iterations
+            plainStream.reset()
+        }
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingSaltDelimiter() throws Exception {
+        // Arrange
+        final String SALT_DELIMITER = "NiFiSALT"
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        def encryptionMethodsAndKdfs = [
+                (KeyDerivationFunction.BCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.SCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.PBKDF2)                  : EncryptionMethod.AES_CBC
+        ]
+
+        // Act
+        encryptionMethodsAndKdfs.each { KeyDerivationFunction kdf, EncryptionMethod encryptionMethod ->
+            PBECipherProvider cipherProvider = (PBECipherProvider) CipherProviderFactory.getCipherProvider(kdf)
+
+            OutputStream cipherStream = new ByteArrayOutputStream()
+            OutputStream recoveredStream = new ByteArrayOutputStream()
+
+            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD.toCharArray(), kdf)
+
+            StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+            StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+            encryptionCallback.process(plainStream, cipherStream)
+
+            final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+            final String removedDelimiterCipherString = new String(cipherBytes, StandardCharsets.UTF_8).replace(SALT_DELIMITER, "")
+
+            InputStream cipherInputStream = new ByteArrayInputStream(removedDelimiterCipherString.getBytes(StandardCharsets.UTF_8))
+
+            Exception exception = Assert.assertThrows(Exception.class, () -> {
+                decryptionCallback.process(cipherInputStream, recoveredStream)
+            })
+
+            // Assert
+            assert exception.getCause() instanceof BytePatternNotFoundException
+
+            // This is necessary to run multiple iterations
+            plainStream.reset()
+        }
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingIV() throws Exception {
+        // Arrange
+        final String SALT_DELIMITER="NiFiSALT"
+        final String IV_DELIMITER = "NiFiIV"
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        def encryptionMethodsAndKdfs = [
+                (KeyDerivationFunction.BCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.SCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.PBKDF2)                  : EncryptionMethod.AES_CBC
+        ]
+
+        // Act
+        encryptionMethodsAndKdfs.each { KeyDerivationFunction kdf, EncryptionMethod encryptionMethod ->
+            PBECipherProvider cipherProvider = (PBECipherProvider) CipherProviderFactory.getCipherProvider(kdf)
+
+            OutputStream cipherStream = new ByteArrayOutputStream()
+            OutputStream recoveredStream = new ByteArrayOutputStream()
+
+            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD.toCharArray(), kdf)
+
+            StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+            StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+            encryptionCallback.process(plainStream, cipherStream)
+
+            final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+
+            // remove IV in cipher
+            final String cipherString = new String(cipherBytes, StandardCharsets.UTF_8)
+            final StringBuilder sb = new StringBuilder()
+            sb.append(cipherString.split(SALT_DELIMITER)[0])
+            sb.append(SALT_DELIMITER)
+            sb.append(IV_DELIMITER)
+            sb.append(cipherString.split(IV_DELIMITER)[1])
+            final String removedIVCipherString = sb.toString()
+
+            InputStream cipherInputStream = new ByteArrayInputStream(removedIVCipherString.getBytes(StandardCharsets.UTF_8))
+
+            Exception exception = Assert.assertThrows(Exception.class, () -> {
+                decryptionCallback.process(cipherInputStream, recoveredStream)
+            })
+
+            // Assert
+            assert exception.getCause() instanceof IllegalArgumentException
+
+            // This is necessary to run multiple iterations
+            plainStream.reset()
+        }
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingIVDelimiter() throws Exception {
+        // Arrange
+        final String IV_DELIMITER = "NiFiIV"
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        def encryptionMethodsAndKdfs = [
+                (KeyDerivationFunction.BCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.SCRYPT)                  : EncryptionMethod.AES_CBC,
+                (KeyDerivationFunction.PBKDF2)                  : EncryptionMethod.AES_CBC
+        ]
+
+        // Act
+        encryptionMethodsAndKdfs.each { KeyDerivationFunction kdf, EncryptionMethod encryptionMethod ->
+            PBECipherProvider cipherProvider = (PBECipherProvider) CipherProviderFactory.getCipherProvider(kdf)
+
+            OutputStream cipherStream = new ByteArrayOutputStream()
+            OutputStream recoveredStream = new ByteArrayOutputStream()
+
+            PasswordBasedEncryptor encryptor = new PasswordBasedEncryptor(encryptionMethod, PASSWORD.toCharArray(), kdf)
+
+            StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+            StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+            encryptionCallback.process(plainStream, cipherStream)
+
+            final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+            final String removedDelimiterCipherString = new String(cipherBytes, StandardCharsets.UTF_8).replace(IV_DELIMITER, "")
+
+            InputStream cipherInputStream = new ByteArrayInputStream(removedDelimiterCipherString.getBytes(StandardCharsets.UTF_8))
+
+            Exception exception = Assert.assertThrows(Exception.class, () -> {
+                decryptionCallback.process(cipherInputStream, recoveredStream)
+            })
+
+            // Assert
+            assert exception.getCause() instanceof BytePatternNotFoundException
+
+            // This is necessary to run multiple iterations
+            plainStream.reset()
+        }
     }
 }
