@@ -16,12 +16,22 @@
  */
 package org.apache.nifi.oauth2;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AccessTokenTest {
+    private Instant now;
+
+    @BeforeEach
+    void setUp() {
+        now = Instant.now();
+    }
+
     @Test
     public void testIsExpiredInLessThan5Minutes() {
         final AccessToken accessToken = getAccessToken(299);
@@ -50,6 +60,11 @@ public class AccessTokenTest {
                 null,
                 expiresInSeconds,
                 null
-        );
+        ) {
+            @Override
+            protected Instant now() {
+                return now;
+            }
+        };
     }
 }

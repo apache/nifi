@@ -31,7 +31,7 @@ public class AccessToken {
     private final Instant fetchTime;
 
     public AccessToken() {
-        this.fetchTime = Instant.now();
+        this.fetchTime = now();
     }
 
     public AccessToken(String accessToken, String refreshToken, String tokenType, long expiresIn, String scopes) {
@@ -90,8 +90,12 @@ public class AccessToken {
     public boolean isExpired() {
         final Instant expirationTime = fetchTime.plusSeconds(expiresIn).minusSeconds(EXPIRY_MARGIN_SECONDS);
 
-        boolean expired = Instant.now().isAfter(expirationTime);
+        boolean expired = now().isAfter(expirationTime);
 
         return expired;
+    }
+
+    Instant now() {
+        return Instant.now();
     }
 }
