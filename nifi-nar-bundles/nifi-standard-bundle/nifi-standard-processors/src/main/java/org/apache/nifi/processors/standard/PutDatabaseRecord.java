@@ -604,17 +604,28 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
-        final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
-            try {
-                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, updateKeys, log);
-                getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
-                return schema;
-            } catch (SQLException e) {
-                throw new ProcessException(e);
+        final TableSchema tableSchema;
+        try {
+            tableSchema = schemaCache.get(schemaKey, key -> {
+                try {
+                    final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, updateKeys, log);
+                    getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
+                    return schema;
+                } catch (SQLException e) {
+                    // Wrap this in a runtime exception, it is unwrapped in the outer try
+                    throw new ProcessException(e);
+                }
+            });
+            if (tableSchema == null) {
+                throw new IllegalArgumentException("No table schema specified!");
             }
-        });
-        if (tableSchema == null) {
-            throw new IllegalArgumentException("No table schema specified!");
+        } catch (ProcessException pe) {
+            // Unwrap the SQLException if one occurred
+            if (pe.getCause() instanceof SQLException) {
+                throw (SQLException) pe.getCause();
+            } else {
+                throw pe;
+            }
         }
 
         // build the fully qualified table name
