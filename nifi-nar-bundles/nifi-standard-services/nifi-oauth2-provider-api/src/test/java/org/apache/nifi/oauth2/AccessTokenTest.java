@@ -22,48 +22,34 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AccessTokenTest {
-    private static final String ACCESS_TOKEN = "ACCESS";
-
-    private static final String REFRESH_TOKEN = "REFRESH";
-
-    private static final String TOKEN_TYPE = "Bearer";
-
-    private static final String SCOPES = "default";
-
-    private static final long TWO_SECONDS_AGO = -2;
-
-    private static final long TEN_SECONDS_AGO = -10;
-
-    private static final long IN_SIXTY_SECONDS = 60;
-
     @Test
-    public void testIsExpiredTenSecondsAgo() {
-        final AccessToken accessToken = getAccessToken(TEN_SECONDS_AGO);
+    public void testIsExpiredInLessThan5Minutes() {
+        final AccessToken accessToken = getAccessToken(299);
 
         assertTrue(accessToken.isExpired());
     }
 
     @Test
-    public void testIsExpiredTwoSecondsAgo() {
-        final AccessToken accessToken = getAccessToken(TWO_SECONDS_AGO);
+    public void testIsExpiredInExactly5Minutes() {
+        final AccessToken accessToken = getAccessToken(300);
 
         assertFalse(accessToken.isExpired());
     }
 
     @Test
-    public void testIsExpiredInSixtySeconds() {
-        final AccessToken accessToken = getAccessToken(IN_SIXTY_SECONDS);
+    public void testIsExpiredInMoreThan5Minutes() {
+        final AccessToken accessToken = getAccessToken(301);
 
         assertFalse(accessToken.isExpired());
     }
 
     private AccessToken getAccessToken(final long expiresInSeconds) {
         return new AccessToken(
-                ACCESS_TOKEN,
-                REFRESH_TOKEN,
-                TOKEN_TYPE,
+                null,
+                null,
+                null,
                 expiresInSeconds,
-                SCOPES
+                null
         );
     }
 }
