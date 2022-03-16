@@ -44,8 +44,6 @@ env:
     -pl -nifi-registry/nifi-registry-assembly
     -pl -nifi-registry/nifi-registry-toolkit/nifi-registry-toolkit-assembly
     -pl -nifi-stateless/nifi-stateless-assembly
-    -pl -nifi-system-tests
-    -pl -nifi-system-tests/nifi-system-test-suite
     -pl -nifi-toolkit/nifi-toolkit-assembly
 
 concurrency:
