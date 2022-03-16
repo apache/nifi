@@ -20,11 +20,11 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
+import org.apache.nifi.stream.io.exception.BytePatternNotFoundException
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
+import org.junit.Assert
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,8 +37,6 @@ class KeyedEncryptorGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(KeyedEncryptorGroovyTest.class)
 
     private static final String TEST_RESOURCES_PREFIX = "src/test/resources/TestEncryptContent/"
-    private static final File plainFile = new File("${TEST_RESOURCES_PREFIX}/plain.txt")
-    private static final File encryptedFile = new File("${TEST_RESOURCES_PREFIX}/unsalted_128_raw.asc")
 
     private static final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
     private static final SecretKey KEY = new SecretKeySpec(Hex.decodeHex(KEY_HEX as char[]), "AES")
@@ -50,14 +48,6 @@ class KeyedEncryptorGroovyTest {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-    }
-
-    @Before
-    void setUp() throws Exception {
-    }
-
-    @After
-    void tearDown() throws Exception {
     }
 
     @Test
@@ -190,5 +180,80 @@ class KeyedEncryptorGroovyTest {
             def l = it.split("=")
             [l.first(), Integer.valueOf(l.last())]
         }
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingIV() {
+        // Arrange
+        KeyedCipherProvider cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE)
+        final String IV_DELIMITER = new String(cipherProvider.IV_DELIMITER, StandardCharsets.UTF_8)
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        OutputStream cipherStream = new ByteArrayOutputStream()
+        OutputStream recoveredStream = new ByteArrayOutputStream()
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        // Act
+        KeyedEncryptor encryptor = new KeyedEncryptor(encryptionMethod, KEY)
+
+        StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+        StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+        encryptionCallback.process(plainStream, cipherStream)
+
+        final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+
+        // Remove IV
+        final String cipherString = new String(cipherBytes, StandardCharsets.UTF_8)
+        final byte[] removedIVCipherBytes = cipherString.split(IV_DELIMITER)[1].getBytes(StandardCharsets.UTF_8)
+
+        InputStream cipherInputStream = new ByteArrayInputStream(removedIVCipherBytes)
+        Exception exception = Assert.assertThrows(Exception.class, () -> {
+            decryptionCallback.process(cipherInputStream, recoveredStream)
+        })
+
+        // Assert
+        assert exception.getCause() instanceof BytePatternNotFoundException
+    }
+
+    @Test
+    void testDecryptShouldHandleCipherStreamMissingIVDelimiter() {
+        // Arrange
+        KeyedCipherProvider cipherProvider = CipherProviderFactory.getCipherProvider(KeyDerivationFunction.NONE)
+        final String IV_DELIMITER = new String(cipherProvider.IV_DELIMITER, StandardCharsets.UTF_8)
+
+        final String PLAINTEXT = "This is a plaintext message."
+        InputStream plainStream = new ByteArrayInputStream(PLAINTEXT.getBytes("UTF-8"))
+
+        OutputStream cipherStream = new ByteArrayOutputStream()
+        OutputStream recoveredStream = new ByteArrayOutputStream()
+
+        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
+
+        // Act
+        KeyedEncryptor encryptor = new KeyedEncryptor(encryptionMethod, KEY)
+
+        StreamCallback encryptionCallback = encryptor.getEncryptionCallback()
+        StreamCallback decryptionCallback = encryptor.getDecryptionCallback()
+
+        encryptionCallback.process(plainStream, cipherStream)
+
+        final byte[] cipherBytes = ((ByteArrayOutputStream) cipherStream).toByteArray()
+
+        // Remove IV Delimiter
+        final String cipherString = new String(cipherBytes, StandardCharsets.UTF_8)
+        final byte[] removedIVDelimiterCipherBytes = cipherString.split(IV_DELIMITER)[1].getBytes(StandardCharsets.UTF_8)
+
+        InputStream cipherInputStream = new ByteArrayInputStream(removedIVDelimiterCipherBytes)
+
+        Exception exception = Assert.assertThrows(Exception.class, () -> {
+            decryptionCallback.process(cipherInputStream, recoveredStream)
+        })
+
+        // Assert
+        assert exception.getCause() instanceof BytePatternNotFoundException
     }
 }
