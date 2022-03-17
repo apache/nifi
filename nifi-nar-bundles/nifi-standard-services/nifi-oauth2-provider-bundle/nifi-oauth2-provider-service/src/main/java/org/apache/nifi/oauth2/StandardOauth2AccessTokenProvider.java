@@ -44,11 +44,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})
 @CapabilityDescription("Provides OAuth 2.0 access tokens that can be used as Bearer authorization header in HTTP requests." +
@@ -120,9 +122,18 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
+            .name("refresh-window")
+            .displayName("Refresh Window")
+            .description("The service will attempt to refresh tokens expiring within the refresh window, subtracting the configured duration from the token expiration.")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 s")
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
         .name("ssl-context-service")
-        .displayName("SSL Context Servuce")
+        .displayName("SSL Context Service")
         .addValidator(Validator.VALID)
         .identifiesControllerService(SSLContextService.class)
         .required(false)
@@ -135,6 +146,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         PASSWORD,
         CLIENT_ID,
         CLIENT_SECRET,
+        REFRESH_WINDOW,
         SSL_CONTEXT
     ));
 
@@ -150,6 +162,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String password;
     private volatile String clientId;
     private volatile String clientSecret;
+    private volatile long refreshWindowSeconds;
 
     private volatile AccessToken accessDetails;
 
@@ -169,6 +182,8 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         password = context.getProperty(PASSWORD).getValue();
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
+
+        refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
     }
 
     @OnDisabled
@@ -215,14 +230,14 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     public AccessToken getAccessDetails() {
         if (this.accessDetails == null) {
             acquireAccessDetails();
-        } else if (this.accessDetails.isExpired()) {
+        } else if (isRefreshRequired()) {
             if (this.accessDetails.getRefreshToken() == null) {
                 acquireAccessDetails();
             } else {
                 try {
                     refreshAccessDetails();
                 } catch (Exception e) {
-                    getLogger().info("Couldn't refresh access token", e);
+                    getLogger().info("Refresh Access Token request failed [{}]", authorizationServerUrl, e);
                     acquireAccessDetails();
                 }
             }
@@ -232,7 +247,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void acquireAccessDetails() {
-        getLogger().debug("Getting a new access token");
+        getLogger().debug("New Access Token request started [{}]", authorizationServerUrl);
 
         FormBody.Builder acquireTokenBuilder = new FormBody.Builder();
 
@@ -260,7 +275,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private void refreshAccessDetails() {
-        getLogger().debug("Refreshing access token");
+        getLogger().debug("Refresh Access Token request started [{}]", authorizationServerUrl);
 
         FormBody.Builder refreshTokenBuilder = new FormBody.Builder()
             .add("grant_type", "refresh_token")
@@ -296,5 +311,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         } catch (IOException e) {
             throw new UncheckedIOException("OAuth2 access token request failed", e);
         }
+    }
+
+    private boolean isRefreshRequired() {
+        final Instant expirationRefreshTime = accessDetails.getFetchTime()
+                .plusSeconds(accessDetails.getExpiresIn())
+                .minusSeconds(refreshWindowSeconds);
+
+        return Instant.now().isAfter(expirationRefreshTime);
     }
 }
