@@ -641,7 +641,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         GetObjectTaggingResult taggingResult = null;
         if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
             try {
-                taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+                taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey(), versionSummary.getVersionId()));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain Object Tags for S3 Object {} in bucket {}. Will list S3 Object without the object tags",
                     new Object[] {versionSummary.getKey(), versionSummary.getBucketName()}, e);
