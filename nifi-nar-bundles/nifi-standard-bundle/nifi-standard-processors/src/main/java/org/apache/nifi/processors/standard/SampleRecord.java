@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.Range;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -46,6 +47,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -59,11 +61,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"record", "sample"})
+@Tags({"record", "sample", "reservoir", "range", "interval"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Samples the records of a FlowFile based on a specified sampling strategy (such as Reservoir Sampling). The resulting "
         + "FlowFile may be of a fixed number of records (in the case of reservoir-based algorithms) or some subset of the total number of records "
@@ -72,17 +76,26 @@ import java.util.Set;
 public class SampleRecord extends AbstractProcessor {
 
     static final String INTERVAL_SAMPLING_KEY = "interval";
+    static final String RANGE_SAMPLING_KEY = "range";
     static final String PROBABILISTIC_SAMPLING_KEY = "probabilistic";
     static final String RESERVOIR_SAMPLING_KEY = "reservoir";
 
     static final AllowableValue INTERVAL_SAMPLING = new AllowableValue(INTERVAL_SAMPLING_KEY, "Interval Sampling",
             "Selects every Nth record where N is the value of the 'Interval Value' property");
+    static final AllowableValue RANGE_SAMPLING = new AllowableValue(RANGE_SAMPLING_KEY, "Range Sampling",
+            "Creates a sample of records based on the index (i.e. record number) of the records using the specified range. An example is '3,6-8,20-' which includes the third record, "
+                    + "the sixth, seventh and eighth record, and all records from the twentieth record on. Commas separate intervals that don't overlap, and an interval can be between two numbers "
+                    + "(i.e. 6-8) or up to a given number (i.e. -5), or from a number to the number of the last record (i.e. 20-).");
     static final AllowableValue PROBABILISTIC_SAMPLING = new AllowableValue(PROBABILISTIC_SAMPLING_KEY, "Probabilistic Sampling",
             "Selects each record with probability P where P is the value of the 'Selection Probability' property");
     static final AllowableValue RESERVOIR_SAMPLING = new AllowableValue(RESERVOIR_SAMPLING_KEY, "Reservoir Sampling",
             "Creates a sample of K records where each record has equal probability of being included, where K is "
                     + "the value of the 'Reservoir Size' property. Note that if the value is very large it may cause memory issues as "
                     + "the reservoir is kept in-memory.");
+
+    private final static Pattern RANGE_PATTERN = Pattern.compile("^([0-9]+)?(-)?([0-9]+)?(,([0-9]+)?-?([0-9]+)?)*?");
+    private final static Pattern INTERVAL_PATTERN = Pattern.compile("([0-9]+)?(-)?([0-9]+)?(?:,|$)");
+
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
             .name("record-reader")
@@ -102,7 +115,7 @@ public class SampleRecord extends AbstractProcessor {
             .name("sample-record-sampling-strategy")
             .displayName("Sampling Strategy")
             .description("Specifies which method to use for sampling records from the incoming FlowFile")
-            .allowableValues(INTERVAL_SAMPLING, PROBABILISTIC_SAMPLING, RESERVOIR_SAMPLING)
+            .allowableValues(INTERVAL_SAMPLING, RANGE_SAMPLING, PROBABILISTIC_SAMPLING, RESERVOIR_SAMPLING)
             .required(true)
             .defaultValue(RESERVOIR_SAMPLING.getValue())
             .addValidator(Validator.VALID)
@@ -114,9 +127,21 @@ public class SampleRecord extends AbstractProcessor {
                     + "used if Sampling Strategy is set to Interval Sampling. A value of zero (0) will cause no records to be included in the"
                     + "outgoing FlowFile, a value of one (1) will cause all records to be included, and a value of two (2) will cause half the "
                     + "records to be included, and so on.")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SAMPLING_STRATEGY, INTERVAL_SAMPLING)
+            .build();
+    static final PropertyDescriptor SAMPLING_RANGE = new PropertyDescriptor.Builder()
+            .name("sample-record-range")
+            .displayName("Sampling Range")
+            .description("Specifies the range of records to include in the sample, from 1 to the total number of records. An example is '3,6-8,20-' which includes the third record, the sixth, "
+                    + "seventh and eighth records, and all records from the twentieth record on. Commas separate intervals that don't overlap, and an interval can be between two numbers "
+                    + "(i.e. 6-8) or up to a given number (i.e. -5), or from a number to the number of the last record (i.e. 20-). If this property is unset, all records will be included.")
+            .required(true)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SAMPLING_STRATEGY, RANGE_SAMPLING)
             .build();
     static final PropertyDescriptor SAMPLING_PROBABILITY = new PropertyDescriptor.Builder()
             .name("sample-record-probability")
@@ -124,18 +149,20 @@ public class SampleRecord extends AbstractProcessor {
             .description("Specifies the probability (as a percent from 0-100) of a record being included in the outgoing FlowFile. This property is only "
                     + "used if Sampling Strategy is set to Probabilistic Sampling. A value of zero (0) will cause no records to be included in the"
                     + "outgoing FlowFile, and a value of 100 will cause all records to be included in the outgoing FlowFile..")
-            .required(false)
+            .required(true)
             .addValidator(StandardValidators.createLongValidator(0, 100, true))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SAMPLING_STRATEGY, PROBABILISTIC_SAMPLING)
             .build();
     static final PropertyDescriptor RESERVOIR_SIZE = new PropertyDescriptor.Builder()
             .name("sample-record-reservoir")
             .displayName("Reservoir Size")
             .description("Specifies the number of records to write to the outgoing FlowFile. This property is only used if Sampling Strategy is set to "
-                    + "reservoir-based strategies such as Reservoir Sampling or Weighted Random Sampling.")
-            .required(false)
+                    + "reservoir-based strategies such as Reservoir Sampling.")
+            .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SAMPLING_STRATEGY, RESERVOIR_SAMPLING)
             .build();
 
     static final PropertyDescriptor RANDOM_SEED = new PropertyDescriptor.Builder()
@@ -146,6 +173,7 @@ public class SampleRecord extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.LONG_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(SAMPLING_STRATEGY, PROBABILISTIC_SAMPLING, RESERVOIR_SAMPLING)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
@@ -173,6 +201,7 @@ public class SampleRecord extends AbstractProcessor {
         props.add(RECORD_WRITER_FACTORY);
         props.add(SAMPLING_STRATEGY);
         props.add(SAMPLING_INTERVAL);
+        props.add(SAMPLING_RANGE);
         props.add(SAMPLING_PROBABILITY);
         props.add(RESERVOIR_SIZE);
         props.add(RANDOM_SEED);
@@ -207,6 +236,25 @@ public class SampleRecord extends AbstractProcessor {
                 results.add(new ValidationResult.Builder().subject(INTERVAL_SAMPLING.getDisplayName()).valid(false)
                         .explanation(SAMPLING_INTERVAL.getDisplayName() + " property must be set to use " + INTERVAL_SAMPLING.getDisplayName() + " strategy")
                         .build());
+            }
+        } else if (RANGE_SAMPLING_KEY.equals(samplingStrategyValue)) {
+            final PropertyValue samplingRangeProperty = validationContext.getProperty(SAMPLING_RANGE);
+            if (!samplingRangeProperty.isSet()) {
+                results.add(new ValidationResult.Builder().subject(RANGE_SAMPLING.getDisplayName()).valid(false)
+                        .explanation(SAMPLING_RANGE.getDisplayName() + " property must be set to use " + RANGE_SAMPLING.getDisplayName() + " strategy")
+                        .build());
+            }
+            if (!samplingRangeProperty.isExpressionLanguagePresent()) {
+                // Try to parse/validate the range expression if no NiFi Expression Language is present
+                final String rangeExpression = samplingRangeProperty.getValue();
+                if (rangeExpression != null) {
+                    Matcher m = RANGE_PATTERN.matcher(rangeExpression);
+                    if (!m.matches()) {
+                        results.add(new ValidationResult.Builder().subject(RANGE_SAMPLING.getDisplayName()).valid(false)
+                                .explanation("range expression is not valid")
+                                .build());
+                    }
+                }
             }
         } else if (PROBABILISTIC_SAMPLING_KEY.equals(samplingStrategyValue)) {
             final PropertyValue samplingProbabilityProperty = validationContext.getProperty(SAMPLING_PROBABILITY);
@@ -252,6 +300,9 @@ public class SampleRecord extends AbstractProcessor {
             if (INTERVAL_SAMPLING_KEY.equals(samplingStrategyValue)) {
                 final int intervalValue = context.getProperty(SAMPLING_INTERVAL).evaluateAttributeExpressions(outFlowFile).asInteger();
                 samplingStrategy = new IntervalSamplingStrategy(recordSetWriter, intervalValue);
+            } else if (RANGE_SAMPLING_KEY.equals(samplingStrategyValue)) {
+                final String rangeExpression = context.getProperty(SAMPLING_RANGE).evaluateAttributeExpressions(outFlowFile).getValue();
+                samplingStrategy = new RangeSamplingStrategy(recordSetWriter, rangeExpression);
             } else if (PROBABILISTIC_SAMPLING_KEY.equals(samplingStrategyValue)) {
                 final int probabilityValue = context.getProperty(SAMPLING_PROBABILITY).evaluateAttributeExpressions(outFlowFile).asInteger();
                 final Long randomSeed = context.getProperty(RANDOM_SEED).isSet()
@@ -324,6 +375,86 @@ public class SampleRecord extends AbstractProcessor {
                 writer.write(record);
                 currentCount = 0;
             }
+        }
+
+        @Override
+        public WriteResult finish() throws IOException {
+            return writer.finishRecordSet();
+        }
+    }
+
+    static class RangeSamplingStrategy implements SamplingStrategy {
+
+        final RecordSetWriter writer;
+        final String rangeExpression;
+        int currentCount = 1;
+        final List<Range<Integer>> ranges = new ArrayList<>();
+
+        RangeSamplingStrategy(final RecordSetWriter writer, final String rangeExpression) {
+            this.writer = writer;
+            this.rangeExpression = rangeExpression;
+        }
+
+        @Override
+        public void init() throws IOException {
+            currentCount = 1;
+            ranges.clear();
+            writer.beginRecordSet();
+            Matcher validateRangeExpression = RANGE_PATTERN.matcher(rangeExpression);
+            if (!validateRangeExpression.matches()) {
+                throw new IOException(rangeExpression + " is not a valid range expression");
+            }
+            Integer startRange, endRange;
+            if (StringUtils.isEmpty(rangeExpression)) {
+                startRange = 0;
+                endRange = Integer.MAX_VALUE;
+                ranges.add(Range.between(startRange, endRange));
+            } else {
+                Matcher m = INTERVAL_PATTERN.matcher(rangeExpression);
+                while (m.find()) {
+                    // groupCount will be 3, need to check nulls to see if it's a range or single number. Groups that are all null are ignored
+                    if (m.group(1) == null && m.group(2) == null && m.group(3) == null) {
+                        continue;
+                    }
+
+                    if (m.group(1) != null) {
+                        startRange = Integer.parseInt(m.group(1));
+                    } else if ("-".equals(m.group(2))) {
+                        startRange = 0;
+                    } else {
+                        startRange = null;
+                    }
+                    if (m.group(3) != null) {
+                        endRange = Integer.parseInt(m.group(3));
+                    } else if ("-".equals(m.group(2))) {
+                        endRange = Integer.MAX_VALUE;
+                    } else {
+                        endRange = null;
+                    }
+
+                    final Range<Integer> range;
+
+                    if (startRange != null && endRange == null) {
+                        // Single value
+                        range = Range.between(startRange, startRange);
+                    } else {
+                        range = Range.between(startRange, endRange);
+                    }
+                    ranges.add(range);
+                }
+            }
+        }
+
+        @Override
+        public void sample(Record record) throws IOException {
+            // Check the current record number against the specified ranges
+            for (Range<Integer> range : ranges) {
+                if (range.contains(currentCount)) {
+                    writer.write(record);
+                    break;
+                }
+            }
+            currentCount++;
         }
 
         @Override
