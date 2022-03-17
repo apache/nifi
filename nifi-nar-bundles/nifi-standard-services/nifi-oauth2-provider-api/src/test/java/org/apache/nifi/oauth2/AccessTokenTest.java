@@ -25,6 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AccessTokenTest {
+    private static final long FIVE_MINUTES_AGO = -300;
+
+    private static final long IN_FIVE_MINUTES = 300;
+
     private Instant now;
 
     @BeforeEach
@@ -33,22 +37,15 @@ public class AccessTokenTest {
     }
 
     @Test
-    public void testIsExpiredInLessThan5Minutes() {
-        final AccessToken accessToken = getAccessToken(299);
+    public void testIsExpiredFiveMinutesAgo() {
+        final AccessToken accessToken = getAccessToken(FIVE_MINUTES_AGO);
 
         assertTrue(accessToken.isExpired());
     }
 
     @Test
-    public void testIsExpiredInExactly5Minutes() {
-        final AccessToken accessToken = getAccessToken(300);
-
-        assertFalse(accessToken.isExpired());
-    }
-
-    @Test
-    public void testIsExpiredInMoreThan5Minutes() {
-        final AccessToken accessToken = getAccessToken(301);
+    public void testIsExpiredInFiveMinutes() {
+        final AccessToken accessToken = getAccessToken(IN_FIVE_MINUTES);
 
         assertFalse(accessToken.isExpired());
     }

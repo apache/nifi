@@ -43,11 +43,13 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -60,6 +62,7 @@ public class StandardOauth2AccessTokenProviderTest {
     private static final String PASSWORD = "password";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
+    private static final long FIVE_MINUTES = 300;
 
     private StandardOauth2AccessTokenProvider testSubject;
 
@@ -71,8 +74,6 @@ public class StandardOauth2AccessTokenProviderTest {
 
     @Mock
     private ComponentLog mockLogger;
-    @Captor
-    private ArgumentCaptor<String> debugCaptor;
     @Captor
     private ArgumentCaptor<String> errorCaptor;
     @Captor
@@ -98,6 +99,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
 
         testSubject.onEnabled(mockContext);
     }
@@ -378,13 +380,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     private void checkLoggedDebugWhenRefreshFails() {
-        verify(mockLogger, times(3)).debug(debugCaptor.capture());
-        List<String> actualDebugMessages = debugCaptor.getAllValues();
-
-        assertEquals(
-            Arrays.asList("Getting a new access token", "Refreshing access token", "Getting a new access token"),
-            actualDebugMessages
-        );
+        verify(mockLogger, times(3)).debug(anyString(), eq(AUTHORIZATION_SERVER_URL));
     }
 
     private void checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(List<String> expectedLoggedError) {
@@ -395,7 +391,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     private void checkLoggedRefreshError(Throwable expectedRefreshError) {
-        verify(mockLogger).info(eq("Couldn't refresh access token"), throwableCaptor.capture());
+        verify(mockLogger).info(anyString(), eq(AUTHORIZATION_SERVER_URL), throwableCaptor.capture());
         Throwable actualRefreshError = throwableCaptor.getValue();
 
         checkError(expectedRefreshError, actualRefreshError);
