@@ -19,62 +19,12 @@ package org.apache.nifi.flow;
 
 import io.swagger.annotations.ApiModelProperty;
 
-import java.util.Map;
+public class VersionedReportingTask extends VersionedConfigurableExtension {
 
-public class VersionedReportingTask extends VersionedComponent implements VersionedConfigurableComponent, VersionedExtensionComponent {
-    private String type;
-    private Bundle bundle;
-    private Map<String, String> properties;
-    private Map<String, VersionedPropertyDescriptor> propertyDescriptors;
     private String annotationData;
     private ScheduledState scheduledState;
     private String schedulingPeriod;
     private String schedulingStrategy;
-
-
-    @Override
-    @ApiModelProperty(value = "The type of the reporting task.")
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    public void setType(final String type) {
-        this.type = type;
-    }
-
-    @Override
-    @ApiModelProperty(value = "The details of the artifact that bundled this reporting task type.")
-    public Bundle getBundle() {
-        return bundle;
-    }
-
-    @Override
-    public void setBundle(Bundle bundle) {
-        this.bundle = bundle;
-    }
-
-    @Override
-    @ApiModelProperty(value = "The properties of the reporting task.")
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    @Override
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
-    }
-
-    @Override
-    @ApiModelProperty("The property descriptors for the reporting task.")
-    public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
-        return propertyDescriptors;
-    }
-
-    @Override
-    public void setPropertyDescriptors(Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        this.propertyDescriptors = propertyDescriptors;
-    }
 
     @ApiModelProperty(value = "The annotation for the reporting task. This is how the custom UI relays configuration to the reporting task.")
     public String getAnnotationData() {
