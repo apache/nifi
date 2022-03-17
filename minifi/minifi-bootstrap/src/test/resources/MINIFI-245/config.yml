@@ -34,7 +34,7 @@ FlowFile Repository:
     out period: 5 sec
     out threads: 4
 Content Repository:
-  implementation: org.apache.nifi.controller.repository.VolatileContentRepository
+  implementation: org.apache.nifi.controller.repository.OtherContentRepository
   content claim max appendable size: 10 MB
   content claim max flow files: 100
   always sync: false
