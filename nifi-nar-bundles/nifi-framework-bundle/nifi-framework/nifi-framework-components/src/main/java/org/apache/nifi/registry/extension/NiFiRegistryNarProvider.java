@@ -77,7 +77,7 @@ public class NiFiRegistryNarProvider implements NarProvider {
             final Set<NiFiRegistryExtensionBundleMetadata> bundleMetadata = extensionRegistry.getExtensionBundleMetadata(null);
             return bundleMetadata.stream().map(bm -> bm.toLocationString()).collect(Collectors.toSet());
         } catch (final ExtensionRegistryException ere) {
-            LOGGER.error("Unable to retrieve listing of NARs from NiFi Registry at []", extensionRegistry.getURL(), ere);
+            LOGGER.error("Unable to retrieve listing of NARs from NiFi Registry at [{}]", extensionRegistry.getURL(), ere);
             return Collections.emptySet();
         }
     }
