@@ -37,6 +37,7 @@ import java.util.Map;
 public class CommaSeparatedRecordReader extends AbstractControllerService implements RecordReaderFactory {
     private int failAfterN;
     private int recordCount = 0;
+    private boolean useNullForEmptyString = false;
 
     public CommaSeparatedRecordReader() {
         this(-1);
@@ -48,6 +49,10 @@ public class CommaSeparatedRecordReader extends AbstractControllerService implem
 
     public void failAfter(final int failAfterN) {
         this.failAfterN = failAfterN;
+    }
+
+    public void setUseNullForEmptyString(final boolean useNullForEmptyString) {
+        this.useNullForEmptyString = useNullForEmptyString;
     }
 
     @Override
@@ -86,7 +91,18 @@ public class CommaSeparatedRecordReader extends AbstractControllerService implem
                 int i = 0;
                 for (final RecordField field : fields) {
                     final String fieldName = field.getFieldName();
-                    valueMap.put(fieldName, values[i++].trim());
+                    if (i >= values.length) {
+                        valueMap.put(fieldName, null);
+                    } else {
+                        final String trimmed = values[i].trim();
+                        if (useNullForEmptyString && trimmed.isEmpty()) {
+                            valueMap.put(fieldName, null);
+                        } else {
+                            valueMap.put(fieldName, trimmed);
+                        }
+                    }
+
+                    i++;
                 }
 
                 return new MapRecord(new SimpleRecordSchema(fields), valueMap);

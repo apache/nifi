@@ -18,13 +18,13 @@ package org.apache.nifi.processors.aws.wag;
 
 import okhttp3.mockwebserver.MockWebServer;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestInvokeInvokeAmazonGatewayApi extends TestInvokeAWSGatewayApiCommon {
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(InvokeAWSGatewayApi.class);
         runner.setValidateExpressionUsage(false);
@@ -32,7 +32,7 @@ public class TestInvokeInvokeAmazonGatewayApi extends TestInvokeAWSGatewayApiCom
         mockWebServer = new MockWebServer();
     }
 
-    @After
+    @AfterEach
     public void after() {
         runner.shutdown();
     }

@@ -27,19 +27,24 @@ import org.apache.nifi.hazelcast.services.DummyStringSerializer;
 import org.apache.nifi.hazelcast.services.cache.HashMapHazelcastCache;
 import org.apache.nifi.hazelcast.services.cachemanager.HazelcastCacheManager;
 import org.apache.nifi.logging.ComponentLog;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(MockitoJUnitRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ExtendWith(MockitoExtension.class)
 public class HazelcastMapCacheClientTest {
 
     private final static long TTL = 0;
@@ -75,7 +80,7 @@ public class HazelcastMapCacheClientTest {
     private HashMapHazelcastCache cache;
     private HazelcastMapCacheClient testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         cache = new HashMapHazelcastCache(CACHE_NAME);
 
@@ -145,13 +150,13 @@ public class HazelcastMapCacheClientTest {
         thenEntryIsNotInCache();
 
         // when
-        Assert.assertNull(whenGetAndPutIfAbsent(VALUE));
+        assertNull(whenGetAndPutIfAbsent(VALUE));
 
         // then
         thenGetEntryEquals(VALUE);
 
         // when
-        Assert.assertEquals(VALUE, whenGetAndPutIfAbsent(VALUE_2));
+        assertEquals(VALUE, whenGetAndPutIfAbsent(VALUE_2));
 
         // then
         thenGetEntryEquals(VALUE);
@@ -301,15 +306,15 @@ public class HazelcastMapCacheClientTest {
         final Double result = testSubject.get(key, keySerializer, valueDeserializer);
 
         // then
-        Assert.assertEquals(value, result);
+        assertEquals(value, result);
     }
 
     private void whenRemoveEntryIsSuccessful() throws IOException {
-        Assert.assertTrue(testSubject.remove(KEY, SERIALIZER));
+        assertTrue(testSubject.remove(KEY, SERIALIZER));
     }
 
     private void whenRemoveEntryIsUnsuccessful() throws IOException {
-        Assert.assertFalse(testSubject.remove(KEY, SERIALIZER));
+        assertFalse(testSubject.remove(KEY, SERIALIZER));
     }
 
     private void whenPutEntry(final String value) throws IOException {
@@ -321,11 +326,11 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void whenPutIfAbsentIsSuccessful(final String value) throws IOException {
-        Assert.assertTrue(testSubject.putIfAbsent(KEY, value, SERIALIZER, SERIALIZER));
+        assertTrue(testSubject.putIfAbsent(KEY, value, SERIALIZER, SERIALIZER));
     }
 
     private void whenPutIfAbsentIsFailed(final String value) throws IOException {
-        Assert.assertFalse(testSubject.putIfAbsent(KEY, value, SERIALIZER, SERIALIZER));
+        assertFalse(testSubject.putIfAbsent(KEY, value, SERIALIZER, SERIALIZER));
     }
 
     private String whenGetAndPutIfAbsent(final String value) throws IOException {
@@ -334,16 +339,16 @@ public class HazelcastMapCacheClientTest {
 
     private void whenReplaceEntryIsSuccessful(final Long version, final String newValue) throws IOException {
         final AtomicCacheEntry<String, String, Long> cacheEntry = new AtomicCacheEntry<>(KEY, newValue, version);
-        Assert.assertTrue(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
+        assertTrue(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
     }
 
     private void whenReplaceEntryIsFailed(final Long version, final String newValue) throws IOException {
         final AtomicCacheEntry<String, String, Long> cacheEntry = new AtomicCacheEntry<>(KEY, newValue, version);
-        Assert.assertFalse(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
+        assertFalse(testSubject.replace(cacheEntry, SERIALIZER, SERIALIZER));
     }
 
     private void thenEntryIsNotInCache(final String key) throws IOException {
-        Assert.assertFalse(testSubject.containsKey(key, SERIALIZER));
+        assertFalse(testSubject.containsKey(key, SERIALIZER));
     }
 
     private void thenEntryIsNotInCache() throws IOException {
@@ -351,7 +356,7 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void thenEntryIsInCache(final String key) throws IOException {
-        Assert.assertTrue(testSubject.containsKey(key, SERIALIZER));
+        assertTrue(testSubject.containsKey(key, SERIALIZER));
     }
 
     private void thenEntryIsInCache() throws IOException {
@@ -359,22 +364,22 @@ public class HazelcastMapCacheClientTest {
     }
 
     private void thenFetchedEntryIsNull() throws Exception {
-        Assert.assertNull(testSubject.fetch(KEY, SERIALIZER, SERIALIZER));
+        assertNull(testSubject.fetch(KEY, SERIALIZER, SERIALIZER));
     }
 
     private void thenFetchedEntryEquals(final long version, final String value) throws IOException {
         final AtomicCacheEntry<String, String, Long> result = testSubject.fetch(KEY, SERIALIZER, SERIALIZER);
-        Assert.assertNotNull(result);
-        Assert.assertEquals(version, result.getRevision().get().longValue());
-        Assert.assertEquals(KEY, result.getKey());
-        Assert.assertEquals(value, result.getValue());
+        assertNotNull(result);
+        assertEquals(version, result.getRevision().get().longValue());
+        assertEquals(KEY, result.getKey());
+        assertEquals(value, result.getValue());
     }
 
     private void thenGetEntryEquals(final String value) throws IOException {
-        Assert.assertEquals(value, testSubject.get(KEY, SERIALIZER, SERIALIZER));
+        assertEquals(value, testSubject.get(KEY, SERIALIZER, SERIALIZER));
     }
 
     private void thenEntryIsNotLocked() {
-        Assert.assertFalse(cache.getLockedEntries().contains(KEY));
+        assertFalse(cache.getLockedEntries().contains(KEY));
     }
 }

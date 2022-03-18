@@ -93,7 +93,7 @@ NfRegistryCreateNewGroup.annotations = [
     new Component({
         templateUrl: './nf-registry-create-new-group.html',
         queries: {
-            createNewGroupInput: new ViewChild('createNewGroupInput')
+            createNewGroupInput: new ViewChild('createNewGroupInput', { static: true })
         }
     })
 ];

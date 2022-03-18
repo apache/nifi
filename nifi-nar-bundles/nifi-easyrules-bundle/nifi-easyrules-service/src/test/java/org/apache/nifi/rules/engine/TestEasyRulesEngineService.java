@@ -20,17 +20,17 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-import org.mvel2.PropertyAccessException;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestEasyRulesEngineService {
 
@@ -225,12 +225,7 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("fakeMetric",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
-        try {
-            service.fireRules(facts);
-            fail("Expected exception to be thrown");
-        }catch (Exception pae){
-            assert true;
-        }
+        assertThrows(Exception.class, () -> service.fireRules(facts));
     }
 
     @Test
@@ -247,13 +242,11 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("fakeMetric",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
-        try {
+        assertDoesNotThrow(() -> {
             List<Action> actions = service.fireRules(facts);
             assertNotNull(actions);
             assertEquals(actions.size(), 1);
-        }catch (PropertyAccessException pae){
-            fail();
-        }
+        });
     }
 
     @Test
@@ -270,12 +263,7 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("fakeMetric",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
-        try {
-            service.fireRules(facts);
-            fail("Expected exception to be thrown");
-        }catch (Exception pae){
-            assert true;
-        }
+        assertThrows(Exception.class, () -> service.fireRules(facts));
     }
 
     @Test
@@ -292,13 +280,11 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("fakeMetric",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
-        try {
+        assertDoesNotThrow(() -> {
             List<Action> actions = service.fireRules(facts);
             assertNotNull(actions);
             assertEquals(actions.size(), 1);
-        }catch (PropertyAccessException pae){
-            fail();
-        }
+        });
     }
 
     @Test
@@ -315,12 +301,7 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("fakeMetric",60);
         facts.put("fakeMetric2",299999);
-        try {
-            service.fireRules(facts);
-            fail("Expected exception to be thrown");
-        }catch (Exception pae){
-            assert true;
-        }
+        assertThrows(Exception.class, () -> service.fireRules(facts));
     }
 
     @Test
@@ -337,13 +318,12 @@ public class TestEasyRulesEngineService {
         Map<String, Object> facts = new HashMap<>();
         facts.put("predictedQueuedCount",60);
         facts.put("predictedTimeToBytesBackpressureMillis",299999);
-        try {
+
+        assertDoesNotThrow(() -> {
             List<Action> actions = service.fireRules(facts);
             assertNotNull(actions);
             assertEquals(actions.size(), 1);
-        }catch (Exception pae){
-            fail();
-        }
+        });
     }
 
     @Test

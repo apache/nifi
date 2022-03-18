@@ -811,6 +811,7 @@ public final class DtoFactory {
         dto.setLabel(label.getValue());
         dto.setParentGroupId(label.getProcessGroup().getIdentifier());
         dto.setVersionedComponentId(label.getVersionedComponentId().orElse(null));
+        dto.setzIndex(label.getZIndex());
 
         return dto;
     }
@@ -1870,7 +1871,7 @@ public final class DtoFactory {
         dto.setName(group.getName());
         dto.setPosition(createPositionDto(group.getPosition()));
         dto.setComments(group.getComments());
-        dto.setTransmitting(group.isTransmitting());
+        dto.setTransmitting(group.isConfiguredToTransmit());
         dto.setCommunicationsTimeout(group.getCommunicationsTimeout());
         dto.setYieldDuration(group.getYieldDuration());
         dto.setParentGroupId(group.getProcessGroup().getIdentifier());
@@ -4103,6 +4104,7 @@ public final class DtoFactory {
         copy.setWidth(original.getWidth());
         copy.setHeight(original.getHeight());
         copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setzIndex(original.getzIndex());
 
         return copy;
     }

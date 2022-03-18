@@ -174,12 +174,10 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
 
     private void unschedule(final Object scheduled, final LifecycleState scheduleState) {
         final List<AtomicBoolean> triggers = canceledTriggers.remove(scheduled);
-        if (triggers == null) {
-            throw new IllegalStateException("Cannot unschedule " + scheduled + " because it was not scheduled to run");
-        }
-
-        for (final AtomicBoolean trigger : triggers) {
-            trigger.set(true);
+        if (triggers != null) {
+            for (final AtomicBoolean trigger : triggers) {
+                trigger.set(true);
+            }
         }
 
         scheduleState.setScheduled(false);

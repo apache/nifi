@@ -20,7 +20,8 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 import org.apache.nifi.processors.evtx.parser.BinaryReader;
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
 import org.apache.nifi.processors.evtx.parser.bxml.value.NullTypeNode;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
@@ -37,6 +38,7 @@ public class AttributeNodeTest extends BxmlNodeWithTokenAndStringTestBase {
     private AttributeNode attributeNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         testBinaryReaderBuilder.put((byte) BxmlNode.VALUE_TOKEN);

@@ -200,6 +200,7 @@ public final class ConfigTransformer {
             orderedProperties.setProperty("nifi.ui.autorefresh.interval", "30 sec");
             orderedProperties.setProperty("nifi.nar.library.directory", "./lib");
             orderedProperties.setProperty("nifi.nar.working.directory", "./work/nar/");
+            orderedProperties.setProperty("nifi.nar.library.autoload.directory", "./extensions");
             orderedProperties.setProperty("nifi.documentation.working.directory", "./work/docs/components");
 
             orderedProperties.setProperty("nifi.state.management.configuration.file", "./conf/state-management.xml", System.lineSeparator() +

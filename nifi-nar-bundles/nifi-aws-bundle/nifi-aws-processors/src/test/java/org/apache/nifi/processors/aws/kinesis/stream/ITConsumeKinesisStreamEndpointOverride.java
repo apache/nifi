@@ -23,7 +23,7 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
@@ -45,7 +45,7 @@ public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStre
     private final AwsClientBuilder.EndpointConfiguration dynamoDBEndpointConfig =
             new AwsClientBuilder.EndpointConfiguration(LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE, REGION);
 
-    @Before
+    @BeforeEach
     public void setUp() throws InterruptedException {
         System.setProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY, "true");
 

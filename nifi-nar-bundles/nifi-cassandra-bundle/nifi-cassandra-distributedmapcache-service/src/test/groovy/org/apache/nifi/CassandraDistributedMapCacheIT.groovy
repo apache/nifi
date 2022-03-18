@@ -27,9 +27,10 @@ import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.service.CassandraSessionProvider
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.AfterClass
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
+
 /**
  * Setup instructions:
  *
@@ -46,7 +47,7 @@ class CassandraDistributedMapCacheIT {
     static CassandraDistributedMapCache distributedMapCache
     static Session session
 
-    @BeforeClass
+    @BeforeAll
     static void setup() {
         runner = TestRunners.newTestRunner(new AbstractProcessor() {
             @Override
@@ -82,7 +83,7 @@ class CassandraDistributedMapCacheIT {
         """)
     }
 
-    @AfterClass
+    @AfterAll
     static void cleanup() {
         session.execute("TRUNCATE dmc")
     }

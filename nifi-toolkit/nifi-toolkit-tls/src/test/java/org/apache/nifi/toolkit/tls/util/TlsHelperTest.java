@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.tls.util;
 
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.util.file.FileUtils;
 import org.bouncycastle.asn1.pkcs.Attribute;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.Extension;
@@ -31,18 +32,14 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.util.IPAddress;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.mockito.AdditionalMatchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,8 +51,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -63,10 +58,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.KeyStoreSpi;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.SignatureException;
@@ -82,21 +75,15 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TlsHelperTest {
     public static final Logger logger = LoggerFactory.getLogger(TlsHelperTest.class);
-
-    private static final boolean originalUnlimitedCrypto = TlsHelper.isUnlimitedStrengthCryptographyEnabled();
 
     private int days;
 
@@ -108,37 +95,16 @@ public class TlsHelperTest {
 
     private KeyPairGenerator keyPairGenerator;
 
-    private KeyStore keyStore;
+    private final String password = "changeit";
 
-    private String password = "changeit";
-
-    @Mock
-    KeyStoreSpi keyStoreSpi;
-
-    @Mock
-    Provider keyStoreProvider;
-
-    @Mock
+    @Mock(lenient = true)
     OutputStreamFactory outputStreamFactory;
-
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
 
     private ByteArrayOutputStream tmpFileOutputStream;
 
     private File file;
 
-    private static void setUnlimitedCrypto(boolean value) {
-        try {
-            Field isUnlimitedStrengthCryptographyEnabled = TlsHelper.class.getDeclaredField("isUnlimitedStrengthCryptographyEnabled");
-            isUnlimitedStrengthCryptographyEnabled.setAccessible(true);
-            isUnlimitedStrengthCryptographyEnabled.set(null, value);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static KeyPair loadKeyPair(Reader reader) throws IOException {
+    public static KeyPair loadKeyPair(final Reader reader) throws IOException {
         try (PEMParser pemParser = new PEMParser(reader)) {
             Object object = pemParser.readObject();
             assertEquals(PEMKeyPair.class, object.getClass());
@@ -147,10 +113,12 @@ public class TlsHelperTest {
     }
 
     public static KeyPair loadKeyPair(File file) throws IOException {
-        return loadKeyPair(new FileReader(file));
+        try (final FileReader fileReader = new FileReader(file)) {
+            return loadKeyPair(fileReader);
+        }
     }
 
-    public static X509Certificate loadCertificate(Reader reader) throws IOException, CertificateException {
+    public static X509Certificate loadCertificate(final Reader reader) throws IOException, CertificateException {
         try (PEMParser pemParser = new PEMParser(reader)) {
             Object object = pemParser.readObject();
             assertEquals(X509CertificateHolder.class, object.getClass());
@@ -158,30 +126,25 @@ public class TlsHelperTest {
         }
     }
 
-    public static X509Certificate loadCertificate(File file) throws IOException, CertificateException {
-        return loadCertificate(new FileReader(file));
+    public static X509Certificate loadCertificate(final File file) throws IOException, CertificateException {
+        try (FileReader fileReader = new FileReader(file)) {
+            return loadCertificate(fileReader);
+        }
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         days = 360;
         keySize = 2048;
         keyPairAlgorithm = "RSA";
-        signingAlgorithm = "SHA1WITHRSA";
+        signingAlgorithm = "SHA256WITHRSA";
         keyPairGenerator = KeyPairGenerator.getInstance(keyPairAlgorithm);
         keyPairGenerator.initialize(keySize);
-        Constructor<KeyStore> keyStoreConstructor = KeyStore.class.getDeclaredConstructor(KeyStoreSpi.class, Provider.class, String.class);
-        keyStoreConstructor.setAccessible(true);
-        keyStore = keyStoreConstructor.newInstance(keyStoreSpi, keyStoreProvider, "faketype");
-        keyStore.load(null, null);
-        file = File.createTempFile("keystore", "file");
-        when(outputStreamFactory.create(file)).thenReturn(tmpFileOutputStream);
-    }
 
-    @After
-    public void tearDown() {
-        setUnlimitedCrypto(originalUnlimitedCrypto);
-        file.delete();
+        file = File.createTempFile("keystore", "file");
+        file.deleteOnExit();
+        tmpFileOutputStream = new ByteArrayOutputStream();
+        when(outputStreamFactory.create(file)).thenReturn(tmpFileOutputStream);
     }
 
     private Date inFuture(int days) {
@@ -189,7 +152,7 @@ public class TlsHelperTest {
     }
 
     @Test
-    public void testTokenLengthInCalculateHmac() throws CertificateException, NoSuchAlgorithmException {
+    public void testTokenLengthInCalculateHmac() throws GeneralSecurityException {
         List<String> badTokens = new ArrayList<>();
         List<String> goodTokens = new ArrayList<>();
         badTokens.add(null);
@@ -214,17 +177,13 @@ public class TlsHelperTest {
         }
 
         for (String token : goodTokens) {
-            try {
-                byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
-                assertTrue("HMAC length ok", hmac.length > 0);
-            } catch (GeneralSecurityException e) {
-                fail(e.getMessage());
-            }
+            byte[] hmac = TlsHelper.calculateHMac(token, pubKey);
+            assertTrue(hmac.length > 0, "HMAC length OK");
         }
     }
 
     @Test
-    public void testGenerateSelfSignedCert() throws GeneralSecurityException, IOException, OperatorCreationException {
+    public void testGenerateSelfSignedCert() throws GeneralSecurityException {
         String dn = "CN=testDN,O=testOrg";
 
         X509Certificate x509Certificate = CertificateUtils.generateSelfSignedX509Certificate(TlsHelper.generateKeyPair(keyPairAlgorithm, keySize), dn, signingAlgorithm, days);
@@ -245,7 +204,7 @@ public class TlsHelperTest {
     }
 
     @Test
-    public void testIssueCert() throws IOException, CertificateException, NoSuchAlgorithmException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, SignatureException {
+    public void testIssueCert() throws IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, InvalidKeyException, SignatureException {
         X509Certificate issuer = loadCertificate(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.crt")));
         KeyPair issuerKeyPair = loadKeyPair(new InputStreamReader(getClass().getClassLoader().getResourceAsStream("rootCert.key")));
 
@@ -273,81 +232,9 @@ public class TlsHelperTest {
 
     @Test
     public void testWriteKeyStoreSuccess() throws IOException, GeneralSecurityException {
-        setUnlimitedCrypto(false);
         String testPassword = "testPassword";
+        final KeyStore keyStore = setupKeystore();
         assertEquals(testPassword, TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, false));
-        verify(keyStoreSpi, times(1)).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-    }
-
-    @Test
-    public void testWriteKeyStoreFailure() throws IOException, GeneralSecurityException {
-        setUnlimitedCrypto(false);
-        String testPassword = "testPassword";
-        IOException ioException = new IOException("Fail");
-        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        try {
-            TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, true);
-            fail("Expected " + ioException);
-        } catch (IOException e) {
-            assertEquals(ioException, e);
-        }
-    }
-
-    @Test
-    public void testWriteKeyStoreTruncate() throws IOException, GeneralSecurityException {
-        setUnlimitedCrypto(false);
-        String testPassword = "testPassword";
-        String truncatedPassword = testPassword.substring(0, 7);
-        IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
-        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        assertEquals(truncatedPassword, TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, true));
-        verify(keyStoreSpi, times(1)).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        verify(keyStoreSpi, times(1)).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(truncatedPassword.toCharArray()));
-    }
-
-    @Test
-    public void testWriteKeyStoreUnlimitedWontTruncate() throws GeneralSecurityException, IOException {
-        setUnlimitedCrypto(true);
-        String testPassword = "testPassword";
-        IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
-        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        try {
-            TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, true);
-            fail("Expected " + ioException);
-        } catch (IOException e) {
-            assertEquals(ioException, e);
-        }
-    }
-
-    @Test
-    public void testWriteKeyStoreNoTruncate() throws IOException, GeneralSecurityException {
-        setUnlimitedCrypto(false);
-        String testPassword = "testPassword";
-        IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
-        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        try {
-            TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, false);
-            fail("Expected " + GeneralSecurityException.class);
-        } catch (GeneralSecurityException e) {
-            assertTrue("Expected exception to contain " + TlsHelper.JCE_URL, e.getMessage().contains(TlsHelper.JCE_URL));
-        }
-    }
-
-    @Test
-    public void testWriteKeyStoreTruncateFailure() throws IOException, GeneralSecurityException {
-        setUnlimitedCrypto(false);
-        String testPassword = "testPassword";
-        String truncatedPassword = testPassword.substring(0, 7);
-        IOException ioException = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
-        IOException ioException2 = new IOException(TlsHelper.ILLEGAL_KEY_SIZE);
-        doThrow(ioException).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(testPassword.toCharArray()));
-        doThrow(ioException2).when(keyStoreSpi).engineStore(eq(tmpFileOutputStream), AdditionalMatchers.aryEq(truncatedPassword.toCharArray()));
-        try {
-            TlsHelper.writeKeyStore(keyStore, outputStreamFactory, file, testPassword, true);
-            fail("Expected " + ioException2);
-        } catch (IOException e) {
-            assertEquals(ioException2, e);
-        }
     }
 
     @Test
@@ -451,7 +338,7 @@ public class TlsHelperTest {
     }
 
     @Test
-    public void testClientDnFilenameSlashes() throws Exception {
+    public void testClientDnFilenameSlashes() {
         String clientDn = "OU=NiFi/Organisation,CN=testuser";
         String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
 
@@ -459,7 +346,7 @@ public class TlsHelperTest {
     }
 
     @Test
-    public void testClientDnFilenameSpecialChars() throws Exception {
+    public void testClientDnFilenameSpecialChars() {
         String clientDn = "OU=NiFi#!Organisation,CN=testuser";
         String escapedClientDn = TlsHelper.escapeFilename(CertificateUtils.reorderDn(clientDn));
 
@@ -467,18 +354,16 @@ public class TlsHelperTest {
     }
 
     private KeyStore setupKeystore() throws CertificateException, NoSuchAlgorithmException, IOException, KeyStoreException {
-
         KeyStore ks = KeyStore.getInstance("JKS");
-        InputStream readStream = getClass().getClassLoader().getResourceAsStream("keystore.jks");
-        ks.load(readStream, password.toCharArray());
-
+        try (InputStream readStream = getClass().getClassLoader().getResourceAsStream("keystore.jks")) {
+            ks.load(readStream, password.toCharArray());
+        }
         return ks;
     }
 
     @Test
-    public void testOutputToFileTwoCertsAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+    public void testOutputToFileTwoCertsAsPem(@TempDir final File folder) throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
 
         KeyStore keyStore = setupKeystore();
         HashMap<String, Certificate> certs = TlsHelper.extractCerts(keyStore);
@@ -486,28 +371,31 @@ public class TlsHelperTest {
 
         assertEquals(folder.listFiles().length, 2);
 
-        for(File file : folder.listFiles()) {
+        for (File file : folder.listFiles()) {
             X509Certificate certFromFile = loadCertificate(file);
             assertTrue(certs.containsValue(certFromFile));
             X509Certificate originalCert = (X509Certificate) certs.get(file.getName().split("\\.")[0]);
-            assertTrue(originalCert.equals(certFromFile));
+            assertEquals(originalCert, certFromFile);
             assertArrayEquals(originalCert.getSignature(), certFromFile.getSignature());
+            FileUtils.deleteFile(file, false);
         }
     }
 
     // Keystore contains two certificates, but one key. This is to test the edge case where a certificate does not have a key.
     @Test
-    public void testOutputToFileOneKeyAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
-        File folder = tempFolder.newFolder("splitKeystoreOutputDir");
+    public void testOutputToFileOneKeyAsPem(@TempDir final File folder) throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException {
         KeyStore keyStore = setupKeystore();
         HashMap<String, Key> keys = TlsHelper.extractKeys(keyStore, password.toCharArray());
         TlsHelper.outputKeysAsPem(keys, folder, ".key");
 
-        for(File file : folder.listFiles()) {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            PEMParser pemParser = new PEMParser(br);
-            PEMKeyPair key = (PEMKeyPair) pemParser.readObject();
-            assertArrayEquals(keys.get(file.getName().split("\\.")[0]).getEncoded(), key.getPrivateKeyInfo().getEncoded());
+        for (File file : folder.listFiles()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                PEMParser pemParser = new PEMParser(br);
+                PEMKeyPair key = (PEMKeyPair) pemParser.readObject();
+                assertArrayEquals(keys.get(file.getName().split("\\.")[0]).getEncoded(), key.getPrivateKeyInfo().getEncoded());
+            } finally {
+                FileUtils.deleteFile(file, false);
+            }
         }
     }
 
@@ -526,6 +414,4 @@ public class TlsHelperTest {
         assertEquals(1, keys.size());
         keys.forEach((String alias, Key key) -> assertEquals("PKCS#8", key.getFormat()));
     }
-
-
 }

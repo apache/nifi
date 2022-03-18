@@ -85,7 +85,7 @@ public class MiNiFi {
         // register the shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             // shutdown the jetty server
-            shutdownHook(true);
+            shutdownHook(false);
         }));
 
         final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);

@@ -16,22 +16,21 @@
  */
 package org.apache.nifi.processors.rethinkdb;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import com.google.gson.Gson;
+import com.rethinkdb.net.Connection;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-import com.google.gson.Gson;
-import com.rethinkdb.net.Connection;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestGetRethinkDB {
     private static final String DOCUMENT_ID = "id1";
@@ -39,7 +38,7 @@ public class TestGetRethinkDB {
     private AbstractRethinkDBProcessor mockGetRethinkDB;
     private Map<String,Object> document;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockGetRethinkDB = new GetRethinkDB() {
             @Override
@@ -66,7 +65,7 @@ public class TestGetRethinkDB {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }

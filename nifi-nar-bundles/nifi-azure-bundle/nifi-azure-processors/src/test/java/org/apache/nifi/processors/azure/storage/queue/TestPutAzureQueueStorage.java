@@ -17,21 +17,22 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import com.microsoft.azure.storage.StorageException;
-
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestPutAzureQueueStorage {
 
@@ -52,11 +53,11 @@ public class TestPutAzureQueueStorage {
             results = ((MockProcessContext) processContext).validate();
         }
 
-        Assert.assertEquals(2, results.size());
+        assertEquals(2, results.size());
 
         Iterator<ValidationResult> iterator = results.iterator();
-        Assert.assertTrue(iterator.next().toString().contains(PutAzureQueueStorage.TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days"));
-        Assert.assertTrue(iterator.next().toString().contains(PutAzureQueueStorage.VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than"));
+        assertTrue(iterator.next().toString().contains(PutAzureQueueStorage.TTL.getDisplayName() + " exceeds the allowed limit of 7 days. Set a value less than 7 days"));
+        assertTrue(iterator.next().toString().contains(PutAzureQueueStorage.VISIBILITY_DELAY.getDisplayName() + " should be greater than or equal to 0 and less than"));
     }
 
     @Test
@@ -73,7 +74,6 @@ public class TestPutAzureQueueStorage {
             results = ((MockProcessContext) processContext).validate();
         }
 
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
-
 }

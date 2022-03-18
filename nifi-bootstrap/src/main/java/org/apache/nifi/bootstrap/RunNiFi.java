@@ -1027,12 +1027,12 @@ public class RunNiFi {
         notifyStop();
         final long startWait = System.nanoTime();
         while (isProcessRunning(pid, logger)) {
-            logger.info("Waiting for Apache NiFi to finish shutting down...");
+            logger.info("NiFi PID [{}] shutdown in progress...", pid);
             final long waitNanos = System.nanoTime() - startWait;
             final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
             if (waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0) {
                 if (isProcessRunning(pid, logger)) {
-                    logger.warn("NiFi has not finished shutting down after {} seconds. Killing process.", gracefulShutdownSeconds);
+                    logger.warn("NiFi PID [{}] shutdown not completed after {} seconds: Killing process", gracefulShutdownSeconds);
                     try {
                         killProcessTree(pid, logger);
                     } catch (final IOException ioe) {
@@ -1056,7 +1056,7 @@ public class RunNiFi {
             logger.error("Failed to delete pid file {}; this file should be cleaned up manually", pidFile);
         }
 
-        logger.info("NiFi has finished shutting down.");
+        logger.info("NiFi PID [{}] shutdown completed", pid);
     }
 
     private static List<String> getChildProcesses(final String ppid) throws IOException {
@@ -1327,7 +1327,7 @@ public class RunNiFi {
             cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
         }
 
-        shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
+        shutdownHook = new ShutdownHook(process, pid, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
 
         final String hostname = getHostname();
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
@@ -1400,7 +1400,7 @@ public class RunNiFi {
                             cmdLogger.info("Launched Apache NiFi with Process ID " + pid);
                         }
 
-                        shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
+                        shutdownHook = new ShutdownHook(process, pid, this, secretKey, gracefulShutdownSeconds, loggingExecutor);
                         runtime.addShutdownHook(shutdownHook);
 
                         final boolean started = waitForStart();

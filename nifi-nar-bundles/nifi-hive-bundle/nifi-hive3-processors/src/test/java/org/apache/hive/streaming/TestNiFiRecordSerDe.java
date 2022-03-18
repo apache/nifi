@@ -30,7 +30,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnJre;
+import org.junit.jupiter.api.condition.JRE;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -40,9 +42,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@DisabledOnJre(value = JRE.JAVA_17, disabledReason = "Hive3 StringInternUtils illegal reflective access")
 public class TestNiFiRecordSerDe {
 
     @Test

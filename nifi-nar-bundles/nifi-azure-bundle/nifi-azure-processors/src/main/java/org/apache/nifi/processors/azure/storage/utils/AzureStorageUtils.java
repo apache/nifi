@@ -156,6 +156,17 @@ public final class AzureStorageUtils {
             .required(false)
             .build();
 
+    public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
+            .name("managed-identity-client-id")
+            .displayName("Managed Identity Client ID")
+            .description("Client ID of the managed identity. The property is required when User Assigned Managed Identity is used for authentication. " +
+                    "It must be empty in case of System Assigned Managed Identity.")
+            .sensitive(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
             .name("service-principal-tenant-id")
             .displayName("Service Principal Tenant ID")

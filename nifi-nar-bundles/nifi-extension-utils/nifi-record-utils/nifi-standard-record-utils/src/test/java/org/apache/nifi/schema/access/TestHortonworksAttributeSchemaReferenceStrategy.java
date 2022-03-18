@@ -18,14 +18,15 @@ package org.apache.nifi.schema.access;
 
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 
@@ -105,14 +106,15 @@ public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSch
         assertNotNull(retrievedSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaMissingAllAttributes() throws IOException, SchemaNotFoundException {
+    @Test
+    public void testGetSchemaMissingAllAttributes() {
         final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
-        schemaAccessStrategy.getSchema(Collections.emptyMap(), null, recordSchema);
+        assertThrows(SchemaNotFoundException.class,
+                () -> schemaAccessStrategy.getSchema(Collections.emptyMap(), null, recordSchema));
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaMissingProtocol() throws IOException, SchemaNotFoundException {
+    @Test
+    public void testGetSchemaMissingProtocol() {
         final long schemaId = 123456;
         final int version = 2;
         final long schemaVersionId = 9999;
@@ -123,11 +125,11 @@ public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSch
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
 
         final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
-        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessStrategy.getSchema(attributes, null, recordSchema));
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaWithInvalidProtocol() throws IOException, SchemaNotFoundException {
+    @Test
+    public void testGetSchemaWithInvalidProtocol() {
         final long schemaId = 123456;
         final int version = 2;
         final long schemaVersionId = 9999;
@@ -139,10 +141,10 @@ public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSch
         attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, "INVALID_PROTOCOL");
 
         final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
-        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessStrategy.getSchema(attributes, null, recordSchema));
     }
 
-    @Test(expected = SchemaNotFoundException.class)
+    @Test
     public void testGetSchemaNotFound() throws IOException, SchemaNotFoundException {
         final long schemaId = 123456;
         final int version = 2;
@@ -165,6 +167,6 @@ public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSch
         when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
                 .thenReturn(null);
 
-        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessStrategy.getSchema(attributes, null, recordSchema));
     }
 }

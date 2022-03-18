@@ -46,6 +46,7 @@ import org.apache.nifi.serialization.record.StandardSchemaIdentifier;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
@@ -297,6 +298,10 @@ public class AvroTypeUtil {
             case TIMESTAMP:
                 schema = Schema.create(Type.LONG);
                 LogicalTypes.timestampMillis().addToSchema(schema);
+                break;
+            case ENUM:
+                final EnumDataType enumType = (EnumDataType) dataType;
+                schema = Schema.createEnum(fieldName, "", "org.apache.nifi", enumType.getEnums());
                 break;
             default:
                 return null;

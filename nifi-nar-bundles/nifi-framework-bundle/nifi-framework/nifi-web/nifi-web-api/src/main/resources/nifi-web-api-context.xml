@@ -290,7 +290,6 @@
         <property name="matcherForLabel" ref="matcherForLabel" />
         <property name="matcherForControllerServiceNode" ref="matcherForControllerServiceNode" />
     </bean>
-    <bean id="extensionManifestParser" class="org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParser" />
     <bean id="controllerFacade" class="org.apache.nifi.web.controller.ControllerFacade">
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
@@ -299,7 +298,7 @@
         <property name="dtoFactory" ref="dtoFactory"/>
         <property name="searchQueryParser" ref="searchQueryParser"/>
         <property name="controllerSearchService" ref="controllerSearchService"/>
-        <property name="extensionManifestParser" ref="extensionManifestParser" />
+        <property name="runtimeManifestService" ref="runtimeManifestService" />
     </bean>
     <bean id="authorizableLookup" class="org.apache.nifi.authorization.StandardAuthorizableLookup">
         <property name="controllerFacade" ref="controllerFacade"/>

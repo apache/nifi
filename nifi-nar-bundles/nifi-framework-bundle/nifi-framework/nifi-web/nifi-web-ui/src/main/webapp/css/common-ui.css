@@ -288,6 +288,11 @@ div.nf-checkbox {
     cursor: pointer;
 }
 
+div.nf-checkbox.disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
 div.checkbox-unchecked {
     background: transparent url(../images/inputCheckbox.png) no-repeat scroll top left;
 }

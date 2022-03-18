@@ -20,16 +20,16 @@ import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
     private HazelcastInstance hazelcastInstance;
 
     private int port;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         port = NetworkUtils.availablePort();
         final Config config = new Config();
@@ -40,7 +40,7 @@ public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
         super.setUp();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         super.tearDown();
         hazelcastInstance.shutdown();

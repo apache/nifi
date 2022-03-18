@@ -30,7 +30,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +40,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RunMongoAggregationIT {
 
@@ -120,8 +123,8 @@ public class RunMongoAggregationIT {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(RunMongoAggregation.REL_RESULTS);
         for (MockFlowFile mff : flowFiles) {
             String val = mff.getAttribute(AGG_ATTR);
-            Assertions.assertNotNull("Missing query attribute", val);
-            Assertions.assertEquals(val, queryInput, "Value was wrong");
+            assertNotNull("Missing query attribute", val);
+            assertEquals(val, queryInput, "Value was wrong");
         }
     }
 
@@ -182,7 +185,7 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<String>> read = mapper.readValue(raw, Map.class);
-            Assertions.assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
+            assertTrue(read.get("myArray").get(1).equalsIgnoreCase( format.format(now.getTime())));
         }
 
         runner.clearTransferState();
@@ -195,7 +198,7 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map<String, List<Long>> read = mapper.readValue(raw, Map.class);
-            Assertions.assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
+            assertTrue(read.get("myArray").get(1) == now.getTimeInMillis());
         }
     }
 
@@ -207,12 +210,12 @@ public class RunMongoAggregationIT {
         for (MockFlowFile mockFlowFile : flowFiles) {
             byte[] raw = runner.getContentAsByteArray(mockFlowFile);
             Map read = mapper.readValue(raw, Map.class);
-            Assertions.assertTrue(mappings.containsKey(read.get("_id")), "Value was not found");
+            assertTrue(mappings.containsKey(read.get("_id")), "Value was not found");
 
             String queryAttr = mockFlowFile.getAttribute(AGG_ATTR);
-            Assertions.assertNotNull("Query attribute was null.", queryAttr);
-            Assertions.assertTrue(queryAttr.contains("$project"), "Missing $project");
-            Assertions.assertTrue(queryAttr.contains("$group"), "Missing $group");
+            assertNotNull("Query attribute was null.", queryAttr);
+            assertTrue(queryAttr.contains("$project"), "Missing $project");
+            assertTrue(queryAttr.contains("$group"), "Missing $group");
         }
     }
 

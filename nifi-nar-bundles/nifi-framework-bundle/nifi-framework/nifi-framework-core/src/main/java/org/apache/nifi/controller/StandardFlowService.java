@@ -316,11 +316,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             running.set(false);
 
             if (clusterCoordinator != null) {
-                final Thread shutdownClusterCoordinator = new Thread(clusterCoordinator::shutdown);
-
-                shutdownClusterCoordinator.setDaemon(true);
-                shutdownClusterCoordinator.setName("Shutdown Cluster Coordinator");
-                shutdownClusterCoordinator.start();
+                try {
+                    clusterCoordinator.shutdown();
+                } catch (final Throwable t) {
+                    logger.error("Failed to properly shutdown coordinator", t);
+                }
             }
 
             if (!controller.isTerminated()) {
@@ -708,8 +708,14 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // request to stop all remote process groups
             flowManager.getRootGroup().findAllRemoteProcessGroups()
-                    .stream().filter(rpg -> rpg.isTransmitting())
-                    .forEach(RemoteProcessGroup::stopTransmitting);
+                    .stream().filter(RemoteProcessGroup::isTransmitting)
+                    .forEach(rpg -> {
+                        try {
+                            rpg.stopTransmitting().get(rpg.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+                        } catch (final Exception e) {
+                            logger.warn("Encountered failure while waiting for {} to shutdown", rpg, e);
+                        }
+                    });
 
             // offload all queues on node
             final Set<Connection> connections = flowManager.findAllConnections();

@@ -39,7 +39,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,6 +56,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutMongoRecordIT extends MongoWriteTestBase {
 
@@ -102,9 +102,9 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
         }
         assertEquals(3, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
-        Assertions.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
-        Assertions.assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
+        assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
+        assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
+        assertTrue(it.next().toString().contains("is invalid because Record Reader is required"));
 
         // invalid write concern
         runner.setProperty(AbstractMongoProcessor.URI, MONGO_URI);
@@ -119,7 +119,7 @@ public class PutMongoRecordIT extends MongoWriteTestBase {
             results = ((MockProcessContext) pc).validate();
         }
         assertEquals(1, results.size());
-        Assertions.assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
+        assertTrue(results.iterator().next().toString().matches("'Write Concern' .* is invalid because Given value not found in allowed set .*"));
 
         // valid write concern
         runner.setProperty(PutMongoRecord.WRITE_CONCERN, PutMongoRecord.WRITE_CONCERN_UNACKNOWLEDGED);

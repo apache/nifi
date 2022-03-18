@@ -17,13 +17,6 @@
 package org.apache.nifi.processors.flume;
 
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.flume.sink.NullSink;
 import org.apache.flume.source.AvroSource;
 import org.apache.nifi.components.ValidationResult;
@@ -33,20 +26,26 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExecuteFlumeSourceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ExecuteFlumeSourceTest.class);
-
-    @Rule
-    public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
@@ -60,10 +59,10 @@ public class ExecuteFlumeSourceTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because Source Type is required"));
+            assertTrue(vr.toString().contains("is invalid because Source Type is required"));
         }
 
         // non-existent class
@@ -74,10 +73,10 @@ public class ExecuteFlumeSourceTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because unable to load source"));
+            assertTrue(vr.toString().contains("is invalid because unable to load source"));
         }
 
         // class doesn't implement Source
@@ -88,10 +87,10 @@ public class ExecuteFlumeSourceTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             logger.debug(vr.toString());
-            Assert.assertTrue(vr.toString().contains("is invalid because unable to create source"));
+            assertTrue(vr.toString().contains("is invalid because unable to create source"));
         }
 
         results = new HashSet<>();
@@ -101,7 +100,7 @@ public class ExecuteFlumeSourceTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(0, results.size());
+        assertEquals(0, results.size());
     }
 
     @Test
@@ -110,17 +109,18 @@ public class ExecuteFlumeSourceTest {
         runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, "seq");
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteFlumeSource.SUCCESS);
-        Assert.assertEquals(1, flowFiles.size());
+        assertEquals(1, flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             logger.debug(flowFile.toString());
-            Assert.assertEquals(1, flowFile.getSize());
+            assertEquals(1, flowFile.getSize());
         }
     }
 
     @Test
-    @Ignore("Does not work on Windows")
-    public void testSourceWithConfig() throws IOException {
-        File spoolDirectory = temp.newFolder("spooldir");
+    @Disabled("Does not work on Windows")
+    public void testSourceWithConfig(@TempDir Path temp) throws IOException {
+        File spoolDirectory = temp.resolve("spooldir").toFile();
+        spoolDirectory.mkdirs();
         File dst = new File(spoolDirectory, "records.txt");
         FileUtils.copyFile(getClass().getResourceAsStream("/testdata/records.txt"), dst, true, false);
 

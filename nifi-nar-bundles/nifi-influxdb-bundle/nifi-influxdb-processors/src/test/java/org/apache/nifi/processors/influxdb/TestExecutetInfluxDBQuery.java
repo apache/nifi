@@ -25,9 +25,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
@@ -35,13 +35,16 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 
 public class TestExecutetInfluxDBQuery {
     private TestRunner runner;
     private ExecuteInfluxDBQuery mockExecuteInfluxDBQuery;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         mockExecuteInfluxDBQuery = new ExecuteInfluxDBQuery() {
             @Override
@@ -64,7 +67,7 @@ public class TestExecutetInfluxDBQuery {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }
@@ -138,8 +141,8 @@ public class TestExecutetInfluxDBQuery {
         assertEquals(flowFiles.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE),"runtime exception");
     }
 
-    @Test(expected=ProcessException.class)
-    public void testMakingQueryThrowsIOException() throws Throwable {
+    @Test
+    public void testMakingQueryThrowsIOException() {
         mockExecuteInfluxDBQuery = new ExecuteInfluxDBQuery() {
             @Override
             protected InfluxDB makeConnection(String username, String password, String influxDbUrl, long connectionTimeout) {
@@ -163,11 +166,9 @@ public class TestExecutetInfluxDBQuery {
 
         byte [] bytes = "select * from /.*/".getBytes();
         runner.enqueue(bytes);
-        try {
-            runner.run(1,true,true);
-        } catch (AssertionError e) {
-            throw e.getCause();
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.run(1,true,true));
+        assertTrue(e.getCause() instanceof ProcessException);
     }
 
     @Test

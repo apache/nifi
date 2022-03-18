@@ -35,11 +35,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
@@ -49,8 +47,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -61,7 +60,7 @@ public class TestPublisherLease {
     private ComponentLog logger;
     private Producer<byte[], byte[]> producer;
 
-    @Before
+    @BeforeEach
     @SuppressWarnings("unchecked")
     public void setup() {
         logger = Mockito.mock(ComponentLog.class);
@@ -86,12 +85,7 @@ public class TestPublisherLease {
             }
         };
 
-        try {
-            lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic, null);
-            Assert.fail("Expected IOException");
-        } catch (final IOException ioe) {
-            // expected
-        }
+        assertThrows(IOException.class, () -> lease.publish(flowFile, failureInputStream, messageKey, demarcatorBytes, topic, null));
 
         assertEquals(1, lease.getPoisonCount());
 
@@ -106,19 +100,11 @@ public class TestPublisherLease {
         final FlowFile flowFile = Mockito.spy(new MockFlowFile(1L));
         // Need a size grater than zero to make the lease reads the InputStream.
         Mockito.when(flowFile.getSize()).thenReturn(1L);
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocationOnMock) {
-                throw new ProducerFencedException("Intenitional exception thrown from unit test");
-            }
+        doAnswer((Answer<Object>) invocationOnMock -> {
+            throw new ProducerFencedException("Intenitional exception thrown from unit test");
         }).when(producer).beginTransaction();
 
-        try {
-            lease.beginTransaction();
-            Assert.fail("Expected ProducerFencedException");
-        } catch (final ProducerFencedException pfe) {
-            // expected
-        }
+        assertThrows(ProducerFencedException.class, () -> lease.beginTransaction());
 
         assertEquals(1, lease.getPoisonCount());
     }
@@ -133,13 +119,10 @@ public class TestPublisherLease {
         final byte[] messageKey = null;
         final byte[] demarcatorBytes = null;
 
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) {
-                final Callback callback = invocation.getArgument(1);
-                callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
-                return null;
-            }
+        doAnswer((Answer<Object>) invocation -> {
+            final Callback callback = invocation.getArgument(1);
+            callback.onCompletion(null, new RuntimeException("Unit Test Intentional Exception"));
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         lease.publish(flowFile, new ByteArrayInputStream(new byte[1]), messageKey, demarcatorBytes, topic, null);
@@ -156,20 +139,17 @@ public class TestPublisherLease {
         final PoisonCountingLease lease = new PoisonCountingLease();
         final AtomicInteger correctMessages = new AtomicInteger(0);
         final AtomicInteger incorrectMessages = new AtomicInteger(0);
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
-                final byte[] value = record.value();
-                final String valueString = new String(value, StandardCharsets.UTF_8);
-                if ("1234567890".equals(valueString)) {
-                    correctMessages.incrementAndGet();
-                } else {
-                    incorrectMessages.incrementAndGet();
-                }
-
-                return null;
+        doAnswer((Answer<Object>) invocation -> {
+            final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
+            final byte[] value = record.value();
+            final String valueString = new String(value, StandardCharsets.UTF_8);
+            if ("1234567890".equals(valueString)) {
+                correctMessages.incrementAndGet();
+            } else {
+                incorrectMessages.incrementAndGet();
             }
+
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         final FlowFile flowFile = new MockFlowFile(1L);
@@ -209,20 +189,17 @@ public class TestPublisherLease {
 
         final AtomicInteger correctMessages = new AtomicInteger(0);
         final AtomicInteger incorrectMessages = new AtomicInteger(0);
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) {
-                final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
-                final byte[] value = record.value();
-                final String valueString = new String(value, StandardCharsets.UTF_8);
-                if ("".equals(valueString)) {
-                    correctMessages.incrementAndGet();
-                } else {
-                    incorrectMessages.incrementAndGet();
-                }
-
-                return null;
+        doAnswer((Answer<Object>) invocation -> {
+            final ProducerRecord<byte[], byte[]> record = invocation.getArgument(0);
+            final byte[] value = record.value();
+            final String valueString = new String(value, StandardCharsets.UTF_8);
+            if ("".equals(valueString)) {
+                correctMessages.incrementAndGet();
+            } else {
+                incorrectMessages.incrementAndGet();
             }
+
+            return null;
         }).when(producer).send(any(ProducerRecord.class), any(Callback.class));
 
         final FlowFile flowFile = new MockFlowFile(1L);

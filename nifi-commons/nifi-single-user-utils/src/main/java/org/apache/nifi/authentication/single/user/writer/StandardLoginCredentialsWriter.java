@@ -29,26 +29,20 @@ import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
 
 /**
  * Standard Login Credentials Writer updates Login Identity Providers Single User definition with Login Credentials
  */
 public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
-
-    private static final String PROVIDERS_PREFIX = "login-identity-providers-";
-
-    private static final String PROVIDERS_SUFFIX = ".xml";
-
     private static final String CLASS_TAG = "class";
 
     private static final String PROVIDER_TAG = "provider";
@@ -71,10 +65,9 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
 
     @Override
     public void writeLoginCredentials(final SingleUserCredentials singleUserCredentials) {
-        try {
-            final File updatedProvidersFile = File.createTempFile(PROVIDERS_PREFIX, PROVIDERS_SUFFIX);
-            writeLoginCredentials(singleUserCredentials, updatedProvidersFile);
-            Files.move(updatedProvidersFile.toPath(), providersFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        final byte[] providers = readProviders();
+        try (final InputStream providersInputStream = new ByteArrayInputStream(providers)) {
+            writeLoginCredentials(singleUserCredentials, providersInputStream);
         } catch (final IOException e) {
             throw new UncheckedIOException("Writing Login Identity Providers Failed", e);
         } catch (final XMLStreamException e) {
@@ -82,14 +75,20 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
         }
     }
 
-    private void writeLoginCredentials(final SingleUserCredentials singleUserCredentials, final File updatedProvidersFile) throws IOException, XMLStreamException {
-        try (final OutputStream outputStream = new FileOutputStream(updatedProvidersFile)) {
+    private byte[] readProviders() {
+        try {
+            return Files.readAllBytes(providersFile.toPath());
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Reading Login Identity Providers Failed", e);
+        }
+    }
+
+    private void writeLoginCredentials(final SingleUserCredentials singleUserCredentials, final InputStream inputStream) throws IOException, XMLStreamException {
+        try (final OutputStream outputStream = new FileOutputStream(providersFile)) {
             final XMLEventWriter providersWriter = getProvidersWriter(outputStream);
-            try (final InputStream inputStream = new FileInputStream(providersFile)) {
-                final XMLEventReader providersReader = getProvidersReader(inputStream);
-                updateLoginIdentityProviders(singleUserCredentials, providersReader, providersWriter);
-                providersReader.close();
-            }
+            final XMLEventReader providersReader = getProvidersReader(inputStream);
+            updateLoginIdentityProviders(singleUserCredentials, providersReader, providersWriter);
+            providersReader.close();
             providersWriter.close();
         }
     }
@@ -131,7 +130,7 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
      *
      * @param providersReader Providers Reader
      * @param providersWriter Providers Writer
-     * @param propertyValue Property Value to be added
+     * @param propertyValue   Property Value to be added
      * @throws XMLStreamException Thrown on XMLEventReader.nextEvent()
      */
     private void processProperty(final XMLEventReader providersReader, final XMLEventWriter providersWriter, final String propertyValue) throws XMLStreamException {

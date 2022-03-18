@@ -55,6 +55,7 @@ import {
 import NfRegistryImportVersionedFlow from './components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
 import NfRegistryImportNewFlow from './components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
 import NfRegistryExportVersionedFlow from './components/explorer/grid-list/dialogs/export-versioned-flow/nf-registry-export-versioned-flow';
+import { NfRegistryExplorerAbout } from './components/explorer/dialogs/about/nf-registry-explorer-about';
 
 function NfRegistryModule() {
 }
@@ -74,6 +75,7 @@ NfRegistryModule.annotations = [
         declarations: [
             NfRegistry,
             NfRegistryExplorer,
+            NfRegistryExplorerAbout,
             NfRegistryAdministration,
             NfRegistryUsersAdministration,
             NfRegistryManageUser,
@@ -108,7 +110,8 @@ NfRegistryModule.annotations = [
             NfUserLoginComponent,
             NfRegistryExportVersionedFlow,
             NfRegistryImportVersionedFlow,
-            NfRegistryImportNewFlow
+            NfRegistryImportNewFlow,
+            NfRegistryExplorerAbout
         ],
         providers: [
             NfRegistryService,

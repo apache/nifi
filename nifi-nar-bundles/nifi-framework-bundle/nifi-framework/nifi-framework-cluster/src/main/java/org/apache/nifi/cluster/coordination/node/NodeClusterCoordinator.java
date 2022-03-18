@@ -950,6 +950,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                     try {
                         senderListener.offload(request);
                         reportEvent(nodeId, Severity.INFO, "Node was offloaded due to " + request.getExplanation());
+
                         future.complete(null);
                         return;
                     } catch (final Exception e) {
@@ -964,6 +965,10 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
                     }
                 }
+
+                updateNodeStatus(new NodeConnectionStatus(nodeId, NodeConnectionState.DISCONNECTED, null,
+                    "Attempted to offload node but failed to notify node that it was to offload its data. State reset to disconnected."));
+                addNodeEvent(nodeId, "Failed to initiate node offload: " + lastException);
 
                 future.completeExceptionally(lastException);
             }

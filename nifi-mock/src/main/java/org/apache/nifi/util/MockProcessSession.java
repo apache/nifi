@@ -135,6 +135,10 @@ public class MockProcessSession implements ProcessSession {
         counterMap.put(name, counter);
     }
 
+    public void migrate(final ProcessSession newOwner) {
+        migrate(newOwner, (Collection) currentVersions.values());
+    }
+
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {

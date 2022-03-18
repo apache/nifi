@@ -34,11 +34,10 @@ import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +51,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,15 +66,15 @@ public class AbstractHadoopTest {
     private KerberosProperties kerberosProperties;
     private NiFiProperties mockedProperties;
 
-    @BeforeClass
-    public static void setUpClass() throws IOException {
+    @BeforeAll
+    public static void setUpClass() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.hadoop", "debug");
         logger = LoggerFactory.getLogger(AbstractHadoopTest.class);
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -89,7 +89,7 @@ public class AbstractHadoopTest {
         kerberosProperties = new KerberosProperties(temporaryFile);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() {
         temporaryFile.delete();
     }
@@ -108,7 +108,7 @@ public class AbstractHadoopTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
 
         results = new HashSet<>();
         runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "target/doesnotexist");
@@ -117,26 +117,24 @@ public class AbstractHadoopTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
     }
 
     @Test
-    public void testTimeoutDetection() throws Exception {
+    public void testTimeoutDetection() {
         SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(processor);
-        try {
+        assertThrows(IOException.class, () -> {
             final File brokenCoreSite = new File("src/test/resources/core-site-broken.xml");
             final ResourceReference brokenCoreSiteReference = new FileResourceReference(brokenCoreSite);
             final ResourceReferences references = new StandardResourceReferences(Collections.singletonList(brokenCoreSiteReference));
             final List<String> locations = references.asLocations();
             processor.resetHDFSResources(locations, runner.getProcessContext());
-            Assert.fail("Should have thrown SocketTimeoutException");
-        } catch (IOException e) {
-        }
+        });
     }
 
     @Test
-    public void testKerberosOptions() throws Exception {
+    public void testKerberosOptions() {
         SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(processor);
         // should be valid since no kerberos options specified
@@ -258,9 +256,9 @@ public class AbstractHadoopTest {
         final Optional<ValidationResult> optionalResult = results.stream()
                 .filter(result -> result.getSubject().equals("Hadoop File System"))
                 .findFirst();
-        assertTrue("Hadoop File System Validation Result not found", optionalResult.isPresent());
+        assertTrue(optionalResult.isPresent(), "Hadoop File System Validation Result not found");
         final ValidationResult result = optionalResult.get();
-        assertFalse("Hadoop File System Valid", result.isValid());
+        assertFalse(result.isValid(), "Hadoop File System Valid");
     }
 
     @Test

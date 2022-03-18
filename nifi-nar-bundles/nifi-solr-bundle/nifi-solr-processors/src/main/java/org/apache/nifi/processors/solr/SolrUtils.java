@@ -236,6 +236,7 @@ public class SolrUtils {
             .build();
 
     public static final String REPEATING_PARAM_PATTERN = "[\\w\\.]+\\.\\d+$";
+    private static final String ROOT_PATH = "/";
 
     public static synchronized SolrClient createSolrClient(final PropertyContext context, final String solrLocation) {
         final Integer socketTimeout = context.getProperty(SOLR_SOCKET_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
@@ -281,22 +282,29 @@ public class SolrUtils {
             return new HttpSolrClient.Builder(solrLocation).withHttpClient(httpClient).build();
         } else {
             // CloudSolrClient.Builder now requires a List of ZK addresses and znode for solr as separate parameters
-            final String[] zk = solrLocation.split("/");
+            final String[] zk = solrLocation.split(ROOT_PATH);
             final List zkList = Arrays.asList(zk[0].split(","));
-            String zkRoot = "/";
-            if (zk.length > 1 && ! zk[1].isEmpty()) {
-                zkRoot += zk[1];
-            }
+            String zkChrootPath = getZooKeeperChrootPathSuffix(solrLocation);
 
             final String collection = context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue();
             final Integer zkClientTimeout = context.getProperty(ZK_CLIENT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
             final Integer zkConnectionTimeout = context.getProperty(ZK_CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-            CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder(zkList, Optional.of(zkRoot)).withHttpClient(httpClient).build();
+            CloudSolrClient cloudSolrClient = new CloudSolrClient.Builder(zkList, Optional.of(zkChrootPath)).withHttpClient(httpClient).build();
             cloudSolrClient.setDefaultCollection(collection);
             cloudSolrClient.setZkClientTimeout(zkClientTimeout);
             cloudSolrClient.setZkConnectTimeout(zkConnectionTimeout);
             return cloudSolrClient;
+        }
+    }
+
+    private static String getZooKeeperChrootPathSuffix(final String solrLocation) {
+        String[] zkConnectStringAndChrootSuffix = solrLocation.split("(?=/)", 2);
+        if (zkConnectStringAndChrootSuffix.length > 1) {
+            final String chrootSuffix = zkConnectStringAndChrootSuffix[1];
+            return chrootSuffix;
+        } else {
+            return ROOT_PATH;
         }
     }
 

@@ -20,10 +20,12 @@ package org.apache.nifi.serialization
 import org.apache.nifi.schema.access.SchemaAccessUtils
 import org.apache.nifi.serialization.record.type.RecordDataType
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class TestJsonInferenceSchemaRegistryService {
     @Test
@@ -47,14 +49,14 @@ class TestJsonInferenceSchemaRegistryService {
 
         def schema = service.getSchema([:], json, null)
 
-        Assert.assertNotNull(schema)
-        Assert.assertEquals(Arrays.asList("name", "age", "contact"), schema.getFieldNames());
+        assertNotNull(schema)
+        assertEquals(Arrays.asList("name", "age", "contact"), schema.getFieldNames());
         def name = schema.getField("name")
         def age  = schema.getField("age")
         def contact = schema.getField("contact")
-        Assert.assertTrue(name.isPresent())
-        Assert.assertTrue(age.isPresent())
-        Assert.assertTrue(contact.isPresent())
-        Assert.assertTrue(contact.get().dataType instanceof RecordDataType)
+        assertTrue(name.isPresent())
+        assertTrue(age.isPresent())
+        assertTrue(contact.isPresent())
+        assertTrue(contact.get().dataType instanceof RecordDataType)
     }
 }

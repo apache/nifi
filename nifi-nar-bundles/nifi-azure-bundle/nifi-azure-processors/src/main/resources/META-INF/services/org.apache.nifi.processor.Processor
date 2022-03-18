@@ -30,3 +30,4 @@ org.apache.nifi.processors.azure.storage.ListAzureBlobStorage_v12
 org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage_v12
 org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12
 org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage_v12
+org.apache.nifi.processors.azure.storage.MoveAzureDataLakeStorage

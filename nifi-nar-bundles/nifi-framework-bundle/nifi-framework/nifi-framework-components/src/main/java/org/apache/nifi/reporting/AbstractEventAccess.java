@@ -550,7 +550,7 @@ public abstract class AbstractEventAccess implements EventAccess {
         }
 
         status.setId(remoteGroup.getIdentifier());
-        status.setTransmissionStatus(remoteGroup.isTransmitting() ? TransmissionStatus.Transmitting : TransmissionStatus.NotTransmitting);
+        status.setTransmissionStatus(remoteGroup.isConfiguredToTransmit() ? TransmissionStatus.Transmitting : TransmissionStatus.NotTransmitting);
         status.setActiveThreadCount(activeThreadCount);
         status.setReceivedContentSize(receivedContentSize);
         status.setReceivedCount(receivedCount);

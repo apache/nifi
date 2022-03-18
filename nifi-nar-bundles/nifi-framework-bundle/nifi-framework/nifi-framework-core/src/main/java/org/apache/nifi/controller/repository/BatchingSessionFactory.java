@@ -107,6 +107,11 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
+        public void migrate(final ProcessSession newOwner) {
+            session.migrate(newOwner);
+        }
+
+        @Override
         public void adjustCounter(String name, long delta, boolean immediate) {
             session.adjustCounter(name, delta, immediate);
         }

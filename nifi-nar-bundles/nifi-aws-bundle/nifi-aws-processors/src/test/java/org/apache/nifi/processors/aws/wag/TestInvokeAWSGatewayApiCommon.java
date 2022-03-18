@@ -17,9 +17,18 @@
 
 package org.apache.nifi.processors.aws.wag;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URL;
@@ -29,21 +38,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
-
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TestInvokeAWSGatewayApiCommon {
 
@@ -555,7 +552,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Internal Server Error");
 
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
     }
@@ -586,7 +583,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "302");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Moved Temporarily");
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
     }
@@ -617,7 +614,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "304");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Not Modified");
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
     }
@@ -647,7 +644,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "400");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Bad Request");
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
     }
@@ -678,7 +675,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "400");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Bad Request");
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
@@ -708,7 +705,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_CODE, "412");
         bundle.assertAttributeEquals(InvokeAWSGatewayApi.STATUS_MESSAGE, "Precondition Failed");
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
     }
@@ -747,7 +744,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle1.assertAttributeEquals("Foo", "Bar");
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
-        Assert.assertEquals(expected1, actual1);
+        assertEquals(expected1, actual1);
     }
 
     @Test
@@ -786,7 +783,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
-        Assert.assertEquals(expected1, actual1);
+        assertEquals(expected1, actual1);
     }
 
     @Test
@@ -959,7 +956,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
-        Assert.assertEquals(expected1, actual1);
+        assertEquals(expected1, actual1);
     }
 
     @Test
@@ -996,7 +993,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
-        Assert.assertEquals(expected1, actual1);
+        assertEquals(expected1, actual1);
     }
 
     @Test
@@ -1088,7 +1085,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         bundle1.assertAttributeEquals("Foo", "Bar");
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "";
-        Assert.assertEquals(expected1, actual1);
+        assertEquals(expected1, actual1);
     }
 
     @Test
@@ -1191,7 +1188,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
@@ -1219,7 +1216,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
@@ -1246,7 +1243,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
-        Assert.assertEquals(expected, actual);
+        assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
@@ -1278,6 +1275,7 @@ public abstract class TestInvokeAWSGatewayApiCommon {
         runner.setProperty(InvokeAWSGatewayApi.PROP_AWS_GATEWAY_API_ENDPOINT, "http://nifi.apache.org/");
         runner.setProperty(InvokeAWSGatewayApi.PROP_RESOURCE_NAME, "/status/200");
         runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST, "${proxy.host}");
+
         runner.setProperty(InvokeAWSGatewayApi.PROXY_HOST_PORT, "${proxy.port}");
         runner.setProperty(InvokeAWSGatewayApi.PROXY_USERNAME, "${proxy.username}");
 

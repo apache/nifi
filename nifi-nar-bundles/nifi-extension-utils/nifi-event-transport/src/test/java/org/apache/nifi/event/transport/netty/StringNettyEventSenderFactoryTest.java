@@ -19,10 +19,10 @@ package org.apache.nifi.event.transport.netty;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
-import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
@@ -30,10 +30,10 @@ import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
 import java.net.InetAddress;
@@ -46,11 +46,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class StringNettyEventSenderFactoryTest {
     private static final InetAddress ADDRESS;
 
@@ -137,10 +137,10 @@ public class StringNettyEventSenderFactoryTest {
 
     private void assertMessageReceived(final BlockingQueue<ByteArrayMessage> messages) throws InterruptedException {
         final ByteArrayMessage messageReceived = messages.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertNotNull("Message not received", messageReceived);
+        assertNotNull(messageReceived, "Message not received");
         final String eventReceived = new String(messageReceived.getMessage(), CHARSET);
-        assertEquals("Message not matched", MESSAGE, eventReceived);
-        assertEquals("Sender not matched", ADDRESS.getHostAddress(), messageReceived.getSender());
+        assertEquals(MESSAGE, eventReceived, "Message not matched");
+        assertEquals(ADDRESS.getHostAddress(), messageReceived.getSender(), "Sender not matched");
     }
 
     private NettyEventSenderFactory<String> getEventSenderFactory(final int port) {

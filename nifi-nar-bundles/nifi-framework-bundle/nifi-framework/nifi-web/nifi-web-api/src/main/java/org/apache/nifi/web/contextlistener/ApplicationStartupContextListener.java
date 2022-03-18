@@ -95,9 +95,9 @@ public class ApplicationStartupContextListener implements ServletContextListener
 
     @Override
     public void contextDestroyed(ServletContextEvent sce) {
-        logger.info("Initiating shutdown of flow service...");
+        logger.info("Flow Service shutdown started");
         shutdown();
-        logger.info("Flow service termination completed.");
+        logger.info("Flow Service shutdown completed");
     }
 
     private void shutdown() {

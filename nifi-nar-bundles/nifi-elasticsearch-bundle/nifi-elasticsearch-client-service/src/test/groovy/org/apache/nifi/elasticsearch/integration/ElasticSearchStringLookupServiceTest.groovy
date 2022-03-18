@@ -21,16 +21,19 @@ import org.apache.nifi.elasticsearch.ElasticSearchClientService
 import org.apache.nifi.elasticsearch.ElasticSearchStringLookupService
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 class ElasticSearchStringLookupServiceTest {
 	ElasticSearchClientService mockClientService
 	ElasticSearchStringLookupService lookupService
 	TestRunner runner
 
-	@Before
+	@BeforeEach
 	void setup() throws Exception {
 		mockClientService = new TestElasticSearchClientService()
 		lookupService = new ElasticSearchStringLookupService()
@@ -51,9 +54,9 @@ class ElasticSearchStringLookupServiceTest {
 
 		Optional<String> result = lookupService.lookup(coordinates)
 
-		Assert.assertNotNull(result)
-		Assert.assertTrue(result.isPresent())
+		assertNotNull(result)
+		assertTrue(result.isPresent())
 		String json = result.get()
-		Assert.assertEquals('{"username":"john.smith","password":"testing1234","email":"john.smith@test.com","position":"Software Engineer"}', json)
+		assertEquals('{"username":"john.smith","password":"testing1234","email":"john.smith@test.com","position":"Software Engineer"}', json)
 	}
 }

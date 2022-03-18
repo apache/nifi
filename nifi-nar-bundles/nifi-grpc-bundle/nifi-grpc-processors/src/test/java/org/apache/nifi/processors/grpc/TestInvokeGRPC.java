@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.processors.grpc;
 
+import io.grpc.stub.StreamObserver;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
-
-import io.grpc.stub.StreamObserver;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;

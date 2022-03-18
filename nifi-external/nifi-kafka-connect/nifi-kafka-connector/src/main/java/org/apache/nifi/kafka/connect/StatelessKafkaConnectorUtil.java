@@ -155,7 +155,7 @@ public class StatelessKafkaConnectorUtil {
         final List<ParameterOverride> parameterOverrides = parseParameterOverrides(properties);
         final String dataflowName = properties.get(DATAFLOW_NAME);
 
-        final DataflowDefinition<?> dataflowDefinition;
+        final DataflowDefinition dataflowDefinition;
         final StatelessBootstrap bootstrap;
         try {
             final Map<String, String> dataflowDefinitionProperties = new HashMap<>();

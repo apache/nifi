@@ -19,17 +19,21 @@ package org.apache.nifi.hbase;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class TestDeleteHBaseRow extends DeleteTestBase {
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         super.setup(DeleteHBaseRow.class);
     }
@@ -45,7 +49,7 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
         }
 
         runner.run(1, true);
-        Assert.assertTrue("The mock client was not empty.", hBaseClient.isEmpty());
+        assertTrue(hBaseClient.isEmpty(), "The mock client was not empty.");
     }
 
     private String buildSeparatedString(List<String> ids, String separator) {
@@ -68,7 +72,7 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
         runner.enqueue(buildSeparatedString(ids, separatorProp), attrs);
         runner.run(1, true);
 
-        Assert.assertTrue("The mock client was not empty.", hBaseClient.isEmpty());
+        assertTrue(hBaseClient.isEmpty(), "The mock client was not empty.");
     }
 
     @Test
@@ -121,7 +125,7 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
             hBaseClient.setThrowException(false);
         }
 
-        Assert.assertFalse("An unhandled exception was caught.", exception);
+        assertFalse(exception, "An unhandled exception was caught.");
     }
 
     @Test
@@ -134,7 +138,7 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
         runner.enqueue(sb.toString());
         runner.setProperty(DeleteHBaseRow.ROW_ID_LOCATION, DeleteHBaseRow.ROW_ID_CONTENT);
 
-        Assert.assertTrue("There should have been 500 rows.", hBaseClient.size() == 500);
+        assertTrue(hBaseClient.size() == 500, "There should have been 500 rows.");
 
         hBaseClient.setDeletePoint(20);
         hBaseClient.setThrowExceptionDuringBatchDelete(true);
@@ -143,10 +147,10 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
         runner.assertTransferCount(DeleteHBaseRow.REL_FAILURE, 1);
         runner.assertTransferCount(DeleteHBaseRow.REL_SUCCESS, 0);
 
-        Assert.assertTrue("Partially deleted", hBaseClient.size() < 500);
+        assertTrue(hBaseClient.size() < 500, "Partially deleted");
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(DeleteHBaseRow.REL_FAILURE);
-        Assert.assertNotNull("Missing restart.index attribute", flowFile.get(0).getAttribute("restart.index"));
+        assertNotNull(flowFile.get(0).getAttribute("restart.index"), "Missing restart.index attribute");
 
         byte[] oldData = runner.getContentAsByteArray(flowFile.get(0));
         Map<String, String> attrs = new HashMap<>();
@@ -162,8 +166,7 @@ public class TestDeleteHBaseRow extends DeleteTestBase {
 
         flowFile = runner.getFlowFilesForRelationship(DeleteHBaseRow.REL_SUCCESS);
 
-        Assert.assertTrue("The client should have been empty", hBaseClient.isEmpty());
-        Assert.assertNull("The restart.index attribute should be null", flowFile.get(0).getAttribute("restart.index"));
-
+        assertTrue(hBaseClient.isEmpty(), "The client should have been empty");
+        assertNull(flowFile.get(0).getAttribute("restart.index"), "The restart.index attribute should be null");
     }
 }

@@ -22,7 +22,7 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 
 import java.io.IOException;
 
-public interface StatelessDataflowFactory<T> {
-    StatelessDataflow createDataflow(StatelessEngineConfiguration statelessEngineConfiguration, DataflowDefinition<T> dataflowDefinition, ClassLoader extensionClassLoader)
+public interface StatelessDataflowFactory {
+    StatelessDataflow createDataflow(StatelessEngineConfiguration statelessEngineConfiguration, DataflowDefinition dataflowDefinition, ClassLoader extensionClassLoader)
         throws IOException, StatelessConfigurationException;
 }
