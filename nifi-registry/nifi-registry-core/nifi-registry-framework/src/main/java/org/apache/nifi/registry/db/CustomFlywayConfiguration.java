@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 @Configuration
 public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer {
@@ -58,13 +59,13 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
         LOGGER.info("Determined database type is {}", databaseType.getName());
 
         if (databaseType.equals(new MySQLDatabaseType())) {
-            LOGGER.info("Setting migration locations to {}", LOCATIONS_MYSQL);
+            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_MYSQL));
             configuration.locations(LOCATIONS_MYSQL);
         } else if (databaseType.equals(new PostgreSQLDatabaseType())) {
-            LOGGER.info("Setting migration locations to {}", LOCATIONS_POSTGRES);
+            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_POSTGRES));
             configuration.locations(LOCATIONS_POSTGRES);
         } else {
-            LOGGER.info("Setting migration locations to {}", LOCATIONS_DEFAULT);
+            LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_DEFAULT));
             configuration.locations(LOCATIONS_DEFAULT);
         }
 

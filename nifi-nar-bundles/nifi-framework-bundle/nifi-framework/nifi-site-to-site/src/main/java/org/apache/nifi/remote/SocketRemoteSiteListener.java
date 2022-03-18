@@ -172,7 +172,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             }
                         } catch (final Exception e) {
                             // TODO: Add SocketProtocolListener#handleTlsError logic here
-                            String msg = String.format("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.getLocalizedMessage());
+                            String msg = String.format("RemoteSiteListener Unable to accept connection from %s due to %s", socket, e.getLocalizedMessage());
                             // Suppress repeated TLS errors
                             if (CertificateUtils.isTlsError(e)) {
                                 boolean printedAsWarning = handleTlsError(msg);
