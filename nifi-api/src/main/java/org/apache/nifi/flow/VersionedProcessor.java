@@ -22,15 +22,9 @@ import io.swagger.annotations.ApiModelProperty;
 import java.util.Map;
 import java.util.Set;
 
-public class VersionedProcessor extends VersionedComponent
-        implements VersionedConfigurableComponent, VersionedExtensionComponent {
+public class VersionedProcessor extends VersionedConfigurableExtension {
 
-    private Bundle bundle;
     private Map<String, String> style;
-
-    private String type;
-    private Map<String, String> properties;
-    private Map<String, VersionedPropertyDescriptor> propertyDescriptors;
     private String annotationData;
 
     private String schedulingPeriod;
@@ -65,17 +59,6 @@ public class VersionedProcessor extends VersionedComponent
 
     public void setSchedulingStrategy(String schedulingStrategy) {
         this.schedulingStrategy = schedulingStrategy;
-    }
-
-    @Override
-    @ApiModelProperty("The type of Processor")
-    public String getType() {
-        return type;
-    }
-
-    @Override
-    public void setType(final String type) {
-        this.type = type;
     }
 
     @ApiModelProperty("Indicates the node where the process will execute.")
@@ -123,28 +106,6 @@ public class VersionedProcessor extends VersionedComponent
         this.concurrentlySchedulableTaskCount = concurrentlySchedulableTaskCount;
     }
 
-    @Override
-    @ApiModelProperty("The properties for the processor. Properties whose value is not set will only contain the property name.")
-    public Map<String, String> getProperties() {
-        return properties;
-    }
-
-    @Override
-    public void setProperties(Map<String, String> properties) {
-        this.properties = properties;
-    }
-
-    @Override
-    @ApiModelProperty("The property descriptors for the processor.")
-    public Map<String, VersionedPropertyDescriptor> getPropertyDescriptors() {
-        return propertyDescriptors;
-    }
-
-    @Override
-    public void setPropertyDescriptors(Map<String, VersionedPropertyDescriptor> propertyDescriptors) {
-        this.propertyDescriptors = propertyDescriptors;
-    }
-
     @ApiModelProperty("The annotation data for the processor used to relay configuration between a custom UI and the procesosr.")
     public String getAnnotationData() {
         return annotationData;
@@ -173,17 +134,6 @@ public class VersionedProcessor extends VersionedComponent
 
     public void setRunDurationMillis(Long runDurationMillis) {
         this.runDurationMillis = runDurationMillis;
-    }
-
-    @Override
-    @ApiModelProperty("Information about the bundle from which the component came")
-    public Bundle getBundle() {
-        return bundle;
-    }
-
-    @Override
-    public void setBundle(Bundle bundle) {
-        this.bundle = bundle;
     }
 
     @ApiModelProperty("Stylistic data for rendering in a UI")
