@@ -21,41 +21,16 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @ApiModel
-public class ReportingTaskDefinition extends ExtensionComponent implements ConfigurableComponentDefinition {
+public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
     private static final long serialVersionUID = 1L;
 
-    private Map<String, PropertyDescriptor> propertyDescriptors;
     private List<String> supportedSchedulingStrategies;
     private String defaultSchedulingStrategy;
     private Map<String, String> defaultSchedulingPeriodBySchedulingStrategy;
-    private boolean supportsDynamicProperties;
-
-    @Override
-    @ApiModelProperty("Descriptions of configuration properties applicable to this reporting task")
-    public Map<String, PropertyDescriptor> getPropertyDescriptors() {
-        return (propertyDescriptors != null ? Collections.unmodifiableMap(propertyDescriptors) : null);
-    }
-
-    @Override
-    public void setPropertyDescriptors(LinkedHashMap<String, PropertyDescriptor> propertyDescriptors) {
-        this.propertyDescriptors = propertyDescriptors;
-    }
-
-    @Override
-    @ApiModelProperty("Whether or not this reporting task makes use of dynamic (user-set) properties")
-    public boolean getSupportsDynamicProperties() {
-        return supportsDynamicProperties;
-    }
-
-    @Override
-    public void setSupportsDynamicProperties(boolean supportsDynamicProperties) {
-        this.supportsDynamicProperties = supportsDynamicProperties;
-    }
 
     @ApiModelProperty("The supported scheduling strategies, such as TIME_DRIVER or CRON.")
     public List<String> getSupportedSchedulingStrategies() {
