@@ -333,7 +333,7 @@ public class AuthorizationService {
 
         final Group group = userGroupProvider.getGroup(identifier);
         if (group == null) {
-            LOGGER.warn("The specified user group id [{}] does not exist.", group.getIdentifier());
+            LOGGER.warn("The specified user group id [{}] does not exist.", identifier);
             throw new ResourceNotFoundException("The specified user group ID does not exist in this registry.");
         }
 

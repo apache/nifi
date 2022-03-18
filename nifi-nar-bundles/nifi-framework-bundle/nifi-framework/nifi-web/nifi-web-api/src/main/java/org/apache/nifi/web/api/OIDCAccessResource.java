@@ -81,9 +81,8 @@ import java.util.regex.Pattern;
 public class OIDCAccessResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(OIDCAccessResource.class);
-    private static final String OIDC_AUTHENTICATION_FAILED = "OIDC authentication attempt failed: ";
+    private static final String OIDC_AUTHENTICATION_NOT_CONFIGURED = "OIDC authentication not configured";
     private static final String OIDC_ID_TOKEN_AUTHN_ERROR = "Unable to exchange authorization for ID token: ";
-    private static final String OIDC_IS_NOT_CONFIGURED_MESSAGE = "OIDC is not configured.";
     private static final String OIDC_REQUEST_IDENTIFIER_NOT_FOUND = "The request identifier was not found in the request.";
     private static final String OIDC_FAILED_TO_PARSE_REDIRECT_URI = "Unable to parse the redirect URI from the OpenId Connect Provider. Unable to continue login/logout process.";
     private static final String REVOKE_ACCESS_TOKEN_LOGOUT = "oidc_access_token_logout";
@@ -193,7 +192,7 @@ public class OIDCAccessResource extends ApplicationResource {
         try {
             validateOidcConfiguration();
         } catch (final AuthenticationNotSupportedException e) {
-            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
+            logger.debug("OIDC authentication not supported", e);
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
 
@@ -230,7 +229,6 @@ public class OIDCAccessResource extends ApplicationResource {
         try {
             validateOidcConfiguration();
         } catch (final AuthenticationNotSupportedException e) {
-            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
             throw e;
         }
 
@@ -471,7 +469,6 @@ public class OIDCAccessResource extends ApplicationResource {
         try {
             validateOidcConfiguration();
         } catch (final AuthenticationNotSupportedException e) {
-            logger.debug(OIDC_AUTHENTICATION_FAILED, e.getMessage());
             forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, e.getMessage());
             throw e;
         }
@@ -529,7 +526,7 @@ public class OIDCAccessResource extends ApplicationResource {
 
         // ensure OIDC is actually configured/enabled
         if (!oidcService.isOidcEnabled()) {
-            throw new AuthenticationNotSupportedException(OIDC_IS_NOT_CONFIGURED_MESSAGE);
+            throw new AuthenticationNotSupportedException(OIDC_AUTHENTICATION_NOT_CONFIGURED);
         }
     }
 

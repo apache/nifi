@@ -63,7 +63,7 @@ public class ScriptEventHookProvider
         try {
             builder.start();
         } catch (IOException e) {
-            LOGGER.error("Execution of {0} failed with: {1}", new Object[] { commandString, e.getLocalizedMessage() }, e);
+            LOGGER.error("Command Execution Failed: {}", commandString, e);
         }
     }
 
@@ -93,7 +93,7 @@ public class ScriptEventHookProvider
 
         scriptFile = new File(scripPath);
         if(scriptFile.isFile() && scriptFile.canExecute()) {
-            LOGGER.info("Configured ScriptEventHookProvider with script {}", new Object[] {scriptFile.getAbsolutePath()});
+            LOGGER.info("Configured ScriptEventHookProvider with script {}", scriptFile.getAbsolutePath());
         } else {
             throw new ProviderCreationException("The script file " + scriptFile.getAbsolutePath() + " cannot be executed.");
         }
