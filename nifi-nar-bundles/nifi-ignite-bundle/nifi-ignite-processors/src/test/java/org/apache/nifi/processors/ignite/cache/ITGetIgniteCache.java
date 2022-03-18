@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.ignite.cache;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,10 +29,9 @@ import org.apache.ignite.IgniteCache;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ITGetIgniteCache {
 
@@ -41,14 +41,14 @@ public class ITGetIgniteCache {
     private static Map<String,String> properties1;
     private static HashMap<String, String> properties2;
 
-    @BeforeClass
-    public static void setUp() throws IOException {
+    @BeforeAll
+    public static void setUp() {
         getIgniteCache = new GetIgniteCache();
         properties1 = new HashMap<String,String>();
         properties2 = new HashMap<String,String>();
     }
 
-    @AfterClass
+    @AfterAll
     public static void teardown() {
         runner = null;
         IgniteCache<String, byte[]> cache = getIgniteCache.getIgniteCache();
@@ -83,7 +83,7 @@ public class ITGetIgniteCache {
         final MockFlowFile out = runner.getFlowFilesForRelationship(GetIgniteCache.REL_SUCCESS).get(0);
 
         out.assertContentEquals("test5".getBytes());
-        Assert.assertArrayEquals("test5".getBytes(),(byte[])getIgniteCache.getIgniteCache().get("key5"));
+        assertArrayEquals("test5".getBytes(),(byte[])getIgniteCache.getIgniteCache().get("key5"));
         runner.shutdown();
     }
 
@@ -113,13 +113,13 @@ public class ITGetIgniteCache {
         final MockFlowFile out = runner.getFlowFilesForRelationship(GetIgniteCache.REL_SUCCESS).get(0);
 
         out.assertContentEquals("test51".getBytes());
-        Assert.assertArrayEquals("test51".getBytes(),
+        assertArrayEquals("test51".getBytes(),
                 (byte[])getIgniteCache.getIgniteCache().get("key51"));
 
         final MockFlowFile out2 = runner.getFlowFilesForRelationship(GetIgniteCache.REL_SUCCESS).get(1);
 
         out2.assertContentEquals("test52".getBytes());
-        Assert.assertArrayEquals("test52".getBytes(),
+        assertArrayEquals("test52".getBytes(),
                 (byte[])getIgniteCache.getIgniteCache().get("key52"));
 
         runner.shutdown();

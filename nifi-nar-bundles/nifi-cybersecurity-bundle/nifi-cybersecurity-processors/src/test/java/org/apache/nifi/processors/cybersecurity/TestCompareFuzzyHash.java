@@ -22,14 +22,15 @@ import org.apache.nifi.processors.cybersecurity.matchers.SSDeepHashMatcher;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 public class TestCompareFuzzyHash {
@@ -39,7 +40,7 @@ public class TestCompareFuzzyHash {
     final CompareFuzzyHash proc = new CompareFuzzyHash();
     final private TestRunner runner = TestRunners.newTestRunner(proc);
 
-    @After
+    @AfterEach
     public void stop() {
         runner.shutdown();
     }
@@ -70,7 +71,7 @@ public class TestCompareFuzzyHash {
                 "\"nifi/nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml\""
         );
         double similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.0.similarity"));
-        Assert.assertTrue(similarity >= matchingSimilarity);
+        assertTrue(similarity >= matchingSimilarity);
 
         outFile.assertAttributeNotExists("fuzzyhash.value.1.match");
     }
@@ -101,13 +102,13 @@ public class TestCompareFuzzyHash {
         );
 
         double similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.0.similarity"));
-        Assert.assertTrue(similarity >= matchingSimilarity);
+        assertTrue(similarity >= matchingSimilarity);
 
         outFile.assertAttributeEquals("fuzzyhash.value.1.match",
                 "\"nifi/nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml\""
         );
         similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.1.similarity"));
-        Assert.assertTrue(similarity >= matchingSimilarity);
+        assertTrue(similarity >= matchingSimilarity);
     }
 
     @Test
@@ -203,7 +204,7 @@ public class TestCompareFuzzyHash {
                 "nifi-nar-bundles/nifi-lumberjack-bundle/nifi-lumberjack-processors/pom.xml"
         );
         double similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.0.similarity"));
-        Assert.assertTrue(similarity <= matchingSimilarity);
+        assertTrue(similarity <= matchingSimilarity);
 
         outFile.assertAttributeNotExists("fuzzyhash.value.1.match");
     }
@@ -233,14 +234,14 @@ public class TestCompareFuzzyHash {
                 "nifi-nar-bundles/nifi-lumberjack-bundle/nifi-lumberjack-processors/pom.xml"
         );
         double similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.0.similarity"));
-        Assert.assertTrue(similarity <= matchingSimilarity);
+        assertTrue(similarity <= matchingSimilarity);
 
         outFile.assertAttributeEquals(
                 "fuzzyhash.value.1.match",
                 "nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml"
         );
         similarity = Double.valueOf(outFile.getAttribute("fuzzyhash.value.1.similarity"));
-        Assert.assertTrue(similarity <= matchingSimilarity);
+        assertTrue(similarity <= matchingSimilarity);
     }
 
 
@@ -370,11 +371,11 @@ public class TestCompareFuzzyHash {
         );
 
         for (String item : invalidPayloads) {
-            Assert.assertTrue("item '" + item + "' should have failed validation",  !matcher.isValidHash(item));
+            assertTrue(!matcher.isValidHash(item), "item '" + item + "' should have failed validation");
         }
 
         // Now test with a valid string
-        Assert.assertTrue(matcher.isValidHash(ssdeepInput));
+        assertTrue(matcher.isValidHash(ssdeepInput));
 
     }
 }

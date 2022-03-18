@@ -27,31 +27,33 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchGetItemResult;
 import com.amazonaws.services.dynamodbv2.model.KeysAndAttributes;
 import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processors.aws.AbstractAWSProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
+import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
 import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class GetDynamoDBTest extends AbstractDynamoDBTest {
     protected GetDynamoDB getDynamoDB;
@@ -59,7 +61,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
     protected BatchGetItemResult result = new BatchGetItemResult();
     private HashMap unprocessed;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         outcome = new BatchGetItemOutcome(result);
         KeysAndAttributes kaa = new KeysAndAttributes();
@@ -78,12 +80,10 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         result.withResponses(responses);
 
         final DynamoDB mockDynamoDB = new DynamoDB(Regions.AP_NORTHEAST_1) {
-
             @Override
             public BatchGetItemOutcome batchGetItem(TableKeysAndAttributes... tableKeysAndAttributes) {
                 return outcome;
             }
-
         };
 
         getDynamoDB = mockDynamoDB(mockDynamoDB);
@@ -545,16 +545,16 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
         assertEquals(3, results.size());
-        assertEquals(Outcome.SUCCESSFUL, results.get(0).getOutcome());
-        assertEquals(Outcome.SUCCESSFUL, results.get(1).getOutcome());
-        assertEquals(Outcome.FAILED, results.get(2).getOutcome());
+        assertEquals(SUCCESSFUL, results.get(0).getOutcome());
+        assertEquals(SUCCESSFUL, results.get(1).getOutcome());
+        assertEquals(FAILED, results.get(2).getOutcome());
     }
 
     private void assertVerificationResults(final TestRunner runner, final int expectedTotalCount, final int expectedJsonDocumentCount) {
         final List<ConfigVerificationResult> results = ((VerifiableProcessor) runner.getProcessor())
                 .verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
         assertEquals(3, results.size());
-        results.forEach(result -> assertEquals(Outcome.SUCCESSFUL, result.getOutcome()));
+        results.forEach(result -> assertEquals(SUCCESSFUL, result.getOutcome()));
         assertTrue(results.get(2).getExplanation().contains("retrieved " + expectedTotalCount + " items"));
         assertTrue(results.get(2).getExplanation().contains(expectedJsonDocumentCount + " JSON"));
     }

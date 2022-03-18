@@ -78,10 +78,11 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
             .build();
     public static final PropertyDescriptor IDLE_EXPIRATION = new PropertyDescriptor
             .Builder().name("Idle Connection Expiration")
-            .description("The amount of time a connection should be held open without being used before closing the connection.")
+            .description("The amount of time a connection should be held open without being used before closing the connection. A value of 0 seconds will disable this feature.")
             .required(true)
-            .defaultValue("5 seconds")
+            .defaultValue("15 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     // Putting these properties here so sub-classes don't have to redefine them, but they are
@@ -249,7 +250,9 @@ public abstract class AbstractPutEventProcessor<T> extends AbstractSessionFactor
         factory.setShutdownQuietPeriod(Duration.ZERO); // Quiet period not necessary since sending threads will have completed before shutting down event sender
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int idleTimeout = context.getProperty(IDLE_EXPIRATION).evaluateAttributeExpressions().asTimePeriod(TimeUnit.SECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
+        factory.setIdleTimeout(Duration.ofSeconds(idleTimeout));
 
         final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
         if (sslContextServiceProperty.isSet()) {

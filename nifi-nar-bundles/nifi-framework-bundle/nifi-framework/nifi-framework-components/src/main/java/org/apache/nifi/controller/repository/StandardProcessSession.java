@@ -1428,6 +1428,17 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
+    public void migrate(final ProcessSession newOwner) {
+        final List<FlowFile> allFlowFiles = new ArrayList<>();
+
+        for (final StandardRepositoryRecord repositoryRecord : records.values()) {
+            allFlowFiles.add(repositoryRecord.getCurrent());
+        }
+
+        migrate(newOwner, allFlowFiles);
+    }
+
+    @Override
     public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {
         verifyTaskActive();
 
@@ -1588,11 +1599,24 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
 
             if (repoRecord.getTransferRelationship() != null) {
-                flowFilesOut--;
-                contentSizeOut -= flowFile.getSize();
+                final Relationship transferRelationship = repoRecord.getTransferRelationship();
+                final Collection<Connection> destinations = context.getConnections(transferRelationship);
+                final int numDestinations = destinations.size();
+                final boolean autoTerminated = numDestinations == 0 && context.getConnectable().isAutoTerminated(transferRelationship);
 
-                newOwner.flowFilesOut++;
-                newOwner.contentSizeOut += flowFile.getSize();
+                if (autoTerminated) {
+                    removedCount--;
+                    removedBytes -= flowFile.getSize();
+
+                    newOwner.removedCount++;
+                    newOwner.removedBytes += flowFile.getSize();
+                } else {
+                    flowFilesOut--;
+                    contentSizeOut -= flowFile.getSize();
+
+                    newOwner.flowFilesOut++;
+                    newOwner.contentSizeOut += flowFile.getSize();
+                }
             }
 
             final List<ProvenanceEventRecord> events = generatedProvenanceEvents.remove(flowFile);
@@ -3019,12 +3043,25 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     flush();
                     removeTemporaryClaim(record);
 
-                    final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-                        .fromFlowFile(record.getCurrent())
-                        .contentClaim(updatedClaim)
-                        .contentClaimOffset(Math.max(0, updatedClaim.getLength() - bytesWritten))
-                        .size(bytesWritten)
-                        .build();
+                    final FlowFileRecord newFile;
+                    if (bytesWritten == 0) {
+                        newFile = new StandardFlowFileRecord.Builder()
+                            .fromFlowFile(record.getCurrent())
+                            .contentClaim(null)
+                            .contentClaimOffset(0)
+                            .size(bytesWritten)
+                            .build();
+
+                        context.getContentRepository().decrementClaimantCount(updatedClaim);
+                        record.addTransientClaim(updatedClaim);
+                    } else {
+                        newFile = new StandardFlowFileRecord.Builder()
+                            .fromFlowFile(record.getCurrent())
+                            .contentClaim(updatedClaim)
+                            .contentClaimOffset(Math.max(0, updatedClaim.getLength() - bytesWritten))
+                            .size(bytesWritten)
+                            .build();
+                    }
 
                     record.setWorking(newFile, true);
                 }
@@ -3038,10 +3075,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             destroyContent(newClaim, record);
             handleContentNotFound(nfe, record);
             throw nfe;
-        } catch (final FlowFileAccessException ffae) {
-            resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim, record);
-            throw ffae;
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
@@ -3084,10 +3117,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
             handleContentNotFound(nfe, record);
-        } catch (final FlowFileAccessException ffae) {
-            resetWriteClaims(); // need to reset write claim before we can remove the claim
-            destroyContent(newClaim, record);
-            throw ffae;
         } catch (final IOException ioe) {
             resetWriteClaims(); // need to reset write claim before we can remove the claim
             destroyContent(newClaim, record);
@@ -3099,12 +3128,25 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         removeTemporaryClaim(record);
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-            .fromFlowFile(record.getCurrent())
-            .contentClaim(newClaim)
-            .contentClaimOffset(Math.max(0, newClaim.getLength() - writtenToFlowFile))
-            .size(writtenToFlowFile)
-            .build();
+        final FlowFileRecord newFile;
+        if (writtenToFlowFile == 0) {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(null)
+                .contentClaimOffset(0)
+                .size(0)
+                .build();
+
+            context.getContentRepository().decrementClaimantCount(newClaim);
+            record.addTransientClaim(newClaim);
+        } else {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(newClaim)
+                .contentClaimOffset(Math.max(0, newClaim.getLength() - writtenToFlowFile))
+                .size(writtenToFlowFile)
+                .build();
+        }
 
         record.setWorking(newFile, true);
         return newFile;
@@ -3227,12 +3269,26 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             removeTemporaryClaim(record);
         }
 
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-            .fromFlowFile(record.getCurrent())
-            .contentClaim(newClaim)
-            .contentClaimOffset(0)
-            .size(newSize)
-            .build();
+        final FlowFileRecord newFile;
+        if (newSize == 0) {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(null)
+                .contentClaimOffset(0)
+                .size(0)
+                .build();
+
+            context.getContentRepository().decrementClaimantCount(newClaim);
+            record.addTransientClaim(newClaim);
+        } else {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(newClaim)
+                .contentClaimOffset(0)
+                .size(newSize)
+                .build();
+        }
+
         record.setWorking(newFile, true);
         return newFile;
     }
@@ -3373,21 +3429,32 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         } catch (final IOException ioe) {
             destroyContent(newClaim, record);
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
-        } catch (final FlowFileAccessException ffae) {
-            destroyContent(newClaim, record);
-            throw ffae;
         } catch (final Throwable t) {
             destroyContent(newClaim, record);
             throw t;
         }
 
         removeTemporaryClaim(record);
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-            .fromFlowFile(record.getCurrent())
-            .contentClaim(newClaim)
-            .contentClaimOffset(Math.max(0L, newClaim.getLength() - writtenToFlowFile))
-            .size(writtenToFlowFile)
-            .build();
+        final FlowFileRecord newFile;
+
+        if (writtenToFlowFile == 0) {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(null)
+                .contentClaimOffset(0)
+                .size(0)
+                .build();
+
+            context.getContentRepository().decrementClaimantCount(newClaim);
+            record.addTransientClaim(newClaim);
+        } else {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(newClaim)
+                .contentClaimOffset(Math.max(0L, newClaim.getLength() - writtenToFlowFile))
+                .size(writtenToFlowFile)
+                .build();
+        }
 
         record.setWorking(newFile, true);
 
@@ -3418,7 +3485,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         claimOffset = 0L;
-        long newSize = 0L;
+        final long newSize;
         try {
             newSize = context.getContentRepository().importFrom(source, newClaim);
             bytesWritten += newSize;
@@ -3430,13 +3497,28 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         removeTemporaryClaim(record);
 
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-            .fromFlowFile(record.getCurrent())
-            .contentClaim(newClaim)
-            .contentClaimOffset(claimOffset)
-            .size(newSize)
-            .addAttribute(CoreAttributes.FILENAME.key(), source.toFile().getName())
-            .build();
+        final FlowFileRecord newFile;
+        if (newSize == 0) {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(null)
+                .contentClaimOffset(0)
+                .size(0)
+                .addAttribute(CoreAttributes.FILENAME.key(), source.toFile().getName())
+                .build();
+
+            context.getContentRepository().decrementClaimantCount(newClaim);
+            record.addTransientClaim(newClaim);
+        } else {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(newClaim)
+                .contentClaimOffset(claimOffset)
+                .size(newSize)
+                .addAttribute(CoreAttributes.FILENAME.key(), source.toFile().getName())
+                .build();
+        }
+
         record.setWorking(newFile, CoreAttributes.FILENAME.key(), source.toFile().getName(), true);
 
         if (!keepSourceFile) {
@@ -3475,12 +3557,26 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
 
         removeTemporaryClaim(record);
-        final FlowFileRecord newFile = new StandardFlowFileRecord.Builder()
-            .fromFlowFile(record.getCurrent())
-            .contentClaim(newClaim)
-            .contentClaimOffset(claimOffset)
-            .size(newSize)
-            .build();
+        final FlowFileRecord newFile;
+        if (newSize == 0) {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(null)
+                .contentClaimOffset(0)
+                .size(0)
+                .build();
+
+            context.getContentRepository().decrementClaimantCount(newClaim);
+            record.addTransientClaim(newClaim);
+        } else {
+            newFile = new StandardFlowFileRecord.Builder()
+                .fromFlowFile(record.getCurrent())
+                .contentClaim(newClaim)
+                .contentClaimOffset(claimOffset)
+                .size(newSize)
+                .build();
+        }
+
         record.setWorking(newFile, true);
         return newFile;
     }

@@ -18,11 +18,11 @@ package org.apache.nifi.rules;
 
 import org.jeasy.rules.api.Condition;
 import org.jeasy.rules.api.Facts;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRulesCondition {
 
@@ -54,11 +54,7 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueued",100);
         Condition condition = new RulesMVELCondition(expression, false);
-        try {
-            condition.evaluate(facts);
-            fail();
-        }catch (Exception ignored){
-        }
+        assertThrows(Exception.class, () -> condition.evaluate(facts));
     }
 
     @Test
@@ -89,12 +85,6 @@ public class TestRulesCondition {
         Facts facts = new Facts();
         facts.put("predictedQueuedCount",100);
         Condition condition = new RulesSPELCondition(expression, false);
-        try {
-            condition.evaluate(facts);
-            fail();
-        }catch (Exception ignored){
-        }
+        assertThrows(Exception.class, () -> condition.evaluate(facts));
     }
-
-
 }

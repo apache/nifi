@@ -104,7 +104,7 @@ public class StatelessProcessScheduler implements ProcessScheduler {
         }
     }
 
-    public void initialize(final ProcessContextFactory processContextFactory, final DataflowDefinition<?> dataflowDefinition) {
+    public void initialize(final ProcessContextFactory processContextFactory, final DataflowDefinition dataflowDefinition) {
         this.processContextFactory = processContextFactory;
 
         final String threadNameSuffix = dataflowDefinition.getFlowName() == null ? "" : " for dataflow " + dataflowDefinition.getFlowName();

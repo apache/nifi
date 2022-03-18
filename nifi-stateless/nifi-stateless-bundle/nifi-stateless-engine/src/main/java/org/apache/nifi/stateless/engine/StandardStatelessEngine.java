@@ -43,6 +43,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
+import org.apache.nifi.flow.VersionedExternalFlowMetadata;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogRepositoryFactory;
@@ -57,8 +58,6 @@ import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.VersionedFlow;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -98,7 +97,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSnapshot> {
+public class StandardStatelessEngine implements StatelessEngine {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessEngine.class);
     private static final int CONCURRENT_EXTENSION_DOWNLOADS = 8;
     public static final Duration DEFAULT_STATUS_TASK_PERIOD = Duration.of(1, ChronoUnit.MINUTES);
@@ -158,13 +157,14 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     @Override
-    public StatelessDataflow createFlow(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
+    public StatelessDataflow createFlow(final DataflowDefinition dataflowDefinition) {
         if (!this.initialized) {
             throw new IllegalStateException("Cannot create Flow without first initializing Stateless Engine");
         }
 
-        final VersionedFlow versionedFlow = dataflowDefinition.getFlowSnapshot().getFlow();
-        logger.info("Building Dataflow {}", versionedFlow == null ? "" : versionedFlow.getName());
+        final VersionedExternalFlowMetadata metadata = dataflowDefinition.getVersionedExternalFlow().getMetadata();
+        final String flowName = metadata == null ? "" : metadata.getFlowName();
+        logger.info("Building Dataflow {}", flowName);
 
         loadNecessaryExtensions(dataflowDefinition);
 
@@ -178,7 +178,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         rootGroup.addProcessGroup(childGroup);
 
         LogRepositoryFactory.purge();
-        childGroup.updateFlow(dataflowDefinition.getFlowSnapshot(), "stateless-component-id-seed", false, true, true);
+        childGroup.updateFlow(dataflowDefinition.getVersionedExternalFlow(), "stateless-component-id-seed", false, true, true);
 
         final ParameterValueProvider parameterValueProvider = createParameterValueProvider(dataflowDefinition);
 
@@ -205,7 +205,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return dataflow;
     }
 
-    private ParameterValueProvider createParameterValueProvider(final DataflowDefinition<?> dataflowDefinition) {
+    private ParameterValueProvider createParameterValueProvider(final DataflowDefinition dataflowDefinition) {
         // Create a Provider for each definition
         final List<ParameterValueProvider> providers = new ArrayList<>();
         for (final ParameterValueProviderDefinition definition : dataflowDefinition.getParameterValueProviderDefinitions()) {
@@ -300,8 +300,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
     }
 
-    private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
-        final VersionedProcessGroup group = dataflowDefinition.getFlowSnapshot().getFlowContents();
+    private void loadNecessaryExtensions(final DataflowDefinition dataflowDefinition) {
+        final VersionedProcessGroup group = dataflowDefinition.getVersionedExternalFlow().getFlowContents();
         final Set<BundleCoordinate> requiredBundles = gatherRequiredBundles(group);
 
         for (final ReportingTaskDefinition reportingTaskDefinition : dataflowDefinition.getReportingTaskDefinitions()) {
@@ -380,7 +380,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
     }
 
-    private List<ReportingTaskNode> createReportingTasks(final DataflowDefinition<?> dataflowDefinition) {
+    private List<ReportingTaskNode> createReportingTasks(final DataflowDefinition dataflowDefinition) {
         final List<ReportingTaskNode> reportingTaskNodes = new ArrayList<>();
         for (final ReportingTaskDefinition taskDefinition : dataflowDefinition.getReportingTaskDefinitions()) {
             final ReportingTaskNode taskNode = createReportingTask(taskDefinition);

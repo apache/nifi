@@ -304,7 +304,7 @@
             return false;
         }
 
-        return nfCanvasUtils.isConnection(selection);
+        return nfCanvasUtils.isConnection(selection) || nfCanvasUtils.isLabel(selection);
     };
 
     /**
@@ -824,6 +824,11 @@
         {id: 'disable-menu-item', condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
         {id: 'enable-transmission-menu-item', condition: canStartTransmission, menuItem: {clazz: 'fa fa-bullseye', text: 'Enable transmission', action: 'enableTransmission'}},
         {id: 'disable-transmission-menu-item', condition: canStopTransmission, menuItem: { clazz: 'icon icon-transmit-false', text: 'Disable transmission', action: 'disableTransmission'}},
+        {separator: true},
+        {id: 'enable-all-controller-services-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-flash', text: 'Enable all controller services', action: 'enableAllControllerServices'}},
+        {id: 'enable-all-controller-services-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'fa fa-flash', text: 'Enable all controller services', action: 'enableAllControllerServices'}},
+        {id: 'disable-all-controller-services-menu-item', condition: isProcessGroup, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable all controller services', action: 'disableAllControllerServices'}},
+        {id: 'disable-all-controller-services-menu-item-noselection', condition: emptySelection, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable all controller services', action: 'disableAllControllerServices'}},
         {separator: true},
         {id: 'data-provenance-menu-item', condition: canAccessProvenance, menuItem: {clazz: 'icon icon-provenance', imgStyle: 'context-menu-provenance', text: 'View data provenance', action: 'openProvenance'}},
         {id: 'show-stats-menu-item', condition: supportsStats, menuItem: {clazz: 'fa fa-area-chart', text: 'View status history', action: 'showStats'}},

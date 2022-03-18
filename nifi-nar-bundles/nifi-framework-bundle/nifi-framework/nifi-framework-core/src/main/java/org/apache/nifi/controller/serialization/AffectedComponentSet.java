@@ -482,6 +482,16 @@ public class AffectedComponentSet {
         reportingTasks.forEach(flowController::startReportingTask);
     }
 
+    public void removeComponents(final ComponentSetFilter filter) {
+        inputPorts.removeIf(filter::testInputPort);
+        outputPorts.removeIf(filter::testOutputPort);
+        remoteInputPorts.removeIf(filter::testRemoteInputPort);
+        remoteOutputPorts.removeIf(filter::testRemoteOutputPort);
+        processors.removeIf(filter::testProcessor);
+        controllerServices.removeIf(filter::testControllerService);
+        reportingTasks.removeIf(filter::testReportingTask);
+    }
+
     /**
      * Returns a new AffectedComponentSet that represents only those components that currently exist within the NiFi instance. When a set of dataflow updates have occurred, it is very possible
      * that one or more components referred to by the AffectedComponentSet no longer exist (for example, there was a dataflow update that removed a Processor, so that Processor no longer exists).

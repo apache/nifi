@@ -24,10 +24,10 @@ import org.apache.nifi.jms.cf.JndiJmsConnectionFactoryProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
@@ -59,19 +59,19 @@ public class ConnectionFactoryConfigIT {
     private TestRunner publisher;
     private TestRunner consumer;
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws JMSException {
         // start in-VM broker
         bootstrapConnection = new ActiveMQConnectionFactory(BROKER_URL).createConnection();
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws JMSException {
         // stop in-VM broker
         bootstrapConnection.close();
     }
 
-    @Before
+    @BeforeEach
     public void before() {
         publisher = TestRunners.newTestRunner(PublishJMS.class);
         consumer = TestRunners.newTestRunner(ConsumeJMS.class);

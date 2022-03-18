@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.reporting.azure.loganalytics;
 
-import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.verify;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -34,14 +23,24 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
-
 import org.apache.nifi.util.MockReportingContext;
 import org.apache.nifi.util.MockReportingInitializationContext;
 import org.apache.nifi.util.MockVariableRegistry;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.verify;
 
 public class TestAzureLogAnalyticsReportingTask {
 
@@ -59,7 +58,7 @@ public class TestAzureLogAnalyticsReportingTask {
     private ProcessGroupStatus testGroupStatus2;
     private ProcessorStatus procStatus;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testedReportingTask = new TestableAzureLogAnalyticsReportingTask();
         rootGroupStatus = new ProcessGroupStatus();

@@ -22,7 +22,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -32,7 +32,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestHortonworksEncodedSchemaReferenceWriter {
 
@@ -116,22 +117,22 @@ public class TestHortonworksEncodedSchemaReferenceWriter {
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateWithProtocol1AndMissingSchemaId() throws SchemaNotFoundException {
+    @Test
+    public void testValidateWithProtocol1AndMissingSchemaId() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
         final SchemaAccessWriter schemaAccessWriter = new HortonworksEncodedSchemaReferenceWriter(1);
-        schemaAccessWriter.validateSchema(recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateWithProtocol1AndMissingSchemaName() throws SchemaNotFoundException {
+    @Test
+    public void testValidateWithProtocol1AndMissingSchemaName() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().id(123456L).build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
         final SchemaAccessWriter schemaAccessWriter = new HortonworksEncodedSchemaReferenceWriter(1);
-        schemaAccessWriter.validateSchema(recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
     }
 
     @Test
@@ -143,13 +144,13 @@ public class TestHortonworksEncodedSchemaReferenceWriter {
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateWithProtocol2AndMissingSchemaVersionId() throws SchemaNotFoundException {
+    @Test
+    public void testValidateWithProtocol2AndMissingSchemaVersionId() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
         final SchemaAccessWriter schemaAccessWriter = new HortonworksEncodedSchemaReferenceWriter(2);
-        schemaAccessWriter.validateSchema(recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
     }
 
     @Test
@@ -161,13 +162,13 @@ public class TestHortonworksEncodedSchemaReferenceWriter {
         schemaAccessWriter.validateSchema(recordSchema);
     }
 
-    @Test(expected = SchemaNotFoundException.class)
-    public void testValidateWithProtocol3AndMissingSchemaVersionId() throws SchemaNotFoundException {
+    @Test
+    public void testValidateWithProtocol3AndMissingSchemaVersionId() {
         final SchemaIdentifier schemaIdentifier = SchemaIdentifier.builder().name("test").build();
         final RecordSchema recordSchema = createRecordSchema(schemaIdentifier);
 
         final SchemaAccessWriter schemaAccessWriter = new HortonworksEncodedSchemaReferenceWriter(3);
-        schemaAccessWriter.validateSchema(recordSchema);
+        assertThrows(SchemaNotFoundException.class, () -> schemaAccessWriter.validateSchema(recordSchema));
     }
 
     private RecordSchema createRecordSchema(final SchemaIdentifier schemaIdentifier) {

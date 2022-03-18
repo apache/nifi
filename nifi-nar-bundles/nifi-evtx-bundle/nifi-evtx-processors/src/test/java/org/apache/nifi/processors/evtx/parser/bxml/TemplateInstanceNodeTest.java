@@ -20,7 +20,8 @@ package org.apache.nifi.processors.evtx.parser.bxml;
 import com.google.common.primitives.UnsignedInteger;
 import org.apache.nifi.processors.evtx.parser.BinaryReader;
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -40,6 +41,7 @@ public class TemplateInstanceNodeTest extends BxmlNodeWithTokenTestBase {
     private TemplateInstanceNode templateInstanceNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         testBinaryReaderBuilder.put(unknown);

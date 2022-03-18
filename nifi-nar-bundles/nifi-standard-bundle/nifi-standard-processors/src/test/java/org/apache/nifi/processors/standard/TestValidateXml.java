@@ -18,16 +18,23 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
-import org.xml.sax.SAXException;
 
 public class TestValidateXml {
 
+    private static final String VALID_XML = "<ns:bundle xmlns:ns=\"http://namespace/1\"><node><subNode><value>Hello</value></subNode>" +
+            "<subNode><value>World!</value></subNode></node></ns:bundle>";
+    private static final String INVALID_XML = "<this>is an invalid</xml>";
+    private static final String NONCOMPLIANT_XML = "<ns:bundle xmlns:ns=\"http://namespace/1\"><this>is good XML, but violates schema</this></ns:bundle>";
+
     @Test
-    public void testValid() throws IOException, SAXException {
+    public void testValid() throws IOException {
+        // Valid XML in FF content, XSD provided
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
 
@@ -38,11 +45,20 @@ public class TestValidateXml {
     }
 
     @Test
-    public void testInvalid() throws IOException, SAXException {
+    public void testInvalid() {
+        // Invalid XML in FF content, XSD provided
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
 
-        runner.enqueue("<this>is an invalid</xml>");
+        runner.enqueue(INVALID_XML);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+
+        runner.clearTransferState();
+        runner.enqueue(NONCOMPLIANT_XML);
+
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
@@ -50,7 +66,7 @@ public class TestValidateXml {
     }
 
     @Test
-    public void testValidEL() throws IOException, SAXException {
+    public void testValidEL() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
         runner.setVariable("my.schema", "src/test/resources/TestXml/XmlBundle.xsd");
@@ -62,15 +78,107 @@ public class TestValidateXml {
     }
 
     @Test(expected = AssertionError.class)
-    public void testInvalidEL() throws IOException, SAXException {
+    public void testInvalidEL() {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
         runner.setProperty(ValidateXml.SCHEMA_FILE, "${my.schema}");
 
-        runner.enqueue("<this>is an invalid</xml>");
+        runner.enqueue(INVALID_XML);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
         runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
     }
 
+    @Test
+    public void testValidXMLAttributeWithSchema()  {
+        // Valid XML in FF attribute, XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
+        runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("xml.attribute", VALID_XML);
+
+        runner.enqueue("XML is in attribute, not content", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test
+    public void testInvalidXMLAttributeWithSchema() {
+        // Invalid XML in FF attribute, XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
+        runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("xml.attribute", INVALID_XML);
+
+        runner.enqueue("flowfile content is irrelevant", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+
+        runner.clearTransferState();
+        attributes.clear();
+        attributes.put("xml.attribute", NONCOMPLIANT_XML);
+
+        runner.enqueue("flowfile content is irrelevant", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+    }
+
+    @Test
+    public void testValidXMLAttributeStructure() {
+        // Valid XML in FF attribute, no XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("xml.attribute", VALID_XML);
+
+        runner.enqueue("XML is in attribute, not content", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test
+    public void testInvalidXMLAttributeStructure() {
+        // Invalid XML in FF attribute, no XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+        runner.setProperty(ValidateXml.XML_SOURCE_ATTRIBUTE, "xml.attribute");
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("xml.attribute", INVALID_XML);
+
+        runner.enqueue("XML is in attribute, not content", attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+    }
+
+    @Test
+    public void testValidXMLContentStructure() throws IOException {
+        // Valid XML in FF content, no XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+
+        runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_VALID, 1);
+    }
+
+    @Test
+    public void testInvalidXMLContentStructure() {
+        // Invalid XML in FF content, no XSD provided
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
+
+        runner.enqueue(INVALID_XML);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ValidateXml.REL_INVALID, 1);
+        runner.assertAllFlowFilesContainAttribute(ValidateXml.REL_INVALID, ValidateXml.ERROR_ATTRIBUTE_KEY);
+    }
 }

@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 package org.apache.nifi.processors.aws.lambda;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.List;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * This test contains both unit and integration test (integration tests are ignored by default)
@@ -38,7 +38,7 @@ public class ITPutLambda {
     private TestRunner runner;
     protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.ACCESS_KEY, "abcd");
@@ -47,13 +47,13 @@ public class ITPutLambda {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }
 
     @Test
-    public void testSizeGreaterThan6MB() throws Exception {
+    public void testSizeGreaterThan6MB() {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
@@ -72,8 +72,7 @@ public class ITPutLambda {
      * Comment out ignore for integration tests (requires creds files)
      */
     @Test
-    @Ignore
-    public void testIntegrationSuccess() throws Exception {
+    public void testIntegrationSuccess() {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
@@ -86,17 +85,16 @@ public class ITPutLambda {
 
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_SUCCESS);
         final MockFlowFile out = ffs.iterator().next();
-        assertNull("Function error should be null " + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
-        assertNotNull("log should not be null", out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG));
-        assertEquals("Status should be equal", "200",out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE));
+        assertNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), "Function error should be null " + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
+        assertNotNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG), "log should not be null");
+        assertEquals("200",out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE), "Status should be equal");
     }
 
     /**
      * Comment out ignore for integration tests (requires creds files)
      */
     @Test
-    @Ignore
-    public void testIntegrationClientErrorBadMessageBody() throws Exception {
+    public void testIntegrationClientErrorBadMessageBody() {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "hello");
@@ -108,23 +106,22 @@ public class ITPutLambda {
         runner.assertAllFlowFilesTransferred(PutLambda.REL_FAILURE, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_FAILURE);
         final MockFlowFile out = ffs.iterator().next();
-        assertNull("Function error should be null since there is exception"
-            + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
-        assertNull("log should not be null", out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG));
-        assertEquals("Status should be equal", null,out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE));
-        assertEquals("exception error code should be equal", "InvalidRequestContentException",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_ERROR_CODE));
-        assertEquals("exception exception error type should be equal", "Client",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_ERROR_TYPE));
-        assertEquals("exception exception error code should be equal", "400",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_STATUS_CODE));
-        assertTrue("exception exception error message should be start with",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_MESSAGE)
-               .startsWith("Could not parse request body into json: Unrecognized token 'badbod': was expecting ('true', 'false' or 'null')"));
+        assertNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), "Function error should be null since there is exception"
+            + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
+        assertNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG), "log should not be null");
+        assertEquals(null,out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE), "Status should be equal");
+        assertEquals("InvalidRequestContentException",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_ERROR_CODE), "exception error code should be equal");
+        assertEquals("Client",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_ERROR_TYPE), "exception exception error type should be equal");
+        assertEquals("400",out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_STATUS_CODE), "exception exception error code should be equal");
+        assertTrue(out.getAttribute(PutLambda.AWS_LAMBDA_EXCEPTION_MESSAGE)
+               .startsWith("Could not parse request body into json: Unrecognized token 'badbod': was expecting ('true', 'false' or 'null')"), "exception exception error message should be start with");
     }
 
     /**
      * Comment out ignore for integration tests (requires creds files)
      */
     @Test
-    @Ignore
-    public void testIntegrationFailedBadStreamName() throws Exception {
+    public void testIntegrationFailedBadStreamName() {
         runner = TestRunners.newTestRunner(PutLambda.class);
         runner.setProperty(PutLambda.CREDENTIALS_FILE, CREDENTIALS_FILE);
         runner.setProperty(PutLambda.AWS_LAMBDA_FUNCTION_NAME, "bad-function-name");
@@ -136,10 +133,10 @@ public class ITPutLambda {
         runner.assertAllFlowFilesTransferred(PutLambda.REL_FAILURE, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutLambda.REL_FAILURE);
         final MockFlowFile out = ffs.iterator().next();
-        assertNull("Function error should be null since there is exception"
-            + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
-        assertNull("log should not be null", out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG));
-        assertEquals("Status should be equal", null,out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE));
+        assertNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR), "Function error should be null since there is exception"
+            + out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_FUNCTION_ERROR));
+        assertNull(out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_LOG), "log should not be null");
+        assertEquals(null,out.getAttribute(PutLambda.AWS_LAMBDA_RESULT_STATUS_CODE), "Status should be equal");
 
     }
 }

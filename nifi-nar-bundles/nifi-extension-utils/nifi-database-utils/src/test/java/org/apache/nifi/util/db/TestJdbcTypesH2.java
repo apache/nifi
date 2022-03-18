@@ -16,57 +16,50 @@
  */
 package org.apache.nifi.util.db;
 
-import static org.junit.Assert.assertNotNull;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-
 public class TestJdbcTypesH2 {
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    @BeforeClass
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-    }
-
     String createTable = "    CREATE TABLE `users` ( "
-            + "  `id` int(11) NOT NULL AUTO_INCREMENT, "
+            + "  `id` int NOT NULL AUTO_INCREMENT, "
             + "  `email` varchar(255) NOT NULL, "
             + "  `password` varchar(255) DEFAULT NULL, "
             + "  `activation_code` varchar(255) DEFAULT NULL, "
             + "  `forgotten_password_code` varchar(255) DEFAULT NULL, "
             + "  `forgotten_password_time` datetime DEFAULT NULL, "
             + "  `created` datetime NOT NULL, "
-            + "  `active` tinyint(1) NOT NULL DEFAULT '0', "
-            + "  `home_module_id` int(11) DEFAULT NULL, "
+            + "  `active` tinyint NOT NULL DEFAULT '0', "
+            + "  `home_module_id` int DEFAULT NULL, "
 
-            + "  somebinary BINARY default null, "
+            + "  somebinary BINARY(4) default null, "
             + "  somebinary2 VARBINARY default null, "
             + "  somebinary3 LONGVARBINARY default null, "
-            + "  somearray   ARRAY default null, "
+            + "  somearray INTEGER ARRAY default null, "
             + "  someblob BLOB default null, "
             + "  someclob CLOB default null, "
 
             + "  PRIMARY KEY (`id`), "
-            + "  UNIQUE KEY `email` (`email`) ) " ;
+            + "  CONSTRAINT unique_email UNIQUE (`email`) ) " ;
 //            + "  KEY `home_module_id` (`home_module_id`) )" ;
 /*            + "  CONSTRAINT `users_ibfk_1` FOREIGN KEY (`home_module_id`) REFERENCES "
             + "`modules` (`id`) ON DELETE SET NULL "
@@ -75,9 +68,24 @@ public class TestJdbcTypesH2 {
 
     String dropTable = "drop table users";
 
+    String dbPath;
+
+    @BeforeEach
+    public void beforeEach() throws IOException {
+        dbPath = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+                .resolve("db")
+                .toFile()
+                .getAbsolutePath();
+    }
+
+    @AfterEach
+    public void afterEach() throws IOException {
+        FileUtils.deleteFile(new File(dbPath), true);
+    }
+
     @Test
     public void testSQLTypesMapping() throws ClassNotFoundException, SQLException, IOException {
-        final Connection con = createConnection(folder.getRoot().getAbsolutePath());
+        final Connection con = createConnection(dbPath);
         final Statement st = con.createStatement();
 
         try {
@@ -92,7 +100,7 @@ public class TestJdbcTypesH2 {
 //                + " values ('robert.gates@cold.com', '******', 'CAS', 'ounou', '2005-12-09', '2005-12-03', 1, 5)");
 
         st.executeUpdate("insert into users (email, password, activation_code, created, active, somebinary, somebinary2, somebinary3, someblob, someclob) "
-                + " values ('mari.gates@cold.com', '******', 'CAS', '2005-12-03', 3, '66FF', 'ABDF', 'EE64', 'BB22', 'CC88')");
+                + " values ('mari.gates@cold.com', '******', 'CAS', '2005-12-03', 3, 0x66FF, 'ABDF', 'EE64', 'BB22', 'CC88')");
 
         final ResultSet resultSet = st.executeQuery("select U.*, ROW_NUMBER() OVER () as rownr from users U");
 //      final ResultSet resultSet = st.executeQuery("select U.active from users U");
@@ -102,7 +110,7 @@ public class TestJdbcTypesH2 {
         JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
         final byte[] serializedBytes = outStream.toByteArray();
-        assertNotNull(serializedBytes);
+        Assertions.assertNotNull(serializedBytes);
         System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
@@ -127,16 +135,16 @@ public class TestJdbcTypesH2 {
 
     // verify H2 driver loading and get Connections works
     @Test
-    public void testDriverLoad() throws ClassNotFoundException, SQLException {
+    public void testDriverLoad() throws SQLException {
 //        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
 
-        Connection con = createConnection(folder.getRoot().getAbsolutePath());
+        Connection con = createConnection(dbPath);
 
-        assertNotNull(con);
+        Assertions.assertNotNull(con);
         con.close();
     }
 
-    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
+    private Connection createConnection(String location) throws SQLException {
 
 //        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         String connectionString = "jdbc:h2:file:" + location + "/testdb7";

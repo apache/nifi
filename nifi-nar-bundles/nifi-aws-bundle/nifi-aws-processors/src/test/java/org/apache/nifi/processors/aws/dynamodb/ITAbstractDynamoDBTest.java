@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.io.FileInputStream;
-import java.util.ArrayList;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
@@ -37,6 +28,14 @@ import com.amazonaws.services.dynamodbv2.model.DeleteTableResult;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import org.apache.nifi.flowfile.FlowFile;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+
+import java.io.FileInputStream;
+import java.util.ArrayList;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class ITAbstractDynamoDBTest {
 
@@ -48,7 +47,7 @@ public class ITAbstractDynamoDBTest {
     protected static String numberHashOnlyTableName = "NumberHashOnlyTable";
     protected final static String REGION = "us-west-2";
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
         final PropertiesCredentials credentials = new PropertiesCredentials(fis);
@@ -128,7 +127,7 @@ public class ITAbstractDynamoDBTest {
         assertNotNull(flowFile.getAttribute(AbstractDynamoDBProcessor.DYNAMODB_ERROR_RETRYABLE));
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() {
         DeleteTableResult result = amazonDynamoDBClient.deleteTable(stringHashStringRangeTableName);
         result = amazonDynamoDBClient.deleteTable(numberHashNumberRangeTableName);

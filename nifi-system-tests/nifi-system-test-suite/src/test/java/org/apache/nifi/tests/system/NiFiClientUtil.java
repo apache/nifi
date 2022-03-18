@@ -99,7 +99,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -175,6 +174,10 @@ public class NiFiClientUtil {
         return createControllerService(simpleTypeName, "root");
     }
 
+    public ControllerServiceEntity createRootLevelControllerService(final String simpleTypeName) throws NiFiClientException, IOException {
+        return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, null, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
     public ControllerServiceEntity createControllerService(final String simpleTypeName, final String groupId) throws NiFiClientException, IOException {
         return createControllerService(NiFiSystemIT.TEST_CS_PACKAGE + "." + simpleTypeName, groupId, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
     }
@@ -242,11 +245,12 @@ public class NiFiClientUtil {
         return activateReportingTask(reportingTask, "RUNNING");
     }
 
-    public ReportingTaskEntity stopReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException {
-        return activateReportingTask(reportingTask, "STOPPED");
+    public ReportingTaskEntity stopReportingTask(final ReportingTaskEntity reportingTask) throws NiFiClientException, IOException, InterruptedException {
+        final ReportingTaskEntity entity = activateReportingTask(reportingTask, "STOPPED");
+        return waitForReportingTaskState(entity.getId(), "STOPPED");
     }
 
-    public void stopReportingTasks() throws NiFiClientException, IOException {
+    public void stopReportingTasks() throws NiFiClientException, IOException, InterruptedException {
         final ReportingTasksEntity tasksEntity = nifiClient.getFlowClient().getReportingTasks();
         for (final ReportingTaskEntity taskEntity : tasksEntity.getReportingTasks()) {
             stopReportingTask(taskEntity);
@@ -416,6 +420,12 @@ public class NiFiClientUtil {
         return updateProcessorConfig(currentEntity, config);
     }
 
+    public ProcessorEntity updateProcessorSchedulingStrategy(final ProcessorEntity currentEntity, final String schedulingStrategy) throws NiFiClientException, IOException {
+        final ProcessorConfigDTO config = new ProcessorConfigDTO();
+        config.setSchedulingStrategy(schedulingStrategy);
+        return updateProcessorConfig(currentEntity, config);
+    }
+
     public ProcessorEntity updateProcessorConfig(final ProcessorEntity currentEntity, final ProcessorConfigDTO config) throws NiFiClientException, IOException {
         final ProcessorDTO processorDto = new ProcessorDTO();
         processorDto.setConfig(config);
@@ -441,18 +451,18 @@ public class NiFiClientUtil {
     }
 
     public void waitForValidProcessor(String id) throws InterruptedException, IOException, NiFiClientException {
-        waitForValidStatus(id, ProcessorDTO.VALID);
+        waitForValidationStatus(id, ProcessorDTO.VALID);
     }
 
     public void waitForInvalidProcessor(String id) throws NiFiClientException, IOException, InterruptedException {
-        waitForValidStatus(id, ProcessorDTO.INVALID);
+        waitForValidationStatus(id, ProcessorDTO.INVALID);
     }
 
-    public void waitForValidStatus(final String processorId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
+    public void waitForValidationStatus(final String processorId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
         while (true) {
             final ProcessorEntity entity = getProcessorClient().getProcessor(processorId);
             final String validationStatus = entity.getComponent().getValidationStatus();
-            if (expectedStatus.equals(validationStatus)) {
+            if (expectedStatus.equalsIgnoreCase(validationStatus)) {
                 return;
             }
 
@@ -494,6 +504,51 @@ public class NiFiClientUtil {
             }
 
             Thread.sleep(10L);
+        }
+    }
+
+    public ReportingTaskEntity waitForReportingTaskState(final String reportingTaskId, final String expectedState) throws NiFiClientException, IOException, InterruptedException {
+        while (true) {
+            final ReportingTaskEntity entity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
+            final String state = entity.getComponent().getState();
+
+            // We've reached the desired state if the state equal the expected state, OR if we expect stopped and the state is disabled (because disabled implies stopped)
+            final boolean desiredStateReached = expectedState.equals(state) || ("STOPPED".equalsIgnoreCase(expectedState) && "DISABLED".equalsIgnoreCase(state));
+
+            if (!desiredStateReached) {
+                Thread.sleep(10L);
+                continue;
+            }
+
+            if ("RUNNING".equals(expectedState)) {
+                return entity;
+            }
+
+            if (entity.getStatus().getActiveThreadCount() == 0) {
+                return entity;
+            }
+
+            Thread.sleep(10L);
+        }
+    }
+
+    public void waitForReportingTaskValid(final String reportingTaskId) throws NiFiClientException, IOException, InterruptedException {
+        waitForReportingTaskValidationStatus(reportingTaskId, "Valid");
+    }
+
+    public void waitForReportingTaskValidationStatus(final String reportingTaskId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
+        while (true) {
+            final ReportingTaskEntity entity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
+            final String validationStatus = entity.getComponent().getValidationStatus();
+            if (expectedStatus.equalsIgnoreCase(validationStatus)) {
+                return;
+            }
+
+            if ("Invalid".equalsIgnoreCase(validationStatus)) {
+                logger.info("Reporting Task with ID {} is currently invalid due to: {}", reportingTaskId, entity.getComponent().getValidationErrors());
+            }
+
+            Thread.sleep(100L);
         }
     }
 
@@ -646,8 +701,6 @@ public class NiFiClientUtil {
 
     public void disableControllerLevelServices() throws NiFiClientException, IOException {
         final ControllerServicesEntity services = nifiClient.getFlowClient().getControllerServices();
-
-        final Map<String, RevisionDTO> revisions = new HashMap<>();
 
         for (final ControllerServiceEntity service : services.getControllerServices()) {
             final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
@@ -1151,7 +1204,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getProcessorClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getProcessorClient().getConfigVerificationRequest(processorId, results.getRequest().getRequestId());
         }
@@ -1182,7 +1235,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getControllerServicesClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getControllerServicesClient().getConfigVerificationRequest(serviceId, results.getRequest().getRequestId());
         }
@@ -1203,7 +1256,7 @@ public class NiFiClientUtil {
         verificationRequest.setRequest(requestDto);
 
         VerifyConfigRequestEntity results = nifiClient.getReportingTasksClient().submitConfigVerificationRequest(verificationRequest);
-        while (!results.getRequest().isComplete()) {
+        while ((!results.getRequest().isComplete()) || (results.getRequest().getResults() == null)) {
             Thread.sleep(50L);
             results = nifiClient.getReportingTasksClient().getConfigVerificationRequest(taskId, results.getRequest().getRequestId());
         }

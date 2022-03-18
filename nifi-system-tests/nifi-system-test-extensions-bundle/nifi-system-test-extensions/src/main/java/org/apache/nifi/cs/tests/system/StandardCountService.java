@@ -17,10 +17,13 @@
 
 package org.apache.nifi.cs.tests.system;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -32,12 +35,26 @@ public class StandardCountService extends AbstractControllerService implements C
         .required(false)
         .identifiesControllerService(CountService.class)
         .build();
+    static final PropertyDescriptor START_VALUE = new PropertyDescriptor.Builder()
+        .name("Start Value")
+        .displayName("Start Value")
+        .description("The value to start counting from")
+        .required(true)
+        .addValidator(StandardValidators.LONG_VALIDATOR)
+        .defaultValue("0")
+        .build();
 
     private final AtomicLong counter = new AtomicLong(0L);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.singletonList(COUNT_SERVICE);
+        return Arrays.asList(COUNT_SERVICE, START_VALUE);
+    }
+
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        final long startValue = Long.parseLong(context.getProperty(START_VALUE).getValue());
+        counter.set(startValue);
     }
 
     @Override

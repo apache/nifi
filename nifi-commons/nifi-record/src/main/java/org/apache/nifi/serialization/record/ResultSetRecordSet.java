@@ -18,6 +18,7 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +44,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.apache.nifi.serialization.record.RecordFieldType.TIMESTAMP;
 
 public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ResultSetRecordSet.class);
@@ -81,7 +84,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         try {
             tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
             moreRows = rs.next();
-        } catch(SQLException se) {
+        } catch (SQLException se) {
             // Tried to create the schema with a ResultSet without calling next() first (probably for DB2), now try the other way around
             moreRows = rs.next();
             tempSchema = createSchema(rs, readerSchema, useLogicalTypes);
@@ -136,13 +139,12 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
 
         for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
-
+            RecordFieldType fieldType = field.getDataType().getFieldType();
             final Object value;
-            if (rsColumnNames.contains(fieldName)) {
-                value = normalizeValue(rs.getObject(fieldName));
-            } else {
-                value = null;
-            }
+
+            value = rsColumnNames.contains(fieldName)
+                    ? normalizeValue((fieldType == TIMESTAMP) ? rs.getTimestamp(fieldName) : rs.getObject(fieldName))
+                    : null;
 
             values.put(fieldName, value);
         }
@@ -186,12 +188,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             final String fieldName = metadata.getColumnLabel(column);
 
             final int nullableFlag = metadata.isNullable(column);
-            final boolean nullable;
-            if (nullableFlag == ResultSetMetaData.columnNoNulls) {
-                nullable = false;
-            } else {
-                nullable = true;
-            }
+            final boolean nullable = nullableFlag != ResultSetMetaData.columnNoNulls;
 
             final RecordField field = new RecordField(fieldName, dataType, nullable);
             fields.add(field);
@@ -205,7 +202,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             throws SQLException {
         switch (sqlType) {
             case Types.ARRAY:
-                return getArrayDataType(rs, columnIndex, useLogicalTypes);
+                return getArrayDataType(rs, readerSchema, columnIndex, useLogicalTypes);
             case Types.BINARY:
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
@@ -240,7 +237,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
                         RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING,
-                            RecordFieldType.TIME, RecordFieldType.TIMESTAMP)
+                            RecordFieldType.TIME, TIMESTAMP)
                     .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
 
@@ -279,14 +276,28 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 && (fieldType == RecordFieldType.DECIMAL
                 || fieldType == RecordFieldType.DATE
                 || fieldType == RecordFieldType.TIME
-                || fieldType == RecordFieldType.TIMESTAMP)) {
+                || fieldType == TIMESTAMP)) {
             return RecordFieldType.STRING.getDataType();
         } else {
             return dataType;
         }
     }
 
-    private DataType getArrayDataType(final ResultSet rs, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
+    private DataType getArrayDataType(final ResultSet rs, final RecordSchema readerSchema, final int columnIndex, final boolean useLogicalTypes) throws SQLException {
+        // We first want to check if the Reader Schema can tell us what the type of the array is.
+        final String columnName = rs.getMetaData().getColumnName(columnIndex);
+        final Optional<RecordField> optionalRecordField = readerSchema.getField(columnName);
+        if (optionalRecordField.isPresent()) {
+            final RecordField recordField = optionalRecordField.get();
+            final DataType dataType = recordField.getDataType();
+            if (dataType.getFieldType() == RecordFieldType.ARRAY) {
+                final ArrayDataType arrayDataType = (ArrayDataType) dataType;
+                if (arrayDataType.getElementType() != null) {
+                    return dataType;
+                }
+            }
+        }
+
         // The JDBC API does not allow us to know what the base type of an array is through the metadata.
         // As a result, we have to obtain the actual Array for this record. Once we have this, we can determine
         // the base type. However, if the base type is, itself, an array, we will simply return a base type of
@@ -424,9 +435,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             if (valueToLookAt instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
             }
-            if (valueToLookAt instanceof Integer) {
-                return RecordFieldType.INT.getDataType();
-            }
             if (valueToLookAt instanceof java.sql.Time) {
                 return getDataType(RecordFieldType.TIME, useLogicalTypes);
             }
@@ -434,7 +442,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return getDataType(RecordFieldType.DATE, useLogicalTypes);
             }
             if (valueToLookAt instanceof java.sql.Timestamp) {
-                return getDataType(RecordFieldType.TIMESTAMP, useLogicalTypes);
+                return getDataType(TIMESTAMP, useLogicalTypes);
             }
             if (valueToLookAt instanceof Record) {
                 final Record record = (Record) valueToLookAt;
@@ -518,7 +526,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.TIMESTAMP_WITH_TIMEZONE:
             case -101: // Oracle's TIMESTAMP WITH TIME ZONE
             case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
-                return getRecordFieldType(RecordFieldType.TIMESTAMP, useLogicalTypes);
+                return getRecordFieldType(TIMESTAMP, useLogicalTypes);
         }
 
         return RecordFieldType.STRING;

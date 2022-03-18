@@ -21,18 +21,20 @@ import org.apache.nifi.processors.evtx.parser.bxml.BxmlNode;
 import org.apache.nifi.processors.evtx.parser.bxml.BxmlNodeTestBase;
 import org.apache.nifi.processors.evtx.parser.bxml.EndOfStreamNode;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BXmlTypeNodeTest extends BxmlNodeTestBase {
     private BXmlTypeNode bXmlTypeNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         testBinaryReaderBuilder.put((byte) BxmlNode.END_OF_STREAM_TOKEN);

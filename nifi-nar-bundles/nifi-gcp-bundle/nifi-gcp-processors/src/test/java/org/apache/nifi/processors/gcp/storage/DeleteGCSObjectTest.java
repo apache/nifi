@@ -20,9 +20,12 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import org.apache.nifi.util.TestRunner;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.LinkedHashMap;
@@ -49,6 +52,11 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
 
     @Mock
     Storage storage;
+
+    @BeforeEach
+    public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
+    }
 
     @Override
     protected void addRequiredPropertiesToRunner(TestRunner runner) {

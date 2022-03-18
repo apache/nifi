@@ -21,14 +21,15 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockPropertyValue;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
 import java.util.Collection;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRedisStateProvider {
 
@@ -36,7 +37,7 @@ public class TestRedisStateProvider {
     private StateProviderInitializationContext context;
     private ValidationContext validationContext;
 
-    @Before
+    @BeforeEach
     public void init() {
         context = Mockito.mock(StateProviderInitializationContext.class);
         redisStateProvider = new RedisStateProvider();
@@ -62,27 +63,27 @@ public class TestRedisStateProvider {
     }
 
     @Test
-    public void customValidate_enabledTlsSuccess() throws IOException {
+    public void customValidate_enabledTlsSuccess() {
         this.enableTls(true);
 
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     @Test
-    public void customValidate_disableTlsSuccess() throws IOException {
+    public void customValidate_disableTlsSuccess() {
         this.enableTls(false);
 
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertTrue(results.isEmpty());
+        assertTrue(results.isEmpty());
     }
 
     @Test
-    public void customValidate_enableTlsButNoSslContext() throws IOException {
+    public void customValidate_enableTlsButNoSslContext() {
         this.enableTls(true);
 
         Mockito.when(context.getSSLContext()).thenReturn(null);
@@ -90,6 +91,6 @@ public class TestRedisStateProvider {
         redisStateProvider.initialize(context);
 
         Collection<ValidationResult> results = redisStateProvider.customValidate(validationContext);
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
     }
 }

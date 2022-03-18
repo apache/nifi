@@ -20,13 +20,15 @@ package org.apache.nifi.processors.email;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExtractTNEFAttachments {
 
@@ -42,7 +44,7 @@ public class TestExtractTNEFAttachments {
         runner.assertTransferCount(ExtractEmailAttachments.REL_ATTACHMENTS, 0);
         // Have a look at the attachments...
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
-        Assert.assertEquals(0, splits.size());
+        assertEquals(0, splits.size());
     }
 
     @Test
@@ -63,7 +65,7 @@ public class TestExtractTNEFAttachments {
             filenames.add(flowFile.getAttribute("filename"));
         }
 
-        Assert.assertTrue(filenames.containsAll(Arrays.asList("nifiDrop.svg", "MINIFI~1.PNG")));
+        assertTrue(filenames.containsAll(Arrays.asList("nifiDrop.svg", "MINIFI~1.PNG")));
     }
 
     @Test
@@ -84,7 +86,7 @@ public class TestExtractTNEFAttachments {
             filenames.add(flowFile.getAttribute("filename"));
         }
 
-        Assert.assertTrue(filenames.contains("nifiDrop.svg"));
+        assertTrue(filenames.contains("nifiDrop.svg"));
     }
 
     @Test

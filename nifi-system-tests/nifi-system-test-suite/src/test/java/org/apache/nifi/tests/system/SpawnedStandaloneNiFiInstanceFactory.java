@@ -197,11 +197,11 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
             while (true) {
                 try {
                     client.getFlowClient().getRootGroupId();
-                    logger.info("Startup Completed NiFi [{}]", instanceDirectory.getName());
+                    logger.info("NiFi Startup Completed [{}]", instanceDirectory.getName());
                     return;
                 } catch (final Exception e) {
                     try {
-                        Thread.sleep(100L);
+                        Thread.sleep(1000L);
                     } catch (InterruptedException ex) {
                     }
 
@@ -213,14 +213,15 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         @Override
         public void stop() {
             if (runNiFi == null) {
+                logger.info("NiFi Shutdown Ignored (runNiFi==null) [{}]", instanceDirectory.getName());
                 return;
             }
 
-            logger.info("Shutdown Started NiFi [{}]", instanceDirectory.getName());
+            logger.info("NiFi Shutdown Started [{}]", instanceDirectory.getName());
 
             try {
                 runNiFi.stop();
-                logger.info("Shutdown Completed NiFi [{}]", instanceDirectory.getName());
+                logger.info("NiFi Shutdown Completed [{}]", instanceDirectory.getName());
             } catch (IOException e) {
                 throw new RuntimeException("Failed to stop NiFi", e);
             } finally {

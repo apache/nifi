@@ -106,6 +106,17 @@
     };
 
     /**
+     * Sorts the specified labels according to the z index.
+     *
+     * @param {type} labels
+     */
+     var sort = function (labels) {
+        labels.sort(function (a, b) {
+            return a.zIndex === b.zIndex ? 0 : a.zIndex > b.zIndex ? 1 : -1;
+        });
+    };
+
+    /**
      * Renders the labels in the specified selection.
      *
      * @param {selection} entered           The selection of labels to be rendered
@@ -135,7 +146,7 @@
                 'stroke': 'transparent'
             });
 
-        // label 
+        // label
         label.append('rect')
             .attrs({
                 'class': 'body',
@@ -470,7 +481,8 @@
             var entered = renderLabels(selection.enter(), selectAll);
 
             // update
-            updateLabels(selection.merge(entered));
+            var updated = selection.merge(entered);
+            updated.call(updateLabels).call(sort);
         },
 
         /**
@@ -527,7 +539,7 @@
 
             // update
             var updated = selection.merge(entered);
-            updated.call(updateLabels).call(nfCanvasUtils.position, transition);
+            updated.call(updateLabels).call(nfCanvasUtils.position, transition).call(sort);
 
             // exit
             selection.exit().call(removeLabels);

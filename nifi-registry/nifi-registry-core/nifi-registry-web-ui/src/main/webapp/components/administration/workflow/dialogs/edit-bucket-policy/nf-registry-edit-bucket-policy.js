@@ -379,9 +379,9 @@ NfRegistryEditBucketPolicy.annotations = [
     new Component({
         templateUrl: './nf-registry-edit-bucket-policy.html',
         queries: {
-            readCheckbox: new ViewChild('readCheckbox'),
-            writeCheckbox: new ViewChild('writeCheckbox'),
-            deleteCheckbox: new ViewChild('deleteCheckbox')
+            readCheckbox: new ViewChild('readCheckbox', { static: true }),
+            writeCheckbox: new ViewChild('writeCheckbox', { static: true }),
+            deleteCheckbox: new ViewChild('deleteCheckbox', { static: true })
         }
     })
 ];

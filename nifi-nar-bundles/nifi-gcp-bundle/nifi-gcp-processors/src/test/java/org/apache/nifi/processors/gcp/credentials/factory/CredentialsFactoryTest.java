@@ -25,7 +25,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;

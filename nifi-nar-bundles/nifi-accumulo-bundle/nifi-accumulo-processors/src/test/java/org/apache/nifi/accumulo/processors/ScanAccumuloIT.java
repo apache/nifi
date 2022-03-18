@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.nifi.accumulo.controllerservices.MockAccumuloService;
 import org.apache.nifi.reporting.InitializationException;
@@ -36,10 +35,10 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +47,10 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+@DisabledOnOs(OS.WINDOWS)
 public class ScanAccumuloIT {
 
     public static final String DEFAULT_COLUMN_FAMILY = "family1";
@@ -58,9 +61,8 @@ public class ScanAccumuloIT {
      */
     private static MiniAccumuloCluster accumulo;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupInstance() throws IOException, InterruptedException {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         Path tempDirectory = Files.createTempDirectory("acc"); // JUnit and Guava supply mechanisms for creating temp directories
         accumulo = new MiniAccumuloCluster(tempDirectory.toFile(), "password");
         accumulo.start();
@@ -75,7 +77,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertRecordCount(results, 5);
     }
 
@@ -86,7 +88,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertRecordCount(results, 5);
     }
 
@@ -97,7 +99,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertRecordCount(results, 1);
     }
 
@@ -108,7 +110,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertRecordCount(results, 5);
     }
 
@@ -119,41 +121,48 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertRecordCount(results, 5);
     }
 
-    @Test(expected = AssertionError.class)
-    public void testSameRowCfValueInCqErrorCfEnd() throws Exception {
-        TestRunner runner = createTestEnvironment("2019","2019","family1","",true,"",null);
+    @Test
+    public void testSameRowCfValueInCqErrorCfEnd() {
+        assertThrows(AssertionError.class, () ->  {
+            TestRunner runner = createTestEnvironment("2019","2019","family1","",true,"",null);
 
-        runner.run();
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
+            runner.run();
+            List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
-        assertRecordCount(results, 5);
+            assertEquals(1, results.size(), "Wrong count, received " + results.size());
+            assertRecordCount(results, 5);
+        });
     }
 
-    @Test(expected = AssertionError.class)
-    public void testSameRowCfValueInCqErrorCf() throws Exception {
-        TestRunner runner = createTestEnvironment("2019","2019","","family2",true,"",null);
+    @Test
+    public void testSameRowCfValueInCqErrorCf() {
+        assertThrows(AssertionError.class, () -> {
+            TestRunner runner = createTestEnvironment("2019", "2019", "", "family2", true, "", null);
 
-        runner.run();
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
-        assertRecordCount(results, 5);
+            runner.run();
+            List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
+
+            assertEquals(1, results.size(), "Wrong count, received " + results.size());
+            assertRecordCount(results, 5);
+        });
     }
 
-    @Test(expected = AssertionError.class)
-    public void testSameRowCfValueInCqErrorNotLess() throws Exception {
-        TestRunner runner = createTestEnvironment("2019","2019","family1","family1",true,"",null);
+    @Test
+    public void testSameRowCfValueInCqErrorNotLess() {
+        assertThrows(AssertionError.class, () -> {
+            TestRunner runner = createTestEnvironment("2019", "2019", "family1", "family1", true, "", null);
 
-        runner.run();
-        List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
+            runner.run();
+            List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
-        assertRecordCount(results, 5);
+            assertEquals(1, results.size(), "Wrong count, received " + results.size());
+            assertRecordCount(results, 5);
+        });
     }
 
     @Test
@@ -163,7 +172,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertValueInResult(results, "\"Test\"\n");
     }
 
@@ -175,7 +184,7 @@ public class ScanAccumuloIT {
         runner.run();
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ScanAccumulo.REL_SUCCESS);
 
-        Assert.assertEquals("Wrong count, received " + results.size(), 1, results.size());
+        assertEquals(1, results.size(), "Wrong count, received " + results.size());
         assertValueInResult(results, "\n");
     }
 
@@ -251,13 +260,13 @@ public class ScanAccumuloIT {
     private void assertRecordCount(List<MockFlowFile> results, int expected) {
         for (MockFlowFile ff : results){
             String attr = ff.getAttribute("record.count");
-            Assert.assertEquals(expected, Integer.valueOf(attr).intValue());
+            assertEquals(expected, Integer.valueOf(attr).intValue());
         }
     }
 
     private void assertValueInResult(List<MockFlowFile> results, String expected) {
         for (MockFlowFile ff : results) {
-            Assert.assertEquals(expected, ff.getContent());
+            assertEquals(expected, ff.getContent());
         }
     }
 }

@@ -18,7 +18,8 @@
 package org.apache.nifi.processors.evtx.parser.bxml;
 
 import org.apache.nifi.processors.evtx.parser.BxmlNodeVisitor;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
@@ -32,6 +33,7 @@ public class ProcessingInstructionTargetNodeTest extends BxmlNodeWithTokenAndStr
     private ProcessingInstructionTargetNode processingInstructionTargetNode;
 
     @Override
+    @BeforeEach
     public void setup() throws IOException {
         super.setup();
         processingInstructionTargetNode = new ProcessingInstructionTargetNode(testBinaryReaderBuilder.build(), chunkHeader, parent);

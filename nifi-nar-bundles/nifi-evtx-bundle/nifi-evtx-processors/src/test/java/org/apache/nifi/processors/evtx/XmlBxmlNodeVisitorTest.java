@@ -31,13 +31,13 @@ import org.apache.nifi.processors.evtx.parser.bxml.TemplateNode;
 import org.apache.nifi.processors.evtx.parser.bxml.ValueNode;
 import org.apache.nifi.processors.evtx.parser.bxml.value.BXmlTypeNode;
 import org.apache.nifi.processors.evtx.parser.bxml.value.VariantTypeNode;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -55,7 +55,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class XmlBxmlNodeVisitorTest {
     @Mock
     private XMLStreamWriter xmlStreamWriter;
@@ -69,7 +69,7 @@ public class XmlBxmlNodeVisitorTest {
     private List<BxmlNode> children;
     private XmlBxmlNodeVisitor xmlBxmlNodeVisitor;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         substitutions = new ArrayList<>();
         children = new ArrayList<>(Arrays.asList(bxmlNode));

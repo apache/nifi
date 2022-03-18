@@ -16,13 +16,24 @@
  */
 package org.apache.nifi.util.db;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
+import org.apache.derby.jdbc.EmbeddedDriver;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -30,14 +41,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
 
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.DatumReader;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Test streaming using large number of result set rows. 1. Read data from
@@ -52,22 +57,38 @@ import org.junit.rules.TemporaryFolder;
  *
  */
 public class TestJdbcHugeStream {
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    @BeforeAll
+    public static void setDerbyLog() {
+        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+    }
 
-    @BeforeClass
-    public static void setup() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
+    private File tempFile;
+
+    @BeforeEach
+    public void setup() throws IOException, SQLException {
+        DriverManager.registerDriver(new EmbeddedDriver());
+        tempFile = Files.createTempDirectory(String.valueOf(System.currentTimeMillis()))
+                .resolve("db")
+                .toFile();
+    }
+
+    @AfterEach
+    public void cleanup() throws IOException {
+        if (tempFile != null && tempFile.exists()) {
+            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+            assertEquals("XJ015", exception.getSQLState());
+            FileUtils.deleteFile(tempFile, true);
+        }
     }
 
     @Test
     public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
-
-        // remove previous test database, if any
-        folder.delete();
-
-        try (final Connection con = createConnection(folder.getRoot().getAbsolutePath())) {
+        String path = tempFile.getAbsolutePath();
+        try (final Connection con = createConnection(path)) {
             loadTestData2Database(con, 100, 100, 100);
 
             try (final Statement st = con.createStatement()) {

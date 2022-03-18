@@ -19,8 +19,11 @@ package org.apache.nifi.processors.elasticsearch
 
 import org.apache.nifi.util.MockFlowFile
 import org.apache.nifi.util.TestRunner
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
 
 abstract class AbstractByQueryElasticsearchTest {
     private static final String INDEX = "test_idx"
@@ -53,10 +56,10 @@ abstract class AbstractByQueryElasticsearchTest {
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractByQueryElasticsearch.REL_SUCCESS)
         final String attr = flowFiles.get(0).getAttribute(tookAttr())
         final String query = flowFiles.get(0).getAttribute(queryAttr())
-        Assert.assertNotNull(attr)
-        Assert.assertEquals(attr, "100")
-        Assert.assertNotNull(query)
-        Assert.assertEquals(queryParam, query)
+        assertNotNull(attr)
+        assertEquals(attr, "100")
+        assertNotNull(query)
+        assertEquals(queryParam, query)
     }
 
     @Test
@@ -73,7 +76,7 @@ abstract class AbstractByQueryElasticsearchTest {
 
         postTest(runner, query)
 
-        Assert.assertTrue(client.getRequestParameters().isEmpty())
+        assertTrue(client.getRequestParameters().isEmpty())
     }
 
     @Test
@@ -92,9 +95,9 @@ abstract class AbstractByQueryElasticsearchTest {
 
         postTest(runner, query)
 
-        Assert.assertEquals(2, client.getRequestParameters().size())
-        Assert.assertEquals("true", client.getRequestParameters().get("refresh"))
-        Assert.assertEquals("auto", client.getRequestParameters().get("slices"))
+        assertEquals(2, client.getRequestParameters().size())
+        assertEquals("true", client.getRequestParameters().get("refresh"))
+        assertEquals("auto", client.getRequestParameters().get("slices"))
     }
 
     @Test
@@ -156,7 +159,7 @@ abstract class AbstractByQueryElasticsearchTest {
 
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(AbstractByQueryElasticsearch.REL_FAILURE).get(0)
         final String attr = mockFlowFile.getAttribute(errorAttr())
-        Assert.assertNotNull(attr)
+        assertNotNull(attr)
     }
 
     @Test
@@ -190,7 +193,7 @@ abstract class AbstractByQueryElasticsearchTest {
 
         postTest(runner, query)
 
-        Assert.assertTrue(client.getRequestParameters().isEmpty())
+        assertTrue(client.getRequestParameters().isEmpty())
     }
 
     @Test
@@ -211,8 +214,8 @@ abstract class AbstractByQueryElasticsearchTest {
 
         postTest(runner, query)
 
-        Assert.assertEquals(2, client.getRequestParameters().size())
-        Assert.assertEquals("true", client.getRequestParameters().get("refresh"))
-        Assert.assertEquals("auto", client.getRequestParameters().get("slices"))
+        assertEquals(2, client.getRequestParameters().size())
+        assertEquals("true", client.getRequestParameters().get("refresh"))
+        assertEquals("auto", client.getRequestParameters().get("slices"))
     }
 }

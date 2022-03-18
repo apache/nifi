@@ -19,8 +19,8 @@ package org.apache.nifi.processors.cassandra;
 import com.datastax.driver.core.Statement;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
 public class PutCassandraRecordUpdateTest {
@@ -40,7 +40,7 @@ public class PutCassandraRecordUpdateTest {
     @Mock
     private RecordSchema schema;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         MockitoAnnotations.initMocks(this);
 

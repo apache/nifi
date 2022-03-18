@@ -27,11 +27,11 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -45,7 +45,7 @@ public class TestConsumeKafkaRecord_2_6 {
     private ConsumerPool mockConsumerPool = null;
     private TestRunner runner;
 
-    @Before
+    @BeforeEach
     public void setup() throws InitializationException {
         mockLease = mock(ConsumerLease.class);
         mockConsumerPool = mock(ConsumerPool.class);
@@ -100,28 +100,19 @@ public class TestConsumeKafkaRecord_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.AUTO_OFFSET_RESET, ConsumeKafkaRecord_2_6.OFFSET_EARLIEST);
 
         runner.removeProperty(ConsumeKafkaRecord_2_6.GROUP_ID);
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("invalid because Group ID is required"));
-        }
+
+        AssertionError e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("invalid because Group ID is required"));
 
         runner.setProperty(ConsumeKafkaRecord_2_6.GROUP_ID, "");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
 
         runner.setProperty(ConsumeKafkaRecord_2_6.GROUP_ID, "  ");
-        try {
-            runner.assertValid();
-            fail();
-        } catch (AssertionError e) {
-            assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
-        }
+
+        e = assertThrows(AssertionError.class, () -> runner.assertValid());
+        assertTrue(e.getMessage().contains("must contain at least one character that is not white space"));
     }
 
     @Test

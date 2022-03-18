@@ -29,7 +29,7 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -80,7 +80,7 @@ public class VersionedFlowBuilder {
 
     public VersionedPort createOutputPort(final String portName, final VersionedProcessGroup group) {
         final VersionedPort port = new VersionedPort();
-        port.setAllowRemoteAccess(false);
+        port.setAllowRemoteAccess(Boolean.FALSE);
         port.setComponentType(ComponentType.OUTPUT_PORT);
         port.setConcurrentlySchedulableTaskCount(1);
         port.setGroupIdentifier(group.getIdentifier());
@@ -100,7 +100,7 @@ public class VersionedFlowBuilder {
 
     public VersionedPort createInputPort(final String portName, final VersionedProcessGroup group) {
         final VersionedPort port = new VersionedPort();
-        port.setAllowRemoteAccess(false);
+        port.setAllowRemoteAccess(Boolean.FALSE);
         port.setComponentType(ComponentType.INPUT_PORT);
         port.setConcurrentlySchedulableTaskCount(1);
         port.setGroupIdentifier(group.getIdentifier());

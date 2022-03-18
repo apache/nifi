@@ -67,12 +67,12 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedParameter;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
@@ -637,6 +637,7 @@ public class NiFiRegistryFlowMapper {
         versionedLabel.setLabel(label.getValue());
         versionedLabel.setPosition(mapPosition(label.getPosition()));
         versionedLabel.setStyle(label.getStyle());
+        versionedLabel.setzIndex(label.getZIndex());
 
         return versionedLabel;
     }
@@ -654,13 +655,7 @@ public class NiFiRegistryFlowMapper {
         versionedPort.setPosition(mapPosition(port.getPosition()));
         versionedPort.setType(PortType.valueOf(port.getConnectableType().name()));
         versionedPort.setScheduledState(mapScheduledState(port.getScheduledState()));
-
-        if (port instanceof PublicPort) {
-            versionedPort.setAllowRemoteAccess(true);
-        } else {
-            versionedPort.setAllowRemoteAccess(false);
-        }
-
+        versionedPort.setAllowRemoteAccess(port instanceof PublicPort);
         versionedPort.setScheduledState(flowMappingOptions.getStateLookup().getState(port));
 
         return versionedPort;

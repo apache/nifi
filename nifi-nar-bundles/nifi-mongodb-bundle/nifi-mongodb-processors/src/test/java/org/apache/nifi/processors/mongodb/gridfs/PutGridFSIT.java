@@ -27,12 +27,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutGridFSIT extends GridFSITTestBase {
     TestRunner runner;
@@ -61,7 +62,7 @@ public class PutGridFSIT extends GridFSITTestBase {
         runner.run();
         runner.assertAllFlowFilesTransferred(PutGridFS.REL_SUCCESS);
 
-        Assertions.assertTrue(fileExists(fileName, BUCKET), "File does not exist");
+        assertTrue(fileExists(fileName, BUCKET), "File does not exist");
     }
 
     @Test
@@ -86,8 +87,8 @@ public class PutGridFSIT extends GridFSITTestBase {
             put("department", "Accounting");
         }};
 
-        Assertions.assertTrue(fileExists(fileName, BUCKET), "File does not exist");
-        Assertions.assertTrue(fileHasProperties(fileName, BUCKET, attrs), "File is missing PARENT_PROPERTIES");
+        assertTrue(fileExists(fileName, BUCKET), "File does not exist");
+        assertTrue(fileHasProperties(fileName, BUCKET, attrs), "File is missing PARENT_PROPERTIES");
     }
 
     @Test
@@ -106,8 +107,9 @@ public class PutGridFSIT extends GridFSITTestBase {
         String bucketName = String.format("%s.files", BUCKET);
         MongoCollection files = client.getDatabase(DB).getCollection(bucketName);
         Document query = Document.parse(String.format("{\"filename\": \"%s\"}", fileName));
+
         long count = files.countDocuments(query);
-        Assertions.assertTrue(count == 10, "Wrong count");
+        assertTrue(count == 10, "Wrong count");
     }
 
     @Test

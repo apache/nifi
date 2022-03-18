@@ -89,7 +89,7 @@ public class RunStatelessFlow {
         final long initializeStart = System.currentTimeMillis();
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(engineConfiguration);
-        final DataflowDefinition<?> dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile, parameterOverrides);
+        final DataflowDefinition dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile, parameterOverrides);
 
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
         dataflow.initialize();

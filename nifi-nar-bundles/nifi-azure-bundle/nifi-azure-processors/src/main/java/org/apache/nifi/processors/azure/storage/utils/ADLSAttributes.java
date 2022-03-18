@@ -42,4 +42,10 @@ public final class ADLSAttributes {
     public static final String ATTR_NAME_PRIMARY_URI = "azure.primaryUri";
     public static final String ATTR_DESCRIPTION_PRIMARY_URI = "Primary location for file content";
 
+    public static final String ATTR_NAME_SOURCE_FILESYSTEM = "azure.source.filesystem";
+    public static final String ATTR_DESCRIPTION_SOURCE_FILESYSTEM = "The name of the source Azure File System";
+
+    public static final String ATTR_NAME_SOURCE_DIRECTORY = "azure.source.directory";
+    public static final String ATTR_DESCRIPTION_SOURCE_DIRECTORY = "The name of the source Azure Directory";
+
 }

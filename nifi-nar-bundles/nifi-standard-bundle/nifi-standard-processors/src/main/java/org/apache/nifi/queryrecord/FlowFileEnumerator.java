@@ -107,7 +107,7 @@ public class FlowFileEnumerator implements Enumerator<Object> {
         // the actual value, NOT a 1-element array of values.
         if (fields.length == 1) {
             final int desiredCellIndex = fields[0];
-            return row[desiredCellIndex];
+            return cast(row[desiredCellIndex]);
         }
 
         // Create a new Object array that contains only the desired fields.

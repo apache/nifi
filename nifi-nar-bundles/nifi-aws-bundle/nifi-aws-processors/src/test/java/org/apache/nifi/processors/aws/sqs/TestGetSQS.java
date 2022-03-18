@@ -16,40 +16,36 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.List;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TestGetSQS {
 
     private TestRunner runner = null;
     private GetSQS mockGetSQS = null;
-    private AmazonSQSClient actualSQSClient = null;
     private AmazonSQSClient mockSQSClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         mockGetSQS = new GetSQS() {
             protected AmazonSQSClient getClient() {
-                actualSQSClient = client;
                 return mockSQSClient;
             }
         };

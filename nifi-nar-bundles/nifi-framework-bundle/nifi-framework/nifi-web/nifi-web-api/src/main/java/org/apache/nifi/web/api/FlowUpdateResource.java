@@ -31,7 +31,7 @@ import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
-import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.ResumeFlowException;

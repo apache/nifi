@@ -36,9 +36,9 @@ import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -57,9 +57,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -87,7 +87,7 @@ public class TestKinesisRecordProcessorRecord {
     @Mock
     private Record kinesisRecord;
 
-    @Before
+    @BeforeEach
     public void setUp() throws InitializationException {
         MockitoAnnotations.initMocks(this);
 
@@ -108,7 +108,7 @@ public class TestKinesisRecordProcessorRecord {
                 reader, writer);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         verifyNoMoreInteractions(checkpointer, kinesisRecord, processSessionFactory);
         reset(checkpointer, kinesisRecord, processSessionFactory);

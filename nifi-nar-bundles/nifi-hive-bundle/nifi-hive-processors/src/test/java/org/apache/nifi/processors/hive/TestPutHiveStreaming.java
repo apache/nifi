@@ -45,8 +45,8 @@ import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 
 import java.io.ByteArrayInputStream;
@@ -64,16 +64,16 @@ import java.util.concurrent.ExecutorService;
 import static org.apache.nifi.processors.hive.AbstractHiveQLProcessor.ATTR_OUTPUT_TABLES;
 import static org.apache.nifi.processors.hive.PutHiveStreaming.HIVE_STREAMING_RECORD_COUNT_ATTR;
 import static org.apache.nifi.processors.hive.PutHiveStreaming.REL_SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -90,8 +90,8 @@ public class TestPutHiveStreaming {
     private HiveConf hiveConf;
     private UserGroupInformation ugi;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
 
         // needed for calls to UserGroupInformation.setConfiguration() to work when passing in
         // config with Kerberos authentication enabled
@@ -115,7 +115,7 @@ public class TestPutHiveStreaming {
     }
 
     @Test
-    public void testSetup() throws Exception {
+    public void testSetup() {
         runner.assertNotValid();
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
@@ -168,19 +168,19 @@ public class TestPutHiveStreaming {
         runner.assertNotValid();
     }
 
-    @Test(expected = AssertionError.class)
-    public void testSetupWithKerberosAuthFailed() throws Exception {
+    @Test
+    public void testSetupWithKerberosAuthFailed() {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.HIVE_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml, src/test/resources/hive-site-security.xml");
         runner.setProperty(kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
         runner.setProperty(kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/missing.keytab");
-        runner.run();
+        assertThrows(AssertionError.class, () -> runner.run());
     }
 
     @Test
-    public void testSingleBatchInvalid() throws Exception {
+    public void testSingleBatchInvalid() {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -212,7 +212,7 @@ public class TestPutHiveStreaming {
     }
 
     @Test
-    public void onTriggerBadInput() throws Exception {
+    public void onTriggerBadInput() {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
@@ -224,19 +224,15 @@ public class TestPutHiveStreaming {
     }
 
     @Test
-    public void onTriggerBadInputRollbackOnFailure() throws Exception {
+    public void onTriggerBadInputRollbackOnFailure() {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.TXNS_PER_BATCH, "100");
         runner.setProperty(PutHiveStreaming.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue("I am not an Avro record".getBytes());
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         // Assert incoming FlowFile stays in input queue.
@@ -383,12 +379,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Arrays.asList(user1, user2, user3)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown, because any Hive Transaction is committed yet.");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
@@ -552,12 +544,8 @@ public class TestPutHiveStreaming {
         };
 
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
@@ -649,12 +637,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
@@ -697,12 +681,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_RETRY, 0);
     }
@@ -756,12 +736,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Arrays.asList(user1, user2)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         // Assert incoming FlowFile stays in input queue.
@@ -803,12 +779,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
@@ -852,12 +824,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);
@@ -902,12 +870,8 @@ public class TestPutHiveStreaming {
             }
         };
         runner.enqueue(createAvroRecord(Collections.singletonList(user1)));
-        try {
-            runner.run();
-            fail("ProcessException should be thrown");
-        } catch (AssertionError e) {
-            assertTrue(e.getCause() instanceof ProcessException);
-        }
+        AssertionError ae = assertThrows(AssertionError.class, () -> runner.run());
+        assertTrue(ae.getCause() instanceof ProcessException);
 
         runner.assertTransferCount(PutHiveStreaming.REL_FAILURE, 0);
         runner.assertTransferCount(PutHiveStreaming.REL_SUCCESS, 0);

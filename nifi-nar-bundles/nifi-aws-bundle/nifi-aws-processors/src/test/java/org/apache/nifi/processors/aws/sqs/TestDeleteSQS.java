@@ -16,24 +16,22 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchResult;
-
-import org.junit.Before;
-import org.junit.Test;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.assertEquals;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 
 public class TestDeleteSQS {
@@ -42,7 +40,7 @@ public class TestDeleteSQS {
     private DeleteSQS mockDeleteSQS = null;
     private AmazonSQSClient mockSQSClient = null;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(AmazonSQSClient.class);
         DeleteMessageBatchResult mockResponse = Mockito.mock(DeleteMessageBatchResult.class);

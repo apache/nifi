@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.cdc.mysql.processors.ssl;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,9 +46,9 @@ public class BinaryLogSSLSocketFactoryTest {
         when(socket.getPort()).thenReturn(PORT);
 
         final SSLSocket sslSocket = socketFactory.createSocket(socket);
-        assertNotNull("SSL Socket not found", sslSocket);
-        assertEquals("Address not matched", address, sslSocket.getInetAddress());
-        assertEquals("Port not matched", PORT, sslSocket.getPort());
+        assertNotNull(sslSocket, "SSL Socket not found");
+        assertEquals(address, sslSocket.getInetAddress(), "Address not matched");
+        assertEquals(PORT, sslSocket.getPort(), "Port not matched");
     }
 
     @Test

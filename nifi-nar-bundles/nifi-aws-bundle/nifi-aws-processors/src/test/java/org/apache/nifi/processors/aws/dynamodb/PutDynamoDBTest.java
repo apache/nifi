@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.aws.dynamodb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
-import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
@@ -44,6 +26,23 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.PutRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.REGION;
+import static org.apache.nifi.processors.aws.dynamodb.ITAbstractDynamoDBTest.stringHashStringRangeTableName;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class PutDynamoDBTest extends AbstractDynamoDBTest {
 
@@ -51,7 +50,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
     protected BatchWriteItemResult result = new BatchWriteItemResult();
     BatchWriteItemOutcome outcome;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         outcome = new BatchWriteItemOutcome(result);
         result.setUnprocessedItems(new HashMap<String, List<WriteRequest>>());

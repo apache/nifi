@@ -8,12 +8,13 @@
     by applicable law or agreed to in writing, software distributed under the
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
-    language governing permissions and limitations under the License. --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>24</version>
+        <version>25</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -41,6 +42,7 @@
         <module>nifi-toolkit</module>
         <module>nifi-manifest</module>
         <module>c2</module>
+        <module>nifi-h2</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -102,9 +104,9 @@
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
-        <org.slf4j.version>1.7.35</org.slf4j.version>
+        <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.44.v20210927</jetty.version>
+        <jetty.version>9.4.45.v20220203</jetty.version>
         <jackson.version>2.13.1</jackson.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
@@ -117,12 +119,13 @@
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
         <jersey.version>2.35</jersey.version>
-        <logback.version>1.2.10</logback.version>
+        <logback.version>1.2.11</logback.version>
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
-        <netty.4.version>4.1.73.Final</netty.4.version>
-        <spring.version>5.3.15</spring.version>
-        <spring.security.version>5.6.1</spring.security.version>
+        <netty.4.version>4.1.74.Final</netty.4.version>
+        <spring.version>5.3.16</spring.version>
+        <spring.security.version>5.6.2</spring.security.version>
+        <h2.version>2.1.210</h2.version>
     </properties>
 
     <repositories>
@@ -291,7 +294,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.7.2</version>
+                <version>5.8.2</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

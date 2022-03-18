@@ -26,8 +26,8 @@ import com.amazonaws.services.kinesis.model.ListStreamsResult;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -101,7 +101,7 @@ public abstract class ITConsumeKinesisStream {
         Thread.sleep(30_000);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws InterruptedException {
         cleanupKinesis();
         cleanupDynamoDB();

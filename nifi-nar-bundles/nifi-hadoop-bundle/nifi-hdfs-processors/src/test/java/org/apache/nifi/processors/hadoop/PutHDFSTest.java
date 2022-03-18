@@ -42,9 +42,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.security.sasl.SaslException;
@@ -62,10 +61,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -78,7 +77,7 @@ public class PutHDFSTest {
     private KerberosProperties kerberosProperties;
     private FileSystem mockFileSystem;
 
-    @Before
+    @BeforeEach
     public void setup() {
         kerberosProperties = new KerberosProperties(null);
         mockFileSystem = new MockFileSystem();
@@ -97,7 +96,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because Directory is required"));
         }
@@ -119,7 +118,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
@@ -134,7 +133,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because short integer must be greater than zero"));
         }
@@ -149,7 +148,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because octal umask [-1] cannot be negative"));
         }
@@ -164,7 +163,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because [18] is not a valid short octal number"));
         }
@@ -177,7 +176,7 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because octal umask [2000] is not a valid umask"));
         }
@@ -192,9 +191,9 @@ public class PutHDFSTest {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(1, results.size());
+        assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
+            assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
         }
     }
 
@@ -235,7 +234,7 @@ public class PutHDFSTest {
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(sendEvent.getTransitUri().endsWith(TARGET_DIRECTORY + "/" + FILE_NAME));
 
-        Mockito.verify(spyFileSystem, Mockito.times(1)).rename(Mockito.any(Path.class), Mockito.any(Path.class));
+        verify(spyFileSystem, times(1)).rename(any(Path.class), any(Path.class));
     }
 
     @Test
@@ -269,7 +268,7 @@ public class PutHDFSTest {
         assertEquals(TARGET_DIRECTORY, flowFile.getAttribute(PutHDFS.ABSOLUTE_HDFS_PATH_ATTRIBUTE));
         assertEquals("true", flowFile.getAttribute(PutHDFS.TARGET_HDFS_DIR_CREATED_ATTRIBUTE));
 
-        Mockito.verify(spyFileSystem, Mockito.never()).rename(Mockito.any(Path.class), Mockito.any(Path.class));
+        verify(spyFileSystem, Mockito.never()).rename(any(Path.class), any(Path.class));
     }
 
     @Test

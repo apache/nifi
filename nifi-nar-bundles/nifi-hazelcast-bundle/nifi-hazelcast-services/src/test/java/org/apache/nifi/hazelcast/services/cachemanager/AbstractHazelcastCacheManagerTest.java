@@ -19,9 +19,10 @@ package org.apache.nifi.hazelcast.services.cachemanager;
 import org.apache.nifi.hazelcast.services.cacheclient.HazelcastMapCacheClient;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractHazelcastCacheManagerTest {
 
@@ -30,13 +31,13 @@ public abstract class AbstractHazelcastCacheManagerTest {
     protected  HazelcastMapCacheClient hazelcastMapCacheClient;
     protected IMapBasedHazelcastCacheManager testSubject;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         processor = new TestHazelcastProcessor();
         testRunner = TestRunners.newTestRunner(processor);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         testRunner.disableControllerService(hazelcastMapCacheClient);
         testRunner.disableControllerService(testSubject);
@@ -56,10 +57,10 @@ public abstract class AbstractHazelcastCacheManagerTest {
 
     protected void givenServicesAreEnabled() {
         testRunner.enableControllerService(testSubject);
-        Assert.assertTrue(testSubject.isEnabled());
+        assertTrue(testSubject.isEnabled());
 
         testRunner.enableControllerService(hazelcastMapCacheClient);
-        Assert.assertTrue(hazelcastMapCacheClient.isEnabled());
+        assertTrue(hazelcastMapCacheClient.isEnabled());
     }
 
     protected void whenExecuting() {

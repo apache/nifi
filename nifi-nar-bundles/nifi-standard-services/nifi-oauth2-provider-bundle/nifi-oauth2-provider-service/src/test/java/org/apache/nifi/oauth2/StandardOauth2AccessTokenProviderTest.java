@@ -29,34 +29,40 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class StandardOauth2AccessTokenProviderTest {
     private static final String AUTHORIZATION_SERVER_URL = "http://authorizationServerUrl";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
     private static final String CLIENT_ID = "clientId";
     private static final String CLIENT_SECRET = "clientSecret";
+    private static final long FIVE_MINUTES = 300;
 
     private StandardOauth2AccessTokenProvider testSubject;
 
@@ -69,16 +75,12 @@ public class StandardOauth2AccessTokenProviderTest {
     @Mock
     private ComponentLog mockLogger;
     @Captor
-    private ArgumentCaptor<String> debugCaptor;
-    @Captor
     private ArgumentCaptor<String> errorCaptor;
     @Captor
     private ArgumentCaptor<Throwable> throwableCaptor;
 
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-
+    @BeforeEach
+    public void setUp() {
         testSubject = new StandardOauth2AccessTokenProvider() {
             @Override
             protected OkHttpClient createHttpClient(ConfigurationContext context) {
@@ -97,6 +99,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.PASSWORD).getValue()).thenReturn(PASSWORD);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_ID).evaluateAttributeExpressions().getValue()).thenReturn(CLIENT_ID);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_SECRET).getValue()).thenReturn(CLIENT_SECRET);
+        when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
 
         testSubject.onEnabled(mockContext);
     }
@@ -335,7 +338,7 @@ public class StandardOauth2AccessTokenProviderTest {
             throw new IllegalStateException("Test improperly defined mock HTTP responses.");
         });
 
-        List<String> expectedLoggedError = Arrays.asList(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, expectedRefreshErrorResponse));
+        List<String> expectedLoggedError = Collections.singletonList(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", 500, expectedRefreshErrorResponse));
 
         // Get a good accessDetails so we can have a refresh a second time
         testSubject.getAccessDetails();
@@ -377,13 +380,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     private void checkLoggedDebugWhenRefreshFails() {
-        verify(mockLogger, times(3)).debug(debugCaptor.capture());
-        List<String> actualDebugMessages = debugCaptor.getAllValues();
-
-        assertEquals(
-            Arrays.asList("Getting a new access token", "Refreshing access token", "Getting a new access token"),
-            actualDebugMessages
-        );
+        verify(mockLogger, times(3)).debug(anyString(), eq(AUTHORIZATION_SERVER_URL));
     }
 
     private void checkedLoggedErrorWhenRefreshReturnsBadHTTPResponse(List<String> expectedLoggedError) {
@@ -394,7 +391,7 @@ public class StandardOauth2AccessTokenProviderTest {
     }
 
     private void checkLoggedRefreshError(Throwable expectedRefreshError) {
-        verify(mockLogger).info(eq("Couldn't refresh access token"), throwableCaptor.capture());
+        verify(mockLogger).info(anyString(), eq(AUTHORIZATION_SERVER_URL), throwableCaptor.capture());
         Throwable actualRefreshError = throwableCaptor.getValue();
 
         checkError(expectedRefreshError, actualRefreshError);

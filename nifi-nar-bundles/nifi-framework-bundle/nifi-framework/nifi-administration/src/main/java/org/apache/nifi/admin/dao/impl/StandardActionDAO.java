@@ -95,7 +95,7 @@ public class StandardActionDAO implements ActionDAO {
     // action details
     // --------------
     private static final String INSERT_CONFIGURE_DETAILS = "INSERT INTO CONFIGURE_DETAILS ("
-            + "ACTION_ID, NAME, VALUE, PREVIOUS_VALUE"
+            + "ACTION_ID, NAME, \"VALUE\", PREVIOUS_VALUE"
             + ") VALUES ("
             + "?, "
             + "?, "
@@ -176,7 +176,7 @@ public class StandardActionDAO implements ActionDAO {
             + "ON CD.ACTION_ID = A.ID "
             + "WHERE A.SOURCE_ID = ?";
 
-    private static final String SELECT_PREVIOUS_VALUES = "SELECT CD.VALUE, "
+    private static final String SELECT_PREVIOUS_VALUES = "SELECT CD.\"VALUE\", "
             + "A.ACTION_TIMESTAMP, "
             + "A.IDENTITY "
             + "FROM CONFIGURE_DETAILS CD "

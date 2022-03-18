@@ -36,7 +36,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -45,7 +44,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -69,7 +67,7 @@ public class NiFiRegistrySecurityConfig extends WebSecurityConfigurerAdapter {
     @Autowired
     private Authorizer authorizer;
 
-    private AnonymousIdentityFilter anonymousAuthenticationFilter = new AnonymousIdentityFilter();
+    private final AnonymousIdentityFilter anonymousAuthenticationFilter = new AnonymousIdentityFilter();
 
     @Autowired
     private X509IdentityProvider x509IdentityProvider;
@@ -88,17 +86,18 @@ public class NiFiRegistrySecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    public void configure(WebSecurity webSecurity) throws Exception {
-        // allow any client to access the endpoint for logging in to generate an access token
-        webSecurity.ignoring().antMatchers( "/access/token", "/access/token/kerberos",
-                "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/request", "/access/token/identity-provider" );
-    }
-
-    @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .rememberMe().disable()
                 .authorizeRequests()
+                    .antMatchers(
+                            "/access/token",
+                            "/access/token/identity-provider",
+                            "/access/token/kerberos",
+                            "/access/oidc/callback",
+                            "/access/oidc/exchange",
+                            "/access/oidc/request"
+                    ).permitAll()
                     .anyRequest().fullyAuthenticated()
                     .and()
                 .exceptionHandling()
@@ -150,7 +149,7 @@ public class NiFiRegistrySecurityConfig extends WebSecurityConfigurerAdapter {
         return super.authenticationManagerBean();
     }
 
-    private IdentityFilter x509AuthenticationFilter() throws Exception {
+    private IdentityFilter x509AuthenticationFilter() {
         if (x509AuthenticationFilter == null) {
             x509AuthenticationFilter = new IdentityFilter(x509IdentityProvider);
         }
@@ -164,7 +163,7 @@ public class NiFiRegistrySecurityConfig extends WebSecurityConfigurerAdapter {
         return x509AuthenticationProvider;
     }
 
-    private IdentityFilter jwtAuthenticationFilter() throws Exception {
+    private IdentityFilter jwtAuthenticationFilter() {
         if (jwtAuthenticationFilter == null) {
             jwtAuthenticationFilter = new IdentityFilter(jwtIdentityProvider);
         }
@@ -198,7 +197,7 @@ public class NiFiRegistrySecurityConfig extends WebSecurityConfigurerAdapter {
             public void commence(HttpServletRequest request,
                                  HttpServletResponse response,
                                  AuthenticationException authenticationException)
-                    throws IOException, ServletException {
+                    throws IOException {
 
                 // return a 401 response
                 final int status = HttpServletResponse.SC_UNAUTHORIZED;

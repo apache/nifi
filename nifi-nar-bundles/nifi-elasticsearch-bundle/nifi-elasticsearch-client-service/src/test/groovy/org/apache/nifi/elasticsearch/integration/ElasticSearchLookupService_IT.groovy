@@ -30,20 +30,23 @@ import org.apache.nifi.serialization.record.RecordSchema
 import org.apache.nifi.serialization.record.type.RecordDataType
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
-import org.junit.Assert
-import org.junit.Assume
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
+import static org.junit.jupiter.api.Assertions.assertEquals
+import static org.junit.jupiter.api.Assertions.assertNotNull
+import static org.junit.jupiter.api.Assertions.assertTrue
+import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class ElasticSearchLookupService_IT {
     private TestRunner runner
     private ElasticSearchClientService service
     private ElasticSearchLookupService lookupService
 
-    @BeforeClass
+    @BeforeAll
     static void beforeAll() throws Exception {
-        Assume.assumeTrue("Elasticsearch integration-tests not setup", ElasticSearchClientService_IT.isElasticsearchSetup())
+        assumeTrue(ElasticSearchClientService_IT.isElasticsearchSetup(), "Elasticsearch integration-tests not setup")
 
         System.out.println(
                 String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
@@ -51,7 +54,7 @@ class ElasticSearchLookupService_IT {
         )
     }
 
-    @Before
+    @BeforeEach
     void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class)
         service = new ElasticSearchClientServiceImpl()
@@ -104,12 +107,12 @@ class ElasticSearchLookupService_IT {
         def coordinates = [ _id: "2" ]
         Optional<Record> result = lookupService.lookup(coordinates)
 
-        Assert.assertNotNull(result)
-        Assert.assertTrue(result.isPresent())
+        assertNotNull(result)
+        assertTrue(result.isPresent())
         def record = result.get()
-        Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
-        Assert.assertEquals("098-765-4321", record.getAsString("phone"))
-        Assert.assertEquals("GHIJK", record.getAsString("accessKey"))
+        assertEquals("jane.doe@company.com", record.getAsString("email"))
+        assertEquals("098-765-4321", record.getAsString("phone"))
+        assertEquals("GHIJK", record.getAsString("accessKey"))
     }
 
     @Test
@@ -132,8 +135,8 @@ class ElasticSearchLookupService_IT {
                 exception = ex
             }
 
-            Assert.assertNotNull(exception)
-            Assert.assertTrue(exception instanceof LookupFailureException)
+            assertNotNull(exception)
+            assertTrue(exception instanceof LookupFailureException)
         }
     }
 
@@ -142,12 +145,12 @@ class ElasticSearchLookupService_IT {
         def coordinates = [ "phone": "098-765-4321", "email": "jane.doe@company.com" ]
         Optional<Record> result = lookupService.lookup(coordinates)
 
-        Assert.assertNotNull(result)
-        Assert.assertTrue(result.isPresent())
+        assertNotNull(result)
+        assertTrue(result.isPresent())
         def record = result.get()
-        Assert.assertEquals("jane.doe@company.com", record.getAsString("email"))
-        Assert.assertEquals("098-765-4321", record.getAsString("phone"))
-        Assert.assertEquals("GHIJK", record.getAsString("accessKey"))
+        assertEquals("jane.doe@company.com", record.getAsString("email"))
+        assertEquals("098-765-4321", record.getAsString("phone"))
+        assertEquals("GHIJK", record.getAsString("accessKey"))
     }
 
     @Test
@@ -164,17 +167,17 @@ class ElasticSearchLookupService_IT {
         runner.enableControllerService(lookupService)
 
         Optional<Record> response = lookupService.lookup(coordinates)
-        Assert.assertNotNull(response)
-        Assert.assertTrue(response.isPresent())
+        assertNotNull(response)
+        assertTrue(response.isPresent())
         def rec = response.get()
-        Assert.assertEquals("Hello, world", rec.getValue("msg"))
+        assertEquals("Hello, world", rec.getValue("msg"))
         def subRec = getSubRecord(rec, "subField")
-        Assert.assertNotNull(subRec)
+        assertNotNull(subRec)
         def deeper = getSubRecord(subRec, "deeper")
-        Assert.assertNotNull(deeper)
+        assertNotNull(deeper)
         def deepest = getSubRecord(deeper, "deepest")
-        Assert.assertNotNull(deepest)
-        Assert.assertEquals("The sky is blue", deepest.getAsString("super_secret"))
+        assertNotNull(deepest)
+        assertEquals("The sky is blue", deepest.getAsString("super_secret"))
     }
 
     @Test
@@ -186,7 +189,7 @@ class ElasticSearchLookupService_IT {
         def coordinates = ["_id": "1" ]
 
         Optional<Record> response = lookupService.lookup(coordinates)
-        Assert.assertNotNull(response)
+        assertNotNull(response)
         Record rec = response.get()
         Record subRec = getSubRecord(rec, "subField")
 
@@ -195,12 +198,12 @@ class ElasticSearchLookupService_IT {
         def result = path.evaluate(r2)
         result.selectedFields.findFirst().get().updateValue(1234567890L)
 
-        Assert.assertNotNull(rec)
-        Assert.assertNotNull(subRec)
-        Assert.assertEquals("Hello, world", rec.getValue("msg"))
-        Assert.assertNotNull(rec.getValue("subField"))
-        Assert.assertEquals(new Long(100000), subRec.getValue("longField"))
-        Assert.assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
+        assertNotNull(rec)
+        assertNotNull(subRec)
+        assertEquals("Hello, world", rec.getValue("msg"))
+        assertNotNull(rec.getValue("subField"))
+        assertEquals(new Long(100000), subRec.getValue("longField"))
+        assertEquals("2018-04-10T12:18:05Z", subRec.getValue("dateField"))
     }
 
     static Record getSubRecord(Record rec, String fieldName) {
@@ -220,11 +223,11 @@ class ElasticSearchLookupService_IT {
 
         def coordinates = ["msg": "Hello, world"]
         def result = lookupService.lookup(coordinates)
-        Assert.assertTrue(result.isPresent())
+        assertTrue(result.isPresent())
         def rec = result.get()
         ["dateField2": "2018-08-14T10:08:00Z", "longField2": 150000L].each { field ->
             def value = rec.getValue(field.key)
-            Assert.assertEquals(field.value, value)
+            assertEquals(field.value, value)
         }
     }
 }
