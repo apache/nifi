@@ -442,7 +442,7 @@ public class LoadBalanceSession {
     }
 
     private boolean receiveProtocolVersionAcknowledgment() throws IOException {
-        logger.debug("Confirming Transaction Complete for Peer {}", peerDescription);
+        logger.debug("Confirming Protocol Version for Peer {}", peerDescription);
 
         final OptionalInt ackResponse = channel.read();
         if (!ackResponse.isPresent()) {

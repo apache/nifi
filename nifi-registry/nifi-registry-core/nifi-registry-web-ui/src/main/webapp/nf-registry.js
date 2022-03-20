@@ -99,6 +99,12 @@ NfRegistry.prototype = {
         } else {
             self.router.navigateByUrl('login');
         }
+    },
+    /**
+     * Show the NiFi Registry About dialog window.
+     */
+    showAboutDialog: function () {
+        this.nfRegistryApi.showRegistryAboutDialog();
     }
 };
 

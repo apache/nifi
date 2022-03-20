@@ -18,9 +18,16 @@ package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
 import com.microsoft.azure.eventhubs.EventData.SystemProperties;
-import com.microsoft.azure.eventhubs.PartitionReceiver;
 import com.microsoft.azure.eventhubs.EventHubException;
+import com.microsoft.azure.eventhubs.PartitionReceiver;
 import com.microsoft.azure.eventhubs.impl.AmqpConstants;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.time.Clock;
@@ -32,13 +39,7 @@ import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class GetAzureEventHubTest {
     private static final String namespaceName = "nifi-azure-hub";
@@ -53,7 +54,7 @@ public class GetAzureEventHubTest {
     private TestRunner testRunner;
     private MockGetAzureEventHub processor;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         processor = new MockGetAzureEventHub();
         testRunner = TestRunners.newTestRunner(processor);
@@ -119,11 +120,11 @@ public class GetAzureEventHubTest {
         testRunner.clearTransferState();
     }
 
-    @Test(expected = AssertionError.class)
+    @Test//(expected = AssertionError.class)
     public void testThrowGetReceiver(){
         setUpStandardTestConfig();
         processor.getReceiverThrow = true;
-        testRunner.run(1, true);
+        assertThrows(AssertionError.class, () -> testRunner.run(1, true));
         testRunner.assertAllFlowFilesTransferred(GetAzureEventHub.REL_SUCCESS, 0);
         testRunner.clearTransferState();
     }

@@ -21,13 +21,13 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.ListAzureBlobStorage;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collection;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAzureStorageUtilsValidateCredentialProperties {
 
@@ -39,7 +39,7 @@ public class TestAzureStorageUtilsValidateCredentialProperties {
     private MockProcessContext processContext;
     private MockValidationContext validationContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Processor processor = new ListAzureBlobStorage();
         processContext = new MockProcessContext(processor);
@@ -149,11 +149,10 @@ public class TestAzureStorageUtilsValidateCredentialProperties {
     }
 
     private void assertValid(Collection<ValidationResult> result) {
-        assertTrue("There should be no validation error", result.isEmpty());
+        assertTrue(result.isEmpty(), "There should be no validation error");
     }
 
     private void assertNotValid(Collection<ValidationResult> result) {
-        assertFalse("There should be validation error", result.isEmpty());
+        assertFalse(result.isEmpty(), "There should be validation error");
     }
-
 }

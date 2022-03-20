@@ -59,6 +59,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-record-utils</artifactId>
+            <version>1.16.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ssl-context-service-api</artifactId>
         </dependency>
         <dependency>
@@ -123,6 +128,10 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/mock-aws-credentials.properties</exclude>
+                        <exclude>src/test/resources/dynamodb/multipleChunks.json</exclude>
+                        <exclude>src/test/resources/dynamodb/multipleInputs.json</exclude>
+                        <exclude>src/test/resources/dynamodb/nonRecordOriented.txt</exclude>
+                        <exclude>src/test/resources/dynamodb/singleInput.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>

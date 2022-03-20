@@ -46,6 +46,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -184,39 +185,46 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
         final boolean accessKeySet = validationContext.getProperty(ACCESS_KEY).isSet();
         final boolean secretKeySet = validationContext.getProperty(SECRET_KEY).isSet();
         if ((accessKeySet && !secretKeySet) || (secretKeySet && !accessKeySet)) {
-            problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
+            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
         }
 
         final boolean credentialsFileSet = validationContext.getProperty(CREDENTIALS_FILE).isSet();
         if ((secretKeySet || accessKeySet) && credentialsFileSet) {
-            problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
+            validationResults.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
 
         final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
         final boolean proxyPortSet = validationContext.getProperty(PROXY_HOST_PORT).isSet();
+        final boolean proxyConfigServiceSet = validationContext.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).isSet();
 
         if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
-            problems.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
         }
 
         final boolean proxyUserSet = validationContext.getProperty(PROXY_USERNAME).isSet();
         final boolean proxyPwdSet = validationContext.getProperty(PROXY_PASSWORD).isSet();
 
         if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
-            problems.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
         }
+
         if (proxyUserSet && !proxyHostSet) {
-            problems.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
+            validationResults.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy Username or Proxy Password").build());
         }
 
-        ProxyConfiguration.validateProxySpec(validationContext, problems, PROXY_SPECS);
+        ProxyConfiguration.validateProxySpec(validationContext, validationResults, PROXY_SPECS);
 
-        return problems;
+        if (proxyHostSet && proxyConfigServiceSet) {
+            validationResults.add(new ValidationResult.Builder().subject("Proxy Configuration Service").valid(false)
+                    .explanation("Either Proxy Username and Proxy Password must be set or Proxy Configuration Service but not both").build());
+        }
+
+        return validationResults;
     }
 
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
@@ -257,6 +265,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                 componentProxyConfig.setProxyUserName(proxyUsername);
                 componentProxyConfig.setProxyUserPassword(proxyPassword);
                 return componentProxyConfig;
+            } else if (context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).isSet()) {
+                final ProxyConfigurationService configurationService = context.getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE).asControllerService(ProxyConfigurationService.class);
+                return configurationService.getConfiguration();
             }
             return ProxyConfiguration.DIRECT_CONFIGURATION;
         });

@@ -20,7 +20,9 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import org.apache.nifi.event.transport.netty.CloseContextIdleStateHandler;
 
 import java.time.Duration;
 import java.util.List;
@@ -36,6 +38,8 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
     private final Supplier<List<ChannelHandler>> handlerSupplier;
 
     private Duration writeTimeout = Duration.ofSeconds(30);
+
+    private Duration idleTimeout = Duration.ofSeconds(0);
 
     /**
      * Standard Channel Initializer with handlers
@@ -55,10 +59,19 @@ public class StandardChannelInitializer<T extends Channel> extends ChannelInitia
         this.writeTimeout = Objects.requireNonNull(writeTimeout);
     }
 
+    /**
+     * Set the idle timeout period for outgoing client connections
+     */
+    public void setIdleTimeout(final Duration idleTimeout) {
+        this.idleTimeout = Objects.requireNonNull(idleTimeout);
+    }
+
     @Override
     protected void initChannel(Channel channel) {
         final ChannelPipeline pipeline = channel.pipeline();
+        pipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
         pipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
+        pipeline.addLast(new CloseContextIdleStateHandler());
         handlerSupplier.get().forEach(pipeline::addLast);
     }
 }

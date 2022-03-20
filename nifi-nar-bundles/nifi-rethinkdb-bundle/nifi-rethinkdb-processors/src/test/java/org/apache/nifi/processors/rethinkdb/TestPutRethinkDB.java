@@ -16,27 +16,30 @@
  */
 package org.apache.nifi.processors.rethinkdb;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import java.util.HashMap;
-import java.util.List;
+import com.rethinkdb.gen.ast.Insert;
+import com.rethinkdb.net.Connection;
+import net.minidev.json.JSONObject;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.json.simple.JSONArray;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import com.rethinkdb.gen.ast.Insert;
-import com.rethinkdb.net.Connection;
-import net.minidev.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestPutRethinkDB {
     private TestRunner runner;
     private PutRethinkDB mockPutRethinkDB;
     protected HashMap<String,Object> result = new HashMap<>();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         result.put(PutRethinkDB.RESULT_DELETED_KEY, 0L);
         result.put(PutRethinkDB.RESULT_ERROR_KEY, 0L);
@@ -72,7 +75,7 @@ public class TestPutRethinkDB {
         runner.assertValid();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         runner = null;
     }
@@ -228,7 +231,7 @@ public class TestPutRethinkDB {
         assertEquals(flowFiles.get(0).getAttribute(PutRethinkDB.RETHINKDB_ERROR_MESSAGE),"testException");
     }
 
-    @Test(expected=AssertionError.class)
+    @Test
     public void testMakeConnectionThrowsException() {
         mockPutRethinkDB = new PutRethinkDB() {
             @Override
@@ -253,7 +256,7 @@ public class TestPutRethinkDB {
 
         byte [] bytes = message.toJSONString().getBytes();
         runner.enqueue(bytes);
-        runner.run(1,true,true);
+        assertThrows(AssertionError.class, () -> runner.run(1,true,true));
     }
 
     @Test

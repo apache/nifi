@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import java.util.List;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
+
+import java.util.List;
 
 
 /**

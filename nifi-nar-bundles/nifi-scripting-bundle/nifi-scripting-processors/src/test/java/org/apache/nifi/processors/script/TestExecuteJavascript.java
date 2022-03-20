@@ -22,10 +22,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+@DisabledForJreRange(min = JRE.JAVA_15, disabledReason = "Java 15 removed Nashorn Engine")
 public class TestExecuteJavascript extends BaseScriptTest {
 
     @BeforeEach

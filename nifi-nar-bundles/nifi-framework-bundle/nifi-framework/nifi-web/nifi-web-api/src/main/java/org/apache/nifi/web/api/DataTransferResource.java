@@ -197,8 +197,6 @@ public class DataTransferResource extends ApplicationResource {
             return validationResult.errResponse;
         }
 
-        logger.debug("createPortTransaction request: clientId={}, portType={}, portId={}", portType, portId);
-
         final ByteArrayOutputStream out = new ByteArrayOutputStream();
         final String transactionId = transactionManager.createTransaction();
         final Peer peer = constructPeer(req, inputStream, out, portId, transactionId);

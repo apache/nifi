@@ -20,8 +20,8 @@ import com.microsoft.azure.storage.queue.CloudQueue;
 import com.microsoft.azure.storage.queue.CloudQueueClient;
 import com.microsoft.azure.storage.queue.CloudQueueMessage;
 import org.apache.nifi.processors.azure.storage.AbstractAzureStorageIT;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Iterator;
 import java.util.UUID;
@@ -39,7 +39,7 @@ public abstract class AbstractAzureQueueStorageIT extends AbstractAzureStorageIT
         return DEFAULT_QUEUE_ENDPOINT_SUFFIX;
     }
 
-    @Before
+    @BeforeEach
     public void setUpAzureQueueStorageIT() throws Exception {
         String queueName = String.format("%s-%s", TEST_QUEUE_NAME_PREFIX, UUID.randomUUID());
         CloudQueueClient cloudQueueClient = getStorageAccount().createCloudQueueClient();
@@ -49,7 +49,7 @@ public abstract class AbstractAzureQueueStorageIT extends AbstractAzureStorageIT
         runner.setProperty(AbstractAzureQueueStorage.QUEUE, queueName);
     }
 
-    @After
+    @AfterEach
     public void tearDownAzureQueueStorageIT() throws Exception {
         cloudQueue.deleteIfExists();
     }

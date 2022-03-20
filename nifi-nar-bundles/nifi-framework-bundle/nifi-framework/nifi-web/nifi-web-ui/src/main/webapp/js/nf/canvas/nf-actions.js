@@ -883,6 +883,56 @@
         },
 
         /**
+         * Enable all controller services in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         */
+        enableAllControllerServices: function (selection) {
+            // get selected ProcessGroup id
+            var pg_id = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+            // build URL
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pg_id) + '/controller-services';
+            // build the entity
+            var entity = {
+                'id': pg_id,
+                'state': 'ENABLED'
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pg_id);
+                })
+            }
+        },
+
+        /**
+         * Disable all controller services in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         */
+        disableAllControllerServices: function (selection) {
+            // get selected ProcessGroup id
+            var pg_id = selection.empty() ? nfCanvasUtils.getGroupId() : selection.datum().id;
+            // build URL
+            var url = config.urls.api + '/flow/process-groups/' + encodeURIComponent(pg_id) + '/controller-services';
+            // build the entity
+            var entity = {
+                'id': pg_id,
+                'state': 'DISABLED'
+            };
+
+            if (selection.empty()) {
+                updateResource(url, entity).done(updateProcessGroup);
+            } else {
+                updateResource(url, entity).done(function (response) {
+                    nfCanvasUtils.getComponentByType('ProcessGroup').reload(pg_id);
+                })
+            }
+        },
+
+        /**
          * Stops the component and displays the processor configuration dialog
          *
          * @param {selection} selection      The selection

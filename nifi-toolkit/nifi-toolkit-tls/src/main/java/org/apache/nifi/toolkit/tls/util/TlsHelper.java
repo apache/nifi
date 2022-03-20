@@ -202,12 +202,13 @@ public class TlsHelper {
     }
 
     private static void outputAsPem(Object pemObj, String filename, File directory, String extension) throws IOException {
-        OutputStream outputStream = new FileOutputStream(new File(directory,  TlsHelper.escapeFilename(filename) + extension));
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
-        JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter);
-        JcaMiscPEMGenerator pemGen = new JcaMiscPEMGenerator(pemObj);
-        pemWriter.writeObject(pemGen);
-        pemWriter.close();
+        try (OutputStream outputStream = new FileOutputStream(new File(directory,  TlsHelper.escapeFilename(filename) + extension))) {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
+            JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter);
+            JcaMiscPEMGenerator pemGen = new JcaMiscPEMGenerator(pemObj);
+            pemWriter.writeObject(pemGen);
+            pemWriter.close();
+        }
     }
 
     private static KeyPairGenerator createKeyPairGenerator(String algorithm, int keySize) throws NoSuchAlgorithmException {
@@ -280,7 +281,7 @@ public class TlsHelper {
                 // Already in PKCS #1 format
                 return getKeyPair((PEMKeyPair)parsedObject);
             } else {
-                logger.warn("Expected one of %s or %s but got %s", PrivateKeyInfo.class, PEMKeyPair.class, parsedObject.getClass());
+                logger.warn("Expected one of {} or {} but got {}", PrivateKeyInfo.class, PEMKeyPair.class, parsedObject.getClass());
                 throw new IOException("Expected private key in PKCS #1 or PKCS #8 unencrypted format");
             }
         }

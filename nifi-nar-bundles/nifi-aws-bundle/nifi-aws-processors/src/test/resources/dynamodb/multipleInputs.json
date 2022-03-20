@@ -1,0 +1,5 @@
+[
+  {"value": "new", "size": 0, "partition" : "P0"},
+  {"value": "new", "size": 1, "partition" : "P1"},
+  {"value": "new", "size": 2, "partition" : "P2"}
+]

@@ -25,7 +25,7 @@ import org.apache.atlas.v1.model.notification.HookNotificationV1;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiAtlasClient;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,10 +50,10 @@ import static org.apache.nifi.atlas.NiFiTypes.TYPE_DATASET;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_FLOW_PATH;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_QUEUE;
 import static org.apache.nifi.atlas.hook.NiFiAtlasHook.NIFI_USER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -114,7 +114,7 @@ public class TestNotificationSender {
                 assertIOReferences(expect, actual, ATTR_OUTPUTS);
                 hasFlowPathSeen = true;
             } else {
-                assertFalse("Types other than nifi_flow_path should be created before any nifi_flow_path entity.", hasFlowPathSeen);
+                assertFalse(hasFlowPathSeen, "Types other than nifi_flow_path should be created before any nifi_flow_path entity.");
             }
         }
     }

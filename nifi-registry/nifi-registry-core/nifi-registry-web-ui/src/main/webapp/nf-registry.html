@@ -79,6 +79,9 @@ limitations under the License.
             <div id="nifi-registry-documentation" *ngIf="nfRegistryService.perspective !== 'login'" class="pad-right-sm">
                 <a matTooltip="Help" href="{{nfRegistryService.documentation.link}}" target="_blank"><i class="fa fa-question-circle help-icon" aria-hidden="true"></i></a>
             </div>
+            <button matTooltip="About" mat-ripple (click)="showAboutDialog()" mat-icon-button>
+                <i class="fa fa-info help-icon" aria-hidden="true"></i>
+            </button>
             <button matTooltip="Settings" mat-ripple *ngIf="nfRegistryService.currentUser.resourcePermissions.anyTopLevelResource.canRead && nfRegistryService.perspective === 'explorer'" mat-icon-button
                     routerLink="administration/workflow">
                 <i class="fa fa-wrench" aria-hidden="true"></i>

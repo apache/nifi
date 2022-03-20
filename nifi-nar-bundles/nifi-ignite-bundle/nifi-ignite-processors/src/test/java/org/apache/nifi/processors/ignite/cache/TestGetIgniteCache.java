@@ -142,9 +142,8 @@ public class TestGetIgniteCache {
         List<MockFlowFile> getFailureFlowFiles = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_FAILURE);
         assertEquals(1, getFailureFlowFiles.size());
 
-        final MockFlowFile getOut = getRunner.getFlowFilesForRelationship(GetIgniteCache.REL_FAILURE).get(0);
-        getOut.assertAttributeEquals(GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY,
-            GetIgniteCache.IGNITE_GET_FAILED_MESSAGE_PREFIX + "java.lang.NullPointerException");
+        final MockFlowFile failureFlowFile = getFailureFlowFiles.get(0);
+        failureFlowFile.assertAttributeExists(GetIgniteCache.IGNITE_GET_FAILED_REASON_ATTRIBUTE_KEY);
 
         getRunner.shutdown();
     }
