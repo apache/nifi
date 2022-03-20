@@ -290,6 +290,13 @@
                 <version>${org.apache.httpcomponents.httpcore.version}</version>
             </dependency>
 
+            <!-- Commons Codec -->
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
+            </dependency>
+
             <!-- These junit/mockito/groovy/spock/hamcrest dependencies are here to encourage consistent unit test library usage -->
             <dependency>
                 <groupId>org.junit</groupId>
