@@ -142,11 +142,11 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    private static final int DEFAULT_WORKER_COUNT = 2 * Runtime.getRuntime().availableProcessors();
+    private static final int DEFAULT_WORKER_COUNT = Runtime.getRuntime().availableProcessors();
     static final PropertyDescriptor WORKER_COUNT = new Builder()
             .name("worker-count")
             .displayName("Kudu Client Worker Count")
-            .description("The maximum number of worker threads handling Kudu client read and write operations. Defaults to the number of available processors multiplied by 2.")
+            .description("The maximum number of worker threads handling Kudu client read and write operations. Defaults to the number of available processors.")
             .required(true)
             .defaultValue(Integer.toString(DEFAULT_WORKER_COUNT))
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
