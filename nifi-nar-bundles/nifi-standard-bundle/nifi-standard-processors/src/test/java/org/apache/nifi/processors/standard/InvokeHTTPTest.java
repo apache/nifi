@@ -24,6 +24,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
+import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -103,6 +104,14 @@ public class InvokeHTTPTest {
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
 
     private static final String LOCATION_HEADER = "Location";
+
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+
+    private static final String COOKIE_HEADER = "Cookie";
+
+    private static final String COOKIE_1 = "a=apple";
+
+    private static final String COOKIE_2 = "b=banana";
 
     private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
 
@@ -601,6 +610,46 @@ public class InvokeHTTPTest {
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
         assertRelationshipStatusCodeEquals(InvokeHTTP.REL_NO_RETRY, HTTP_MOVED_TEMP);
+    }
+
+    @Test
+    public void testRunGetHttp302CookieStrategyAcceptAll() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.PROP_COOKIE_STRATEGY, CookieStrategy.ACCEPT_ALL.name());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_1)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_2)
+            .addHeader(LOCATION_HEADER, getMockWebServerUrl()));
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        RecordedRequest request1 = mockWebServer.takeRequest();
+        assertNull(request1.getHeader(COOKIE_HEADER));
+
+        RecordedRequest request2 = mockWebServer.takeRequest();
+        final String expectedHeader = String.format("%s; %s", COOKIE_1, COOKIE_2);
+        assertEquals(expectedHeader, request2.getHeader(COOKIE_HEADER));
+
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+    }
+
+    @Test
+    public void testRunGetHttp302CookieStrategyDefaultDisabled() throws InterruptedException {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_1)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_2)
+            .addHeader(LOCATION_HEADER, getMockWebServerUrl()));
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        RecordedRequest request1 = mockWebServer.takeRequest();
+        assertNull(request1.getHeader(COOKIE_HEADER));
+
+        RecordedRequest request2 = mockWebServer.takeRequest();
+        assertNull(request2.getHeader(COOKIE_HEADER));
+
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
     }
 
     @Test
