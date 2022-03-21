@@ -14,14 +14,14 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <artifactId>nifi-toolkit-flowfile-repo</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -29,4 +29,8 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

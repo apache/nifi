@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-external</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -30,4 +30,8 @@
         <module>nifi-kafka-connector-tests</module>
     </modules>
 
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-avro-bundle</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.16.0</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -42,4 +42,8 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

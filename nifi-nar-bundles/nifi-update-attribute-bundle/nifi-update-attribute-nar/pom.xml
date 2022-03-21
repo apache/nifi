@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-update-attribute-bundle</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <artifactId>nifi-update-attribute-nar</artifactId>
     <packaging>nar</packaging>
@@ -29,13 +29,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-jetty-bundle</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -51,4 +51,8 @@
             <type>war</type>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

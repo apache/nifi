@@ -19,10 +19,10 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <artifactId>nifi-registry-web-api</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.16.0</version>
     <packaging>war</packaging>
 
     <properties>
@@ -341,17 +341,17 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-framework</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-spring-jdbc</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-revision-entity-service</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -361,25 +361,25 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-properties</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>provided</scope> <!-- This will be in the lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-provider-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>provided</scope> <!-- This will be in lib directory -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -407,13 +407,13 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-client</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -487,4 +487,8 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

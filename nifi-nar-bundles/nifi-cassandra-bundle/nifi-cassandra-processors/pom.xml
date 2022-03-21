@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-cassandra-bundle</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
 
     <artifactId>nifi-cassandra-processors</artifactId>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-cassandra-services</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -96,4 +96,8 @@
             <version>1.8</version>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>
