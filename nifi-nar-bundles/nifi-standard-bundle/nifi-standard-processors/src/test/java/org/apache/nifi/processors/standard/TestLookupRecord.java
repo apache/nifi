@@ -464,10 +464,9 @@ public class TestLookupRecord {
         runner.run();
 
         final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
-        if(out.getContent().equals("John Doe,48,soccer,basketball\nJane Doe,47\n")){
+        if(out.getContent().equals("John Doe,48,soccer,basketball\nJane Doe,47\n")) {
             out.assertContentEquals("John Doe,48,soccer,basketball\nJane Doe,47\n");
-        }
-        else{
+        } else {
             out.assertContentEquals("John Doe,48,basketball,soccer\nJane Doe,47\n");
         }
     }
