@@ -154,7 +154,10 @@ public class HashContent extends AbstractProcessor {
 
             final String attributeName = context.getProperty(ATTRIBUTE_NAME).getValue();
             flowFile = session.putAttribute(flowFile, attributeName, hashValueHolder.get());
-            logger.info("Successfully added attribute '{}' to {} with a value of {}; routing to success", new Object[]{attributeName, flowFile, hashValueHolder.get()});
+            if (logger.isDebugEnabled()) {
+                logger.debug("Successfully added attribute '{}' to {} with a value of {}; routing to success",
+                        attributeName, flowFile, hashValueHolder.get());
+            }
             session.getProvenanceReporter().modifyAttributes(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {
