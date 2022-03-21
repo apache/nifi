@@ -24,7 +24,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -78,7 +79,7 @@ public class TestMapRecord {
     }
 
     private Set<String> set(final String... values) {
-        final Set<String> set = new HashSet<>();
+        final Set<String> set = new LinkedHashSet<>();
         for (final String value : values) {
             set.add(value);
         }
@@ -122,7 +123,7 @@ public class TestMapRecord {
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Map<String, Object> values = new HashMap<>();
+        final Map<String, Object> values = new LinkedHashMap<>();
         values.put("baz", 1);
         values.put("bar", 33);
 
@@ -161,7 +162,7 @@ public class TestMapRecord {
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), "hello", set("bar", "baz")));
 
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Map<String, Object> values = new HashMap<>();
+        final Map<String, Object> values = new LinkedHashMap<>();
         values.put("baz", 1);
         values.put("bar", 33);
 
