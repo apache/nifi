@@ -271,7 +271,7 @@ public class TestDeduplicateRecord {
         }
     }
 
-    private static final class MockCacheService<K, V> extends AbstractControllerService implements DistributedMapCacheClient {
+    static final class MockCacheService<K, V> extends AbstractControllerService implements DistributedMapCacheClient {
         private Map storage;
 
         public MockCacheService() {
