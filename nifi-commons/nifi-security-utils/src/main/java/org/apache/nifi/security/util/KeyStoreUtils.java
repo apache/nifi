@@ -401,7 +401,7 @@ public class KeyStoreUtils {
             return true;
 
         } catch (Exception e) {
-            logger.debug("Keystore could not be loaded", e);
+            logger.debug("Keystore [{}] Type [{}] load failed", keystore, keystoreType, e);
             return false;
         } finally {
             if (bis != null) {
