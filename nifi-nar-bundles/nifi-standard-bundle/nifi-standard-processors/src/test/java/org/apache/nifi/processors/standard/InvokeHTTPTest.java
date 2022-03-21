@@ -104,6 +104,14 @@ public class InvokeHTTPTest {
 
     private static final String LOCATION_HEADER = "Location";
 
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+
+    private static final String COOKIE_HEADER = "Cookie";
+
+    private static final String COOKIE_1 = "a=apple";
+
+    private static final String COOKIE_2 = "b=banana";
+
     private static final String TRANSFER_ENCODING_HEADER = "Transfer-Encoding";
 
     private static final String USER_AGENT_HEADER = "User-Agent";
@@ -601,6 +609,45 @@ public class InvokeHTTPTest {
         runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
         assertRelationshipStatusCodeEquals(InvokeHTTP.REL_NO_RETRY, HTTP_MOVED_TEMP);
+    }
+
+    @Test
+    public void testRunGetHttp302NoRetryCookieRedirectsEnabled() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.PROP_ENABLE_COOKIE_REDIRECTS, Boolean.TRUE.toString());
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_1)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_2)
+            .addHeader(LOCATION_HEADER, getMockWebServerUrl()));
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        getMockWebServerUrl();
+        RecordedRequest request1 = mockWebServer.takeRequest();
+        assertNull(request1.getHeader(COOKIE_HEADER));
+        getMockWebServerUrl();
+        RecordedRequest request2 = mockWebServer.takeRequest();
+        assertEquals(COOKIE_1 + "; " + COOKIE_2, request2.getHeader(COOKIE_HEADER));
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+    }
+
+    @Test
+    public void testRunGetHttp302NoRetryCookieRedirectsDefaultDisabled() throws InterruptedException {
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_1)
+            .addHeader(SET_COOKIE_HEADER, COOKIE_2)
+            .addHeader(LOCATION_HEADER, getMockWebServerUrl()));
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        getMockWebServerUrl();
+        RecordedRequest request1 = mockWebServer.takeRequest();
+        assertNull(request1.getHeader(COOKIE_HEADER));
+        getMockWebServerUrl();
+        RecordedRequest request2 = mockWebServer.takeRequest();
+        assertNull(request2.getHeader(COOKIE_HEADER));
+        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
     }
 
     @Test

@@ -23,6 +23,8 @@ import com.burgstaller.okhttp.digest.DigestAuthenticator;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.net.Proxy.Type;
 import java.net.URL;
@@ -60,6 +62,7 @@ import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.Handshake;
 import okhttp3.Headers;
+import okhttp3.JavaNetCookieJar;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.MultipartBody.Builder;
@@ -516,6 +519,15 @@ public class InvokeHTTP extends AbstractProcessor {
             )
             .build();
 
+    public static final PropertyDescriptor PROP_ENABLE_COOKIE_REDIRECTS = new PropertyDescriptor.Builder()
+            .name("enable-cookie-redirects")
+            .description("If true, when an HTTP server responds to a request with a redirect, the provided cookie will be copied to the following request.")
+            .displayName("Enable Cookie Redirects")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -530,6 +542,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
+            PROP_ENABLE_COOKIE_REDIRECTS,
             DISABLE_HTTP2_PROTOCOL,
             FLOW_FILE_NAMING_STRATEGY,
             PROP_ATTRIBUTES_TO_SEND,
@@ -823,6 +836,13 @@ public class InvokeHTTP extends AbstractProcessor {
             final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
+
+        // Configure cookie redirects if enabled
+        if (context.getProperty(PROP_ENABLE_COOKIE_REDIRECTS).asBoolean()) {
+            final CookieManager cookieManager = new CookieManager();
+            cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+            okHttpClientBuilder.cookieJar(new JavaNetCookieJar(cookieManager));
+        }    
 
         setAuthenticator(okHttpClientBuilder, context);
 
