@@ -23,6 +23,8 @@ import com.burgstaller.okhttp.digest.DigestAuthenticator;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.Proxy;
 import java.net.Proxy.Type;
 import java.net.URL;
@@ -60,6 +62,7 @@ import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.Handshake;
 import okhttp3.Headers;
+import okhttp3.JavaNetCookieJar;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.MultipartBody.Builder;
@@ -100,6 +103,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
+import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -516,6 +520,15 @@ public class InvokeHTTP extends AbstractProcessor {
             )
             .build();
 
+    public static final PropertyDescriptor PROP_COOKIE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("cookie-strategy")
+            .description("Strategy for accepting and persisting HTTP cookies. Accepting cookies enables persistence across multiple requests.")
+            .displayName("Cookie Strategy")
+            .required(true)
+            .defaultValue(CookieStrategy.DISABLED.name())
+            .allowableValues(CookieStrategy.values())
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -530,6 +543,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
+            PROP_COOKIE_STRATEGY,
             DISABLE_HTTP2_PROTOCOL,
             FLOW_FILE_NAMING_STRATEGY,
             PROP_ATTRIBUTES_TO_SEND,
@@ -822,6 +836,17 @@ public class InvokeHTTP extends AbstractProcessor {
             final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
             final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
+        }
+
+        // Configure cookie strategy
+        switch(CookieStrategy.valueOf(context.getProperty(PROP_COOKIE_STRATEGY).getValue())) {
+            case DISABLED:
+                break;
+            case ACCEPT_ALL:
+                final CookieManager cookieManager = new CookieManager();
+                cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+                okHttpClientBuilder.cookieJar(new JavaNetCookieJar(cookieManager));
+                break;
         }
 
         setAuthenticator(okHttpClientBuilder, context);
