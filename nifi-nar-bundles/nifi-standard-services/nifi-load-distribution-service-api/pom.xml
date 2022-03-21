@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <artifactId>nifi-load-distribution-service-api</artifactId>
     <packaging>jar</packaging>
@@ -27,4 +27,8 @@
             <artifactId>nifi-api</artifactId>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     <artifactId>nifi-registry-assembly</artifactId>
     <packaging>pom</packaging>
@@ -99,7 +99,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -123,7 +123,7 @@
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-docs</artifactId>
             <type>war</type>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
@@ -135,7 +135,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-docs</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.16.0</version>
             <classifier>resources</classifier>
             <scope>runtime</scope>
             <type>zip</type>
@@ -412,7 +412,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-ranger-assembly</artifactId>
-                    <version>1.16.0-SNAPSHOT</version>
+                    <version>1.16.0</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>zip</type>
@@ -455,7 +455,7 @@
                 <dependency>
                     <groupId>org.apache.nifi.registry</groupId>
                     <artifactId>nifi-registry-aws-assembly</artifactId>
-                    <version>1.16.0-SNAPSHOT</version>
+                    <version>1.16.0</version>
                     <classifier>bin</classifier>
                     <scope>runtime</scope>
                     <type>zip</type>
@@ -485,4 +485,8 @@
             </build>
         </profile>
     </profiles>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

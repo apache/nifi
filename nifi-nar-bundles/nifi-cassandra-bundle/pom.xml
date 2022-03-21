@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
 
     <properties>
@@ -45,7 +45,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-cassandra-processors</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.16.0</version>
             </dependency>
             <!-- Override jackson 2.7.9.3 from cassandra -->
             <dependency>
@@ -72,4 +72,8 @@
         </dependencies>
     </dependencyManagement>
 
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

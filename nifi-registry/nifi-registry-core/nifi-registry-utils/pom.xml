@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
     
     <artifactId>nifi-registry-utils</artifactId>
@@ -23,4 +23,8 @@
     <dependencies>
     </dependencies>
 
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>
