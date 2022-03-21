@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hive-bundle</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive-services-api</artifactId>
@@ -34,17 +34,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.16.0</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.16.0</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>

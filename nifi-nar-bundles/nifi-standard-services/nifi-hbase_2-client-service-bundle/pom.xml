@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hbase_2-client-service-bundle</artifactId>
-    <version>1.16.0</version>
+    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -83,8 +83,4 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>

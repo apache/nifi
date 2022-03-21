@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-influxdb-bundle</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-influxdb-processors</artifactId>
@@ -42,12 +42,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.16.0</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -56,8 +56,4 @@
             <version>2.7</version>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>

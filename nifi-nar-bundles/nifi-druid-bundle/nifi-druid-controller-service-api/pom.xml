@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-druid-bundle</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-druid-controller-service-api</artifactId>
@@ -97,8 +97,4 @@
             <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>

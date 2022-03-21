@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-toolkit</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <properties>
         <curator.version>5.2.0</curator.version>
@@ -142,9 +142,4 @@
             </plugin>
         </plugins>
     </build>
-
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>
