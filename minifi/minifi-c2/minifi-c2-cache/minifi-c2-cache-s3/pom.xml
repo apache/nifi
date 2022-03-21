@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-c2-cache</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-c2-cache-s3</artifactId>
     <packaging>jar</packaging>
@@ -56,8 +56,4 @@ limitations under the License.
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>
