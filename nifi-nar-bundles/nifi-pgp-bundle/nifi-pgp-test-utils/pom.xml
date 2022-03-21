@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-pgp-bundle</artifactId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-pgp-test-utils</artifactId>
@@ -31,8 +31,4 @@
             <artifactId>bcpg-jdk15on</artifactId>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>

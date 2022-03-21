@@ -13,7 +13,7 @@
     <parent>
         <artifactId>nifi-framework</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.16.0</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -26,8 +26,4 @@
             <artifactId>nifi-framework-api</artifactId>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
 </project>
