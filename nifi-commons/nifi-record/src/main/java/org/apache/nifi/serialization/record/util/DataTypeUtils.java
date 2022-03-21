@@ -548,7 +548,7 @@ public class DataTypeUtils {
                 map = (Map<String, Object>) value;
             } else {
                 final Map<?, ?> m = (Map<?, ?>) value;
-                map = new HashMap<>(m.size());
+                map = new LinkedHashMap<>(m.size());
                 m.forEach((k, v) -> map.put(k == null ? null : k.toString(), v));
             }
             return inferRecordDataType(map);

@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -611,7 +612,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferTypeWithMapStringKeys() {
-        Map<String, String> map = new HashMap<>();
+        Map<String, String> map = new LinkedHashMap<>();
         map.put("a", "Hello");
         map.put("b", "World");
 
@@ -626,7 +627,7 @@ public class TestDataTypeUtils {
 
     @Test
     public void testInferTypeWithMapNonStringKeys() {
-        Map<Integer, String> map = new HashMap<>();
+        Map<Integer, String> map = new LinkedHashMap<>();
         map.put(1, "Hello");
         map.put(2, "World");
 
