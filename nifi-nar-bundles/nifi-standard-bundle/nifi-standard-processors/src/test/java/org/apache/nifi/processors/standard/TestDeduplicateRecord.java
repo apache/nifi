@@ -17,10 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
-import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -31,7 +28,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -271,51 +267,4 @@ public class TestDeduplicateRecord {
         }
     }
 
-    private static final class MockCacheService<K, V> extends AbstractControllerService implements DistributedMapCacheClient {
-        private Map storage;
-
-        public MockCacheService() {
-            storage = new HashMap<>();
-        }
-
-        @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-            return false;
-        }
-
-        @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
-            return null;
-        }
-
-        @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
-            return storage.containsKey(key);
-        }
-
-        @Override
-        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-            storage.put(key, value);
-        }
-
-        @Override
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
-            return null;
-        }
-
-        @Override
-        public void close() throws IOException {
-
-        }
-
-        @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
-            return false;
-        }
-
-        @Override
-        public long removeByPattern(String regex) throws IOException {
-            return 0;
-        }
-    }
 }

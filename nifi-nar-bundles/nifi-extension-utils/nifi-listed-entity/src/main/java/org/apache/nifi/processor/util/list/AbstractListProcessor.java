@@ -576,17 +576,17 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             entitiesForTimestamp.add(entity);
         }
 
-        if (orderedEntries.size() > 0) {
-            for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
-                List<T> entities = timestampEntities.getValue();
-                for (T entity : entities) {
-                    // Create the FlowFile for this path.
-                    final Map<String, String> attributes = createAttributes(entity, context);
-                    FlowFile flowFile = session.create();
-                    flowFile = session.putAllAttributes(flowFile, attributes);
-                    session.transfer(flowFile, REL_SUCCESS);
-                }
+        final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
+        if (writerSet) {
+            try {
+                createRecordsForEntities(context, session, orderedEntries);
+            } catch (final IOException | SchemaNotFoundException e) {
+                getLogger().error("Failed to write listing to FlowFile", e);
+                context.yield();
+                return;
             }
+        } else {
+            createFlowFilesForEntities(context, session, orderedEntries);
         }
     }
 
