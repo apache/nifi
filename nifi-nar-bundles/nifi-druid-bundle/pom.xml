@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.16.0</version>
     </parent>
 
     <artifactId>nifi-druid-bundle</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.16.0</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -182,4 +182,8 @@
         <module>nifi-druid-controller-service</module>
         <module>nifi-druid-processors</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>

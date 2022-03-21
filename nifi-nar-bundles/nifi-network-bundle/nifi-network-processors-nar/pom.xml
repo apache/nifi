@@ -19,7 +19,7 @@
 	<parent>
 		<groupId>org.apache.nifi</groupId>
 		<artifactId>nifi-network-bundle</artifactId>
-		<version>1.16.0-SNAPSHOT</version>
+		<version>1.16.0</version>
 	</parent>
 
 	<artifactId>nifi-network-processors-nar</artifactId>
@@ -33,8 +33,12 @@
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-network-processors</artifactId>
-			<version>1.16.0-SNAPSHOT</version>
+			<version>1.16.0</version>
 		</dependency>
 	</dependencies>
 
+
+  <scm>
+    <tag>nifi-1.16.0-RC3</tag>
+  </scm>
 </project>
