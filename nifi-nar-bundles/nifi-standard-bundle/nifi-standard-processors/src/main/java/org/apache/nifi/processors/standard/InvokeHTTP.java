@@ -103,6 +103,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
+import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -519,13 +520,13 @@ public class InvokeHTTP extends AbstractProcessor {
             )
             .build();
 
-    public static final PropertyDescriptor PROP_ENABLE_COOKIE_REDIRECTS = new PropertyDescriptor.Builder()
-            .name("enable-cookie-redirects")
-            .description("If true, when an HTTP server responds to a request with a redirect, the provided cookie will be copied to the following request.")
-            .displayName("Enable Cookie Redirects")
+    public static final PropertyDescriptor PROP_COOKIE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("cookie-strategy")
+            .description("Strategy for accepting and persisting HTTP cookies. Accepting cookies enables persistence across multiple requests.")
+            .displayName("Cookie Strategy")
             .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
+            .defaultValue(CookieStrategy.DISABLED.name())
+            .allowableValues(CookieStrategy.values())
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -542,7 +543,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
-            PROP_ENABLE_COOKIE_REDIRECTS,
+            PROP_COOKIE_STRATEGY,
             DISABLE_HTTP2_PROTOCOL,
             FLOW_FILE_NAMING_STRATEGY,
             PROP_ATTRIBUTES_TO_SEND,
@@ -837,12 +838,16 @@ public class InvokeHTTP extends AbstractProcessor {
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 
-        // Configure cookie redirects if enabled
-        if (context.getProperty(PROP_ENABLE_COOKIE_REDIRECTS).asBoolean()) {
-            final CookieManager cookieManager = new CookieManager();
-            cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
-            okHttpClientBuilder.cookieJar(new JavaNetCookieJar(cookieManager));
-        }    
+        // Configure cookie strategy
+        switch(CookieStrategy.valueOf(context.getProperty(PROP_COOKIE_STRATEGY).getValue())) {
+            case DISABLED:
+                break;
+            case ACCEPT_ALL:
+                final CookieManager cookieManager = new CookieManager();
+                cookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+                okHttpClientBuilder.cookieJar(new JavaNetCookieJar(cookieManager));
+                break;
+        }
 
         setAuthenticator(okHttpClientBuilder, context);
 

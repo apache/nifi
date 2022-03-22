@@ -24,6 +24,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
+import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -612,8 +613,8 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp302NoRetryCookieRedirectsEnabled() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_ENABLE_COOKIE_REDIRECTS, Boolean.TRUE.toString());
+    public void testRunGetHttp302NoRetryCookieStrategyAcceptAll() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.PROP_COOKIE_STRATEGY, CookieStrategy.ACCEPT_ALL.name());
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
             .addHeader(SET_COOKIE_HEADER, COOKIE_1)
             .addHeader(SET_COOKIE_HEADER, COOKIE_2)
@@ -632,7 +633,7 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp302NoRetryCookieRedirectsDefaultDisabled() throws InterruptedException {
+    public void testRunGetHttp302NoRetryCookieStrategyDefaultDisabled() throws InterruptedException {
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
             .addHeader(SET_COOKIE_HEADER, COOKIE_1)
             .addHeader(SET_COOKIE_HEADER, COOKIE_2)
