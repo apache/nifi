@@ -115,7 +115,6 @@ public class TestListSFTP {
         Thread.sleep(STABILITY_WAIT);
         runner.run();
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS);
     }
 
     @Test
@@ -129,7 +128,6 @@ public class TestListSFTP {
         Thread.sleep(STABILITY_WAIT);
         runner.run();
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS);
     }
 
     @Test
@@ -143,7 +141,6 @@ public class TestListSFTP {
         Thread.sleep(STABILITY_WAIT);
         runner.run();
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS);
     }
 
     @Test
@@ -161,7 +158,6 @@ public class TestListSFTP {
         Thread.sleep(STABILITY_WAIT);
         runner.run();
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS);
     }
 
     @Test
