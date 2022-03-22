@@ -15,8 +15,9 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
+<% String language = request.getLocale().toLanguageTag(); %>
 <!DOCTYPE html>
-<html>
+<html lang="<%= language %>">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
