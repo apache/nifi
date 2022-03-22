@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <title>NiFi Login</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
