@@ -68,7 +68,7 @@
         <plugins>
             <!--
                 Precompile jsp's and add entries into the web.xml - the web.xml
-                is automatically places in ${project.build.directory}. Do not
+                is automatically placed in ${project.build.directory}. Do not
                 precompile canvas.jsp, summary.jsp, history.jsp, etc.
                 These jsp's need to have the artifacts version filtered in to
                 eliminate broswer caching issues and set up the proper includes.
