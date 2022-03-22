@@ -64,6 +64,9 @@ import java.io.InputStream;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -97,6 +100,7 @@ import java.util.concurrent.atomic.AtomicInteger;
         @WritesAttribute(attribute = "record.count", description = "Sets the number of records in the FlowFile.")
 })
 public class QuerySalesforceObject extends AbstractProcessor {
+
     public static final PropertyDescriptor CUSTOM_WHERE_CONDITION = new PropertyDescriptor.Builder()
             .name("custom-where-condition")
             .displayName("Custom WHERE Condition")
@@ -105,6 +109,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     static final PropertyDescriptor SOBJECT_NAME = new PropertyDescriptor.Builder()
             .name("sobject-name")
             .displayName("SObject Name")
@@ -113,6 +118,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
+    
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
             .name("field-names")
             .displayName("Field Names")
@@ -121,6 +127,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
+
     static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
             .name("age-field")
             .displayName("Age Field")
@@ -182,11 +189,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor TIMESTAMP_FORMAT = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(DateTimeUtils.TIMESTAMP_FORMAT)
-            .defaultValue("yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ")
-            .build();
-
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
             .name("record-writer")
             .displayName("Record Writer")
@@ -222,6 +224,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .build();
 
     private static final String LAST_AGE_FILTER = "last_age_filter";
+    private static final String DATE_FORMAT = "yyyy-MM-dd";
+    private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
+    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
 
     private volatile SalesforceToRecordSchemaConverter salesForceToRecordSchemaConverter;
     private volatile SalesforceRestService salesforceRestService;
@@ -262,9 +267,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 API_VERSION,
                 BASE_URL,
                 AUTH_SERVICE,
-                DateTimeUtils.DATE_FORMAT,
-                DateTimeUtils.TIME_FORMAT,
-                TIMESTAMP_FORMAT,
                 RECORD_WRITER,
                 INCLUDE_ZERO_RECORD_FLOWFILES,
                 RESPONSE_TIMEOUT
@@ -281,17 +283,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-
-        if (validationContext.getProperty(AGE_FIELD).isSet() && !validationContext.getProperty(TIMESTAMP_FORMAT).isSet()) {
-            results.add(
-                    new ValidationResult.Builder()
-                            .subject(AGE_FIELD.getDisplayName())
-                            .valid(false)
-                            .explanation("it requires " + TIMESTAMP_FORMAT.getDisplayName() + " also to be set.")
-                            .build()
-            );
-        }
-
         if (validationContext.getProperty(INITIAL_AGE_FILTER).isSet() && !validationContext.getProperty(AGE_FIELD).isSet()) {
             results.add(
                     new ValidationResult.Builder()
@@ -301,7 +292,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
                             .build()
             );
         }
-
         return results;
     }
 
@@ -310,9 +300,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
         String sObject = context.getProperty(SOBJECT_NAME).getValue();
         String fields = context.getProperty(FIELD_NAMES).getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).getValue();
-        String dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
-        String timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
-        String timestampFormat = context.getProperty(TIMESTAMP_FORMAT).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean includeZeroRecordFlowFiles = context.getProperty(INCLUDE_ZERO_RECORD_FLOWFILES).asBoolean();
 
@@ -339,9 +326,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
             } else {
                 ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(timestampFormat);
-            simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-            ageFilterUpper = simpleDateFormat.format(Date.from(ageFilterUpperTime));
+            ageFilterUpper = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+                    .withZone(ZoneId.systemDefault())
+                    .format(ageFilterUpperTime);
         }
 
         String describeSObjectResult = salesforceRestService.describeSObject(sObject);
@@ -372,9 +359,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
                             querySObjectResultInputStream,
                             getLogger(),
                             convertedSalesforceSchema.querySObjectResultSchema,
-                            dateFormat,
-                            timeFormat,
-                            timestampFormat
+                            DATE_FORMAT,
+                            TIME_FORMAT,
+                            DATE_TIME_FORMAT
                     );
 
                     RecordSetWriter writer = writerFactory.createWriter(

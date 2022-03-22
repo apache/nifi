@@ -67,7 +67,6 @@ class QuerySalesforceObjectIT implements SalesforceConfigAware {
         runner.setProperty(QuerySalesforceObject.FIELD_NAMES, fieldNames);
         runner.setProperty(QuerySalesforceObject.API_VERSION, VERSION);
         runner.setProperty(QuerySalesforceObject.BASE_URL, BASE_URL);
-        runner.setProperty(DateTimeUtils.TIMESTAMP_FORMAT, "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ");
         runner.setProperty(QuerySalesforceObject.RECORD_WRITER, writer.getIdentifier());
         runner.setProperty(QuerySalesforceObject.AGE_FIELD, "CreatedDate");
         runner.setProperty(QuerySalesforceObject.INITIAL_AGE_FILTER, "2022-01-06T08:43:24.000+0000");

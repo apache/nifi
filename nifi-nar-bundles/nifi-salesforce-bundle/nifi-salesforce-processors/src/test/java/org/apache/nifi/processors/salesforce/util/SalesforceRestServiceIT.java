@@ -60,14 +60,14 @@ class SalesforceRestServiceIT implements SalesforceConfigAware {
     }
 
     @Test
-    void describeSObjectSucceeds() throws Exception {
+    void describeSObjectSucceeds() {
         String describeSObjectResultJson = testSubject.describeSObject("Account");
 
         assertNotNull(describeSObjectResultJson);
     }
 
     @Test
-    void querySucceeds() throws Exception {
+    void querySucceeds() {
         String query = "SELECT id,BillingAddress FROM Account";
 
         String querySObjectRecordsResultJson = testSubject.query(query);
