@@ -16,7 +16,7 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <%
     // Sanitize the contextPath to ensure it is on this server
     // rather than getting it from the header directly
