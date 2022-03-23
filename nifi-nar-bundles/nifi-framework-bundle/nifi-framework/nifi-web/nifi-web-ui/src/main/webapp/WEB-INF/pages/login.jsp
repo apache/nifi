@@ -15,9 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<% String language = request.getLocale().toLanguageTag(); %>
 <!DOCTYPE html>
-<html lang="<%= language %>">
+<html lang="en">
     <head>
         <title>NiFi Login</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>

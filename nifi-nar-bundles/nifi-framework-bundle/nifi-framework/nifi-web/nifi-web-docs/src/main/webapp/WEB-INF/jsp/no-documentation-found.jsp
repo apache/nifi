@@ -16,9 +16,8 @@
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<c:set var="language" value="${pageContext.request.locale.toLanguageTag()}" />
 <!DOCTYPE html>
-<html lang="${language}">
+<html lang="en">
     <head>
         <title>NiFi</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">

@@ -15,9 +15,8 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<% String language = request.getLocale().toLanguageTag(); %>
 <!DOCTYPE html>
-<html lang="<%= language %>" xml:lang="<%= language %>" xmlns="http://www.w3.org/1999/xhtml">
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <%
     // Sanitize the contextPath to ensure it is on this server
     // rather than getting it from the header directly
