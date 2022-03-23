@@ -30,6 +30,7 @@ import java.util.UUID;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
@@ -109,6 +110,7 @@ public class TestListSFTP {
         runner.assertValid(recordWriter);
         runner.run(2);
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesContainAttribute(CoreAttributes.MIME_TYPE.key());
     }
 
     @Test
