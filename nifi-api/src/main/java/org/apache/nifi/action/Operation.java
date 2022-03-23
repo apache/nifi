@@ -39,7 +39,8 @@ public enum Operation {
     StopVersionControl("Stop Version Control"),
     CommitLocalChanges("Commit Local Changes"),
     RevertLocalChanges("Revert Local Changes"),
-    ChangeVersion("Change Version");
+    ChangeVersion("Change Version"),
+    RunOnce("RunOnce");
 
     private final String label;
 
