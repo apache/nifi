@@ -40,12 +40,12 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.utils.Time;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
@@ -72,6 +72,10 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * Test simple interaction with dynamic instance of Kafka 3.0 service.  Kafka service is started and stopped in
  * the context of the unit test.  To avoid port conflicts with any running Kafka instance on localhost, non-default
@@ -80,7 +84,7 @@ import java.util.concurrent.Future;
  * This test might be useful in distinguishing NiFi client library usage issues from issues with the kafka client
  * libraries themselves.
  */
-@FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@TestMethodOrder(MethodOrderer.MethodName.class)
 public class ITKafkaEmbedded {
     private static final Logger logger = LoggerFactory.getLogger(ITKafkaEmbedded.class);
 
@@ -122,9 +126,9 @@ public class ITKafkaEmbedded {
     public void testKafkaVersion() {
         final Class<KafkaServer> c = KafkaServer.class;
         final URL url = c.getProtectionDomain().getCodeSource().getLocation();
-        Assert.assertEquals("file", url.getProtocol());
+        assertEquals("file", url.getProtocol());
         final String filename = new File(url.getFile()).getName();
-        Assert.assertTrue(filename.contains("3.0.0"));
+        assertTrue(filename.contains("3.0.0"));
     }
 
     /**
@@ -136,12 +140,12 @@ public class ITKafkaEmbedded {
         properties.put(KafkaConfig.ZkConnectProp(), "");
         final KafkaConfig config = new KafkaConfig(properties);
         final String kafkaPathDefault = config.getString(KafkaConfig.LogDirProp());
-        Assert.assertNotNull(kafkaPathDefault);
+        assertNotNull(kafkaPathDefault);
         final File folderKafkaDefault = new File(kafkaPathDefault);
-        Assert.assertTrue(folderKafkaDefault.getParentFile().exists());
+        assertTrue(folderKafkaDefault.getParentFile().exists());
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void beforeClass() throws Exception {
         logger.trace("ENTERING beforeClass()");
         zookeeperServer = new TestingServer(ZOOKEEPER_PORT);
@@ -156,9 +160,9 @@ public class ITKafkaEmbedded {
         // redirect Kafka target folder to a custom location for this test
         final KafkaConfig configGetDefault = new KafkaConfig(properties);
         final String kafkaPathDefault = configGetDefault.getString(KafkaConfig.LogDirProp());
-        Assert.assertNotNull(kafkaPathDefault);
+        assertNotNull(kafkaPathDefault);
         final File folderKafkaDefault = new File(kafkaPathDefault);
-        Assert.assertTrue(folderKafkaDefault.getParentFile().exists());
+        assertTrue(folderKafkaDefault.getParentFile().exists());
         kafkaFolderIT = new File(folderKafkaDefault.getParentFile(),
                 String.format("%s-%d", folderKafkaDefault.getName(), TIMESTAMP));
         logger.debug(kafkaFolderIT.getPath());
@@ -206,11 +210,11 @@ public class ITKafkaEmbedded {
             logger.debug("RECORD SENT: OFFSET={}  TIMESTAMP={}",
                     metadata.hasOffset() ? metadata.offset() : "",
                     metadata.hasTimestamp() ? toDateString(metadata.timestamp()) : "");
-            Assert.assertTrue(metadata.hasOffset());
-            Assert.assertTrue(metadata.hasTimestamp());
-            Assert.assertEquals(i, metadata.offset());
-            Assert.assertTrue(timestamp < metadata.timestamp());
-            Assert.assertTrue(System.currentTimeMillis() > metadata.timestamp());
+            assertTrue(metadata.hasOffset());
+            assertTrue(metadata.hasTimestamp());
+            assertEquals(i, metadata.offset());
+            assertTrue(timestamp < metadata.timestamp());
+            assertTrue(System.currentTimeMillis() > metadata.timestamp());
         }
         producer.close();
         logger.trace("EXITING testKafka3_StepB_ProducerWriteMessage()");
@@ -231,13 +235,13 @@ public class ITKafkaEmbedded {
         final KafkaConsumer<String, String> consumer = new KafkaConsumer<>(properties);
         consumer.subscribe(Collections.singletonList(TOPIC_NAME));
         final Set<String> subscription = consumer.subscription();
-        Assert.assertEquals(1, subscription.size());
+        assertEquals(1, subscription.size());
         final List<PartitionInfo> partitionInfos = consumer.partitionsFor(TOPIC_NAME);
-        Assert.assertEquals(1, partitionInfos.size());
+        assertEquals(1, partitionInfos.size());
         final Collection<ConsumerRecord<String, String>> records = queryRecords(consumer, 10);
-        Assert.assertEquals(EVENT_COUNT, records.size());
+        assertEquals(EVENT_COUNT, records.size());
         consumer.unsubscribe();
-        Assert.assertEquals(0, consumer.assignment().size());
+        assertEquals(0, consumer.assignment().size());
         logger.trace("EXITING testKafka3_StepC1_ConsumerReadMessageSubscribe()");
     }
 
@@ -257,13 +261,13 @@ public class ITKafkaEmbedded {
         final TopicPartition partition0 = new TopicPartition(TOPIC_NAME, 0);
         consumer.assign(Collections.singletonList(partition0));
         final Set<TopicPartition> assignments = consumer.assignment();
-        Assert.assertEquals(1, assignments.size());
+        assertEquals(1, assignments.size());
         final List<PartitionInfo> partitionInfos = consumer.partitionsFor(TOPIC_NAME);
-        Assert.assertEquals(1, partitionInfos.size());
+        assertEquals(1, partitionInfos.size());
         final Collection<ConsumerRecord<String, String>> records = queryRecords(consumer, 10);
-        Assert.assertEquals(EVENT_COUNT, records.size());
+        assertEquals(EVENT_COUNT, records.size());
         consumer.unsubscribe();
-        Assert.assertEquals(0, consumer.assignment().size());
+        assertEquals(0, consumer.assignment().size());
         logger.trace("EXITING testKafka3_StepC2_ConsumerReadMessageAssign()");
     }
 
@@ -280,7 +284,7 @@ public class ITKafkaEmbedded {
         return records;
     }
 
-    @AfterClass
+    @AfterAll
     public static void afterClass() throws Exception {
         logger.trace("ENTERING afterClass()");
         kafkaServer.shutdown();
