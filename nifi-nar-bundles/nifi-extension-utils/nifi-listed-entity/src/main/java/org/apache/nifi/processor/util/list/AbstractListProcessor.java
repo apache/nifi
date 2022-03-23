@@ -42,6 +42,7 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -907,8 +908,11 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         FlowFile flowFile = session.create();
         final WriteResult writeResult;
 
+        final Map<String, String> attributes = new HashMap<>();
+
         try (final OutputStream out = session.write(flowFile);
-             final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), getRecordSchema(), out, Collections.emptyMap())) {
+            final RecordSetWriter recordSetWriter = writerFactory.createWriter(getLogger(), getRecordSchema(), out, Collections.emptyMap())) {
+            attributes.put(CoreAttributes.MIME_TYPE.key(), recordSetWriter.getMimeType());
 
             recordSetWriter.beginRecordSet();
             for (final Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
@@ -932,7 +936,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             return 0;
         }
 
-        final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+        attributes.putAll(writeResult.getAttributes());
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         flowFile = session.putAllAttributes(flowFile, attributes);
 
