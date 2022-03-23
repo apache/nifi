@@ -263,6 +263,8 @@ public class ProcessorAuditor extends NiFiAuditor {
                         processorAction.setOperation(Operation.Stop);
                     } else if (ScheduledState.DISABLED.equals(scheduledState)) {
                         processorAction.setOperation(Operation.Enable);
+                    } else if (ScheduledState.STOPPED.equals(scheduledState)) {
+                        processorAction.setOperation(Operation.RunOnce);
                     }
                 }
                 actions.add(processorAction);
