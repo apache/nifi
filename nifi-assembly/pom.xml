@@ -452,7 +452,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ignite-nar</artifactId>
-            <version>1.13.0</version>
+            <version>1.16.0</version>
             <type>nar</type>
         </dependency>
         <dependency>
