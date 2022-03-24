@@ -52,6 +52,11 @@ import java.util.List;
 import java.util.Optional;
 
 public class TestListenTCPRecord {
+
+    static final String MESSAGE_CONTENT_1 = "This is a test 1";
+    static final String MESSAGE_CONTENT_2 = "This is a test 2";
+    static final String MESSAGE_CONTENT_3 = "This is a test 3";
+
     static final String SCHEMA_TEXT = "{\n" +
             "  \"name\": \"syslogRecord\",\n" +
             "  \"namespace\": \"nifi\",\n" +
@@ -64,15 +69,15 @@ public class TestListenTCPRecord {
             "}";
 
     static final String THREE_MESSAGES = "[" +
-            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"}," +
-            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"}," +
-            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}" +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"" + MESSAGE_CONTENT_1 + "\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"" + MESSAGE_CONTENT_2 + "\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"" + MESSAGE_CONTENT_3 + "\"}" +
             "]";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
     private static final Duration SENDER_TIMEOUT = Duration.ofSeconds(10);
 
-    private static final long TEST_TIMEOUT = 900000;
+    private static final long TEST_TIMEOUT = 30000;
 
     private static final String LOCALHOST = "localhost";
 
@@ -110,7 +115,7 @@ public class TestListenTCPRecord {
         runner.setProperty(ListenTCPRecord.RECORD_WRITER, writerId);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT)
     public void testCustomValidate() throws InitializationException {
         runner.setProperty(ListenTCPRecord.PORT, "1");
         runner.assertValid();
@@ -123,7 +128,7 @@ public class TestListenTCPRecord {
         runner.assertValid();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT)
     public void testRunOneRecordPerFlowFile() throws Exception {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "1");
 
@@ -141,11 +146,10 @@ public class TestListenTCPRecord {
         }
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT)
     public void testRunMultipleRecordsPerFlowFileLessThanBatchSize() throws Exception {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "5");
 
-        //runner.run(1, false, true);
         runner.getLogger().info("Sending 3 messages");
         run(1, THREE_MESSAGES.getBytes(StandardCharsets.UTF_8), null, true);
         runner.getLogger().info("Sending another 3 messages");
@@ -158,10 +162,7 @@ public class TestListenTCPRecord {
         flowFile.assertAttributeEquals("record.count", "3");
 
         final String content = new String(flowFile.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertMessageContents(content);
     }
 
     @Test(timeout = TEST_TIMEOUT)
@@ -175,13 +176,10 @@ public class TestListenTCPRecord {
         Assert.assertEquals(1, mockFlowFiles.size());
 
         final String content = new String(mockFlowFiles.get(0).toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertMessageContents(content);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT)
     public void testRunClientAuthNone() throws Exception {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
@@ -192,10 +190,7 @@ public class TestListenTCPRecord {
         Assert.assertEquals(1, mockFlowFiles.size());
 
         final String content = new String(mockFlowFiles.get(0).toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertNotNull(content);
-        Assert.assertTrue(content.contains("This is a test " + 1));
-        Assert.assertTrue(content.contains("This is a test " + 2));
-        Assert.assertTrue(content.contains("This is a test " + 3));
+        assertMessageContents(content);
     }
 
     protected void run(final int expectedTransferred, final byte[] data, final SSLContext sslContext, final boolean shouldInitialize) throws Exception {
@@ -243,6 +238,13 @@ public class TestListenTCPRecord {
         try (final EventSender<byte[]> eventSender = eventSenderFactory.getEventSender()) {
             eventSender.sendEvent(data);
         }
+    }
+
+    private void assertMessageContents(final String content) {
+        Assert.assertNotNull(content);
+        Assert.assertTrue(content.contains(MESSAGE_CONTENT_1));
+        Assert.assertTrue(content.contains(MESSAGE_CONTENT_2));
+        Assert.assertTrue(content.contains(MESSAGE_CONTENT_3));
     }
 
 }

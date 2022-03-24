@@ -38,12 +38,12 @@ import java.util.concurrent.BlockingQueue;
 @ChannelHandler.Sharable
 public class RecordReaderHandler extends SimpleChannelInboundHandler<ByteBuf> {
     private final RecordReaderFactory readerFactory;
-    private final BlockingQueue<NetworkRecordReader> recordReaders;
+    private final BlockingQueue<RecordReaderSession> recordReaders;
     private final ComponentLog logger;
     private PipedOutputStream fromChannel;
     private PipedInputStream toReader;
 
-    public RecordReaderHandler(final RecordReaderFactory readerFactory, final BlockingQueue<NetworkRecordReader> recordReaders, final ComponentLog logger) {
+    public RecordReaderHandler(final RecordReaderFactory readerFactory, final BlockingQueue<RecordReaderSession> recordReaders, final ComponentLog logger) {
         this.logger = logger;
         this.readerFactory = readerFactory;
         this.recordReaders = recordReaders;
@@ -66,7 +66,7 @@ public class RecordReaderHandler extends SimpleChannelInboundHandler<ByteBuf> {
         final SocketAddress remoteSender = ctx.channel().remoteAddress();
         fromChannel = new PipedOutputStream();
         toReader = new PipedInputStream(fromChannel);
-        recordReaders.offer(new NetworkRecordReader(remoteSender, new BufferedInputStream(toReader), readerFactory, logger));
+        recordReaders.offer(new RecordReaderSession(remoteSender, new BufferedInputStream(toReader), readerFactory, logger));
         super.channelActive(ctx);
     }
 
