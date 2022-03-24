@@ -329,8 +329,11 @@ public final class NarUnpacker {
      * @throws IOException if the NAR could not be unpacked.
      */
     private static void unpack(final File nar, final File workingDirectory, final byte[] hash) throws IOException {
-
-        try (JarFile jarFile = new JarFile(nar)) {
+        final File tempDirectory = new File(workingDirectory.getParentFile(), workingDirectory.getName() + "-temp");
+        if (tempDirectory.exists()) {
+            FileUtils.deleteFile(tempDirectory, true);
+        }
+        try (final JarFile jarFile = new JarFile(nar)) {
             Enumeration<JarEntry> jarEntries = jarFile.entries();
             while (jarEntries.hasMoreElements()) {
                 JarEntry jarEntry = jarEntries.nextElement();
@@ -338,7 +341,7 @@ public final class NarUnpacker {
                 if(name.contains("META-INF/bundled-dependencies")){
                     name = name.replace("META-INF/bundled-dependencies", BUNDLED_DEPENDENCIES_DIRECTORY);
                 }
-                File f = new File(workingDirectory, name);
+                File f = new File(tempDirectory, name);
                 if (jarEntry.isDirectory()) {
                     FileUtils.ensureDirectoryExistAndCanReadAndWrite(f);
                 } else {
@@ -347,10 +350,11 @@ public final class NarUnpacker {
             }
         }
 
-        final File hashFile = new File(workingDirectory, HASH_FILENAME);
+        final File hashFile = new File(tempDirectory, HASH_FILENAME);
         try (final FileOutputStream fos = new FileOutputStream(hashFile)) {
             fos.write(hash);
         }
+        Files.move(tempDirectory.toPath(), workingDirectory.toPath());
     }
 
     private static void unpackDocumentation(final BundleCoordinate coordinate, final File jar, final File docsDirectory, final ExtensionMapping extensionMapping) throws IOException {
