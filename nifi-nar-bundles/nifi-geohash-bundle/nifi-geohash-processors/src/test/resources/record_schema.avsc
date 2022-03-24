@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "TestSchema",
+  "fields": [{
+    "name": "id",
+    "type": "string"
+  },
+    {
+      "name": "latitude",
+      "type": ["string", "double", "null"]
+    },
+    {
+      "name": "longitude",
+      "type": ["string", "double", "null"]
+    },
+    {
+      "name": "geohash",
+      "type": ["string", "long", "null"]
+    }
+  ]
+}

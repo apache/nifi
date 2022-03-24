@@ -1,0 +1,9 @@
+The NARs in src/test/resources/extensions came from building the source code found in nifi-example-nars-source.zip.
+
+If you need to make a change to these NARs, perform the following steps:
+
+1) Copy nifi-example-nars-source.zip somewhere and extract it
+2) Modify code and build
+3) Replace NARs in src/test/resources/extensions with results from build in step 2
+4) Create a zip archive of the modified source code
+5) Replace nifi-example-nars-source.zip with the new zip archive

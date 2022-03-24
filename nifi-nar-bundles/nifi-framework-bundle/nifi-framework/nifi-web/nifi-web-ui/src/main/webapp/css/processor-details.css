@@ -1,0 +1,117 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Processor details styles. Uses many styles from the processor configuration stylesheet.
+*/
+
+#processor-details {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#processor-details div.details-tab {
+    display: none;
+}
+
+#read-only-processor-comments {
+    height: 100%;
+    white-space: pre-wrap;
+}
+
+#read-only-processor-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#read-only-auto-action-relationship-names {
+    border: 0 solid #CCCCCC;
+    height: 290px;
+    padding: 2px 2px 0;
+}
+
+#processor-details div.relationship-name {
+    color: #000;
+    display: inline-block;
+    font-weight: 400;
+    line-height: normal;
+    max-width: 280px;
+}
+
+div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.penalty-duration-setting, div.yield-duration-setting, div.scheduling-strategy-setting, div.execution-node-setting, div.bulletin-setting {
+    float: left;
+    width: 40%;
+}
+
+div.scheduling-period-setting, div.yield-duration-setting {
+    margin-left: 20%;
+}
+
+div.relationship-description {
+    color: #888;
+    font-weight: 400;
+    margin-left: 16px;
+    margin-top: 2px;
+}
+
+.processor-terminate-relationship-container,
+.processor-retry-relationship-container {
+    margin-top: 4px;
+    display: inline-block;
+}
+
+.processor-retry-relationship-container {
+    margin-left: 16px;
+}
+
+div.processor-relationship-container {
+    margin-bottom: 16px;
+}
+
+#details-processor-relationships-tab-content label {
+    color: #775351;
+    font-family: Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: inherit;
+    line-height: normal;
+}
+
+#details-processor-relationships-tab-content .yield-radio {
+    margin-left: 24px;
+}
+
+#details-processor-relationships-tab-content .details-backoff-policy-setting input,
+#details-processor-relationships-tab-content .details-backoff-policy-setting label {
+    display: inline-block;
+}
+
+#details-processor-relationships-tab-content .dialog-content div.settings-left {
+    margin-right: 24px;
+    width: 44%;
+}
+
+/* status bar button icon */
+#processor-details div.dialog-status-bar div.button-icon.fa-cog {
+    font-size : 14px !important;
+}
+

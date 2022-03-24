@@ -1,0 +1,11 @@
+ssdeep,1.0--blocksize:hash:hash,filename
+96:KQhaGCVZGhr83h3bc0ok3892m12wzgnH5w2pw+sxNEI58:FIVkH4x73h39LH+2w+sxaD,"config.h"
+96:EQOJvOl4ab3hhiNFXc4wwcweomr0cNJDBoqXjmAHKX8dEt001nfEhVIuX0dDcs:3mzpAsZpprbshfu3oujjdENdp21,"doc\README"
+48:c1xs8Z/m6H0eRH31S8p8bHENRNkPSNy4tkPytwPytyYytxPythPytNdPytDgYyse:OuO/mg3HFSRHE+H4RNc6uHU2hqoMkh
+96,MD9fHjsEuddrg31904l8bgx5ROg2MQZHZqpAlycowOsexbHDbk:MJwz/l2PqGqqbr2yk6pVgrwPV,"Whatever.txt-INVALID-DUE-TO-COMMA-AFTER-96"
+48:c1xs8Z/m6H0eRH31S8p8bHENANkPrNy4tkPytwPyh2jTytxPythPytNdPytDgYyF:OuO/mg3HFSRHEb44RNMi6uHU2hcq3,"nifi/nifi-nar-bundles/nifi-beats-bundle/nifi-beats-processors/pom.xml"
+6:hERjIfhRrlB63J0FDw1NBQmEH68xwMSELN:hZrlB62IwMS,"c:\this_is_valid_but_should_not_match"
+96:MD9fHjsEuddrg31904l8bgx5ROg2MQZHZqpAlycowOsexbHDbk:MJwz/l2PqGqqbr2yk6pVgrwPV,"INSTALL"
+48:c1xs8Z/m6H0eRH31S8p8bHENRNkPSNy4tkPytwPytyYytxPythPytNdPytDgYyse:OuO/mg3HFSRHE+H4RNc6uHU2hqoMkh,"nifi/nifi-nar-bundles/nifi-lumberjack-bundle/nifi-lumberjack-processors/pom.xml"
+48:c1xs8Z/m6H0eRH31S8p8bHENRNkPSNy4tkPytwPytyYytxPythPytNdPytDgYyse:OuO/mg3HFSRHE+H4RNc6uHU2hqoMkh,
+

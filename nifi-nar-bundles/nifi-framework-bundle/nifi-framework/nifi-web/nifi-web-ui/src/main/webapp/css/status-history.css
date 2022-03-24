@@ -1,0 +1,174 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* status history dialog */
+
+#status-history-containment {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 30px;
+    bottom: 0;
+    visibility: hidden;
+}
+
+#status-history-refresh-container {
+    position: absolute;
+    left: 20px;
+    bottom: 20px;
+    z-index: 1;
+}
+
+#status-history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#status-history-last-refreshed {
+    color:#775351;
+    font-weight:500;
+}
+
+#status-history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-right: 3px;
+}
+
+#status-history-metric-combo {
+    float: right;
+    width: 250px;
+}
+
+#status-history-container {
+    position: absolute;
+    top: 32px;
+    left: 40%;
+    right: 0px;
+    bottom: 0px;
+}
+
+#status-history-chart-container {
+    background-color: #fff;
+    overflow: hidden;
+    cursor: default;
+}
+
+#status-history-chart-container .ui-resizable-se {
+    width: 16px;
+    height: 16px;
+    background-image: url(../images/iconResize.png);
+}
+
+#status-history-details {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 60%;
+    bottom: 0px;
+    overflow-y: auto;
+}
+
+#status-history-dialog > .dialog-content {
+    overflow: visible;
+}
+
+div.status-history-detail {
+    margin-bottom: 12px;
+    cursor: auto;
+}
+
+div.detail-container-label {
+    color: #333;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+div.detail-item {
+    margin-bottom: 8px;
+}
+
+div.detail-item-label {
+    color: #527991;
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+div.detail-item-value {
+    line-height: normal;
+    overflow: hidden;
+}
+
+#status-history-chart-control-container {
+    height: 125px;
+    background-color: #fff;
+    margin-top: 5px;
+    cursor: default;
+    overflow: hidden;
+}
+
+div.legend-entry {
+    margin-bottom: 3px;
+    cursor: default;
+    clear: left;
+}
+
+div.legend-label {
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: normal;
+}
+
+#status-history-chart-container text, #status-history-chart-control-container text {
+    fill: #527991;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+}
+
+.axis path, .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.chart-area {
+    clip-path: url(#clip);
+}
+
+.chart-line {
+    fill: none;
+    stroke-width: 1.5px;
+}
+
+.chart-line.over {
+    stroke-width: 2.5px;
+}
+
+.brush .selection {
+    stroke: #666;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}

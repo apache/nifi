@@ -1,0 +1,251 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Controller service configuration styles.
+*/
+
+#controller-service-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#controller-service-configuration-advanced {
+    display: none;
+}
+
+.controller-service-editable {
+    height: 32px;
+}
+
+/* controller-service settings */
+
+#controller-service-bundle {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/*
+    Service references
+*/
+
+#controller-service-referencing-components {
+    border: 0 solid #CCCCCC;
+    overflow: auto;
+    padding: 2px;
+}
+
+div.referencing-component-block {
+    margin-bottom: 6px;
+}
+
+span.referencing-component-title {
+    margin-left: 5px;
+    font-weight: bold
+}
+
+span.referencing-component-count {
+    margin-left: 5px;
+    color: #aaa;
+}
+
+ul.referencing-component-listing {
+    margin-left: 20px;
+    margin-bottom: 6px;
+}
+
+ul.referencing-component-listing li {
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+div.referencing-component-state {
+    width: 13px;
+}
+
+div.referencing-component-state.disabled:before {
+    content: '\e802';
+    font-family: flowfont;
+}
+
+div.referencing-component-state.enabled:before {
+    content: '\f0e7';
+    font-family: FontAwesome;
+}
+
+div.referencing-component-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+div.referencing-component-bulletins:before {
+    font-family: FontAwesome;
+    content: "\f24a";
+    font-size: 16px;
+    color: #004849;
+}
+
+div.service.expansion-button {
+    float: left;
+    margin-right: 4px;
+    width: 10px;
+    height: 10px;
+}
+
+span.referencing-component-active-thread-count {
+    margin-left: 5px;
+    float: left;
+}
+
+span.referencing-component-name {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+span.referencing-component-type {
+    color: #aaa;
+    font-style: italic;
+}
+
+div.referencing-component-references {
+    margin-left: 20px;
+    margin-top: 6px;
+    clear: left;
+}
+
+div.controller-service-canceling {
+    position: absolute;
+    bottom: 10px;
+    right: 8px;
+}
+
+/*
+    Comments
+*/
+
+#controller-service-comments {
+    height: 100%;
+}
+
+#read-only-controller-service-comments {
+    height: 100%;
+    white-space: pre-wrap;
+}
+
+/*
+    Disable dialog
+*/
+
+#disable-controller-service-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#disable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+#disable-controller-service-referencing-components {
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/*
+    Enable dialog
+*/
+
+#enable-controller-service-scope-container {
+    height: 48px;
+}
+
+#enable-controller-service-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#enable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+#enable-controller-service-scope {
+    float: left;
+    width: 225px;
+}
+
+#enable-controller-service-referencing-components {
+    border: 0 solid #ccc;
+    padding: 2px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/* enable, disable progress */
+
+div.disable-referencing-components, div.enable-referencing-components {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}
+
+#enable-controller-service-progress, #disable-controller-service-progress {
+    margin-top: 2px;
+}
+
+#enable-controller-service-progress li, #disable-controller-service-progress li {
+    line-height: 16px;
+}
+
+/*
+    New inline controller service dialog
+*/
+
+div.new-inline-controller-service-requirement, div.new-inline-controller-service-combo, input.new-inline-controller-service-name, div.new-inline-controller-service-bundle, div.new-inline-controller-service-tags {
+    margin-bottom: 15px;
+}
+
+div.new-inline-controller-service-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 0 8px 10px;
+}

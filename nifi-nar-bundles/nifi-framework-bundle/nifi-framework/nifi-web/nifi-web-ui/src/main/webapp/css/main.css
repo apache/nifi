@@ -1,0 +1,424 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    font-size: 62.5%;
+}
+
+#splash {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    background: #7098AD;
+    z-index: 2000;
+}
+
+#splash-img {
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 10%;
+    right: 10%;
+    background: transparent url(../images/nifi-drop-splash.svg) no-repeat center center;
+}
+
+div.context-menu-provenance {
+    background-position: top left;
+}
+
+#user-links-container {
+    float: left;
+    z-index: 1300;
+    margin-left: 20px;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.ellipsis-white-space-pre {
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* max 1 line text with ellipsis - works in Chrome and Firefox */
+.multi-line-clamp-ellipsis {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+}
+
+.ellipsis.multiline {
+    white-space: normal;
+}
+
+.collapsed:before {
+    font-family: FontAwesome;
+    content: "\f0da";
+    font-size: 16px;
+    color: #004849;
+    float: left;
+    margin-right: 3px;
+}
+
+.expanded:before {
+    font-family: FontAwesome;
+    content: "\f0d7";
+    font-size: 16px;
+    color: #004849;
+    float: left;
+}
+
+#new-template-description {
+    position: absolute;
+    top: 81px;
+    bottom: 0px;
+    height: inherit;
+    min-height: 32px;
+}
+
+/* processor status styles */
+
+.disabled {
+    float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.enabled {
+    float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    margin-left: 3px;
+    margin-right: -3px;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stopped {
+    float: left;
+    color: #d18686 !important;
+    fill: #d18686 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stopped:before {
+    content: "\f04d";
+    font-family: FontAwesome;
+}
+
+.running {
+    float: left;
+    color: #7dc7a0 !important;
+    fill: #7dc7a0 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.running:before {
+    content: "\f04b";
+    font-family: FontAwesome;
+}
+
+.has-errors, .invalid {
+    float: left;
+    color: #cf9f5d !important;
+    fill: #cf9f5d !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.has-errors:before, .invalid:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    color: #cf9f5d;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.validating {
+    float: left;
+    width: 12px;
+    height: 12px;
+    line-height: 12px !important;
+    margin-top: 5px !important;
+    color: #a8a8a8 !important;
+    fill: #a8a8a8 !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+    transform-origin: 6px 6px 0;
+}
+
+.validating:before {
+    font-family: FontAwesome;
+    font-size: 12px;
+    content: "\f1ce";
+    color: #a8a8a8;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.transmitting {
+    float: left;
+    color: #44a3cf !important;
+    fill: #44a3cf !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.not-transmitting {
+    float: left;
+    color: #728e9b !important;
+    fill: #728e9b !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.up-to-date {
+    float: left;
+    color: #3da67a !important;
+    fill: #3da67a !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.locally-modified, .sync-failure {
+    float: left;
+    color: #747474 !important;
+    fill: #747474 !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+.stale, .locally-modified-and-stale {
+    float: left;
+    color: #c7685d !important;
+    fill: #c7685d !important;
+    margin-top: 0px !important;
+    text-shadow: 0 0 4px rgba(255,255,255,1);
+}
+
+div.valid {
+    float: left;
+    background-color: transparent;
+}
+
+div.has-bulletins, div.warning {
+    color: #ba554a !important;
+}
+
+.zero {
+    color: #aabec7 !important;
+    fill: #aabec7 !important;
+    text-shadow: none !important;
+}
+
+/*
+    Styles for status/history/user tables.
+*/
+
+span.label, div.label {
+    font-weight: bold;
+}
+
+div.inline-details {
+    margin-top: 10px;
+    margin-bottom: 3px;
+}
+
+div.inline-details div {
+    margin: 2px 0;
+}
+
+tr.alt-row {
+    background: #f5f5f5 none;
+}
+
+span.details-title {
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: underline;
+}
+
+.last-refreshed-container {
+    float: left;
+    font-weight: normal;
+    margin-top: 8px;
+    margin-left: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+.refresh-toggle {
+    float: left;
+    margin: 0px 20px 0px 0px !important;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+/* new template */
+
+#new-template-description,
+#new-file-description {
+    height: 210px;
+}
+
+/* upload */
+
+#select-template-container,
+#select-file-container {
+}
+
+#template-browse-container,
+#file-browse-container {
+    display: block;
+    height: 20px;
+}
+
+#select-template-label,
+#select-file-label {
+    font-weight: bold;
+    font-size: 14px;
+    line-height: 28px;
+}
+
+#select-template-button {
+    position: absolute;
+    top: 0px;
+    left: 135px;
+    height: 28px;
+}
+
+#select-file-button button {
+    position: absolute;
+    float: right;
+    right: 4px;
+    top: 22px;
+    font-size: 18px;
+    color: #004849;
+    border: none;
+    background-color: transparent;
+}
+
+#select-file-button i {
+    position: absolute;
+    float: right;
+    right: 7px;
+    top: 7px;
+    color: #004849;
+}
+
+#template-file-field,
+#upload-file-field {
+    display: none;
+}
+
+#submit-template-container {
+    margin-top: 20px;
+}
+
+#submit-file-container {
+    position: absolute;
+    float: left;
+    max-width: 90%;
+}
+
+#selected-template-name {
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+#selected-file-name {
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #775331;
+    word-break: break-all;
+}
+
+#upload-template-status,
+#upload-file-status {
+    margin-top: 10px;
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #ba554a;
+}
+
+#upload-template-container button,
+#upload-file-container button {
+    float: right;
+    font-size: 16px;
+    line-height: 14px;
+    margin-left: 1px;
+}
+
+#upload-template-button,
+#upload-file-button {
+    color: #004849;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+#template-file-upload,
+#file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 300px;
+}
+
+span#import-process-group-link.link:focus {
+    outline: none;
+}
+
+span#import-process-group-link.link {
+    position: relative;
+    top: 164px;
+    left: 20px;
+    color: #004849; /*link-color*/
+    font-weight: normal;
+    display: inline-block;
+    border-bottom: 1px solid #CCDADB;
+    font-size: 13px;
+    font-family: Roboto;
+    z-index: 1;
+}
+
+span#import-process-group-link.link-over {
+    border-bottom: 1px solid #004849;
+}
+
+span#import-process-group-link.link-bold {
+    font-weight: bold;
+    border-bottom: none;
+}
+
+#file-cancel-button {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    right: 13px;
+    z-index: 1;
+    border: none;
+    background-color: transparent;
+    padding: 0px;
+    margin-top: 16px;
+}

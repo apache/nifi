@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!--
+    This file lists the authority providers to use when running securely. In order
+    to use a specific provider it must be configured here and it's identifier
+    must be specified in the nifi.properties file.
+-->
+<stateManagement>
+    <!--
+      This file provides a mechanism for defining and configuring the State Providers
+      that should be used for storing state locally and across a NiFi cluster.
+    -->
+    
+    <!--
+        State Provider that stores state locally in a configurable directory. This Provider requires the following properties:
+        
+        Directory - the directory to store components' state in. If the directory being used is a sub-directory of the NiFi installation, it
+                    is important that the directory be copied over to the new version when upgrading NiFi.
+     -->
+    <local-provider>
+        <id>local-provider</id>
+        <class>org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider</class>
+        <property name="Directory">target/test-classes/access-control/state-management</property>
+    </local-provider>
+</stateManagement>

@@ -1,0 +1,39 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: Manage stale PRs
+
+on:
+  # Run every day at midnight 00:00
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v3
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          stale-pr-message: >
+            We're marking this PR as stale due to lack of updates in the past few months.
+            If after another couple of weeks the stale label has not been removed this PR will be closed.
+            This stale marker and eventual auto close does not indicate a judgement of the PR just
+            lack of reviewer bandwidth and helps us keep the PR queue more manageable.  If you would
+            like this PR re-opened you can do so and a committer can remove the stale tag.  Or you can
+            open a new PR.  Try to help review other PRs to increase PR review bandwidth which in
+            turn helps yours.
+          days-before-stale: 120
+          days-before-close: 15

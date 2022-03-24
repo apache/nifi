@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>ExpressionHandler</title>
+    <!--link rel="stylesheet" href="../../css/component-usage.css" type="text/css" /-->
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    The ExpressionHandler is used to execute dynamic commands writtin in MVEL or SpEL expression language.  Action objects must include attributes to configure
+    the handler otherwise an exception will be thrown.  Possible attribute values are listed below.
+</p>
+<h3>ExpressionHandler Service Attributes</h3>
+<table title="ExpressionHandler Attributes" border="1" width="500">
+    <tr><th>Attribute</th><th>Description</th></tr>
+    <tr><td>type</td><td>The expression language type of the command to be executed.  Possible values are MVEL and SpEl (MVEL will be applied by default if type is not provided).</td></tr>
+    <tr><td>command</td><td>The expression language command that should be executed</td></tr>
+</table>
+<br/>
+</body>
+</html>

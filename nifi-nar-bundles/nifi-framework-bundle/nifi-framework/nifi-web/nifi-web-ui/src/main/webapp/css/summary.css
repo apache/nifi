@@ -1,0 +1,922 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Status Styles
+*/
+
+#summary {
+    position: absolute;
+    top: 0px;
+    bottom: 35px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+    height: 100%;
+}
+
+#summary-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
+}
+
+#flow-summary-refresh-container {
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+}
+
+#summary-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#summary-last-refreshed {
+    font-weight: bold;
+}
+
+#summary-header {
+    padding-top: 10px;
+}
+
+/* view options */
+
+#view-options-container {
+    display: none;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+    position: absolute;
+    top: 50px;
+    right: 0px;
+    z-index: 1;
+}
+
+/* view single node dialog */
+
+#view-single-node-dialog {
+    display: none;
+}
+
+#cluster-search-example {
+    color: #775351;
+    font-weight: bold;
+    line-height: normal;
+    margin-top: 3px;
+    margin-left: 5px;
+}
+
+div.search-match {
+    margin-left: 5px;
+    color: #888;
+    font-size: 10px;
+}
+
+#search-cluster-results .ui-autocomplete {
+    max-height: 300px;
+    z-index: 1351;
+}
+
+input.search-nodes {
+    color: #888;
+}
+
+div.is-primary-icon {
+    color: #000;
+    font-family: Roboto;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 14px;
+    width: 14px;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #aaa;
+    border-radius: 7px;
+    margin-right: 3px;
+    margin-top: 3px;
+    float: left;
+    text-align: center;
+}
+
+/* system diagnostics dialog */
+
+#system-diagnostics-refresh-container{
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
+#system-diagnostics-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#system-diagnostics-last-refreshed {
+    font-weight: bold;
+}
+
+#system-diagnostics-refresh-button {
+    float: right;
+}
+
+#system-diagnostics-last-refreshed-container {
+    float: right;
+    margin-right: 5px;
+    margin-left: 0px;
+}
+
+#system-diagnostics-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-right: 3px;
+}
+
+#system-diagnostics-dialog div.configuration-tab {
+    display: none;
+}
+
+#system-diagnostics-link-container {
+    float: right;
+    margin-top: 8px;
+}
+
+#heap-table, #non-heap-table {
+    border-collapse: collapse;
+}
+
+#heap-table tr, #non-heap-table tr {
+    height: 20px;
+}
+
+#heap-table span, #non-heap-table span {
+    font-weight: bold;
+}
+
+#available-processors {
+    font-weight: bold;
+}
+
+#processor-load-average {
+    font-weight: bold;
+}
+
+#garbage-collection-table {
+    border-collapse: collapse;
+}
+
+#garbage-collection-table tr {
+    height: 20px;
+}
+
+#content-repository-storage-usage-container {
+    height: 179px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 4px;
+}
+
+#content-repository-storage-usage-container div.storage-usage {
+    margin-bottom: 10px;
+}
+
+#provenance-repository-storage-usage-container {
+    height: 179px;
+    overflow-y: scroll;
+    border: 1px solid #ccc;
+    padding: 4px;
+}
+
+#provenance-repository-storage-usage-container div.storage-usage {
+    margin-bottom: 10px;
+}
+
+.storage-usage-details {
+    padding-top: 4px;
+}
+
+div.storage-usage-progressbar {
+    height: 20px;
+    border: 1px solid #aaaaaa;
+    border-radius: 0;
+}
+
+div.storage-usage-progressbar div.ui-progressbar-value {
+    font-weight: bold;
+    color: #000;
+    line-height: 20px;
+    display: block;
+    text-align: center;
+    border-radius: 0;
+}
+
+dl.setting-attributes-list {
+  float: left;
+  font-size: 12px;
+  width: 100%;
+  padding-bottom: 20px;
+}
+
+.setting-attributes-list dt {
+  float: left;
+  clear: left;
+  padding: 0 0.5em 0.3em 0;
+  font-weight: bold;
+}
+
+.setting-attributes-list dd {
+  margin-left: 8em;
+  padding-bottom: 0.3em;
+}
+
+/* summary tabs */
+
+#summary-tabs {
+    float: left;
+}
+
+#summary-tabs-content {
+    top: 80px;
+}
+
+#summary-filter-controls {
+    z-index: 1;
+}
+
+.summary-tab {
+    display: block;
+    padding: 0 5px;
+    height: 26px;
+    float: left;
+    color: #666;
+    background-color: #ccc;
+    border-left: 1px solid #b5b5b5;
+    border-top: 1px solid #b5b5b5;
+    border-right: 1px solid #b5b5b5;
+    margin-right: 5px;
+    text-align: center;
+    cursor: pointer;
+    line-height: 26px;
+    font-weight: bold;
+}
+
+.summary-selected-tab {
+    color: #fff;
+    background-color: #666;
+    border-left: 1px solid #666;
+    border-top: 1px solid #666;
+    border-right: 1px solid #666;
+}
+
+#summary-tab-background {
+    height: 200px;
+    position: absolute;
+    top: 103px;
+    left: 20px;
+    right: 20px;
+}
+
+#summary div.configuration-tab {
+    display: none;
+}
+
+div.summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+div.summary-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+span.sorted {
+    text-decoration: underline;
+}
+
+/* tooltips in the summary table */
+
+#summary .nifi-tooltip {
+    max-width: 500px;
+}
+
+/* cluster processor summary table */
+
+#cluster-processor-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-processor-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-processor-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-processor-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-processor-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-processor-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-processor-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-processor-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-processor-icon:before {
+    font-family: flowfont;
+    content: "\e807";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-processor-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-processor-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-processor-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}
+
+/* cluster input port summary table */
+
+#cluster-input-port-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-input-port-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-input-port-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-input-port-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-input-port-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-input-port-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-input-port-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-input-port-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-input-port-icon:before {
+    font-family: flowfont;
+    content: "\e832";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-input-port-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-input-port-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-input-port-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}
+
+/* cluster output port summary table */
+
+#cluster-output-port-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-output-port-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-output-port-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-output-port-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-output-port-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-output-port-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-output-port-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-output-port-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-output-port-icon:before {
+    font-family: flowfont;
+    content: "\e833";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-output-port-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-output-port-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-output-port-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}
+
+/* cluster remote process group summary table */
+
+#cluster-remote-process-group-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-remote-process-group-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-remote-process-group-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-remote-process-group-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-remote-process-group-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-remote-process-group-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-remote-process-group-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-remote-process-group-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-remote-process-group-icon:before {
+    font-family: flowfont;
+    content: "\e805";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-remote-process-group-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-remote-process-group-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-remote-process-group-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}
+
+/* cluster connection summary table */
+
+#cluster-connection-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-connection-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-connection-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-connection-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-connection-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-connection-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-connection-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-connection-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-connection-icon:before {
+    font-family: flowfont;
+    content: "\e834";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-connection-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-connection-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-connection-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}
+
+/* cluster process group summary table */
+
+#cluster-process-group-summary-table {
+    position: absolute;
+    top: 70px;
+    left: 0px;
+    bottom: 48px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+    min-height: 150px;
+}
+
+#cluster-process-group-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-process-group-refresh-button {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+}
+
+#cluster-process-group-summary-last-refreshed-container {
+    position: absolute;
+    bottom: 27px;
+    left: 48px;
+}
+
+#cluster-process-group-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-process-group-summary-loading-container {
+    position: absolute;
+    bottom: 28px;
+    left: 212px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-process-group-details-container {
+    position: absolute;
+    right: 0px;
+    height: 52px;
+    left: 0px;
+}
+
+#cluster-process-group-icon {
+    float: left;
+    margin-right: 5px;
+}
+
+#cluster-process-group-icon:before {
+    font-family: flowfont;
+    content: "\e804";
+    font-size: 32px;
+    color: #ad9897;
+}
+
+#cluster-process-group-name {
+    height: 15px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-process-group-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+    margin-top: 3px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#cluster-process-group-id {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #775351;
+    position: absolute;
+    bottom: 0px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    left: 0px;
+    right: 0px;
+}

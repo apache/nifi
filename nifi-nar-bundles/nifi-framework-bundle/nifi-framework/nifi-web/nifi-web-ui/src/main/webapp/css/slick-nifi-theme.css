@@ -1,0 +1,150 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* nifi specific slick grid theme based on the supplied slick-default-theme.css */
+
+.slick-header-columns {
+    color: #fff;
+    background-color: #728E9B;
+}
+
+.slick-header-column {
+    background: #728E9B;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.slick-header-column:hover, .slick-header-column-active {
+    color: #fff;
+}
+
+.slick-row {
+    position: absolute;
+    background: white;
+    border: 0;
+    line-height: 22px;
+}
+
+.slick-row:hover {
+    background-color: #dce3e6 !important;
+}
+
+.slick-cell {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.slick-cell.selected {
+    background-color: #fffbe6;
+}
+
+.slick-row.odd {
+    background: #f4f6f7;
+}
+
+.slick-cell.invalid {
+    border-color: #ba554a;
+}
+
+.slickgrid-editor > textarea {
+    resize: both;
+}
+
+.grid-canvas .slick-cell:first-child{
+    border-left: 0;
+}
+
+.slick-viewport .fa {
+    color: #004849;
+    line-height: 22px;
+    margin-top: 0;
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 5px;
+    text-align: center;
+}
+
+.slick-viewport .icon {
+    color: #004849;
+    line-height: 24px;
+    margin-top: 0;
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 5px;
+    text-align: center;
+}
+
+.slick-header.ui-state-default {
+    background-color: #728E9B;
+}
+
+.slick-header.ui-state-default, .slick-headerrow.ui-state-default {
+    font-family: Roboto;
+    font-weight: 500;
+    font-size: 12px;
+    font-style: normal;
+    border: 0px;
+}
+
+.slick-header-column.ui-state-default {
+    height: 24px;
+    line-height: 24px;
+    border-right: 1px solid #728E9B;
+}
+
+.slick-sortable-placeholder {
+    background: #728E9B;
+}
+
+.slick-row.ui-widget-content, .slick-row.ui-state-active {
+    font-family: Roboto;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: normal;
+    color: #262626;
+}
+
+.slick-cell, .slick-headerrow-column {
+    border-right: 0;
+    border-top: 0;
+    border-left: 1px solid #c7d2d7;
+    border-bottom: 1px solid #c7d2d7;
+    padding: 0 2px 6px 10px;
+}
+
+div.status-text {
+    padding-left: 4px;
+    line-height: 22px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    float: left;
+}
+
+.slick-sort-indicator {
+    float: none !important;
+}
+
+.slick-sort-indicator-desc {
+    background: url(../images/sort-desc.gif) !important;
+}
+
+.slick-sort-indicator-asc {
+    background: url(../images/sort-asc.gif) !important;
+}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>QuerySolr</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Usage Example</h2>
+
+<p>
+    This processor queries Solr and writes results to FlowFiles. The processor can be used at the
+    beginning of dataflows and later. Solr results can be written to FlowFiles as Solr XML or using
+    records functions (supporting CSV, JSON, etc.). Additionally, facets and stats can be retrieved.
+    They are written to FlowFiles in JSON and sent to designated relationships.
+</p>
+<p>
+    The processor can either be configured to retrieve only top results or full result sets. However,
+    it should be emphasized that this processor is not designed to export large result sets from Solr.
+    If the processor is configured to return full result sets, the configured number of rows per
+    request will be used as batch size and the processor will iteratively increase the start parameter
+    returning results in one FlowFile per request. The processor will stop iterating through results as
+    soon as the start parameter exceeds 10000. For exporting large result sets, it can be considered
+    to make use of the processor GetSolr. Principally, it is also possible to embed this processor into a
+    dataflow iterating through results making use of the attribute solr.cursor.mark that is added to FlowFiles
+    for each request. Notice that the usage of Solr's cursor mark requires queries to fulfil several preconditions
+    (see Solr documentation for deep paging for additional details).
+</p>
+
+<p>
+    The most common Solr parameters can be defined via processor properties. Other parameters have to be set via
+    dynamic properties.
+</p>
+
+<p>
+    Parameters that can be set multiple times also have to be defined as dynamic properties
+    (e. g. fq, facet.field, stats.field). If these parameters must be set multiple times with different values,
+    properties can follow a naming convention:
+    name.number, where name is the parameter name and number is a unique number.
+    Repeating parameters will be sorted by their property name.
+</p>
+
+<p>
+    Example: Defining the fq parameter multiple times
+</p>
+
+<table>
+    <tr>
+        <th>Property Name</th>
+        <th>Property Value</th>
+    </tr>
+    <tr>
+        <td>fq.1</td>
+        <td><code>field1:value1</code></td>
+    </tr>
+    <tr>
+        <td>fq.2</td>
+        <td><code>field2:value2</code></td>
+    </tr>
+    <tr>
+        <td>fq.3</td>
+        <td><code>field3:value3</code></td>
+    </tr>
+</table>
+
+<p>
+    This definition will be appended to the Solr URL as follows:
+    fq=field1:value1&fq=field2:value2&fq=field3:value3
+</p>
+
+<p>
+    Facets and stats can be activated setting the respective Solr parameters as dynamic properties. Example:
+</p>
+
+<table>
+    <tr>
+        <th>Property Name</th>
+        <th>Property Value</th>
+    </tr>
+    <tr>
+        <td>facet</td>
+        <td><code>true</code></td>
+    </tr>
+    <tr>
+        <td>facet.field</td>
+        <td><code>fieldname</code></td>
+    </tr>
+    <tr>
+        <td>stats</td>
+        <td><code>true</code></td>
+    </tr>
+    <tr>
+        <td>stats.field</td>
+        <td><code>fieldname</code></td>
+    </tr>
+</table>
+
+<p>
+    Multiple fields for facets or stats can be defined in the same way as it is described for multiple filter queries:
+</p>
+
+<table>
+    <tr>
+        <th>Property Name</th>
+        <th>Property Value</th>
+    </tr>
+    <tr>
+        <td>facet</td>
+        <td><code>true</code></td>
+    </tr>
+    <tr>
+        <td>facet.field.1</td>
+        <td><code>firstField</code></td>
+    </tr>
+    <tr>
+        <td>facet.field.2</td>
+        <td><code>secondField</code></td>
+    </tr>
+</table>
+
+<p>
+    This definition will be appended to the Solr URL as follows:
+    facet=true&facet.field=firstField&facet.field=secondField
+</p>
+
+</body>
+</html>

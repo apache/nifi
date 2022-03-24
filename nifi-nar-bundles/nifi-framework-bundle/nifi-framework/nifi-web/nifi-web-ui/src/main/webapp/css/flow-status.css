@@ -1,0 +1,184 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* flow status styles positioned at the top of the graph */
+
+#flow-status {
+    height: 33px;
+    background-color: #E3E8EB; /*tint base-color 60%*/
+    border-bottom: 1px solid #aabbc3;
+    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+    z-index: 3;
+    position: relative;
+}
+
+#flow-status .icon {
+    font-size: 15px;
+    font-style: normal;
+    color: #728E9B; /*base-color*/
+}
+
+#flow-status .fa {
+    font-size: 15px;
+    font-style: normal;
+    color: #728E9B; /*base-color*/
+}
+
+#flow-status .icon span {
+    font-size: 15px;
+    font-weight: 500;
+    color: #775351; /*value-color*/
+    text-shadow: none;
+}
+
+#flow-status .fa span {
+    font-size: 15px;
+    font-weight: 500;
+    color: #775351; /*value-color*/
+    font-family: Roboto, sans-serif;
+    text-shadow: none;
+}
+
+#flow-status button {
+    height: 32px;
+    width: 32px;
+    border-left: 1px solid #AABBC3; /*tint base-color 40%*/
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    position: relative;
+}
+
+#flow-status span {
+    padding-left: 5px;
+}
+
+#flow-status-container {
+    width: 90%;
+}
+
+#search-container {
+    overflow: hidden;
+    height: 32px;
+    background: #FFFFFF;
+}
+
+.search-container-opened {
+    width: 235px;
+}
+
+.search-container-closed {
+    width: 32px;
+}
+
+#search-button:hover {
+    background-color: #FFFFFF !important; /* override any styles set by JS */
+    border-left: 1px solid #004849; /*link-color*/
+}
+
+#search-button .fa {
+    color: #004849;
+    text-shadow: none;
+}
+
+#bulletin-button {
+    background-color: #728E9B; /*base-color*/
+    cursor: default;
+}
+
+#bulletin-button.has-bulletins {
+    background-color: #ba554a; /*warm-color*/
+}
+
+#bulletin-button i.fa {
+    color: #fff;
+    font-size: 15px;
+    text-shadow: none;
+}
+
+#canvas-loading-container {
+    margin-top: -2px;
+    margin-left: 9px;
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+}
+
+#connected-nodes-count.connection-warning {
+    color: #BA554A;
+}
+
+/* search field */
+div.search-result-icon {
+    float: left;
+    margin-right: 5px;
+    width: 14px;
+    height: 14px;
+}
+
+#search-field {
+    height: 33px;
+    width: 200px;
+    background: #FFFFFF;
+    border: 0px;
+    padding: 0px;
+    box-shadow: none;
+}
+
+input.search-flow {
+    color: #7098AD;
+}
+
+#search-flow-results .ui-autocomplete {
+    max-height: 400px;
+    z-index: 1251;
+}
+
+#search-flow-results li.search-header {
+    font-weight: bold;
+    color: #222 !important;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    height: 14px;
+}
+
+#search-flow-results div.search-match-header {
+    font-weight: normal;
+    margin-left: 19px;
+}
+
+#search-flow-results div.search-match {
+    margin-left: 26px;
+    color: #888;
+    font-size: 11px;
+    line-height: 1.4;
+    word-break: break-all;
+}
+
+div.search-glass-pane {
+    position: absolute;
+    background-image: url(../images/spacer.png);
+    background-repeat: repeat;
+    background-color: transparent;
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 1000;
+}

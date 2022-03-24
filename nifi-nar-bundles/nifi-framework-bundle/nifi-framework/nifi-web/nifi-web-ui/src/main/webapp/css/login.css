@@ -1,0 +1,93 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Login Styles
+*/
+
+#login-contents-container {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+    background: #fff url(../images/bg-error.png) left top no-repeat;
+    padding-top: 100px;
+    padding-left: 100px;
+}
+
+#login-message-title {
+    font-size: 18px;
+    color: #294c58;
+    margin-bottom: 16px;
+}
+
+#login-message {
+    font-size: 11px;
+}
+
+.login-title {
+    font-size: 18px;
+    font-weight: bold;
+    font-family: Roboto Slab;
+    margin-bottom: 10px;
+    color: #728e9b;
+}
+
+#login-user-links-container {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    padding-top: 100px;
+    padding-left: 100px;
+    z-index: 1300;
+    width: 412px;
+}
+
+#login-user-links {
+    float: right;
+}
+
+/*
+    Login
+*/
+
+body.login-body input, body.login-body textarea {
+    width: 412px;
+}
+
+div.login-container {
+    width: 412px;
+}
+
+/*
+    Login Progress
+*/
+
+#login-progress-label {
+    float: right;
+    font-weight: bold;
+    line-height: 16px;
+}
+
+#login-progress-spinner {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-left: 3px;
+}

@@ -1,0 +1,1 @@
+This file is not an image and is used for testing the image metadata extractor and resizer.

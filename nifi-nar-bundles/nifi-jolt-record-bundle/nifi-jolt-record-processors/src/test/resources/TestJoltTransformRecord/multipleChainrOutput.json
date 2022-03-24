@@ -1,0 +1,12 @@
+[ {
+  "Rating" : [ 3, 13 ],
+  "SecondaryRatings" : {
+    "quality" : {
+      "Id" : [ "quality", "quality" ]
+    },
+    "series" : {
+      "Id" : [ "series", "series" ]
+    },
+    "Range" : 5
+  }
+} ]

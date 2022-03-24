@@ -1,0 +1,13 @@
+[ {
+  "rating" : {
+    "primary" : {
+      "value" : 3
+    },
+    "quality" : {
+      "value" : 3
+    },
+    "series" : {
+      "value" : [ 5, 4 ]
+    }
+  }
+} ]

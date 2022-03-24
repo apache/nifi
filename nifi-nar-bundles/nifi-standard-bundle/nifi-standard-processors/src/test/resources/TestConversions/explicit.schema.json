@@ -1,0 +1,23 @@
+{
+  "type":"record",
+  "name":"nifiRecord",
+  "namespace":"org.apache.nifi",
+  "fields":[
+    {
+      "name":"Id",
+      "type":[
+        "null",
+        "int"
+      ]
+    },
+    {
+      "name":"Int_Float_String",
+      "type":[
+        "int",
+        "float",
+        "string",
+        "null"
+      ]
+    }
+  ]
+}

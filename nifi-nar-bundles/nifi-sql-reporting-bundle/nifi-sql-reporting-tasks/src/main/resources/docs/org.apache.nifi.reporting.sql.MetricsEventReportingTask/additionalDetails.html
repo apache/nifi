@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>Metrics Event Reporting Task</title>
+    <!--link rel="stylesheet" href="../../css/component-usage.css" type="text/css" /-->
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    This reporting task can be used to issue SQL queries against various NiFi metrics information,  submit returned data to a rules engine (which will determine if any actions should be performed)
+    and execute the prescribed actions using action handlers. This task requires a RulesEngineService (which will identify any actions that should be performed) and an ActionHandler which will execute the action(s).
+    A distinct ActionHandler can be used to service all events or an ActionHandlerLookup can be used for dynamic handler lookup. NOTE: Optimally action handler should be associated with the expected action types
+    returned from the rules engine.
+</p>
+<p>
+    The reporting task can uniquely handle items from the bulletin and provenance repositories. This means that an item will only be processed once when the query is set to unique.
+    The query can be set to unique by defining a time window with special sql placeholders ($bulletinStartTime, $bulletinEndTime, $provenanceStartTime, $provenanceEndTime)
+    that the reporting task will evaluate runtime. See the SQL Query Examples section.
+</p>
+<br/><br/>
+<h2>SQL Query Examples</h2>
+<p>
+    <b>Example:</b> Select all fields from the <code>CONNECTION_STATUS</code> table:<br/>
+<pre>SELECT * FROM CONNECTION_STATUS</pre>
+</p>
+<br/>
+<p>
+    <b>Example:</b> Select connection IDs where time-to-backpressure (based on queue count) is less than 5 minutes:<br/>
+<pre>SELECT connectionId FROM CONNECTION_STATUS_PREDICTIONS WHERE predictedTimeToCountBackpressureMillis < 300000</pre>
+</p>
+<br/>
+<p>
+    <b>Example:</b> Get the unique bulletin categories associated with errors:<br/>
+<pre>SELECT DISTINCT(bulletinCategory) FROM BULLETINS WHERE bulletinLevel = "ERROR"</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>BULLETINS</code> table with time window:<br/>
+<pre>SELECT * from BULLETINS WHERE bulletinTimestamp > $bulletinStartTime AND bulletinTimestamp <= $bulletinEndTime</pre>
+</p>
+<p>
+    <b>Example:</b> Select all fields from the <code>PROVENANCE</code> table with time window:<br/>
+<pre>SELECT * from PROVENANCE where timestampMillis > $provenanceStartTime and timestampMillis <= $provenanceEndTime</pre>
+</p>
+<br/>
+</body>
+</html>

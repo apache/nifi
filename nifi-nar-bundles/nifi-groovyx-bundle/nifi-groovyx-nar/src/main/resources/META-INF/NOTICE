@@ -1,0 +1,97 @@
+nifi-groovyx-nar
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:pom:2.5.4 and its submodules included as transitive dependencies - http://www.groovy-lang.org)
+        groovy
+        groovy-ant
+        groovy-cli-commons
+        groovy-cli-picocli
+        groovy-console
+        groovy-datetime
+        groovy-docgenerator
+        groovy-groovydoc
+        groovy-groovysh
+        groovy-jmx
+        groovy-json
+        groovy-jsr223
+        groovy-macro
+        groovy-nio
+        groovy-servlet
+        groovy-sql
+        groovy-swing
+        groovy-templates
+        groovy-xml
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2018 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
+
+         This product includes software developed by
+         The Groovy community (http://groovy.codehaus.org/).
+
+         This product bundles icons from the famfamfam.com silk icons set
+         http://www.famfamfam.com/lab/icons/silk/
+         Licensed under the Creative Commons Attribution Licence v2.5
+         http://creativecommons.org/licenses/by/2.5/
+
+  (ASLv2) Groovy Dateutil
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2018 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
+
+         This product includes software developed by
+         The Groovy community (http://groovy.codehaus.org/).
+
+         This product bundles icons from the famfamfam.com silk icons set
+         http://www.famfamfam.com/lab/icons/silk/
+         Licensed under the Creative Commons Attribution Licence v2.5
+         http://creativecommons.org/licenses/by/2.5/
+
+  (ASLv2) Apache Ant
+    The following NOTICE information applies:
+        Copyright 1999-2018 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        The <sync> task is based on code Copyright (c) 2002, Landmark
+        Graphics Corp that has been kindly donated to the Apache Software
+        Foundation.
+
+  (ASLv2) Apache Commons CLI
+    The following NOTICE information applies:
+        Apache Commons CLI
+        Copyright 2001-2017 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Ivy
+    The following NOTICE information applies:
+        Copyright 2007-2017 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        Portions of Ivy were originally developed at
+        Jayasoft SARL (http://www.jayasoft.fr/)
+        and are licensed to the Apache Software Foundation under the
+        "Software Grant License Agreement"
+
+        SSH and SFTP support is provided by the JCraft JSch package,
+        which is open source software, available under
+        the terms of a BSD style license.
+        The original software and related information is available
+        at http://www.jcraft.com/jsch/.

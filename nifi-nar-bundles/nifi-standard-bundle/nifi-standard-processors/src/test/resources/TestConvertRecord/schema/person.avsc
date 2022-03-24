@@ -1,0 +1,29 @@
+{
+	"name": "personWithNameRecord",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type": {
+			"type": "record",
+			"name": "nameRecord",
+			"fields": [
+					{ "name": "last", "type": "string" },
+					{ "name": "first", "type": "string" }
+				]
+			}
+		},
+		{
+            "name": "status",
+            "type": ["null", {
+                    "type": "enum",
+                    "name": "statusEnum",
+                    "symbols": [
+                        "ACTIVE",
+                        "INACTIVE"
+                    ]
+                }],
+            "default": null
+        }
+	]
+}

@@ -1,0 +1,59 @@
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// NOTE: you may need to add the sources generated when running `maven clean compile` to your IDE
+// configured source directories. Otherwise, the classes generated when the proto is compiled won't
+// be accessible. For IntelliJ, open this module's settings and mark the following as source directories:
+//
+// * target/generated-sources/protobuf/grpc-java
+// * target/generated-sources/protobuf/java
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "org.apache.nifi.processors.grpc";
+option java_outer_classname = "FFSProto";
+option objc_class_prefix = "FFS";
+
+package org.apache.nifi.processors.grpc;
+
+// The FlowFile service definition.
+service FlowFileService {
+    // Sends a FlowFile (blocking rpc)
+    rpc Send (FlowFileRequest) returns (FlowFileReply) {}
+}
+
+// The request message
+message FlowFileRequest {
+    // tags 1-15 require one byte to encode and should be left for commonly occurring tags.
+    // For that reason, tags 3-14 are left available.
+    //
+    // source: https://developers.google.com/protocol-buffers/docs/proto3#assigning-tags
+    int64 id = 1;
+    map<string, string> attributes = 2;
+    bytes content = 15;
+}
+
+// the reply message
+message FlowFileReply {
+    enum ResponseCode {
+        ERROR = 0;
+        SUCCESS = 1;
+        RETRY = 2;
+    }
+
+    ResponseCode responseCode = 1;
+    string body = 2;
+}

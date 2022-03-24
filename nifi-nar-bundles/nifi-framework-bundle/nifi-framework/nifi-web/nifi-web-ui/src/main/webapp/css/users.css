@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Users Styles
+*/
+
+#users {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+#users-header-and-filter {
+    height: 32px;
+}
+
+#users-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
+}
+
+#users-refresh-container {
+    position: absolute;
+    left: 20px;
+    bottom: 0px;
+}
+
+#users-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#users-last-refreshed {
+    color: #775351;
+    font-weight: 500;
+}
+
+#users-header {
+    padding-top: 10px;
+}
+
+#new-user-button {
+    float: right;
+    padding-left: 5px;
+    display: none;
+}
+
+/* users table */
+
+#users-table {
+    position: absolute;
+    top: 92px;
+    left: 0px;
+    bottom: 67px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+/* user policies table */
+
+#policies-dialog-user-name {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+#user-policies-table {
+    position: absolute;
+    top: 40px;
+    left: 0px;
+    bottom: 33px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+#user-policy-message {
+    position: absolute;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+    right: 0px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    left: 0px;
+    bottom: 0px;
+    height: 13px;
+}
+
+/* users dialog */
+
+#user-dialog {
+    width: 450px;
+    height: 500px;
+}
+
+#user-identity {
+    width: 410px;
+}
+
+/* user delete dialog */
+
+#user-delete-dialog {
+    width: 450px;
+    height: 165px;
+}
+
+/* users/groups list */
+
+ul.usersGroupsList li {
+    height: 24px;
+    line-height: 24px;
+    border-bottom: 1px solid #c7d2d7;
+    width: 100%;
+    display: inline-flex;
+}
+
+ul.usersGroupsList li.even {
+    background-color: #f4f6f7;
+}
+
+ul.usersGroupsList li div.nf-checkbox {
+    margin: 0 10px;
+    margin-top: 6px;
+    min-width: 12px;
+    max-width: 12px;
+}
+
+div.available-identities {
+    margin-left: 5px;
+    margin-right: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

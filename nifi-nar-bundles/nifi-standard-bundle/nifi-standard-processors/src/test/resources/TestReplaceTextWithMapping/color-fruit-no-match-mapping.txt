@@ -1,0 +1,7 @@
+a		apple
+b		orange
+c		banana
+d		grape
+e		blueberry
+f		plum
+

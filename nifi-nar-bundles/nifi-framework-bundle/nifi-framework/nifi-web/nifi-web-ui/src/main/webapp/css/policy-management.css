@@ -1,0 +1,293 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#policy-management {
+    display: none;
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+#policy-management-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 24px;
+}
+
+#delete-policy-button {
+    margin-top: -4px;
+    display: none;
+}
+
+#new-policy-user-button {
+    margin-top: -4px;
+    margin-right: 5px;
+    padding-left: 5px;
+    display: none;
+}
+
+button.policy-button {
+    float: right;
+    margin-top: 4px;
+}
+
+button.policy-button:disabled {
+    color: #CCDADB;
+    cursor: not-allowed;
+    border: 1px solid #CCDADB;
+}
+
+/*
+    policy message
+*/
+
+#policy-message-container {
+    height: 18px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#policy-message {
+    float: left;
+    margin-right: 4px;
+}
+
+#new-policy-message {
+    float: left;
+}
+
+#override-policy-message {
+    float: left;
+}
+
+/*
+    policy selection
+*/
+
+div.policy-controls {
+    float: left;
+}
+
+#policy-type-list, #restricted-component-required-permissions {
+    float: left;
+    width: 225px;
+    margin-right: 3px;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+}
+
+#component-policy-target {
+    float: left;
+    width: 200px;
+    margin-right: 3px;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+}
+
+#controller-policy-target {
+    float: left;
+    width: 160px;
+    margin-right: 3px;
+    border-left: 1px solid transparent;
+    border-right: 1px solid transparent;
+}
+
+div.policy-selected-component-container {
+    float: left;
+    margin-right: 20px;
+}
+
+div.policy-selected-component-details-container {
+    float: left;
+    padding-left: 10px;
+}
+
+div.policy-selected-component-type-icon {
+    float: left;
+}
+
+div.policy-selected-component-type-icon i.icon {
+    font-size: 28px;
+    font-family: flowfont;
+    color: #ad9897;
+    margin-left: 2px;
+}
+
+div.policy-selected-component-name {
+    height: 16px;
+    font-size: 15px;
+    font-family: Roboto;
+    color: #262626;
+    width: 300px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.policy-selected-component-type {
+    font-size: 12px;
+    font-family: Roboto;
+    color: #728e9b;
+}
+
+/*
+    policy table
+*/
+
+#policy-table {
+    position: absolute;
+    top: 92px;
+    left: 0px;
+    bottom: 67px;
+    right: 0px;
+    overflow: hidden;
+    background-color: #fff;
+}
+
+#policy-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+#policy-refresh-container {
+    position: absolute;
+    bottom: 20px;
+    left: 0px;
+    right: 20px;
+}
+
+#policy-refresh-button {
+    float: left;
+}
+
+#policy-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#policy-last-refreshed {
+    color: #775351;
+    font-weight: 500;
+}
+
+/*
+    search users dialog
+*/
+
+#search-users-dialog {
+    width: 450px;
+    height: 450px;
+}
+
+#search-users-results .ui-autocomplete {
+    max-height: 300px;
+    z-index: 1351;
+}
+
+div.secure-port-setting {
+    margin-bottom: 15px;
+    width: 410px;
+}
+
+li.search-users-header {
+    font-weight: bold;
+    padding-top: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+    height: 14px;
+}
+
+div.search-users-match-header {
+    font-weight: normal;
+    margin-left: 10px;
+}
+
+li.search-users-no-matches {
+    padding: 4px;
+    font-weight: bold;
+    color: #aaa;
+    font-style: italic;
+}
+
+div.allowed-container {
+    width: 408px;
+    height: 100px;
+    border: 1px solid #aaa;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
+ul.allowed {
+    list-style-type: none;
+}
+
+ul.allowed li {
+    height: 16px;
+    width: 385px;
+    border-bottom: 1px solid #ddd;
+    color: #262626;
+    overflow: hidden;
+    margin: 2px;
+    padding: 2px;
+    line-height: 16px;
+    font-weight: normal;
+}
+
+span.allowed-entity {
+    float: left;
+    width: 360px;
+}
+
+div.remove-allowed-entity {
+    float: right;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 16px;
+}
+
+/*
+    admin policy message
+*/
+
+#admin-policy-message, #restriction-message {
+    float: right;
+    margin-top: 8px;
+    color: #775351;
+    font-family: Roboto;
+    font-size: 13px;
+}
+
+/*
+    override policy dialog
+*/
+
+#override-policy-dialog label {
+    font-family: inherit;
+    letter-spacing: inherit;
+}

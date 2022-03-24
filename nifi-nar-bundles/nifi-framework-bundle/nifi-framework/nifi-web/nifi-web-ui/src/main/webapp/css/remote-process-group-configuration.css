@@ -1,0 +1,193 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Remote process group configuration styles.
+*/
+
+#remote-process-group-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 400px;
+    height: 435px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+}
+
+#remote-process-group-details {
+    position: absolute;
+    overflow: hidden;
+    width: 400px;
+    height: 435px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+}
+
+#remote-process-group-ports {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    min-width: 775px;
+    height: 515px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+}
+
+div.remote-process-group-setting-left, div.remote-process-group-setting-right {
+    float: left;
+    width: 49%;
+}
+
+div.remote-process-group-setting-right {
+    margin-left: 2%;
+}
+
+/* remote process group port configuration */
+
+div.remote-port-header {
+    line-height: 32px;
+    height: 32px;
+    padding: 0 5px;
+    background: #728E9B;
+    color: #fff;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+div.remote-ports-container {
+    padding: 5px;
+    overflow-x: auto;
+}
+
+div.remote-port-container {
+    margin-bottom: 20px;
+    display: flex;
+}
+
+div.remote-port-removed {
+    margin-left: 19px;
+    margin-top: 17px;
+    width: 18px;
+    height: 18px;
+}
+
+div.remote-port-removed:before {
+    font-family: FontAwesome;
+    content: "\f071";
+    font-size: 16px;
+    color: #ba554a;
+}
+
+div.remote-port-edit-container {
+    float: left;
+}
+
+button.edit-remote-port {
+    margin-top: 2px;
+    margin-left: 2px;
+}
+
+div.remote-port-details-container {
+    float: left;
+    flex-grow: 1;
+}
+
+div.remote-port-name {
+    color: #262626;
+    font-weight: bold;
+    float: left;
+    width: 250px;
+    line-height: normal;
+    margin-bottom: 3px;
+}
+
+div.remote-port-description {
+    float: left;
+    margin-bottom: 8px;
+    width: 250px;
+}
+
+div.concurrent-task-container {
+    float: left;
+    width: 200px;
+}
+
+img.concurrent-tasks-info {
+    margin-left: 3px;
+    margin-top: 1px;
+}
+
+div.compression-container {
+    float: left;
+}
+
+div.batch-settings-container {
+    margin-top: 8px;
+}
+
+div.remote-port-transmission-container {
+    float: left;
+    padding-left: 4px;
+}
+
+div.transmission-light-switch {
+    width: 50px;
+    height: 12px;
+    border: 1px solid;
+    cursor: pointer;
+}
+
+div.enabled-transmission-switch {
+    cursor: pointer;
+}
+
+div.disabled-transmission-switch {
+    cursor: pointer;
+}
+
+/* remote port configuration dialog */
+
+#remote-port-name {
+    width: 320px;
+}
+
+#remote-port-concurrent-tasks {
+    font-size: 11px !important;
+    float: left;
+    width: 266px;
+}
+
+#remote-port-use-compression-container {
+    margin-left: 8px;
+    margin-top: 5px;
+    float: left;
+}
+
+#remote-port-use-compression {
+}
+
+#remote-port-concurrent-task-header {
+    margin-top: 5px;
+}
+
+div.batch-setting {
+    margin-right: 8px;
+    width: 30%;
+    float: left;
+}

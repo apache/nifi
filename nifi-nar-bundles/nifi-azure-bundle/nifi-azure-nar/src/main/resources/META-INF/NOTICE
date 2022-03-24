@@ -1,0 +1,235 @@
+nifi-azure-nar
+Copyright 2015-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2014 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Google GSON
+    The following NOTICE information applies:
+      Copyright 2008 Google Inc.
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+      ## Credits
+
+      A list of contributors may be found from CREDITS file, which is included
+      in some artifacts (usually source distributions); but is always available
+      from the source code management (SCM) system project uses.
+
+  (ASLv2) Guava
+      The following NOTICE information applies:
+        Guava
+        Copyright 2015 The Guava Authors
+
+  (ASLv2) Apache HttpComponents
+      The following NOTICE information applies:
+        Apache HttpClient
+        Copyright 1999-2015 The Apache Software Foundation
+
+        Apache HttpCore
+              Copyright 2005-2015 The Apache Software Foundation
+
+  (ASLv2) Java Native Access
+        The following NOTICE information applies:
+          Java Native Access Platform
+          Copyright 2013 Timothy Wall, Matthias Bläsing
+
+  (ASLv2) Java Native Access Platform
+      The following NOTICE information applies:
+        Java Native Access Platform
+        Copyright 2013 Timothy Wall, Matthias Bläsing
+
+  (ASLv2) Joda Time
+      The following NOTICE information applies:
+        This product includes software developed by
+        Joda.org (http://www.joda.org/).
+
+  (ASLv2) Dropwizard Metrics
+      The following NOTICE information applies:
+        Dropwizard Metrics
+        Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2017 Dropwizard Team
+
+  (ASLv2) Nimbus Language Tags
+      The following NOTICE information applies:
+        Nimbus Language Tags
+        Copyright 2012-2016, Connect2id Ltd.
+
+  (ASLv2) Nimbus OAuth 2.0 SDK with OpenID Connect extensions
+      The following NOTICE information applies:
+        Nimbus OAuth 2.0 SDK with OpenID Connect extensions
+        Copyright 2012-2020, Connect2id Ltd and contributors.
+
+  (ASLv2) Okio
+      The following NOTICE information applies:
+        Okio
+        Copyright 2013 Square, Inc.
+
+  (ASLv2) Apache Qpid Proton-J
+      The following NOTICE information applies:
+        Apache Qpid Proton-J
+        Copyright 2012-2020 The Apache Software Foundation
+
+  (ASLv2) Retrofit
+      The following NOTICE information applies:
+        Retrofit
+        Copyright 2013 Square, Inc.
+
+  (ASLv2) RxJava
+      The following NOTICE information applies:
+        RxJava
+        Copyright (c) 2016-present, RxJava Contributors.
+
+  (ASLv2) JSON Smart (net.minidev:json-smart:jar:2.3 - http://www.minidev.net/)
+        The following NOTICE information applies:
+          JSON Smart 2.3
+          Copyright 2017, Uriel Chemouni, Eitan Raviv
+
+  (ASLv2) ASM Based Accessors Helper Used By JSON Smart (net.minidev:accessors-smart:jar:1.2 - http://www.minidev.net/)
+      The following NOTICE information applies:
+        ASM Based Accessors Helper Used By JSON Smart 1.2
+        Copyright 2017, Uriel Chemouni
+
+  (ASLv2) Adapter: RxJava (com.squareup.retrofit2:adapter-rxjava:jar:2.6.2)
+      The following NOTICE information applies:
+        Adapter: RxJava 2.6.2
+        Copyright 2019, Jake Wharton
+
+  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
+      The following NOTICE information applies:
+        BCrypt Password Hashing Function 0.9.0
+        Copyright 2018 Patrick Favre-Bulle
+
+  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
+      The following NOTICE information applies:
+        Bytes Utility Library 1.3.0
+        Copyright 2017 Patrick Favre-Bulle
+
+  (ASLv2) Converter: Jackson (com.squareup.retrofit2:converter-jackson:jar:2.5.0)
+      The following NOTICE information applies:
+        Converter: Jackson 2.5.0
+        Copyright 2018, Jake Wharton
+
+  (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt:jar:6.0.1 - https://bitbucket.org/connect2id/nimbus-jose-jwt)
+      The following NOTICE information applies:
+        Nimbus JOSE+JWT 6.0.1
+        Copyright 2018, Connect2id Ltd.
+
+  (ASLv2) OkHttp Logging Interceptor (com.squareup.okhttp3:logging-interceptor:jar:3.12.2)
+      The following NOTICE information applies:
+        OkHttp Logging Interceptor 3.12.2
+        Copyright 2019 Square, Inc.
+
+  (ASLv2) OkHttp (com.squareup.okhttp3:okhttp:jar:3.12.6)
+      The following NOTICE information applies:
+        OkHttp 3.12.6
+        Copyright 2019 Square, Inc.
+
+  (ASLv2) OkHttp URLConnection (com.squareup.okhttp3:okhttp-urlconnection:jar:3.12.2)
+      The following NOTICE information applies:
+        OkHttp 3.12.2
+        Copyright 2019 Square, Inc.
+
+  (ASLv2) Woodstox (com.fasterxml.woodstox:woodstox-core:jar:6.1.1 - https://github.com/FasterXML/woodstox)
+      The following NOTICE information applies:
+        Woodstox Core 6.1.1
+        Copyright 2015, FasterXML, LLC
+
+  (ASLv2) Non Blocking Reactive Foundation For The JVM (io.projectreactor:reactor-core:jar:3.3.5.RELEASE - https://github.com/reactor/reactor-core)
+      The following NOTICE information applies:
+        Non Blocking Reactive Foundation For The JVM
+        Copyright 2020, Project Reactor
+
+  (ASLv2) Reactive Streams Netty Driver (io.projectreactor.netty:reactor-netty:jar:0.9.7.RELEASE - https://github.com/reactor/reactor-netty)
+      The following NOTICE information applies:
+        Reactive Streams Netty Driver
+        Copyright 2020, Project Reactor
+
+************************
+Common Development and Distribution License 1.0
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.0. See project link for details.
+
+  (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+  (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
+  (CDDL 1.1) (GPL2 w/ CPE) JavaBeans Activation Framework API (javax.activation:javax.activation-api:jar:1.2.0)
+  (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
+  (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (com.sun.mail:javax.mail:jar:1.6.1)
+  (CDDL 1.1) (GPL2 w/ CPE) JAXB API (javax.xml.bind:jaxb-api:jar:2.3.0)
+  (CDDL 1.1) (GPL 1.1) Old JAXB Core (com.sun.xml.bind:jaxb-core:jar:2.3.0)
+  (CDDL 1.1) (GPL 1.1) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.3.0)
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.1)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.2)
+
+************************
+Creative Commons Zero license version 1.0
+************************
+
+The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
+
+    (CC0v1.0) Reactive Streams (org.reactivestreams:reactive-streams:jar:1.0.3 - http://www.reactive-streams.org/)

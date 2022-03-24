@@ -1,0 +1,83 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<md-dialog flex="40" aria-label="Attributes">
+    <md-toolbar>
+        <div class="md-toolbar-tools">
+            <div class="modal-header-label">Attributes</div>
+            <span flex></span>
+        </div>
+    </md-toolbar>
+    <md-dialog-content>
+        <div class="md-dialog-content">
+            <p class="modal-label">
+                Enter attributes and values to reference within your specification for testing input. These attribute values will only be available for testing and not when executing the actual flow:
+            </p>
+
+            <md-content>
+                <div layout-gt-sm="row" layout-align="center">
+
+                    <md-input-container flex="45">
+                        <label>Attribute</label>
+                        <input ng-model="key"/>
+                    </md-input-container>
+
+                    <md-input-container flex="45">
+                        <label>Value</label>
+                        <input ng-model="value"/>
+                    </md-input-container>
+
+                    <span flex="5">&nbsp;</span>
+
+                    <md-input-container flex="5">
+                        <button class="modal-button" id="addButton" ng-click="dialogCtl.parent.addVariable(dialogCtl.parent.variables,key,value)">
+                            <i class="fa fa-plus" aria-hidden="true"></i>
+                        </button>
+                    </md-input-container>
+
+                </div>
+            </md-content>
+
+            <md-content>
+                <md-list>
+                    <md-subheader class="md-no-sticky modal-label">Attribute - Values:</md-subheader>
+                    <div id="variableList" class="scrollable">
+                        <md-list-item class="md-2-line" ng-repeat="(key,value) in dialogCtl.parent.variables">
+                            <div class="md-list-item-text" layout="row"  layout-align="center center">
+                                <div flex="45">{{key}}</div>
+                                <div flex="45">{{value}}</div>
+                                <span flex="5">&nbsp;</span>
+                                <div flex="5">
+                                    <button class="modal-button" ng-click="dialogCtl.parent.deleteVariable(dialogCtl.parent.variables,key)">
+                                        <i class="fa fa-trash-o" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </md-list-item>
+                    </div>
+                </md-list>
+            </md-content>
+        </div>
+    </md-dialog-content>
+    <md-dialog-actions layout="row">
+        <span flex></span>
+        <button class="secondary-button" ng-click="dialogCtl.parent.cancelDialog()">
+            Cancel
+        </button>
+        <button class="primary-button" ng-click="dialogCtl.parent.saveVariables(dialogCtl.parent.variables)">
+            Save
+        </button>
+    </md-dialog-actions>
+
+</md-dialog>

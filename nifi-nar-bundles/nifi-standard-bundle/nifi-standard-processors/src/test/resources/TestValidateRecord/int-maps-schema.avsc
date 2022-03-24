@@ -1,0 +1,44 @@
+{
+  "name": "statistic",
+  "type": "record",
+  "fields": [
+    {
+      "name": "id",
+      "type": "string"
+    },
+    {
+      "name": "points",
+      "type": {
+        "type": "map",
+        "values": "int"
+      }
+    },
+    {
+      "name": "data",
+      "type": {
+        "type": "array",
+        "items": {
+          "name": "data",
+          "type": "record",
+          "fields": [
+            {
+              "name": "version",
+              "type": [
+                "null",
+                "string"
+              ],
+              "default": null
+            },
+            {
+              "name": "points",
+              "type": {
+                "type": "map",
+                "values": "int"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

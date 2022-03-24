@@ -1,0 +1,36 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<h2 mat-dialog-title>About Nifi Registry</h2>
+<div id="nf-registry-about-dialog" class="pad-sm mat-typography">
+    <div id="nf-registry-about-pic-container">
+        <div id="nf-registry-about-pic"></div>
+    </div>
+    <div id="nf-registry-about-version-info">
+        <p>Registry Version: {{ data.registryAboutVersion }}</p>
+    </div>
+    <div id="nf-registry-about-description">
+        <p>
+            Registry — a subproject of Apache NiFi — is a complementary application that provides
+            a central location for storage and management of shared resources across one or more
+            instances of NiFi and/or MiNiFi.
+        </p>
+    </div>
+</div>
+<mat-dialog-actions align="end">
+    <button mat-raised-button color="fds-primary" mat-dialog-close>Close</button>
+</mat-dialog-actions>

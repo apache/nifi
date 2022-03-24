@@ -1,0 +1,25 @@
+{
+	"name": "testschema",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "id", "type": "string" },
+		{ "name": "string_single", "type": "string" },
+		{ "name": "string_multi",
+		    "type": {
+                "type": "array",
+                "items": "string"
+		    }
+		},
+		{ "name": "integer_single", "type": "int" },
+		{ "name": "integer_multi",
+		    "type": {
+                "type": "array",
+                "items": "int"
+		    }
+		},
+		{ "name": "double_single", "type": "double" },
+		{ "name": "created", "type": "long" },
+		{ "name": "val_null", "type": "string" }
+	]
+}

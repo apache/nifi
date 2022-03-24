@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>ScriptedTransformRecord</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    <style>
+h2 {margin-top: 4em}
+h3 {margin-top: 3em}
+td {text-align: left}
+    </style>
+</head>
+
+<body>
+
+<h1>ScriptedTransformRecord</h1>
+
+<h3>Description</h3>
+
+<p>
+    The ScriptedTransformRecord provides the ability to use a scripting language, such as Groovy or Jython, to quickly and easily update the contents of a Record.
+    NiFi provides several different Processors that can be used to manipulate Records in different ways. Each of these processors has its pros and cons. The ScriptedTransformRecord is perhaps
+    the most powerful and most versatile option. However, it is also the most error-prone, as it depends on writing custom scripts. It is also likely to yield the lowest performance,
+    as processors and libraries written directly in Java are likely to perform better than interpreted scripts.
+</p>
+
+<p>
+    When creating a script, it is important to note that, unlike ExecuteScript, this Processor does not allow the script itself to expose Properties to be configured or define Relationships.
+    This is a deliberate decision. If it is necessary to expose such configuration, the ExecuteScript processor should be used instead. By not exposing these elements,
+    the script avoids the need to define a Class or implement methods with a specific method signature. Instead, the script can avoid any boilerplate code and focus purely on the task
+    at hand.
+</p>
+
+<p>
+    The provided script is evaluated once for each Record that is encountered in the incoming FlowFile. Each time that the script is invoked, it is expected to return a Record object
+    (See note below regarding <a href="#ReturnValue">Return Values</a>).
+    That Record is then written using the configured Record Writer. If the script returns a <code>null</code> value, the Record will not be written. If the script returns an object that is not
+    a Record, the incoming FlowFile will be routed to the <code>failure</code> relationship.
+</p>
+
+<p>
+    This processor maintains two Counters: "Records Transformed" indicating the number of Records that were passed to the script and for which the script returned a Record, and "Records Dropped"
+    indicating the number of Records that were passed to the script and for which the script returned a value of <code>null</code>.
+</p>
+
+
+
+<h3>Variable Bindings</h3>
+
+<p>
+    While the script provided to this Processor does not need to provide boilerplate code or implement any classes/interfaces, it does need some way to access the Records and other information
+    that it needs in order to perform its task. This is accomplished by using Variable Bindings. Each time that the script is invoked, each of the following variables will be made
+    available to the script:
+</p>
+
+<table>
+    <tr>
+        <th>Variable Name</th>
+        <th>Description</th>
+        <th>Variable Class</th>
+    </tr>
+    <tr>
+        <td>record</td>
+        <td>The Record that is to be transformed.</td>
+        <td><a href="https://javadoc.io/static/org.apache.nifi/nifi-record/1.11.4/org/apache/nifi/serialization/record/Record.html">Record</a></td>
+    </tr>
+    <tr>
+        <td>recordIndex</td>
+        <td>The zero-based index of the Record in the FlowFile.</td>
+        <td>Long (64-bit signed integer)</td>
+    </tr>
+    <tr>
+        <td>log</td>
+        <td>The Processor's Logger. Anything that is logged to this logger will be written to the logs as if the Processor itself had logged it. Additionally, a bulletin will be created for any
+            log message written to this logger (though by default, the Processor will hide any bulletins with a level below WARN).</td>
+        <td><a href="https://www.javadoc.io/doc/org.apache.nifi/nifi-api/latest/org/apache/nifi/logging/ComponentLog.html">ComponentLog</a></td>
+    </tr>
+    <tr>
+        <td>attributes</td>
+        <td>Map of key/value pairs that are the Attributes of the FlowFile. Both the keys and the values of this Map are of type String. This Map is immutable.
+            Any attempt to modify it will result in an UnsupportedOperationException being thrown.</td>
+        <td>java.util.Map</td>
+    </tr>
+</table>
+
+
+<a name="ReturnValue"></a>
+<h3>Return Value</h3>
+
+<p>
+    Each time that the script is invoked, it is expected to return a
+    <a href="https://javadoc.io/static/org.apache.nifi/nifi-record/1.11.4/org/apache/nifi/serialization/record/Record.html">Record</a> object or a Collection of Record objects.
+    Those Records are then written using the configured Record Writer. If the script returns a <code>null</code> value, the Record will not be written. If the script returns an object that is not
+    a Record or Collection of Records, the incoming FlowFile will be routed to the <code>failure</code> relationship.
+</p>
+
+<p>
+    Note that the Python language does not allow a script to use a <code>return</code> outside of a method. Additionally, when interpreted as a script,
+    the Java Python scripting engine does not provide a reliable way to easily obtain the last value referenced. As a result, any Python script must assign the value to be returned
+    to the <code>_</code> variable. See examples below.
+</p>
+
+<p>
+    The Record that is provided to the script is mutable. Therefore, it is a common pattern to update the <code>record</code> object in the script and simply return that same
+    <code>record</code> object.
+</p>
+
+<p>
+    <b>Note:</b> Depending on the scripting language, a script with no explicit return value may return <code>null</code> or may return the last value that was referenced.
+    Because returning <code>null</code> will result in dropping the Record and a non-Record return value will result in an Exception (and simply for the sake of clarity),
+    it is important to ensure that the configured script has an explicit return value.
+</p>
+
+
+
+<a name="AddingNewFields"></a>
+<h3>Adding a New Fields</h3>
+
+<p>
+    A very common usage of Record-oriented processors is to allow the Record Reader to infer its schema and have the Record Writer inherit the Record's schema.
+    In this scenario, it is important to note that the Record Writer will inherit the schema of the first Record that it encounters. Therefore, if the configured script
+    will add a new field to a Record, it is important to ensure that the field is added to all Records (with a <code>null</code> value where appropriate).
+</p>
+
+<p>
+    See the <a href="#AddingFieldExample">Adding New Fields</a> example for more details.
+</p>
+
+
+
+<h3>Performance Considerations</h3>
+
+<p>
+    NiFi offers many different processors for updating records in various ways. While each of these has its own pros and cons, performance is often an important consideration.
+    It is generally the case that standard processors, such as UpdateRecord, will perform better than script-oriented processors. However, this may not always be the case. For
+    situations when performance is critical, the best case is to test both approaches to see which performs best.
+</p>
+
+<p>
+    It is important to note also, though, that not all scripting languages and script engines are equal. For example, Groovy scripts will typically run much faster than Jython scripts.
+    However, if those in your organization are more familiar with Python than Java or Groovy, then using Jython may still make more sense.
+</p>
+
+<p>
+    A simple 5-minute benchmark was done to analyze the difference in performance. The script used simply modifies one field and return the Record otherwise unmodified.
+    The results are shown below. Note that no specifics are given with regards to hardware, specifically because the results should not be used to garner expectations of
+    absolute performance but rather to show relative performance between the different options.
+</p>
+
+<table>
+    <tr>
+        <th>Processor</th>
+        <th>Script Used</th>
+        <th>Records processed in 5 minutes</th>
+    </tr>
+    <tr>
+        <td>UpdateAttribute</td>
+        <td><i>No Script. User-defined Property added with name /num and value 42</i></td>
+        <td>50.1 million</td>
+    </tr>
+    <tr>
+        <td>ScriptedTransformRecord - Using Language: Groovy</td>
+        <td>
+<pre><code>record.setValue("num", 42)
+record
+</code></pre>
+        </td>
+        <td>18.9 million</td>
+    </tr>
+    <tr>
+        <td>ScriptedTransformRecord - Using Language: python</td>
+        <td>
+<pre><code>record.setValue("num", 42)
+_ = record
+</code></pre>
+        </td>
+        <td>21.0 million</td>
+    </tr>
+    <tr>
+        <td>ScriptedTransformRecord - Using Language: ruby</td>
+        <td>
+<pre><code>record.setValue("num", 42)
+record
+</code></pre>
+        </td>
+        <td>2.67 million</td>
+    </tr>
+</table>
+
+
+
+
+<h2>Example Scripts</h2>
+
+
+<h3>Remove First Record</h3>
+<p>
+    The following script will remove the first Record from each FlowFile that it encounters.
+</p>
+
+<p>
+    Example Input (CSV):
+</p>
+<pre>
+    <code>
+name, num
+Mark, 42
+Felicia, 3720
+Monica, -3
+    </code>
+</pre>
+
+<p>
+    Example Output (CSV):
+</p>
+<pre>
+    <code>
+name, num
+Felicia, 3720
+Monica, -3
+    </code>
+</pre>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+return recordIndex == 0 ? null : record
+    </code>
+</pre>
+
+<p>
+    Example Script (Python):
+</p>
+<pre>
+    <code>
+_ = None if (recordIndex == 0) else record
+    </code>
+</pre>
+
+
+
+
+
+
+<h3>Replace Field Value</h3>
+<p>
+    The following script will replace any field in a Record if the value of that field is equal to the value of the "Value To Replace" attribute.
+    The value of that field will be replaced with whatever value is in the "Replacement Value" attribute.
+</p>
+
+<p>
+    Example Input Content (JSON):
+</p>
+<pre>
+    <code>
+[{
+    "book": {
+        "author": "John Doe",
+        "date": "01/01/1980"
+    }
+}, {
+    "book": {
+        "author": "Jane Doe",
+        "date": "01/01/1990"
+    }
+}]
+    </code>
+</pre>
+
+<p>
+    Example Input Attributes:
+</p>
+<table>
+    <tr>
+        <th>Attribute Name</th>
+        <th>Attribute Value</th>
+    </tr>
+    <tr>
+        <td>Value To Replace</td>
+        <td>Jane Doe</td>
+    </tr>
+    <tr>
+        <td>Replacement Value</td>
+        <td>Author Unknown</td>
+    </tr>
+</table>
+
+<p>
+    Example Output (JSON):
+</p>
+<pre>
+    <code>
+[{
+    "book": {
+        "author": "John Doe",
+        "date": "01/01/1980"
+    }
+}, {
+    "book": {
+        "author": "Author Unknown",
+        "date": "01/01/1990"
+    }
+}]
+    </code>
+</pre>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+def replace(rec) {
+    rec.toMap().each { k, v ->
+        // If the field value is equal to the attribute 'Value to Replace', then set the
+        // field value to the 'Replacement Value' attribute.
+        if (v?.toString()?.equals(attributes['Value to Replace'])) {
+            rec.setValue(k, attributes['Replacement Value'])
+        }
+
+        // Call Recursively if the value is a Record
+        if (v instanceof org.apache.nifi.serialization.record.Record) {
+            replace(v)
+        }
+    }
+}
+
+replace(record)
+return record
+    </code>
+</pre>
+
+
+
+
+<h3>Pass-through</h3>
+
+<p>
+    The following script allows each Record to pass through without altering the Record in any way.
+</p>
+
+<p>
+    Example Input: &lt;any&gt;
+</p>
+
+<p>
+    Example output: &lt;identical to input&gt;
+</p>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+record
+    </code>
+</pre>
+
+<p>
+    Example Script (Python):
+</p>
+<pre>
+    <code>
+_ = record
+    </code>
+</pre>
+
+
+
+
+
+<a name="AddingFieldExample"></a>
+<h3>Adding New Fields</h3>
+
+<p>
+    The following script adds a new field named "favoriteColor" to all Records. Additionally, it adds an "isOdd" field to all even-numbered Records.
+</p>
+
+<p>
+    It is important that all Records have the same schema. Since we want to add an "isOdd" field to Records 1 and 3, the schema for Records 0 and 2 must also account
+    for this. As a result, we will add the field to all Records but use a null value for Records that are not even. See <a href="#AddingNewFields">Adding New Fields</a> for more information.
+</p>
+
+<p>
+    Example Input Content (CSV):
+</p>
+<pre>
+    <code>
+name, favoriteFood
+John Doe, Spaghetti
+Jane Doe, Pizza
+Jake Doe, Sushi
+June Doe, Hamburger
+    </code>
+</pre>
+
+<p>
+    Example Output (CSV):
+</p>
+<pre>
+    <code>
+name, favoriteFood, favoriteColor, isOdd
+John Doe, Spaghetti, Blue,
+Jane Doe, Pizza, Blue, true
+Jake Doe, Sushi, Blue,
+June Doe, Hamburger, Blue, true
+    </code>
+</pre>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+
+// Always set favoriteColor to Blue.
+// Because we are calling #setValue with a String as the field name, the field type will be inferred.
+record.setValue("favoriteColor", "Blue")
+
+// Set the 'isOdd' field to true if the record index is odd. Otherwise, set the 'isOdd' field to <code>null</code>.
+// Because the value may be <code>null</code> for the first Record (in fact, it always will be for this particular case),
+// we need to ensure that the Record Writer's schema be given the correct type for the field. As a result, we will not call
+// #setValue with a String as the field name but rather will pass a RecordField as the first argument, as the RecordField
+// allows us to specify the type of the field.
+// Also note that <code>RecordField</code> and <code>RecordFieldType</code> are <code>import</code>ed above.
+record.setValue(new RecordField("isOdd", RecordFieldType.BOOLEAN.getDataType()), recordIndex % 2 == 1 ? true : null)
+
+return record
+    </code>
+</pre>
+
+
+
+
+
+<h3>Fork Record</h3>
+
+<p>The following script return each Record that it encounters, plus another Record, which is derived from the first, but where the 'num' field is one less than the 'num' field of the input.</p>
+
+<p>
+    Example Input (CSV):
+</p>
+<pre>
+    <code>
+name, num
+Mark, 42
+Felicia, 3720
+Monica, -3
+    </code>
+</pre>
+
+<p>
+    Example Output (CSV):
+</p>
+<pre>
+    <code>
+name, num
+Mark, 42
+Mark, 41
+Felicia, 3720
+Felicia, 3719
+Monica, -3
+Monica, -4
+    </code>
+</pre>
+
+<p>
+    Example Script (Groovy):
+</p>
+<pre>
+    <code>
+import org.apache.nifi.serialization.record.*
+
+def derivedValues = new HashMap(record.toMap())
+derivedValues.put('num', derivedValues['num'] - 1)
+derived = new MapRecord(record.schema, derivedValues)
+
+return [record, derived]
+    </code>
+</pre>
+
+
+</body>
+</html>

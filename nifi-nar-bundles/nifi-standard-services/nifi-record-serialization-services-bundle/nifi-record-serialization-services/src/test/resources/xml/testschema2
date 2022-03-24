@@ -1,0 +1,19 @@
+{
+  "namespace": "nifi",
+  "name": "test",
+  "type": "record",
+  "fields": [
+    { "name": "ID", "type": "string" },
+    { "name": "NAME", "type": {
+        "type": "record",
+        "name": "nested",
+        "fields": [
+          { "name": "ATTR", "type": "string" },
+          { "name": "INNER", "type": "string" },
+          { "name": "CONTENT", "type": "string" }
+        ]
+      }
+    },
+    { "name": "AGE", "type": "int" }
+  ]
+}

@@ -1,0 +1,208 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Header Settings
+*/
+
+md-toolbar.md-small {
+    height: 56px;
+    background-color:#AABBC3; /*tint base-color 40%*/
+    min-height: 56px;
+    max-height: 56px;
+    position: relative;
+    z-index: 4;
+}
+md-toolbar.md-small .md-toolbar-tools {
+    height: 56px;
+    min-height: 56px;
+    max-height: 56px;
+}
+
+#header .icon {
+    font-size:32px;
+    color: #004849;
+    padding-left:12px
+}
+
+#header .fa {
+    font-size:32px;
+    color: #004849;
+}
+
+#login-link-container > span.link {
+    font-size: 12px;
+    text-transform:uppercase;
+}
+
+#logout-link-container > span.link {
+    font-size: 12px;
+    text-transform:uppercase;
+}
+
+#current-user {
+    font-size: 12px;
+}
+
+#users-link {
+    padding-left: 7px;
+}
+
+#nifi-logo {
+    height: 37px;
+    margin:0 20px 3px 15px;
+}
+
+#global-menu-button {
+    background-color: #AABBC1; /*tint base-color 40%*/
+    border: 0;
+    cursor: pointer;
+    height: 56px;
+    width: 63px;
+}
+
+#global-menu-button:hover {
+    background-color: #e3e8eb; /*tint base-color 60%*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+#global-menu-content {
+    font-size: 13px;
+    padding: 3px 0;
+    background-color: rgba(249, 250, 251, 0.97); /*tint base-color 96%*/
+    border: 1px solid #004849; /*link-color*/
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    width: 215px;
+    max-height: inherit;
+}
+
+#global-menu-content md-menu-item{
+    min-height: 28px;
+    height: 28px;
+}
+
+#global-menu-content md-menu-divider{
+    background-color:#C7D2D7; /*tint base-color 60%*/
+    margin-top: 3px;
+    margin-bottom: 3px;
+}
+
+#global-menu-content a {
+    height: 28px;
+    padding: 6px 16px;
+    cursor: pointer;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+#global-menu-content a.disabled {
+    color: #a8a8a8 !important;
+    cursor: not-allowed;
+}
+
+#global-menu-content a.disabled i {
+    color: #bebebe;
+}
+
+#global-menu-content a:hover{
+    background-color:#C7D2D7;
+}
+
+#global-menu-content .icon {
+    font-size: 15px;
+    color: #728E9B;
+    margin-right: 10px;
+    width: 15px;
+    display: inline-block;
+}
+
+#global-menu-content .fa {
+    font-size: 15px;
+    color: #728E9B;
+    margin-right: 10px;
+    width: 15px;
+}
+
+/* styles for the toolbox */
+
+
+#header .component-button {
+    background: none;
+    height: 56px;
+    position: relative;
+    width: 56px;
+    border: none;
+}
+
+#header .component-button:hover {
+    background-color: #e3e8eb;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    cursor:grab;
+    cursor:-moz-grab;
+    cursor:-webkit-grab;
+}
+
+#header .component-button:active {
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
+    cursor: -moz-grabbing;
+}
+
+#header .component-button:disabled {
+    background-color:#AABBC3; /*tint base-color 40%*/
+    cursor:not-allowed;
+    box-shadow:none;
+}
+
+#header .component-button:disabled .icon{
+    color:#669192;
+}
+
+.component-button-grip {
+    background: repeating-linear-gradient(90deg,rgba(170,187,195,1),rgba(170,187,195,1) 4px,rgba(170,187,195,0) 4px,rgba(170,187,195,0) 6px);
+    bottom: 2px;
+    height: 4px;
+    left: 2px;
+    position: absolute;
+    width: 52px;
+}
+
+/* styles for the status link */
+
+#anonymous-user-alert {
+    display: none;
+    font-size: 12px;
+}
+
+#current-user {
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: normal;
+    font-size: 12px;
+    max-width: 250px;
+    text-overflow: ellipsis;
+    line-height: normal;
+    overflow: hidden;
+    white-space: nowrap;
+    color: #262626;
+}
+
+#current-user-container .fa{
+    font-size: 12px;
+    color: #262626;
+    padding-right: 5px;
+}

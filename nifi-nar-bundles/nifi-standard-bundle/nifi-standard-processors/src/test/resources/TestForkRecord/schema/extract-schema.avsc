@@ -1,0 +1,21 @@
+{
+	"name": "personWithNameRecord",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name" : "comment", "type": "string" },
+		{ "name" : "amount", "type": "long" },
+		{ "name": "id", "type": "int" },
+		{ "name": "name", "type":
+			{
+				"type": "record",
+				"name": "nameRecord",
+				"fields": 
+					[
+						{ "name": "last", "type": "string" },
+						{ "name": "first", "type": "string" }
+					]
+			}
+		}
+	]
+}

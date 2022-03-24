@@ -1,0 +1,9 @@
+{
+	"name": "nameFieldsOnly",
+	"namespace": "nifi",
+	"type": "record",
+	"fields": [
+		{ "name": "last", "type": "string" },
+		{ "name": "first", "type": "string" }
+	]
+}

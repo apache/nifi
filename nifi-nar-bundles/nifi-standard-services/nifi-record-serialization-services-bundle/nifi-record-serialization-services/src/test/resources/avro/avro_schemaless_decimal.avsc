@@ -1,0 +1,22 @@
+{
+    "type": "record",
+    "name": "DecimalTest",
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "price",
+            "type": [
+                "null",
+                {
+                    "type": "bytes",
+                    "logicalType": "decimal",
+                    "precision": 20,
+                    "scale": 6
+                }
+            ]
+        }
+    ]
+}

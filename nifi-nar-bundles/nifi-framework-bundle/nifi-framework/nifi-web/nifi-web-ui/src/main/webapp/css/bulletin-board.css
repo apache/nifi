@@ -1,0 +1,159 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Bulletin Board Styles
+*/
+
+#bulletin-board {
+    position: absolute;
+    top: 0px;
+    bottom: 40px;
+    left: 20px;
+    right: 20px;
+}
+
+#bulletin-board-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+    margin-bottom: 30px;
+}
+
+#bulletin-board-refresh-container {
+    position: absolute;
+    right: 20px;
+    bottom: 0px;
+    left: 20px;
+}
+
+#bulletin-board-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#bulletin-board-last-refreshed {
+    font-weight: bold;
+}
+
+#bulletin-board-header {
+    padding-top: 10px;
+}
+
+#bulletin-board-status-container {
+    float: right;
+}
+
+#bulletin-error-message {
+    color: #9F6000;
+    font-size: 9px;
+    font-weight: bold;
+    line-height: normal;
+    display: none;
+    float: left;
+    margin-top: 5px;
+    margin-right: 5px;
+}
+
+#clear-bulletins-button {
+    margin-top: 8px;
+}
+
+/* bulletin board */
+
+#bulletin-board-container {
+    position: absolute;
+    top: 100px;
+    bottom: 50px;
+    overflow: auto;
+    left: 0px;
+    right: 0px;
+}
+
+div.bulletin-action {
+    font-family: Roboto;
+    font-size: 13px;
+    border-bottom: 1px solid #eaeef0;
+    line-height: 1.3;
+    padding: 10px;
+}
+
+div.bulletin {
+    margin-left: 4px;
+    margin-bottom: 15px;
+    line-height: normal;
+}
+
+div.bulletin-info {
+    float: left;
+}
+
+div.bulletin-timestamp {
+    color: #666;
+    font-weight: bold;
+    float: left;
+    margin-right: 5px;;
+}
+
+div.bulletin-node {
+    float: left;
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+div.bulletin-severity {
+    float: left;
+    margin-right: 5px;
+    width: 50px;
+}
+
+div.bulletin-normal {
+    color: #016131;
+    font-weight: bold;
+}
+
+div.bulletin-error {
+    color: #ec3030;
+    font-weight: bold;
+}
+
+div.bulletin-warn {
+    color: #bda500;
+    font-weight: bold;
+}
+
+div.bulletin-source {
+    width: 260px;
+    float: left;
+    margin-right: 5px;
+}
+
+div.bulletin-link {
+    color: #264c58;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+pre.bulletin-message {
+    float: left;
+    white-space: pre-wrap;
+    margin-top: 2px;
+}

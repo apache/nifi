@@ -1,0 +1,10 @@
+[{
+  "name": "John",
+  "age": 8,
+  "values": "N/A",
+  "nullValue": null
+}, {
+  "name": "Jane",
+  "age": "Ten",
+  "values": [ 8, "Ten" ]
+}]

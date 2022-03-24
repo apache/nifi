@@ -1,0 +1,69 @@
+{
+  "namespace": "nifi",
+  "name": "data_types",
+  "type": "record",
+  "fields": [
+    {
+      "name": "timeMillis",
+      "type": [
+        "null",
+        {
+          "type": "int",
+          "logicalType": "time-millis"
+        }
+      ]
+    },
+    {
+      "name": "timeMicros",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "time-micros"
+        }
+      ]
+    },
+    {
+      "name": "timestampMillis",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "timestamp-millis"
+        }
+      ]
+    },
+    {
+      "name": "timestampMicros",
+      "type": [
+        "null",
+        {
+          "type": "long",
+          "logicalType": "timestamp-micros"
+        }
+      ]
+    },
+    {
+      "name": "date",
+      "type": [
+        "null",
+        {
+          "type": "int",
+          "logicalType": "date"
+        }
+      ]
+    },
+    {
+      "name": "decimal",
+      "type": [
+        "null",
+        {
+          "type": "bytes",
+          "logicalType": "decimal",
+          "precision": 5,
+          "scale": 2
+        }
+      ]
+    }
+  ]
+}

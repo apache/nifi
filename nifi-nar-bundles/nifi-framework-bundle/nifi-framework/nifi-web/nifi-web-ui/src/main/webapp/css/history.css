@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Status Styles
+*/
+
+#history {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+    overflow: auto;
+}
+
+#history-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+}
+
+#history-refresh-container {
+    position: absolute;
+    bottom: 0px;
+    left: 20px;
+    right: 20px;
+}
+
+#history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#history-last-refreshed {
+    font-weight: 500;
+}
+
+#history-header {
+    padding-top: 10px;
+}
+
+/* history filter controls */
+
+#history-filter-container {
+    position: absolute;
+    right: 0px;
+    left: 0px;
+    top: 15px;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: normal;
+}
+
+#cluster-history-message {
+    float: left;
+    margin-top: 30px;
+}
+
+#history-filter-button {
+    float: right;
+    margin-left: 5px;
+}
+
+#history-filter-overview {
+    visibility: hidden;
+    margin-bottom: 5px;
+}
+
+#history-purge-button {
+    float: right;
+    padding-left: 4px;
+}
+
+
+/* history filter dialog */
+
+.start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
+    float: left;
+    width: 48%;
+}
+
+.start-date-setting, .end-date-setting {
+    margin-right: 4%;
+    width: 48%;
+}
+
+.history-small-input {
+    padding: 3px 0px 1px 3px;
+    font-size: 11px;
+    width: 183px;
+    border: 1px solid #ccc;
+}
+
+.history-large-input {
+    margin-right: 10px;
+    font-size: 11px;
+    float: left;
+    width: 70% !important;
+}
+
+#history-filter-type {
+    width: 96px;
+    float: left;
+}
+
+/* action details dialog */
+
+#action-details {
+    overflow-y: auto;
+}
+
+#action-details-dialog {
+    width: 300px;
+    height: 500px;
+}
+
+div.action-detail {
+    margin-bottom: 15px;
+}
+
+div.history-details-name {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    text-transform: capitalize;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+/* history table */
+
+#history-table {
+    position: absolute;
+    top: 66px;
+    left: 0px;
+    bottom: 47px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#history-table div.slick-viewport {
+    overflow-x: hidden !important;
+}

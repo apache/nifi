@@ -1,0 +1,369 @@
+{
+  "description": "Consumes messages from Apache Kafka specifically built against the Kafka 1.0 Consumer API. The complementary NiFi processor for sending messages is PublishKafkaRecord_1_0. Please note that, at this time, the Processor assumes that all records that are retrieved from a given partition have the same schema. If any of the Kafka messages are pulled but cannot be parsed or written with the configured Record Reader or Record Writer, the contents of the message will be written to a separate FlowFile, and that FlowFile will be transferred to the 'parse.failure' relationship. Otherwise, each FlowFile is sent to the 'success' relationship and may contain many individual messages within the single FlowFile. A 'record.count' attribute is added to indicate how many messages are contained in the FlowFile. No two Kafka messages will be placed into the same FlowFile if they have different schemas, or if they have different values for a message header that is included by the <Headers to Add as Attributes> property.",
+  "dynamicProperty": [
+    {
+      "description": "These properties will be added on the Kafka configuration after loading any provided configuration properties. In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged. For the list of available Kafka properties please refer to: https://kafka.apache.org/documentation.html#configuration. ",
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": false,
+      "name": "The name of a Kafka configuration property.",
+      "value": "The value of a given Kafka configuration property."
+    }
+  ],
+  "inputRequirement": "INPUT_FORBIDDEN",
+  "name": "org.apache.nifi.processors.kafka.pubsub.ConsumeKafkaRecord_1_0",
+  "property": [
+    {
+      "defaultValue": "localhost:9092",
+      "description": "A comma-separated list of known Kafka Brokers in the format <host>:<port>",
+      "displayName": "Kafka Brokers",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "bootstrap.servers",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "The name of the Kafka Topic(s) to pull from. More than one can be supplied if comma separated.",
+      "displayName": "Topic Name(s)",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "topic",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "allowableValue": [
+        {
+          "description": "Topic is a full topic name or comma separated list of names",
+          "displayName": "names",
+          "value": "names"
+        },
+        {
+          "description": "Topic is a regex using the Java Pattern syntax",
+          "displayName": "pattern",
+          "value": "pattern"
+        }
+      ],
+      "defaultValue": "names",
+      "description": "Specifies whether the Topic(s) provided are a comma separated list of names or a single regular expression",
+      "displayName": "Topic Name Format",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "topic_type",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "controllerServiceDefinition": {
+        "artifactId": "nifi-standard-services-api-nar",
+        "className": "org.apache.nifi.serialization.RecordReaderFactory",
+        "groupId": "org.apache.nifi",
+        "version": "1.10.0-SNAPSHOT"
+      },
+      "defaultValue": "",
+      "description": "The Record Reader to use for incoming FlowFiles",
+      "displayName": "Record Reader",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "record-reader",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "controllerServiceDefinition": {
+        "artifactId": "nifi-standard-services-api-nar",
+        "className": "org.apache.nifi.serialization.RecordSetWriterFactory",
+        "groupId": "org.apache.nifi",
+        "version": "1.10.0-SNAPSHOT"
+      },
+      "defaultValue": "",
+      "description": "The Record Writer to use in order to serialize the data before sending to Kafka",
+      "displayName": "Record Writer",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "record-writer",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "allowableValue": [
+        {
+          "description": "",
+          "displayName": "true",
+          "value": "true"
+        },
+        {
+          "description": "",
+          "displayName": "false",
+          "value": "false"
+        }
+      ],
+      "defaultValue": "true",
+      "description": "Specifies whether or not NiFi should honor transactional guarantees when communicating with Kafka. If false, the Processor will use an \"isolation level\" of read_uncomitted. This means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions. If this value is true, NiFi will not receive any messages for which the producer's transaction was canceled, but this can result in some latency since the consumer must wait for the producer to finish its entire transaction instead of pulling as the messages become available.",
+      "displayName": "Honor Transactions",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "honor-transactions",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "allowableValue": [
+        {
+          "description": "PLAINTEXT",
+          "displayName": "PLAINTEXT",
+          "value": "PLAINTEXT"
+        },
+        {
+          "description": "SSL",
+          "displayName": "SSL",
+          "value": "SSL"
+        },
+        {
+          "description": "SASL_PLAINTEXT",
+          "displayName": "SASL_PLAINTEXT",
+          "value": "SASL_PLAINTEXT"
+        },
+        {
+          "description": "SASL_SSL",
+          "displayName": "SASL_SSL",
+          "value": "SASL_SSL"
+        }
+      ],
+      "defaultValue": "PLAINTEXT",
+      "description": "Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.",
+      "displayName": "Security Protocol",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "security.protocol",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "controllerServiceDefinition": {
+        "artifactId": "nifi-standard-services-api-nar",
+        "className": "org.apache.nifi.kerberos.KerberosCredentialsService",
+        "groupId": "org.apache.nifi",
+        "version": "1.10.0-SNAPSHOT"
+      },
+      "defaultValue": "",
+      "description": "Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos",
+      "displayName": "Kerberos Credentials Service",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "kerberos-credentials-service",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "The Kerberos principal name that Kafka runs as. This can be defined either in Kafka's JAAS config or in Kafka's config. Corresponds to Kafka's 'security.protocol' property.It is ignored unless one of the SASL options of the <Security Protocol> are selected.",
+      "displayName": "Kerberos Service Name",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "sasl.kerberos.service.name",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "The Kerberos principal that will be used to connect to brokers. If not set, it is expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.",
+      "displayName": "Kerberos Principal",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "sasl.kerberos.principal",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "The Kerberos keytab that will be used to connect to brokers. If not set, it is expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.",
+      "displayName": "Kerberos Keytab",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "sasl.kerberos.keytab",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "controllerServiceDefinition": {
+        "artifactId": "nifi-standard-services-api-nar",
+        "className": "org.apache.nifi.ssl.SSLContextService",
+        "groupId": "org.apache.nifi",
+        "version": "1.10.0-SNAPSHOT"
+      },
+      "defaultValue": "",
+      "description": "Specifies the SSL Context Service to use for communicating with Kafka.",
+      "displayName": "SSL Context Service",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "ssl.context.service",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "A Group ID is used to identify consumers that are within the same consumer group. Corresponds to Kafka's 'group.id' property.",
+      "displayName": "Group ID",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "VARIABLE_REGISTRY",
+      "expressionLanguageSupported": true,
+      "name": "group.id",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "allowableValue": [
+        {
+          "description": "Automatically reset the offset to the earliest offset",
+          "displayName": "earliest",
+          "value": "earliest"
+        },
+        {
+          "description": "Automatically reset the offset to the latest offset",
+          "displayName": "latest",
+          "value": "latest"
+        },
+        {
+          "description": "Throw exception to the consumer if no previous offset is found for the consumer's group",
+          "displayName": "none",
+          "value": "none"
+        }
+      ],
+      "defaultValue": "latest",
+      "description": "Allows you to manage the condition when there is no initial offset in Kafka or if the current offset does not exist any more on the server (e.g. because that data has been deleted). Corresponds to Kafka's 'auto.offset.reset' property.",
+      "displayName": "Offset Reset",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "auto.offset.reset",
+      "required": true,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "UTF-8",
+      "description": "Any message header that is found on a Kafka message will be added to the outbound FlowFile as an attribute. This property indicates the Character Encoding to use for deserializing the headers.",
+      "displayName": "Message Header Encoding",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "message-header-encoding",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "",
+      "description": "A Regular Expression that is matched against all message headers. Any message header whose name matches the regex will be added to the FlowFile as an Attribute. If not specified, no Header values will be added as FlowFile attributes. If two messages have a different value for the same header and that header is selected by the provided regex, then those two messages must be added to different FlowFiles. As a result, users should be cautious about using a regex like \".*\" if messages are expected to have header values that are unique per message, such as an identifier or timestamp, because it will prevent NiFi from bundling the messages together efficiently.",
+      "displayName": "Headers to Add as Attributes (Regex)",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "header-name-regex",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "10000",
+      "description": "Specifies the maximum number of records Kafka should return in a single poll.",
+      "displayName": "Max Poll Records",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "max.poll.records",
+      "required": false,
+      "sensitive": false
+    },
+    {
+      "defaultValue": "1 secs",
+      "description": "Specifies the maximum amount of time allowed to pass before offsets must be committed. This value impacts how often offsets will be committed.  Committing offsets less often increases throughput but also increases the window of potential data duplication in the event of a rebalance or JVM restart between commits.  This value is also related to maximum poll records and the use of a message demarcator.  When using a message demarcator we can have far more uncommitted messages than when we're not as there is much less for us to keep track of in memory.",
+      "displayName": "Max Uncommitted Time",
+      "dynamic": false,
+      "dynamicallyModifiesClasspath": false,
+      "expressionLanguageScope": "NONE",
+      "expressionLanguageSupported": false,
+      "name": "max-uncommit-offset-wait",
+      "required": false,
+      "sensitive": false
+    }
+  ],
+  "relationship": [
+    {
+      "autoTerminated": false,
+      "description": "FlowFiles received from Kafka.  Depending on demarcation strategy it is a flow file per message or a bundle of messages grouped by topic and partition.",
+      "name": "success"
+    },
+    {
+      "autoTerminated": false,
+      "description": "If a message from Kafka cannot be parsed using the configured Record Reader, the contents of the message will be routed to this Relationship as its own individual FlowFile.",
+      "name": "parse.failure"
+    }
+  ],
+  "see": [
+    "org.apache.nifi.processors.kafka.pubsub.ConsumeKafka_1_0",
+    "org.apache.nifi.processors.kafka.pubsub.PublishKafka_1_0",
+    "org.apache.nifi.processors.kafka.pubsub.PublishKafkaRecord_1_0"
+  ],
+  "tag": [
+    "Kafka",
+    "Get",
+    "Record",
+    "csv",
+    "avro",
+    "json",
+    "Ingest",
+    "Ingress",
+    "Topic",
+    "PubSub",
+    "Consume",
+    "1.0"
+  ],
+  "type": "PROCESSOR",
+  "writesAttribute": [
+    {
+      "description": "The number of records received",
+      "name": "record.count"
+    },
+    {
+      "description": "The MIME Type that is provided by the configured Record Writer",
+      "name": "mime.type"
+    },
+    {
+      "description": "The partition of the topic the records are from",
+      "name": "kafka.partition"
+    },
+    {
+      "description": "The topic records are from",
+      "name": "kafka.topic"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+id, name, balance, address, city, state, zipCode, country
+1, John Doe, "4750.89", "123 My Street", My City, MS, 11111, USA

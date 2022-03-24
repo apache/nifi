@@ -1,0 +1,33 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+org.apache.nifi.processors.azure.eventhub.PutAzureEventHub
+org.apache.nifi.processors.azure.eventhub.GetAzureEventHub
+org.apache.nifi.processors.azure.eventhub.ConsumeAzureEventHub
+org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage
+org.apache.nifi.processors.azure.storage.ListAzureBlobStorage
+org.apache.nifi.processors.azure.storage.PutAzureBlobStorage
+org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage
+org.apache.nifi.processors.azure.storage.queue.PutAzureQueueStorage
+org.apache.nifi.processors.azure.storage.queue.GetAzureQueueStorage
+org.apache.nifi.processors.azure.storage.PutAzureDataLakeStorage
+org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage
+org.apache.nifi.processors.azure.storage.FetchAzureDataLakeStorage
+org.apache.nifi.processors.azure.storage.ListAzureDataLakeStorage
+org.apache.nifi.processors.azure.cosmos.document.PutAzureCosmosDBRecord
+org.apache.nifi.processors.azure.storage.ListAzureBlobStorage_v12
+org.apache.nifi.processors.azure.storage.FetchAzureBlobStorage_v12
+org.apache.nifi.processors.azure.storage.PutAzureBlobStorage_v12
+org.apache.nifi.processors.azure.storage.DeleteAzureBlobStorage_v12
+org.apache.nifi.processors.azure.storage.MoveAzureDataLakeStorage

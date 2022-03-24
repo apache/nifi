@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements. See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership. The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<Event xmlns="https://schemas.microsoft.com/win/2004/08/events/event">
+    <System>
+        <Provider Name="Microsoft-Windows-Security-Auditing" Guid="{54849625-5478-4994-A5BA-3E3B0328C30D}"/>
+        <EventID>4634</EventID>
+        <Version>0</Version>
+        <Level>0</Level>
+        <Task>12545</Task>
+        <Opcode>0</Opcode>
+        <Keywords>0x8020000000000000</Keywords>
+        <TimeCreated SystemTime="2020-10-19T18:07:51.819248600Z"/>
+        <EventRecordID>239422</EventRecordID>
+        <Correlation/>
+        <Execution ProcessID="472" ThreadID="1800"/>
+        <Channel>Security</Channel>
+        <Computer>my.domain.com</Computer>
+        <Security/>
+    </System>
+    <EventData>
+        <Data Name="TargetUserName">MYUSER$</Data>
+        <Data Name="TargetDomainName">DOMAIN</Data>
+        <Data Name="TargetLogonId">0x1624842</Data>
+        <Data Name="LogonType">3</Data>
+    </EventData>
+</Event>

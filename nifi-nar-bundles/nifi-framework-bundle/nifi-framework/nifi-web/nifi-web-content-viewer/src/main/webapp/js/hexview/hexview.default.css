@@ -1,0 +1,42 @@
+/*
+HexViewJS License
+-----------------
+
+HexViewJS is written by Nick McVeity <nmcveity@gmail.com> and is 
+licensed under the terms of the MIT license reproduced below.
+
+========================================================================
+
+Copyright (c) 2010 Nick McVeity <nmcveity@gmail.com>
+
+Permission is hereby granted, free of charge, to any person 
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be 
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+========================================================================
+ */
+ .hexviewerwindow { font-family: monospace; background-color: #F2F2F2;}
+div.hexviewerwindow { padding: 20px; }
+.hexviewerwindow_table { border-collapse:collapse; border: 5px solid grey; margin-left: 16px; caption-side:bottom; }
+.hexviewerwindow_offset {background: #A9D0F5; padding-right: 8px; }
+.hexviewerwindow_visual {background: #A9F5F2; padding-left: 8px; }
+.hexviewerwindow_code {}
+.hexviewerwindow_code_hi {background: #F4FA58; }
+.hexviewerwindow_border_start {border-left: solid #E0E0E0 1px; }
+.hexviewerwindow_border_middle {border-bottom: solid #E0E0E0 1px; border-top: solid #E0E0E0 1px;}
+.hexviewerwindow_border_end {border-right: solid #E0E0E0 1px; border-top: solid #E0E0E0 1px; }

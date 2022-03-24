@@ -1,0 +1,107 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* 
+    New processor dialog.
+*/
+
+#new-processor-dialog {
+    min-height:620px;
+    height: 620px;
+    width: 800px;
+    min-width: 760px;
+}
+
+#processor-types-container {
+    padding: 0px;
+}
+
+#processor-description-container {
+    padding: 0px;
+}
+
+#processor-type-container {
+    padding: 20px 0 5px 0;
+    display: flex;
+}
+
+#processor-bundle-group-combo {
+    margin-right: 2px;
+}
+
+#processor-type-name {
+    color: #775351;
+    font-size: 16px;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#processor-type-bundle {
+    margin-left: 15px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 16px;
+    color: #666;
+    letter-spacing: 0.25px;
+}
+
+#processor-type-description {
+    height: 80px;
+    font-size: 13px;
+    line-height: 17px;
+    padding-top: 10px;
+}
+
+#processor-types-table {
+    min-height: 150px;
+    overflow: hidden;
+    height: 70%;
+    width: 100%;
+}
+
+#processor-types-table-container th {
+    vertical-align: middle;
+}
+
+/*
+    Processor type table filter
+*/
+
+#processor-type-filter-controls {
+    min-height: 32px;
+    padding: 0px;
+}
+
+#processor-type-filter {
+    width: 200px;
+}
+
+/*
+    Restricted
+*/
+
+div.view-usage-restriction {
+    color: #ba554a !important;
+}
+
+#processor-tag-cloud {
+    margin-top: -2px;
+}

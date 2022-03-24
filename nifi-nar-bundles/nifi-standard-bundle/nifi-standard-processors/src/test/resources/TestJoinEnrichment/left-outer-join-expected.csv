@@ -1,0 +1,5 @@
+id, name, age, customer_id, customer_email, customer_name, customer_since
+28021, John Doe, 55, 28021, john.doe@nifi.apache.org, John Doe, 22/Jan/22
+832, Jane Doe, 22, 832, jane.doe@nifi.apache.org, Mrs. Doe, 14/Nov/14
+29201, Jake Doe, 23,,,,
+555, Joseph Doe, 2, 555, joseph.doe@nifi.apache.org, Joe Doe, 08/Dec/14

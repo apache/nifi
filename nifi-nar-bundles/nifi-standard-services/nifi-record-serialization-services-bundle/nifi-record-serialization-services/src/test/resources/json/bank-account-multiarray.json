@@ -1,0 +1,42 @@
+[
+	{
+		"id": 1,
+		"name": "John Doe",
+		"balance": 4750.89,
+		"address": "123 My Street",
+		"city": "My City", 
+		"state": "MS",
+		"zipCode": "11111",
+		"country": "USA"
+	}, {
+		"id": 2,
+		"name": "Jane Doe",
+		"balance": 4820.09,
+		"address": "321 Your Street",
+		"city": "Your City", 
+		"state": "NY",
+		"zipCode": "33333",
+		"country": "USA"
+	}
+]
+[
+	{
+		"id": 3,
+		"name": "Maria Doe",
+		"balance": 4750.89,
+		"address": "123 My Street",
+		"city": "My City",
+		"state": "ME",
+		"zipCode": "11111",
+		"country": "USA"
+	}, {
+	"id": 4,
+	"name": "Xi Doe",
+	"balance": 4820.09,
+	"address": "321 Your Street",
+	"city": "Your City",
+	"state": "NV",
+	"zipCode": "33333",
+	"country": "USA"
+}
+]

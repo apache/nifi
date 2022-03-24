@@ -1,0 +1,6 @@
+{
+	"name": "unitTest",
+	"namespace": "org.apache.nifi",
+	"type": "record",
+	"fields": []
+}

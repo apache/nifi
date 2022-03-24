@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>ConsumeKinesisStream</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+</head>
+<body>
+
+<h1>Streaming Versus Batch Processing</h1>
+<p>
+    ConsumeKinesisStream retrieves all Kinesis Records that it encounters in the configured Kinesis Stream.
+    There are two common, broadly defined use cases.
+</p>
+
+<h3>Per-Message Use Case</h3>
+<p>
+    By default, the Processor will create a separate FlowFile for each Kinesis Record (message) in the Stream
+    and add attributes for shard id, sequence number, etc.
+</p>
+
+<h3>Per-Batch Use Case</h3>
+<p>
+    Another common use case is the desire to process all Kinesis Records retrieved from the Stream in a batch as a single FlowFile.
+</p>
+
+<p>
+    The ConsumeKinesisStream Processor can optionally be configured with a Record Reader and Record Writer.
+    When a Record Reader and Record Writer are configured, a single FlowFile will be created that will contain a Record
+    for each Record within the batch of Kinesis Records (messages), instead of a separate FlowFile per Kinesis Record.
+</p>
+
+<p>
+    The FlowFiles emitted in this mode will include the standard <code>record.*</code> attributes along with the same
+    Kinesis Shard ID, Sequence Number and Approximate Arrival Timestamp; but the values will relate to the <b>last</b>
+    Kinesis Record that was processed in the batch of messages constituting the content of the FlowFile.
+</p>
+
+</body>
+</html>

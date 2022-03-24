@@ -1,0 +1,135 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+* {
+    margin: 0;
+    padding: 0;
+}
+
+#content-viewer-message-dialog {
+    z-index: 1302;
+    display: none;
+    height: 225px;
+    width: 375px;
+    font-size: 62.5%
+}
+
+#view-as-label {
+    position: absolute;
+    top: 72px;
+    left: 100px;
+    line-height: 30px;
+    font-size: 12px;
+    font-weight: normal;
+    font-family: Roboto Slab;
+    color: #262626;
+}
+
+#view-as {
+    position: relative;
+    top: 72px;
+    left: 150px;
+    width: 148px;
+}
+
+#content-filename {
+    position: absolute;
+    top: 62px;
+    right: 50px;
+    line-height: normal;
+    color: #775351;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'Roboto';
+}
+
+#content-type {
+    position: absolute;
+    top: 79px;
+    right: 50px;
+    line-height: normal;
+    color: #775351;
+    font-size: 13px;
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'Roboto';
+}
+
+.content-label {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+    margin-right: 8px;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.hidden {
+    display: none;
+}
+
+/* hex viewer */
+
+#hexview-content {
+    position: absolute;
+    right: 50px;
+    bottom: 50px;
+    left: 100px;
+    top: 100px;
+    border: 1px solid #aaa;
+    overflow: auto;
+    background-color: #fff;
+}
+
+#hexview-content table.hexviewerwindow_table {
+    border: none;
+    margin-left: 0;
+    background-color: #fff;
+}
+
+#hexview-content td {
+    padding: 2px;
+}
+
+#truncation-message {
+    position: absolute;
+    left: 100px;
+    bottom: 35px;
+    color: #666;
+    font-style: italic;
+    font-size: 11px;
+}
+
+/* no viewer */
+
+#no-viewer {
+    position: absolute;
+    right: 50px;
+    bottom: 50px;
+    left: 100px;
+    top: 100px;
+    border: 1px solid #aaa;
+    overflow: auto;
+    background-color: #fff;
+    font-style: italic;
+    padding: 5px;
+    font-size: 13px;
+}

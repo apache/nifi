@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<beans default-lazy-init="true"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+    <!-- initialize the audit data source -->
+    <bean id="auditDataSource" class="org.apache.nifi.admin.AuditDataSourceFactoryBean" destroy-method="shutdown">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- initialize the idp data source -->
+    <bean id="idpDataSource" class="org.apache.nifi.admin.IdpDataSourceFactoryBean" destroy-method="shutdown">
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+
+    <!-- initialize the audit transaction builder -->
+    <bean id="auditTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
+        <property name="dataSource" ref="auditDataSource"/>
+    </bean>
+
+    <!-- initialize the idp transaction builder -->
+    <bean id="idpTransactionBuilder" class="org.apache.nifi.admin.service.transaction.impl.StandardTransactionBuilder">
+        <property name="dataSource" ref="idpDataSource"/>
+    </bean>
+
+    <!-- audit service -->
+    <bean id="auditService" class="org.apache.nifi.admin.service.impl.StandardAuditService">
+        <property name="transactionBuilder" ref="auditTransactionBuilder"/>
+    </bean>
+
+    <!-- idp credential service -->
+    <bean id="idpCredentialService" class="org.apache.nifi.admin.service.impl.StandardIdpCredentialService">
+        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
+    </bean>
+
+    <!-- idp user group service -->
+    <bean id="idpUserGroupService" class="org.apache.nifi.admin.service.impl.StandardIdpUserGroupService">
+        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
+    </bean>
+
+</beans>

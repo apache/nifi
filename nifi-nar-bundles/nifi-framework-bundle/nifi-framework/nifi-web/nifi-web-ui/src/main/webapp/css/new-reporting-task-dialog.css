@@ -1,0 +1,105 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* 
+    New reporting task dialog.
+*/
+
+#new-reporting-task-dialog {
+    min-height:620px;
+    height: 620px;
+    width: 800px;
+    min-width: 760px;
+}
+
+#reporting-task-types-container {
+    padding: 0px;
+}
+
+#reporting-task-bundle-group-combo {
+    margin-right: 2px;
+}
+
+#reporting-task-description-container {
+    padding: 0px;
+}
+
+#reporting-task-type-container {
+    padding: 20px 0 5px 0;
+    display: flex;
+}
+
+#reporting-task-type-name {
+    color: #775351;
+    font-size: 16px;
+    font-weight: 500;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#reporting-task-type-bundle {
+    margin-left: 15px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 13px;
+    line-height: 16px;
+    color: #666;
+    letter-spacing: 0.25px;
+    min-width: 0;
+}
+
+#reporting-task-type-description {
+    height: 80px;
+    font-size: 13px;
+    line-height: 17px;
+    padding-top: 10px;
+}
+
+#reporting-task-types-table {
+    min-height: 150px;
+    overflow: hidden;
+    height: 70%;
+    width: 100%;
+}
+
+#reporting-task-types-table-container th {
+    vertical-align: middle;
+}
+
+#reporting-task-types-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+/*
+    Processor type table filter
+*/
+
+#reporting-task-type-filter-controls {
+    min-height: 32px;
+    padding: 0px;
+    margin: 0px;
+}
+
+#reporting-task-type-filter {
+    width: 200px;
+}
+
+#reporting-task-tag-cloud {
+    margin-top: -2px;
+}

@@ -1,0 +1,32 @@
+{
+	"id": 1,
+	"name": "John Doe",
+	"address": "123 My Street",
+	"city": "My City", 
+	"state": "MS",
+	"zipCode": "11111",
+	"country": "USA",
+	"accounts": [{
+		"id": 42,
+		"balance": 4750.89,
+		"transactions": [{
+			"id": 5,
+			"amount": 150.31
+		},
+		{
+			"id": 6,
+			"amount": -15.31
+		}]
+	}, {
+		"id": 43,
+		"balance": 48212.38,
+		"transactions": [{
+			"id": 7,
+			"amount": 36.78
+		},
+		{
+			"id": 8,
+			"amount": -21.34
+		}]
+	}]
+}

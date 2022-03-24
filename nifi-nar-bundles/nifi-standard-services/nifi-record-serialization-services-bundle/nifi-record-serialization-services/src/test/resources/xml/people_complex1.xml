@@ -1,0 +1,33 @@
+<PEOPLE>
+    <PERSON ID="1">
+        <CHILDREN ID="first husband">
+            <CHILD ID="1-1-1">
+                <NAME>Selina</NAME>
+                <ROLE>daughter</ROLE>
+            </CHILD>
+            <CHILD ID="1-1-2">
+                <NAME>Hans</NAME>
+                <ROLE>son</ROLE>
+            </CHILD>
+        </CHILDREN>
+        <CHILDREN ID="second husband">
+            <CHILD ID="1-2-1">
+                <NAME>Selina2</NAME>
+                <ROLE>daughter</ROLE>
+            </CHILD>
+            <CHILD ID="1-2-2">
+                <NAME>Hans2</NAME>
+                <ROLE>son</ROLE>
+            </CHILD>
+        </CHILDREN>
+    </PERSON>
+    <PERSON ID="2">
+        <NAME>Tom</NAME>
+        <CHILDREN ID="first wife">
+            <CHILD ID="2-1-1">
+                <NAME>Selina3</NAME>
+                <ROLE>daughter</ROLE>
+            </CHILD>
+        </CHILDREN>
+    </PERSON>
+</PEOPLE>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>PutS3Object</title>
+
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+	<h2>Configuration Details</h2>
+	<h3>Object Key</h3>
+	<p>The Object Key property value should not start with "/".</p>
+	<h3>Credentials File</h3>
+    <p>The Credentials File property allows the user to specify the path to a file containing the AWS access key and secret key. The contents of the file should be in the following format:</p>
+    <pre>
+        [default]
+		accessKey=&lt;access key&gt;
+		secretKey=&lt;security key&gt;
+    </pre>
+    <p>Make sure the credentials file is readable by the NiFi service user.</p>
+    <p>When using the Credential File property, ensure that there are no values for the Access Key and Secret Key properties.  The Value column should read "No value set" for both.  <b>Note:</b> Do not check "Set empty string" for either as the empty string is considered a set value.</p>
+</body>
+</html>

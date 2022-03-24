@@ -1,0 +1,17 @@
+[
+  {
+    "id": "0",
+    "latitude": 41.7,
+    "longitude": 0.08
+  },
+  {
+    "id": "1",
+    "latitude": 441.7,
+    "longitude": 0.08
+  },
+  {
+    "id": "2",
+    "latitude": "hello",
+    "longitude": 0.08
+  }
+]

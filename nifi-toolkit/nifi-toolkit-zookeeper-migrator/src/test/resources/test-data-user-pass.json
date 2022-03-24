@@ -1,0 +1,46 @@
+[
+  {
+    "connectString": "127.0.0.1:62317/nifi",
+    "servers": [
+      "127.0.0.1:62317"
+    ],
+    "path": "/nifi"
+  },
+  {
+    "path": "/",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 2,
+      "mzxid": 2,
+      "ctime": 1485792794977,
+      "mtime": 1485792794977,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 2
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "digest",
+          "id": "nifi:RuSeH3tpzgba3p9WrG/UpiSIsGg\u003d"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  }
+]

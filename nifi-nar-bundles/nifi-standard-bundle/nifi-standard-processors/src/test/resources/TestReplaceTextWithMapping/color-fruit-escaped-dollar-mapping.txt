@@ -1,0 +1,7 @@
+red 		\$1 apple
+orange 		\$1 orange
+yellow 		\$1 banana
+green		\$1 grape
+blue		\$1 blueberry
+purple		\$1 plum
+

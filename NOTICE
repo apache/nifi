@@ -1,0 +1,135 @@
+Apache NiFi
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This product includes the following work from the Apache Hadoop project under Apache Software License V2:
+  BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+This product includes derived works from Apache Commons Lang (ASLv2 licensed)
+  Copyright 2019 The Apache Software Foundation
+  The derived work is adapted from the class StringUtils:
+    https://github.com/apache/commons-lang/blob/465e6becd8beda9569fbdc9ff44fac7dc3c5d1c6/src/main/java/org/apache/commons/lang3/StringUtils.java
+
+This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
+  Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
+  while at Mandiant http://www.mandiant.com
+  The derived work is adapted from Evtx/Evtx.py, Evtx/BinaryParser.py, Evtx/Nodes.py, Evtx/Views.py
+  and can be found in the org.apache.nifi.processors.evtx.parser package.
+
+This includes derived works from the Apache Storm (ASLv2 licensed) project (https://github.com/apache/storm):
+  Copyright 2015 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/storm/hive/common/HiveWriter.java
+    org/apache/storm/hive/common/HiveOptions.java
+  and can be found in the org.apache.nifi.util.hive package
+
+This includes derived works from the Apache Hadoop (ASLv2 licensed) project (https://github.com/apache/hadoop):
+  Copyright 2014 The Apache Software Foundation
+  The derived work is adapted from
+    org/apache/hadoop/security/authentication/client/KerberosAuthenticator.java
+  and can be found in the org.apache.nifi.hadoop package
+
+This includes derived works from the Apache Hive (ASLv2 licensed) project (https://github.com/apache/hive):
+  Copyright 2008-2016 The Apache Software Foundation
+  The derived work is adapted from
+    release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
+  and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  The derived work is adapted from
+    release-3.0.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+  and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
+
+This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
+  Copyright 2013-2014 Bazaarvoice, Inc
+  The derived work is adapted from com.bazaarvoice.jolt.chainr.ChainrBuilder.java, com.bazaarvoice.jolt.chainr.spec.ChainrSpec.java,
+  com.bazaarvoice.jolt.chainr.spec.ChainrEntry.java and can be found in the org.apache.nifi.processors.standard.util.jolt.TransformFactory.java class.
+
+This includes derived works from Elastic Logstash (https://github.com/elastic/logstash/tree/v1.4.0/) and modified by Anthony Corbacho, and contributors
+  available under an Apache Software License V2.
+  Copyright 2009-2013 Jordan Sissel, Pete Fritchman, and contributors.
+  Copyright 2014 Anthony Corbacho, and contributors.
+  The derived work consists in modifications from patterns/grok-patterns
+  and can be found in the file nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestExtractGrok/patterns
+
+This includes derived works from Maxmind GeoIP2 Java available under Apache Software License V2.  Portions of test code found in
+  https://github.com/maxmind/GeoIP2-java/blob/v2.2.0/src/test/java/com/maxmind/geoip2/TestTransport.java
+  Copyright (c) 2013 by MaxMind, Inc.
+  Are used in unit tests found in nifi/nifi-nar-bundles/nifi-enrich-bundle/nifi-enrich-processors/src/test/java/org/apache/nifi/processors/TestGeoEnrichIP.java
+
+This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
+  and
+  https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java
+  Copyright 2012-2017 The Apache Software Foundation
+  The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
+  and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
+
+This includes derived works from Apache Solr available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/lucene-solr/blob/branch_7x/solr/solrj/src/java/org/apache/solr/client/solrj/impl/Krb5HttpClientBuilder.java
+  Copyright 2006-2020 The Apache Software Foundation
+  The code can be found nifi-nar-bundles/nifi-solr-bundle/nifi-solr-processors/src/main/java/org/apache/nifi/processors/solr/kerberos/KerberosHttpClientBuilder.java
+
+This includes derived works from Apache Hadoop available under Apache Software License V2. Portions of the code found in
+  https://github.com/apache/hadoop/blob/release-2.7.3-RC2/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/security/UserGroupInformation.java
+  The code can be found nifi-commons/nifi-security-utils/src/main/java/org/apache/nifi/security/krb/KeytabUser.java
+This includes derived works from apigateway-generic-java-sdk (ASLv2 licenced) project (https://github.com/rpgreen/apigateway-generic-java-sdk):
+  The derived work is adapted from
+    main/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+    test/ca/ryangreen/apigateway/generic/
+      GenericApiGatewayClientTest.java
+      LambdaMatcher.java
+  and can be found in the directories:
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-abstract-processors/src/main/../wag/client/
+      GenericApiGatewayClient.java
+      GenericApiGatewayClientBuilder.java
+      GenericApiGatewayException.java
+      GenericApiGatewayRequest.java
+      GenericApiGatewayRequestBuilder.java
+      Validate.java
+    nifi-nar-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/../wag/
+      RequestMatcher.java
+      GetAWSGatewayApiTest.java
+
+This includes derived works from Dropwizard Metrics available under Apache Software License V2 (https://github.com/dropwizard/metrics)
+  Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2017 Dropwizard Team
+  This product includes software developed by Coda Hale and Yammer, Inc.
+
+  This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+  LongAdder), which was released with the following comments:
+
+      Written by Doug Lea with assistance from members of JCP JSR-166
+      Expert Group and released to the public domain, as explained at
+      http://creativecommons.org/publicdomain/zero/1.0/
+
+  The derived work in the nifi-metrics module is adapted from
+    https://github.com/dropwizard/metrics/blob/v2.2.0/metrics-core/src/main/java/com/yammer/metrics/core/VirtualMachineMetrics.java
+  and can be found in
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java
+
+This product includes derived works from Apache Commons Id (ASLv2 licensed)
+  Copyright 2003-2006 The Apache Software Foundation
+  The derived work is adapted from
+    http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
+  and can be found in
+    nifi-commons/nifi-expression-language/src/main/java/org/apache/nifi/attribute/expression/language/evaluation/functions/Uuid3Evaluator.java
+  and
+    nifi-commons/nifi-uuid5/src/main/java/org/apache/nifi/uuid5/Uuid5Util.java
+
+This includes derived works from Cloudera Schema Registry available under Apache Software License V2 (https://github.com/hortonworks/registry)
+  Cloudera Schema Registry
+  Copyright 2016-2019 Cloudera, Inc.
+  The code can be found in nifi-nar-bundles/nifi-standard-services/nifi-hwx-schema-registry-bundle/nifi-hwx-schema-registry-service/src/main/java/com/hortonworks/registries/schemaregistry/client/SchemaRegistryClient.java
+
+This includes derived works from Apache Kafka available under Apache Software License V2
+    Copyright 2021 The Apache Software Foundation.
+    The derived work is adapted from
+      https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/common/security/kerberos/KerberosLogin.java
+    and can be found in
+      nifi-nar-bundles/nifi-kafka-bundle/nifi-kafka-2-6-processors/src/main/java/org/apache/nifi/processors/kafka/pubsub/CustomKerberosLogin.java

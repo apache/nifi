@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController encoding-version="1.0">
+    <maxTimerDrivenThreadCount>10</maxTimerDrivenThreadCount>
+    <maxEventDrivenThreadCount>5</maxEventDrivenThreadCount>
+    <rootGroup>
+        <id>fcf146b2-0157-1000-7850-7adf1d31e3fa</id>
+        <name>NiFi Flow</name>
+        <position x="0.0" y="0.0"/>
+        <comment/>
+        <processGroup>
+            <id>8a61ec1d-0158-1000-3a1a-12c54fe77838</id>
+            <name>EncryptedProperties Example</name>
+            <position x="1119.0" y="295.0"/>
+            <comment/>
+            <processor>
+                <id>8a621f0b-0158-1000-b5c2-92a09a124501</id>
+                <name>Encrypt</name>
+                <position x="626.0" y="237.0"/>
+                <styles/>
+                <comment/>
+                <class>org.apache.nifi.processors.standard.EncryptContent</class>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <penalizationPeriod>30 sec</penalizationPeriod>
+                <yieldPeriod>1 sec</yieldPeriod>
+                <bulletinLevel>WARN</bulletinLevel>
+                <lossTolerant>false</lossTolerant>
+                <scheduledState>STOPPED</scheduledState>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <runDurationNanos>0</runDurationNanos>
+                <property>
+                    <name>Mode</name>
+                    <value>Encrypt</value>
+                </property>
+                <property>
+                    <name>key-derivation-function</name>
+                    <value>NIFI_LEGACY</value>
+                </property>
+                <property>
+                    <name>Encryption Algorithm</name>
+                    <value>MD5_128AES</value>
+                </property>
+                <property>
+                    <name>allow-weak-crypto</name>
+                    <value>not-allowed</value>
+                </property>
+                <property>
+                    <name>Password</name>
+                    <value>enc{7468697349734142616453616c742e2e79ad38319f8069990c6ac60cad75639f9d2ab7dff1a0b8b488af2fff659cf353}</value>
+                </property>
+                <property>
+                    <name>raw-key-hex</name>
+                </property>
+                <property>
+                    <name>public-keyring-file</name>
+                </property>
+                <property>
+                    <name>public-key-user-id</name>
+                </property>
+                <property>
+                    <name>private-keyring-file</name>
+                </property>
+                <property>
+                    <name>private-keyring-passphrase</name>
+                </property>
+            </processor>
+            <processor>
+                <id>8a6314ee-0158-1000-6dd0-60f153db26c1</id>
+                <name>Decrypt</name>
+                <position x="630.0" y="482.0"/>
+                <styles/>
+                <comment/>
+                <class>org.apache.nifi.processors.standard.EncryptContent</class>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <penalizationPeriod>30 sec</penalizationPeriod>
+                <yieldPeriod>1 sec</yieldPeriod>
+                <bulletinLevel>WARN</bulletinLevel>
+                <lossTolerant>false</lossTolerant>
+                <scheduledState>STOPPED</scheduledState>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <runDurationNanos>0</runDurationNanos>
+                <property>
+                    <name>Mode</name>
+                    <value>Decrypt</value>
+                </property>
+                <property>
+                    <name>key-derivation-function</name>
+                    <value>NIFI_LEGACY</value>
+                </property>
+                <property>
+                    <name>Encryption Algorithm</name>
+                    <value>MD5_128AES</value>
+                </property>
+                <property>
+                    <name>allow-weak-crypto</name>
+                    <value>not-allowed</value>
+                </property>
+                <property>
+                    <name>Password</name>
+                    <value>enc{7468697349734142616453616c742e2e63a2cd00e648c459e7e45223fefe8d38ab9ed3d71d94be57d5b0e4391980c858}</value>
+                </property>
+                <property>
+                    <name>raw-key-hex</name>
+                </property>
+                <property>
+                    <name>public-keyring-file</name>
+                </property>
+                <property>
+                    <name>public-key-user-id</name>
+                </property>
+                <property>
+                    <name>private-keyring-file</name>
+                </property>
+                <property>
+                    <name>private-keyring-passphrase</name>
+                </property>
+            </processor>
+            <connection>
+                <id>8a636069-0158-1000-50ff-244f2a8eeb7a</id>
+                <name/>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <sourceId>8a621f0b-0158-1000-b5c2-92a09a124501</sourceId>
+                <sourceGroupId>8a61ec1d-0158-1000-3a1a-12c54fe77838</sourceGroupId>
+                <sourceType>PROCESSOR</sourceType>
+                <destinationId>8a6314ee-0158-1000-6dd0-60f153db26c1</destinationId>
+                <destinationGroupId>8a61ec1d-0158-1000-3a1a-12c54fe77838</destinationGroupId>
+                <destinationType>PROCESSOR</destinationType>
+                <relationship>success</relationship>
+                <maxWorkQueueSize>10000</maxWorkQueueSize>
+                <maxWorkQueueDataSize>1 GB</maxWorkQueueDataSize>
+                <flowFileExpiration>0 sec</flowFileExpiration>
+            </connection>
+        </processGroup>
+    </rootGroup>
+    <controllerServices/>
+    <reportingTasks/>
+</flowController>

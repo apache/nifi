@@ -1,0 +1,186 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Queue listing styles
+*/
+
+#queue-listing-container {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+}
+
+#queue-listing-header-text {
+    font-size: 18px;
+    font-weight: bold;
+    color: #728E9B;
+    font-family: Roboto Slab;
+}
+
+#queue-listing-stats-container {
+    margin-top: 18px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#queue-listing-refresh-container {
+    position: absolute;
+    bottom: 20px;
+    left: 0px;
+}
+
+#queue-listing-last-refreshed {
+    font-weight: bold;
+}
+
+#queue-listing-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+/* queue listing table */
+
+#queue-listing-table {
+    position: absolute;
+    top: 53px;
+    left: 0px;
+    bottom: 68px;
+    right: 0px;
+    min-height: 150px;
+}
+
+#queue-listing-table div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+/* queue listing table */
+
+#queue-listing-message {
+    position: absolute;
+    top: 36px;
+    color: #ba554a;
+    font-family: Roboto;
+    font-size: 13px;
+    font-weight: 500;
+    right: 0px;
+    max-width: 40%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* flowfile details */
+
+div.flowfile-header {
+    color: #728e9b;
+    font-size: 15px;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
+}
+
+#flowfile-attributes-container {
+    height: 290px;
+    overflow: auto;
+    padding: 5px;
+}
+
+div.detail-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.detail-value, div.flowfile-info {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+div.attribute-detail {
+    margin-bottom: 15px;
+}
+
+div.attribute-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.attribute-value {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Roboto';
+    font-style: normal;
+}
+
+#flowfile-attributes-header {
+    float: left;
+}
+
+div.flowfile-detail {
+    margin-bottom: 15px;
+}
+
+#content-download {
+    float: left;
+    margin: 0;
+}
+
+#content-view {
+    float: left;
+    margin-left: 5px;
+}
+
+div.content-detail-name {
+    width: 100%;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+div.content-detail-value {
+    line-height: normal;
+    width: 100%;
+    color: #775351;
+    font-size: 13px;
+    font-weight: 500;
+}

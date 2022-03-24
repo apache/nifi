@@ -1,0 +1,13 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "*": {
+        "rating": {
+          "primary": {
+            "value": "[#4].primary_value"
+          }
+        }
+      }
+    }
+  }]

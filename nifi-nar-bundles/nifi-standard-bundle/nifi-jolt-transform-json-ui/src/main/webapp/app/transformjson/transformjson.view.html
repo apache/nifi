@@ -1,0 +1,124 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<div layout="column">
+    <div layout="column" layout>
+
+        <div class="md-toolbar-tools large-label">
+            <span>Jolt Transformation DSL</span>
+            <span flex></span>
+            <span ng-show="(jsonSpec || transform == 'jolt-transform-sort') && !validObj.valid && !error">{{validObj.message}}</span>
+            <span ng-show="jsonSpec && validObj.valid && !error">Specification is Valid</span>
+            <span ng-show="error">{{error}}</span>
+			<span>
+				&nbsp;&nbsp;
+				<button class="primary-button" ng-click="validateJson(jsonInput,getSpec(transform,jsonSpec),transform)" ng-disabled="!(jsonSpec)">
+  				Validate
+				</button>
+			</span>
+        </div>
+
+        <div class="md-toolbar-tools large-label">
+            <md-select flex="30" ng-model="transform" ng-change="toggleEditor(specEditor,transform,true)" class="md-no-underline">
+                <md-option ng-repeat="option in transformOptions | orderBy: 'label'" ng-value="option.value">{{option.label}}</md-option>
+            </md-select>
+            <span flex></span>
+        </div>
+
+        <div class="md-toolbar-tools large-label">
+				<span>
+				Jolt Specification
+				</span>
+            <span flex></span>
+                <span class="info">
+                &nbsp;&nbsp;
+                <button class="small-button" ng-click="formatEditor(specEditor)" ng-disabled="!jsonSpec || transform == 'jolt-transform-sort'">
+            		<i class="fa fa-align-left" aria-hidden="true" title="Format"></i>
+            	</button>
+                </span>
+        </div>
+
+        <div id="specEditor" ui-refresh="true" ng-model="jsonSpec" ui-codemirror="editorProperties" class="code-mirror-editor {{disableCSS}}" >
+        </div>
+    </div>
+
+</div>
+
+<div layout="column">
+    <div layout="row">
+        <div flex></div>
+        <div>
+            <br/>
+            <span ng-show="error" class="info">{{error}}</span>
+            <span ng-show="saveStatus && !error" class="info">{{saveStatus}}</span>
+            <span>
+            <button class="primary-button" ng-click="showVariableDialog()">
+   			Attributes
+            </button>
+            </span>
+            <span>
+            <button class="primary-button" ng-click="saveSpec(jsonInput,getSpec(transform,jsonSpec),transform,processorId,clientId,disconnectedNodeAcknowledged,revisionId)"
+                    ng-disabled="(!jsonSpec && transform != 'jolt-transform-sort') || !editable || !specUpdated">
+            Save
+            </button>
+            </span>
+        </div>
+    </div>
+</div>
+
+<div layout="column">
+
+    <div layout="row">
+        <div flex="45">
+
+            <div class="md-toolbar-tools large-label">
+                 	<span>
+                    JSON Input
+                    </span>
+                <span flex></span>
+                    <span class="info">
+                    &nbsp;&nbsp;
+                		<button class="small-button" ng-click="formatEditor(inputEditor)" ng-disabled="!(jsonInput) || (!jsonSpec && transform != 'jolt-transform-sort')">
+            				<i class="fa fa-align-left" aria-hidden="true" title="Format"></i>
+            			</button>
+
+                    </span>
+            </div>
+
+
+            <div id="inputJson" ng-model="jsonInput" ui-refresh="true" ui-codemirror="inputProperties" class="code-mirror-editor"></div>
+        </div>
+
+        <div flex="10" layout="column" layout-align="center center">
+
+            <div class="large-label">
+                <button class="primary-button" ng-click="transformJson(jsonInput,getSpec(transform,jsonSpec),transform)" ng-disabled="!(jsonInput) || (!jsonSpec && transform != 'jolt-transform-sort')">
+                    Transform
+                </button>
+            </div>
+
+        </div>
+
+        <div flex="45">
+
+            <div class="md-toolbar-tools large-label">
+                JSON Output
+            </div>
+
+            <div id="outputJson" ng-model="jsonOutput" ui-refresh="true"  ui-codemirror="outputProperties" class="code-mirror-editor"></div>
+        </div>
+
+    </div>
+
+</div>

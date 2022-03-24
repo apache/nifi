@@ -1,0 +1,11 @@
+{
+  "keyStore" : "serverKeyStore",
+  "keyStoreType" : "jks",
+  "token" : "myTestTokenUseSomethingStronger",
+  "caHostname" : "localhost",
+  "port" : 9443,
+  "days" : 825,
+  "keySize" : 2048,
+  "keyPairAlgorithm" : "RSA",
+  "signingAlgorithm" : "SHA256WITHRSA"
+}

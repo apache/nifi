@@ -1,0 +1,194 @@
+[
+  {
+    "connectString": "127.0.0.1:62295/nifi/components",
+    "servers": [
+      "127.0.0.1:62295"
+    ],
+    "path": "/nifi/components"
+  },
+  {
+    "path": "/1/a",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 6,
+      "mzxid": 6,
+      "ctime": 1485792790772,
+      "mtime": 1485792790772,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 97372916257193984,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 6
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 97372916257193984
+  },
+  {
+    "path": "/1",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 5,
+      "mzxid": 5,
+      "ctime": 1485792790771,
+      "mtime": 1485792790771,
+      "version": 0,
+      "cversion": 1,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 1,
+      "pzxid": 6
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/3",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 8,
+      "mzxid": 8,
+      "ctime": 1485792790773,
+      "mtime": 1485792790773,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 8
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/2",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 7,
+      "mzxid": 7,
+      "ctime": 1485792790772,
+      "mtime": 1485792790772,
+      "version": 0,
+      "cversion": 0,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 0,
+      "pzxid": 7
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  },
+  {
+    "path": "/",
+    "data": [
+      115,
+      111,
+      109,
+      101,
+      32,
+      100,
+      97,
+      116,
+      97
+    ],
+    "stat": {
+      "czxid": 3,
+      "mzxid": 4,
+      "ctime": 1485792790757,
+      "mtime": 1485792790762,
+      "version": 1,
+      "cversion": 3,
+      "aversion": 0,
+      "ephemeralOwner": 0,
+      "dataLength": 9,
+      "numChildren": 3,
+      "pzxid": 8
+    },
+    "acls": [
+      {
+        "perms": 31,
+        "id": {
+          "scheme": "world",
+          "id": "anyone"
+        }
+      }
+    ],
+    "ephemeralOwner": 0
+  }
+]

@@ -1,0 +1,24 @@
+[ {
+  "boolean" : true,
+  "byte" : 1,
+  "short" : 8,
+  "int" : 9,
+  "long" : 8,
+  "bigint" : 8,
+  "float" : 8.0,
+  "double" : 8.0,
+  "decimal" : 8.1,
+  "timestamp" : "2017-01-01 17:00:00",
+  "date" : "2017-01-01",
+  "time" : "17:00:00",
+  "char" : "c",
+  "enum" : null,
+  "string" : "string",
+  "record" : null,
+  "choice" : 48,
+  "array" : null,
+  "map" : {
+    "height" : 48,
+    "width" : 96
+  }
+} ]

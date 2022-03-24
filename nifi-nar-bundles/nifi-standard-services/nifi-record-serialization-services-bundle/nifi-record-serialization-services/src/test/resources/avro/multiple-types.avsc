@@ -1,0 +1,16 @@
+{
+  "namespace": "nifi",
+  "name": "data_types",
+  "type": "record",
+  "fields": [
+    {
+      "name": "field",
+      "type": [
+        "null",
+        "int",
+        {"type": "array", "items": "int"},
+        "string"
+      ]
+    }
+  ]
+}

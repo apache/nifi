@@ -1,0 +1,372 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    document styles
+*/
+
+body {
+    display: block;
+    font-family: Roboto, sans-serif;
+    font-size: 62.5%;
+    overflow: hidden;
+    color: #262626;
+}
+
+#update-attributes-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 5px;
+}
+
+/* new rule */
+
+div.new-rule {
+    float: right;
+    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
+    cursor: pointer;
+    height: 19px;
+    width: 19px;
+}
+
+#new-rule-dialog {
+    display: none;
+    z-index: 1301;
+}
+
+#update-attributes-content .ui-autocomplete {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #aaaaaa;
+    z-index: 1351;
+    border-radius: 0;
+}
+
+#update-attributes-content .ui-menu .ui-menu-item a.ui-state-focus {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+    border-radius: 0;
+}
+
+/* rule list panel */
+
+#rule-label-container {
+    line-height: 28px;
+}
+
+div.large-label {
+    color: #728e9b;
+    font-size: 12pt;
+    font-family: 'Roboto Slab';
+    font-style: normal;
+    font-weight: bold;
+    padding-bottom: 10px;
+    text-overflow: ellipsis;
+    float: left;
+}
+
+div.label {
+    font-size: 12px;
+    font-weight: 500;
+    font-family: Roboto Slab;
+    padding-bottom: 4px;
+    color: #262626;
+}
+
+#rule-list-panel {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    left: 20px;
+    right: 65%;
+}
+
+#rule-list-container {
+    overflow-y: auto;
+    display: none;
+    position: absolute;
+    top: 116px;
+    bottom: 175px;
+    left: 0px;
+    right: 0px;
+    min-height: 45px;
+}
+
+#flowfile-policy-container {
+    margin-bottom: 20px;
+}
+
+#rule-list {
+    list-style-type: none;
+    background: #eaeef0;
+    padding: 4px 3px 1px 3px;
+}
+
+#rule-list li {
+    background: #fff;
+    border-top: 1px solid #CCDADB;
+    border-right: 1px solid #CCDADB;
+    border-bottom: 1px solid #CCDADB;
+    border-left: 1px solid #CCDADB;
+    color: #004849;
+    font-weight: 500;
+    cursor: grab;
+    cursor: -moz-grab;
+    cursor: -webkit-grab;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.4);
+    margin-bottom: 5px;
+    display: flex;
+}
+
+#rule-list li.selected {
+    background: #355B6A;
+    border-top: 1px solid #AAC1CE;
+    border-right: 1px solid #85A6B8;
+    border-bottom: 1px solid #618BA3;
+    border-left: 1px solid #85A6B8;
+    color: #fff;
+    font-weight: bold;
+    line-height: 32px;
+    height: 32px;
+    padding: 0px 10px;
+}
+
+#rule-list li.unsaved {
+    font-weight: bold;
+    font-size: 13px;
+    cursor: default;
+}
+
+div.rule-label {
+    float: left;
+    flex-grow: 1;
+}
+
+div.remove-rule {
+    float: right;
+    cursor: pointer;
+    line-height: 32px;
+}
+
+#rule-filter-controls {
+    position: absolute;
+    bottom: 63px;
+    left: 0px;
+    right: 0px;
+}
+
+#rule-filter-type {
+    margin-top: 10px;
+}
+
+/* rule details panel */
+
+#rule-details-panel {
+    overflow: auto;
+    position: absolute;
+    top: 5px;
+    bottom: 42px;
+    left: 37%;
+    right: 20px;
+}
+
+#no-rule-selected-label {
+    line-height: 32px;
+    position: absolute;
+    left: 0px;
+    top: 26px;
+}
+
+div.large-label-container {
+    margin-top: 10px;
+    line-height: 28px;
+}
+
+#flowfile-policy {
+    clear: both;
+}
+
+#new-condition {
+    cursor: pointer;
+    position: absolute;
+    right: 0px;
+}
+
+#actions-label {
+    float: left;
+    line-height: 28px;
+}
+
+#selected-rule-conditions {
+    height: 200px;
+}
+
+#selected-rule-actions-container {
+    padding-top: 20px;
+}
+
+#selected-rule-actions-container div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+#selected-rule-conditions-container {
+    padding-top: 68px;
+}
+
+#selected-rule-conditions-container div.slick-viewport {
+    overflow-x: hidden !important;
+}
+
+#selected-rule-name {
+    position: absolute;
+    right: 0px;
+    top: 26px;
+}
+
+#new-action {
+    cursor: pointer;
+    position: absolute;
+    right: 0px;
+}
+
+#new-rule {
+    float: right;
+}
+
+#selected-rule-actions {
+    height: 200px;
+}
+
+#message {
+    color: #f0ad4e;
+    margin-left: 20px;
+    margin-right: 20px;
+    line-height: 32px;
+    font-size: 13px;
+    font-weight: bold;
+    flex-grow: 1;
+    overflow: auto;
+    width: 100%;
+    height: 41px;
+}
+
+#message-and-save-container {
+    position: absolute;
+    right: 0px;
+    left: 0px;
+    bottom: 0px;
+    display: flex;
+}
+
+#selected-rule-save {
+    margin-right: 20px;
+    margin-top: 10px;
+}
+
+input.editor-text {
+    background: none repeat scroll 0 0 transparent;
+    border: 0 none;
+    height: 100%;
+    margin: 0;
+    outline: 0 none;
+    padding: 0;
+    width: 100%;
+}
+
+/* general styles */
+
+#ok-dialog {
+    display: none;
+}
+
+#yes-no-dialog {
+    display: none;
+}
+
+#new-condition-dialog {
+    display: none;
+    z-index: 1299;
+    cursor: move;
+    padding: 10px;
+}
+
+#new-condition-dialog .nf-editor {
+    margin-bottom: 32px;
+}
+
+#new-condition-attribute {
+    width: 374px;
+}
+
+#new-action-button-container, #new-condition-button-container {
+    bottom: 0;
+    left: 0;
+    position: absolute;
+    right: 0;
+}
+
+#new-action-dialog {
+    display: none;
+    z-index: 1299;
+    cursor: move;
+    padding: 10px;
+}
+
+#new-action-dialog .nf-editor {
+    margin-bottom: 32px;
+}
+
+div.slickgrid-nf-editor .nf-editor {
+    margin-bottom: 37px;
+}
+
+div.property-detail .nf-editor {
+    margin-bottom: 30px;
+}
+
+div.rule-setting {
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+.clear {
+    clear: both;
+}
+
+.unset {
+    font-style: italic;
+    color: #aaa;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.info {
+    color: #004849;
+    margin-left: 5px;
+    font-size: 12px;
+}

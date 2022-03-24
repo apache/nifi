@@ -1,0 +1,174 @@
+Apache NiFi Toolkit
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache NiFi
+    The following NOTICE information applies:
+      Apache NiFi
+      Copyright 2014-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Ant
+    The following NOTICE information applies:
+      Copyright 1999-2018 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      The <sync> task is based on code Copyright (c) 2002, Landmark
+      Graphics Corp that has been kindly donated to the Apache Software
+      Foundation.
+
+  (ASLv2) Apache Commons BeanUtils
+    The following NOTICE information applies:
+      Apache Commons BeanUtils
+      Copyright 2000-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons CLI
+    The following NOTICE information applies:
+      Apache Commons CLI
+      Copyright 2001-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Codec
+    The following NOTICE information applies:
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
+
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2017 The Apache Software Foundation
+
+  (ASLv2) Apache Commons IO
+    The following NOTICE information applies:
+      Apache Commons IO
+      Copyright 2002-2016 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+  (ASLv2) Apache HttpComponents
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      Apache HttpCore
+      Copyright 2005-2015 The Apache Software Foundation
+
+      This project contains annotations derived from JCIP-ANNOTATIONS
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      # Jackson JSON processor
+
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+      ## Licensing
+
+      Jackson core and extension components may licensed under different licenses.
+      To find the details that apply to this artifact see the accompanying LICENSE file.
+      For more information, including possible other licensing options, contact
+      FasterXML.com (http://fasterxml.com).
+
+      ## Credits
+
+      A list of contributors may be found from CREDITS file, which is included
+      in some artifacts (usually source distributions); but is always available
+      from the source code management (SCM) system project uses.
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+      Jetty Web Container
+      Copyright 1995-2019 Mort Bay Consulting Pty Ltd.
+
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:pom:2.5.4 and its submodules included as transitive dependencies - http://www.groovy-lang.org)
+        groovy
+        groovy-ant
+        groovy-cli-commons
+        groovy-cli-picocli
+        groovy-console
+        groovy-datetime
+        groovy-docgenerator
+        groovy-groovydoc
+        groovy-groovysh
+        groovy-jmx
+        groovy-json
+        groovy-jsr223
+        groovy-macro
+        groovy-nio
+        groovy-servlet
+        groovy-sql
+        groovy-swing
+        groovy-templates
+        groovy-test
+        groovy-test-junit5
+        groovy-testng
+        groovy-xml
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2018 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
+
+         This product includes software developed by
+         The Groovy community (http://groovy.codehaus.org/).
+
+         This product bundles icons from the famfamfam.com silk icons set
+         http://www.famfamfam.com/lab/icons/silk/
+         Licensed under the Creative Commons Attribution Licence v2.5
+         http://creativecommons.org/licenses/by/2.5/
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (org.glassfish.jersey.core:jersey-client:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-common (org.glassfish.jersey.core:jersey-common:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-hk2 (org.glassfish.jersey.inject:jersey-hk2:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta Activation (com.sun.activation:jakarta.activation:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+    (EDL 1.0) JAXB (JSR 222) Reference Implementation (org.glassfish.jaxb:jaxb-runtime:jar:2.3.5)
+    (EDL 1.0) Istack Common Utility Code Runtime (com.sun.istack:istack-commons-runtime:jar:3.0.12)
+    (EDL 1.0) TXW2 Runtime (org.glassfish.jaxb:txw2:jar:2.3.5)
