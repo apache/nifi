@@ -290,6 +290,11 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
                 } else {
                     throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, inputFlowFile));
                 }
+
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Query: {}", query.toString());
+                }
+
                 batchStatement.add(query);
 
                 if (recordsAdded.incrementAndGet() == batchSize) {
