@@ -19,7 +19,7 @@ package org.apache.nifi.event.transport.netty;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
-import org.apache.nifi.event.transport.netty.channel.NetworkRecordReader;
+import org.apache.nifi.event.transport.netty.channel.RecordReaderSession;
 import org.apache.nifi.event.transport.netty.channel.RecordReaderHandler;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -48,15 +48,15 @@ public class RecordReaderEventServerFactory extends NettyEventServerFactory {
                                           final int port,
                                           final TransportProtocol protocol,
                                           final RecordReaderFactory readerFactory,
-                                          final BlockingQueue<NetworkRecordReader> senderStreams,
+                                          final BlockingQueue<RecordReaderSession> senderStreams,
                                           final Duration readTimeout) {
         super(address, port, protocol);
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
 
         setHandlerSupplier(() -> Arrays.asList(
-                logExceptionChannelHandler,
                 new ReadTimeoutHandler(readTimeout.getSeconds(), TimeUnit.SECONDS),
-                new RecordReaderHandler(readerFactory, senderStreams, log)
+                new RecordReaderHandler(readerFactory, senderStreams, log),
+                logExceptionChannelHandler
         ));
     }
 }

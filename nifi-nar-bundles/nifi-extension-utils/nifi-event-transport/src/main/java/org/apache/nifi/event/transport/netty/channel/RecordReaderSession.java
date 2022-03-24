@@ -27,14 +27,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketAddress;
 
-public class NetworkRecordReader implements Closeable {
+public class RecordReaderSession implements Closeable {
     private final RecordReaderFactory readerFactory;
     private SocketAddress senderAddress;
     private RecordReader recordReader;
     private final InputStream recordStream;
     private final ComponentLog logger;
 
-    public NetworkRecordReader(final SocketAddress sender, final InputStream recordStream, final RecordReaderFactory factory, final ComponentLog logger) {
+    public RecordReaderSession(final SocketAddress sender, final InputStream recordStream, final RecordReaderFactory factory, final ComponentLog logger) {
         this.senderAddress = sender;
         this.readerFactory = factory;
         this.logger = logger;

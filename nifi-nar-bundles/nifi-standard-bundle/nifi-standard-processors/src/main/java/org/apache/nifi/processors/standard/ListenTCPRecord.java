@@ -34,7 +34,7 @@ import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.RecordReaderEventServerFactory;
-import org.apache.nifi.event.transport.netty.channel.NetworkRecordReader;
+import org.apache.nifi.event.transport.netty.channel.RecordReaderSession;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -231,7 +231,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
     private volatile int port;
     private volatile EventServer eventServer;
-    private final BlockingQueue<NetworkRecordReader> recordReaders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<RecordReaderSession> recordReaders = new LinkedBlockingQueue<>();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -303,7 +303,7 @@ public class ListenTCPRecord extends AbstractProcessor {
             eventServer = null;
         }
 
-        NetworkRecordReader recordReader;
+        RecordReaderSession recordReader;
         while ((recordReader = recordReaders.poll()) != null) {
             try {
                 recordReader.getRecordReader().close();
@@ -315,7 +315,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        NetworkRecordReader networkReader = pollForRecordReader();
+        RecordReaderSession networkReader = pollForRecordReader();
         if (networkReader == null) {
             return;
         }
@@ -338,7 +338,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
                 if (record == null) {
                     getLogger().debug("No records available from {}", networkReader.getSender());
-                    IOUtils.closeQuietly(recordReader);
+                    IOUtils.closeQuietly(networkReader);
                     session.remove(flowFile);
                     return;
                 }
@@ -359,7 +359,6 @@ public class ListenTCPRecord extends AbstractProcessor {
                         // if discarding then bounce to the outer catch block which will close the connection and remove the flow file
                         // if keeping then null out the record to break out of the loop, which will transfer what we have and close the connection
                         try {
-                            getLogger().debug("Reading next record from recordReader");
                             record = recordReader.nextRecord();
                         } catch (final SocketTimeoutException ste) {
                             getLogger().debug("Timeout reading records, will try again later", ste);
@@ -414,7 +413,7 @@ public class ListenTCPRecord extends AbstractProcessor {
         }
     }
 
-    private NetworkRecordReader pollForRecordReader() {
+    private RecordReaderSession pollForRecordReader() {
         try {
             return recordReaders.poll(POLL_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
