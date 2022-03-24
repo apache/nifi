@@ -50,6 +50,9 @@ public class TestInferXmlSchema {
     public void testFlatXml() throws IOException {
         final RecordSchema schema = inferSchema("src/test/resources/xml/person.xml", false);
 
+        assertEquals(7, schema.getFieldCount());
+
+        assertSame(RecordFieldType.STRING, schema.getDataType("ID").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
         assertSame(RecordFieldType.INT, schema.getDataType("AGE").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("COUNTRY").get().getFieldType());
@@ -62,6 +65,8 @@ public class TestInferXmlSchema {
     @Test
     public void testFieldsFromAllRecordsIncluded() throws IOException {
         final RecordSchema schema = inferSchema("src/test/resources/xml/people_nested.xml", true);
+
+        assertEquals(8, schema.getFieldCount());
 
         assertSame(RecordFieldType.STRING, schema.getDataType("ID").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("NAME").get().getFieldType());
@@ -89,6 +94,9 @@ public class TestInferXmlSchema {
     @Test
     public void testStringFieldWithAttributes() throws IOException {
         final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", true);
+
+        assertEquals(3, schema.getFieldCount());
+
         assertSame(RecordFieldType.INT, schema.getDataType("num").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
 
