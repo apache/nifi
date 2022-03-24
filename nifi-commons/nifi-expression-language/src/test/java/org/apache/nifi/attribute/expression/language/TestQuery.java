@@ -41,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
 import static java.lang.Double.NaN;
@@ -300,6 +302,45 @@ public class TestQuery {
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.WHOLE_NUMBER, result.getResultType());
         assertEquals(1384788147678L, result.getValue());
+    }
+
+    @Test
+    public void testInstantToNanos() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toNanos()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(TimeUnit.SECONDS.toNanos(instant.getEpochSecond()) + instant.getNano(), result.getValue());
+    }
+
+    @Test
+    public void testInstantToMicros() {
+        final String pattern = "yyyy/MM/dd HH:mm:ss.SSSSSSSSS";
+        final String dateTime = "2022/03/18 10:22:27.678234567";
+        final String zoneId = "America/New_York";
+        final Query query = Query.compile(String.format("${dateTime:toInstant('%s', '%s'):toMicros()}", pattern, zoneId));
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("dateTime", dateTime);
+
+        final Instant instant = DateTimeFormatter
+                .ofPattern(pattern)
+                .withZone(ZoneId.of(zoneId))
+                .parse(dateTime, Instant::from);
+
+        final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
+        assertEquals(ResultType.NUMBER, result.getResultType());
+        assertEquals(ChronoUnit.MICROS.between(Instant.EPOCH, instant), result.getValue());
     }
 
     @Test

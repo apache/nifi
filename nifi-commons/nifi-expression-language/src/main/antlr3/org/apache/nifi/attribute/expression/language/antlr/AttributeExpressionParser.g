@@ -94,7 +94,7 @@ multiArgBool : (IN) LPAREN! anyArg (COMMA! anyArg)* RPAREN!;
 
 
 // functions that return Numbers (whole or decimal)
-zeroArgNum	: (LENGTH | TO_NUMBER | TO_DECIMAL | COUNT) LPAREN! RPAREN!;
+zeroArgNum	: (LENGTH | TO_NUMBER | TO_DECIMAL | TO_MICROS | TO_NANOS | COUNT) LPAREN! RPAREN!;
 oneArgNum	: ((INDEX_OF | LAST_INDEX_OF) LPAREN! anyArg RPAREN!) |
 			  ((MOD | PLUS | MINUS | MULTIPLY | DIVIDE) LPAREN! anyArg RPAREN!);
 oneOrTwoArgNum : MATH LPAREN! anyArg (COMMA! anyArg)? RPAREN!;

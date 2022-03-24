@@ -124,6 +124,8 @@ IS_EMPTY : 'isEmpty';
 NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
 TO_DECIMAL : 'toDecimal';
+TO_MICROS : 'toMicros';
+TO_NANOS : 'toNanos';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';

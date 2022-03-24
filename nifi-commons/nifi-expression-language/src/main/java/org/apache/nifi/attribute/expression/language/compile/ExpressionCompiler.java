@@ -39,6 +39,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCast
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.InstantCastEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.MicrosCastEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.NanosCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.NumberCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.StringCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.WholeNumberCastEvaluator;
@@ -150,6 +152,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_MICROS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionLexer.TO_NANOS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
@@ -901,6 +905,22 @@ public class ExpressionCompiler {
                     default:
                         throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING +
                             ", " + ResultType.WHOLE_NUMBER + ", or " + ResultType.DATE);
+                }
+            }
+            case TO_MICROS: {
+                verifyArgCount(argEvaluators, 0, "toMicros");
+                if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
+                    return addToken(new MicrosCastEvaluator(subjectEvaluator), "toMicros");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
+                }
+            }
+            case TO_NANOS: {
+                verifyArgCount(argEvaluators, 0, "toNanos");
+                if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
+                    return addToken(new NanosCastEvaluator(subjectEvaluator), "toNanos");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
                 }
             }
             case TO_RADIX: {
