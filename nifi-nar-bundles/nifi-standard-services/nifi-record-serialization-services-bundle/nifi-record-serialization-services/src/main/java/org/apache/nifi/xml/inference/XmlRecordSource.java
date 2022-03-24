@@ -116,13 +116,6 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
                     arrayNode.addElement(childNode);
                     childNodes.put(childName, arrayNode);
                 }
-
-                final Iterator<?> childAttributeIterator = childStartElement.getAttributes();
-                while (childAttributeIterator.hasNext()) {
-                    final Attribute attribute = (Attribute) childAttributeIterator.next();
-                    final String attributeName = attribute.getName().getLocalPart();
-                    childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
-                }
             }
         }
 
