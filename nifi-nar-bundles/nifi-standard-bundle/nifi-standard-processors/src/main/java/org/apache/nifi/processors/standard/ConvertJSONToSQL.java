@@ -37,6 +37,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -63,10 +67,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.JsonNodeFactory;
 
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_COUNT;
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.FRAGMENT_ID;
@@ -435,7 +435,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
     private Set<String> getNormalizedColumnNames(final JsonNode node, final boolean translateFieldNames) {
         final Set<String> normalizedFieldNames = new HashSet<>();
-        final Iterator<String> fieldNameItr = node.getFieldNames();
+        final Iterator<String> fieldNameItr = node.fieldNames();
         while (fieldNameItr.hasNext()) {
             normalizedFieldNames.add(normalizeColumnName(fieldNameItr.next(), translateFieldNames));
         }
@@ -476,7 +476,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
         // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
         // columns that we are inserting into
-        final Iterator<String> fieldNames = rootNode.getFieldNames();
+        final Iterator<String> fieldNames = rootNode.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
@@ -639,7 +639,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
         // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
         // columns that we are inserting into
-        Iterator<String> fieldNames = rootNode.getFieldNames();
+        Iterator<String> fieldNames = rootNode.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 
@@ -687,7 +687,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // Set the WHERE clause based on the Update Key values
         sqlBuilder.append(" WHERE ");
 
-        fieldNames = rootNode.getFieldNames();
+        fieldNames = rootNode.fieldNames();
         int whereFieldCount = 0;
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
@@ -764,7 +764,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // iterate over all of the elements in the JSON, building the SQL statement by adding the column names, as well as
         // adding the column value to a "<sql>.args.N.value" attribute and the type of a "<sql>.args.N.type" attribute add the
         // columns that we are inserting into
-        final Iterator<String> fieldNames = rootNode.getFieldNames();
+        final Iterator<String> fieldNames = rootNode.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
 

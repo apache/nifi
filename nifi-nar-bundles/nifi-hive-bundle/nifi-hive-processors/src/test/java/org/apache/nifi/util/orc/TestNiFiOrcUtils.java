@@ -377,10 +377,11 @@ public class TestNiFiOrcUtils {
 
     public static GenericData.Record buildComplexAvroRecord(Integer i, Map<String, Double> m, String e, Object unionVal, List<Integer> intArray, ByteBuffer decimal) {
         Schema schema = buildComplexAvroSchema();
+        Schema enumSchema = schema.getField("myEnum").schema();
         GenericData.Record row = new GenericData.Record(schema);
         row.put("myInt", i);
         row.put("myMap", m);
-        row.put("myEnum", e);
+        row.put("myEnum", new GenericData.EnumSymbol(enumSchema, e));
         row.put("myLongOrFloat", unionVal);
         row.put("myIntList", intArray);
         row.put("myDecimal", decimal);

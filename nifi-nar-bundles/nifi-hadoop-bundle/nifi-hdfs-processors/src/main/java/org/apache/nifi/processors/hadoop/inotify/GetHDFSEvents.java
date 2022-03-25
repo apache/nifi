@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop.inotify;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.hdfs.DFSInotifyEventInputStream;
@@ -50,7 +51,6 @@ import org.apache.nifi.processors.hadoop.FetchHDFS;
 import org.apache.nifi.processors.hadoop.GetHDFS;
 import org.apache.nifi.processors.hadoop.ListHDFS;
 import org.apache.nifi.processors.hadoop.PutHDFS;
-import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.io.OutputStream;
