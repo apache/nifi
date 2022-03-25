@@ -195,7 +195,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .name("max.bin.count")
         .displayName("Maximum Number of Bins")
         .description("Specifies the maximum number of bins that can be held in memory at any one time. "
-            + "This number should not be smaller than the maximum number of conurrent threads for this Processor, "
+            + "This number should not be smaller than the maximum number of concurrent threads for this Processor, "
             + "or the bins that are created will often consist only of a single incoming FlowFile.")
         .defaultValue("10")
         .required(true)
