@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory {
     private static final Logger logger = LoggerFactory.getLogger(SpawnedStandaloneNiFiInstanceFactory.class);

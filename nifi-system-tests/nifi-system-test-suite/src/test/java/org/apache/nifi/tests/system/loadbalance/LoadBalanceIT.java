@@ -34,8 +34,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,14 +46,14 @@ import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.Set;
 
-import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class LoadBalanceIT extends NiFiSystemIT {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");
@@ -219,7 +218,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         assertEquals(10, nodesByAttribute.size());
         for (final Map.Entry<String, Set<String>> entry : nodesByAttribute.entrySet()) {
             final Set<String> nodes = entry.getValue();
-            assertEquals("FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes, 1, nodes.size());
+            assertEquals(1, nodes.size(), "FlowFile with attribute number=" + entry.getKey() + " went to nodes " + nodes);
         }
     }
 
@@ -303,8 +302,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
-            Assert.fail("Failed to obtain connection status");
-            return null;
+            throw new RuntimeException("Failed to obtain connection status");
         }
     }
 
