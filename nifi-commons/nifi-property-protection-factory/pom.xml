@@ -21,6 +21,11 @@
         <version>1.16.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-property-protection-factory</artifactId>
+    <properties>
+        <!-- We appear to not be able to use the same version of Jackson here because of a subtle bug related to it
+        in the Azure Identity lib-->
+        <jackson.version>2.12.4</jackson.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
