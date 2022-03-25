@@ -27,6 +27,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.InputStream;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
@@ -61,7 +63,7 @@ class SalesforceRestServiceIT implements SalesforceConfigAware {
 
     @Test
     void describeSObjectSucceeds() {
-        String describeSObjectResultJson = testSubject.describeSObject("Account");
+        InputStream describeSObjectResultJson = testSubject.describeSObject("Account");
 
         assertNotNull(describeSObjectResultJson);
     }
@@ -70,7 +72,7 @@ class SalesforceRestServiceIT implements SalesforceConfigAware {
     void querySucceeds() {
         String query = "SELECT id,BillingAddress FROM Account";
 
-        String querySObjectRecordsResultJson = testSubject.query(query);
+        InputStream querySObjectRecordsResultJson = testSubject.query(query);
 
         assertNotNull(querySObjectRecordsResultJson);
     }

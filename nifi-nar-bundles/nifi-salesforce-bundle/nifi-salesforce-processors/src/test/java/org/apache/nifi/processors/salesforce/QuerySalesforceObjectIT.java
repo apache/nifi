@@ -19,7 +19,6 @@ package org.apache.nifi.processors.salesforce;
 import org.apache.nifi.oauth2.StandardOauth2AccessTokenProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.salesforce.util.SalesforceConfigAware;
-import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;

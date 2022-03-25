@@ -17,16 +17,17 @@
 package org.apache.nifi.processors.salesforce.util;
 
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -69,7 +70,7 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         //--
-        final String sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
 
         // WHEN
         final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
@@ -106,7 +107,7 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         //--
-        final String sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
 
         // WHEN
         final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
@@ -127,7 +128,7 @@ class SalesforceToRecordSchemaConverterTest {
         ));
 
         //--
-        final String sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
 
         // WHEN
         final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
@@ -145,7 +146,7 @@ class SalesforceToRecordSchemaConverterTest {
         final RecordSchema expected = new SimpleRecordSchema(Collections.emptyList());
 
         //--
-        final String sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
 
         // WHEN
         final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
@@ -156,28 +157,27 @@ class SalesforceToRecordSchemaConverterTest {
 
     @Test
     void testConvertEmptySchema() {
-        final String sfSchema = "";
+        final InputStream sfSchema = IOUtils.toInputStream("", Charset.defaultCharset());
         assertThrows(MismatchedInputException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
     }
 
     @Test
     void testConvertNullSchema() {
-        final String sfSchema = null;
+        final InputStream sfSchema = null;
         assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
     }
 
     @Test
     void testConvertUnknownDataType() throws IOException {
-        final String sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json");
+        final InputStream sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json");
         final String fieldNames = "FieldWithUnknownType";
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, fieldNames));
         final String errorMessage = "Could not create determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
         assertEquals(errorMessage, exception.getMessage());
     }
 
-    private String readFile(final String path) throws IOException {
-        final byte[] content = Files.readAllBytes(Paths.get(path));
-        return new String(content, StandardCharsets.UTF_8);
+    private InputStream readFile(final String path) throws IOException {
+        return new FileInputStream(path);
     }
 
 }

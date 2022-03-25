@@ -23,6 +23,7 @@ import okhttp3.Response;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -41,7 +42,7 @@ public class SalesforceRestService {
                 .build();
     }
 
-    public String describeSObject(String sObject) {
+    public InputStream describeSObject(String sObject) {
         String url = baseUrl + "/services/data/v" + version + "/sobjects/" + sObject + "/describe?maxRecords=1";
 
         Request request = new Request.Builder()
@@ -53,7 +54,7 @@ public class SalesforceRestService {
         return request(request);
     }
 
-    public String query(String query) {
+    public InputStream query(String query) {
         String url = baseUrl + "/services/data/v" + version + "/query";
 
         HttpUrl httpUrl = HttpUrl.get(url).newBuilder()
@@ -69,7 +70,7 @@ public class SalesforceRestService {
         return request(request);
     }
 
-    private String request(Request request) {
+    private InputStream request(Request request) {
         try (Response response = httpClient.newCall(request).execute()) {
             if (response.code() != 200) {
                 throw new ProcessException("Invalid response" +
@@ -78,7 +79,7 @@ public class SalesforceRestService {
                         " Body: " + (response.body() == null ? null : response.body().string())
                 );
             }
-            return response.body().string();
+            return response.body().byteStream();
         } catch (IOException e) {
             throw new ProcessException(String.format("Salesforce HTTP request failed [%s]", request.url()), e);
         }

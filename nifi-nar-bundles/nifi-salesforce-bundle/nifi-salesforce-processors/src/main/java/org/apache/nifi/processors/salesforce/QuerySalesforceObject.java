@@ -58,15 +58,11 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Date;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,7 +73,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -118,7 +113,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
-    
+
     static final PropertyDescriptor FIELD_NAMES = new PropertyDescriptor.Builder()
             .name("field-names")
             .displayName("Field Names")
@@ -331,7 +326,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     .format(ageFilterUpperTime);
         }
 
-        String describeSObjectResult = salesforceRestService.describeSObject(sObject);
+        InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject);
         ConvertedSalesforceSchema convertedSalesforceSchema = convertSchema(describeSObjectResult, fields);
 
         String querySObject = buildQuery(
@@ -343,7 +338,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 ageFilterLower,
                 ageFilterUpper
         );
-        String querySObjectResult = salesforceRestService.query(querySObject);
+        InputStream querySObjectResultInputStream = salesforceRestService.query(querySObject);
 
         FlowFile flowFile = session.create();
 
@@ -353,7 +348,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
         AtomicInteger recordCountHolder = new AtomicInteger();
 
         flowFile = session.write(flowFile, out -> {
-            InputStream querySObjectResultInputStream = new ByteArrayInputStream(querySObjectResult.getBytes());
             try (
                     JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
                             querySObjectResultInputStream,
@@ -425,7 +419,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
         }
     }
 
-    protected ConvertedSalesforceSchema convertSchema(String describeSObjectResult, String fields) {
+    protected ConvertedSalesforceSchema convertSchema(InputStream describeSObjectResult, String fields) {
         try {
             RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(describeSObjectResult, fields);
 
