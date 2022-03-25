@@ -43,6 +43,8 @@ The following binary components are provided under the Apache Software License v
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
+  (ASLv2) FasterXML WoodStox STaX XML Parser
+
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
       # Jackson JSON processor
