@@ -53,7 +53,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +70,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
-import static junit.framework.TestCase.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FlowSynchronizationIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(FlowSynchronizationIT.class);
@@ -84,7 +84,7 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")

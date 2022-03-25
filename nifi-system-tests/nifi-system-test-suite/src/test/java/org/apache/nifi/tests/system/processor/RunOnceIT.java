@@ -20,15 +20,17 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RunOnceIT extends NiFiSystemIT {
 
-    @Test(timeout = 10000L)
+    @Timeout(10)
+    @Test
     public void testRunOnce() throws NiFiClientException, IOException, InterruptedException {
         ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "1 sec");

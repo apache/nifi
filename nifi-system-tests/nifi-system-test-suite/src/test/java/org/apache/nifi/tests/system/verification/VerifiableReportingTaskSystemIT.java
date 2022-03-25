@@ -23,7 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -31,8 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class VerifiableReportingTaskSystemIT extends NiFiSystemIT {
 
@@ -154,7 +154,7 @@ public class VerifiableReportingTaskSystemIT extends NiFiSystemIT {
         assertEquals(1, resultList.size());
 
         // Even though GenerateFlowFile is not connected, it should be valid because connections are not considered when verifying the processor
-        assertEquals("Unexpected results: " + resultList, Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome());
+        assertEquals(Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome());
     }
 
     @Test

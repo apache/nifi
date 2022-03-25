@@ -27,16 +27,16 @@ import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CloneFlowFileIT extends StatelessSystemIT {
 
@@ -94,9 +94,7 @@ public class CloneFlowFileIT extends StatelessSystemIT {
         try {
             return new String(result.readContentAsByteArray(flowFile), StandardCharsets.UTF_8);
         } catch (final IOException e) {
-            e.printStackTrace();
-            Assert.fail("Could not read content");
-            return null;
+            throw new UncheckedIOException("Read Content Failed", e);
         }
     }
 }

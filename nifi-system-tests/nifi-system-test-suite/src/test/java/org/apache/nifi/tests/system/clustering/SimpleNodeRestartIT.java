@@ -22,16 +22,16 @@ import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SimpleNodeRestartIT extends NiFiSystemIT {
 
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
             "src/test/resources/conf/clustered/node1/bootstrap.conf",
             "src/test/resources/conf/clustered/node2/bootstrap.conf");

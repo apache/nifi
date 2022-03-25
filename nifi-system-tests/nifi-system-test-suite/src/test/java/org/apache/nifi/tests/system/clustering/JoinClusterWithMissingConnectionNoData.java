@@ -20,11 +20,11 @@ import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class JoinClusterWithMissingConnectionNoData extends NiFiSystemIT {
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         return new SpawnedClusterNiFiInstanceFactory(
             new InstanceConfiguration.Builder()
                 .bootstrapConfig("src/test/resources/conf/clustered/node1/bootstrap.conf")

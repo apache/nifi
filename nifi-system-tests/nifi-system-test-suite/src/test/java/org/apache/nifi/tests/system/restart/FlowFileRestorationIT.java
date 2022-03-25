@@ -23,8 +23,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,10 +33,11 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.Collections;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class FlowFileRestorationIT extends NiFiSystemIT {
 
@@ -72,12 +72,7 @@ public class FlowFileRestorationIT extends NiFiSystemIT {
 
         nifiInstance.start();
 
-        try {
-            getNifiClient().getConnectionClient().getConnection(connection.getId());
-            Assert.fail("Didn't expect to retrieve a connection");
-        } catch (final NiFiClientException nfce) {
-            // Expected because the connection no longer exists.
-        }
+        assertThrows(NiFiClientException.class, () -> getNifiClient().getConnectionClient().getConnection(connection.getId()));
 
         // Stop the instance, restore the flow.xml.gz, and restart
         nifiInstance.stop();

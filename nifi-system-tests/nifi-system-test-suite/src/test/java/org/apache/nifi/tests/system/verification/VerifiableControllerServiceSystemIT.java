@@ -22,7 +22,7 @@ import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -30,8 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
 
@@ -88,7 +88,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
 
         // Verify using attributes that should give us a successful verification
         List<ConfigVerificationResultDTO> resultList = getClientUtil().verifyControllerServiceConfig(service.getId(), properties, goodAttributes);
-        assertEquals("Got unexpected results: " + resultList, 7, resultList.size());
+        assertEquals(7, resultList.size());
 
         // Should have SUCCESS for validation, then 5 successes for the steps. Then 1 skipped for the Fail on Primary Node
         for (int i=0; i < resultList.size() - 1; i++) {
@@ -139,7 +139,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
     }
 
     @Test
-    public void testVerificationWithValidConfigWhenComponentRunning() throws InterruptedException, IOException, NiFiClientException {
+    public void testVerificationWithValidConfigWhenComponentRunning() throws IOException, NiFiClientException {
         final ControllerServiceEntity service = getClientUtil().createControllerService("EnsureControllerServiceConfigurationCorrect");
 
         final Map<String, String> properties = Collections.singletonMap("Successful Verification", "true");
@@ -147,9 +147,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
 
         getClientUtil().enableControllerService(service);
 
-        assertThrows(NiFiClientException.class, () -> {
-            getClientUtil().verifyControllerServiceConfig(service.getId(), properties);
-        });
+        assertThrows(NiFiClientException.class, () -> getClientUtil().verifyControllerServiceConfig(service.getId(), properties));
     }
 
 
@@ -179,7 +177,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
         assertEquals(1, resultList.size());
 
         // Even though GenerateFlowFile is not connected, it should be valid because connections are not considered when verifying the processor
-        assertEquals("Unexpected results: " + resultList, Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome());
+        assertEquals(Outcome.SUCCESSFUL.name(), resultList.get(0).getOutcome());
     }
 
     @Test
@@ -189,7 +187,7 @@ public class VerifiableControllerServiceSystemIT extends NiFiSystemIT {
         final List<ConfigVerificationResultDTO> resultList = getClientUtil().verifyControllerServiceConfig(service.getId(), Collections.singletonMap("Validate Sleep Time", "foo"));
         assertEquals(1, resultList.size());
 
-        assertEquals("Unexpected results: " + resultList, Outcome.FAILED.name(), resultList.get(0).getOutcome());
+        assertEquals(Outcome.FAILED.name(), resultList.get(0).getOutcome());
     }
 
 }
