@@ -31,10 +31,10 @@ import java.util.concurrent.CountDownLatch;
  * file which is not fully acquired for example could lead to issues. In order to avoid this, the worker first creates a temporary
  * file and it will rename it to the expected name only after it has been successfully written to the disk.
  */
-final class BufferingExternalResourceProviderWorker extends ConflictResolvingExternalResourceProviderWorker {
-    private static final Logger LOGGER = LoggerFactory.getLogger(BufferingExternalResourceProviderWorker.class);
+final class CollusionAwareResourceProviderWorker extends ConflictResolvingExternalResourceProviderWorker {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CollusionAwareResourceProviderWorker.class);
 
-    BufferingExternalResourceProviderWorker(
+    CollusionAwareResourceProviderWorker(
         final String namePrefix,
         final ClassLoader providerClassLoader,
         final ExternalResourceProvider provider,
@@ -48,41 +48,40 @@ final class BufferingExternalResourceProviderWorker extends ConflictResolvingExt
 
     protected void acquireResource(final ExternalResourceDescriptor availableResource) throws IOException {
         final long startedAt = System.currentTimeMillis();
-        final InputStream inputStream;
 
         final File targetFile = new File(getTargetDirectory(), availableResource.getLocation());
-        final File bufferFile = new File(getTargetDirectory().getPath() + "/.provider_" + getId() + "_buffer.tmp");
-        final File setAsideFile = new File(getTargetDirectory().getPath() + "/.provider_" + getId() + "_aside.tmp");
+        final File tempFile = new File(getTargetDirectory().getPath() + "/.provider_" + getId() + "_buffer.tmp");
+        final File backupFile = new File(getTargetDirectory().getPath() + "/.provider_" + getId() + "_aside.tmp");
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProviderClassLoader())) {
-            inputStream = getProvider().fetchExternalResource(availableResource);
+        try (
+                final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(getProviderClassLoader());
+                final InputStream inputStream = getProvider().fetchExternalResource(availableResource);
+        ) {
+            if (tempFile.exists() && !tempFile.delete()) {
+                throw new ExternalResourceProviderException("Buffer file '" + tempFile.getName() +"' already exists and cannot be deleted");
+            }
+
+            Files.copy(inputStream, tempFile.toPath());
         }
 
-        if (bufferFile.exists() && !bufferFile.delete()) {
-            throw new ExternalResourceProviderException("Buffer file '" + bufferFile.getName() +"' already exists and cannot be deleted");
-        }
-
-        Files.copy(inputStream, bufferFile.toPath());
-        inputStream.close();
-
-        if (targetFile.exists() && !targetFile.renameTo(setAsideFile)) {
+        if (targetFile.exists() && !targetFile.renameTo(backupFile)) {
             throw new ExternalResourceProviderException("Target file '" + targetFile.getName() +"' already exists and cannot be moved aside");
         }
 
-        if (bufferFile.renameTo(targetFile)) {
+        if (tempFile.renameTo(targetFile)) {
             LOGGER.info("Downloaded external resource {} in {} ms", availableResource.getLocation(), (System.currentTimeMillis() - startedAt));
 
-            if (setAsideFile.exists() && !setAsideFile.delete()) {
+            if (backupFile.exists() && !backupFile.delete()) {
                 LOGGER.error("Could not remove set aside file for {}", targetFile.getName());
             }
         } else {
             LOGGER.error("Could not put downloaded resource {} in place", availableResource.getLocation());
 
-            if (!bufferFile.delete()) {
+            if (!tempFile.delete()) {
                 LOGGER.error("Could not delete buffer file for {}", targetFile.getName());
             }
 
-            if (setAsideFile.exists() && !setAsideFile.renameTo(targetFile)) {
+            if (backupFile.exists() && !backupFile.renameTo(targetFile)) {
                 LOGGER.error("After failing to put new file in place, could not revert to the previous file");
             }
         }

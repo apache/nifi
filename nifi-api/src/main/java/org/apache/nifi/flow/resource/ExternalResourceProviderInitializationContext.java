@@ -18,7 +18,6 @@ package org.apache.nifi.flow.resource;
 
 import javax.net.ssl.SSLContext;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
@@ -32,14 +31,15 @@ public interface ExternalResourceProviderInitializationContext {
     Map<String, String> getProperties();
 
     /**
-     * @return An optional predicate, which if presents might filter out unwanted files from the external source during listing.
+     * @return A predicate, which might filter out unwanted files from the external source during listing. If no filtering
+     * necessary, then the predicate should return {@code true} for every call.
      */
-    default Optional<Predicate<ExternalResourceDescriptor>> getFilter() {
-        return Optional.empty();
+    default Predicate<ExternalResourceDescriptor> getFilter() {
+        return (descriptor) -> true;
     }
 
     /**
-     * @return Returns an SSLContext created from NiFi's keystore/truststore
+     * @return Returns an SSLContext.
      */
-    SSLContext getNiFiSSLContext();
+    SSLContext getSSLContext();
 }

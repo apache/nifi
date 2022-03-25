@@ -57,6 +57,11 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
         return sslContext;
     }
 
+    @Override
+    public SSLContext getSSLContext() {
+        return sslContext;
+    }
+
     private Map<String, String> extractProperties(final NiFiProperties properties, final String name) {
         final String prefix = BASIC_PREFIX + name + ".";
         final Map<String, String> candidates = properties.getPropertiesWithPrefix(prefix);

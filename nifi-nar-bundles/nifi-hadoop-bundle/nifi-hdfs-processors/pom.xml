@@ -142,7 +142,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-external-resource-utils</artifactId>
+            <artifactId>nifi-external-resource-utils</artifactId>
             <version>1.16.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

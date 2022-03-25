@@ -506,19 +506,7 @@ public class NiFiProperties extends ApplicationProperties {
         try {
             return Integer.parseInt(value.trim());
         } catch (final Exception e) {
-            return defaultValue;
-        }
-    }
-
-    public Long getLongProperty(final String propertyName, final Long defaultValue) {
-        final String value = getProperty(propertyName);
-        if (value == null || value.trim().isEmpty()) {
-            return defaultValue;
-        }
-
-        try {
-            return Long.parseLong(value.trim());
-        } catch (final Exception e) {
+            logger.warn("Configured value is invalid, falling back to default value", e);
             return defaultValue;
         }
     }

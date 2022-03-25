@@ -31,21 +31,30 @@ import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.diagnostics.ThreadDumpTask;
 import org.apache.nifi.documentation.DocGenerator;
+import org.apache.nifi.flow.resource.ExternalResourceDescriptor;
+import org.apache.nifi.flow.resource.ExternalResourceProvider;
+import org.apache.nifi.flow.resource.ExternalResourceProviderInitializationContext;
 import org.apache.nifi.flow.resource.ExternalResourceProviderService;
 import org.apache.nifi.flow.resource.ExternalResourceProviderServiceBuilder;
+import org.apache.nifi.flow.resource.NarProviderAdapter;
+import org.apache.nifi.flow.resource.PropertyBasedExternalResourceProviderInitializationContext;
 import org.apache.nifi.lifecycle.LifeCycleStartException;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.ExtensionUiLoader;
 import org.apache.nifi.nar.NarAutoLoader;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.nar.NarProvider;
+import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
@@ -120,7 +129,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -149,6 +160,9 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String NAR_PROVIDER_POLL_INTERVAL_PROPERTY = "nifi.nar.library.poll.interval";
     private static final String NAR_PROVIDER_CONFLICT_RESOLUTION = "nifi.nar.library.conflict.resolution";
     private static final String NAR_PROVIDER_RESTRAIN_PROPERTY = "nifi.nar.library.restrain.startup";
+    private static final String NAR_PROVIDER_IMPLEMENTATION_PROPERTY = "implementation";
+    private static final String DEFAULT_NAR_PROVIDER_POLL_INTERVAL = "5 min";
+    private static final String DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION = "IGNORE";
 
     private static final int DOS_FILTER_REJECT_REQUEST = -1;
 
@@ -1025,12 +1039,12 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();
 
-            narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager, props, NAR_PROVIDER_PREFIX)
-                    .targetDirectoryProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)
-                    .conflictResolutionStrategy(NAR_PROVIDER_CONFLICT_RESOLUTION, "org.apache.nifi.flow.resource.DoNotReplaceResolutionStrategy")
-                    .resourceFilter(descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar"))
-                    .pollIntervalProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY)
-                    .restrainingStartup(NAR_PROVIDER_RESTRAIN_PROPERTY, true)
+            narProviderService = new ExternalResourceProviderServiceBuilder("NAR Auto-Loader Provider", extensionManager)
+                    .providers(buildExternalResourceProviders(extensionManager, NAR_PROVIDER_PREFIX, descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar")))
+                    .targetDirectory(new File(props.getProperty(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, NiFiProperties.DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR)))
+                    .conflictResolutionStrategy(props.getProperty(NAR_PROVIDER_CONFLICT_RESOLUTION, DEFAULT_NAR_PROVIDER_CONFLICT_RESOLUTION))
+                    .pollInterval(props.getProperty(NAR_PROVIDER_POLL_INTERVAL_PROPERTY, DEFAULT_NAR_PROVIDER_POLL_INTERVAL))
+                    .restrainingStartup(Boolean.getBoolean(props.getProperty(NAR_PROVIDER_RESTRAIN_PROPERTY, "true")))
                     .build();
             narProviderService.start();
 
@@ -1132,6 +1146,51 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         } catch (Exception ex) {
             startUpFailure(ex);
         }
+    }
+
+    public Map<String, ExternalResourceProvider> buildExternalResourceProviders(
+            final ExtensionManager extensionManager,
+            final String providerPropertyPrefix,
+            final Predicate<ExternalResourceDescriptor> filter
+    ) throws ClassNotFoundException, InstantiationException, IllegalAccessException, TlsException {
+        final Map<String, ExternalResourceProvider> result = new HashMap<>();
+        final Set<String> externalSourceNames = props.getDirectSubsequentTokens(providerPropertyPrefix);
+
+        for(final String externalSourceName : externalSourceNames) {
+            logger.info("External resource provider \'{}\' found in configuration", externalSourceName);
+
+            final String providerClass = props.getProperty(providerPropertyPrefix + externalSourceName + "." + NAR_PROVIDER_IMPLEMENTATION_PROPERTY);
+            final String providerId = UUID.randomUUID().toString();
+
+            final ExternalResourceProviderInitializationContext context
+                    = new PropertyBasedExternalResourceProviderInitializationContext(props, providerPropertyPrefix + externalSourceName + ".", filter);
+            result.put(providerId, createProviderInstance(extensionManager, providerClass, providerId, context));
+        }
+
+        return result;
+    }
+
+    /**
+     * In case the provider class is not an implementation of {@code ExternalResourceProvider} the method tries to instantiate it as a {@code NarProvider}. {@code NarProvider} instances
+     * are wrapped into an adapter in order to envelope the support.
+     */
+    private ExternalResourceProvider createProviderInstance(
+            final ExtensionManager extensionManager,
+            final String providerClass,
+            final String providerId,
+            final ExternalResourceProviderInitializationContext context
+    ) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        ExternalResourceProvider provider;
+
+        try {
+            provider = NarThreadContextClassLoader.createInstance(extensionManager, providerClass, ExternalResourceProvider.class, props, providerId);
+        } catch (final ClassCastException e) {
+            logger.warn("Class {} does not implement \"ExternalResourceProvider\" falling back to \"NarProvider\"");
+            provider = new NarProviderAdapter(NarThreadContextClassLoader.createInstance(extensionManager, providerClass, NarProvider.class, props, providerId));
+        }
+
+        provider.initialize(context);
+        return provider;
     }
 
     @Override

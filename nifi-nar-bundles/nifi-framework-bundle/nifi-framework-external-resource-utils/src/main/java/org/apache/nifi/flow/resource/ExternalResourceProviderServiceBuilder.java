@@ -17,47 +17,40 @@
 package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarProvider;
-import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.nifi.util.FormatUtils;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Predicate;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public final class ExternalResourceProviderServiceBuilder {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ExternalResourceProviderServiceBuilder.class);
+    private final static Map<String, Supplier<ExternalResourceConflictResolutionStrategy>> STRATEGIES = new HashMap<>();
 
-    private static final String IMPLEMENTATION_PROPERTY = "implementation";
-    private static final long DEFAULT_POLL_INTERVAL_MS = 300000;
+    static {
+        STRATEGIES.put("REPLACE", ReplaceWithNewerResolutionStrategy::new);
+        STRATEGIES.put("IGNORE", DoNotReplaceResolutionStrategy::new);
+    }
 
     private final String serviceName;
     private final ExtensionManager extensionManager;
-    private final NiFiProperties properties;
-    private final String providerPropertyPrefix;
 
     private File targetDirectory;
-    private long pollInterval = DEFAULT_POLL_INTERVAL_MS;
-    private String conflictResolutionStrategy;
-    private Optional<Predicate<ExternalResourceDescriptor>> filter = Optional.empty();
+    private long pollIntervalInMillis;
+    private ExternalResourceConflictResolutionStrategy conflictResolutionStrategy;
+    private Map<String, ExternalResourceProvider> providers;
     private boolean restrainStartup = true;
 
     public ExternalResourceProviderServiceBuilder(
             final String serviceName,
-            final ExtensionManager extensionManager,
-            final NiFiProperties properties,
-            final String providerPropertyPrefix) {
+            final ExtensionManager extensionManager) {
         this.serviceName = serviceName;
         this.extensionManager = extensionManager;
-        this.properties = properties;
-        this.providerPropertyPrefix = providerPropertyPrefix;
     }
 
     public ExternalResourceProviderServiceBuilder targetDirectory(final File targetDirectory) {
@@ -65,37 +58,23 @@ public final class ExternalResourceProviderServiceBuilder {
         return this;
     }
 
-    public ExternalResourceProviderServiceBuilder targetDirectoryProperty(final String propertyName, final String defaultValue) {
-        this.targetDirectory = new File(properties.getProperty(propertyName, defaultValue));
+    public ExternalResourceProviderServiceBuilder providers(final Map<String, ExternalResourceProvider> providers) {
+        this.providers = providers;
         return this;
     }
 
-    public ExternalResourceProviderServiceBuilder conflictResolutionStrategy(final String propertyName, final String defaultValue) {
-        this.conflictResolutionStrategy = properties.getProperty(propertyName, defaultValue);
+    public ExternalResourceProviderServiceBuilder conflictResolutionStrategy(final String conflictResolutionStrategy) {
+        this.conflictResolutionStrategy = getExternalResourceConflictResolutionStrategy(conflictResolutionStrategy);
         return this;
     }
 
-    public ExternalResourceProviderServiceBuilder pollInterval(final long pollInterval) {
-        this.pollInterval = pollInterval;
+    public ExternalResourceProviderServiceBuilder pollInterval(final String pollInterval) {
+        this.pollIntervalInMillis = Math.round(FormatUtils.getPreciseTimeDuration(pollInterval.trim(), TimeUnit.MILLISECONDS));
         return this;
     }
 
-    public ExternalResourceProviderServiceBuilder pollIntervalProperty(final String propertyName) {
-        return pollIntervalProperty(propertyName, DEFAULT_POLL_INTERVAL_MS);
-    }
-
-    public ExternalResourceProviderServiceBuilder pollIntervalProperty(final String propertyName, final long defaultValue) {
-        this.pollInterval = properties.getLongProperty(propertyName, defaultValue);
-        return this;
-    }
-
-    public ExternalResourceProviderServiceBuilder resourceFilter(final Predicate<ExternalResourceDescriptor> filter) {
-        this.filter = Optional.of(filter);
-        return this;
-    }
-
-    public ExternalResourceProviderServiceBuilder restrainingStartup(final String propertyName, final boolean defaultValue) {
-        this.restrainStartup = Boolean.parseBoolean(properties.getProperty(propertyName, Boolean.toString(defaultValue)));
+    public ExternalResourceProviderServiceBuilder restrainingStartup(final boolean restrainStartup) {
+        this.restrainStartup = restrainStartup;
         return this;
     }
 
@@ -104,29 +83,14 @@ public final class ExternalResourceProviderServiceBuilder {
             throw new IllegalArgumentException("Target directory must be specified");
         }
 
-        final ExternalResourceConflictResolutionStrategy conflictResolutionStrategy = NarThreadContextClassLoader
-                .createInstance(extensionManager, this.conflictResolutionStrategy, ExternalResourceConflictResolutionStrategy.class, properties, "conflictResolutionStrategy");
-
         final Set<ExternalResourceProviderWorker> workers = new HashSet<>();
-        final Set<String> externalSourceNames = properties.getDirectSubsequentTokens(providerPropertyPrefix);
-        final CountDownLatch restrainStartupLatch =  new CountDownLatch(restrainStartup ? externalSourceNames.size() : 0);
+        final CountDownLatch restrainStartupLatch =  new CountDownLatch(restrainStartup ? providers.size() : 0);
 
-        for(final String externalSourceName : externalSourceNames) {
-            LOGGER.info("External resource provider \'{}\' found in configuration", externalSourceName);
-
-            // Create provider
-            final String providerClass = properties.getProperty(providerPropertyPrefix + externalSourceName + "." + IMPLEMENTATION_PROPERTY);
-            final String providerId = UUID.randomUUID().toString();
-
-            final ExternalResourceProviderInitializationContext context
-                    = new PropertyBasedExternalResourceProviderInitializationContext(properties, providerPropertyPrefix + externalSourceName + ".", filter);
-            final ExternalResourceProvider provider = createProviderInstance(providerClass, providerId, context);
-
-            // Create provider worker
-            final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(providerId);
-            final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getClass().getClassLoader() : instanceClassLoader;
-            final ExternalResourceProviderWorker providerWorker
-                    = new BufferingExternalResourceProviderWorker(serviceName, providerClassLoader, provider, conflictResolutionStrategy, targetDirectory, pollInterval, restrainStartupLatch);
+        for(final Map.Entry<String, ExternalResourceProvider> provider : providers.entrySet()) {
+            final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(provider.getKey());
+            final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getValue().getClass().getClassLoader() : instanceClassLoader;
+            final ExternalResourceProviderWorker providerWorker = new CollusionAwareResourceProviderWorker(
+                    serviceName, providerClassLoader, provider.getValue(), conflictResolutionStrategy, targetDirectory, pollIntervalInMillis, restrainStartupLatch);
 
             workers.add(providerWorker);
         }
@@ -134,25 +98,11 @@ public final class ExternalResourceProviderServiceBuilder {
         return new CompositeExternalResourceProviderService(serviceName, workers, restrainStartupLatch);
     }
 
-    /**
-     * In case the provider class is not an implementation of {@code ExternalResourceProvider} the method tries to instantiate it as a {@code NarProvider}. {@code NarProvider} instances
-     * are wrapped into an adapter in order to envelope the support.
-     */
-    private ExternalResourceProvider createProviderInstance(
-            final String providerClass,
-            final String providerId,
-            final ExternalResourceProviderInitializationContext context
-    ) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
-        ExternalResourceProvider provider;
-
-        try {
-            provider = NarThreadContextClassLoader.createInstance(extensionManager, providerClass, ExternalResourceProvider.class, properties, providerId);
-        } catch (final ClassCastException e) {
-            LOGGER.warn("Class {} does not implement \"ExternalResourceProvider\" falling back to \"NarProvider\"");
-            provider = new NarProviderAdapter(NarThreadContextClassLoader.createInstance(extensionManager, providerClass, NarProvider.class, properties, providerId));
+    private static ExternalResourceConflictResolutionStrategy getExternalResourceConflictResolutionStrategy(final String conflictResolutionStrategy) {
+        if (!STRATEGIES.containsKey(conflictResolutionStrategy)) {
+            throw new IllegalArgumentException("Unknown conflict resolution strategy: " + conflictResolutionStrategy);
         }
 
-        provider.initialize(context);
-        return provider;
+        return STRATEGIES.get(conflictResolutionStrategy).get();
     }
 }

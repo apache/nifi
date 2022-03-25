@@ -18,54 +18,32 @@ package org.apache.nifi.flow.resource;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 
-@ExtendWith(MockitoExtension.class)
 public class DoNotReplaceResolutionStrategyTest {
+    private static final String TARGET_DIRECTORY = "src/test/resources/";
     private static final String RESOURCE_NAME = "resource.json";
     private static final String OTHER_RESOURCE_NAME = "driver.jar";
     private static final long MODIFIED_AT = System.currentTimeMillis();
 
-    @Mock
-    private File targetDirectory;
-
-    @Mock
-    private File existingResource;
-
     private final DoNotReplaceResolutionStrategy testSubject = new DoNotReplaceResolutionStrategy();
-    private final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, MODIFIED_AT);
 
     @Test
-    public void testEmptyFolder() {
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{});
-
-        final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
-
-        Assertions.assertTrue(result);
-    }
-
-    @Test
-    public void testFolderWithoutMatchingFile() {
-        Mockito.when(existingResource.getName()).thenReturn(OTHER_RESOURCE_NAME);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
-
-        final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
-
-        Assertions.assertTrue(result);
-    }
-
-    @Test
-    public void testFolderWithMatchingFile() {
-        Mockito.when(existingResource.getName()).thenReturn(RESOURCE_NAME);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
-
+    public void testWhenResourceIsInPlace() {
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, MODIFIED_AT);
+        final File targetDirectory = new File(TARGET_DIRECTORY);
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         Assertions.assertFalse(result);
+    }
+
+    @Test
+    public void testWhenResourceIsNotInPlace() {
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(OTHER_RESOURCE_NAME, MODIFIED_AT);
+        final File targetDirectory = new File(TARGET_DIRECTORY);
+        final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
+
+        Assertions.assertTrue(result);
     }
 }

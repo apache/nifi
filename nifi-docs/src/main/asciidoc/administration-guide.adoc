@@ -4135,8 +4135,8 @@ These properties are used for all the configured providers.
 
 |====
 |*Property*|*Description*
-|`nifi.nar.library.poll.interval`|The interval between polls in milliseconds.
-|`nifi.nar.library.conflict.resolution`|The fully qualified class name of the implementation class of `org.apache.nifi.flow.resource.ExternalResourceConflictResolutionStrategy`.
+|`nifi.nar.library.poll.interval`|The interval between polls. The default value is `5 min`.
+|`nifi.nar.library.conflict.resolution`|The name of the conflict resolution strategy to use. The default is `IGNORE`.
 |`nifi.nar.library.restrain.startup`|If true, the provider restrains NiFi from startup until the first successful resource fetch.
 |====
 
@@ -4467,17 +4467,17 @@ An External Resource Provider serves as a connector between an external data sou
 When configured, an External Resource Provider polls the external source for available NAR files and offers them to the framework. The framework then fetches new NAR files and copies them to
 the `nifi.nar.library.autoload.directory` for autoloading.
 
-By default, the polling will happen in every 5 minutes. It is possible to change this frequency by specifying the property `nifi.nar.library.poll.interval` with the number of milliseconds between polls.
+By default, the polling will happen in every 5 minutes. It is possible to change this frequency by specifying the property `nifi.nar.library.poll.interval`.
 
 By default NAR files will be downloaded if no file with the same name exists in the folder defined by `nifi.nar.library.autoload.directory`. By setting the `nifi.nar.library.conflict.resolution` other conflict resolution strategies might be applied. Currently, the following strategies are supported:
 
 |===
-| Name                                                               |  Description
-| org.apache.nifi.flow.resource.DoNotReplaceResolutionStrategy       |  Will not replace files: if a file exists in the directory with the same name, it will not be downloaded again.
-| org.apache.nifi.flow.resource.ReplaceWithNewerResolutionStrategy   |  Will replace a file in the target directory if there is an available file in the source but with newer modification date.
+| Name      |  Description
+| IGNORE    |  Will not replace files: if a file exists in the directory with the same name, it will not be downloaded again.
+| REPLACE   |  Will replace a file in the target directory if there is an available file in the source but with newer modification date.
 |====
 
-The NAR Provider service might restrain NiFi from startup until the first External Resource collection is not yet executed successfully for every provider. In order to override this behaviour, the `nifi.nar.library.restrain.startup` needs to be declared.
+Until the first External Resource collection succeeds for every provider, the service prevents NiFi from finishing startup. In order to override this behaviour, the `nifi.nar.library.restrain.startup` needs to be declared.
 
 With value `true` the service prevents NiFi from starting up until the execution succeeds, with `false` it does not. The default value is `true` in case of the property is not set.
 

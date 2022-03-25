@@ -17,18 +17,14 @@
 package org.apache.nifi.flow.resource;
 
 import java.io.File;
-import java.util.Arrays;
 
 /**
  * This strategy will allow fetching a resource if there is no existing resource in the target directory with identical name.
  */
-public final class DoNotReplaceResolutionStrategy implements ExternalResourceConflictResolutionStrategy {
+final class DoNotReplaceResolutionStrategy implements ExternalResourceConflictResolutionStrategy {
 
     @Override
     public boolean shouldBeFetched(final File targetDirectory, final ExternalResourceDescriptor available) {
-        return !Arrays.stream(targetDirectory.listFiles())
-                .filter(f -> f.getName().equals(available.getLocation()))
-                .findFirst()
-                .isPresent();
+        return !new File(targetDirectory, available.getLocation()).exists();
     }
 }

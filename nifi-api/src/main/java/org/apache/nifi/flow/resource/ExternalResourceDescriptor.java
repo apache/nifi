@@ -29,5 +29,5 @@ public interface ExternalResourceDescriptor {
     /**
      * @return Returns the modification time of the original resource file using Unix timestamp format.
      */
-    long getModifiedAt();
+    long getLastModified();
 }

@@ -65,7 +65,7 @@ public class NarProviderAdapter implements ExternalResourceProvider {
 
         @Override
         public SSLContext getNiFiSSLContext() {
-            return payload.getNiFiSSLContext();
+            return payload.getSSLContext();
         }
     }
 }

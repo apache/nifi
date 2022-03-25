@@ -98,7 +98,7 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
     @Override
     public Collection<ExternalResourceDescriptor> listResources() throws IOException {
         if (!initialized) {
-            LOGGER.error("Provider is not initialized");
+            throw new IllegalStateException("Provider is not initialized");
         }
 
         final HdfsResources hdfsResources = getHdfsResources();
@@ -111,7 +111,7 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
             final List<ExternalResourceDescriptor> result = Arrays.stream(fileStatuses)
                     .filter(fileStatus -> fileStatus.isFile())
                     .map(HDFSExternalResourceProvider::convertStatusToDescriptor)
-                    .filter(context.getFilter().orElseGet(() -> flowResourceDescriptor -> true))
+                    .filter(context.getFilter())
                     .collect(Collectors.toList());
 
             if (LOGGER.isDebugEnabled()) {
@@ -132,7 +132,7 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
     @Override
     public InputStream fetchExternalResource(final ExternalResourceDescriptor descriptor) throws IOException {
         if (!initialized) {
-            LOGGER.error("Provider is not initialized");
+            throw new IllegalStateException("Provider is not initialized");
         }
 
         final String location = descriptor.getLocation();
@@ -140,12 +140,13 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
         final HdfsResources hdfsResources = getHdfsResources();
 
         try {
-            if (hdfsResources.getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> !hdfsResources.getFileSystem().exists(path))) {
-                throw new IOException("Provider cannot find " + location);
-            }
+            return hdfsResources.getUserGroupInformation().doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> {
+                if (!hdfsResources.getFileSystem().exists(path)) {
+                    throw new IOException("Cannot find file in HDFS at location " + location);
+                }
 
-            return hdfsResources.getUserGroupInformation()
-                    .doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT));
+                return hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT);
+            });
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IOException("Error during acquiring file", e);

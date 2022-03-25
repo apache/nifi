@@ -27,7 +27,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 public class PropertyBasedExternalResourceProviderInitializationContextTest {
@@ -91,6 +90,6 @@ public class PropertyBasedExternalResourceProviderInitializationContextTest {
     }
 
     private PropertyBasedExternalResourceProviderInitializationContext getTestSubject() throws TlsException {
-        return new PropertyBasedExternalResourceProviderInitializationContext(properties, PREFIX, Optional.empty());
+        return new PropertyBasedExternalResourceProviderInitializationContext(properties, PREFIX, (descriptor -> true));
     }
 }

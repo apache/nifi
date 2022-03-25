@@ -37,7 +37,7 @@ public class ImmutableExternalResourceDescriptor implements ExternalResourceDesc
     }
 
     @Override
-    public long getModifiedAt() {
+    public long getLastModified() {
         return modifiedAt;
     }
 }

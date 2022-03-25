@@ -25,6 +25,7 @@ import java.util.Collection;
  * various: database drivers, different kind of configurations and so on.
  */
 public interface ExternalResourceProvider {
+
     /**
      * Initializes the External Resource Provider based on the given set of properties.
      */

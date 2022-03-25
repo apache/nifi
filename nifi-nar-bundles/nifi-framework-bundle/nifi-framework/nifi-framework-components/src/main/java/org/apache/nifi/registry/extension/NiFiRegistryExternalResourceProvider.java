@@ -50,7 +50,7 @@ public class NiFiRegistryExternalResourceProvider implements ExternalResourcePro
             throw new IllegalArgumentException("NiFiRegistryNarProvider requires a `url` property");
         }
 
-        final SSLContext sslContext = context.getNiFiSSLContext();
+        final SSLContext sslContext = context.getSSLContext();
         if (url.startsWith("https") && sslContext == null) {
             throw new IllegalStateException("NiFi TLS properties must be specified in order to connect to NiFi Registry via https");
         }

@@ -50,11 +50,15 @@ final class CompositeExternalResourceProviderService implements ExternalResource
         LOGGER.info("Starting External Resource Provider Service ...");
 
         for (final ExternalResourceProviderWorker worker : workers) {
-            final Thread workerThread = getThread(worker);
+            final Thread workerThread = createThread(worker);
             workerThread.start();
         }
 
         try {
+            if (restrainStartupLatch.getCount() > 0) {
+                LOGGER.info("Restrain startup until all providers execute the first fetch");
+            }
+
             restrainStartupLatch.await();
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -76,7 +80,7 @@ final class CompositeExternalResourceProviderService implements ExternalResource
         LOGGER.info("External Resource Provider Service is stopped");
     }
 
-    private Thread getThread(final ExternalResourceProviderWorker worker) {
+    private Thread createThread(final ExternalResourceProviderWorker worker) {
         final Thread thread = new Thread(worker);
         thread.setName("External Resource Provider Service -  " + name +  " - " + worker.getName());
         thread.setDaemon(true);

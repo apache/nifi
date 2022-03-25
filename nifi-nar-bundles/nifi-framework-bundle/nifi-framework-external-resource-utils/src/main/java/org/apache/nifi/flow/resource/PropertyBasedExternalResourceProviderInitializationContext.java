@@ -27,21 +27,20 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
-final class PropertyBasedExternalResourceProviderInitializationContext implements ExternalResourceProviderInitializationContext {
+public final class PropertyBasedExternalResourceProviderInitializationContext implements ExternalResourceProviderInitializationContext {
     private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
 
     private final Map<String, String> properties;
-    private final Optional<Predicate<ExternalResourceDescriptor>> filter;
+    private final Predicate<ExternalResourceDescriptor> filter;
     private final SSLContext sslContext;
 
-    PropertyBasedExternalResourceProviderInitializationContext(
+    public PropertyBasedExternalResourceProviderInitializationContext(
         final NiFiProperties properties,
         final String prefix,
-        final Optional<Predicate<ExternalResourceDescriptor>> filter
+        final Predicate<ExternalResourceDescriptor> filter
     ) throws TlsException {
         this.properties = extractProperties(properties, prefix);
         this.filter = filter;
@@ -54,12 +53,12 @@ final class PropertyBasedExternalResourceProviderInitializationContext implement
     }
 
     @Override
-    public Optional<Predicate<ExternalResourceDescriptor>> getFilter() {
+    public Predicate<ExternalResourceDescriptor> getFilter() {
         return filter;
     }
 
     @Override
-    public SSLContext getNiFiSSLContext() {
+    public SSLContext getSSLContext() {
         return sslContext;
     }
 

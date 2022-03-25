@@ -20,7 +20,6 @@ import org.apache.nifi.nar.NarProviderInitializationContext;
 
 import javax.net.ssl.SSLContext;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 public class NarProviderAdapterInitializationContext implements ExternalResourceProviderInitializationContext {
@@ -36,12 +35,12 @@ public class NarProviderAdapterInitializationContext implements ExternalResource
     }
 
     @Override
-    public SSLContext getNiFiSSLContext() {
+    public SSLContext getSSLContext() {
         return payload.getNiFiSSLContext();
     }
 
     @Override
-    public Optional<Predicate<ExternalResourceDescriptor>> getFilter() {
-        return Optional.of(descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar"));
+    public Predicate<ExternalResourceDescriptor> getFilter() {
+        return descriptor -> descriptor.getLocation().toLowerCase().endsWith(".nar");
     }
 }

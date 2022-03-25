@@ -16,50 +16,42 @@
  */
 package org.apache.nifi.flow.resource;
 
+import org.apache.nifi.util.FileUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
+import java.io.IOException;
 
-@ExtendWith(MockitoExtension.class)
 public class ReplaceWithNewerResolutionStrategyTest {
-
+    private static final String TARGET_DIRECTORY = "src/test/resources/";
+    private static final String OTHER_TARGET_DIRECTORY = TARGET_DIRECTORY + "t1";
     private static final String RESOURCE_NAME = "resource.json";
     private static final String OTHER_RESOURCE_NAME = "driver.jar";
-    private static final long TIME_1 = 1631561679;
-    private static final long TIME_2 = 1631562679;
-    private static final long TIME_3 = 1631563679;
-
-    @Mock
-    private File targetDirectory;
-
-    @Mock
-    private File existingResource;
 
     private final ReplaceWithNewerResolutionStrategy testSubject = new ReplaceWithNewerResolutionStrategy();
-    private final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, TIME_2);
+
 
     @Test
-    public void testEmptyFolder() {
+    public void testEmptyFolder() throws IOException {
         // given
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{});
+        final File targetDirectory = new File(OTHER_TARGET_DIRECTORY);
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, System.currentTimeMillis());
+        FileUtils.ensureDirectoryExistAndCanReadAndWrite(targetDirectory);
 
         // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
 
         // then
         Assertions.assertTrue(result);
+        FileUtils.deleteFile(targetDirectory, true);
     }
 
     @Test
     public void testFolderWithoutMatchingFile() {
         // given
-        Mockito.when(existingResource.getName()).thenReturn(OTHER_RESOURCE_NAME);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
+        final File targetDirectory = new File(TARGET_DIRECTORY);
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(OTHER_RESOURCE_NAME, System.currentTimeMillis());
 
         // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
@@ -71,9 +63,9 @@ public class ReplaceWithNewerResolutionStrategyTest {
     @Test
     public void testFolderWithMatchingFileWhenNoNewerCandidate() {
         // given
-        Mockito.when(existingResource.getName()).thenReturn(RESOURCE_NAME);
-        Mockito.when(existingResource.lastModified()).thenReturn(TIME_3);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
+        final File targetDirectory = new File(TARGET_DIRECTORY);
+        final File existingResource = new File(targetDirectory, RESOURCE_NAME);
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, existingResource.lastModified() - 1);
 
         // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
@@ -85,9 +77,9 @@ public class ReplaceWithNewerResolutionStrategyTest {
     @Test
     public void testFolderWithMatchingFileWhenTheCandidateHasTheSameAge() {
         // given
-        Mockito.when(existingResource.getName()).thenReturn(RESOURCE_NAME);
-        Mockito.when(existingResource.lastModified()).thenReturn(TIME_2);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
+        final File targetDirectory = new File(TARGET_DIRECTORY);
+        final File existingResource = new File(targetDirectory, RESOURCE_NAME);
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, existingResource.lastModified());
 
         // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);
@@ -99,9 +91,9 @@ public class ReplaceWithNewerResolutionStrategyTest {
     @Test
     public void testFolderWithMatchingFileWhenThereIsNewerCandidate() {
         // given
-        Mockito.when(existingResource.getName()).thenReturn(RESOURCE_NAME);
-        Mockito.when(existingResource.lastModified()).thenReturn(TIME_1);
-        Mockito.when(targetDirectory.listFiles()).thenReturn(new File[]{existingResource});
+        final File targetDirectory = new File(TARGET_DIRECTORY);
+        final File existingResource = new File(targetDirectory, RESOURCE_NAME);
+        final ExternalResourceDescriptor descriptor = new ImmutableExternalResourceDescriptor(RESOURCE_NAME, existingResource.lastModified() + 1);
 
         // when
         final boolean result = testSubject.shouldBeFetched(targetDirectory, descriptor);

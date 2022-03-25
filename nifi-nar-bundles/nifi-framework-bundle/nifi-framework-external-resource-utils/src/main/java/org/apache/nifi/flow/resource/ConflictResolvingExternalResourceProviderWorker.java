@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * This implementation of the worker uses a strategy in order to decide if an available resources is to download. Using
@@ -46,6 +47,7 @@ abstract class ConflictResolvingExternalResourceProviderWorker implements Extern
     private final long pollTimeInMs;
     private final ExternalResourceConflictResolutionStrategy resolutionStrategy;
     private final CountDownLatch restrainStartupLatch;
+    private final AtomicLong loopCounter = new AtomicLong(1);
 
     private volatile boolean stopped = false;
 
@@ -82,7 +84,10 @@ abstract class ConflictResolvingExternalResourceProviderWorker implements Extern
             if (!stopped) {
                 try {
                     poll();
-                    restrainStartupLatch.countDown();
+
+                    if (loopCounter.get() == 1) {
+                        restrainStartupLatch.countDown();
+                    }
                 } catch (final Throwable e) {
                     LOGGER.error("Error during polling for external resources", e);
                 }
@@ -95,6 +100,8 @@ abstract class ConflictResolvingExternalResourceProviderWorker implements Extern
                 LOGGER.warn("External resource provider worker is interrupted");
                 stopped = true;
             }
+
+            loopCounter.incrementAndGet();
         }
     }
 

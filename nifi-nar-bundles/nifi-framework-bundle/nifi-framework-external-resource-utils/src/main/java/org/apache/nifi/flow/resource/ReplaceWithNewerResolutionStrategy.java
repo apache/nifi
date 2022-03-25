@@ -17,7 +17,6 @@
 package org.apache.nifi.flow.resource;
 
 import java.io.File;
-import java.util.Arrays;
 
 /**
  * This strategy allows to replace the already acquired external resource if the available is newer, based on the modification time.
@@ -25,14 +24,11 @@ import java.util.Arrays;
  * This strategy assumes that the external source maintains the modification time in a proper manner and the local files are
  * not modified by other parties.
  */
-public final class ReplaceWithNewerResolutionStrategy implements ExternalResourceConflictResolutionStrategy {
+final class ReplaceWithNewerResolutionStrategy implements ExternalResourceConflictResolutionStrategy {
 
     @Override
     public boolean shouldBeFetched(final File targetDirectory, final ExternalResourceDescriptor available) {
-        return !Arrays.stream(targetDirectory.listFiles())
-                .filter(f -> f.getName().equals(available.getLocation()))
-                .filter(f -> f.lastModified() >= available.getModifiedAt())
-                .findFirst()
-                .isPresent();
+        final File file = new File(targetDirectory, available.getLocation());
+        return !file.exists() || file.lastModified() < available.getLastModified();
     }
 }
