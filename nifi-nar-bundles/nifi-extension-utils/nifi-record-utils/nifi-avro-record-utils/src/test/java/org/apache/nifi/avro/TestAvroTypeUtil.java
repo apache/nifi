@@ -143,7 +143,7 @@ public class TestAvroTypeUtil {
         assertEquals("hello", avroSchema.getField("string").defaultVal());
         assertEquals(17, avroSchema.getField("int").defaultVal());
         assertEquals(42L, avroSchema.getField("long").defaultVal());
-        assertEquals(2.4D, (double) avroSchema.getField("float").defaultVal(), 0.002D); // Even though we provide a Float, avro converts it into a Double value.
+        assertEquals(2.4D, (float) avroSchema.getField("float").defaultVal(), 0.002D); // Even though we provide a Float, avro converts it into a Double value.
         assertEquals(28.1D, (double) avroSchema.getField("double").defaultVal(), 0.002D);
         assertEquals(new ArrayList<String>(), avroSchema.getField("stringArray").defaultVal());
         assertEquals(new ArrayList<Integer>(), avroSchema.getField("intArray").defaultVal());
@@ -265,12 +265,12 @@ public class TestAvroTypeUtil {
         Record r = builder.build();
         @SuppressWarnings("unchecked")
         GenericData.Array<Integer> values = (GenericData.Array<Integer>) r.get("listOfInt");
-        assertEquals(values.size(), 0);
+        assertEquals(values.size(), 1);
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, field.getDataType().getFieldType());
         assertTrue(field.getDefaultValue() instanceof Object[]);
-        assertEquals(0, ((Object[]) field.getDefaultValue()).length);
+        assertEquals(1, ((Object[]) field.getDefaultValue()).length);
     }
 
     /**
@@ -313,7 +313,7 @@ public class TestAvroTypeUtil {
         @SuppressWarnings("unchecked")
         GenericData.Array<Integer> values = (GenericData.Array<Integer>) ((GenericRecord) r.get("field1"))
                 .get("listOfInt");
-        assertArrayEquals(new Object[] {}, values.toArray());
+        assertArrayEquals(new Object[] { 0 }, values.toArray());
         RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
         RecordField field = record.getField("field1").get();
         assertEquals(RecordFieldType.RECORD, field.getDataType().getFieldType());
@@ -322,7 +322,7 @@ public class TestAvroTypeUtil {
         RecordField childField = childSchema.getField("listOfInt").get();
         assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
         assertTrue(childField.getDefaultValue() instanceof Object[]);
-        assertArrayEquals(new Object[] {}, ((Object[]) childField.getDefaultValue()));
+        assertArrayEquals(new Object[] { 0 }, ((Object[]) childField.getDefaultValue()));
     }
 
     /**
@@ -464,7 +464,7 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testToDecimalConversion() {
-        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(26, 8);
         final Schema fieldSchema = Schema.create(Type.BYTES);
         decimalType.addToSchema(fieldSchema);
 
@@ -866,47 +866,46 @@ public class TestAvroTypeUtil {
             new RecordField("childRecordField2", RecordFieldType.STRING.getDataType())
         );
 
-        String expected = "{" +
-            "\"type\":\"record\"," +
-            "\"name\":\"nifiRecord\"," +
-            "\"namespace\":\"org.apache.nifi\"," +
-            "\"fields\":[{" +
-                "\"name\":\"record1\"," +
-                "\"type\":[\"null\",{" +
-                    "\"type\":\"record\"," +
-                    "\"name\":\"record1Type\"," +
-                    "\"fields\":[{" +
-                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
-                        "\"type\":[\"null\",{" +
-                            "\"type\":\"record\"," +
-                            "\"name\":\"record1_reoccurringFieldNameWithDifferentChildSchemaType\"," +
-                            "\"fields\":[{" +
-                                "\"name\":\"childRecordField1\"," +
-                                "\"type\":[\"null\",\"string\"]" +
-                            "}]" +
-                        "}]" +
-                    "}]" +
-                "}]" +
-            "}," +
-            "{" +
-                "\"name\":\"record2\"," +
-                "\"type\":[\"null\",{" +
-                    "\"type\":\"record\"," +
-                    "\"name\":\"record2Type\"," +
-                    "\"fields\":[{" +
-                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
-                        "\"type\":[\"null\",{" +
-                            "\"type\":\"record\"," +
-                            "\"name\":\"record2_reoccurringFieldNameWithDifferentChildSchemaType\"," +
-                            "\"fields\":[{" +
-                                "\"name\":\"childRecordField2\"," +
-                                "\"type\":[\"null\",\"string\"]" +
-                            "}]" +
-                        "}]" +
-                    "}]" +
-                "}]" +
-            "}]" +
-        "}";
+        String expected = "{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"nifiRecord\",\n" +
+                "  \"namespace\": \"org.apache.nifi\",\n" +
+                "  \"fields\": [{\n" +
+                "    \"name\": \"record1\",\n" +
+                "    \"type\": [{\n" +
+                "      \"type\": \"record\",\n" +
+                "      \"name\": \"record1Type\",\n" +
+                "      \"fields\": [{\n" +
+                "        \"name\": \"reoccurringFieldNameWithDifferentChildSchema\",\n" +
+                "        \"type\": [{\n" +
+                "          \"type\": \"record\",\n" +
+                "          \"name\": \"record1_reoccurringFieldNameWithDifferentChildSchemaType\",\n" +
+                "          \"fields\": [{\n" +
+                "            \"name\": \"childRecordField1\",\n" +
+                "            \"type\": [\"string\", \"null\"]\n" +
+                "          }]\n" +
+                "        }, \"null\"]\n" +
+                "      }]\n" +
+                "    }, \"null\"]\n" +
+                "  }, {\n" +
+                "    \"name\": \"record2\",\n" +
+                "    \"type\": [{\n" +
+                "      \"type\": \"record\",\n" +
+                "      \"name\": \"record2Type\",\n" +
+                "      \"fields\": [{\n" +
+                "        \"name\": \"reoccurringFieldNameWithDifferentChildSchema\",\n" +
+                "        \"type\": [{\n" +
+                "          \"type\": \"record\",\n" +
+                "          \"name\": \"record2_reoccurringFieldNameWithDifferentChildSchemaType\",\n" +
+                "          \"fields\": [{\n" +
+                "            \"name\": \"childRecordField2\",\n" +
+                "            \"type\": [\"string\", \"null\"]\n" +
+                "          }]\n" +
+                "        }, \"null\"]\n" +
+                "      }]\n" +
+                "    }, \"null\"]\n" +
+                "  }]\n" +
+                "}";
 
         // WHEN
         // THEN
@@ -926,47 +925,46 @@ public class TestAvroTypeUtil {
             new RecordField(reoccurringFieldNameInChildSchema, RecordFieldType.BOOLEAN.getDataType())
         );
 
-        String expected = "{" +
-            "\"type\":\"record\"," +
-            "\"name\":\"nifiRecord\"," +
-            "\"namespace\":\"org.apache.nifi\"," +
-            "\"fields\":[{" +
-                "\"name\":\"record1\"," +
-                "\"type\":[\"null\",{" +
-                    "\"type\":\"record\"," +
-                    "\"name\":\"record1Type\"," +
-                    "\"fields\":[{" +
-                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
-                        "\"type\":[\"null\",{" +
-                            "\"type\":\"record\"," +
-                            "\"name\":\"record1_reoccurringFieldNameWithDifferentChildSchemaType\"," +
-                            "\"fields\":[{" +
-                                "\"name\":\"childRecordField\"," +
-                                "\"type\":[\"null\",\"string\"]" +
-                            "}]" +
-                        "}]" +
-                    "}]" +
-                "}]" +
-            "}," +
-            "{" +
-                "\"name\":\"record2\"," +
-                "\"type\":[\"null\",{" +
-                    "\"type\":\"record\"," +
-                    "\"name\":\"record2Type\"," +
-                    "\"fields\":[{" +
-                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
-                        "\"type\":[\"null\",{" +
-                            "\"type\":\"record\"," +
-                            "\"name\":\"record2_reoccurringFieldNameWithDifferentChildSchemaType\"," +
-                            "\"fields\":[{" +
-                                "\"name\":\"childRecordField\"," +
-                                "\"type\":[\"null\",\"boolean\"]" +
-                            "}]" +
-                        "}]" +
-                    "}]" +
-                "}]" +
-            "}]" +
-        "}";
+        String expected = "{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"nifiRecord\",\n" +
+                "  \"namespace\": \"org.apache.nifi\",\n" +
+                "  \"fields\": [{\n" +
+                "    \"name\": \"record1\",\n" +
+                "    \"type\": [{\n" +
+                "      \"type\": \"record\",\n" +
+                "      \"name\": \"record1Type\",\n" +
+                "      \"fields\": [{\n" +
+                "        \"name\": \"reoccurringFieldNameWithDifferentChildSchema\",\n" +
+                "        \"type\": [{\n" +
+                "          \"type\": \"record\",\n" +
+                "          \"name\": \"record1_reoccurringFieldNameWithDifferentChildSchemaType\",\n" +
+                "          \"fields\": [{\n" +
+                "            \"name\": \"childRecordField\",\n" +
+                "            \"type\": [\"string\", \"null\"]\n" +
+                "          }]\n" +
+                "        }, \"null\"]\n" +
+                "      }]\n" +
+                "    }, \"null\"]\n" +
+                "  }, {\n" +
+                "    \"name\": \"record2\",\n" +
+                "    \"type\": [{\n" +
+                "      \"type\": \"record\",\n" +
+                "      \"name\": \"record2Type\",\n" +
+                "      \"fields\": [{\n" +
+                "        \"name\": \"reoccurringFieldNameWithDifferentChildSchema\",\n" +
+                "        \"type\": [{\n" +
+                "          \"type\": \"record\",\n" +
+                "          \"name\": \"record2_reoccurringFieldNameWithDifferentChildSchemaType\",\n" +
+                "          \"fields\": [{\n" +
+                "            \"name\": \"childRecordField\",\n" +
+                "            \"type\": [\"boolean\",\"null\"]\n" +
+                "          }]\n" +
+                "        }, \"null\"]\n" +
+                "      }]\n" +
+                "    }, \"null\"]\n" +
+                "  }]\n" +
+                "}";
 
         // WHEN
         // THEN
@@ -999,73 +997,72 @@ public class TestAvroTypeUtil {
         )));
 
         String expected = "{\n" +
-            "  \"type\": \"record\",\n" +
-            "  \"name\": \"nifiRecord\",\n" +
-            "  \"namespace\": \"org.apache.nifi\",\n" +
-            "  \"fields\": [\n" +
-            "    {\n" +
-            "      \"name\": \"dataCollection\",\n" +
-            "      \"type\": [\n" +
-            "        \"null\",\n" +
-            "        {\n" +
-            "          \"type\": \"array\",\n" +
-            "          \"items\": {\n" +
-            "            \"type\": \"record\",\n" +
-            "            \"name\": \"dataCollectionType\",\n" +
-            "            \"fields\": [\n" +
-            "              {\n" +
-            "                \"name\": \"record\",\n" +
-            "                \"type\": [\n" +
-            "                  {\n" +
-            "                    \"type\": \"record\",\n" +
-            "                    \"name\": \"dataCollection_recordType\",\n" +
-            "                    \"fields\": [\n" +
-            "                      {\n" +
-            "                        \"name\": \"integer\",\n" +
-            "                        \"type\": [\n" +
-            "                          \"null\",\n" +
-            "                          \"int\"\n" +
-            "                        ]\n" +
-            "                      },\n" +
-            "                      {\n" +
-            "                        \"name\": \"boolean\",\n" +
-            "                        \"type\": [\n" +
-            "                          \"null\",\n" +
-            "                          \"boolean\"\n" +
-            "                        ]\n" +
-            "                      }\n" +
-            "                    ]\n" +
-            "                  },\n" +
-            "                  {\n" +
-            "                    \"type\": \"record\",\n" +
-            "                    \"name\": \"dataCollection_record2Type\",\n" +
-            "                    \"fields\": [\n" +
-            "                      {\n" +
-            "                        \"name\": \"integer\",\n" +
-            "                        \"type\": [\n" +
-            "                          \"null\",\n" +
-            "                          \"int\"\n" +
-            "                        ]\n" +
-            "                      },\n" +
-            "                      {\n" +
-            "                        \"name\": \"string\",\n" +
-            "                        \"type\": [\n" +
-            "                          \"null\",\n" +
-            "                          \"string\"\n" +
-            "                        ]\n" +
-            "                      }\n" +
-            "                    ]\n" +
-            "                  },\n" +
-            "                  \"null\"\n" +
-            "                ]\n" +
-            "              }\n" +
-            "            ]\n" +
-            "          }\n" +
-            "        }\n" +
-            "      ]\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"nifiRecord\",\n" +
+                "  \"namespace\": \"org.apache.nifi\",\n" +
+                "  \"fields\": [\n" +
+                "    {\n" +
+                "      \"name\": \"dataCollection\",\n" +
+                "      \"type\": [\n" +
+                "        {\n" +
+                "          \"type\": \"array\",\n" +
+                "          \"items\": {\n" +
+                "            \"type\": \"record\",\n" +
+                "            \"name\": \"dataCollectionType\",\n" +
+                "            \"fields\": [\n" +
+                "              {\n" +
+                "                \"name\": \"record\",\n" +
+                "                \"type\": [\n" +
+                "                  {\n" +
+                "                    \"type\": \"record\",\n" +
+                "                    \"name\": \"dataCollection_recordType\",\n" +
+                "                    \"fields\": [\n" +
+                "                      {\n" +
+                "                        \"name\": \"integer\",\n" +
+                "                        \"type\": [\n" +
+                "                          \"int\",\n" +
+                "                          \"null\"\n" +
+                "                        ]\n" +
+                "                      },\n" +
+                "                      {\n" +
+                "                        \"name\": \"boolean\",\n" +
+                "                        \"type\": [\n" +
+                "                          \"boolean\",\n" +
+                "                          \"null\"\n" +
+                "                        ]\n" +
+                "                      }\n" +
+                "                    ]\n" +
+                "                  },\n" +
+                "                  {\n" +
+                "                    \"type\": \"record\",\n" +
+                "                    \"name\": \"dataCollection_record2Type\",\n" +
+                "                    \"fields\": [\n" +
+                "                      {\n" +
+                "                        \"name\": \"integer\",\n" +
+                "                        \"type\": [\n" +
+                "                          \"int\",\n" +
+                "                          \"null\"\n" +
+                "                        ]\n" +
+                "                      },\n" +
+                "                      {\n" +
+                "                        \"name\": \"string\",\n" +
+                "                        \"type\": [\n" +
+                "                          \"string\",\n" +
+                "                          \"null\"\n" +
+                "                        ]\n" +
+                "                      }\n" +
+                "                    ]\n" +
+                "                  },\n" +
+                "                  \"null\"\n" +
+                "                ]\n" +
+                "              }\n" +
+                "            ]\n" +
+                "          }\n" +
+                "        }, \"null\"\n" +
+                "      ]\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}";
 
         // WHEN
         Schema actual = AvroTypeUtil.extractAvroSchema(schema);
@@ -1098,7 +1095,7 @@ public class TestAvroTypeUtil {
         Schema actual = AvroTypeUtil.extractAvroSchema(recordSchema);
 
         // THEN
-        assertEquals(expected, actual.toString());
+        assertEquals(new Schema.Parser().parse(expected), actual);
     }
 
     @Test
@@ -1121,42 +1118,42 @@ public class TestAvroTypeUtil {
 
         RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
-        String expected = "{" +
-            "\"type\":\"record\"," +
-            "\"name\":\"nifiRecord\"," +
-            "\"namespace\":\"org.apache.nifi\"," +
-            "\"fields\":[{" +
-                "\"name\":\"multiLevelRecord\"," +
-                "\"type\":[\"null\",{" +
-                    "\"type\":\"record\"," +
-                    "\"name\":\"multiLevelRecordType\"," +
-                    "\"fields\":[{" +
-                        "\"name\":\"level2Record\"," +
-                        "\"type\":[\"null\",{" +
-                            "\"type\":\"record\"," +
-                            "\"name\":\"multiLevelRecord_level2RecordType\"," +
-                            "\"fields\":[{" +
-                                "\"name\":\"level3Record\"," +
-                                "\"type\":[\"null\",{" +
-                                    "\"type\":\"record\"," +
-                                    "\"name\":\"multiLevelRecord_level2Record_level3RecordType\"," +
-                                    "\"fields\":[{" +
-                                        "\"name\":\"stringField\"," +
-                                        "\"type\":[\"null\",\"string\"]" +
-                                    "}]" +
-                                "}]" +
-                            "}]" +
-                        "}]" +
-                    "}]" +
-                "}]" +
-            "}]" +
-        "}";
+        String expected = "{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"nifiRecord\",\n" +
+                "  \"namespace\": \"org.apache.nifi\",\n" +
+                "  \"fields\": [{\n" +
+                "    \"name\": \"multiLevelRecord\",\n" +
+                "    \"type\": [{\n" +
+                "      \"type\": \"record\",\n" +
+                "      \"name\": \"multiLevelRecordType\",\n" +
+                "      \"fields\": [{\n" +
+                "        \"name\": \"level2Record\",\n" +
+                "        \"type\": [{\n" +
+                "          \"type\": \"record\",\n" +
+                "          \"name\": \"multiLevelRecord_level2RecordType\",\n" +
+                "          \"fields\": [{\n" +
+                "            \"name\": \"level3Record\",\n" +
+                "            \"type\": [{\n" +
+                "              \"type\": \"record\",\n" +
+                "              \"name\": \"multiLevelRecord_level2Record_level3RecordType\",\n" +
+                "              \"fields\": [{\n" +
+                "                \"name\": \"stringField\",\n" +
+                "                \"type\": [ \"string\", \"null\" ]\n" +
+                "              }]\n" +
+                "            }, \"null\"]\n" +
+                "          }]\n" +
+                "        }, \"null\"]\n" +
+                "      }]\n" +
+                "    }, \"null\"]\n" +
+                "  }]\n" +
+                "}";
 
         // WHEN
         Schema actual = AvroTypeUtil.extractAvroSchema(recordSchema);
 
         // THEN
-        assertEquals(expected, actual.toString());
+        assertEquals(new Schema.Parser().parse(expected), actual);
     }
 
     @Test
@@ -1197,9 +1194,10 @@ public class TestAvroTypeUtil {
     }
 
     private Schema givenAvroSchemaContainingNumericMap() {
+       Map<String, Long> defaultLongMap = new HashMap<>();
         final List<Field> avroFields = Arrays.asList(
-                new Field("id", Schema.create(Type.INT), "", ""),
-                new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", "")
+                new Field("id", Schema.create(Type.INT), "", 0),
+                new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", defaultLongMap)
         );
 
         return Schema.createRecord(avroFields);

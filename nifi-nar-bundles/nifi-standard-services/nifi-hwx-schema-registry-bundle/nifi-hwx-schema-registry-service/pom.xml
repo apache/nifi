@@ -66,7 +66,6 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.avro</groupId>
             <artifactId>avro</artifactId>
-            <version>1.8.1</version>
         </dependency>
  
         <!-- Schema Registry Client-->

@@ -103,7 +103,7 @@
     <properties>
         <hive11.version>1.1.1</hive11.version>
         <hive11.hadoop.version>2.6.2</hive11.hadoop.version>
-        <hive12.version>1.2.1</hive12.version>
+        <hive12.version>1.2.2</hive12.version>
         <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
         <hive3.version>3.1.2</hive3.version>
         <hive.version>${hive3.version}</hive.version>

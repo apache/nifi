@@ -16,7 +16,7 @@
                         "items":"int"
                      },
                      "doc":"array of ints",
-                     "default": 0
+                     "default": [ 0 ]
                   }
                ],
                "logicalType":"BigDecimal"

@@ -326,7 +326,7 @@ public class AvroTypeUtil {
             return Schema.createUnion(unionTypes);
         }
 
-        return Schema.createUnion(Schema.create(Type.NULL), schema);
+        return Schema.createUnion(schema, Schema.create(Type.NULL));
     }
 
     /**
