@@ -26,8 +26,7 @@ import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -82,9 +81,7 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
 
                 return false;
             } catch (Exception e) {
-                e.printStackTrace();
-                Assert.fail("Could not retrieve RPG with ID " + rpgId);
-                return false;
+                throw new RuntimeException("Could not retrieve RPG with ID " + rpgId);
             }
         });
 

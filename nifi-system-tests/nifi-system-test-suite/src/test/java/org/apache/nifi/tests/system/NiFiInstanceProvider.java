@@ -14,19 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.tests.system.parameters;
-
-import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
-import org.apache.nifi.tests.system.NiFiInstanceFactory;
+package org.apache.nifi.tests.system;
 
 /**
- * Repeats all tests in ParameterContextIT but in a clustered mode
+ * Provider for configured NiFi instances
  */
-public class ClusteredParameterContextIT extends ParameterContextIT {
-    @Override
-    public NiFiInstanceFactory getInstanceFactory() {
-        return new SpawnedClusterNiFiInstanceFactory(
-            "src/test/resources/conf/clustered/node1/bootstrap.conf",
-            "src/test/resources/conf/clustered/node2/bootstrap.conf");
-    }
+public interface NiFiInstanceProvider {
+    /**
+     * Get configured NiFi instance or null when not configured
+     *
+     * @return NiFi instance or null when not configured
+     */
+    NiFiInstance getNiFiInstance();
+
+    /**
+     * Get NiFi instance factory
+     *
+     * @return NiFi Instance Factory
+     */
+    NiFiInstanceFactory getInstanceFactory();
 }
