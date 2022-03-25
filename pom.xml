@@ -203,6 +203,13 @@
             classloading of all child nars.  Therefore we dont want child nars using different
             versions anyway.-->
 
+            <!-- ASL-licensed library that provides streaming XML support for components that need it. -->
+            <dependency>
+                <groupId>com.fasterxml.woodstox</groupId>
+                <artifactId>woodstox-core</artifactId>
+                <version>6.2.8</version>
+            </dependency>
+
             <!-- javax.servlet-api handling this explicitly  Must be in root lib -->
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -558,21 +565,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-<!--            <dependency>-->
-<!--                <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                <artifactId>jackson-databind</artifactId>-->
-<!--                <version>${jackson.version}</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                <artifactId>jackson-core</artifactId>-->
-<!--                <version>${jackson.version}</version>-->
-<!--            </dependency>-->
-<!--            <dependency>-->
-<!--                <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                <artifactId>jackson-annotations</artifactId>-->
-<!--                <version>${jackson.version}</version>-->
-<!--            </dependency>-->
         </dependencies>
     </dependencyManagement>
 
