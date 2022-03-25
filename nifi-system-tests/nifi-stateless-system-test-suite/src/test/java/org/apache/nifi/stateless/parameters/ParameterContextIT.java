@@ -35,8 +35,7 @@ import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -45,8 +44,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ParameterContextIT extends StatelessSystemIT {
 
@@ -105,14 +105,12 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "-1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
-        });
+        assertThrows(IllegalStateException.class, () -> loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE));
     }
 
 
     @Test
-    public void testParameterValueProviderWithRequiredPropertyNotSet() throws IOException, StatelessConfigurationException {
+    public void testParameterValueProviderWithRequiredPropertyNotSet() {
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
         final VersionedPort outPort = flowBuilder.createOutputPort("Out");
         final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
@@ -133,9 +131,7 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        Assert.assertThrows(IllegalStateException.class, () -> {
-            loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
-        });
+        assertThrows(IllegalStateException.class, () -> loadDataflow(flowSnapshot, Collections.emptyList(), parameterValueProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE));
     }
 
     @Test

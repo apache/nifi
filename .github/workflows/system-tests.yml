@@ -19,6 +19,12 @@ on:
   # Run every day at 00:00
   schedule:
     - cron: "0 0 * * *"
+  push:
+    paths:
+      - 'nifi-system-tests/**'
+  pull_request:
+    paths:
+      - 'nifi-system-tests/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-
@@ -52,19 +58,12 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
       - name: Set up Java 11
         uses: actions/setup-java@v2
         with:
           distribution: zulu
           java-version: 11
+          cache: 'maven'
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-
@@ -99,19 +98,12 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
-      - name: Cache Maven Dependencies
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
       - name: Set up Java 8
         uses: actions/setup-java@v2
         with:
           distribution: zulu
           java-version: 8
+          cache: 'maven'
       - name: Build Dependencies
         env:
           MAVEN_OPTS: >-

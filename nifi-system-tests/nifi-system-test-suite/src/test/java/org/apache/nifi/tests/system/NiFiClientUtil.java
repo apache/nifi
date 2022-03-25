@@ -87,7 +87,6 @@ import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryEntity;
 import org.apache.nifi.web.api.entity.VariableRegistryUpdateRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
-import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,6 +103,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class NiFiClientUtil {
     private static final Logger logger = LoggerFactory.getLogger(NiFiClientUtil.class);
@@ -734,7 +735,7 @@ public class NiFiClientUtil {
             try {
                 Thread.sleep(500L);
             } catch (final Exception e) {
-                Assert.fail(e.toString());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -762,8 +763,7 @@ public class NiFiClientUtil {
             try {
                 Thread.sleep(500L);
             } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -1039,8 +1039,7 @@ public class NiFiClientUtil {
             getConnectionClient().deleteListingRequest(connectionId, listingRequestEntity.getListingRequest().getId());
             return listingRequestEntity;
         } catch (final InterruptedException e) {
-            Assert.fail("Failed to obtain connection status");
-            return null;
+            throw new RuntimeException("Failed to obtain connection status");
         }
     }
 
@@ -1117,16 +1116,13 @@ public class NiFiClientUtil {
             try {
                 Thread.sleep(100L);
             } catch (final InterruptedException ie) {
-                Assert.fail("Interrupted while waiting for variable registry to update");
-                return null;
+                throw new RuntimeException("Interrupted while waiting for variable registry to update");
             }
 
             updateRequestEntity = nifiClient.getProcessGroupClient().getVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
         }
 
-        if (updateRequestEntity.getRequest().getFailureReason() != null) {
-            Assert.fail("Failed to update Variable Registry due to: " + updateRequestEntity.getRequest().getFailureReason());
-        }
+        assertNull(updateRequestEntity.getRequest().getFailureReason());
 
         nifiClient.getProcessGroupClient().deleteVariableRegistryUpdateRequest(processGroup.getId(), updateRequestEntity.getRequest().getRequestId());
         return updateRequestEntity;
@@ -1192,7 +1188,7 @@ public class NiFiClientUtil {
         try {
             responseEntity = waitForComplete(responseEntity);
         } catch (final InterruptedException ie) {
-            Assert.fail("Interrupted while waiting for Provenance Query to complete");
+            throw new RuntimeException("Interrupted while waiting for Provenance Query to complete");
         }
 
         nifiClient.getProvenanceClient().deleteProvenanceQuery(responseEntity.getProvenance().getId());
