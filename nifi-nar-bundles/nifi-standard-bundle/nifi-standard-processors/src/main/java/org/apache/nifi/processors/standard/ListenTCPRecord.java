@@ -25,6 +25,8 @@ import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +39,9 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -62,6 +67,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
+import org.apache.nifi.record.listen.SSLSocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReaderDispatcher;
 import org.apache.nifi.security.util.ClientAuth;
@@ -87,14 +93,26 @@ import org.apache.nifi.ssl.SSLContextService;
         "If the read times out, or if any other error is encountered when reading, the connection will be closed, and any records " +
         "read up to that point will be handled according to the configured Read Error Strategy (Discard or Transfer). In cases where " +
         "clients are keeping a connection open, the concurrent tasks for the processor should be adjusted to match the Max Number of " +
-        "TCP Connections allowed, so that there is a task processing each connection.")
+        "TCP Connections allowed, so that there is a task processing each connection. " +
+        "The processor can be configured to use an SSL Context Service to only allow secure connections. " +
+        "When connected clients present certificates for mutual TLS authentication, the Distinguished Names of the client certificate's " +
+        "issuer and subject are added to the outgoing FlowFiles as attributes. " +
+        "The processor does not perform authorization based on Distinguished Name values, but since these values " +
+        "are attached to the outgoing FlowFiles, authorization can be implemented based on these attributes.")
 @WritesAttributes({
         @WritesAttribute(attribute="tcp.sender", description="The host that sent the data."),
         @WritesAttribute(attribute="tcp.port", description="The port that the processor accepted the connection on."),
         @WritesAttribute(attribute="record.count", description="The number of records written to the flow file."),
-        @WritesAttribute(attribute="mime.type", description="The mime-type of the writer used to write the records to the flow file.")
+        @WritesAttribute(attribute="mime.type", description="The mime-type of the writer used to write the records to the flow file."),
+        @WritesAttribute(attribute="client.certificate.issuer.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+                                                                               "Certificate Authority that issued the client's certificate " +
+                                                                               "is attached to the FlowFile."),
+        @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+                                                                                "client certificate's owner (subject) is attached to the FlowFile.")
 })
 public class ListenTCPRecord extends AbstractProcessor {
+    private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
+    private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";
 
     static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("port")
@@ -198,7 +216,6 @@ public class ListenTCPRecord extends AbstractProcessor {
             .name("success")
             .description("Messages received successfully will be sent out this relationship.")
             .build();
-
 
     static final List<PropertyDescriptor> PROPERTIES;
     static {
@@ -427,6 +444,7 @@ public class ListenTCPRecord extends AbstractProcessor {
                     attributes.put("tcp.sender", sender);
                     attributes.put("tcp.port", String.valueOf(port));
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    addClientCertificateAttributes(attributes, socketRecordReader);
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
                     final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
@@ -459,5 +477,24 @@ public class ListenTCPRecord extends AbstractProcessor {
 
     private String getRemoteAddress(final SocketChannelRecordReader socketChannelRecordReader) {
         return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
+    }
+
+    private void addClientCertificateAttributes(final Map<String, String> attributes, final SocketChannelRecordReader socketRecordReader)
+            throws SSLPeerUnverifiedException {
+        if (socketRecordReader instanceof SSLSocketChannelRecordReader) {
+            SSLSocketChannelRecordReader sslSocketRecordReader = (SSLSocketChannelRecordReader) socketRecordReader;
+            SSLSession sslSession = sslSocketRecordReader.getSession();
+            try {
+                Certificate[] certificates = sslSession.getPeerCertificates();
+                if (certificates.length > 0) {
+                    X509Certificate certificate = (X509Certificate) certificates[0];
+                    attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, certificate.getSubjectDN().toString());
+                    attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, certificate.getIssuerDN().toString());
+                }
+            } catch (SSLPeerUnverifiedException peerUnverifiedException) {
+                getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
+                        socketRecordReader.getRemoteAddress(), peerUnverifiedException);
+            }
+        }
     }
 }
