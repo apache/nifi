@@ -69,14 +69,13 @@ class SalesforceToRecordSchemaConverterTest {
                 new RecordField("ExampleTime", RecordFieldType.TIME.getDataType(TIME_FORMAT))
         ));
 
-        //--
-        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
+            // WHEN
+            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
 
-        // WHEN
-        final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
-
-        // THEN
-        assertEquals(expected, actual);
+            // THEN
+            assertEquals(expected, actual);
+        }
     }
 
     @Test
@@ -106,14 +105,13 @@ class SalesforceToRecordSchemaConverterTest {
                 new RecordField("ExampleLocation", RecordFieldType.RECORD.getRecordDataType(locationSchema))
         ));
 
-        //--
-        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
+            // WHEN
+            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
 
-        // WHEN
-        final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
-
-        // THEN
-        assertEquals(expected, actual);
+            // THEN
+            assertEquals(expected, actual);
+        }
     }
 
     @Test
@@ -127,14 +125,13 @@ class SalesforceToRecordSchemaConverterTest {
                 new RecordField("ExampleTime", RecordFieldType.TIME.getDataType(TIME_FORMAT))
         ));
 
-        //--
-        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
+            // WHEN
+            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
 
-        // WHEN
-        final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
-
-        // THEN
-        assertEquals(expected, actual);
+            // THEN
+            assertEquals(expected, actual);
+        }
     }
 
     @Test
@@ -145,20 +142,20 @@ class SalesforceToRecordSchemaConverterTest {
 
         final RecordSchema expected = new SimpleRecordSchema(Collections.emptyList());
 
-        //--
-        final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName);
+        try (final InputStream sfSchema = readFile(TEST_PATH + salesforceSchemaFileName)) {
+            // WHEN
+            final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
 
-        // WHEN
-        final RecordSchema actual = converter.convertSchema(sfSchema, fieldNames);
-
-        // THEN
-        assertEquals(expected, actual);
+            // THEN
+            assertEquals(expected, actual);
+        }
     }
 
     @Test
-    void testConvertEmptySchema() {
-        final InputStream sfSchema = IOUtils.toInputStream("", Charset.defaultCharset());
-        assertThrows(MismatchedInputException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
+    void testConvertEmptySchema() throws IOException {
+        try (final InputStream sfSchema = IOUtils.toInputStream("", Charset.defaultCharset())) {
+            assertThrows(MismatchedInputException.class, () -> converter.convertSchema(sfSchema, "ExampleField"));
+        }
     }
 
     @Test
@@ -169,11 +166,12 @@ class SalesforceToRecordSchemaConverterTest {
 
     @Test
     void testConvertUnknownDataType() throws IOException {
-        final InputStream sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json");
-        final String fieldNames = "FieldWithUnknownType";
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, fieldNames));
-        final String errorMessage = "Could not create determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
-        assertEquals(errorMessage, exception.getMessage());
+        try (final InputStream sfSchema = readFile(TEST_PATH + "unknown_type_sf_schema.json")) {
+            final String fieldNames = "FieldWithUnknownType";
+            final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> converter.convertSchema(sfSchema, fieldNames));
+            final String errorMessage = "Could not create determine schema for 'SObjectWithUnknownFieldType'. Could not convert field 'FieldWithUnknownType' of soap type 'xsd:unknown'.";
+            assertEquals(errorMessage, exception.getMessage());
+        }
     }
 
     private InputStream readFile(final String path) throws IOException {

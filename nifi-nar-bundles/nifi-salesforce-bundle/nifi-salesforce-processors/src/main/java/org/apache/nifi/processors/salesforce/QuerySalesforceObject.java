@@ -47,7 +47,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.salesforce.util.SalesforceRestService;
 import org.apache.nifi.processors.salesforce.util.SalesforceToRecordSchemaConverter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -60,8 +59,8 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
-import java.time.ZoneId;
+import java.io.UncheckedIOException;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -228,14 +227,10 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        String dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
-        String timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
-        String timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
-
         salesForceToRecordSchemaConverter = new SalesforceToRecordSchemaConverter(
-                dateFormat,
-                timestampFormat,
-                timeFormat
+                DATE_FORMAT,
+                DATE_TIME_FORMAT,
+                TIME_FORMAT
         );
 
         String salesforceVersion = context.getProperty(API_VERSION).getValue();
@@ -315,19 +310,16 @@ public class QuerySalesforceObject extends AbstractProcessor {
         if (ageField == null) {
             ageFilterUpper = null;
         } else {
-            Instant ageFilterUpperTime;
+            OffsetDateTime ageFilterUpperTime;
             if (ageDelayMs == null) {
-                ageFilterUpperTime = Instant.now();
+                ageFilterUpperTime = OffsetDateTime.now();
             } else {
-                ageFilterUpperTime = Instant.now().minus(ageDelayMs, ChronoUnit.MILLIS);
+                ageFilterUpperTime = OffsetDateTime.now().minus(ageDelayMs, ChronoUnit.MILLIS);
             }
-            ageFilterUpper = DateTimeFormatter.ISO_OFFSET_DATE_TIME
-                    .withZone(ZoneId.systemDefault())
-                    .format(ageFilterUpperTime);
+            ageFilterUpper = ageFilterUpperTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         }
 
-        InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject);
-        ConvertedSalesforceSchema convertedSalesforceSchema = convertSchema(describeSObjectResult, fields);
+        ConvertedSalesforceSchema convertedSalesforceSchema = getConvertedSalesforceSchema(sObject, fields);
 
         String querySObject = buildQuery(
                 sObject,
@@ -338,7 +330,6 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 ageFilterLower,
                 ageFilterUpper
         );
-        InputStream querySObjectResultInputStream = salesforceRestService.query(querySObject);
 
         FlowFile flowFile = session.create();
 
@@ -349,6 +340,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
         flowFile = session.write(flowFile, out -> {
             try (
+                    InputStream querySObjectResultInputStream = salesforceRestService.query(querySObject);
                     JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
                             querySObjectResultInputStream,
                             getLogger(),
@@ -408,6 +400,14 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
             session.adjustCounter("Records Processed", recordCount, false);
             getLogger().info("Successfully written {} records for {}", recordCount, flowFile);
+        }
+    }
+
+    private ConvertedSalesforceSchema getConvertedSalesforceSchema(String sObject, String fields) {
+        try (InputStream describeSObjectResult = salesforceRestService.describeSObject(sObject)) {
+            return convertSchema(describeSObjectResult, fields);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Salesforce input stream close failed", e);
         }
     }
 

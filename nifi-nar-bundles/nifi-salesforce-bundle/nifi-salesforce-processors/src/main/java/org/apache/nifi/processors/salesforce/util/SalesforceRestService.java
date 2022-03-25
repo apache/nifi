@@ -22,7 +22,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.nifi.processor.exception.ProcessException;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -71,7 +70,9 @@ public class SalesforceRestService {
     }
 
     private InputStream request(Request request) {
-        try (Response response = httpClient.newCall(request).execute()) {
+        Response response = null;
+        try {
+            response = httpClient.newCall(request).execute();
             if (response.code() != 200) {
                 throw new ProcessException("Invalid response" +
                         " Code: " + response.code() +
@@ -80,7 +81,10 @@ public class SalesforceRestService {
                 );
             }
             return response.body().byteStream();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            if (response != null) {
+                response.close();
+            }
             throw new ProcessException(String.format("Salesforce HTTP request failed [%s]", request.url()), e);
         }
     }
