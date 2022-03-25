@@ -215,12 +215,16 @@ public class ByteArrayContentRepository implements ContentRepository {
 
     @Override
     public InputStream read(final ContentClaim claim) {
+        if (claim == null) {
+            return new ByteArrayInputStream(new byte[0]);
+        }
+
         final ByteArrayContentClaim byteArrayContentClaim = verifyClaim(claim);
         return byteArrayContentClaim.read();
     }
 
     @Override
-    public InputStream read(final ResourceClaim claim) throws IOException {
+    public InputStream read(final ResourceClaim claim) {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);
         }
