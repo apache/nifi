@@ -154,8 +154,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
+            <groupId>com.fasterxml.jackson</groupId>
+            <artifactId>jackson-bom</artifactId>
+            <type>pom</type>
         </dependency>
 
         <!-- hive-exec:core doesn't contain these dependencies (as opposed to regular hive-exec) so these need to be pulled in -->
