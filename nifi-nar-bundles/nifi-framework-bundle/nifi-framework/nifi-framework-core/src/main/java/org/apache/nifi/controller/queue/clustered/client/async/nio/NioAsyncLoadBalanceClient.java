@@ -130,7 +130,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
         logger.debug("{} Unregistered Connection with ID {}. Will fail any in-flight FlowFiles for Registered Partition {}", this, connectionId, removedPartition);
         final boolean validSession = loadBalanceSession != null && connectionId.equals(loadBalanceSession.getPartition().getConnectionId());
-        if (validSession && !loadBalanceSession.isComplete()) {
+        if (validSession && !loadBalanceSession.getSessionState().isComplete()) {
             // Attempt to cancel the session. If successful, trigger the failure callback for the partition.
             // If not successful, it indicates that another thread has completed the session and is responsible or the transaction success/failure
             if (loadBalanceSession.cancel()) {
@@ -278,7 +278,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 anySuccess = anySuccess || success;
             } while (success);
 
-            if (loadBalanceSession.isComplete() && !loadBalanceSession.isCanceled()) {
+            final LoadBalanceSession.LoadBalanceSessionState sessionState = loadBalanceSession.getSessionState();
+            if (sessionState.isComplete() && sessionState != LoadBalanceSession.LoadBalanceSessionState.CANCELED) {
                 loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getAndPurgeFlowFilesSent(), nodeIdentifier);
             }
 
@@ -356,7 +357,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     private synchronized LoadBalanceSession getFailoverSession() {
-        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+        if (loadBalanceSession != null && !loadBalanceSession.getSessionState().isComplete()) {
             return loadBalanceSession;
         }
 
@@ -402,7 +403,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     private synchronized LoadBalanceSession getActiveTransaction(final RegisteredPartition proposedPartition) {
-        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+        if (loadBalanceSession != null && !loadBalanceSession.getSessionState().isComplete()) {
             return loadBalanceSession;
         }
 

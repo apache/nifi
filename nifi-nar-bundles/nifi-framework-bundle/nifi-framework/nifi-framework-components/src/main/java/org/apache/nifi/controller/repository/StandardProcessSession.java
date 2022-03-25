@@ -543,7 +543,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
     }
 
-    private void commit(final boolean asynchronous) {
+    private synchronized void commit(final boolean asynchronous) {
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
         commit(this.checkpoint, asynchronous);
 
