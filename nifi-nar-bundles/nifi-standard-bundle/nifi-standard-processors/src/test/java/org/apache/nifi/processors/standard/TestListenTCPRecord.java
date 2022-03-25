@@ -173,6 +173,21 @@ public class TestListenTCPRecord {
     }
 
     @Test(timeout = TEST_TIMEOUT)
+    public void testRunSSLClientDNsAddedAsAttributes() throws InitializationException, IOException, InterruptedException {
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
+        enableSslContextService(keyStoreSslContext);
+
+        run(1, keyStoreSslContext);
+
+        final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
+        Assert.assertEquals(1, mockFlowFiles.size());
+
+        final MockFlowFile flowFile = mockFlowFiles.get(0);
+        flowFile.assertAttributeEquals("client.certificate.subject.dn", "CN=localhost");
+        flowFile.assertAttributeEquals("client.certificate.issuer.dn", "CN=localhost");
+    }
+
+    @Test(timeout = TEST_TIMEOUT)
     public void testRunClientAuthNone() throws InitializationException, IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);

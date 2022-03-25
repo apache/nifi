@@ -24,6 +24,8 @@ import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSession;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,17 +42,20 @@ public class SSLSocketChannelRecordReader implements SocketChannelRecordReader {
     private final SSLSocketChannel sslSocketChannel;
     private final RecordReaderFactory readerFactory;
     private final SocketChannelRecordReaderDispatcher dispatcher;
+    private final SSLEngine sslEngine;
 
     private RecordReader recordReader;
 
     public SSLSocketChannelRecordReader(final SocketChannel socketChannel,
                                         final SSLSocketChannel sslSocketChannel,
                                         final RecordReaderFactory readerFactory,
-                                        final SocketChannelRecordReaderDispatcher dispatcher) {
+                                        final SocketChannelRecordReaderDispatcher dispatcher,
+                                        final SSLEngine sslEngine) {
         this.socketChannel = socketChannel;
         this.sslSocketChannel = sslSocketChannel;
         this.readerFactory = readerFactory;
         this.dispatcher = dispatcher;
+        this.sslEngine = sslEngine;
     }
 
     @Override
@@ -87,4 +92,7 @@ public class SSLSocketChannelRecordReader implements SocketChannelRecordReader {
         dispatcher.connectionCompleted();
     }
 
+    public SSLSession getSession() {
+        return sslEngine.getSession();
+    }
 }
