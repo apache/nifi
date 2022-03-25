@@ -136,7 +136,7 @@ public class TestLoadBalanceSession {
         while (transaction.communicate()) {
         }
 
-        assertTrue(transaction.isComplete());
+        assertTrue(transaction.getSessionState().isComplete());
         socketChannel.close();
 
         final Checksum expectedChecksum = new CRC32();
