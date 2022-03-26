@@ -51,8 +51,6 @@ import static org.junit.Assert.assertEquals;
 public class TestListSFTP {
     private static final String REMOTE_DIRECTORY = "/";
 
-    private static final Long STABILITY_WAIT = 500L;
-
     private static final byte[] FILE_CONTENTS = String.class.getName().getBytes(StandardCharsets.UTF_8);
 
     private TestRunner runner;
@@ -66,7 +64,7 @@ public class TestListSFTP {
         sshServer = new SSHTestServer();
         sshServer.startServer();
         testFileNames = new ArrayList<File>();
-
+        writeTempFile(3);
         runner = TestRunners.newTestRunner(ListSFTP.class);
         runner.setProperty(ListSFTP.HOSTNAME, sshServer.getHost());
         runner.setProperty(ListSFTP.USERNAME, sshServer.getUsername());
@@ -74,7 +72,6 @@ public class TestListSFTP {
         runner.setProperty(FTPTransfer.PORT, Integer.toString(sshServer.getSSHPort()));
         runner.setProperty(ListSFTP.REMOTE_PATH, REMOTE_DIRECTORY);
         runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
-
         runner.assertValid();
         assertVerificationSuccess();
     }
@@ -87,10 +84,8 @@ public class TestListSFTP {
 
     @Test
     public void testRunFileFound() throws InterruptedException {
-        writeTempFile(1);
-        Thread.sleep(STABILITY_WAIT);
-        runner.run();
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+        runner.run(1);
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 3);
         runner.assertAllFlowFilesContainAttribute("sftp.remote.host");
         runner.assertAllFlowFilesContainAttribute("sftp.remote.port");
         runner.assertAllFlowFilesContainAttribute("sftp.listing.user");
@@ -107,56 +102,69 @@ public class TestListSFTP {
 
     @Test
     public void testRunWithRecordWriter() throws InitializationException, InterruptedException {
-        writeTempFile(3);
         RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.enableControllerService(recordWriter);
-        Thread.sleep(STABILITY_WAIT);
-        runner.run();
+        runner.assertValid(recordWriter);
+        runner.run(2);
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
     }
 
     @Test
     public void testRunWithRecordWriterNoTracking() throws InitializationException, InterruptedException {
-        writeTempFile(3);
         RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
         runner.enableControllerService(recordWriter);
-        Thread.sleep(STABILITY_WAIT);
-        runner.run();
-        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+        runner.assertValid(recordWriter);
+        runner.run(2);
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 2);
     }
 
     @Test
     public void testRunWithRecordWriterByTimestamps() throws InitializationException, InterruptedException {
-        writeTempFile(3);
         RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
         runner.enableControllerService(recordWriter);
-        Thread.sleep(STABILITY_WAIT);
-        runner.run();
+        runner.assertValid(recordWriter);
+        runner.run(2);
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
     }
 
     @Test
     public void testRunWithRecordWriterByEntities() throws InitializationException, InterruptedException {
-        writeTempFile(3);
         RecordSetWriterFactory recordWriter = getCsvRecordWriter();
         runner.addControllerService("csv-record-writer", recordWriter);
         runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
         runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
         runner.enableControllerService(recordWriter);
-        DistributedMapCacheClient dmc = new TestDeduplicateRecord.MockCacheService<>();
+        DistributedMapCacheClient dmc = new MockCacheService<>();
         runner.addControllerService("dmc", dmc);
         runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
         runner.enableControllerService(dmc);
-        Thread.sleep(STABILITY_WAIT);
-        runner.run();
+        runner.assertValid(dmc);
+        runner.assertValid(recordWriter);
+        runner.run(2);
+        runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testFilesWithRestart() throws InitializationException, InterruptedException {
+        RecordSetWriterFactory recordWriter = getCsvRecordWriter();
+        runner.addControllerService("csv-record-writer", recordWriter);
+        runner.setProperty(AbstractListProcessor.RECORD_WRITER, "csv-record-writer");
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_ENTITIES);
+        runner.enableControllerService(recordWriter);
+        DistributedMapCacheClient dmc = new MockCacheService<>();
+        runner.addControllerService("dmc", dmc);
+        runner.setProperty(ListedEntityTracker.TRACKING_STATE_CACHE, "dmc");
+        runner.enableControllerService(dmc);
+        runner.assertValid();
+        runner.run(2);
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 1);
     }
 
@@ -164,7 +172,7 @@ public class TestListSFTP {
     public void testRunFileNotFoundMinSizeFiltered() {
         runner.setProperty(ListFile.MIN_SIZE, "1KB");
 
-        runner.run();
+        runner.run(2);
 
         runner.assertTransferCount(ListSFTP.REL_SUCCESS, 0);
     }
@@ -182,11 +190,13 @@ public class TestListSFTP {
             final File file = new File(sshServer.getVirtualFileSystemPath(), String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID()));
             try {
                 Files.write(file.toPath(), FILE_CONTENTS);
+                file.setLastModified(0);
                 testFileNames.add(file);
             } catch (final IOException e) {
                 throw new UncheckedIOException(e);
             }
         }
+        assert(new File(sshServer.getVirtualFileSystemPath()).listFiles().length == count);
     }
 
     private RecordSetWriterFactory getCsvRecordWriter() {
