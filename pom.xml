@@ -108,7 +108,7 @@
         <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.46.v20220331</jetty.version>
-        <jackson.version>2.13.1</jackson.version>
+        <jackson.version>2.13.2</jackson.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
         <nifi.groovy.version>3.0.8</nifi.groovy.version>
@@ -509,6 +509,13 @@
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <!-- Set snappy-java version for compatibility across multiple Java versions -->
             <dependency>
