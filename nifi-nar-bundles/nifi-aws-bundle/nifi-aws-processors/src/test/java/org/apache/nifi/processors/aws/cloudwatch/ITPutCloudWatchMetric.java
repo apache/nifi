@@ -16,25 +16,30 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
+import java.io.File;
+import java.io.IOException;
+
 import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.sns.PutSNS;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
-
 /**
- * Provides integration level testing with actual AWS CloudWatch resources for {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
+ * Provides integration level testing with actual AWS CloudWatch resources for
+ * {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
  */
 public class ITPutCloudWatchMetric {
 
     private final String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @Test
-    public void testPublish() throws IOException {
+    public void ifCredentialsThenTestPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
+        File credsFile = new File(CREDENTIALS_FILE);
+        assumeTrue(credsFile.exists());
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
@@ -48,8 +53,10 @@ public class ITPutCloudWatchMetric {
     }
 
     @Test
-    public void testPublishWithCredentialsProviderService() throws Throwable {
+    public void ifCredentialsThenTestPublishWithCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
+        File credsFile = new File(CREDENTIALS_FILE);
+        assumeTrue(credsFile.exists());
 
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentialsProvider", serviceImpl);

@@ -16,20 +16,24 @@
  */
 package org.apache.nifi.processors.aws.cloudwatch;
 
-import com.amazonaws.services.cloudwatch.model.Dimension;
-import com.amazonaws.services.cloudwatch.model.InvalidParameterValueException;
-import com.amazonaws.services.cloudwatch.model.MetricDatum;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Stream;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+
+import com.amazonaws.services.cloudwatch.model.Dimension;
+import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import org.junit.jupiter.api.Test;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Unit tests for {@link PutCloudWatchMetric}.
@@ -37,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestPutCloudWatchMetric {
 
     @Test
-    public void testPutSimpleMetric() throws Exception {
+    public void testPutSimpleMetric() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -60,7 +64,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testValueLiteralDoubleInvalid() throws Exception {
+    public void testValueLiteralDoubleInvalid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -71,7 +75,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testMissingBothValueAndStatisticSetInvalid() throws Exception {
+    public void testMissingBothValueAndStatisticSetInvalid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -81,7 +85,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testContainsBothValueAndStatisticSetInvalid() throws Exception {
+    public void testContainsBothValueAndStatisticSetInvalid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -98,7 +102,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testContainsIncompleteStatisticSetInvalid() throws Exception {
+    public void testContainsIncompleteStatisticSetInvalid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -114,7 +118,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testContainsBothValueAndIncompleteStatisticSetInvalid() throws Exception {
+    public void testContainsBothValueAndIncompleteStatisticSetInvalid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -128,7 +132,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testMetricExpressionValid() throws Exception {
+    public void testMetricExpressionValid() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -151,7 +155,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testStatisticSet() throws Exception {
+    public void testStatisticSet() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -183,7 +187,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testDimensions() throws Exception {
+    public void testDimensions() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -218,7 +222,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testMaximumDimensions() throws Exception {
+    public void testMaximumDimensions() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -234,7 +238,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testTooManyDimensions() throws Exception {
+    public void testTooManyDimensions() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -250,7 +254,7 @@ public class TestPutCloudWatchMetric {
     }
 
     @Test
-    public void testMetricExpressionInvalidRoutesToFailure() throws Exception {
+    public void testMetricExpressionInvalidRoutesToFailure() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -268,27 +272,38 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
-    @Test
-    public void testInvalidUnitRoutesToFailure() throws Exception {
+    @ParameterizedTest
+    @CsvSource({"nan","percent","count"})
+    public void testInvalidUnit(String unit) {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
-        mockPutCloudWatchMetric.throwException = new InvalidParameterValueException("Unit error message");
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
-        runner.setProperty(PutCloudWatchMetric.UNIT, "BogusUnit");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1.0");
+        runner.assertNotValid();
+    }
+
+    private static Stream<Arguments> data() {
+        return PutCloudWatchMetric.units.stream().map(Arguments::of);
+    }
+
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testValidUnit(String unit) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
         runner.setProperty(PutCloudWatchMetric.VALUE, "1");
         runner.assertValid();
-
-        runner.enqueue(new byte[] {});
-        runner.run();
-
-        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
-        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
     @Test
-    public void testTimestampExpressionInvalidRoutesToFailure() throws Exception {
+    public void testTimestampExpressionInvalidRoutesToFailure() {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
@@ -308,4 +323,36 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_FAILURE, 1);
     }
 
+
+    @ParameterizedTest
+    @CsvSource({"null","us-west-100","us-east-a"})
+    public void testInvalidRegion(String region) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
+        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.assertNotValid();
+    }
+
+    @ParameterizedTest
+    @CsvSource({"us-east-1","us-west-1","us-east-2"})
+    public void testValidRegionRoutesToSuccess(String region) {
+        MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
+        final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
+
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
+        runner.setProperty(PutCloudWatchMetric.VALUE, "6");
+        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.assertValid();
+
+        runner.enqueue(new byte[] {});
+        runner.run();
+
+        assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
+        runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+    }
 }
