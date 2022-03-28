@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -30,7 +31,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathResult;
@@ -102,14 +102,6 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-    public static final PropertyDescriptor GEO_ACCURACY = new PropertyDescriptor.Builder()
-            .name("geo-enrich-ip-accuracy-record-path")
-            .displayName("Accuracy Radius Record Path")
-            .description("Record path for putting the accuracy radius if provided by the database (in Kilometers)")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
     public static final PropertyDescriptor GEO_LATITUDE = new PropertyDescriptor.Builder()
             .name("geo-enrich-ip-latitude-record-path")
             .displayName("Latitude Record Path")
@@ -161,11 +153,11 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
     )));
 
     public static final List<PropertyDescriptor> GEO_PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            GEO_CITY, GEO_ACCURACY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
+            GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
     ));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-            GEO_DATABASE_FILE, READER, WRITER, SPLIT_FOUND_NOT_FOUND, IP_RECORD_PATH, GEO_CITY, GEO_ACCURACY, GEO_LATITUDE,
+            GEO_DATABASE_FILE, READER, WRITER, SPLIT_FOUND_NOT_FOUND, IP_RECORD_PATH, GEO_CITY, GEO_LATITUDE,
             GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
     ));
 
@@ -321,14 +313,13 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
         }
 
         boolean city = update(GEO_CITY, cached, record, response.getCity().getName());
-        boolean accuracy = update(GEO_ACCURACY, cached, record, response.getCity().getConfidence());
         boolean country = update(GEO_COUNTRY, cached, record, response.getCountry().getName());
         boolean iso = update(GEO_COUNTRY_ISO, cached, record, response.getCountry().getIsoCode());
         boolean lat = update(GEO_LATITUDE, cached, record, response.getLocation().getLatitude());
         boolean lon = update(GEO_LONGITUDE, cached, record, response.getLocation().getLongitude());
         boolean postal = update(GEO_POSTAL_CODE, cached, record, response.getPostal().getCode());
 
-        retVal = (city || accuracy || country || iso || lat || lon || postal);
+        retVal = (city || country || iso || lat || lon || postal);
 
         return retVal;
     }

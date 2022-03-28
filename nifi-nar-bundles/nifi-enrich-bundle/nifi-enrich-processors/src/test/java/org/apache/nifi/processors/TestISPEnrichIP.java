@@ -19,11 +19,12 @@ package org.apache.nifi.processors;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.jr.ob.JSON;
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.IspResponse;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -255,13 +256,25 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponse(final String ipAddress) throws Exception {
-        final String maxMindIspResponse = "{\n" +
+        String maxMindIspResponse = "{\n" +
             "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
             "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
             "         \"autonomous_system_number\" : 1337,\n" +
             "         \"autonomous_system_organization\" : \"Apache NiFi - Test Chocolate\", \n" +
             "         \"ip_address\" : \"" + ipAddress + "\"\n" +
             "      }\n";
+
+        maxMindIspResponse = JSON.std
+                .composeString()
+                .startObject()
+                .put("autonomous_system_number", 1337)
+                .put("autonomous_system_organization", "Apache NiFi - Test Chocolate")
+                .put("isp", "Apache NiFi - Test ISP")
+                .put("organization", "Apache NiFi - Test Organization")
+                .put("ip_address", "1.1.1.1")
+                .put("network", "1.1.1.0/24")
+                .end()
+                .finish();
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
         ObjectMapper mapper = new ObjectMapper();
@@ -273,12 +286,16 @@ public class TestISPEnrichIP {
     }
 
     private IspResponse getIspResponseWithoutASNDetail(final String ipAddress) throws Exception {
-        final String maxMindIspResponse = "{\n" +
-            "         \"isp\" : \"Apache NiFi - Test ISP\",\n" +
-            "         \"organization\" : \"Apache NiFi - Test Organization\",\n" +
-            "         \"autonomous_system_number\" : null,\n" +
-            "         \"ip_address\" : \"" + ipAddress + "\"\n" +
-            "      }\n";
+        final String maxMindIspResponse = JSON.std
+                .composeString()
+                .startObject()
+                .put("autonomous_system_number", null)
+                .put("isp", "Apache NiFi - Test ISP")
+                .put("organization", "Apache NiFi - Test Organization")
+                .put("ip_address", ipAddress)
+                .put("network", "1.1.1.0/24")
+                .end()
+                .finish();
 
         InjectableValues inject = new InjectableValues.Std().addValue("locales", Collections.singletonList("en"));
         ObjectMapper mapper = new ObjectMapper();
