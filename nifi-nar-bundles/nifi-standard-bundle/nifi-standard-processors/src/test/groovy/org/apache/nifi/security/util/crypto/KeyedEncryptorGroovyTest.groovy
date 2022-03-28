@@ -17,6 +17,7 @@
 package org.apache.nifi.security.util.crypto
 
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.security.util.KeyDerivationFunction
@@ -211,12 +212,9 @@ class KeyedEncryptorGroovyTest {
         final byte[] removedIVCipherBytes = cipherString.split(IV_DELIMITER)[1].getBytes(StandardCharsets.UTF_8)
 
         InputStream cipherInputStream = new ByteArrayInputStream(removedIVCipherBytes)
-        Exception exception = Assert.assertThrows(Exception.class, () -> {
+        Exception exception = Assert.assertThrows(ProcessException.class, () -> {
             decryptionCallback.process(cipherInputStream, recoveredStream)
         })
-
-        // Assert
-        assert exception.getCause() instanceof BytePatternNotFoundException
     }
 
     @Test
@@ -249,11 +247,8 @@ class KeyedEncryptorGroovyTest {
 
         InputStream cipherInputStream = new ByteArrayInputStream(removedIVDelimiterCipherBytes)
 
-        Exception exception = Assert.assertThrows(Exception.class, () -> {
+        Exception exception = Assert.assertThrows(ProcessException.class, () -> {
             decryptionCallback.process(cipherInputStream, recoveredStream)
         })
-
-        // Assert
-        assert exception.getCause() instanceof BytePatternNotFoundException
     }
 }
