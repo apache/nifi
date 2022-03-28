@@ -18,10 +18,9 @@ package org.apache.nifi.properties;
 
 import com.azure.security.keyvault.keys.cryptography.CryptographyClient;
 import org.apache.nifi.properties.configuration.AzureCryptographyClientProvider;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +30,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * For the purposes of running this test, if you have a key, first make sure you have configured
@@ -92,18 +95,18 @@ public class AzureKeyVaultKeySensitivePropertyProviderIT {
         IOUtil.writeText(bootstrapConfText.toString(), mockAzureBootstrapConf.toFile());
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
-        Assert.assertNotNull(props);
+        assertNotNull(props);
         final AzureCryptographyClientProvider provider = new AzureCryptographyClientProvider();
         final Properties properties = provider.getClientProperties(props).orElse(null);
         final CryptographyClient cryptographyClient = provider.getClient(properties).orElse(null);
         spp = new AzureKeyVaultKeySensitivePropertyProvider(cryptographyClient, properties);
-        Assert.assertNotNull(spp);
+        assertNotNull(spp);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownOnce() throws IOException {
         Files.deleteIfExists(mockBootstrapConf);
         Files.deleteIfExists(mockAzureBootstrapConf);
@@ -125,8 +128,8 @@ public class AzureKeyVaultKeySensitivePropertyProviderIT {
         String unprotectedValue = spp.unprotect(protectedValue, ProtectedPropertyContext.defaultContext("property"));
         logger.info("Unprotected Value: " + unprotectedValue);
 
-        Assert.assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);
-        Assert.assertNotEquals(SAMPLE_PLAINTEXT, protectedValue);
-        Assert.assertNotEquals(protectedValue, unprotectedValue);
+        assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);
+        assertNotEquals(SAMPLE_PLAINTEXT, protectedValue);
+        assertNotEquals(protectedValue, unprotectedValue);
     }
 }

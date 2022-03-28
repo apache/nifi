@@ -18,9 +18,7 @@ package org.apache.nifi.web.util
 
 import org.apache.http.conn.ssl.DefaultHostnameVerifier
 import org.glassfish.jersey.client.ClientConfig
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import sun.security.tools.keytool.CertAndKeyGen
 import sun.security.x509.X500Name
@@ -33,8 +31,10 @@ import javax.ws.rs.client.Client
 import javax.ws.rs.core.UriBuilderException
 import java.security.cert.X509Certificate
 
-@RunWith(JUnit4.class)
-class WebUtilsGroovyTest extends GroovyTestCase {
+import static org.junit.jupiter.api.Assertions.assertThrows
+import static org.junit.jupiter.api.Assertions.assertTrue
+
+class WebUtilsGroovyTest {
     static final String PCP_HEADER = "X-ProxyContextPath"
     static final String FC_HEADER = "X-Forwarded-Context"
     static final String FP_HEADER = "X-Forwarded-Prefix"
@@ -156,9 +156,7 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         def invalidContextPaths = ["/other/path", "localhost", "/../trying/to/escape"]
 
         invalidContextPaths.each { String contextPath ->
-            shouldFail(UriBuilderException) {
-                WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH), contextPath)
-            }
+            assertThrows(UriBuilderException.class, () -> WebUtils.verifyContextPath(Arrays.asList(ALLOWED_PATH), contextPath))
         }
     }
 
@@ -213,7 +211,7 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         hostnameVerifier.verify(serverHostname, cert)
     }
 
-    @Test(expected = SSLPeerUnverifiedException)
+    @Test
     void testHostnameVerifierDomainLevelMismatch() {
         // Arrange
         final String EXPECTED_DN = "CN=*.nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
@@ -226,11 +224,10 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         Client client = WebUtils.createClient(clientConfig, sslContext)
         DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
 
-        // Verify
-        hostnameVerifier.verify(hostname, cert)
+        assertThrows(SSLPeerUnverifiedException.class, () -> hostnameVerifier.verify(hostname, cert))
     }
 
-    @Test(expected = SSLPeerUnverifiedException)
+    @Test
     void testHostnameVerifierEmptyHostname() {
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
@@ -243,11 +240,10 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         Client client = WebUtils.createClient(clientConfig, sslContext)
         DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
 
-        // Verify
-        hostnameVerifier.verify(hostname, cert)
+        assertThrows(SSLPeerUnverifiedException.class, () -> hostnameVerifier.verify(hostname, cert))
     }
 
-    @Test(expected = SSLPeerUnverifiedException)
+    @Test
     void testHostnameVerifierDifferentSubdomain() {
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
@@ -260,11 +256,10 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         Client client = WebUtils.createClient(clientConfig, sslContext)
         DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
 
-        // Verify
-        hostnameVerifier.verify(hostname, cert)
+        assertThrows(SSLPeerUnverifiedException.class, () -> hostnameVerifier.verify(hostname, cert))
     }
 
-    @Test(expected = SSLPeerUnverifiedException)
+    @Test
     void testHostnameVerifierDifferentTLD() {
         // Arrange
         final String EXPECTED_DN = "CN=nifi.apache.org,OU=Security,O=Apache,ST=CA,C=US"
@@ -277,8 +272,7 @@ class WebUtilsGroovyTest extends GroovyTestCase {
         Client client = WebUtils.createClient(clientConfig, sslContext)
         DefaultHostnameVerifier hostnameVerifier = client.getHostnameVerifier()
 
-        // Verify
-        hostnameVerifier.verify(hostname, cert)
+        assertThrows(SSLPeerUnverifiedException.class, () -> hostnameVerifier.verify(hostname, cert))
     }
 
     @Test

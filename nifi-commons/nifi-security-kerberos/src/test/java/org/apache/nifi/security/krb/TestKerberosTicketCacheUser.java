@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.security.krb;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.security.auth.login.AppConfigurationEntry;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestKerberosTicketCacheUser {
 
