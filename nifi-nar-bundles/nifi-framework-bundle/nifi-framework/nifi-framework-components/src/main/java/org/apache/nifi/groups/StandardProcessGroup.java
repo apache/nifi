@@ -1446,7 +1446,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         readLock.lock();
         try {
             return inputPorts.isEmpty() && outputPorts.isEmpty() && connections.isEmpty()
-                && processGroups.isEmpty() && labels.isEmpty() && processors.isEmpty() && remoteGroups.isEmpty();
+                && processGroups.isEmpty() && labels.isEmpty() && processors.isEmpty() && remoteGroups.isEmpty() && controllerServices.isEmpty();
         } finally {
             readLock.unlock();
         }
