@@ -25,10 +25,9 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 import org.bouncycastle.asn1.x509.GeneralName;
 import org.bouncycastle.util.IPAddress;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,6 +48,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSecureNiFiConfigUtil {
     public static final String TEST_RESOURCE_DIR = "src/test/resources/";
@@ -86,7 +90,7 @@ public class TestSecureNiFiConfigUtil {
         return DigestUtils.sha256Hex(Files.readAllBytes(filepath));
     }
 
-    @Before
+    @BeforeEach
     public void init() throws IOException {
         nifiPropertiesFile = Files.createTempFile(PROPERTIES_PREFIX, ".properties");
         TlsConfiguration tlsConfig = new TemporaryKeyStoreBuilder().build();
@@ -94,7 +98,7 @@ public class TestSecureNiFiConfigUtil {
         Files.move(Paths.get(tlsConfig.getTruststorePath()), existingTruststorePath, StandardCopyOption.REPLACE_EXISTING);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws IOException {
         deleteIfExists(nifiPropertiesFile);
 
@@ -115,29 +119,29 @@ public class TestSecureNiFiConfigUtil {
         NiFiProperties niFiProperties = this.configureSecureNiFiProperties(testPropertiesFilePath);
 
         keystorePath = Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
-        Assert.assertTrue(keystorePath.toFile().exists());
-        Assert.assertFalse(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).isEmpty());
-        Assert.assertEquals("PKCS12", niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
+        assertTrue(keystorePath.toFile().exists());
+        assertFalse(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).isEmpty());
+        assertEquals("PKCS12", niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
 
         char[] keyPassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray();
         KeyStore keyStore = KeyStoreUtils.loadKeyStore(keystorePath.toString(),
                 niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray(),
                 niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE));
         String alias = keyStore.aliases().nextElement();
-        Assert.assertTrue(keyStore.isKeyEntry(alias));
+        assertTrue(keyStore.isKeyEntry(alias));
         Key key = keyStore.getKey(alias, keyPassword);
-        Assert.assertNotNull(key);
+        assertNotNull(key);
 
         truststorePath = Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
-        Assert.assertTrue(truststorePath.toFile().exists());
-        Assert.assertFalse(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).isEmpty());
-        Assert.assertEquals("PKCS12", niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
+        assertTrue(truststorePath.toFile().exists());
+        assertFalse(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).isEmpty());
+        assertEquals("PKCS12", niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
 
         KeyStore trustStore = KeyStoreUtils.loadKeyStore(truststorePath.toString(),
                 niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray(),
                 niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
         String trustAlias = trustStore.aliases().nextElement();
-        Assert.assertTrue(trustStore.isCertificateEntry(trustAlias));
+        assertTrue(trustStore.isCertificateEntry(trustAlias));
         Certificate certificate = trustStore.getCertificate(trustAlias);
         certificate.verify(certificate.getPublicKey());
 
@@ -147,14 +151,14 @@ public class TestSecureNiFiConfigUtil {
             for(List<?> list : sans) {
                 String san = (String) list.get(1);
                 if (IPAddress.isValid(san)) {
-                    Assert.assertEquals(GeneralName.iPAddress, list.get(0));
+                    assertEquals(GeneralName.iPAddress, list.get(0));
                 } else {
-                    Assert.assertEquals(GeneralName.dNSName, list.get(0));
+                    assertEquals(GeneralName.dNSName, list.get(0));
                 }
                 foundSands.add((String) list.get(1));
             }
             for(String expectedSAN : expectedSANs) {
-                Assert.assertTrue(foundSands.contains(expectedSAN));
+                assertTrue(foundSands.contains(expectedSAN));
             }
         }
     }
@@ -170,11 +174,11 @@ public class TestSecureNiFiConfigUtil {
         keystorePath = Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE));
         truststorePath = Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE));
 
-        Assert.assertEquals(expectKeystoreToExist, Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).toFile().exists());
-        Assert.assertEquals(expectTruststoreToExist, Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).toFile().exists());
+        assertEquals(expectKeystoreToExist, Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).toFile().exists());
+        assertEquals(expectTruststoreToExist, Paths.get(niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).toFile().exists());
 
         // Show that nifi.properties was not updated
-        Assert.assertEquals(getFileHash(nifiPropertiesFile), getFileHash(testPropertiesFilePath));
+        assertEquals(getFileHash(nifiPropertiesFile), getFileHash(testPropertiesFilePath));
     }
 
     @Test

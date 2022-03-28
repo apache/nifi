@@ -18,10 +18,9 @@ package org.apache.nifi.properties;
 
 import com.google.cloud.kms.v1.KeyManagementServiceClient;
 import org.apache.nifi.properties.configuration.GoogleKeyManagementServiceClientProvider;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.internal.util.io.IOUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +30,10 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * To run this test, make sure to first configure sensitive credential information as in the following link
@@ -91,18 +94,18 @@ public class GcpKmsSensitivePropertyProviderIT {
         IOUtil.writeText(bootstrapConfText.toString(), mockGCPBootstrapConf.toFile());
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
-        Assert.assertNotNull(props);
+        assertNotNull(props);
         final GoogleKeyManagementServiceClientProvider provider = new GoogleKeyManagementServiceClientProvider();
         final Properties clientProperties = provider.getClientProperties(props).orElse(null);
         final KeyManagementServiceClient client = provider.getClient(clientProperties).orElse(null);
         spp = new GcpKmsSensitivePropertyProvider(client, clientProperties);
-        Assert.assertNotNull(spp);
+        assertNotNull(spp);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownOnce() throws IOException {
         Files.deleteIfExists(mockBootstrapConf);
         Files.deleteIfExists(mockGCPBootstrapConf);
@@ -124,8 +127,8 @@ public class GcpKmsSensitivePropertyProviderIT {
         String unprotectedValue = spp.unprotect(protectedValue, ProtectedPropertyContext.defaultContext("property"));
         logger.info("Unprotected Value: " + unprotectedValue);
 
-        Assert.assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);
-        Assert.assertNotEquals(SAMPLE_PLAINTEXT, protectedValue);
-        Assert.assertNotEquals(protectedValue, unprotectedValue);
+        assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);
+        assertNotEquals(SAMPLE_PLAINTEXT, protectedValue);
+        assertNotEquals(protectedValue, unprotectedValue);
     }
 }
