@@ -551,12 +551,6 @@
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
-
-            <dependency>
-                <groupId>com.maxmind.geoip2</groupId>
-                <artifactId>geoip2</artifactId>
-                <version>2.16.1</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
