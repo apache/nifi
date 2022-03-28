@@ -95,22 +95,20 @@ import org.apache.nifi.ssl.SSLContextService;
         "clients are keeping a connection open, the concurrent tasks for the processor should be adjusted to match the Max Number of " +
         "TCP Connections allowed, so that there is a task processing each connection. " +
         "The processor can be configured to use an SSL Context Service to only allow secure connections. " +
-        "When a client connects to the processor using secure connection, the Distinguished Names of the client certificate's " +
+        "When connected clients present certificates for mutual TLS authentication, the Distinguished Names of the client certificate's " +
         "issuer and subject are added to the outgoing FlowFiles as attributes. " +
         "The processor does not perform authorization based on Distinguished Name values, but since these values " +
-        "are attached to the outgoing FlowFiles, authorization can be implemented in the downstream flow using a RouteOnAttribute processor.")
+        "are attached to the outgoing FlowFiles, authorization can be implemented based on these attributes.")
 @WritesAttributes({
         @WritesAttribute(attribute="tcp.sender", description="The host that sent the data."),
         @WritesAttribute(attribute="tcp.port", description="The port that the processor accepted the connection on."),
         @WritesAttribute(attribute="record.count", description="The number of records written to the flow file."),
         @WritesAttribute(attribute="mime.type", description="The mime-type of the writer used to write the records to the flow file."),
-        @WritesAttribute(attribute="client.certificate.issuer.dn", description="If data is sent via secure connection, the Distinguished Name of the " +
+        @WritesAttribute(attribute="client.certificate.issuer.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
                                                                                "Certificate Authority that issued the client's certificate " +
-                                                                               "is attached to the FlowFile as the value of the " +
-                                                                               "'client.certificate.issuer.dn' attribute."),
-        @WritesAttribute(attribute="client.certificate.subject.dn", description="If data is sent via secure connection, the Distinguished Name of the " +
-                                                                                "client certificate's owner (subject) is attached to the FlowFile " +
-                                                                                "as the value of the client.certificate.subject.dn attribute")
+                                                                               "is attached to the FlowFile."),
+        @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+                                                                                "client certificate's owner (subject) is attached to the FlowFile.")
 })
 public class ListenTCPRecord extends AbstractProcessor {
     private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
@@ -446,7 +444,7 @@ public class ListenTCPRecord extends AbstractProcessor {
                     attributes.put("tcp.sender", sender);
                     attributes.put("tcp.port", String.valueOf(port));
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                    addClientCertificateDNsToAttributes(attributes, socketRecordReader);
+                    addClientCertificateAttributes(attributes, socketRecordReader);
                     flowFile = session.putAllAttributes(flowFile, attributes);
 
                     final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
@@ -481,7 +479,7 @@ public class ListenTCPRecord extends AbstractProcessor {
         return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
     }
 
-    private void addClientCertificateDNsToAttributes(final Map<String, String> attributes, final SocketChannelRecordReader socketRecordReader)
+    private void addClientCertificateAttributes(final Map<String, String> attributes, final SocketChannelRecordReader socketRecordReader)
             throws SSLPeerUnverifiedException {
         if (socketRecordReader instanceof SSLSocketChannelRecordReader) {
             SSLSocketChannelRecordReader sslSocketRecordReader = (SSLSocketChannelRecordReader) socketRecordReader;
@@ -494,8 +492,8 @@ public class ListenTCPRecord extends AbstractProcessor {
                     attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, certificate.getIssuerDN().toString());
                 }
             } catch (SSLPeerUnverifiedException peerUnverifiedException) {
-                getLogger().debug("Peer not authenticated, " + CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE + " and " +
-                        CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE + " are not added to the outgoing FlowFile.");
+                getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
+                        socketRecordReader.getRemoteAddress(), peerUnverifiedException);
             }
         }
     }
