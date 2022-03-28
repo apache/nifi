@@ -18,6 +18,7 @@
 package org.apache.nifi.lookup.maxmind;
 
 import com.maxmind.db.InvalidDatabaseException;
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.AnonymousIpResponse;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.model.ConnectionTypeResponse;
