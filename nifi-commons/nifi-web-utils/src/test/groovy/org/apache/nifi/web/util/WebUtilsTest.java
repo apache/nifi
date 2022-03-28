@@ -16,25 +16,23 @@
  */
 package org.apache.nifi.web.util;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.servlet.http.HttpServletRequest;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class WebUtilsTest {
 
     @Mock
     private HttpServletRequest request;
-
-    // -- scheme tests
 
     @Test
     public void testDeterminedProxiedSchemeWhenNoHeaders() {
@@ -54,8 +52,6 @@ public class WebUtilsTest {
         when(request.getHeader(eq(WebUtils.FORWARDED_PROTO_HTTP_HEADER))).thenReturn("http");
         assertEquals("http", WebUtils.determineProxiedScheme(request));
     }
-
-    // -- host tests
 
     @Test
     public void testDetermineProxiedHostWhenNoHeaders() {
@@ -87,8 +83,6 @@ public class WebUtilsTest {
         when(request.getHeader(eq(WebUtils.FORWARDED_HOST_HTTP_HEADER))).thenReturn("x-forwarded-host:443");
         assertEquals("x-forwarded-host", WebUtils.determineProxiedHost(request));
     }
-
-    // -- port tests
 
     @Test
     public void testDetermineProxiedPortWhenNoHeaders() {

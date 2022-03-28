@@ -31,9 +31,9 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -56,9 +56,9 @@ import static org.apache.nifi.bootstrap.notification.http.HttpNotificationServic
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.PROP_TRUSTSTORE_TYPE;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_SUBJECT_KEY;
 import static org.apache.nifi.bootstrap.notification.http.HttpNotificationService.NOTIFICATION_TYPE_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class HttpNotificationServiceTest {
 
@@ -76,12 +76,12 @@ public class HttpNotificationServiceTest {
 
     private MockWebServer mockWebServer;
 
-    @Before
+    @BeforeEach
     public void startServer() {
         mockWebServer = new MockWebServer();
     }
 
-    @After
+    @AfterEach
     public void shutdownServer() throws IOException {
         mockWebServer.shutdown();
     }
