@@ -17,6 +17,7 @@
 package org.apache.nifi.security.util.crypto
 
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.io.StreamCallback
 import org.apache.nifi.processors.standard.TestEncryptContentGroovy
 import org.apache.nifi.security.util.EncryptionMethod
@@ -552,14 +553,9 @@ class PasswordBasedEncryptorGroovyTest {
             InputStream cipherInputStream = new ByteArrayInputStream(cipherBytes)
             cipherInputStream.skip(skipLength)
 
-            Exception exception = Assert.assertThrows(Exception.class, () -> {
+            Exception exception = Assert.assertThrows(ProcessException.class, () -> {
                 decryptionCallback.process(cipherInputStream, recoveredStream)
             })
-
-            // Assert
-            if (!(cipherProvider instanceof OpenSSLPKCS5CipherProvider)) {
-                assert exception.getCause() instanceof IllegalArgumentException
-            }
 
             // This is necessary to run multiple iterations
             plainStream.reset()
@@ -599,12 +595,9 @@ class PasswordBasedEncryptorGroovyTest {
 
             InputStream cipherInputStream = new ByteArrayInputStream(removedDelimiterCipherString.getBytes(StandardCharsets.UTF_8))
 
-            Exception exception = Assert.assertThrows(Exception.class, () -> {
+            Exception exception = Assert.assertThrows(ProcessException.class, () -> {
                 decryptionCallback.process(cipherInputStream, recoveredStream)
             })
-
-            // Assert
-            assert exception.getCause() instanceof BytePatternNotFoundException
 
             // This is necessary to run multiple iterations
             plainStream.reset()
@@ -653,12 +646,9 @@ class PasswordBasedEncryptorGroovyTest {
 
             InputStream cipherInputStream = new ByteArrayInputStream(removedIVCipherString.getBytes(StandardCharsets.UTF_8))
 
-            Exception exception = Assert.assertThrows(Exception.class, () -> {
+            Exception exception = Assert.assertThrows(ProcessException.class, () -> {
                 decryptionCallback.process(cipherInputStream, recoveredStream)
             })
-
-            // Assert
-            assert exception.getCause() instanceof IllegalArgumentException
 
             // This is necessary to run multiple iterations
             plainStream.reset()
@@ -698,12 +688,9 @@ class PasswordBasedEncryptorGroovyTest {
 
             InputStream cipherInputStream = new ByteArrayInputStream(removedDelimiterCipherString.getBytes(StandardCharsets.UTF_8))
 
-            Exception exception = Assert.assertThrows(Exception.class, () -> {
+            Exception exception = Assert.assertThrows(ProcessException.class, () -> {
                 decryptionCallback.process(cipherInputStream, recoveredStream)
             })
-
-            // Assert
-            assert exception.getCause() instanceof BytePatternNotFoundException
 
             // This is necessary to run multiple iterations
             plainStream.reset()
