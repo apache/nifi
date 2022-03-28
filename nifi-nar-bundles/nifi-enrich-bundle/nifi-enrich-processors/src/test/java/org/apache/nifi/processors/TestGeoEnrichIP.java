@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors;
 
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
