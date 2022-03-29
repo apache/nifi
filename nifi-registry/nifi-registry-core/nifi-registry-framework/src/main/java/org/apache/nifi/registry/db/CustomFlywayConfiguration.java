@@ -58,10 +58,10 @@ public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer 
         final DatabaseType databaseType = getDatabaseType(configuration.getDataSource());
         LOGGER.info("Determined database type is {}", databaseType.getName());
 
-        if (databaseType.equals(new MySQLDatabaseType())) {
+        if (databaseType instanceof MySQLDatabaseType) {
             LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_MYSQL));
             configuration.locations(LOCATIONS_MYSQL);
-        } else if (databaseType.equals(new PostgreSQLDatabaseType())) {
+        } else if (databaseType instanceof PostgreSQLDatabaseType) {
             LOGGER.info("Setting migration locations to {}", Arrays.asList(LOCATIONS_POSTGRES));
             configuration.locations(LOCATIONS_POSTGRES);
         } else {
