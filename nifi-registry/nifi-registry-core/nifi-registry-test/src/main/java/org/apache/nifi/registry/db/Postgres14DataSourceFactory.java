@@ -29,10 +29,10 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 
 @Configuration
-@Profile("postgres")
-public class PostgresDataSourceFactory extends TestDataSourceFactory {
+@Profile("postgres-14")
+public class Postgres14DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer();
+    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:14");
 
     static {
         POSTGRESQL_CONTAINER.start();
