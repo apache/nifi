@@ -172,20 +172,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>mysql5.7-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>mysql-57</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>mysql58-test</id>
+                                <id>mysql8-test</id>
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>integration-test</goal>
@@ -194,19 +181,6 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <spring.profiles.active>mysql-8</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>postgres-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>postgres</spring.profiles.active>
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>
@@ -259,6 +233,19 @@
                                 <configuration>
                                     <systemPropertyVariables>
                                         <spring.profiles.active>postgres-13</spring.profiles.active>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>postgres14-test</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <spring.profiles.active>postgres-14</spring.profiles.active>
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>

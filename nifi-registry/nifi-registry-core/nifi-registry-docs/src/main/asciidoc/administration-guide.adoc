@@ -1131,7 +1131,7 @@ providing 2 total locations, including `nifi.registry.extension.dir.1`.
 
 The metadata database maintains the knowledge of which buckets exist, which versioned items belong to which buckets, as well as the version history for each item.
 
-Currently, NiFi Registry supports using H2, Postgres (9.x, 10.x), and MySQL (5.6, 5.7, 8.0) for the relational database engine.
+Currently, NiFi Registry supports using H2, Postgres (10.x - 13.x), and MySQL (8.0) for the relational database engine.
 
 NOTE: NiFi Registry 0.1.0 only supports H2.
 
