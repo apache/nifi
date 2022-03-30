@@ -1818,7 +1818,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                                 deactivateThread();
                             }
 
-                            scheduleState.decrementActiveThreadCount(null);
+                            scheduleState.decrementActiveThreadCount();
                             hasActiveThreads = false;
                             scheduledState.set(ScheduledState.STOPPED);
                             future.complete(null);
