@@ -27,11 +27,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -690,7 +691,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -706,10 +707,13 @@ public class TestAttributesToCSV {
         testRunner.assertTransferCount(AttributesToCSV.REL_SUCCESS, 1);
         testRunner.assertTransferCount(AttributesToCSV.REL_FAILURE, 0);
 
-        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVData","Malibu Beach,\"California, US\"");
-        testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
-                .get(0).assertAttributeEquals("CSVSchema","beach-name,beach-location");
+        List<String> actual0 = getStrings(testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
+                .get(0).getAttribute("CSVData"));
+        List<String> actual1 = getStrings(testRunner.getFlowFilesForRelationship(AttributesToCSV.REL_SUCCESS)
+                .get(0).getAttribute("CSVSchema"));
+        List<String> expected0 = getStrings("Malibu Beach,\"California, US\"");
+        List<String> expected1 = getStrings("beach-name,beach-location");
+        assertEquals(zipToMap(expected0, expected1), zipToMap(actual0, actual1));
     }
 
     @Test
@@ -722,7 +726,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -741,8 +745,11 @@ public class TestAttributesToCSV {
         final byte[] contentData = testRunner.getContentAsByteArray(flowFile);
 
         final String contentDataString = new String(contentData, "UTF-8");
-        assertEquals(contentDataString.split(newline)[0], "beach-name,beach-location");
-        assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"");
+        List<String> actual0 = getStrings(contentDataString.split(newline)[0]);
+        List<String> actual1 = getStrings(contentDataString.split(newline)[1]);
+        List<String> expected0 = getStrings("beach-name,beach-location");
+        List<String> expected1 = getStrings("Malibu Beach,\"California, US\"");
+        assertEquals(zipToMap(expected0, expected1), zipToMap(actual0, actual1));
     }
 
 
@@ -755,7 +762,7 @@ public class TestAttributesToCSV {
         testRunner.setProperty(AttributesToCSV.INCLUDE_SCHEMA, "true");
         testRunner.setProperty(AttributesToCSV.ATTRIBUTES_REGEX, "beach-.*");
 
-        Map<String, String> attrs = new LinkedHashMap<String, String>(){{
+        Map<String, String> attrs = new HashMap<String, String>(){{
             put("beach-name", "Malibu Beach");
             put("beach-location", "California, US");
             put("attribute-should-be-eliminated", "This should not be in CSVData!");
@@ -775,8 +782,11 @@ public class TestAttributesToCSV {
         final String filename = flowFile.getAttribute("filename");
         final String uuid = flowFile.getAttribute("uuid");
 
-        flowFile.assertAttributeEquals("CSVData", "Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
-        flowFile.assertAttributeEquals("CSVSchema","beach-name,beach-location,path,filename,uuid");
+        List<String> actual0 = getStrings(flowFile.getAttribute("CSVData"));
+        List<String> actual1 = getStrings(flowFile.getAttribute("CSVSchema"));
+        List<String> expected0 = getStrings("Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
+        List<String> expected1 = getStrings("beach-name,beach-location,path,filename,uuid");
+        assertEquals(zipToMap(expected0, expected1), zipToMap(actual0, actual1));
     }
 
     @Test
@@ -812,11 +822,16 @@ public class TestAttributesToCSV {
         final byte[] contentData = testRunner.getContentAsByteArray(flowFile);
 
         final String contentDataString = new String(contentData, "UTF-8");
-        assertEquals(contentDataString.split(newline)[0], "beach-name,beach-location,path,filename,uuid");
-        assertEquals(contentDataString.split(newline)[1], "Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
+        List<String> actual0 = getStrings(contentDataString.split(newline)[0]);
+        List<String> actual1 = getStrings(contentDataString.split(newline)[1]);
+        List<String> expected0 = getStrings("beach-name,beach-location,path,filename,uuid");
+        List<String> expected1 = getStrings("Malibu Beach,\"California, US\"," + path + "," + filename + "," + uuid);
+        assertEquals(zipToMap(expected0, expected1), zipToMap(actual0, actual1));
     }
     private List<String> getStrings(String sdata) {
         return Arrays.asList(Pattern.compile(SPLIT_REGEX).split(sdata));
     }
-
+    private <K, V> Map<K, V> zipToMap(List<K> keys, List<V> values) {
+        return IntStream.range(0, keys.size()).boxed().collect(Collectors.toMap(keys::get, values::get));
+    }
 }
