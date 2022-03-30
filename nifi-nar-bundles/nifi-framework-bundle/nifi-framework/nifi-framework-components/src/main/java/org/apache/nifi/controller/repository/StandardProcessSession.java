@@ -1516,8 +1516,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     final ProvenanceEventBuilder eventBuilder = entry.getValue();
                     for (final String childId : eventBuilder.getChildFlowFileIds()) {
                         if (flowFileIds.contains(childId)) {
-                            throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, but the parent is not being migrated. "
-                                + "If any FlowFile is forked, the parent and all children must be migrated at the same time.");
+                            throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, " +
+                                "but the parent is not being migrated. If any FlowFile is forked, the parent and all children must be migrated at the same time.");
                         }
                     }
                 }
