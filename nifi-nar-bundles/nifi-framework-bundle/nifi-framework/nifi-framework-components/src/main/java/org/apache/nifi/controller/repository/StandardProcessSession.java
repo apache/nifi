@@ -1329,11 +1329,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (repoRecord.getOriginalQueue() != null && repoRecord.getOriginalQueue().getIdentifier() != null) {
                 details.append("queue=")
                         .append(repoRecord.getOriginalQueue().getIdentifier())
-                        .append("/");
+                        .append(", ");
             }
             details.append("filename=")
                     .append(repoRecord.getCurrent().getAttribute(CoreAttributes.FILENAME.key()))
-                    .append("/uuid=")
+                    .append(", uuid=")
                     .append(repoRecord.getCurrent().getAttribute(CoreAttributes.UUID.key()));
         }
         if (records.size() > MAX_ROLLBACK_FLOWFILES_TO_LOG) {
@@ -1341,7 +1341,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 details.append(", ");
             }
             details.append(records.size() - MAX_ROLLBACK_FLOWFILES_TO_LOG)
-                    .append(" additional Flowfiles not listed");
+                    .append(" additional FlowFiles not listed");
         } else if (filesListed == 0) {
             details.append("none");
         }
@@ -1440,8 +1440,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public void migrate(final ProcessSession newOwner, final Collection<FlowFile> flowFiles) {
-        verifyTaskActive();
-
         if (Objects.requireNonNull(newOwner) == this) {
             throw new IllegalArgumentException("Cannot migrate FlowFiles from a Process Session to itself");
         }
@@ -1457,188 +1455,200 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         migrate((StandardProcessSession) newOwner, flowFiles);
     }
 
-    private void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {
-        // We don't call validateRecordState() here because we want to allow migration of FlowFiles that have already been marked as removed or transferred, etc.
-        flowFiles = flowFiles.stream().map(this::getMostRecent).collect(Collectors.toList());
+    private synchronized void migrate(final StandardProcessSession newOwner, Collection<FlowFile> flowFiles) {
+        // This method will update many member variables/internal state of both `this` and `newOwner`. These member variables may also be updated during
+        // session rollback, such as when a Processor is terminated. As such, we need to ensure that we synchronize on both `this` and `newOwner` so that
+        // neither can be rolled back while we are in the process of migrating FlowFiles from one session to another.
+        //
+        // We must also ensure that we verify that both sessions are in an amenable state to perform this transference after obtaining the synchronization lock.
+        // We synchronize on 'this' by marking the method synchronized. Because the only way in which one Process Session will call into another is via this migrate() method,
+        // we do not need to worry about the order in which the synchronized lock is obtained.
+        synchronized (newOwner) {
+            verifyTaskActive();
+            newOwner.verifyTaskActive();
 
-        for (final FlowFile flowFile : flowFiles) {
-            if (openInputStreams.containsKey(flowFile)) {
-                throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
-                    + "has an open InputStream for the FlowFile, created by calling ProcessSession.read(FlowFile)");
-            }
+            // We don't call validateRecordState() here because we want to allow migration of FlowFiles that have already been marked as removed or transferred, etc.
+            flowFiles = flowFiles.stream().map(this::getMostRecent).collect(Collectors.toList());
 
-            if (openOutputStreams.containsKey(flowFile)) {
-                throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
-                    + "has an open OutputStream for the FlowFile, created by calling ProcessSession.write(FlowFile)");
-            }
-
-            if (readRecursionSet.containsKey(flowFile)) {
-                throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
-            }
-            if (writeRecursionSet.contains(flowFile)) {
-                throw new IllegalStateException(flowFile + " already in use for an active callback or OutputStream created by ProcessSession.write(FlowFile) has not been closed");
-            }
-
-            final StandardRepositoryRecord record = getRecord(flowFile);
-            if (record == null) {
-                throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
-            }
-        }
-
-        // If we have a FORK event for one of the given FlowFiles, then all children must also be migrated. Otherwise, we
-        // could have a case where we have FlowFile A transferred and eventually exiting the flow and later the 'newOwner'
-        // ProcessSession is committed, claiming to have created FlowFiles from the parent, which is no longer even in
-        // the flow. This would be very confusing when looking at the provenance for the FlowFile, so it is best to avoid this.
-        final Set<String> flowFileIds = flowFiles.stream()
-            .map(ff -> ff.getAttribute(CoreAttributes.UUID.key()))
-            .collect(Collectors.toSet());
-
-        for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
-            final FlowFile eventFlowFile = entry.getKey();
-            if (flowFiles.contains(eventFlowFile)) {
-                final ProvenanceEventBuilder eventBuilder = entry.getValue();
-                for (final String childId : eventBuilder.getChildFlowFileIds()) {
-                    if (!flowFileIds.contains(childId)) {
-                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
-                            + " children and not all children are being migrated. If any FlowFile is forked, all of its children must also be migrated at the same time as the forked FlowFile");
-                    }
-                }
-            } else {
-                final ProvenanceEventBuilder eventBuilder = entry.getValue();
-                for (final String childId : eventBuilder.getChildFlowFileIds()) {
-                    if (flowFileIds.contains(childId)) {
-                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, but the parent is not being migrated. "
-                            + "If any FlowFile is forked, the parent and all children must be migrated at the same time.");
-                    }
-                }
-            }
-        }
-
-        // If we have a FORK event where a FlowFile is a child of the FORK event, we want to create a FORK
-        // event builder for the new owner of the FlowFile and remove the child from our fork event builder.
-        final Set<FlowFile> forkedFlowFilesMigrated = new HashSet<>();
-        for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
-            final FlowFile eventFlowFile = entry.getKey();
-            final ProvenanceEventBuilder eventBuilder = entry.getValue();
-
-            // If the FlowFile that the event is attached to is not being migrated, we should not migrate the fork event builder either.
-            if (!flowFiles.contains(eventFlowFile)) {
-                continue;
-            }
-
-            final Set<String> childrenIds = new HashSet<>(eventBuilder.getChildFlowFileIds());
-
-            ProvenanceEventBuilder copy = null;
             for (final FlowFile flowFile : flowFiles) {
-                final String flowFileId = flowFile.getAttribute(CoreAttributes.UUID.key());
-                if (childrenIds.contains(flowFileId)) {
-                    eventBuilder.removeChildFlowFile(flowFile);
+                if (openInputStreams.containsKey(flowFile)) {
+                    throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
+                        + "has an open InputStream for the FlowFile, created by calling ProcessSession.read(FlowFile)");
+                }
 
-                    if (copy == null) {
-                        copy = eventBuilder.copy();
-                        copy.getChildFlowFileIds().clear();
-                    }
-                    copy.addChildFlowFile(flowFileId);
+                if (openOutputStreams.containsKey(flowFile)) {
+                    throw new IllegalStateException(flowFile + " cannot be migrated to a new Process Session because this session currently "
+                        + "has an open OutputStream for the FlowFile, created by calling ProcessSession.write(FlowFile)");
+                }
+
+                if (readRecursionSet.containsKey(flowFile)) {
+                    throw new IllegalStateException(flowFile + " already in use for an active callback or InputStream created by ProcessSession.read(FlowFile) has not been closed");
+                }
+                if (writeRecursionSet.contains(flowFile)) {
+                    throw new IllegalStateException(flowFile + " already in use for an active callback or OutputStream created by ProcessSession.write(FlowFile) has not been closed");
+                }
+
+                final StandardRepositoryRecord record = getRecord(flowFile);
+                if (record == null) {
+                    throw new FlowFileHandlingException(flowFile + " is not known in this session (" + toString() + ")");
                 }
             }
 
-            if (copy != null) {
-                newOwner.forkEventBuilders.put(eventFlowFile, copy);
-                forkedFlowFilesMigrated.add(eventFlowFile);
-            }
-        }
+            // If we have a FORK event for one of the given FlowFiles, then all children must also be migrated. Otherwise, we
+            // could have a case where we have FlowFile A transferred and eventually exiting the flow and later the 'newOwner'
+            // ProcessSession is committed, claiming to have created FlowFiles from the parent, which is no longer even in
+            // the flow. This would be very confusing when looking at the provenance for the FlowFile, so it is best to avoid this.
+            final Set<String> flowFileIds = flowFiles.stream()
+                .map(ff -> ff.getAttribute(CoreAttributes.UUID.key()))
+                .collect(Collectors.toSet());
 
-        forkedFlowFilesMigrated.forEach(forkEventBuilders::remove);
-
-        newOwner.processingStartTime = Math.min(newOwner.processingStartTime, processingStartTime);
-
-        for (final FlowFile flowFile : flowFiles) {
-            final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
-
-            final long flowFileId = flowFile.getId();
-            final StandardRepositoryRecord repoRecord = this.records.remove(flowFileId);
-            newOwner.records.put(flowFileId, repoRecord);
-
-            final Collection<Long> linkedIds = this.flowFileLinkage.remove(flowFileId);
-            if (linkedIds != null) {
-                linkedIds.forEach(linkedId -> newOwner.flowFileLinkage.addLink(flowFileId, linkedId));
-            }
-
-            // Adjust the counts for Connections for each FlowFile that was pulled from a Connection.
-            // We do not have to worry about accounting for 'input counts' on connections because those
-            // are incremented only during a checkpoint, and anything that's been checkpointed has
-            // also been committed above.
-            final FlowFileQueue inputQueue = repoRecord.getOriginalQueue();
-            if (inputQueue != null) {
-                final String connectionId = inputQueue.getIdentifier();
-                incrementConnectionOutputCounts(connectionId, -1, -repoRecord.getOriginal().getSize());
-                newOwner.incrementConnectionOutputCounts(connectionId, 1, repoRecord.getOriginal().getSize());
-
-                unacknowledgedFlowFiles.get(inputQueue).remove(flowFile);
-                newOwner.unacknowledgedFlowFiles.computeIfAbsent(inputQueue, queue -> new HashSet<>()).add(flowFileRecord);
-
-                flowFilesIn--;
-                contentSizeIn -= flowFile.getSize();
-
-                newOwner.flowFilesIn++;
-                newOwner.contentSizeIn += flowFile.getSize();
+            for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
+                final FlowFile eventFlowFile = entry.getKey();
+                if (flowFiles.contains(eventFlowFile)) {
+                    final ProvenanceEventBuilder eventBuilder = entry.getValue();
+                    for (final String childId : eventBuilder.getChildFlowFileIds()) {
+                        if (!flowFileIds.contains(childId)) {
+                            throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
+                                + " children and not all children are being migrated. If any FlowFile is forked, all of its children must also be migrated at the same time as the forked FlowFile");
+                        }
+                    }
+                } else {
+                    final ProvenanceEventBuilder eventBuilder = entry.getValue();
+                    for (final String childId : eventBuilder.getChildFlowFileIds()) {
+                        if (flowFileIds.contains(childId)) {
+                            throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, " +
+                                "but the parent is not being migrated. If any FlowFile is forked, the parent and all children must be migrated at the same time.");
+                        }
+                    }
+                }
             }
 
-            final String flowFileUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
-            if (removedFlowFiles.remove(flowFileUuid)) {
-                newOwner.removedFlowFiles.add(flowFileUuid);
-                newOwner.removedCount++;
-                newOwner.removedBytes += flowFile.getSize();
+            // If we have a FORK event where a FlowFile is a child of the FORK event, we want to create a FORK
+            // event builder for the new owner of the FlowFile and remove the child from our fork event builder.
+            final Set<FlowFile> forkedFlowFilesMigrated = new HashSet<>();
+            for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
+                final FlowFile eventFlowFile = entry.getKey();
+                final ProvenanceEventBuilder eventBuilder = entry.getValue();
 
-                removedCount--;
-                removedBytes -= flowFile.getSize();
+                // If the FlowFile that the event is attached to is not being migrated, we should not migrate the fork event builder either.
+                if (!flowFiles.contains(eventFlowFile)) {
+                    continue;
+                }
+
+                final Set<String> childrenIds = new HashSet<>(eventBuilder.getChildFlowFileIds());
+
+                ProvenanceEventBuilder copy = null;
+                for (final FlowFile flowFile : flowFiles) {
+                    final String flowFileId = flowFile.getAttribute(CoreAttributes.UUID.key());
+                    if (childrenIds.contains(flowFileId)) {
+                        eventBuilder.removeChildFlowFile(flowFile);
+
+                        if (copy == null) {
+                            copy = eventBuilder.copy();
+                            copy.getChildFlowFileIds().clear();
+                        }
+                        copy.addChildFlowFile(flowFileId);
+                    }
+                }
+
+                if (copy != null) {
+                    newOwner.forkEventBuilders.put(eventFlowFile, copy);
+                    forkedFlowFilesMigrated.add(eventFlowFile);
+                }
             }
 
-            if (createdFlowFiles.remove(flowFileUuid)) {
-                newOwner.createdFlowFiles.add(flowFileUuid);
-            }
+            forkedFlowFilesMigrated.forEach(forkEventBuilders::remove);
 
-            if (repoRecord.getTransferRelationship() != null) {
-                final Relationship transferRelationship = repoRecord.getTransferRelationship();
-                final Collection<Connection> destinations = context.getConnections(transferRelationship);
-                final int numDestinations = destinations.size();
-                final boolean autoTerminated = numDestinations == 0 && context.getConnectable().isAutoTerminated(transferRelationship);
+            newOwner.processingStartTime = Math.min(newOwner.processingStartTime, processingStartTime);
 
-                if (autoTerminated) {
-                    removedCount--;
-                    removedBytes -= flowFile.getSize();
+            for (final FlowFile flowFile : flowFiles) {
+                final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
 
+                final long flowFileId = flowFile.getId();
+                final StandardRepositoryRecord repoRecord = this.records.remove(flowFileId);
+                newOwner.records.put(flowFileId, repoRecord);
+
+                final Collection<Long> linkedIds = this.flowFileLinkage.remove(flowFileId);
+                if (linkedIds != null) {
+                    linkedIds.forEach(linkedId -> newOwner.flowFileLinkage.addLink(flowFileId, linkedId));
+                }
+
+                // Adjust the counts for Connections for each FlowFile that was pulled from a Connection.
+                // We do not have to worry about accounting for 'input counts' on connections because those
+                // are incremented only during a checkpoint, and anything that's been checkpointed has
+                // also been committed above.
+                final FlowFileQueue inputQueue = repoRecord.getOriginalQueue();
+                if (inputQueue != null) {
+                    final String connectionId = inputQueue.getIdentifier();
+                    incrementConnectionOutputCounts(connectionId, -1, -repoRecord.getOriginal().getSize());
+                    newOwner.incrementConnectionOutputCounts(connectionId, 1, repoRecord.getOriginal().getSize());
+
+                    unacknowledgedFlowFiles.get(inputQueue).remove(flowFile);
+                    newOwner.unacknowledgedFlowFiles.computeIfAbsent(inputQueue, queue -> new HashSet<>()).add(flowFileRecord);
+
+                    flowFilesIn--;
+                    contentSizeIn -= flowFile.getSize();
+
+                    newOwner.flowFilesIn++;
+                    newOwner.contentSizeIn += flowFile.getSize();
+                }
+
+                final String flowFileUuid = flowFile.getAttribute(CoreAttributes.UUID.key());
+                if (removedFlowFiles.remove(flowFileUuid)) {
+                    newOwner.removedFlowFiles.add(flowFileUuid);
                     newOwner.removedCount++;
                     newOwner.removedBytes += flowFile.getSize();
-                } else {
-                    flowFilesOut--;
-                    contentSizeOut -= flowFile.getSize();
 
-                    newOwner.flowFilesOut++;
-                    newOwner.contentSizeOut += flowFile.getSize();
+                    removedCount--;
+                    removedBytes -= flowFile.getSize();
+                }
+
+                if (createdFlowFiles.remove(flowFileUuid)) {
+                    newOwner.createdFlowFiles.add(flowFileUuid);
+                }
+
+                if (repoRecord.getTransferRelationship() != null) {
+                    final Relationship transferRelationship = repoRecord.getTransferRelationship();
+                    final Collection<Connection> destinations = context.getConnections(transferRelationship);
+                    final int numDestinations = destinations.size();
+                    final boolean autoTerminated = numDestinations == 0 && context.getConnectable().isAutoTerminated(transferRelationship);
+
+                    if (autoTerminated) {
+                        removedCount--;
+                        removedBytes -= flowFile.getSize();
+
+                        newOwner.removedCount++;
+                        newOwner.removedBytes += flowFile.getSize();
+                    } else {
+                        flowFilesOut--;
+                        contentSizeOut -= flowFile.getSize();
+
+                        newOwner.flowFilesOut++;
+                        newOwner.contentSizeOut += flowFile.getSize();
+                    }
+                }
+
+                final List<ProvenanceEventRecord> events = generatedProvenanceEvents.remove(flowFile);
+                if (events != null) {
+                    newOwner.generatedProvenanceEvents.put(flowFile, events);
+                }
+
+                final ContentClaim currentClaim = repoRecord.getCurrentClaim();
+                if (currentClaim != null) {
+                    final ByteCountingOutputStream appendableStream = appendableStreams.remove(currentClaim);
+                    if (appendableStream != null) {
+                        newOwner.appendableStreams.put(currentClaim, appendableStream);
+                    }
+                }
+
+                final Path toDelete = deleteOnCommit.remove(flowFile);
+                if (toDelete != null) {
+                    newOwner.deleteOnCommit.put(flowFile, toDelete);
                 }
             }
 
-            final List<ProvenanceEventRecord> events = generatedProvenanceEvents.remove(flowFile);
-            if (events != null) {
-                newOwner.generatedProvenanceEvents.put(flowFile, events);
-            }
-
-            final ContentClaim currentClaim = repoRecord.getCurrentClaim();
-            if (currentClaim != null) {
-                final ByteCountingOutputStream appendableStream = appendableStreams.remove(currentClaim);
-                if (appendableStream != null) {
-                    newOwner.appendableStreams.put(currentClaim, appendableStream);
-                }
-            }
-
-            final Path toDelete = deleteOnCommit.remove(flowFile);
-            if (toDelete != null) {
-                newOwner.deleteOnCommit.put(flowFile, toDelete);
-            }
+            provenanceReporter.migrate(newOwner.provenanceReporter, flowFileIds);
         }
-
-        provenanceReporter.migrate(newOwner.provenanceReporter, flowFileIds);
     }
 
 
@@ -1793,11 +1803,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         flowFilesIn++;
         contentSizeIn += flowFile.getSize();
 
-        Set<FlowFileRecord> set = unacknowledgedFlowFiles.get(connection.getFlowFileQueue());
-        if (set == null) {
-            set = new HashSet<>();
-            unacknowledgedFlowFiles.put(connection.getFlowFileQueue(), set);
-        }
+        final Set<FlowFileRecord> set = unacknowledgedFlowFiles.computeIfAbsent(connection.getFlowFileQueue(), k -> new HashSet<>());
         set.add(flowFile);
 
         incrementConnectionOutputCounts(connection, flowFile);

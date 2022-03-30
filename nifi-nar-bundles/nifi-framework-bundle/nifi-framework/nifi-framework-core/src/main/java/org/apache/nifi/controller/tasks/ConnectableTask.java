@@ -283,7 +283,7 @@ public class ConnectableTask {
                     logger.error("", e);
                 }
             } finally {
-                scheduleState.decrementActiveThreadCount(activeSessionFactory);
+                scheduleState.decrementActiveThreadCount();
                 Thread.currentThread().setName(originalThreadName);
             }
         }
