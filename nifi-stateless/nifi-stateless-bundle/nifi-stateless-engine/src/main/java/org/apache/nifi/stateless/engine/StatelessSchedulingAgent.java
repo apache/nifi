@@ -88,7 +88,7 @@ public class StatelessSchedulingAgent implements SchedulingAgent {
             try {
                 taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
             } finally {
-                scheduleState.decrementActiveThreadCount(null);
+                scheduleState.decrementActiveThreadCount();
             }
 
         } catch (final Throwable t) {

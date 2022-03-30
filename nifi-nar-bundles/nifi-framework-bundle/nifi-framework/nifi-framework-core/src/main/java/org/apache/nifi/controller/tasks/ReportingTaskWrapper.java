@@ -58,7 +58,7 @@ public class ReportingTaskWrapper implements Runnable {
                     }
                 }
             } finally {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         }
     }

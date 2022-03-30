@@ -316,7 +316,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 // reaching the maximum number of threads. we won't know this until we atomically increment the thread count
                 // on the Schedule State, so we check it here. in this case, we cannot trigger the Processor, as doing so would
                 // result in using more than the maximum number of defined threads
-                scheduleState.decrementActiveThreadCount(sessionFactory);
+                scheduleState.decrementActiveThreadCount();
                 return;
             }
 
@@ -344,7 +344,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     }
                 }
 
-                scheduleState.decrementActiveThreadCount(sessionFactory);
+                scheduleState.decrementActiveThreadCount();
             }
         }
 
@@ -357,7 +357,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                 // reaching the maximum number of threads. we won't know this until we atomically increment the thread count
                 // on the Schedule State, so we check it here. in this case, we cannot trigger the Processor, as doing so would
                 // result in using more than the maximum number of defined threads
-                scheduleState.decrementActiveThreadCount(sessionFactory);
+                scheduleState.decrementActiveThreadCount();
                 return;
             }
 
@@ -386,7 +386,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     }
                 }
 
-                scheduleState.decrementActiveThreadCount(sessionFactory);
+                scheduleState.decrementActiveThreadCount();
             }
         }
     }

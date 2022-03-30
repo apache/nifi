@@ -43,4 +43,9 @@ public class FlowFileQueueContents {
     public QueueSize getSwapSize() {
         return swapSize;
     }
+
+    @Override
+    public String toString() {
+        return "FlowFileQueueContents[swapLocations=" + swapLocations + ", swapSize=" + swapSize + ", activeFlowFiles=" + activeFlowFiles +  "]";
+    }
 }
