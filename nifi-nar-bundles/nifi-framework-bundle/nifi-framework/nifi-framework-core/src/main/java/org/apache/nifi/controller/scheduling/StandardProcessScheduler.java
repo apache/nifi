@@ -343,7 +343,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
             @Override
             public void onTaskComplete() {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         };
 
@@ -383,7 +383,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
             @Override
             public void onTaskComplete() {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         };
 

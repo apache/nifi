@@ -23,7 +23,9 @@ import org.apache.nifi.processor.exception.TerminatedTaskException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +38,7 @@ public class LifecycleState {
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
     private volatile boolean terminated = false;
-    private final Set<ActiveProcessSessionFactory> activeProcessSessionFactories = Collections.synchronizedSet(new HashSet<>());
+    private final Map<ActiveProcessSessionFactory, Object> activeProcessSessionFactories = new WeakHashMap<>();
 
     public synchronized int incrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
         if (terminated) {
@@ -44,19 +46,27 @@ public class LifecycleState {
         }
 
         if (sessionFactory != null) {
-            activeProcessSessionFactories.add(sessionFactory);
+            // If a session factory is provided, add it to our WeakHashMap. The value that we use is not relevant,
+            // as this just serves, essentially, as a WeakHashSet, but there is no WeakHashSet implementation.
+            // We need to keep track of any ActiveProcessSessionFactory that has been created for this component,
+            // as long as the session factory has not been garbage collected. This is important because when we offload
+            // a node, we will terminate all active processors and we need the ability to terminate any active sessions
+            // at that time. We cannot simply store a Set of all ActiveProcessSessionFactories and then remove them in the
+            // decrementActiveThreadCount because a Processor may choose to continue using the ProcessSessionFactory even after
+            // returning from its onTrigger method.
+            //
+            // For example, it may stash the ProcessSessionFactory away in a member variable in order to aggregate FlowFiles across
+            // many onTrigger invocations. In this case, we need the ability to force the rollback of any created session upon Processor
+            // termination.
+            activeProcessSessionFactories.put(sessionFactory, null);
         }
 
         return activeThreadCount.incrementAndGet();
     }
 
-    public synchronized int decrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
+    public synchronized int decrementActiveThreadCount() {
         if (terminated) {
             return activeThreadCount.get();
-        }
-
-        if (sessionFactory != null) {
-            activeProcessSessionFactories.remove(sessionFactory);
         }
 
         return activeThreadCount.decrementAndGet();
@@ -85,8 +95,7 @@ public class LifecycleState {
 
     @Override
     public String toString() {
-        return new StringBuilder().append("activeThreads:").append(activeThreadCount.get()).append("; ")
-                .append("scheduled:").append(scheduled.get()).append("; ").toString();
+        return "LifecycleState[activeThreads= " + activeThreadCount.get() + ", scheduled=" + scheduled.get() + "]";
     }
 
     /**
@@ -123,7 +132,8 @@ public class LifecycleState {
         this.terminated = true;
         activeThreadCount.set(0);
 
-        for (final ActiveProcessSessionFactory factory : activeProcessSessionFactories) {
+        // Terminate any active sessions.
+        for (final ActiveProcessSessionFactory factory : activeProcessSessionFactories.keySet()) {
             factory.terminateActiveSessions();
         }
     }
