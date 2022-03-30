@@ -210,12 +210,12 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
     @Override
     protected List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
-        return performListing(context, listingMode, true);
+        return performListing(context, minTimestamp, listingMode, true);
     }
 
     @Override
     protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
-        return performListing(context, ListingMode.CONFIGURATION_VERIFICATION, false).size();
+        return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION, false).size();
     }
 
     @Override
@@ -238,7 +238,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
         return attributes;
     }
 
-    private List<ADLSFileInfo> performListing(final ProcessContext context, final ListingMode listingMode,
+    private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
             final String fileSystem = evaluateFileSystemProperty(context, null);
@@ -256,9 +256,11 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             options.setRecursive(recurseSubdirectories);
 
             final Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
+            final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
             final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
+                    .filter(pathItem -> pathItem.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp)
                     .map(pathItem -> new ADLSFileInfo.Builder()
                             .fileSystem(fileSystem)
                             .filePath(pathItem.getName())
