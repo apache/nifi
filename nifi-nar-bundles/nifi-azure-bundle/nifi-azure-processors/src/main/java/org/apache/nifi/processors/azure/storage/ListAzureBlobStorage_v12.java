@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.rest.PagedResponse;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -53,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -199,34 +201,44 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
     }
 
     @Override
-    protected List<BlobInfo> performListing(ProcessContext context, Long minTimestamp, ListingMode listingMode) throws IOException {
-        String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions().getValue();
-        String prefix = context.getProperty(BLOB_NAME_PREFIX).evaluateAttributeExpressions().getValue();
+    protected List<BlobInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
+        final String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions().getValue();
+        final String prefix = context.getProperty(BLOB_NAME_PREFIX).evaluateAttributeExpressions().getValue();
+        final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
         try {
-            List<BlobInfo> listing = new ArrayList<>();
+            final List<BlobInfo> listing = new ArrayList<>();
 
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
 
-            ListBlobsOptions options = new ListBlobsOptions()
+            final ListBlobsOptions options = new ListBlobsOptions()
                     .setPrefix(prefix);
 
-            for (BlobItem blob : containerClient.listBlobs(options, null)) {
-                BlobItemProperties properties = blob.getProperties();
+            final Iterator<PagedResponse<BlobItem>> result = containerClient.listBlobs(options, null).iterableByPage().iterator();
+            String continuationToken;
 
-                Builder builder = new Builder()
-                        .containerName(containerName)
-                        .blobName(blob.getName())
-                        .primaryUri(String.format("%s/%s", containerClient.getBlobContainerUrl(), blob.getName()))
-                        .etag(properties.getETag())
-                        .blobType(properties.getBlobType().toString())
-                        .contentType(properties.getContentType())
-                        .contentLanguage(properties.getContentLanguage())
-                        .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
-                        .length(properties.getContentLength());
+            do {
+                final PagedResponse<BlobItem> pagedResult = result.next();
+                continuationToken = pagedResult.getContinuationToken();
+                for (BlobItem blob : pagedResult.getValue()) {
+                    final BlobItemProperties properties = blob.getProperties();
 
-                listing.add(builder.build());
-            }
+                    if (properties.getLastModified().toInstant().toEpochMilli() > minimumTimestamp) {
+                        final Builder builder = new Builder()
+                                .containerName(containerName)
+                                .blobName(blob.getName())
+                                .primaryUri(String.format("%s/%s", containerClient.getBlobContainerUrl(), blob.getName()))
+                                .etag(properties.getETag())
+                                .blobType(properties.getBlobType().toString())
+                                .contentType(properties.getContentType())
+                                .contentLanguage(properties.getContentLanguage())
+                                .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
+                                .length(properties.getContentLength());
+
+                        listing.add(builder.build());
+                    }
+                }
+            } while (continuationToken != null);
 
             return listing;
         } catch (Throwable t) {

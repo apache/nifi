@@ -46,6 +46,7 @@ import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.INITIAL_LISTING_TARGET;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
@@ -210,12 +210,12 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
     @Override
     protected List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode) throws IOException {
-        return performListing(context, listingMode, true);
+        return performListing(context, minTimestamp, listingMode, true);
     }
 
     @Override
     protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
-        return performListing(context, ListingMode.CONFIGURATION_VERIFICATION, false).size();
+        return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION, false).size();
     }
 
     @Override
@@ -238,7 +238,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
         return attributes;
     }
 
-    private List<ADLSFileInfo> performListing(final ProcessContext context, final ListingMode listingMode,
+    private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
             final String fileSystem = evaluateFileSystemProperty(context, null);
@@ -256,19 +256,32 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             options.setRecursive(recurseSubdirectories);
 
             final Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
+            final List<ADLSFileInfo> listing = new ArrayList<>();
+            final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
+            //final long minimumTimestamp = 0;
+            final String[] continuationToken = new String[1];
 
-            final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
-                    .filter(pathItem -> !pathItem.isDirectory())
-                    .map(pathItem -> new ADLSFileInfo.Builder()
-                            .fileSystem(fileSystem)
-                            .filePath(pathItem.getName())
-                            .length(pathItem.getContentLength())
-                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
-                            .etag(pathItem.getETag())
-                            .build())
-                    .filter(fileInfo -> applyFilters && (filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches()))
-                    .filter(fileInfo -> applyFilters && (pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches()))
-                    .collect(Collectors.toList());
+            do {
+                 fileSystemClient.listPaths(options, null).streamByPage(continuationToken[0]).forEach(
+                        page -> {
+                            continuationToken[0] = page.getContinuationToken();
+                            page.getValue().stream()
+                                    .filter(pathItem -> !pathItem.isDirectory())
+                                    .filter(pathItem -> pathItem.getLastModified().toInstant().toEpochMilli() > minimumTimestamp)
+                                    .map(pathItem -> new ADLSFileInfo.Builder()
+                                            .fileSystem(fileSystem)
+                                            .filePath(pathItem.getName())
+                                            .length(pathItem.getContentLength())
+                                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
+                                            .etag(pathItem.getETag())
+                                            .build())
+                                    .filter(fileInfo -> applyFilters && (filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches()))
+                                    .filter(fileInfo -> applyFilters && (pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches()))
+                                    .forEach(listing::add);
+                        }
+                );
+            } while (continuationToken[0] != null);
+
 
             return listing;
         } catch (final Exception e) {
