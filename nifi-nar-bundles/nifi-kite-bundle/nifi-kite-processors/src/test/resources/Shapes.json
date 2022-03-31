@@ -1,0 +1,10 @@
+{
+  "shapes":
+  [
+    {"shape": "circle", "color": "red", "width": 100, "height": 100},
+    {"shape": "square", "color": "red", "width": 100, "height": 100},
+    {"shape": "sphere", "color": "red", "width": 100, "height": 100},
+    {"shape": "triangle", "color": "red", "width": 100, "height": 100},
+    {"shape": "rectangle", "color": "red", "width": 100, "height": 100}
+  ]
+}
