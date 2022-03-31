@@ -20,9 +20,19 @@ package org.apache.nifi.groups;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.remote.RemoteGroupPort;
 
+import java.util.Collection;
+
 public class DefaultComponentScheduler extends AbstractComponentScheduler {
+
+    public DefaultComponentScheduler(final ControllerServiceProvider controllerServiceProvider, final VersionedComponentStateLookup stateLookup) {
+        super(controllerServiceProvider, stateLookup);
+    }
+
     @Override
     protected void startNow(final Connectable component) {
         switch (component.getConnectableType()) {
@@ -47,5 +57,10 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
                 port.getRemoteProcessGroup().startTransmitting(port);
             }
         }
+    }
+
+    @Override
+    protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
+        getControllerServiceProvider().enableControllerServices(controllerServices);
     }
 }
