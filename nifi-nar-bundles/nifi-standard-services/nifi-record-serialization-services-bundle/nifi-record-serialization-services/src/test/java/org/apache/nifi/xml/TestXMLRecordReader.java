@@ -55,7 +55,7 @@ public class TestXMLRecordReader {
     @Test
     public void testSingleRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), false, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
         assertNull(reader.nextRecord());
@@ -64,7 +64,7 @@ public class TestXMLRecordReader {
     @Test
     public void testMap() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_map.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -85,7 +85,7 @@ public class TestXMLRecordReader {
     @Test
     public void testMapWithRecords() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_map2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForRecordMap(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -104,7 +104,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersSimpleField() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, null}, reader.nextRecord().getValues());
@@ -116,7 +116,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
@@ -158,7 +158,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersCoerceTrueDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaWithNestedRecord3(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, false);
@@ -205,7 +205,7 @@ public class TestXMLRecordReader {
     @Test
     public void testTagInCharactersCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -252,7 +252,7 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -264,8 +264,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecord2() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema2(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertNull(reader.nextRecord(true, true).getValue("AGE"));
         assertNull(reader.nextRecord(false, true).getValue("AGE"));
@@ -276,8 +276,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecord3() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("AGE").getClass());
         assertEquals(String.class, reader.nextRecord(false, true).getValue("AGE").getClass());
@@ -288,7 +288,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.remove(2);
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("AGE").getClass());
@@ -298,8 +298,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_no_attributes.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", "42", "USA"}, reader.nextRecord(false, false).getValues());
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "33", "UK"}, reader.nextRecord(false, false).getValues());
@@ -312,7 +312,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -337,7 +337,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 "ATTR_", "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -360,8 +360,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordWithAttribute3() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()),
-                true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
         assertEquals(null, first.getAsString("ID"));
@@ -382,7 +382,7 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, true).getValue("ID").getClass());
@@ -395,7 +395,7 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.INT.getDataType()));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertEquals(Integer.class, reader.nextRecord(true, false).getValue("ID").getClass());
@@ -404,17 +404,14 @@ public class TestXMLRecordReader {
 
     @Test
     public void testSimpleRecordWithAttribute6() throws IOException, MalformedRecordException {
-        // given
         final InputStream is = new FileInputStream("src/test/resources/xml/people2.xml");
         final List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.DECIMAL.getDecimalDataType(38, 10)));
-        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        final XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
-        // when
         final Record record = reader.nextRecord(true, false);
 
-        // then
         assertEquals(BigDecimal.class, record.getValue("ID").getClass());
     }
 
@@ -423,7 +420,7 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ID", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -462,8 +459,8 @@ public class TestXMLRecordReader {
         final DataType recordType2 = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(nestedFields2));
         fields.add(new RecordField("AGE", recordType2));
 
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
         assertTrue(first.getValue("NAME") instanceof Record);
@@ -489,7 +486,7 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleTypeWithAttributeAsRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -518,7 +515,7 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordWithHeader() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -530,7 +527,8 @@ public class TestXMLRecordReader {
     @Test
     public void testSimpleRecordWithHeaderNoValidation() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_with_header_and_comments.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,  true,
+                null, null, dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
         assertArrayEquals(new Object[] {"Ainslie Fletcher", 33, "UK"}, reader.nextRecord().getValues());
@@ -541,7 +539,8 @@ public class TestXMLRecordReader {
     @Test
     public void testInvalidXml() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_invalid.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
         int count = 0;
 
         /*
@@ -566,8 +565,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
         List<RecordField> fields = getSimpleRecordFields2();
         fields.add(new RecordField("AGE", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
         assertTrue(record.getValue("AGE") instanceof String);
@@ -579,8 +578,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.CHOICE.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record record = reader.nextRecord();
         assertTrue(record.getValue("ADDRESS") instanceof Record);
@@ -593,7 +592,7 @@ public class TestXMLRecordReader {
     @Test
     public void testNameSpaces() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_namespace.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -605,7 +604,7 @@ public class TestXMLRecordReader {
     @Test
     public void testCData() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_cdata.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", 42, "USA"}, reader.nextRecord().getValues());
@@ -620,8 +619,8 @@ public class TestXMLRecordReader {
         List<RecordField> fields = getSimpleRecordFields2();
         final DataType recordType = RecordFieldType.RECORD.getRecordDataType(getNestedSchema());
         fields.add(new RecordField("AGE", recordType));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {"Cleve Butler", "USA", null}, reader.nextRecord().getValues());
         assertArrayEquals(new Object[] {"Ainslie Fletcher", "UK", null}, reader.nextRecord().getValues());
@@ -634,8 +633,8 @@ public class TestXMLRecordReader {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         List<RecordField> fields = getSimpleRecordFields();
         fields.add(new RecordField("ADDRESS", RecordFieldType.STRING.getDataType()));
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertNull(reader.nextRecord().getValue("ADDRESS"));
         assertNull(reader.nextRecord().getValue("ADDRESS"));
@@ -646,7 +645,7 @@ public class TestXMLRecordReader {
     @Test
     public void testParseEmptyFields() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord().getValues());
@@ -656,7 +655,7 @@ public class TestXMLRecordReader {
     @Test
     public void testParseEmptyFieldsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_empty.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertArrayEquals(new Object[] {null, null, null}, reader.nextRecord(false, false).getValues());
@@ -667,27 +666,29 @@ public class TestXMLRecordReader {
     public void testEmptyStreamAsSingleRecord() {
         InputStream is = new ByteArrayInputStream(new byte[0]);
         assertThrows(MalformedRecordException.class,
-                () -> new XMLRecordReader(is, getSimpleSchema(), false, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
+                () -> new XMLRecordReader(is, getSimpleSchema(), false,  true,
+                        null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
     @Test
     public void testEmptyStreamAsArray() {
         InputStream is = new ByteArrayInputStream(new byte[0]);
         assertThrows(MalformedRecordException.class,
-                () -> new XMLRecordReader(is, getSimpleSchema(), true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
+                () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
+                        null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
     @Test
     public void testEmptyStreamWIthXmlHeader() {
         InputStream is = new ByteArrayInputStream(("<?xml version=\"1.0\" encoding=\"utf-8\"?>").getBytes());
-        assertThrows(MalformedRecordException.class, () -> new XMLRecordReader(is, getSimpleSchema(), true,
+        assertThrows(MalformedRecordException.class, () -> new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class)));
     }
 
     @Test
     public void testParseEmptyArray() throws IOException, MalformedRecordException {
         InputStream is = new ByteArrayInputStream("<root></root>".getBytes());
-        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSimpleSchema(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         assertNull(reader.nextRecord());
@@ -697,7 +698,7 @@ public class TestXMLRecordReader {
     public void testNestedRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Object[] valuesFirstRecord = reader.nextRecord().getValues();
@@ -721,7 +722,7 @@ public class TestXMLRecordReader {
     public void testNestedRecordCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_nested.xml");
         RecordSchema schema = getSchemaWithNestedRecord();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -767,7 +768,7 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(true, true);
@@ -809,7 +810,7 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(false, true);
@@ -851,7 +852,7 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(true, false);
@@ -901,7 +902,7 @@ public class TestXMLRecordReader {
 
         // Fields "AGE" and "ADDRESS/CITY" are not defined here
         RecordSchema schema = getSchemaWithNestedRecord2();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord(false, false);
@@ -950,7 +951,7 @@ public class TestXMLRecordReader {
     public void testSimpleArray() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
         RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord();
@@ -986,7 +987,7 @@ public class TestXMLRecordReader {
     public void testSimpleArrayCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array_simple.xml");
         RecordSchema schema = getSchemaWithSimpleArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true,
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
@@ -1021,8 +1022,8 @@ public class TestXMLRecordReader {
     public void testNestedArrayInNestedRecord() throws IOException, MalformedRecordException {
         InputStream is = new FileInputStream("src/test/resources/xml/people_array.xml");
         RecordSchema schema = getSchemaWithNestedArray();
-        XMLRecordReader reader = new XMLRecordReader(is, schema, true, null,
-                "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, schema, true, true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record firstRecord = reader.nextRecord();
         Object[] valuesFirstRecord = firstRecord.getValues();
@@ -1059,7 +1060,7 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecords() throws IOException, MalformedRecordException {
         // test records in nested arrays
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex1.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(true, true);
@@ -1098,7 +1099,7 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecords2() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord();
@@ -1154,7 +1155,7 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropTrue() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true,
+        XMLRecordReader reader = new XMLRecordReader(is, getSchemaForComplexData2(), true, true,
                 null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, true);
@@ -1210,8 +1211,8 @@ public class TestXMLRecordReader {
     public void testDeeplyNestedArraysAndRecordsCoerceFalseDropFalse() throws IOException, MalformedRecordException {
         // test multiply nested arrays and records (recursion)
         InputStream is = new FileInputStream("src/test/resources/xml/people_complex2.xml");
-        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()),
-                true, null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(Collections.emptyList()), true,  true,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
 
         Record first = reader.nextRecord(false, false);
         assertEquals("1", first.getValue("ID"));
@@ -1265,6 +1266,110 @@ public class TestXMLRecordReader {
                 .getValue("CHILDREN"))
                 .getValue("CHILD"))
                 .getValue("ID"));
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored1() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = true;
+        boolean dropUnknownFields = true;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertEquals(42, first.getValue("AGE"));
+        assertEquals(2, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertEquals(33, second.getValue("AGE"));
+        assertEquals(2, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored2() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = false;
+        boolean dropUnknownFields = true;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof String);
+        assertEquals("42", first.getValue("AGE"));
+        assertEquals(2, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  String);
+        assertEquals("33", second.getValue("AGE"));
+        assertEquals(2, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored3() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = true;
+        boolean dropUnknownFields = false;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof Integer);
+        assertEquals(42, first.getValue("AGE"));
+        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertEquals("USA", first.getValue("COUNTRY"));
+        assertEquals(3, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  Integer);
+        assertEquals(33, second.getValue("AGE"));
+        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertEquals("UK", second.getValue("COUNTRY"));
+        assertEquals(3, second.toMap().size());
+    }
+
+    @Test
+    public void testSimpleTypeWithAttributesIgnored4() throws IOException, MalformedRecordException {
+        boolean parseXMLAttributes = false;
+        boolean coerceTypes = false;
+        boolean dropUnknownFields = false;
+
+        List<Record> records = simpleTypeWithAttributesIgnored(parseXMLAttributes, coerceTypes, dropUnknownFields);
+
+        Record first = records.get(0);
+        Record second = records.get(1);
+
+        assertTrue(first.getValue("NAME") instanceof String);
+        assertEquals("Cleve Butler", first.getValue("NAME"));
+        assertTrue(first.getValue("AGE") instanceof String);
+        assertEquals("42", first.getValue("AGE"));
+        assertTrue(first.getValue("COUNTRY") instanceof String);
+        assertEquals("USA", first.getValue("COUNTRY"));
+        assertEquals(3, first.toMap().size());
+
+        assertTrue(second.getValue("NAME") instanceof String);
+        assertEquals("Ainslie Fletcher", second.getValue("NAME"));
+        assertTrue(second.getValue("AGE") instanceof  String);
+        assertEquals("33", second.getValue("AGE"));
+        assertTrue(second.getValue("COUNTRY") instanceof  String);
+        assertEquals("UK", second.getValue("COUNTRY"));
+        assertEquals(3, second.toMap().size());
     }
 
     private List<RecordField> getSimpleRecordFields() {
@@ -1448,5 +1553,21 @@ public class TestXMLRecordReader {
             addAll(getSimpleFieldsForComplexData());
         }};
         return new SimpleRecordSchema(fields);
+    }
+
+    private List<Record> simpleTypeWithAttributesIgnored(boolean parseXMLAttributes, boolean coerceTypes, boolean dropunknownFields) throws IOException, MalformedRecordException {
+        InputStream is = new FileInputStream("src/test/resources/xml/people3.xml");
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("NAME", RecordFieldType.STRING.getDataType()));
+        fields.add(new RecordField("AGE", RecordFieldType.INT.getDataType()));
+
+        XMLRecordReader reader = new XMLRecordReader(is, new SimpleRecordSchema(fields), true,  parseXMLAttributes,
+                null, "CONTENT", dateFormat, timeFormat, timestampFormat, Mockito.mock(ComponentLog.class));
+
+        List<Record> records = new ArrayList<>(2);
+        records.add(reader.nextRecord(coerceTypes, dropunknownFields));
+        records.add(reader.nextRecord(coerceTypes, dropunknownFields));
+        return records;
     }
 }

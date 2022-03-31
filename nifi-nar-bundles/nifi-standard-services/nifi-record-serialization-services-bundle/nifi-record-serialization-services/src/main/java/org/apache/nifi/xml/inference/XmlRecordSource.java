@@ -39,9 +39,11 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
 
     private final XMLEventReader xmlEventReader;
     private final String contentFieldName;
+    private final boolean parseXmlAttributes;
 
-    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper) throws IOException {
+    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXmlAttributes) throws IOException {
         this.contentFieldName = contentFieldName;
+        this.parseXmlAttributes = parseXmlAttributes;
         try {
             final XMLEventReaderProvider provider = new StandardXMLEventReaderProvider();
             xmlEventReader = provider.getEventReader(new StreamSource(in));
@@ -75,11 +77,8 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         final StringBuilder content = new StringBuilder();
         final Map<String, XmlNode> childNodes = new LinkedHashMap<>();
 
-        final Iterator<?> attributeIterator = startElement.getAttributes();
-        while (attributeIterator.hasNext()) {
-            final Attribute attribute = (Attribute) attributeIterator.next();
-            final String attributeName = attribute.getName().getLocalPart();
-            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+        if (parseXmlAttributes) {
+            addXmlAttributesToChildNodes(startElement, childNodes);
         }
 
         while (xmlEventReader.hasNext()) {
@@ -143,5 +142,14 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         }
 
         return null;
+    }
+
+    private void addXmlAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
+        final Iterator<?> attributeIterator = startElement.getAttributes();
+        while (attributeIterator.hasNext()) {
+            final Attribute attribute = (Attribute) attributeIterator.next();
+            final String attributeName = attribute.getName().getLocalPart();
+            childNodes.put(attributeName, new XmlTextNode(attributeName, attribute.getValue()));
+        }
     }
 }
