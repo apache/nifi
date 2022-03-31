@@ -29,6 +29,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.RecordSourceFactory;
@@ -106,12 +107,27 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .required(false)
             .build();
 
+    public static final PropertyDescriptor PARSE_XML_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("parse_xml_attributes")
+            .displayName("Parse XML Attributes")
+            .description("When 'Schema Access Strategy' is 'Infer Schema' and this property is 'true' then XML attributes are parsed and " +
+                    "added to the record as new fields. When the schema is inferred but this property is 'false', " +
+                    "XML attributes and their values are ignored.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(false)
+            .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
+            .build();
+
+    private volatile boolean parseXmlAttributes;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
+        this.parseXmlAttributes = context.getProperty(PARSE_XML_ATTRIBUTES).asBoolean();
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
@@ -120,6 +136,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
+        properties.add(PARSE_XML_ATTRIBUTES);
         properties.add(SchemaInferenceUtil.SCHEMA_CACHE);
         properties.add(RECORD_FORMAT);
         properties.add(ATTRIBUTE_PREFIX);
@@ -143,7 +160,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSourceFactory<XmlNode> sourceFactory = (variables, contentStream) -> {
             String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
             contentFieldName = (contentFieldName == null) ? "value" : contentFieldName;
-            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables));
+            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables), parseXmlAttributes);
         };
         final Supplier<SchemaInferenceEngine<XmlNode>> schemaInference = () -> new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
@@ -179,7 +196,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
         final boolean isArray = isMultipleRecords(context, variables);
 
-        return new XMLRecordReader(in, schema, isArray, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
+        return new XMLRecordReader(in, schema, isArray, parseXmlAttributes, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
 
     private String trim(final String value) {
