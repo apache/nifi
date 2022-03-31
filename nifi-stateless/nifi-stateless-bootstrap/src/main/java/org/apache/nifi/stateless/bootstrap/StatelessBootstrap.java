@@ -195,12 +195,22 @@ public class StatelessBootstrap {
     }
 
     private static void findClassNamesInJars(final Collection<URL> jarUrls, final Set<String> classesFound, final Set<String> jarFilesFound) throws IOException {
+        final String javaHome = System.getProperty("java.home");
+        final File javaHomeDir = new File(javaHome);
+        final File javaLib = new File(javaHomeDir, "lib");
+        final String javaLibPath = javaLib.getAbsolutePath();
+
         for (final URL url : jarUrls) {
             final File file;
             try {
                 file = new File(url.toURI());
             } catch (URISyntaxException e) {
                 logger.warn("Could not find file for {} in classpath", url);
+                continue;
+            }
+
+            final String absolutePath = file.getAbsolutePath();
+            if (absolutePath.startsWith(javaLibPath)) {
                 continue;
             }
 
