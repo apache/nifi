@@ -279,4 +279,23 @@ public class TestXMLReader {
         String actualContent = out.getContent();
         assertEquals(expectedContent, actualContent);
     }
+
+    @Test
+    public void testInferSchemaIgnoreAttributes() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{software=Apache NiFi, num=123, name=John Doe}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.PARSE_XML_ATTRIBUTES, "false");
+        TestRunner runner = setup(xmlReaderProperties);
+
+        InputStream is = new FileInputStream("src/test/resources/xml/person_record.xml");
+        runner.enqueue(is);
+        runner.run();
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
 }
