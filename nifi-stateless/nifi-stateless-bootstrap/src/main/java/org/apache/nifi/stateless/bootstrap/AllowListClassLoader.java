@@ -22,7 +22,7 @@ import java.util.Set;
 
 /**
  * <p>
- *     A ClassLoader that blocks a specific set of selected classes from being loaded by its parent. This ClassLoader does not load any classes itself
+ *     A ClassLoader that allows only a specific set of selected classes to be loaded by its parent. This ClassLoader does not load any classes itself
  *     but serves as a mechanism for preventing unwanted classes from a parent from being used.
  * </p>
  * <p>
@@ -32,40 +32,41 @@ import java.util.Set;
  * </p>
  * <p>
  *     Because we cannot control what is loaded by the System ClassLoader (that's up to the embedding application), the best that we can do is to block NiFi's extensions'
- *     ClassLoaders from accessing those classes. This ClassLoader allows us to do just that, blocking specific classes that have been loaded by the parent ClassLoader
- *     from being accessible by child ClassLoaders.
+ *     ClassLoaders from accessing those classes. This ClassLoader allows us to do just that, allowing only specific classes that have been loaded by the parent ClassLoader
+ *     to be visible/accessible by child ClassLoaders.
  * </p>
  */
-public class BlockListClassLoader extends ClassLoader {
-    private final Set<String> blockList;
+public class AllowListClassLoader extends ClassLoader {
+    private final Set<String> allowed;
 
-    public BlockListClassLoader(final ClassLoader parent, final Set<String> blockList) {
+    public AllowListClassLoader(final ClassLoader parent, final Set<String> allowed) {
         super(parent);
-        this.blockList = blockList;
+        this.allowed = allowed;
     }
 
     /**
-     * @return the set of all Class names that will be blocked from loading by the parent
+     * @return the set of all Class names that will not be blocked from loading by the parent
      */
-    public Set<String> getClassesBlocked() {
-        return Collections.unmodifiableSet(blockList);
+    public Set<String> getClassesAllowed() {
+        return Collections.unmodifiableSet(allowed);
     }
 
     @Override
     protected Class<?> loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
-        if (blockList.contains(name)) {
-            throw new ClassNotFoundException(name + " was blocked by BlockListClassLoader");
+        if (allowed.contains(name)) {
+            return super.loadClass(name, resolve);
         }
 
-        return super.loadClass(name, resolve);
+        throw new ClassNotFoundException(name + " was blocked by AllowListClassLoader");
     }
 
     @Override
     protected Class<?> findClass(final String name) throws ClassNotFoundException {
-        if (blockList.contains(name)) {
-            throw new ClassNotFoundException(name + " was blocked by BlockListClassLoader");
+        if (allowed.contains(name)) {
+            return super.findClass(name);
         }
 
-        return super.findClass(name);
+        throw new ClassNotFoundException(name + " was blocked by AllowListClassLoader");
     }
+
 }

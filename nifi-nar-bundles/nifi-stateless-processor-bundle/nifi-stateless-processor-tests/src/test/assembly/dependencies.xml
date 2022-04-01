@@ -39,6 +39,8 @@
                 <include>nifi-server-api</include>
                 <include>nifi-runtime</include>
                 <include>nifi-nar-utils</include>
+                <include>nifi-stateless-api</include>
+                <include>slf4j-api</include>
             </includes>
         </dependencySet>
 

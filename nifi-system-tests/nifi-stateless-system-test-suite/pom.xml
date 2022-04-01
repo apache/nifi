@@ -73,20 +73,19 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <version>1.17.0-SNAPSHOT</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-server-api</artifactId>
             <version>1.17.0-SNAPSHOT</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
             <version>1.17.0-SNAPSHOT</version>
-            <scope>compile</scope>
-            <optional>true</optional>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -98,7 +97,7 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
             <version>1.17.0-SNAPSHOT</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -113,7 +112,7 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
-            <scope>test</scope>
+            <scope>runtime</scope>
         </dependency>
 
 
