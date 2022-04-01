@@ -90,6 +90,10 @@ public interface VersionedComponentStateLookup {
         }
 
         private ScheduledState map(final org.apache.nifi.controller.ScheduledState componentState) {
+            if (componentState == null) {
+                return null;
+            }
+
             switch (componentState) {
                 case DISABLED:
                     return ScheduledState.DISABLED;
