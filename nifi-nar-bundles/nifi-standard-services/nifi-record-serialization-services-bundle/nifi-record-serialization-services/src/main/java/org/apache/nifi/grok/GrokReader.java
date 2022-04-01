@@ -89,8 +89,10 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             "The line of text that does not match the Grok Expression will only be added to the _raw field.");
 
     static final AllowableValue STRING_FIELDS_FROM_GROK_EXPRESSION = new AllowableValue("string-fields-from-grok-expression", "Use String Fields From Grok Expression",
-        "The schema will be derived by using the field names present in the Grok Expression. All fields will be assumed to be of type String. Additionally, a field will be included "
-            + "with a name of 'stackTrace' and a type of String.");
+            "The schema will be derived using the field names present in all configured Grok Expressions. "
+            + "All schema fields will have a String type and will be marked as nullable. "
+            + "The schema will also include a `stackTrace` field, and a `_raw` field containing the input line string."
+    );
 
     static final PropertyDescriptor PATTERN_FILE = new PropertyDescriptor.Builder()
         .name("Grok Pattern File")
