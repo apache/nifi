@@ -156,5 +156,5 @@ Eclipse Public License v1.0
 
 The following binary components are provided under a EPL v1.0 license
 
-    (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete:9.1.9.0 - http://jruby.org).
+    (EPLv1.0)(GPL 2)(LGPL 2.1) JRuby (org.jruby:jruby-complete - http://jruby.org).
     (EPLv1.0) Clojure (org.clojure:clojure:1.8.0 - http://clojure.org)
