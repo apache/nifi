@@ -168,6 +168,7 @@ import org.apache.nifi.provenance.StandardProvenanceAuthorizableFactory;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
+import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -1416,28 +1417,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         readLock.lock();
         try {
-            final ScheduledStateLookup scheduledStateLookup = new ScheduledStateLookup() {
-                @Override
-                public ScheduledState getScheduledState(final ProcessorNode procNode) {
-                    if (startConnectablesAfterInitialization.contains(procNode)) {
-                        return ScheduledState.RUNNING;
-                    }
-
-                    return procNode.getDesiredState();
-                }
-
-                @Override
-                public ScheduledState getScheduledState(final Port port) {
-                    if (startConnectablesAfterInitialization.contains(port)) {
-                        return ScheduledState.RUNNING;
-                    }
-                    if (startRemoteGroupPortsAfterInitialization.contains(port)) {
-                        return ScheduledState.RUNNING;
-                    }
-
-                    return port.getScheduledState();
-                }
-            };
+            final ScheduledStateLookup scheduledStateLookup = createScheduledStateLookup();
 
             flowConfiguration = serializer.transform(this, scheduledStateLookup);
         } finally {
@@ -1447,11 +1427,76 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         serializer.serialize(flowConfiguration, os);
     }
 
+    public ScheduledStateLookup createScheduledStateLookup() {
+        return new ScheduledStateLookup() {
+            @Override
+            public ScheduledState getScheduledState(final ProcessorNode procNode) {
+                if (startConnectablesAfterInitialization.contains(procNode)) {
+                    return ScheduledState.RUNNING;
+                }
+
+                return procNode.getDesiredState();
+            }
+
+            @Override
+            public ScheduledState getScheduledState(final Port port) {
+                if (startConnectablesAfterInitialization.contains(port)) {
+                    return ScheduledState.RUNNING;
+                }
+                if (startRemoteGroupPortsAfterInitialization.contains(port)) {
+                    return ScheduledState.RUNNING;
+                }
+
+                return port.getScheduledState();
+            }
+        };
+    }
+
+    /**
+     * Creates a VersionedComponentStateLookup that checks whether or not the given component is scheduled to start when the FlowController
+     * is initialized. If the FlowController has already been initialized or if the given component is not scheduled to start upon FlowController
+     * initialization, delegates the call to the provided lookup
+     *
+     * @param delegate the lookup to delegate calls to if a component is not scheduled to start upon FlowController initialization
+     * @return the VersionedComponentStateLookup that is created
+     */
+    public VersionedComponentStateLookup createVersionedComponentStateLookup(final VersionedComponentStateLookup delegate) {
+        return new VersionedComponentStateLookup() {
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final ProcessorNode processorNode) {
+                if (isStartAfterInitialization(processorNode)) {
+                    return org.apache.nifi.flow.ScheduledState.RUNNING;
+                }
+
+                return delegate.getState(processorNode);
+            }
+
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final Port port) {
+                if (isStartAfterInitialization(port)) {
+                    return org.apache.nifi.flow.ScheduledState.RUNNING;
+                }
+
+                return delegate.getState(port);
+            }
+
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final ReportingTaskNode taskNode) {
+                return delegate.getState(taskNode);
+            }
+
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final ControllerServiceNode serviceNode) {
+                return delegate.getState(serviceNode);
+            }
+        };
+    }
+
     /**
      * Synchronizes this controller with the proposed flow.
      * <p>
      * For more details, see
-     * {@link FlowSynchronizer#sync(FlowController, DataFlow, PropertyEncryptor, FlowService)}.
+     * {@link FlowSynchronizer#sync(FlowController, DataFlow, PropertyEncryptor, FlowService, BundleUpdateStrategy)}.
      *
      * @param synchronizer synchronizer
      * @param dataFlow the flow to load the controller with. If the flow is null
@@ -1817,6 +1862,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                     case REMOTE_OUTPUT_PORT:
                         group.startOutputPort((Port) connectable);
                         break;
+                    case PROCESSOR:
+                        group.startProcessor((ProcessorNode) connectable,  true);
+                        break;
                     default:
                         throw new IllegalArgumentException();
                 }
@@ -1846,6 +1894,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 case REMOTE_OUTPUT_PORT:
                     startConnectablesAfterInitialization.remove(connectable);
                     group.stopOutputPort((Port) connectable);
+                    break;
+                case PROCESSOR:
+                    startConnectablesAfterInitialization.remove(connectable);
+                    group.stopProcessor((ProcessorNode) connectable);
                     break;
                 default:
                     throw new IllegalArgumentException();

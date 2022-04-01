@@ -3783,11 +3783,13 @@ public final class StandardProcessGroup implements ProcessGroup {
                            final boolean updateDescendantVersionedFlows) {
 
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> generateUuid(proposedId, destinationGroupId, componentIdSeed);
-        final ComponentScheduler componentScheduler = new DefaultComponentScheduler();
+        final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.ENABLED_OR_DISABLED;
+        final ComponentScheduler defaultComponentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
+        final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler);
 
         final GroupSynchronizationOptions synchronizationOptions = new GroupSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
-            .componentScheduler(componentScheduler)
+            .componentScheduler(retainExistingStateScheduler)
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
@@ -3800,7 +3802,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(false)
             .mapPropertyDescriptors(true)
-            .stateLookup(VersionedComponentStateLookup.ENABLED_OR_DISABLED)
+            .stateLookup(stateLookup)
             .sensitiveValueEncryptor(null)
             .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
             .mapInstanceIdentifiers(false)
