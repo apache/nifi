@@ -236,6 +236,7 @@
                         <exclude>src/test/resources/xml/people_tag_in_characters.xml</exclude>
                         <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
                         <exclude>src/test/resources/xml/person.xml</exclude>
+                        <exclude>src/test/resources/xml/person_record.xml</exclude>
                         <exclude>src/test/resources/xml/testschema</exclude>
                         <exclude>src/test/resources/xml/testschema2</exclude>
                         <exclude>src/test/resources/xml/testschema3</exclude>
