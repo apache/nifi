@@ -18,9 +18,21 @@
 package org.apache.nifi.groups;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.flow.ScheduledState;
+
+import java.util.Collection;
 
 public interface ComponentScheduler {
     void startComponent(Connectable component);
+
+    void stopComponent(Connectable component);
+
+    void transitionComponentState(Connectable component, ScheduledState desiredState);
+
+    void enableControllerServicesAsync(Collection<ControllerServiceNode> controllerServices);
+
+    void disableControllerServicesAsync(Collection<ControllerServiceNode> controllerServices);
 
     void pause();
 
@@ -30,6 +42,22 @@ public interface ComponentScheduler {
     ComponentScheduler NOP_SCHEDULER = new ComponentScheduler() {
         @Override
         public void startComponent(final Connectable component) {
+        }
+
+        @Override
+        public void stopComponent(final Connectable component) {
+        }
+
+        @Override
+        public void transitionComponentState(final Connectable component, final ScheduledState desiredState) {
+        }
+
+        @Override
+        public void enableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
+        }
+
+        @Override
+        public void disableControllerServicesAsync(final Collection<ControllerServiceNode> controllerServices) {
         }
 
         @Override

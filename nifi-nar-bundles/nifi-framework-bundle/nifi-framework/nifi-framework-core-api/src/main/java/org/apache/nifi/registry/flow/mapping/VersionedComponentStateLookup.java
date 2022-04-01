@@ -21,7 +21,6 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.flow.ScheduledState;
 
 public interface VersionedComponentStateLookup {
@@ -54,7 +53,7 @@ public interface VersionedComponentStateLookup {
 
         @Override
         public ScheduledState getState(final ControllerServiceNode serviceNode) {
-            return (serviceNode.getState() == ControllerServiceState.DISABLED || serviceNode.getState() == ControllerServiceState.DISABLING) ? ScheduledState.DISABLED : ScheduledState.ENABLED;
+            return ScheduledState.DISABLED;
         }
     };
 
@@ -64,7 +63,7 @@ public interface VersionedComponentStateLookup {
     VersionedComponentStateLookup IDENTITY_LOOKUP = new VersionedComponentStateLookup() {
         @Override
         public ScheduledState getState(final ProcessorNode processorNode) {
-            return map(processorNode.getPhysicalScheduledState());
+            return map(processorNode.getDesiredState());
         }
 
         @Override
@@ -91,6 +90,10 @@ public interface VersionedComponentStateLookup {
         }
 
         private ScheduledState map(final org.apache.nifi.controller.ScheduledState componentState) {
+            if (componentState == null) {
+                return null;
+            }
+
             switch (componentState) {
                 case DISABLED:
                     return ScheduledState.DISABLED;
