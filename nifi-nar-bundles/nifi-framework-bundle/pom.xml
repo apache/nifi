@@ -23,7 +23,7 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <curator.version>5.2.0</curator.version>
+        <curator.version>5.2.1</curator.version>
         <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
     <modules>
