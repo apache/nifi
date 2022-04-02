@@ -16,90 +16,58 @@
  */
 package org.apache.nifi.grok;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.util.EqualsWrapper;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Function;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestGrokReader {
     private TestRunner runner;
-    private List<Record> records;
 
-    private static final PropertyDescriptor READER = new PropertyDescriptor.Builder()
-        .name("reader")
-        .identifiesControllerService(GrokReader.class)
-        .build();
+    private static final String TIMESTAMP_FIELD = "timestamp";
+
+    private static final String LEVEL_FIELD = "level";
+
+    private static final String FACILITY_FIELD = "facility";
+
+    private static final String PROGRAM_FIELD = "program";
+
+    private static final String MESSAGE_FIELD = "message";
+
+    private static final String STACKTRACE_FIELD = "stackTrace";
+
+    private static final String RAW_FIELD = "_raw";
 
     @BeforeEach
     void setUp() {
-        Processor processor = new AbstractProcessor() {
-            Relationship SUCCESS = new Relationship.Builder()
-                .name("success")
-                .build();
-
-            @Override
-            public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-                FlowFile flowFile = session.get();
-                final RecordReaderFactory readerFactory = context.getProperty(READER).asControllerService(RecordReaderFactory.class);
-
-                try (final InputStream in = session.read(flowFile);
-                     final RecordReader reader = readerFactory.createRecordReader(flowFile, in, getLogger())) {
-                    Record record;
-                    while ((record = reader.nextRecord()) != null) {
-                        records.add(record);
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-
-                session.transfer(flowFile, SUCCESS);
-            }
-
-            @Override
-            protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-                return Arrays.asList(READER);
-            }
-
-            @Override
-            public Set<Relationship> getRelationships() {
-                return new HashSet<>(Arrays.asList(SUCCESS));
-            }
-        };
-
-        runner = TestRunners.newTestRunner(processor);
-
-        records = new ArrayList<>();
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
     }
 
     @Test
     void testComplexGrokExpression() throws Exception {
-        // GIVEN
         String input = "1021-09-09 09:03:06 127.0.0.1 nifi[1000]: LogMessage" + System.lineSeparator()
             + "October 19 19:13:16 127.0.0.1 nifi[1000]: LogMessage2" + System.lineSeparator();
 
@@ -107,65 +75,100 @@ public class TestGrokReader {
         String grokExpression = "%{LINE}";
 
         SimpleRecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
-            new RecordField("timestamp", RecordFieldType.STRING.getDataType()),
-            new RecordField("facility", RecordFieldType.STRING.getDataType()),
+            new RecordField(TIMESTAMP_FIELD, RecordFieldType.STRING.getDataType()),
+            new RecordField(FACILITY_FIELD, RecordFieldType.STRING.getDataType()),
             new RecordField("priority", RecordFieldType.STRING.getDataType()),
             new RecordField("logsource", RecordFieldType.STRING.getDataType()),
-            new RecordField("program", RecordFieldType.STRING.getDataType()),
+            new RecordField(PROGRAM_FIELD, RecordFieldType.STRING.getDataType()),
             new RecordField("pid", RecordFieldType.STRING.getDataType()),
-            new RecordField("message", RecordFieldType.STRING.getDataType()),
-            new RecordField("stackTrace", RecordFieldType.STRING.getDataType()),
-            new RecordField("_raw", RecordFieldType.STRING.getDataType())
+            new RecordField(MESSAGE_FIELD, RecordFieldType.STRING.getDataType()),
+            new RecordField(STACKTRACE_FIELD, RecordFieldType.STRING.getDataType()),
+            new RecordField(RAW_FIELD, RecordFieldType.STRING.getDataType())
         ));
 
-        List<Record> expectedRecords = Arrays.asList(
-            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                put("timestamp", "1021-09-09 09:03:06");
-                put("facility", null);
-                put("priority", null);
-                put("logsource", "127.0.0.1");
-                put("program", "nifi");
-                put("pid", "1000");
-                put("message", " LogMessage");
-                put("stackstrace", null);
-                put("_raw", "1021-09-09 09:03:06 127.0.0.1 nifi[1000]: LogMessage");
-            }}),
-            new MapRecord(expectedSchema, new HashMap<String, Object>() {{
-                put("timestamp", "October 19 19:13:16");
-                put("facility", null);
-                put("priority", null);
-                put("logsource", "127.0.0.1");
-                put("program", "nifi");
-                put("pid", "1000");
-                put("message", " LogMessage2");
-                put("stackstrace", null);
-                put("_raw", "October 19 19:13:16 127.0.0.1 nifi[1000]: LogMessage2");
-            }})
-        );
+        final Record expectedFirstRecord = new MapRecord(expectedSchema, new HashMap<String, Object>() {{
+            put(TIMESTAMP_FIELD, "1021-09-09 09:03:06");
+            put(FACILITY_FIELD, null);
+            put("priority", null);
+            put("logsource", "127.0.0.1");
+            put(PROGRAM_FIELD, "nifi");
+            put("pid", "1000");
+            put("message", " LogMessage");
+            put(STACKTRACE_FIELD, null);
+            put(RAW_FIELD, "1021-09-09 09:03:06 127.0.0.1 nifi[1000]: LogMessage");
+        }});
 
-        // WHEN
-        GrokReader grokReader = new GrokReader();
+        final Record expectedSecondRecord = new MapRecord(expectedSchema, new HashMap<String, Object>() {{
+            put(TIMESTAMP_FIELD, "October 19 19:13:16");
+            put(FACILITY_FIELD, null);
+            put("priority", null);
+            put("logsource", "127.0.0.1");
+            put(PROGRAM_FIELD, "nifi");
+            put("pid", "1000");
+            put(MESSAGE_FIELD, " LogMessage2");
+            put(STACKTRACE_FIELD, null);
+            put(RAW_FIELD, "October 19 19:13:16 127.0.0.1 nifi[1000]: LogMessage2");
+        }});
 
-        runner.addControllerService("grokReader", grokReader);
-        runner.setProperty(READER, "grokReader");
-
+        final GrokReader grokReader = new GrokReader();
+        runner.addControllerService(GrokReader.class.getSimpleName(), grokReader);
         runner.setProperty(grokReader, GrokReader.PATTERN_FILE, grokPatternFile);
         runner.setProperty(grokReader, GrokReader.GROK_EXPRESSION, grokExpression);
-
         runner.enableControllerService(grokReader);
 
-        runner.enqueue(input);
-        runner.run();
+        final byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(inputBytes);
+        final RecordReader recordReader = grokReader.createRecordReader(Collections.emptyMap(), inputStream, inputBytes.length, runner.getLogger());
 
-        // THEN
-        List<Function<Record, Object>> propertyProviders = Arrays.asList(
-            Record::getSchema,
-            Record::getValues
-        );
+        final Record firstRecord = recordReader.nextRecord();
 
-        List<EqualsWrapper<Record>> wrappedExpected = EqualsWrapper.wrapList(expectedRecords, propertyProviders);
-        List<EqualsWrapper<Record>> wrappedActual = EqualsWrapper.wrapList(records, propertyProviders);
+        assertArrayEquals(expectedFirstRecord.getValues(), firstRecord.getValues());
+        assertEquals(expectedSchema, firstRecord.getSchema());
 
-        Assertions.assertEquals(wrappedExpected, wrappedActual);
+        final Record secondRecord = recordReader.nextRecord();
+        assertArrayEquals(expectedSecondRecord.getValues(), secondRecord.getValues());
+        assertEquals(expectedSchema, secondRecord.getSchema());
+
+        assertNull(recordReader.nextRecord());
+    }
+
+    @Test
+    public void testMultipleExpressions() throws InitializationException, IOException, SchemaNotFoundException, MalformedRecordException {
+        final String program = "NiFi";
+        final String level = "INFO";
+        final String message = "Processing Started";
+        final String timestamp = "Jan 10 12:30:45";
+
+        final String logs = String.format("%s %s %s%n%s %s %s %s%n", program, level, message, timestamp, program, level, message);
+        final byte[] bytes = logs.getBytes(StandardCharsets.UTF_8);
+
+        final String matchingExpression = "%{PROG:program} %{LOGLEVEL:level} %{GREEDYDATA:message}";
+        final String firstExpression = "%{SYSLOGTIMESTAMP:timestamp} %{PROG:program} %{LOGLEVEL:level} %{GREEDYDATA:message}";
+        final String expressions = String.format("%s%n%s", firstExpression, matchingExpression);
+
+        final GrokReader grokReader = new GrokReader();
+        runner.addControllerService(GrokReader.class.getSimpleName(), grokReader);
+        runner.setProperty(grokReader, GrokReader.GROK_EXPRESSION, expressions);
+        runner.setProperty(grokReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, GrokReader.STRING_FIELDS_FROM_GROK_EXPRESSION);
+        runner.enableControllerService(grokReader);
+
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+        final RecordReader recordReader = grokReader.createRecordReader(Collections.emptyMap(), inputStream, bytes.length, runner.getLogger());
+
+        final Record firstRecord = recordReader.nextRecord();
+        assertNotNull(firstRecord);
+        assertEquals(program, firstRecord.getValue(PROGRAM_FIELD));
+        assertEquals(level, firstRecord.getValue(LEVEL_FIELD));
+        assertEquals(message, firstRecord.getValue(MESSAGE_FIELD));
+        assertNull(firstRecord.getValue(TIMESTAMP_FIELD));
+
+        final Record secondRecord = recordReader.nextRecord();
+        assertNotNull(secondRecord);
+        assertEquals(program, secondRecord.getValue(PROGRAM_FIELD));
+        assertEquals(level, secondRecord.getValue(LEVEL_FIELD));
+        assertEquals(message, secondRecord.getValue(MESSAGE_FIELD));
+        assertEquals(timestamp, secondRecord.getValue(TIMESTAMP_FIELD));
+
+        assertNull(recordReader.nextRecord());
     }
 }
