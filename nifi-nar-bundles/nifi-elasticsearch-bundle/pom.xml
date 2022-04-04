@@ -15,7 +15,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
@@ -44,12 +44,12 @@ language governing permissions and limitations under the License. -->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-processors</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-elasticsearch-restapi-processors</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <!-- Override commons-compress -->
             <dependency>
@@ -59,5 +59,4 @@ language governing permissions and limitations under the License. -->
             </dependency>
         </dependencies>
     </dependencyManagement>
-
 </project>
