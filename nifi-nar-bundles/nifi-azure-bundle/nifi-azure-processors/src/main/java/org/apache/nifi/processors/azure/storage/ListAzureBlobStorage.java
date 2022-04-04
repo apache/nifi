@@ -205,7 +205,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                         final CloudBlob cloudBlob = (CloudBlob) blob;
                         final BlobProperties properties = cloudBlob.getProperties();
 
-                        if (properties.getLastModified().getTime() > minimumTimestamp) {
+                        if (properties.getLastModified().getTime() >= minimumTimestamp) {
                             final StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
 
                             final Builder builder = new BlobInfo.Builder()

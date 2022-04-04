@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import com.azure.core.http.rest.PagedResponse;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -214,31 +213,27 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
             final ListBlobsOptions options = new ListBlobsOptions()
                     .setPrefix(prefix);
 
-            final Iterator<PagedResponse<BlobItem>> result = containerClient.listBlobs(options, null).iterableByPage().iterator();
-            String continuationToken;
+            final Iterator<BlobItem> result = containerClient.listBlobs(options, null).iterator();
 
-            do {
-                final PagedResponse<BlobItem> pagedResult = result.next();
-                continuationToken = pagedResult.getContinuationToken();
-                for (BlobItem blob : pagedResult.getValue()) {
-                    final BlobItemProperties properties = blob.getProperties();
+            while (result.hasNext()) {
+                final BlobItem blob = result.next();
+                final BlobItemProperties properties = blob.getProperties();
 
-                    if (properties.getLastModified().toInstant().toEpochMilli() > minimumTimestamp) {
-                        final Builder builder = new Builder()
-                                .containerName(containerName)
-                                .blobName(blob.getName())
-                                .primaryUri(String.format("%s/%s", containerClient.getBlobContainerUrl(), blob.getName()))
-                                .etag(properties.getETag())
-                                .blobType(properties.getBlobType().toString())
-                                .contentType(properties.getContentType())
-                                .contentLanguage(properties.getContentLanguage())
-                                .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
-                                .length(properties.getContentLength());
+                if (properties.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp) {
+                    final Builder builder = new Builder()
+                            .containerName(containerName)
+                            .blobName(blob.getName())
+                            .primaryUri(String.format("%s/%s", containerClient.getBlobContainerUrl(), blob.getName()))
+                            .etag(properties.getETag())
+                            .blobType(properties.getBlobType().toString())
+                            .contentType(properties.getContentType())
+                            .contentLanguage(properties.getContentLanguage())
+                            .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
+                            .length(properties.getContentLength());
 
-                        listing.add(builder.build());
-                    }
+                    listing.add(builder.build());
                 }
-            } while (continuationToken != null);
+            }
 
             return listing;
         } catch (Throwable t) {
