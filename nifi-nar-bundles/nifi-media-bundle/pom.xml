@@ -26,6 +26,10 @@
     <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
+    <properties>
+        <poi.version>5.2.2</poi.version>
+    </properties>
+
     <modules>
         <module>nifi-media-processors</module>
         <module>nifi-media-nar</module>
@@ -45,6 +49,21 @@
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
                 <version>1.14.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-scratchpad</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
