@@ -99,6 +99,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
+        <kotlin.version>1.6.20</kotlin.version>
         <okhttp.version>4.9.3</okhttp.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
@@ -548,6 +549,13 @@
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
                 <version>${okhttp.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
