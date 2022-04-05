@@ -148,6 +148,9 @@
     <!-- Suppress non-error messages from Apache Atlas which was emitting large amounts of INFO logs by default -->
     <logger name="org.apache.atlas" level="WARN"/>
 
+    <!-- This was added because of complaints that the MongoDB driver could get excessively chatty -->
+    <logger name="org.mongodb.driver" level="ERROR"/>
+
     <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
     <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
         <appender-ref ref="APP_FILE"/>
