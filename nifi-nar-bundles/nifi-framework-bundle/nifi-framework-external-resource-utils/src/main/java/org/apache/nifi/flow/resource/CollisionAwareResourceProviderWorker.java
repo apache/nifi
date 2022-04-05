@@ -31,10 +31,10 @@ import java.util.concurrent.CountDownLatch;
  * file which is not fully acquired for example could lead to issues. In order to avoid this, the worker first creates a temporary
  * file and it will rename it to the expected name only after it has been successfully written to the disk.
  */
-final class CollusionAwareResourceProviderWorker extends ConflictResolvingExternalResourceProviderWorker {
-    private static final Logger LOGGER = LoggerFactory.getLogger(CollusionAwareResourceProviderWorker.class);
+final class CollisionAwareResourceProviderWorker extends ConflictResolvingExternalResourceProviderWorker {
+    private static final Logger LOGGER = LoggerFactory.getLogger(CollisionAwareResourceProviderWorker.class);
 
-    CollusionAwareResourceProviderWorker(
+    CollisionAwareResourceProviderWorker(
         final String namePrefix,
         final ClassLoader providerClassLoader,
         final ExternalResourceProvider provider,

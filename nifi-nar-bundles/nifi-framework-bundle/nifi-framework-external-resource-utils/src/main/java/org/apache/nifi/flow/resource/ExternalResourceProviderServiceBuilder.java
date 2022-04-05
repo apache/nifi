@@ -89,7 +89,7 @@ public final class ExternalResourceProviderServiceBuilder {
         for(final Map.Entry<String, ExternalResourceProvider> provider : providers.entrySet()) {
             final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(provider.getKey());
             final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getValue().getClass().getClassLoader() : instanceClassLoader;
-            final ExternalResourceProviderWorker providerWorker = new CollusionAwareResourceProviderWorker(
+            final ExternalResourceProviderWorker providerWorker = new CollisionAwareResourceProviderWorker(
                     serviceName, providerClassLoader, provider.getValue(), conflictResolutionStrategy, targetDirectory, pollIntervalInMillis, restrainStartupLatch);
 
             workers.add(providerWorker);

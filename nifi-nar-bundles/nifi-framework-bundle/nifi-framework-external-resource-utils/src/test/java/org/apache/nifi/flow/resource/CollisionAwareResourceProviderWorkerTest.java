@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 
 
 @ExtendWith(MockitoExtension.class)
-public class CollusionAwareResourceProviderWorkerTest {
+public class CollisionAwareResourceProviderWorkerTest {
     private static final String PREFIX = "prefix";
     private static final String RESOURCE_NAME_1 = "config.json";
     private static final String RESOURCE_NAME_2 = "config.xml";
@@ -63,7 +63,7 @@ public class CollusionAwareResourceProviderWorkerTest {
     private Actions actions;
     private CountDownLatch countDownLatch;
     private TestExternalResourceProvider provider;
-    private CollusionAwareResourceProviderWorker testSubject;
+    private CollisionAwareResourceProviderWorker testSubject;
 
     @BeforeEach
     public void setUp() throws IOException {
@@ -245,7 +245,7 @@ public class CollusionAwareResourceProviderWorkerTest {
     }
 
     private void setUpTestSubject() {
-        testSubject = new CollusionAwareResourceProviderWorker(PREFIX, this.getClass().getClassLoader(), provider, conflictResolutionStrategy, TARGET_DIRECTORY, 50, new CountDownLatch(0));
+        testSubject = new CollisionAwareResourceProviderWorker(PREFIX, this.getClass().getClassLoader(), provider, conflictResolutionStrategy, TARGET_DIRECTORY, 50, new CountDownLatch(0));
     }
 
     private void setUpProviderWithResourceAndFetchSuccessSequence(final ExternalResourceDescriptor resource, final Boolean... fetchSuccessSequence) {
