@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
 import org.apache.nifi.schema.inference.SchemaInferenceEngine;
@@ -26,7 +27,6 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.codehaus.jackson.JsonNode;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
