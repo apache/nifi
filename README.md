@@ -61,7 +61,7 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - Multiple teams can manage and share specific portions of the flow
 
 ## Minimum Requirements
-* JDK 8
+* JDK 8 Update 251
 * Apache Maven 3.6.0
 
 ## Getting Started

@@ -92,7 +92,11 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+        <!-- Set minimum Java version for maven-enforcer-plugin from parent POM -->
+        <minimalJavaBuildVersion>1.8.0-251</minimalJavaBuildVersion>
         <maven.surefire.arguments />
+        <!-- Disable maven-site-plugin from parent POM -->
+        <maven.site.skip>true</maven.site.skip>
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
         <project.build.outputTimestamp>1647889104</project.build.outputTimestamp>
