@@ -17,6 +17,13 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -31,13 +38,6 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -136,19 +136,19 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
 
         if (fieldNode.isNumber()) {
-            return fieldNode.getNumberValue();
+            return fieldNode.numberValue();
         }
 
         if (fieldNode.isBinary()) {
-            return fieldNode.getBinaryValue();
+            return fieldNode.binaryValue();
         }
 
         if (fieldNode.isBoolean()) {
-            return fieldNode.getBooleanValue();
+            return fieldNode.booleanValue();
         }
 
         if (fieldNode.isTextual()) {
-            final String textValue = fieldNode.getTextValue();
+            final String textValue = fieldNode.textValue();
             if (dataType == null) {
                 return textValue;
             }
@@ -235,7 +235,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         final Map<String, Object> mapValue = new HashMap<>();
 
-        final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.getFields();
+        final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.fields();
         while (fieldItr.hasNext()) {
             final Map.Entry<String, JsonNode> entry = fieldItr.next();
             final String elementName = entry.getKey();
@@ -299,7 +299,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     private Record createRecordFromRawValue(final JsonNode fieldNode, final RecordSchema childSchema) throws IOException {
-        final Iterator<String> fieldNames = fieldNode.getFieldNames();
+        final Iterator<String> fieldNames = fieldNode.fieldNames();
         final Map<String, Object> childValues = new HashMap<>();
         while (fieldNames.hasNext()) {
             final String childFieldName = fieldNames.next();
