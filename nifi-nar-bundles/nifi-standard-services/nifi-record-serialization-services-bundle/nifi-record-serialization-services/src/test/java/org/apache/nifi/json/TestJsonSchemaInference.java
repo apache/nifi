@@ -35,12 +35,12 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-public class TestJsonSchemaInference {
+class TestJsonSchemaInference {
 
     private final TimeValueInference timestampInference = new TimeValueInference("yyyy-MM-dd", "HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
     @Test
-    public void testInferenceIncludesAllRecords() throws IOException {
+    void testInferenceIncludesAllRecords() throws IOException {
         final File file = new File("src/test/resources/json/data-types.json");
 
         final RecordSchema schema;
@@ -48,7 +48,7 @@ public class TestJsonSchemaInference {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content),
+                    (var, content) -> new JsonRecordSource(content, null),
                     new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
             schema = accessStrategy.getSchema(null, bufferedIn, null);
         }

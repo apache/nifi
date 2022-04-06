@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceEngine;
@@ -66,6 +67,17 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
+    private volatile String skipToNestedJsonField;
+
+    public static final PropertyDescriptor SKIP_TO_NESTED_JSON_FIELD = new PropertyDescriptor.Builder()
+            .name("skip-to-nested-json-field")
+            .displayName("Skip To Nested JSON Field")
+            .description("Skips forward to the given nested JSON field (array or object) and begins processing there. " +
+                    "If the field is not nested, the processing will proceed from the next available nested field.")
+            .required(false)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(null)
+            .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -77,6 +89,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(SKIP_TO_NESTED_JSON_FIELD);
         return properties;
     }
 
@@ -85,6 +98,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+        this.skipToNestedJsonField = context.getProperty(SKIP_TO_NESTED_JSON_FIELD).getValue();
     }
 
     @Override
@@ -97,7 +111,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        final RecordSourceFactory<JsonNode> jsonSourceFactory = (var, in) -> new JsonRecordSource(in);
+        final RecordSourceFactory<JsonNode> jsonSourceFactory = (var, in) -> new JsonRecordSource(in, context.getProperty(SKIP_TO_NESTED_JSON_FIELD).getValue());
         final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier = () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
         return SchemaInferenceUtil.getSchemaAccessStrategy(strategy, context, getLogger(), jsonSourceFactory, inferenceSupplier,
@@ -113,6 +127,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat);
+        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, skipToNestedJsonField);
     }
 }

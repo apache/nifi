@@ -17,6 +17,9 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.NullSuppression;
@@ -55,6 +58,30 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestWriteJsonResult {
+
+    @Test
+    void test() throws IOException {
+        String json = "{\"name\":\"Tom\",\"age\":25,\"address\":[\"Poland\",\"5th avenue\"]}";
+
+        JsonFactory jfactory = new JsonFactory();
+        JsonParser jParser = jfactory.createParser(json);
+
+        Integer parsedAge = null;
+
+        while (jParser.nextToken() != JsonToken.END_OBJECT) {
+            String fieldname = jParser.getCurrentName();
+
+            if ("age".equals(fieldname)) {
+                jParser.nextToken();
+                parsedAge = jParser.getIntValue();
+                break;
+            }
+
+        }
+        jParser.close();
+
+        System.out.println(parsedAge);
+    }
 
     @Test
     public void testDataTypes() throws IOException, ParseException {

@@ -18,7 +18,10 @@ package org.apache.nifi.schema.inference;
 
 import java.io.IOException;
 
-@FunctionalInterface
 public interface RecordSource<T> {
+
+    default void init() throws IOException {
+    }
+
     T next() throws IOException;
 }
