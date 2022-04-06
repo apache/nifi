@@ -206,11 +206,14 @@
                         <exclude>src/test/resources/json/data-types.json</exclude>
                         <exclude>src/test/resources/json/timestamp.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>
+                        <exclude>src/test/resources/json/multiple-nested-field.json</exclude>
                         <exclude>src/test/resources/json/primitive-type-array.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account-wrong-field-type.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
+                        <exclude>src/test/resources/json/single-element-nested-array-middle.json</exclude>
+                        <exclude>src/test/resources/json/nested-array-then-start-object.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
                         <exclude>src/test/resources/json/elements-for-record-choice.json</exclude>
                         <exclude>src/test/resources/json/record-choice.avsc</exclude>
