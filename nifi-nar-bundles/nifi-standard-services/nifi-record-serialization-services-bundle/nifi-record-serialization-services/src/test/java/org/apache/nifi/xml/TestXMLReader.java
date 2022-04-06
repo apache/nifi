@@ -200,4 +200,83 @@ public class TestXMLReader {
         String actualContent = out.getContent();
         assertEquals(expectedContent, actualContent);
     }
+
+    @Test
+    public void testInferSchemaContentFieldNameNotSet() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{software=MapRecord[{favorite=true}], num=123, name=John Doe}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/person_record.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameNotSetSubElementExists() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=123}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameSetSubElementExistsNameClash() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=content of field}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, "value");
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameSetSubElementExistsNoNameClash() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{" +CONTENT_NAME + "=content of field, " +
+                "attr=attr_content, value=123}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, CONTENT_NAME);
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
 }
