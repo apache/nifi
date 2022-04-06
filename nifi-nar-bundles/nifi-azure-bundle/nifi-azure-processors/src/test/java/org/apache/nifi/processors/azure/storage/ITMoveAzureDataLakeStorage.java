@@ -25,9 +25,10 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,7 +51,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private static final String SOURCE_DIRECTORY = "sourceDir1";
     private static final String DESTINATION_DIRECTORY = "destDir1";
     private static final String FILE_NAME = "file1";
-    private static final byte[] FILE_DATA = "0123456789".getBytes();
+    private static final byte[] FILE_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
 
     private static final String EL_FILESYSTEM = "az.filesystem";
     private static final String EL_DIRECTORY = "az.directory";
@@ -61,7 +62,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         return MoveAzureDataLakeStorage.class;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws InterruptedException {
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_FILESYSTEM, fileSystemName);
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, SOURCE_DIRECTORY);
@@ -234,7 +235,7 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccessWithIgnoreResolution(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA, fileContent.getBytes());
+        assertSuccessWithIgnoreResolution(DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA, fileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

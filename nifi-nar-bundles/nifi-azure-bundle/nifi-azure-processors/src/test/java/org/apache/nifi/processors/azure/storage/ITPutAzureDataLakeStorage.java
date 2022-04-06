@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,7 +52,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     private static final String DIRECTORY = "dir1";
     private static final String FILE_NAME = "file1";
-    private static final byte[] FILE_DATA = "0123456789".getBytes();
+    private static final byte[] FILE_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
 
     private static final String EL_FILESYSTEM = "az.filesystem";
     private static final String EL_DIRECTORY = "az.directory";
@@ -207,7 +208,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runProcessor(FILE_DATA);
 
-        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes());
+        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     @Test

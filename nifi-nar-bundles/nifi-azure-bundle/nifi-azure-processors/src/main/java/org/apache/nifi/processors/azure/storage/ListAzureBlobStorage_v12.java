@@ -41,7 +41,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.processors.azure.storage.utils.BlobInfo;
@@ -99,7 +98,7 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
         "(by default). This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run. State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
-public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
+public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInfo> {
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
@@ -138,7 +137,11 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET
+            INITIAL_LISTING_TARGET,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE
     ));
 
     private BlobServiceClient storageClient;
@@ -219,7 +222,7 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
                 final BlobItem blob = result.next();
                 final BlobItemProperties properties = blob.getProperties();
 
-                if (properties.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp) {
+                if (isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, properties.getLastModified().toInstant().toEpochMilli(), properties.getContentLength())) {
                     final Builder builder = new Builder()
                             .containerName(containerName)
                             .blobName(blob.getName())

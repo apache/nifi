@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
@@ -59,8 +60,12 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
     }
 
     protected void uploadTestBlob() throws Exception {
-        CloudBlob blob = container.getBlockBlobReference(TEST_BLOB_NAME);
-        byte[] buf = TEST_FILE_CONTENT.getBytes();
+        uploadTestBlob(TEST_BLOB_NAME, TEST_FILE_CONTENT);
+    }
+
+    protected void uploadTestBlob(final String blobName, final String fileContent) throws Exception {
+        CloudBlob blob = container.getBlockBlobReference(blobName);
+        byte[] buf = fileContent.getBytes(StandardCharsets.UTF_8);
         InputStream in = new ByteArrayInputStream(buf);
         blob.upload(in, buf.length);
     }

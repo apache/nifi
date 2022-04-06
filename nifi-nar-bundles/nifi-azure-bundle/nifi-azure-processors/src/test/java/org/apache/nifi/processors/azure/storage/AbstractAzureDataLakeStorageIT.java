@@ -31,6 +31,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_ADLS_ENDPOINT_SUFFIX;
@@ -87,7 +88,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     }
 
     protected void uploadFile(String directory, String filename, String fileContent) {
-        uploadFile(directory, filename, fileContent.getBytes());
+        uploadFile(directory, filename, fileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     protected void uploadFile(TestFile testFile) {
@@ -102,7 +103,7 @@ public abstract class AbstractAzureDataLakeStorageIT extends AbstractAzureStorag
     }
 
     protected void createDirectoryAndUploadFile(String directory, String filename, String fileContent) {
-        createDirectoryAndUploadFile(directory, filename, fileContent.getBytes());
+        createDirectoryAndUploadFile(directory, filename, fileContent.getBytes(StandardCharsets.UTF_8));
     }
 
     protected void createDirectoryAndUploadFile(String directory, String filename, byte[] fileData) {
