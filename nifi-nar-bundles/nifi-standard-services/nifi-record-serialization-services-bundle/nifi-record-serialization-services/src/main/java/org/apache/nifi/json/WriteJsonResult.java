@@ -17,6 +17,10 @@
 
 package org.apache.nifi.json;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.record.NullSuppression;
 import org.apache.nifi.schema.access.SchemaAccessWriter;
@@ -35,10 +39,6 @@ import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.util.MinimalPrettyPrinter;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -93,7 +93,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         final JsonFactory factory = new JsonFactory();
         factory.setCodec(objectMapper);
 
-        this.generator = factory.createJsonGenerator(out);
+        this.generator = factory.createGenerator(out);
         if (prettyPrint) {
             generator.useDefaultPrettyPrinter();
         } else if (OutputGrouping.OUTPUT_ONELINE.equals(outputGrouping)) {
