@@ -53,7 +53,12 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
         this.schema = schema;
     }
 
-
+    public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
+                                   final String dateFormat, final String timeFormat, final String timestampFormat,
+                                   final StartingFieldStrategy strategy, final String startingFieldName) throws IOException, MalformedRecordException {
+        super(in, logger, dateFormat, timeFormat, timestampFormat, strategy, startingFieldName);
+        this.schema = schema;
+    }
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields)
@@ -104,7 +109,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
                     final String fullFieldName = fieldNamePrefix == null ? fieldName : fieldNamePrefix + fieldName;
                     value = convertField(childNode, fullFieldName, desiredType, dropUnknown);
                 } else {
-                    value = getRawNodeValue(childNode, recordField == null ? null : recordField.getDataType(), fieldName);
+                    value = getRawNodeValue(childNode, recordField.getDataType(), fieldName);
                 }
 
                 values.put(fieldName, value);
@@ -157,8 +162,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case TIME:
             case TIMESTAMP: {
                 final Object rawValue = getRawNodeValue(fieldNode, fieldName);
-                final Object converted = DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
-                return converted;
+                return DataTypeUtils.convertType(rawValue, desiredType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
             }
             case MAP: {
                 final DataType valueType = ((MapDataType) desiredType).getValueType();
