@@ -274,7 +274,6 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
-<!--                <type>bundle</type>-->
             </dependency>
             <dependency>
                 <groupId>org.apache.avro</groupId>

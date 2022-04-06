@@ -20,7 +20,6 @@
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-<!--        <avro.version>1.8.1</avro.version>-->
     </properties>
     <dependencies>
         <dependency>
