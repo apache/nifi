@@ -19,16 +19,22 @@ package org.apache.nifi.json;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
+import com.fasterxml.jackson.core.io.SerializedString;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.schema.inference.RecordSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public class JsonRecordSource implements RecordSource<JsonNode> {
+    private static final Logger logger = LoggerFactory.getLogger(JsonRecordSource.class);
     private static final JsonFactory jsonFactory;
     private final JsonParser jsonParser;
+    private final StartingFieldStrategy strategy;
+    private final String startingFieldName;
 
     static {
         jsonFactory = new JsonFactory();
@@ -36,7 +42,21 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
     }
 
     public JsonRecordSource(final InputStream in) throws IOException {
-        jsonParser = jsonFactory.createJsonParser(in);
+        jsonParser = jsonFactory.createParser(in);
+        strategy = null;
+        startingFieldName = null;
+    }
+
+    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
+        jsonParser = jsonFactory.createParser(in);
+        this.strategy = strategy;
+        this.startingFieldName = startingFieldName;
+
+        if (strategy == StartingFieldStrategy.NESTED_FIELD) {
+            final SerializedString serializedNestedField = new SerializedString(this.startingFieldName);
+            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());
+            logger.debug("Parsing starting at nested field [{}]", startingFieldName);
+        }
     }
 
     @Override
@@ -49,6 +69,10 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
             if (token == JsonToken.START_OBJECT) {
                 return jsonParser.readValueAsTree();
+            }
+
+            if (strategy == StartingFieldStrategy.NESTED_FIELD && (token == JsonToken.END_ARRAY || token == JsonToken.END_OBJECT)) {
+                return null;
             }
         }
     }
