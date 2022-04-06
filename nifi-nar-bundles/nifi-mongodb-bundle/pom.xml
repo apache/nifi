@@ -35,7 +35,7 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>4.3.2</mongo.driver.version>
+        <mongo.driver.version>4.5.0</mongo.driver.version>
     </properties>
 
     <dependencyManagement>
