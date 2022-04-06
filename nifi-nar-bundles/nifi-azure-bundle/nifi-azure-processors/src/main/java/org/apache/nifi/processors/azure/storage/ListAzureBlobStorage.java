@@ -87,7 +87,7 @@ import java.util.Optional;
         "This allows the Processor to list only blobs that have been added or modified after this date the next time that the Processor is run.  State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
-public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
+public class ListAzureBlobStorage extends AbstractListAzureProcessor<BlobInfo> {
 
     private static final PropertyDescriptor PROP_PREFIX = new PropertyDescriptor.Builder()
             .name("prefix")
@@ -111,8 +111,12 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
             ListedEntityTracker.TRACKING_STATE_CACHE,
             ListedEntityTracker.TRACKING_TIME_WINDOW,
-            ListedEntityTracker.INITIAL_LISTING_TARGET
-            ));
+            ListedEntityTracker.INITIAL_LISTING_TARGET,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE
+    ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -157,9 +161,9 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
     protected boolean isListingResetNecessary(final PropertyDescriptor property) {
         // re-list if configuration changed, but not when security keys are rolled (not included in the condition)
         return PROP_PREFIX.equals(property)
-                   || AzureStorageUtils.ACCOUNT_NAME.equals(property)
-                   || AzureStorageUtils.CONTAINER.equals(property)
-                   || AzureStorageUtils.PROP_SAS_TOKEN.equals(property);
+                || AzureStorageUtils.ACCOUNT_NAME.equals(property)
+                || AzureStorageUtils.CONTAINER.equals(property)
+                || AzureStorageUtils.PROP_SAS_TOKEN.equals(property);
     }
 
     @Override
@@ -205,7 +209,7 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
                         final CloudBlob cloudBlob = (CloudBlob) blob;
                         final BlobProperties properties = cloudBlob.getProperties();
 
-                        if (properties.getLastModified().getTime() >= minimumTimestamp) {
+                        if (isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, properties.getLastModified().getTime(), properties.getLength())) {
                             final StorageUri uri = cloudBlob.getSnapshotQualifiedStorageUri();
 
                             final Builder builder = new BlobInfo.Builder()

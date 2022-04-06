@@ -55,12 +55,58 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         assertResult();
     }
 
+    @Test
+    public void testListWithMinAge() throws Exception {
+        runner.setProperty(ListAzureBlobStorage.MIN_AGE, "1 hour");
+
+        runner.assertValid();
+        runner.run(1);
+
+        runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testListWithMaxAge() throws Exception {
+        runner.setProperty(ListAzureBlobStorage.MAX_AGE, "1 hour");
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testListWithMinSize() throws Exception {
+        uploadTestBlob("nifi-test-blob2", "Test");
+        runner.setProperty(ListAzureBlobStorage.MIN_SIZE, "5 B");
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testListWithMaxSize() throws Exception {
+        uploadTestBlob("nifi-test-blob2", "Test");
+        runner.setProperty(ListAzureBlobStorage.MAX_SIZE, "5 B");
+
+        runner.assertValid();
+        runner.run(1);
+
+        assertResult("Test");
+    }
+
     private void assertResult() {
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    private void assertResult(final String contentLengthAsString) {
         runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 
         for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
-            entry.assertAttributeEquals("azure.length", "36");
+            entry.assertAttributeEquals("azure.length", String.valueOf(contentLengthAsString.length()));
             entry.assertAttributeEquals("mime.type", "application/octet-stream");
         }
     }

@@ -41,7 +41,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -100,7 +99,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
         "This allows the Processor to list only files that have been added or modified after this date the next time that the Processor is run. State is " +
         "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
         "where the previous node left off, without duplicating the data.")
-public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo> {
+public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFileInfo> {
 
     public static final PropertyDescriptor RECURSE_SUBDIRECTORIES = new PropertyDescriptor.Builder()
             .name("recurse-subdirectories")
@@ -140,7 +139,11 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET));
+            INITIAL_LISTING_TARGET,
+            MIN_AGE,
+            MAX_AGE,
+            MIN_SIZE,
+            MAX_SIZE));
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
@@ -260,7 +263,7 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
 
             final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
-                    .filter(pathItem -> pathItem.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp)
+                    .filter(pathItem -> isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, pathItem.getLastModified().toInstant().toEpochMilli(), pathItem.getContentLength()))
                     .map(pathItem -> new ADLSFileInfo.Builder()
                             .fileSystem(fileSystem)
                             .filePath(pathItem.getName())

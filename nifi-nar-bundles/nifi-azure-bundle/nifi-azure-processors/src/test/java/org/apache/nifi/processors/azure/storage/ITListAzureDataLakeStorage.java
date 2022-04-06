@@ -72,7 +72,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile111);
         testFiles.put(testFile111.getFilePath(), testFile111);
 
-        TestFile testFile21 = new TestFile("dir 2", "file 21");
+        TestFile testFile21 = new TestFile("dir 2", "file 21", "Test");
         createDirectoryAndUploadFile(testFile21);
         testFiles.put(testFile21.getFilePath(), testFile21);
 
@@ -223,6 +223,46 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.assertAllFlowFilesTransferred(ListAzureDataLakeStorage.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals("record.count", "3");
+    }
+
+    @Test
+    public void testListWithMinAge() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MIN_AGE, "1 hour");
+
+        runProcessor();
+
+        runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testListWithMaxAge() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MAX_AGE, "1 hour");
+
+        runProcessor();
+
+        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21");
+    }
+
+    @Test
+    public void testListWithMinSize() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MIN_SIZE, "5 B");
+
+        runProcessor();
+
+        assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111");
+    }
+
+    @Test
+    public void testListWithMaxSize() throws Exception {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.MAX_SIZE, "5 B");
+
+        runProcessor();
+
+        assertSuccess("dir 2/file 21");
     }
 
     private void runProcessor() {

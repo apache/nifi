@@ -59,8 +59,12 @@ public abstract class AbstractAzureBlobStorageIT extends AbstractAzureStorageIT 
     }
 
     protected void uploadTestBlob() throws Exception {
-        CloudBlob blob = container.getBlockBlobReference(TEST_BLOB_NAME);
-        byte[] buf = TEST_FILE_CONTENT.getBytes();
+        uploadTestBlob(TEST_BLOB_NAME, TEST_FILE_CONTENT);
+    }
+
+    protected void uploadTestBlob(final String blobName, final String fileContent) throws Exception {
+        CloudBlob blob = container.getBlockBlobReference(blobName);
+        byte[] buf = fileContent.getBytes();
         InputStream in = new ByteArrayInputStream(buf);
         blob.upload(in, buf.length);
     }
