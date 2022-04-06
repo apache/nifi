@@ -843,16 +843,20 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters, boolean strong, String id) throws XMLStreamException {
         writer.writeStartElement(elementName);
-        if (id != null) {
-            writer.writeAttribute("id", id);
+
+        if (characters != null) {
+            if (id != null) {
+                writer.writeAttribute("id", id);
+            }
+            if (strong) {
+                writer.writeStartElement("strong");
+            }
+            writer.writeCharacters(characters);
+            if (strong) {
+                writer.writeEndElement();
+            }
         }
-        if (strong) {
-            writer.writeStartElement("strong");
-        }
-        writer.writeCharacters(characters);
-        if (strong) {
-            writer.writeEndElement();
-        }
+
         writer.writeEndElement();
     }
 
