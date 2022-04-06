@@ -34,6 +34,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +70,7 @@ public class TestJacksonCSVRecordReader {
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
@@ -77,6 +78,30 @@ public class TestJacksonCSVRecordReader {
             final String name = (String)record.getValue("name");
 
             assertEquals("黃凱揚", name);
+        }
+    }
+
+    @Test
+    public void testISO8859() throws IOException, MalformedRecordException {
+        final String text = "name\nÄËÖÜ";
+        final byte[] bytesUTF = text.getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes8859 = text.getBytes(StandardCharsets.ISO_8859_1);
+        assertEquals(13, bytesUTF.length, "expected size=13 for UTF-8 representation of test data");
+        assertEquals(9, bytes8859.length, "expected size=9 for ISO-8859-1 representation of test data");
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.ISO_8859_1));
+             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                     StandardCharsets.ISO_8859_1.name())) {
+
+            final Record record = reader.nextRecord();
+            final String name = (String)record.getValue("name");
+
+            assertEquals("ÄËÖÜ", name);
         }
     }
 
