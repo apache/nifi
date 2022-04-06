@@ -69,7 +69,8 @@ public class FlowDifferenceFilters {
             || isPropertyMissingFromGhostComponent(difference, flowManager)
             || isNewRetryConfigWithDefaultValue(difference, flowManager)
             || isNewZIndexLabelConfigWithDefaultValue(difference, flowManager)
-            || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager);
+            || isNewZIndexConnectionConfigWithDefaultValue(difference, flowManager)
+            || isParameterContextChange(difference);
     }
 
     /**
@@ -444,5 +445,9 @@ public class FlowDifferenceFilters {
         }
 
         return false;
+    }
+
+    private static boolean isParameterContextChange(final FlowDifference flowDifference) {
+        return flowDifference.getDifferenceType() == DifferenceType.PARAMETER_CONTEXT_CHANGED;
     }
 }
