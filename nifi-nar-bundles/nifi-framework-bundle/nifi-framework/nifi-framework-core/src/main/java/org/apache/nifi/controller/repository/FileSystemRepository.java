@@ -221,7 +221,7 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
-        if (maxArchiveRatio > 0D) {
+        if (archiveData && maxArchiveRatio > 0D) {
             for (final Map.Entry<String, Path> container : containers.entrySet()) {
                 final String containerName = container.getKey();
 
