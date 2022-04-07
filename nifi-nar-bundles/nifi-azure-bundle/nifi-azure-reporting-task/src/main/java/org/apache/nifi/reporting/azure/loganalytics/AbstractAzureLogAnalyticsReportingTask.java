@@ -136,7 +136,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
 
         final int bodyLength = rawJson.getBytes(UTF8).length;
         final ZonedDateTime zNow = ZonedDateTime.now(ZoneOffset.UTC);
-        final String nowRfc1123 = zNow.format(DateTimeFormatter.RFC_1123_DATE_TIME);
+        final String nowRfc1123 = zNow.format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss O"));
         final String nowISO8601 = zNow.format(DateTimeFormatter.ISO_DATE_TIME);
         final String createAuthorization = createAuthorization(workspaceId, linuxPrimaryKey, bodyLength, nowRfc1123);
         request.addHeader("Authorization", createAuthorization);
