@@ -82,6 +82,30 @@ public class TestJacksonCSVRecordReader {
     }
 
     @Test
+    public void testISO8859() throws IOException, MalformedRecordException {
+        final String text = "name\nÄËÖÜ";
+        final byte[] bytesUTF = text.getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes8859 = text.getBytes(StandardCharsets.ISO_8859_1);
+        assertEquals(13, bytesUTF.length, "expected size=13 for UTF-8 representation of test data");
+        assertEquals(9, bytes8859.length, "expected size=9 for ISO-8859-1 representation of test data");
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.ISO_8859_1));
+             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                     StandardCharsets.ISO_8859_1.name())) {
+
+            final Record record = reader.nextRecord();
+            final String name = (String)record.getValue("name");
+
+            assertEquals("ÄËÖÜ", name);
+        }
+    }
+
+    @Test
     public void testDate() throws IOException, MalformedRecordException {
         final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
