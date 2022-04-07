@@ -16,19 +16,11 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Collection;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.microsoft.azure.storage.OperationContext;
-import org.apache.commons.codec.DecoderException;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -50,11 +42,13 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
@@ -85,6 +79,22 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             .required(false)
             .build();
 
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        AzureStorageUtils.CONTAINER_WITH_DEFAULT_VALUE,
+        BLOB,
+        AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
+        AzureStorageUtils.ACCOUNT_NAME,
+        AzureStorageUtils.ACCOUNT_KEY,
+        AzureStorageUtils.PROP_SAS_TOKEN,
+        AzureStorageUtils.ENDPOINT_SUFFIX,
+        RANGE_START,
+        RANGE_LENGTH,
+        AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE,
+        AzureBlobClientSideEncryptionUtils.CSE_KEY_ID,
+        AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX,
+        AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
+
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
@@ -94,17 +104,11 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(RANGE_START);
-        properties.add(RANGE_LENGTH);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX);
         return properties;
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
@@ -117,49 +121,33 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
         final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
         final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
-        AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            final CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
+            final CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
-            final Map<String, String> attributes = new HashMap<>();
             final CloudBlob blob = container.getBlockBlobReference(blobPath);
 
-            BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
+            final BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
 
             // TODO - we may be able do fancier things with ranges and
             // distribution of download over threads, investigate
-            flowFile = session.write(flowFile, os -> {
-                try {
-                    blob.downloadRange(rangeStart, rangeLength, os, null, blobRequestOptions, operationContext);
-                } catch (StorageException e) {
-                    storedException.set(e);
-                    throw new IOException(e);
-                }
-            });
-
-            long length = blob.getProperties().getLength();
-            attributes.put("azure.length", String.valueOf(length));
-
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
+            try (final OutputStream os = session.write(flowFile)) {
+                blob.downloadRange(rangeStart, rangeLength, os, null, blobRequestOptions, operationContext);
             }
+
+            final long length = blob.getProperties().getLength();
+            flowFile = session.putAllAttributes(flowFile, Collections.singletonMap("azure.length", String.valueOf(length)));
 
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
-        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException | DecoderException e) {
-            if (e instanceof ProcessException && storedException.get() == null) {
-                throw (ProcessException) e;
-            } else {
-                Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
-                getLogger().error("Failure to fetch Azure blob {}",  new Object[]{blobPath}, failureException);
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-            }
+        } catch (final Exception e) {
+            getLogger().error("Failed to fetch Azure blob {} for {}", blobPath, flowFile, e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 }

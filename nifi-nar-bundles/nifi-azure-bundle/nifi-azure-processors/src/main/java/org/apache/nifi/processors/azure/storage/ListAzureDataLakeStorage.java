@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.ListPathsOptions;
+import com.azure.storage.file.datalake.models.PathItem;
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -34,11 +35,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -47,7 +47,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -123,33 +122,34 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     public static final PropertyDescriptor PATH_FILTER = new PropertyDescriptor.Builder()
             .name("path-filter")
             .displayName("Path Filter")
-            .description(String.format("When '%s' is true, then only subdirectories whose paths match the given regular expression will be scanned", RECURSE_SUBDIRECTORIES.getDisplayName()))
+            .description("Only subdirectories whose paths match the given regular expression will be scanned")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_WITH_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .dependsOn(RECURSE_SUBDIRECTORIES, "true")
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            RECURSE_SUBDIRECTORIES,
-            FILE_FILTER,
-            PATH_FILTER,
-            RECORD_WRITER,
-            LISTING_STRATEGY,
-            TRACKING_STATE_CACHE,
-            TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET));
+        FILESYSTEM,
+        DIRECTORY,
+        ADLS_CREDENTIALS_SERVICE,
+        FILE_FILTER,
+        RECURSE_SUBDIRECTORIES,
+        PATH_FILTER,
+        RECORD_WRITER,
+        LISTING_STRATEGY,
+        TRACKING_STATE_CACHE,
+        TRACKING_TIME_WINDOW,
+        INITIAL_LISTING_TARGET));
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            RECURSE_SUBDIRECTORIES,
-            FILE_FILTER,
-            PATH_FILTER,
-            LISTING_STRATEGY)));
+        ADLS_CREDENTIALS_SERVICE,
+        FILESYSTEM,
+        DIRECTORY,
+        RECURSE_SUBDIRECTORIES,
+        FILE_FILTER,
+        PATH_FILTER,
+        LISTING_STRATEGY)));
 
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
@@ -169,17 +169,6 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
     public void onStopped() {
         filePattern = null;
         pathPattern = null;
-    }
-
-    @Override
-    protected void customValidate(final ValidationContext context, final Collection<ValidationResult> results) {
-        if (context.getProperty(PATH_FILTER).isSet() && !context.getProperty(RECURSE_SUBDIRECTORIES).asBoolean()) {
-            results.add(new ValidationResult.Builder()
-                    .subject(PATH_FILTER.getDisplayName())
-                    .valid(false)
-                    .explanation(String.format("'%s' cannot be set when '%s' is false", PATH_FILTER.getDisplayName(), RECURSE_SUBDIRECTORIES.getDisplayName()))
-                    .build());
-        }
     }
 
     @Override
@@ -230,7 +219,9 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
         attributes.put(ATTR_NAME_FILESYSTEM, fileInfo.getFileSystem());
         attributes.put(ATTR_NAME_FILE_PATH, fileInfo.getFilePath());
         attributes.put(ATTR_NAME_DIRECTORY, fileInfo.getDirectory());
+        attributes.put(CoreAttributes.PATH.key(), fileInfo.getDirectory());
         attributes.put(ATTR_NAME_FILENAME, fileInfo.getFilename());
+        attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getFilename());
         attributes.put(ATTR_NAME_LENGTH, String.valueOf(fileInfo.getLength()));
         attributes.put(ATTR_NAME_LAST_MODIFIED, String.valueOf(fileInfo.getLastModified()));
         attributes.put(ATTR_NAME_ETAG, fileInfo.getEtag());
@@ -261,15 +252,9 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
                     .filter(pathItem -> pathItem.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp)
-                    .map(pathItem -> new ADLSFileInfo.Builder()
-                            .fileSystem(fileSystem)
-                            .filePath(pathItem.getName())
-                            .length(pathItem.getContentLength())
-                            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
-                            .etag(pathItem.getETag())
-                            .build())
-                    .filter(fileInfo -> applyFilters && (filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches()))
-                    .filter(fileInfo -> applyFilters && (pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches()))
+                    .map(pathItem -> toADLSFileInfo(pathItem, fileSystem))
+                    .filter(fileInfo -> !applyFilters || filePattern == null || filePattern.matcher(fileInfo.getFilename()).matches())
+                    .filter(fileInfo -> !applyFilters || pathPattern == null || pathPattern.matcher(RegExUtils.removeFirst(fileInfo.getDirectory(), baseDirectoryPattern)).matches())
                     .collect(Collectors.toList());
 
             return listing;
@@ -279,8 +264,18 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
         }
     }
 
+    private ADLSFileInfo toADLSFileInfo(final PathItem pathItem, final String fileSystem) {
+        return new ADLSFileInfo.Builder()
+            .fileSystem(fileSystem)
+            .filePath(pathItem.getName())
+            .length(pathItem.getContentLength())
+            .lastModified(pathItem.getLastModified().toInstant().toEpochMilli())
+            .etag(pathItem.getETag())
+            .build();
+    }
+
     private Pattern getPattern(final ProcessContext context, final PropertyDescriptor filterDescriptor) {
-        String value = context.getProperty(filterDescriptor).evaluateAttributeExpressions().getValue();
+        final String value = context.getProperty(filterDescriptor).evaluateAttributeExpressions().getValue();
         return value != null ? Pattern.compile(value) : null;
     }
 }

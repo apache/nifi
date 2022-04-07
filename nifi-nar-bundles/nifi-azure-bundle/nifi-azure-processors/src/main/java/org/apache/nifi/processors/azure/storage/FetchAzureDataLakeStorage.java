@@ -38,7 +38,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -78,12 +79,18 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .defaultValue("0")
             .build();
 
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        FILESYSTEM_WITH_DEFAULT,
+        DIRECTORY_WITH_DEFAULT,
+        FILE,
+        ADLS_CREDENTIALS_SERVICE,
+        RANGE_START,
+        RANGE_LENGTH,
+        NUM_RETRIES
+    ));
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(super.getSupportedPropertyDescriptors());
-        properties.add(RANGE_START);
-        properties.add(RANGE_LENGTH);
-        properties.add(NUM_RETRIES);
         return properties;
     }
 
@@ -116,13 +123,12 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             }
 
             flowFile = session.write(flowFile, os -> fileClient.readWithResponse(os, fileRange, retryOptions, null, false, null, Context.NONE));
-            session.getProvenanceReporter().modifyContent(flowFile);
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, fileClient.getFileUrl(), transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failure to fetch file from Azure Data Lake Storage", e);
+            getLogger().error("Failure to fetch file from Azure Data Lake Storage for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

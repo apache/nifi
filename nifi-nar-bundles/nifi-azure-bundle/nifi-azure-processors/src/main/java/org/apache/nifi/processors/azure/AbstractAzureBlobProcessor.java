@@ -37,19 +37,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor BLOB = new PropertyDescriptor.Builder()
             .name("blob")
-            .displayName("Blob")
+            .displayName("Blob Name")
             .description("The filename of the blob")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue("${azure.blobname}")
+            .defaultValue("${filename}")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -61,26 +60,11 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections
-            .unmodifiableList(Arrays.asList(
-                    AzureStorageUtils.CONTAINER,
-                    AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
-                    AzureStorageUtils.ACCOUNT_NAME,
-                    AzureStorageUtils.ACCOUNT_KEY,
-                    AzureStorageUtils.PROP_SAS_TOKEN,
-                    AzureStorageUtils.ENDPOINT_SUFFIX,
-                    BLOB,
-                    AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
-    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(
-                    AbstractAzureBlobProcessor.REL_SUCCESS,
-                    AbstractAzureBlobProcessor.REL_FAILURE)));
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+        AbstractAzureBlobProcessor.REL_SUCCESS,
+        AbstractAzureBlobProcessor.REL_FAILURE)));
 
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {

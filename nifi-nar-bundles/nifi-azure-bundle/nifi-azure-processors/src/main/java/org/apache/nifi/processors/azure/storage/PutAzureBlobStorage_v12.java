@@ -92,10 +92,10 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            STORAGE_CREDENTIALS_SERVICE,
-            AzureStorageUtils.CONTAINER,
-            CREATE_CONTAINER,
-            BLOB_NAME
+        AzureStorageUtils.CONTAINER,
+        BLOB_NAME,
+        CREATE_CONTAINER,
+        STORAGE_CREDENTIALS_SERVICE
     ));
 
     @Override
@@ -109,27 +109,28 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             return;
         }
 
-        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
-        String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
+        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
         try {
-            BlobServiceClient storageClient = getStorageClient();
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobServiceClient storageClient = getStorageClient();
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
             if (createContainer && !containerClient.exists()) {
                 containerClient.create();
             }
-            BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-            long length = flowFile.getSize();
+            final BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-            try (InputStream rawIn = session.read(flowFile);
+            final long length = flowFile.getSize();
+
+            try (final InputStream rawIn = session.read(flowFile);
                  BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
                 blobClient.upload(bufferedIn, length);
             }
 
-            Map<String, String> attributes = createBlobAttributesMap(blobClient);
+            final Map<String, String> attributes = createBlobAttributesMap(blobClient);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, REL_SUCCESS);
@@ -138,7 +139,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().send(flowFile, transitUri, transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failed to create blob on Azure Blob Storage", e);
+            getLogger().error("Failed to create blob on Azure Blob Storage for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

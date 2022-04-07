@@ -126,7 +126,7 @@ public class ADLSFileInfo implements Comparable<ADLSFileInfo>, Serializable, Lis
 
     @Override
     public Record toRecord() {
-        Map<String, Object> values = new HashMap<>();
+        final Map<String, Object> values = new HashMap<>();
         values.put(FILESYSTEM, getFileSystem());
         values.put(FILE_PATH, getFilePath());
         values.put(DIRECTORY, getDirectory());

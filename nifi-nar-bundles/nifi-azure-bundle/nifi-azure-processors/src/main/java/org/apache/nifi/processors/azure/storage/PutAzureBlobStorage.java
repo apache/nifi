@@ -16,22 +16,13 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.FilterInputStream;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Collection;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.microsoft.azure.storage.OperationContext;
-import org.apache.commons.codec.DecoderException;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobProperties;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -52,12 +43,19 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import java.io.BufferedInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
@@ -73,10 +71,11 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
             .name("blob")
-            .displayName("Blob")
+            .displayName("Blob Name")
             .description("The filename of the blob")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("${filename}")
             .required(true)
             .build();
 
@@ -93,6 +92,21 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                   "will fail if the container does not exist.")
             .build();
 
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        AzureStorageUtils.CONTAINER,
+        BLOB_NAME,
+        CREATE_CONTAINER,
+        AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
+        AzureStorageUtils.ACCOUNT_NAME,
+        AzureStorageUtils.ACCOUNT_KEY,
+        AzureStorageUtils.PROP_SAS_TOKEN,
+        AzureStorageUtils.ENDPOINT_SUFFIX,
+        AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
+        AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE,
+        AzureBlobClientSideEncryptionUtils.CSE_KEY_ID,
+        AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX
+    ));
+
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
@@ -102,13 +116,6 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.remove(BLOB);
-        properties.add(BLOB_NAME);
-        properties.add(CREATE_CONTAINER);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID);
-        properties.add(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX);
         return properties;
     }
 
@@ -119,83 +126,63 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
         }
 
         final long startNanos = System.nanoTime();
-
-        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-
-        String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-
+        final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
 
-        AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
-            CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
-            CloudBlobContainer container = blobClient.getContainerReference(containerName);
+            final CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
+            final CloudBlobContainer container = blobClient.getContainerReference(containerName);
 
-            if (createContainer)
+            if (createContainer) {
                 container.createIfNotExists();
+            }
 
-            CloudBlob blob = container.getBlockBlobReference(blobPath);
+            final CloudBlob blob = container.getBlockBlobReference(blobPath);
 
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
-            BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
+            final BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
 
-            final Map<String, String> attributes = new HashMap<>();
-            long length = flowFile.getSize();
-            session.read(flowFile, rawIn -> {
-                InputStream in = rawIn;
-                if (!(in instanceof BufferedInputStream)) {
-                    // do not double-wrap
-                    in = new BufferedInputStream(rawIn);
-                }
+            try (final InputStream rawIn = session.read(flowFile);
+                 final InputStream bufferedIn = new BufferedInputStream(rawIn);
+                 final InputStream in = new UnmarkableInputStream(bufferedIn)) {
 
-                // If markSupported() is true and a file length is provided,
-                // Blobs are not uploaded in blocks resulting in OOME for large
-                // files. The UnmarkableInputStream wrapper class disables
-                // mark() and reset() to help force uploading files in chunks.
-                if (in.markSupported()) {
-                    in = new UnmarkableInputStream(in);
-                }
-
-                try {
-                    uploadBlob(blob, operationContext, blobRequestOptions, in);
-                    BlobProperties properties = blob.getProperties();
-                    attributes.put("azure.container", containerName);
-                    attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
-                    attributes.put("azure.etag", properties.getEtag());
-                    attributes.put("azure.length", String.valueOf(length));
-                    attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
-                } catch (StorageException | URISyntaxException | IOException e) {
-                    storedException.set(e);
-                    throw e instanceof IOException ? (IOException) e : new IOException(e);
-                }
-            });
-
-            if (!attributes.isEmpty()) {
-                flowFile = session.putAllAttributes(flowFile, attributes);
+                uploadBlob(blob, in, blobRequestOptions, operationContext);
             }
+
+            final Map<String, String> attributes = getAttributes(blob, flowFile, containerName);
+            flowFile = session.putAllAttributes(flowFile, attributes);
             session.transfer(flowFile, REL_SUCCESS);
 
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
-
-        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException | DecoderException e) {
-            if (e instanceof ProcessException && storedException.get() == null) {
-                throw (ProcessException) e;
-            } else {
-                Exception failureException = Optional.ofNullable(storedException.get()).orElse(e);
-                getLogger().error("Failed to put Azure blob {}", new Object[]{blobPath}, failureException);
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
-            }
+        } catch (final Exception e) {
+            getLogger().error("Failed to put Azure blob {} for {}", blobPath, flowFile, e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
         }
-
     }
 
-    void uploadBlob(CloudBlob blob, OperationContext operationContext, BlobRequestOptions blobRequestOptions, InputStream in) throws StorageException, IOException {
+    // Method to uplaod the blob. Exists solely for the purpose of mocking out the interaction within unit tests
+    protected void uploadBlob(final CloudBlob blob, final InputStream in, final BlobRequestOptions blobRequestOptions, final OperationContext operationContext) throws IOException, StorageException {
         blob.upload(in, -1, null, blobRequestOptions, operationContext);
     }
+
+    private Map<String, String> getAttributes(final CloudBlob blob, final FlowFile flowFile, final String containerName) throws URISyntaxException, StorageException {
+        final Map<String, String> attributes = new HashMap<>();
+        final long length = flowFile.getSize();
+        final BlobProperties properties = blob.getProperties();
+        attributes.put("azure.container", containerName);
+        attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
+        attributes.put("azure.etag", properties.getEtag());
+        attributes.put("azure.length", String.valueOf(length));
+        attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
+
+        return attributes;
+    }
+
 
     // Used to help force Azure Blob SDK to write in blocks
     private static class UnmarkableInputStream extends FilterInputStream {
@@ -208,7 +195,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
         }
 
         @Override
-        public void reset() throws IOException {
+        public void reset() {
         }
 
         @Override

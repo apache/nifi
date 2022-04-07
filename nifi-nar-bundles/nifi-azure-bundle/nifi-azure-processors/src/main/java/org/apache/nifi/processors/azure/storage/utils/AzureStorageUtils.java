@@ -16,21 +16,12 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -46,6 +37,14 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -125,6 +124,11 @@ public final class AzureStorageUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
+
+    public static final PropertyDescriptor CONTAINER_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(CONTAINER)
+        .defaultValue("${azure.container}")
+        .build();
 
     public static final String SAS_TOKEN_BASE_DESCRIPTION = "Shared Access Signature token, including the leading '?'. Specify either SAS token (recommended) or Account Key.";
 
@@ -271,29 +275,32 @@ public final class AzureStorageUtils {
     public static Collection<ValidationResult> validateCredentialProperties(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        final String storageCredentials = validationContext.getProperty(STORAGE_CREDENTIALS_SERVICE).getValue();
-        final String accountName = validationContext.getProperty(ACCOUNT_NAME).getValue();
-        final String accountKey = validationContext.getProperty(ACCOUNT_KEY).getValue();
-        final String sasToken = validationContext.getProperty(PROP_SAS_TOKEN).getValue();
-        final String endpointSuffix = validationContext.getProperty(ENDPOINT_SUFFIX).getValue();
+        final boolean credentialsSet = validationContext.getProperty(STORAGE_CREDENTIALS_SERVICE).isSet();
+        final boolean accountNameSet = StringUtils.isNotBlank(validationContext.getProperty(ACCOUNT_NAME).getValue());
+        final boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(ACCOUNT_KEY).getValue());
+        final boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(PROP_SAS_TOKEN).getValue());
+        final boolean endpointSuffixSet = StringUtils.isNotBlank(validationContext.getProperty(ENDPOINT_SUFFIX).getValue());
 
-        if (!((StringUtils.isNotBlank(storageCredentials) && StringUtils.isBlank(accountName) && StringUtils.isBlank(accountKey) && StringUtils.isBlank(sasToken))
-                || (StringUtils.isBlank(storageCredentials) && StringUtils.isNotBlank(accountName) && StringUtils.isNotBlank(accountKey) && StringUtils.isBlank(sasToken))
-                || (StringUtils.isBlank(storageCredentials) && StringUtils.isNotBlank(accountName) && StringUtils.isBlank(accountKey) && StringUtils.isNotBlank(sasToken)))) {
+        final boolean onlyCredentialsServiceSet = credentialsSet && !accountNameSet && !accountKeySet && !sasTokenSet;
+        final boolean accountNameAndKeySet = !credentialsSet && !sasTokenSet && accountNameSet && accountKeySet;
+        final boolean accountNameAndSasTokenSet = !credentialsSet && !accountKeySet && accountNameSet && sasTokenSet;
+        final boolean validCredentialsConfig = onlyCredentialsServiceSet || accountNameAndKeySet || accountNameAndSasTokenSet;
+
+        if (!validCredentialsConfig) {
             results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
                     .valid(false)
-                    .explanation("either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName()
+                    .explanation("Either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName()
                             + ", or " + ACCOUNT_NAME.getDisplayName() + " with " + ACCOUNT_KEY.getDisplayName()
                             + " or " + ACCOUNT_NAME.getDisplayName() + " with " + PROP_SAS_TOKEN.getDisplayName() + " must be specified")
                     .build());
         }
 
-        if(StringUtils.isNotBlank(storageCredentials) && StringUtils.isNotBlank(endpointSuffix)) {
-            String errMsg = "Either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName() + " or " + ENDPOINT_SUFFIX.getDisplayName()
-                + " should be specified, not both.";
-            results.add(new ValidationResult.Builder().subject("AzureStorageUtils Credentials")
-                        .explanation(errMsg)
-                        .build());
+        if (credentialsSet && endpointSuffixSet) {
+            results.add(new ValidationResult.Builder()
+                .subject("Credentials and Endpoint Suffix")
+                .explanation("Either " + STORAGE_CREDENTIALS_SERVICE.getDisplayName() + " or " + ENDPOINT_SUFFIX.getDisplayName() + " should be specified, not both.")
+                .valid(false)
+                .build());
         }
 
         return results;

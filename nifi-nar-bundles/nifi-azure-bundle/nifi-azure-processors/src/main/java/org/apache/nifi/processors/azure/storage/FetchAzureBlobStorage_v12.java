@@ -77,15 +77,11 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
         @WritesAttribute(attribute = ATTR_NAME_TIMESTAMP, description = ATTR_DESCRIPTION_TIMESTAMP),
         @WritesAttribute(attribute = ATTR_NAME_LENGTH, description = ATTR_DESCRIPTION_LENGTH) })
 public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
-
-    public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.CONTAINER)
-            .defaultValue("${azure.container}")
-            .build();
+    public static final PropertyDescriptor CONTAINER = AzureStorageUtils.CONTAINER_WITH_DEFAULT_VALUE;
 
     public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AbstractAzureBlobProcessor_v12.BLOB_NAME)
-            .defaultValue("${azure.blobname}")
+            .defaultValue("${filename}")
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
@@ -109,11 +105,11 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            STORAGE_CREDENTIALS_SERVICE,
-            CONTAINER,
-            BLOB_NAME,
-            RANGE_START,
-            RANGE_LENGTH
+        CONTAINER,
+        BLOB_NAME,
+        STORAGE_CREDENTIALS_SERVICE,
+        RANGE_START,
+        RANGE_LENGTH
     ));
 
     @Override
@@ -128,30 +124,30 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             return;
         }
 
-        long startNanos = System.nanoTime();
+        final long startNanos = System.nanoTime();
 
-        String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
-        Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
+        final String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
         try {
-            BlobServiceClient storageClient = getStorageClient();
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
-            BlobClient blobClient = containerClient.getBlobClient(blobName);
+            final BlobServiceClient storageClient = getStorageClient();
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobClient blobClient = containerClient.getBlobClient(blobName);
 
             flowFile = session.write(flowFile, os -> blobClient.downloadWithResponse(os, new BlobRange(rangeStart, rangeLength), null, null, false, null, null));
 
-            Map<String, String> attributes = createBlobAttributesMap(blobClient);
+            final Map<String, String> attributes = createBlobAttributesMap(blobClient);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.transfer(flowFile, REL_SUCCESS);
 
-            long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
+            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final String transitUri = attributes.get(ATTR_NAME_PRIMARY_URI);
             session.getProvenanceReporter().fetch(flowFile, transitUri, transferMillis);
         } catch (Exception e) {
-            getLogger().error("Failure to fetch Azure blob {}", blobName, e);
+            getLogger().error("Failure to fetch Azure blob {} for {}", blobName, flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

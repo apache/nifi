@@ -71,6 +71,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .description("The full name of the blob")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("${filename}")
             .required(true)
             .build();
 
@@ -109,11 +110,11 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         return storageClient;
     }
 
-    public static BlobServiceClient createStorageClient(PropertyContext context) {
-        AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
-        AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
+    public static BlobServiceClient createStorageClient(final PropertyContext context) {
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+        final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
 
-        BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
+        final BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
         clientBuilder.endpoint(String.format("https://%s.%s", credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
 
         configureCredential(clientBuilder, credentialsService, credentialsDetails);
@@ -150,11 +151,11 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         }
     }
 
-    protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {
-        Map<String, String> attributes = new HashMap<>();
+    protected Map<String, String> createBlobAttributesMap(final BlobClient blobClient) {
+        final Map<String, String> attributes = new HashMap<>();
 
-        BlobProperties properties = blobClient.getProperties();
-        String primaryUri = String.format("%s/%s", blobClient.getContainerClient().getBlobContainerUrl(), blobClient.getBlobName());
+        final BlobProperties properties = blobClient.getProperties();
+        final String primaryUri = String.format("%s/%s", blobClient.getContainerClient().getBlobContainerUrl(), blobClient.getBlobName());
 
         attributes.put(ATTR_NAME_CONTAINER, blobClient.getContainerName());
         attributes.put(ATTR_NAME_BLOBNAME, blobClient.getBlobName());

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
@@ -49,13 +50,12 @@ import org.apache.nifi.processors.azure.storage.utils.BlobInfo.Builder;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.STORAGE_CREDENTIALS_SERVICE;
 import static org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12.createStorageClient;
@@ -131,14 +131,14 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            STORAGE_CREDENTIALS_SERVICE,
-            CONTAINER,
-            BLOB_NAME_PREFIX,
-            RECORD_WRITER,
-            LISTING_STRATEGY,
-            TRACKING_STATE_CACHE,
-            TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET
+        CONTAINER,
+        LISTING_STRATEGY,
+        RECORD_WRITER,
+        STORAGE_CREDENTIALS_SERVICE,
+        BLOB_NAME_PREFIX,
+        TRACKING_STATE_CACHE,
+        TRACKING_TIME_WINDOW,
+        INITIAL_LISTING_TARGET
     ));
 
     private BlobServiceClient storageClient;
@@ -206,34 +206,17 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
         final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
         try {
-            final List<BlobInfo> listing = new ArrayList<>();
-
             final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
-
             final ListBlobsOptions options = new ListBlobsOptions()
-                    .setPrefix(prefix);
+                .setPrefix(prefix);
 
-            final Iterator<BlobItem> result = containerClient.listBlobs(options, null).iterator();
+            final PagedIterable<BlobItem> results = containerClient.listBlobs(options, null);
+            final String containerUrl = containerClient.getBlobContainerUrl();
 
-            while (result.hasNext()) {
-                final BlobItem blob = result.next();
-                final BlobItemProperties properties = blob.getProperties();
-
-                if (properties.getLastModified().toInstant().toEpochMilli() >= minimumTimestamp) {
-                    final Builder builder = new Builder()
-                            .containerName(containerName)
-                            .blobName(blob.getName())
-                            .primaryUri(String.format("%s/%s", containerClient.getBlobContainerUrl(), blob.getName()))
-                            .etag(properties.getETag())
-                            .blobType(properties.getBlobType().toString())
-                            .contentType(properties.getContentType())
-                            .contentLanguage(properties.getContentLanguage())
-                            .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
-                            .length(properties.getContentLength());
-
-                    listing.add(builder.build());
-                }
-            }
+            final List<BlobInfo> listing = results.stream()
+                .filter(blob -> blob.getProperties().getLastModified().toInstant().toEpochMilli() >= minimumTimestamp)
+                .map(blob -> buildBlobInfo(containerName, containerUrl, blob))
+                .collect(Collectors.toList());
 
             return listing;
         } catch (Throwable t) {
@@ -241,9 +224,26 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
         }
     }
 
+    private BlobInfo buildBlobInfo(final String containerName, final String containerUrl, final BlobItem blob) {
+        final BlobItemProperties properties = blob.getProperties();
+
+        final Builder builder = new Builder()
+            .containerName(containerName)
+            .blobName(blob.getName())
+            .primaryUri(String.format("%s/%s", containerUrl, blob.getName()))
+            .etag(properties.getETag())
+            .blobType(properties.getBlobType().toString())
+            .contentType(properties.getContentType())
+            .contentLanguage(properties.getContentLanguage())
+            .lastModifiedTime(properties.getLastModified().toInstant().toEpochMilli())
+            .length(properties.getContentLength());
+
+        return builder.build();
+    }
+
     @Override
     protected Map<String, String> createAttributes(BlobInfo entity, ProcessContext context) {
-        Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
 
         attributes.put(ATTR_NAME_CONTAINER, entity.getContainerName());
         attributes.put(ATTR_NAME_BLOBNAME, entity.getBlobName());

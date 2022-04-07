@@ -339,8 +339,16 @@ public class CapturingLogger implements Logger {
 
     @Override
     public void warn(Marker marker, String format, Object... argArray) {
-        warnMessages.add(new LogMessage(marker, format, null, argArray));
+        warnMessages.add(new LogMessage(marker, format, getThrowable(argArray), argArray));
         logger.warn(marker, format, argArray);
+    }
+
+    private Throwable getThrowable(final Object... args) {
+        if (args.length > 0 && args[args.length - 1] instanceof Throwable) {
+            return (Throwable) args[args.length - 1];
+        }
+
+        return null;
     }
 
     @Override
@@ -383,7 +391,7 @@ public class CapturingLogger implements Logger {
     @Override
     public void error(String format, Object... arguments) {
         final String message = MessageFormatter.arrayFormat(format, arguments).getMessage();
-        errorMessages.add(new LogMessage(null, message, null, arguments));
+        errorMessages.add(new LogMessage(null, message, getThrowable(arguments), arguments));
         logger.error(format, arguments);
     }
 
@@ -422,7 +430,7 @@ public class CapturingLogger implements Logger {
     @Override
     public void error(Marker marker, String format, Object... argArray) {
         final String message = MessageFormatter.arrayFormat(format, argArray).getMessage();
-        errorMessages.add(new LogMessage(marker, message, null, argArray));
+        errorMessages.add(new LogMessage(marker, message, getThrowable(argArray), argArray));
         logger.error(marker, format, argArray);
     }
 

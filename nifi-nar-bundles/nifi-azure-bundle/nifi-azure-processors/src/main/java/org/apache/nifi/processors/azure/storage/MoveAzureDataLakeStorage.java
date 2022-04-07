@@ -100,12 +100,11 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     public static final PropertyDescriptor SOURCE_DIRECTORY = new PropertyDescriptor.Builder()
             .name("source-directory-name")
             .displayName("Source Directory")
-            .description("Name of the Azure Storage Directory from where the move should happen. The Directory Name cannot contain a leading '/'." +
-                    " The root directory can be designated by the empty string value.")
-            .addValidator(new DirectoryValidator("Source Directory"))
+            .description("Name of the Azure Storage Directory from where the move should happen.")
+            .addValidator(new DirectoryValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_DIRECTORY))
+            .defaultValue("${path}")
             .build();
 
     public static final PropertyDescriptor DESTINATION_FILESYSTEM = new PropertyDescriptor.Builder()
@@ -117,21 +116,20 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     public static final PropertyDescriptor DESTINATION_DIRECTORY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(DIRECTORY)
             .displayName("Destination Directory")
-            .description("Name of the Azure Storage Directory where the files will be moved. The Directory Name cannot contain a leading '/'." +
-                    " The root directory can be designated by the empty string value. Non-existing directories will be created." +
+            .description("Name of the Azure Storage Directory where the files will be moved. Non-existing directories will be created." +
                     " If the original directory structure should be kept, the full directory path needs to be provided after the destination directory." +
                     " e.g.: destdir/${azure.directory}")
-            .addValidator(new DirectoryValidator("Destination Directory"))
+            .addValidator(new DirectoryValidator())
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            SOURCE_FILESYSTEM,
-            SOURCE_DIRECTORY,
-            DESTINATION_FILESYSTEM,
-            DESTINATION_DIRECTORY,
-            FILE,
-            CONFLICT_RESOLUTION
+        SOURCE_FILESYSTEM,
+        SOURCE_DIRECTORY,
+        DESTINATION_FILESYSTEM,
+        DESTINATION_DIRECTORY,
+        FILE,
+        ADLS_CREDENTIALS_SERVICE,
+        CONFLICT_RESOLUTION
     ));
 
     @Override
@@ -213,7 +211,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
                 }
             }
         } catch (Exception e) {
-            getLogger().error("Failed to move file on Azure Data Lake Storage", e);
+            getLogger().error("Failed to move file on Azure Data Lake Storage for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

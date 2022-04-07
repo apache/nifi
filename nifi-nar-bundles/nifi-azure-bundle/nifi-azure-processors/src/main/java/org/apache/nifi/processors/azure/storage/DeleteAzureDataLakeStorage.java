@@ -42,8 +42,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
-
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, FetchAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
 @CapabilityDescription("Deletes the provided file from Azure Data Lake Storage")
@@ -63,29 +61,31 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
-            .name("file-name").displayName("File Name")
+            .name("file-name")
+            .displayName("File Name")
             .description("The filename")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue(String.format("${%s}", ATTR_NAME_FILENAME))
+            .defaultValue("${filename}")
             .dependsOn(FILESYSTEM_OBJECT_TYPE, FS_TYPE_FILE)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
+            FILESYSTEM_WITH_DEFAULT,
+            DIRECTORY_WITH_DEFAULT,
+            FILE,
             FILESYSTEM_OBJECT_TYPE,
-            DIRECTORY,
-            FILE
-    ));
+            ADLS_CREDENTIALS_SERVICE
+        ));
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
+
         try {
             final boolean isFile = context.getProperty(FILESYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
@@ -107,8 +107,8 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
                 session.transfer(flowFile, REL_SUCCESS);
                 session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Directory deleted");
             }
-        } catch (Exception e) {
-            getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", e);
+        } catch (final Exception e) {
+            getLogger().error("Failed to delete the specified file from Azure Data Lake Storage for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

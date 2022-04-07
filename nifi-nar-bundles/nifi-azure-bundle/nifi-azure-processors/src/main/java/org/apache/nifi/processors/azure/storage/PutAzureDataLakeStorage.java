@@ -33,13 +33,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -71,6 +70,11 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String FAIL_RESOLUTION = "fail";
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
+    public static final String MS_ERROR_CODE_HEADER_NAME = "x-ms-error-code";
+    // This is not contained within the StorageErrorCodeStrings. However, it is documented by Microsoft
+    // https://docs.microsoft.com/en-us/rest/api/storageservices/datalakestoragegen2/path/create
+    // And testing shows this is the error code that we receive when this occurs
+    public static final String PATH_ALREADY_EXISTS = "PathAlreadyExists";
 
     public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
 
@@ -83,14 +87,14 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
-    private List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        FILESYSTEM,
+        DIRECTORY,
+        FILE,
+        CONFLICT_RESOLUTION,
+        ADLS_CREDENTIALS_SERVICE
+    ));
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        props.add(CONFLICT_RESOLUTION);
-        properties = Collections.unmodifiableList(props);
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -123,10 +127,13 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
                 final long length = flowFile.getSize();
                 if (length > 0) {
-                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+                    try (final InputStream rawIn = session.read(flowFile);
+                         final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+
                         uploadContent(fileClient, bufferedIn, length);
-                    } catch (Exception e) {
-                        removeTempFile(fileClient);
+
+                    } catch (final Exception e) {
+                        removeTempFile(fileClient, flowFile);
                         throw e;
                     }
                 }
@@ -142,33 +149,28 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 session.transfer(flowFile, REL_SUCCESS);
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                 session.getProvenanceReporter().send(flowFile, fileClient.getFileUrl(), transferMillis);
-            } catch (DataLakeStorageException dlsException) {
-                if (dlsException.getStatusCode() == 409) {
-                    if (conflictResolution.equals(IGNORE_RESOLUTION)) {
-                        session.transfer(flowFile, REL_SUCCESS);
-                        String warningMessage = String.format("File with the same name already exists. " +
-                                "Remote file not modified. " +
-                                "Transferring {} to success due to %s being set to '%s'.", CONFLICT_RESOLUTION.getDisplayName(), conflictResolution);
-                        getLogger().warn(warningMessage, new Object[]{flowFile});
-                    } else {
-                        throw dlsException;
-                    }
+            } catch (final DataLakeStorageException dlsException) {
+                final String errorCode = dlsException.getResponse().getHeaderValue(MS_ERROR_CODE_HEADER_NAME);
+                if (PATH_ALREADY_EXISTS.equals(errorCode) && conflictResolution.equalsIgnoreCase(IGNORE_RESOLUTION)) {
+                    // User explicitly configured processor to ignore conflicts. Log info level message and continue on.
+                    getLogger().info("A file already exists in ADLS with filename [{}]. Remote file not modified. Transferring {} to success as configured.", fileName, flowFile);
+                    session.transfer(flowFile, REL_SUCCESS);
                 } else {
                     throw dlsException;
                 }
             }
-        } catch (Exception e) {
-            getLogger().error("Failed to create file on Azure Data Lake Storage", e);
+        } catch (final Exception e) {
+            getLogger().error("Failed to create file on Azure Data Lake Storage for {}", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private void removeTempFile(DataLakeFileClient fileClient) {
+    private void removeTempFile(final DataLakeFileClient fileClient, final FlowFile flowFile) {
         try {
             fileClient.delete();
-        } catch (Exception e) {
-            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
+        } catch (final Exception e) {
+            getLogger().error("Error while removing temp file on Azure Data Lake Storage for {}", flowFile, e);
         }
     }
 

@@ -50,57 +50,20 @@ public class TestAbstractAzureDataLakeStorage {
     }
 
     @Test
-    public void testValid() {
+    public void testValidWithDefaultUnitTestValues() {
         runner.assertValid();
-    }
-
-    @Test
-    public void testNotValidWhenNoFilesystemSpecified() {
-        runner.removeProperty(FILESYSTEM);
-
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWhenFilesystemIsEmptyString() {
-        runner.setProperty(FILESYSTEM, "");
-
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWhenNoDirectorySpecified() {
-        runner.removeProperty(DIRECTORY);
-
-        runner.assertNotValid();
     }
 
     @Test
     public void testValidWhenDirectoryIsEmptyString() {
         // the empty string is for the filesystem root directory
         runner.setProperty(DIRECTORY, "");
-
         runner.assertValid();
-    }
-
-    @Test
-    public void testNotValidWhenDirectoryIsSlash() {
-        runner.setProperty(DIRECTORY, "/");
-
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWhenDirectoryStartsWithSlash() {
-        runner.setProperty(DIRECTORY, "/directory");
-
-        runner.assertNotValid();
     }
 
     @Test
     public void testNotValidWhenDirectoryIsWhitespaceOnly() {
         runner.setProperty(DIRECTORY, "   ");
-
         runner.assertNotValid();
     }
 
@@ -108,14 +71,12 @@ public class TestAbstractAzureDataLakeStorage {
     public void testValidWhenNoFileSpecified() {
         // the default value will be used
         runner.removeProperty(FILE);
-
         runner.assertValid();
     }
 
     @Test
     public void testNotValidWhenFileIsEmptyString() {
         runner.setProperty(FILE, "");
-
         runner.assertNotValid();
     }
 }

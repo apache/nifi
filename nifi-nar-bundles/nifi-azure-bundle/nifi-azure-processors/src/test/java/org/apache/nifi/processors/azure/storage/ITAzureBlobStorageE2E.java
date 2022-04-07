@@ -39,7 +39,6 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
@@ -184,16 +183,6 @@ public class ITAzureBlobStorageE2E  {
         );
     }
 
-    @Test
-    public void AzureBlobStorageE2E128BCSENoDecryption() {
-        assertThrows(Exception.class, () -> testE2E(AzureBlobClientSideEncryptionMethod.SYMMETRIC.name(),
-                KEY_ID_VALUE,
-                KEY_128B_VALUE,
-                AzureBlobClientSideEncryptionMethod.NONE.name(),
-                KEY_ID_VALUE,
-                KEY_128B_VALUE
-        ));
-    }
 
     private void testE2E(String encryptionKeyType, String encryptionKeyId, String encryptionKeyHex, String decryptionKeyType, String decryptionKeyId, String decryptionKeyHex) throws Exception {
         putRunner.setProperty(PutAzureBlobStorage.BLOB, TEST_BLOB_NAME);

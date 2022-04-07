@@ -62,7 +62,9 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Before
-    public void setUp() throws InterruptedException {
+    public void setUp() throws Exception {
+        setUpAzureStorageIT();
+        setUpAzureDataLakeStorageIT();
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_FILESYSTEM, fileSystemName);
         runner.setProperty(MoveAzureDataLakeStorage.SOURCE_DIRECTORY, SOURCE_DIRECTORY);
         runner.setProperty(MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM, fileSystemName);

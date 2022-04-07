@@ -41,32 +41,30 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
+@SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
 @CapabilityDescription("Deletes the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     public static final AllowableValue DELETE_SNAPSHOTS_NONE = new AllowableValue("NONE", "None", "Delete the blob only.");
-
     public static final AllowableValue DELETE_SNAPSHOTS_ALSO = new AllowableValue(DeleteSnapshotsOptionType.INCLUDE.name(), "Include Snapshots", "Delete the blob and its snapshots.");
-
     public static final AllowableValue DELETE_SNAPSHOTS_ONLY = new AllowableValue(DeleteSnapshotsOptionType.ONLY.name(), "Delete Snapshots Only", "Delete only the blob's snapshots.");
 
     public static final PropertyDescriptor DELETE_SNAPSHOTS_OPTION = new PropertyDescriptor.Builder()
-            .name("delete-snapshots-option")
-            .displayName("Delete Snapshots Option")
-            .description("Specifies the snapshot deletion options to be used when deleting a blob.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(DELETE_SNAPSHOTS_NONE, DELETE_SNAPSHOTS_ALSO, DELETE_SNAPSHOTS_ONLY)
-            .defaultValue(DELETE_SNAPSHOTS_NONE.getValue())
-            .required(true)
-            .build();
+        .name("delete-snapshots-option")
+        .displayName("Delete Snapshots Option")
+        .description("Specifies the snapshot deletion options to be used when deleting a blob.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .allowableValues(DELETE_SNAPSHOTS_NONE, DELETE_SNAPSHOTS_ALSO, DELETE_SNAPSHOTS_ONLY)
+        .defaultValue(DELETE_SNAPSHOTS_NONE.getValue())
+        .required(true)
+        .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            STORAGE_CREDENTIALS_SERVICE,
-            AzureStorageUtils.CONTAINER,
-            BLOB_NAME,
-            DELETE_SNAPSHOTS_OPTION
+        AzureStorageUtils.CONTAINER_WITH_DEFAULT_VALUE,
+        BLOB_NAME,
+        DELETE_SNAPSHOTS_OPTION,
+        STORAGE_CREDENTIALS_SERVICE
     ));
 
     @Override
@@ -81,37 +79,37 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             return;
         }
 
-        String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        String deleteSnapshotsOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).getValue();
+        final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String deleteSnapshotsOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).getValue();
 
         long startNanos = System.nanoTime();
         try {
-            BlobServiceClient storageClient = getStorageClient();
-            BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
-            BlobClient blobClient = containerClient.getBlobClient(blobName);
+            final BlobServiceClient storageClient = getStorageClient();
+            final BlobContainerClient containerClient = storageClient.getBlobContainerClient(containerName);
+            final BlobClient blobClient = containerClient.getBlobClient(blobName);
 
-            String provenanceMesage;
+            String provenanceMessage;
             if (blobClient.exists()) {
-                DeleteSnapshotsOptionType deleteSnapshotsOptionType = getDeleteSnapshotsOptionType(deleteSnapshotsOption);
+                final DeleteSnapshotsOptionType deleteSnapshotsOptionType = getDeleteSnapshotsOptionType(deleteSnapshotsOption);
                 blobClient.deleteWithResponse(deleteSnapshotsOptionType, null, null, null);
-                provenanceMesage = getProvenanceMessage(deleteSnapshotsOptionType);
+                provenanceMessage = getProvenanceMessage(deleteSnapshotsOptionType);
             } else {
-                provenanceMesage = "Blob does not exist, nothing to delete";
+                provenanceMessage = "Blob does not exist, nothing to delete";
             }
 
             session.transfer(flowFile, REL_SUCCESS);
 
             long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-            session.getProvenanceReporter().invokeRemoteProcess(flowFile, blobClient.getBlobUrl(), String.format("%s (%d ms)", provenanceMesage, transferMillis));
+            session.getProvenanceReporter().invokeRemoteProcess(flowFile, blobClient.getBlobUrl(), String.format("%s (%d ms)", provenanceMessage, transferMillis));
         } catch (Exception e) {
-            getLogger().error("Failed to delete the specified blob ({}) from Azure Blob Storage. Routing to failure", blobName, e);
+            getLogger().error("Failed to delete the specified blob ({}) from Azure Blob Storage for {}. Routing to failure.", blobName, flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private DeleteSnapshotsOptionType getDeleteSnapshotsOptionType(String deleteSnapshotOption) {
+    private DeleteSnapshotsOptionType getDeleteSnapshotsOptionType(final String deleteSnapshotOption) {
         try {
             return DeleteSnapshotsOptionType.valueOf(deleteSnapshotOption);
         } catch (IllegalArgumentException e) {
@@ -119,7 +117,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         }
     }
 
-    private String getProvenanceMessage(DeleteSnapshotsOptionType deleteSnapshotsOptionType) {
+    private String getProvenanceMessage(final DeleteSnapshotsOptionType deleteSnapshotsOptionType) {
         if (deleteSnapshotsOptionType == null) {
             return "Blob deleted";
         }

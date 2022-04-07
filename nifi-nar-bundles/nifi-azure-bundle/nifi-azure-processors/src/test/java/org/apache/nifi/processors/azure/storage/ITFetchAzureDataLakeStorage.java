@@ -19,19 +19,13 @@ package org.apache.nifi.processors.azure.storage;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -447,32 +441,21 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
     private void testSuccessfulFetch(String fileSystem, String directory, String filename, String rangeStart, String rangeLength,
                                  Map<String, String> attributes, String inputFlowFileContent, String expectedFlowFileContent) {
-        // GIVEN
-        Set<ProvenanceEventType> expectedEventTypes = new LinkedHashSet<>(Arrays.asList(ProvenanceEventType.CONTENT_MODIFIED, ProvenanceEventType.FETCH));
-
         setRunnerProperties(fileSystem, directory, filename, rangeStart, rangeLength);
-
-        // WHEN
         startRunner(inputFlowFileContent, attributes);
-
-        // THEN
-        assertSuccess(expectedFlowFileContent, expectedEventTypes);
+        assertSuccess(expectedFlowFileContent);
     }
 
     private void testFailedFetch(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
         testFailedFetch(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent, expectedErrorCode);
     }
 
-    private void testFailedFetch(String fileSystem, String directory, String filename, Map<String, String> attributes,
-                                 String inputFlowFileContent, String expectedFlowFileContent, int expectedErrorCode) {
-        // GIVEN
+    private void testFailedFetch(final String fileSystem, final String directory, final String filename, final Map<String, String> attributes,
+                                 final String inputFlowFileContent, final String expectedFlowFileContent, final int expectedErrorCode) {
         setRunnerProperties(fileSystem, directory, filename);
-
-        // WHEN
         startRunner(inputFlowFileContent, attributes);
 
-        // THEN
-        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        DataLakeStorageException e = (DataLakeStorageException) runner.getLogger().getErrorMessages().get(0).getThrowable();
         assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
@@ -484,13 +467,10 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
 
     private void testFailedFetchWithProcessException(String fileSystem, String directory, String filename, Map<String, String> attributes,
                                                      String inputFlowFileContent, String expectedFlowFileContent) {
-        // GIVEN
         setRunnerProperties(fileSystem, directory, filename);
 
-        // WHEN
         startRunner(inputFlowFileContent, attributes);
 
-        // THEN
         Throwable exception = runner.getLogger().getErrorMessages().get(0).getThrowable();
         assertEquals(ProcessException.class, exception.getClass());
 
@@ -522,15 +502,11 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         runner.run();
     }
 
-    private void assertSuccess(String expectedFlowFileContent, Set<ProvenanceEventType> expectedEventTypes) {
+    private void assertSuccess(final String expectedFlowFileContent) {
         runner.assertAllFlowFilesTransferred(FetchAzureDataLakeStorage.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals(expectedFlowFileContent);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(FetchAzureDataLakeStorage.REL_SUCCESS).get(0);
 
-        Set<ProvenanceEventType> actualEventTypes = runner.getProvenanceEvents().stream()
-                .map(ProvenanceEventRecord::getEventType)
-                .collect(Collectors.toSet());
-        assertEquals(expectedEventTypes, actualEventTypes);
+        flowFile.assertContentEquals(expectedFlowFileContent);
     }
 
     private void assertFailure(String expectedFlowFileContent) {

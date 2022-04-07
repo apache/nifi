@@ -38,9 +38,9 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, PutAzureBlobStorage.class})
@@ -64,22 +64,30 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
             .required(true)
             .build();
 
+    private static final List<PropertyDescriptor> properties = Collections.unmodifiableList(Arrays.asList(
+        AzureStorageUtils.CONTAINER_WITH_DEFAULT_VALUE,
+        BLOB,
+        AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
+        AzureStorageUtils.ACCOUNT_NAME,
+        AzureStorageUtils.ACCOUNT_KEY,
+        AzureStorageUtils.PROP_SAS_TOKEN,
+        AzureStorageUtils.ENDPOINT_SUFFIX,
+        AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
+        DELETE_SNAPSHOTS_OPTION));
+
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(DELETE_SNAPSHOTS_OPTION);
         return properties;
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
-
-        if(flowFile == null) {
+        if (flowFile == null) {
             return;
         }
 
-        final long startNanos = System.nanoTime();
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
         final String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
         final String deleteSnapshotOptions = context.getProperty(DELETE_SNAPSHOTS_OPTION).getValue();
@@ -94,10 +102,9 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
             blob.deleteIfExists(DeleteSnapshotsOption.valueOf(deleteSnapshotOptions), null, null, operationContext);
             session.transfer(flowFile, REL_SUCCESS);
 
-            final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().invokeRemoteProcess(flowFile, blob.getSnapshotQualifiedUri().toString(), "Blob deleted");
-        } catch ( StorageException | URISyntaxException e) {
-            getLogger().error("Failed to delete the specified blob {} from Azure Storage. Routing to failure", new Object[]{blobPath}, e);
+        } catch (final StorageException | URISyntaxException e) {
+            getLogger().error("Failed to delete the specified blob {} from Azure Storage for {}. Routing to failure.", blobPath, flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
