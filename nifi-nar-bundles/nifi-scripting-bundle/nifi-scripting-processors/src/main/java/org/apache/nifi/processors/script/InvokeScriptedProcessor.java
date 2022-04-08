@@ -256,8 +256,6 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 scriptingComponentHelper.setScriptPath(newValue);
             } else if (ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)) {
                 scriptingComponentHelper.setScriptBody(newValue);
-            } else if (ScriptingComponentUtils.MODULES.equals(descriptor)) {
-                scriptingComponentHelper.setScriptBody(newValue);
             } else if (scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
                 scriptingComponentHelper.setScriptEngineName(newValue);
             }
