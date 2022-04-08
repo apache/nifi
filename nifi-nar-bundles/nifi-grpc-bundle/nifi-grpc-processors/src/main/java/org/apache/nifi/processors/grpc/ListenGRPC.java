@@ -21,11 +21,8 @@ import io.grpc.CompressorRegistry;
 import io.grpc.DecompressorRegistry;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
-import io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.NettyServerBuilder;
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.SslContextBuilder;
-import org.apache.commons.lang3.StringUtils;
+import io.netty.handler.ssl.SslContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -44,8 +41,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.processors.grpc.ssl.SslContextProvider;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -203,24 +199,10 @@ public class ListenGRPC extends AbstractSessionFactoryProcessor {
                 .maxInboundMessageSize(maxMessageSize);
 
         if (useSecure) {
-            if (StringUtils.isBlank(sslContextService.getKeyStoreFile())) {
-                throw new IllegalStateException("SSL is enabled, but no keystore has been configured. You must configure a keystore.");
-            }
-
-            final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
-            final SslContextBuilder sslContextBuilder = SslContextBuilder.forServer(KeyStoreUtils.loadKeyManagerFactory(tlsConfiguration));
-
-            // if the trust store is configured, then client auth is required.
-            if (StringUtils.isNotBlank(sslContextService.getTrustStoreFile())) {
-                sslContextBuilder.trustManager(KeyStoreUtils.loadTrustManagerFactory(tlsConfiguration));
-                sslContextBuilder.clientAuth(ClientAuth.REQUIRE);
-            } else {
-                sslContextBuilder.clientAuth(ClientAuth.NONE);
-            }
-            GrpcSslContexts.configure(sslContextBuilder);
-            serverBuilder.sslContext(sslContextBuilder.build());
+            final SslContext serverSslContext = SslContextProvider.getSslContext(sslContextService, false);
+            serverBuilder.sslContext(serverSslContext);
         }
-        logger.info("Starting gRPC server on port: {}", new Object[]{port.toString()});
+        logger.info("Starting gRPC server on port: {}", port.toString());
         this.server = serverBuilder.build().start();
     }
 
