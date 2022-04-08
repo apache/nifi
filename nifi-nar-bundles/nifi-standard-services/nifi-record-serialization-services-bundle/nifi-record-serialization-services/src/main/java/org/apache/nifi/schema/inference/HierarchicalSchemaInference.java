@@ -36,8 +36,6 @@ public abstract class HierarchicalSchemaInference<T> implements SchemaInferenceE
         final Map<String, FieldTypeInference> typeMap = new LinkedHashMap<>();
         String rootElementName = null;
 
-        recordSource.init();
-
         while (true) {
             final T rawRecord = recordSource.next();
             if (rawRecord == null) {

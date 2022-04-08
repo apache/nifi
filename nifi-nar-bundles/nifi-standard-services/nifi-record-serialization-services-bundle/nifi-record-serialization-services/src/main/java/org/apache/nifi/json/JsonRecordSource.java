@@ -40,19 +40,18 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
         jsonFactory.setCodec(new ObjectMapper());
     }
 
-    public JsonRecordSource(final InputStream in, final String skipToNestedJsonField) throws IOException {
+    public JsonRecordSource(final InputStream in) throws IOException {
         jsonParser = jsonFactory.createParser(in);
-        this.skipToNestedJsonField = skipToNestedJsonField;
+        skipToNestedJsonField = null;
     }
 
-    @Override
-    public void init() throws IOException {
+    public JsonRecordSource(final InputStream in, final String nestedFieldName) throws IOException {
+        jsonParser = jsonFactory.createParser(in);
+        this.skipToNestedJsonField = nestedFieldName;
+
         if (skipToNestedJsonField != null) {
-            while (!jsonParser.nextFieldName(new SerializedString(skipToNestedJsonField))) {
-                // go to nested field if specified
-                if (!jsonParser.hasCurrentToken()) {
-                    throw new IOException("The defined skipTo json field is not found when inferring json schema.");
-                }
+            final SerializedString serializedNestedField = new SerializedString(skipToNestedJsonField);
+            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken()) {
             }
             logger.debug("Skipped to specified json field [{}] while inferring json schema.", skipToNestedJsonField);
         }

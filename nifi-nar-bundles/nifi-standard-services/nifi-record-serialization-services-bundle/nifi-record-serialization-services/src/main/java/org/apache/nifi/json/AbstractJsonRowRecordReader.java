@@ -101,7 +101,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat,
-                                          final String skipToNestedJsonField) throws IOException, MalformedRecordException {
+                                          final String nestedFieldName) throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
 
@@ -109,26 +109,21 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             jsonParser = jsonFactory.createParser(in);
             jsonParser.setCodec(codec);
 
-            if (skipToNestedJsonField != null) {
-                while (!jsonParser.nextFieldName(new SerializedString(skipToNestedJsonField))) {
-                    // go to nested field if specified
-                    if (!jsonParser.hasCurrentToken()) {
-                        throw new IOException("The defined skipTo json field is not found when processing json as NiFi record.");
-                    }
+            if (nestedFieldName != null) {
+                final SerializedString serializedSkipToField = new SerializedString(nestedFieldName);
+                while (!jsonParser.nextFieldName(serializedSkipToField) && jsonParser.hasCurrentToken()) {
                 }
-                logger.debug("Skipped to specified json field [{}] when processing json as NiFI record.", skipToNestedJsonField);
+                logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
             }
 
             JsonToken token = jsonParser.nextToken();
-            if (skipToNestedJsonField != null && !jsonParser.isExpectedStartArrayToken() && token != JsonToken.START_OBJECT) {
-                logger.debug("Specified json field [{}] to skip to is not found. Schema infer will start from the next nested json object or array.", skipToNestedJsonField);
+            if (token == JsonToken.START_ARRAY) {
+                token = jsonParser.nextToken(); // advance to START_OBJECT token
             }
-            while (token != null) {
-                if (token == JsonToken.START_OBJECT) {
-                    firstJsonNode = jsonParser.readValueAsTree();
-                    break;
-                }
-                token = jsonParser.nextToken();
+            if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
+                firstJsonNode = jsonParser.readValueAsTree();
+            } else {
+                firstJsonNode = null;
             }
         } catch (final JsonParseException e) {
             throw new MalformedRecordException("Could not parse data as JSON", e);

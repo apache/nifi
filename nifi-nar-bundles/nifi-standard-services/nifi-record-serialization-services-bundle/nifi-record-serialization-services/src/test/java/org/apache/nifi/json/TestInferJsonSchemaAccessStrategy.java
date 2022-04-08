@@ -48,7 +48,6 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestInferJsonSchemaAccessStrategy {
@@ -213,12 +212,10 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     @Test
-    void testInferenceSkipsToNonExistentField() {
+    void testInferenceSkipsToNonExistentField() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array.json");
-        final Exception exception = assertThrows(IOException.class,
-                () -> inferSchema(file, "notfound")
-        );
-        assertEquals("The defined skipTo json field is not found when inferring json schema.", exception.getMessage());
+        final RecordSchema recordSchema = inferSchema(file, "notfound");
+        assertEquals(0, recordSchema.getFieldCount());
     }
 
     @Test

@@ -1092,69 +1092,20 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testSkipToSimpleFieldFindsNextNestedArray() throws IOException, MalformedRecordException {
-        String jsonPath = "src/test/resources/json/single-element-nested-array.json";
-
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("id", RecordFieldType.INT.getDataType()),
-                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
-        ));
-
-        List<Object> expected = Arrays.asList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }}),
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
-                    put("id", 43);
-                    put("balance", 48212.38);
-                }})
-        );
-
-        testReadRecords(jsonPath, expected, "name");
-    }
-
-    @Test
-    void testSkipToSimpleFieldFindsNextNestedObject() throws IOException, MalformedRecordException {
+    void testSkipToSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
-                new RecordField("id", RecordFieldType.INT.getDataType()),
-                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
-        ));
-
-        List<Object> expected = Collections.singletonList(
-                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
-                    put("id", 42);
-                    put("balance", 4750.89);
-                }})
-        );
-
-        testReadRecords(jsonPath, expected, "name");
-    }
-
-    @Test
-    void testSkipToSimpleFieldAndNoNestedObjectOrArrayFound() throws IOException, MalformedRecordException {
-        String jsonPath = "src/test/resources/json/single-element-nested-array-middle.json";
-
-        List<Object> expected = Collections.emptyList();
-
-        testReadRecords(jsonPath, expected, "name");
+        testReadRecords(jsonPath, Collections.emptyList(), "name");
     }
 
     @Test
     void testSkipToNonExistentFieldWithDefinedSchema() throws IOException, MalformedRecordException {
-        String jsonPath = "src/test/resources/json/single-element-nested-array-middle.json";
+        String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
         List<Object> expected = Collections.emptyList();
 
-        Exception exception = assertThrows(IOException.class,
-                () -> testReadRecords(jsonPath, expectedRecordSchema, expected, "notfound")
-        );
-
-        assertEquals("The defined skipTo json field is not found when processing json as NiFi record.", exception.getMessage());
-        assertEquals(AbstractJsonRowRecordReader.class.getName(), exception.getStackTrace()[0].getClassName());
+        testReadRecords(jsonPath, expectedRecordSchema, expected, "notfound");
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
@@ -1173,52 +1124,29 @@ class TestJsonTreeRowRecordReader {
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected, String skipToField) throws IOException, MalformedRecordException {
-        // GIVEN
         final File jsonFile = new File(jsonPath);
-
-        try (
-                InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
-        ) {
+        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             RecordSchema schema = inferSchema(jsonStream, skipToField);
-
-            // WHEN
-            // THEN
             testReadRecords(jsonStream, schema, expected, skipToField);
         }
     }
 
     private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
-        // GIVEN
         final File jsonFile = new File(jsonPath);
-
-        try (
-            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
-        ) {
-            // WHEN
-            // THEN
+        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected);
         }
     }
 
     private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected, String skipToField) throws IOException, MalformedRecordException {
-        // GIVEN
         final File jsonFile = new File(jsonPath);
-
-        try (
-                InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
-        ) {
-            // WHEN
-            // THEN
+        try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             testReadRecords(jsonStream, schema, expected, skipToField);
         }
     }
 
     private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
-        // GIVEN
-        try (
-            JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)
-        ) {
-            // WHEN
+        try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
             List<Object> actual = new ArrayList<>();
             Record record;
             while ((record = reader.nextRecord()) != null) {
@@ -1226,7 +1154,6 @@ class TestJsonTreeRowRecordReader {
                 actual.addAll(dataCollection);
             }
 
-            // THEN
             List<Function<Object, Object>> propertyProviders = Arrays.asList(
                 _object -> ((Record)_object).getSchema(),
                 _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
@@ -1246,19 +1173,14 @@ class TestJsonTreeRowRecordReader {
     }
 
     private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected, String skipToField) throws IOException, MalformedRecordException {
-        // GIVEN
-        try (
-                JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema,
-                        dateFormat, timeFormat, timestampFormat, skipToField)
-        ) {
-            // WHEN
+        try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat, skipToField)) {
             List<Object> actual = new ArrayList<>();
             Record record;
+
             while ((record = reader.nextRecord()) != null) {
                 actual.add(record);
             }
 
-            // THEN
             List<Function<Object, Object>> propertyProviders = Arrays.asList(
                     _object -> ((Record)_object).getSchema(),
                     _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
