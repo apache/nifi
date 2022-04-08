@@ -17,15 +17,15 @@
 package org.apache.nifi.processors.gcp;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.apache.ApacheHttpTransport;
+import com.google.api.client.http.apache.v2.ApacheHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.auth.http.HttpTransportFactory;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.conn.params.ConnRouteParams;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
@@ -57,20 +57,20 @@ public class ProxyAwareTransportFactory implements HttpTransportFactory {
             final int port = proxyConfig.getProxyServerPort();
             final HttpHost proxyHost = new HttpHost(host, port);
 
-            final DefaultHttpClient httpClient = new DefaultHttpClient();
-            ConnRouteParams.setDefaultProxy(httpClient.getParams(), proxyHost);
+            final HttpClientBuilder httpClientBuilder = HttpClientBuilder.create()
+                    .setProxy(proxyHost);
 
             if (proxyConfig.hasCredential()) {
                 final AuthScope proxyAuthScope = new AuthScope(host, port);
-                final UsernamePasswordCredentials proxyCredential
-                        = new UsernamePasswordCredentials(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                final UsernamePasswordCredentials proxyCredential = new UsernamePasswordCredentials(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
                 final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 credentialsProvider.setCredentials(proxyAuthScope, proxyCredential);
-                httpClient.setCredentialsProvider(credentialsProvider);
+                httpClientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
 
-            return new ApacheHttpTransport(httpClient);
+            final CloseableHttpClient httpClient = httpClientBuilder.build();
 
+            return new ApacheHttpTransport(httpClient);
         }
 
         return new NetHttpTransport.Builder().setProxy(proxy).build();
