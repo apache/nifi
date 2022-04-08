@@ -250,7 +250,9 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
 
         // Ensure that we create all Parameter Contexts before updating them. This is necessary in case the proposed incoming dataflow has
         // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
-        versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
+        if (versionedParameterContexts != null) {
+            versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
+        }
 
         updateParameterContext(group, proposed, versionedParameterContexts, context.getComponentIdGenerator());
         updateVariableRegistry(group, proposed);
@@ -559,7 +561,11 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
             // Find the destination of the connection. If the destination doesn't yet exist (because it's part of the proposed Process Group but not yet added),
             // we will set the destination to a temporary destination. Then, after adding components, we will update the destinations again.
             Connectable newDestination = getConnectable(group, proposedConnection.getDestination());
-            if (newDestination == null) {
+            if (
+                newDestination == null
+                ||
+                (newDestination.getConnectableType() == ConnectableType.OUTPUT_PORT && !newDestination.getProcessGroup().equals(connection.getProcessGroup()))
+            ) {
                 final Funnel temporaryDestination = getTemporaryFunnel(connection.getProcessGroup());
                 LOG.debug("Updated Connection {} to have a temporary destination of {}", connection, temporaryDestination);
                 newDestination = temporaryDestination;
