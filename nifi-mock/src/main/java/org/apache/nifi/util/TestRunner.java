@@ -972,6 +972,15 @@ public interface TestRunner {
     void setConnected(boolean isConnected);
 
     /**
+     * Toggle validation of controller services best practices validation. If enabled,
+     * this will do things like check for missing property descriptors, proper configuration of the
+     * controller service configuration file and stuff like that to ensure a minimal quality baseline.
+     *
+     * @param requireBestPractices Toggle the filter
+     */
+    void setEnableControllServiceBestPracticeValidation(boolean requireBestPractices);
+
+    /**
      * Sets the value of the variable with the given name to be the given value. This exposes the variable
      * for use by the Expression Language.
      *

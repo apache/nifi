@@ -28,7 +28,18 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor) {
-        return newTestRunner(processor,processor.getClass().getName());
+        return newTestRunner(processor,processor.getClass().getName(), false);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor}.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
+     * @param processor the {@code Processor} under test
+     * @param requireBestPractices enable best practices enforcement in the test suite
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, boolean requireBestPractices) {
+        return newTestRunner(processor,processor.getClass().getName(), requireBestPractices);
     }
 
     /**
@@ -39,6 +50,17 @@ public class TestRunners {
      */
     public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext) {
         return newTestRunner(processor,processor.getClass().getName(), kerberosContext);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} which uses the given {@code KerberosContext}.
+     * @param processor the {@code Processor} under test
+     * @param kerberosContext the {@code KerberosContext} used during the test
+     * @param requireBestPractices enable best practices enforcement during construction of the test runner
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, KerberosContext kerberosContext, boolean requireBestPractices) {
+        return newTestRunner(processor,processor.getClass().getName(), kerberosContext, requireBestPractices);
     }
 
     /**
@@ -60,7 +82,19 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor, String name) {
-        return new StandardProcessorTestRunner(processor, name);
+        return newTestRunner(processor, name, false);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor}.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will be the passed name.
+     * @param processor the {@code Processor} under test
+     * @param name the name to give the {@code Processor}
+     * @param requireBestPractices enable best practices enforcement during test runner construction
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, String name, boolean requireBestPractices) {
+        return new StandardProcessorTestRunner(processor, name, null, null, requireBestPractices);
     }
 
     /**
@@ -71,6 +105,18 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Processor processor, String name, KerberosContext kerberosContext) {
+        return newTestRunner(processor, name, kerberosContext, false);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} and {@code KerberosContext}.
+     * @param processor the {@code Processor} under test
+     * @param name the name to give the {@code Processor}
+     * @param kerberosContext the {@code KerberosContext} used during the test
+     * @param requireBestPractices enable best practices enforcement during the test runner construction
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Processor processor, String name, KerberosContext kerberosContext, boolean requireBestPractices) {
         return new StandardProcessorTestRunner(processor, name, kerberosContext);
     }
 
@@ -93,7 +139,18 @@ public class TestRunners {
      * @return a {@code TestRunner}
      */
     public static TestRunner newTestRunner(final Class<? extends Processor> processorClass) {
-        return newTestRunner(processorClass, processorClass.getName());
+        return newTestRunner(processorClass, processorClass.getName(), false);
+    }
+
+    /**
+     * Returns a {@code TestRunner} for the given {@code Processor} class.
+     * The processor name available from {@code TestRunner.getProcessContext().getName()} will have the default name of {@code processor.getClass().getName()}
+     * @param processorClass the {@code Processor} class
+     * @param requireBestPractices enable best practices enforcement during test runner construction
+     * @return a {@code TestRunner}
+     */
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, boolean requireBestPractices) {
+        return newTestRunner(processorClass, processorClass.getName(), requireBestPractices);
     }
 
     /**
@@ -114,9 +171,9 @@ public class TestRunners {
      * @param name the name to give the {@code Processor}
      * @return a {@code TestRunner}
      */
-    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name) {
+    public static TestRunner newTestRunner(final Class<? extends Processor> processorClass, String name, boolean requireBestPractices) {
         try {
-            return newTestRunner(processorClass.newInstance(), name);
+            return newTestRunner(processorClass.newInstance(), name, requireBestPractices);
         } catch (final Exception e) {
             System.err.println("Could not instantiate instance of class " + processorClass.getName() + " due to: " + e);
             throw new RuntimeException(e);

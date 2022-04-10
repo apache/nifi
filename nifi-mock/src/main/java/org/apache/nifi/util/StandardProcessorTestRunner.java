@@ -43,6 +43,8 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.validator.ControllerServiceSetupValidator;
+import org.apache.nifi.util.validator.ProcessorSetupValidator;
 import org.junit.jupiter.api.Assertions;
 
 import java.io.ByteArrayInputStream;
@@ -95,6 +97,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final MockComponentLog logger;
     private boolean enforceReadStreamsClosed = true;
     private boolean validateExpressionUsage = true;
+    private boolean validateControllerServicesPractices = false;
 
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
@@ -113,6 +116,10 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext) {
+        this(processor, processorName, logger, kerberosContext, false);
+    }
+
+    StandardProcessorTestRunner(final Processor processor, String processorName, MockComponentLog logger, KerberosContext kerberosContext, boolean requireBestPractices) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
@@ -120,6 +127,10 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.processorStateManager = new MockStateManager(processor);
         this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
         this.variableRegistry = new MockVariableRegistry();
+
+        if (requireBestPractices) {
+            new ProcessorSetupValidator(this.processor);
+        }
 
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
         this.kerberosContext = kerberosContext;
@@ -610,7 +621,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service) throws InitializationException {
-        addControllerService(identifier, service, new HashMap<String, String>());
+        addControllerService(identifier, service, new HashMap<>());
     }
 
     @Override
@@ -633,6 +644,10 @@ public class StandardProcessorTestRunner implements TestRunner {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, service);
         } catch (final InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
             throw new InitializationException(e);
+        }
+
+        if (validateControllerServicesPractices) {
+            new ControllerServiceSetupValidator(service);
         }
 
         context.addControllerService(identifier, service, resolvedProps, null);
@@ -945,6 +960,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void setConnected(final boolean isConnected) {
         context.setConnected(isConnected);
+    }
+
+    @Override
+    public void setEnableControllServiceBestPracticeValidation(boolean requireBestPractices) {
+        this.validateControllerServicesPractices = requireBestPractices;
     }
 
     @Override
