@@ -21,6 +21,7 @@ import com.twitter.clientlib.TwitterCredentialsBearer;
 import com.twitter.clientlib.api.TwitterApi;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -39,14 +40,14 @@ public class TwitterStreamAPI {
     public static final String SAMPLE_PATH = "/2/tweets/sample/stream";
     public static final String SEARCH_PATH = "/2/tweets/search/stream";
 
-    private static final String BEARER_TOKEN_PROPERTY_NAME = "Bearer Token";
-    private static final String TWEET_FIELDS_PROPERTY_NAME = "Tweet Fields";
-    private static final String USER_FIELDS_PROPERTY_NAME = "User Fields";
-    private static final String MEDIA_FIELDS_PROPERTY_NAME = "Media Fields";
-    private static final String POLL_FIELDS_PROPERTY_NAME = "Poll Fields";
-    private static final String PLACE_FIELDS_PROPERTY_NAME = "Place Fields";
-    private static final String EXPANSIONS_PROPERTY_NAME = "Expansions";
-    private static final String BACKFILL_MINUTES_PROPERTY_NAME = "Backfill Minutes";
+    private static final String BEARER_TOKEN_PROPERTY_NAME = "bearer-token";
+    private static final String TWEET_FIELDS_PROPERTY_NAME = "tweet-fields";
+    private static final String USER_FIELDS_PROPERTY_NAME = "user-fields";
+    private static final String MEDIA_FIELDS_PROPERTY_NAME = "media-fields";
+    private static final String POLL_FIELDS_PROPERTY_NAME = "poll-fields";
+    private static final String PLACE_FIELDS_PROPERTY_NAME = "place-fields";
+    private static final String EXPANSIONS_PROPERTY_NAME = "expansions";
+    private static final String BACKFILL_MINUTES_PROPERTY_NAME = "backfill-minutes";
 
     private final BlockingQueue<String> queue;
     private final ComponentLog logger;
@@ -119,7 +120,7 @@ public class TwitterStreamAPI {
             } else if (endpoint.equals(SEARCH_ENDPOINT)) {
                 stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
             } else {
-                throw new AssertionError("Endpoint was invalid value: " + endpoint);
+                throw new ProcessException("Endpoint was invalid value: " + endpoint);
             }
         } catch (ApiException e) {
             logger.error("Received error {}: {}", e.getCode(), e.getMessage());
