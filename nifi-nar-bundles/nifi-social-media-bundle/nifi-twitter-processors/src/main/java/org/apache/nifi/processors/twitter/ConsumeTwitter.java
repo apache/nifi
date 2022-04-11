@@ -18,6 +18,7 @@ package org.apache.nifi.processors.twitter;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -50,6 +51,7 @@ import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+@PrimaryNodeOnly
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"twitter", "tweets", "social media", "status", "json"})
