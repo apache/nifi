@@ -80,7 +80,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         }
 
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = getBlobName(context, flowFile);
         final String deleteSnapshotsOption = context.getProperty(DELETE_SNAPSHOTS_OPTION).getValue();
 
         long startNanos = System.nanoTime();

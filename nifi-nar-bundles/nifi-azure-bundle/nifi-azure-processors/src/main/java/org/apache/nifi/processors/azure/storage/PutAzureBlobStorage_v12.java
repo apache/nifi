@@ -78,6 +78,11 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
         @WritesAttribute(attribute = ATTR_NAME_LENGTH, description = ATTR_DESCRIPTION_LENGTH) })
 public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
+    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(AbstractAzureBlobProcessor_v12.BLOB_NAME)
+        .defaultValue("${filename}")
+        .build();
+
     public static final PropertyDescriptor CREATE_CONTAINER = new PropertyDescriptor.Builder()
             .name("create-container")
             .displayName("Create Container")
@@ -111,7 +116,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
         final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
-        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = getBlobName(context, flowFile);
 
         final long startNanos = System.nanoTime();
         try {

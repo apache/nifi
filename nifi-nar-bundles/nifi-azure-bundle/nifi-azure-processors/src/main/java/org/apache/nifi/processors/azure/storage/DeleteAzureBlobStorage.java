@@ -89,7 +89,7 @@ public class DeleteAzureBlobStorage extends AbstractAzureBlobProcessor {
         }
 
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobPath = getBlobName(context, flowFile);
         final String deleteSnapshotOptions = context.getProperty(DELETE_SNAPSHOTS_OPTION).getValue();
 
         try {

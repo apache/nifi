@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -38,8 +39,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
+    private static final Pattern STRIP_LEADING_PATH_CHARS_PATTERN = Pattern.compile("^[./]+");
 
     public static final PropertyDescriptor BLOB = new PropertyDescriptor.Builder()
             .name("blob")
@@ -48,7 +52,7 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
-            .defaultValue("${filename}")
+            .defaultValue("${path}/${filename}")
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -96,5 +100,19 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
         }
 
         return blobRequestOptions;
+    }
+
+    public String getBlobName(final ProcessContext context, final FlowFile flowFile) {
+        final String blobName = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        if (blobName == null) {
+            return null;
+        }
+
+        final Matcher matcher = STRIP_LEADING_PATH_CHARS_PATTERN.matcher(blobName);
+        if (matcher.find()) {
+            return matcher.replaceAll("");
+        }
+
+        return blobName;
     }
 }

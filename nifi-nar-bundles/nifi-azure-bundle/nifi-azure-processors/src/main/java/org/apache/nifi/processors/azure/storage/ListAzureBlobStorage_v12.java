@@ -22,6 +22,7 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobItemProperties;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -255,7 +256,14 @@ public class ListAzureBlobStorage_v12 extends AbstractListProcessor<BlobInfo> {
         attributes.put(ATTR_NAME_TIMESTAMP, String.valueOf(entity.getTimestamp()));
         attributes.put(ATTR_NAME_LENGTH, String.valueOf(entity.getLength()));
 
-        attributes.put(CoreAttributes.FILENAME.key(), entity.getName());
+        final String entityName = entity.getBlobName();
+        if (entityName.contains("/")) {
+            attributes.put(CoreAttributes.FILENAME.key(), StringUtils.substringAfterLast(entityName, "/"));
+            attributes.put(CoreAttributes.PATH.key(), StringUtils.substringBeforeLast(entityName, "/"));
+        } else {
+            attributes.put(CoreAttributes.FILENAME.key(), entityName);
+            attributes.put(CoreAttributes.PATH.key(), ".");
+        }
 
         return attributes;
     }

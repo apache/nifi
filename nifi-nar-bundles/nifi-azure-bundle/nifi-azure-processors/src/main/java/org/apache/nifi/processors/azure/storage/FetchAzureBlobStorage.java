@@ -117,7 +117,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
         final long startNanos = System.nanoTime();
 
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final String blobPath = context.getProperty(BLOB).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobPath = getBlobName(context, flowFile);
         final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
         final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 

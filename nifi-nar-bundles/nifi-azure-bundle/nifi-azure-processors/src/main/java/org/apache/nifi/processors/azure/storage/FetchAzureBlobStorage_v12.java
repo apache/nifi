@@ -79,11 +79,6 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     public static final PropertyDescriptor CONTAINER = AzureStorageUtils.CONTAINER_WITH_DEFAULT_VALUE;
 
-    public static final PropertyDescriptor BLOB_NAME = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AbstractAzureBlobProcessor_v12.BLOB_NAME)
-            .defaultValue("${filename}")
-            .build();
-
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
             .name("range-start")
             .displayName("Range Start")
@@ -127,7 +122,7 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
         final long startNanos = System.nanoTime();
 
         final String containerName = context.getProperty(CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobName = getBlobName(context, flowFile);
         final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
         final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 

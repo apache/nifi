@@ -28,6 +28,7 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -45,6 +46,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -141,6 +143,15 @@ public class ListAzureBlobStorage extends AbstractListProcessor<BlobInfo> {
         attributes.put("azure.timestamp", String.valueOf(entity.getTimestamp()));
         attributes.put("mime.type", entity.getContentType());
         attributes.put("lang", entity.getContentLanguage());
+
+        final String entityName = entity.getBlobName();
+        if (entityName.contains("/")) {
+            attributes.put(CoreAttributes.FILENAME.key(), StringUtils.substringAfterLast(entityName, "/"));
+            attributes.put(CoreAttributes.PATH.key(), StringUtils.substringBeforeLast(entityName, "/"));
+        } else {
+            attributes.put(CoreAttributes.FILENAME.key(), entityName);
+            attributes.put(CoreAttributes.PATH.key(), ".");
+        }
 
         return attributes;
     }

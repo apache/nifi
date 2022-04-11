@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -44,6 +45,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBTYPE;
@@ -56,6 +59,7 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_TIMESTAMP;
 
 public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
+    private static final Pattern STRIP_LEADING_PATH_CHARS_PATTERN = Pattern.compile("^[./]+");
 
     public static final PropertyDescriptor STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("storage-credentials-service")
@@ -71,7 +75,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .description("The full name of the blob")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("${filename}")
+            .defaultValue("${path}/${filename}")
             .required(true)
             .build();
 
@@ -169,4 +173,19 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
 
         return attributes;
     }
+
+    public String getBlobName(final ProcessContext context, final FlowFile flowFile) {
+        final String blobName = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        if (blobName == null) {
+            return null;
+        }
+
+        final Matcher matcher = STRIP_LEADING_PATH_CHARS_PATTERN.matcher(blobName);
+        if (matcher.find()) {
+            return matcher.replaceAll("");
+        }
+
+        return blobName;
+    }
+
 }

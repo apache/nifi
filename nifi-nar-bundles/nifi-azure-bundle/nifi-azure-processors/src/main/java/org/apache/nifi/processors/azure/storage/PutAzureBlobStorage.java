@@ -127,7 +127,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         final long startNanos = System.nanoTime();
         final String containerName = context.getProperty(AzureStorageUtils.CONTAINER).evaluateAttributeExpressions(flowFile).getValue();
-        final String blobPath = context.getProperty(BLOB_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String blobPath = getBlobName(context, flowFile);
         final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
 
         try {
