@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -785,6 +786,11 @@ public class TestStandardParameterContext {
         public Set<ControllerServiceNode> getControllerServicesReferencing(final ParameterContext parameterContext, final String parameterName) {
             final ControllerServiceNode node = controllerServices.get(parameterName);
             return node == null ? Collections.emptySet() : Collections.singleton(node);
+        }
+
+        @Override
+        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(ParameterContext parameterContext, String parameterName) {
+            return Collections.emptyList();
         }
 
         @Override
