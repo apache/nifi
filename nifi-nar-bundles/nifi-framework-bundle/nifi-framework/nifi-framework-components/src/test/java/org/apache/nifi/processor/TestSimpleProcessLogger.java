@@ -27,7 +27,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,11 +46,9 @@ public class TestSimpleProcessLogger {
 
     private static final Exception EXCEPTION = new IllegalArgumentException(FIRST_MESSAGE, new RuntimeException(SECOND_MESSAGE, new SecurityException(THIRD_MESSAGE)));
 
-    private static final Object[] EXCEPTION_ARGUMENTS = new Object[]{EXCEPTION};
+    private static final String EXCEPTION_STRING = EXCEPTION.toString();
 
     private static final Throwable NULL_THROWABLE = null;
-
-    private static final Object[] EMPTY_ARGUMENTS = new Object[]{};
 
     private static final String FIRST = "FIRST";
 
@@ -59,7 +56,19 @@ public class TestSimpleProcessLogger {
 
     private static final Object[] VALUE_ARGUMENTS = new Object[]{FIRST, SECOND};
 
+    private static final Object[] VALUE_EXCEPTION_ARGUMENTS = new Object[]{FIRST, SECOND, EXCEPTION};
+
     private static final String LOG_MESSAGE = "Processed";
+
+    private static final String LOG_MESSAGE_WITH_COMPONENT = String.format("{} %s", LOG_MESSAGE);
+
+    private static final String LOG_MESSAGE_WITH_COMPONENT_AND_CAUSES = String.format("{} %s: {}", LOG_MESSAGE);
+
+    private static final String LOG_ARGUMENTS_MESSAGE = "Processed {} {}";
+
+    private static final String LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT = String.format("{} %s", LOG_ARGUMENTS_MESSAGE);
+
+    private static final String LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT_AND_CAUSES = String.format("{} %s: {}", LOG_ARGUMENTS_MESSAGE);
 
     @Mock
     private ConfigurableComponent component;
@@ -70,11 +79,13 @@ public class TestSimpleProcessLogger {
     @Mock
     private Logger logger;
 
-    private Object[] componentArray;
+    private Object[] componentArguments;
 
-    private Object[] componentValueArray;
+    private Object[] componentValueArguments;
 
-    private Object[] componentCausesArray;
+    private Object[] componentValueExceptionStringCausesArguments;
+
+    private Object[] componentCausesArguments;
 
     private SimpleProcessLogger componentLog;
 
@@ -83,9 +94,10 @@ public class TestSimpleProcessLogger {
         componentLog = new SimpleProcessLogger(component, logRepository);
         FieldUtils.writeDeclaredField(componentLog, "logger", logger, true);
 
-        componentArray = new Object[]{component};
-        componentValueArray = new Object[]{component, FIRST, SECOND};
-        componentCausesArray = new Object[]{component, EXPECTED_CAUSES};
+        componentArguments = new Object[]{component};
+        componentValueArguments = new Object[]{component, FIRST, SECOND};
+        componentValueExceptionStringCausesArguments = new Object[]{component, FIRST, SECOND, EXCEPTION, EXPECTED_CAUSES};
+        componentCausesArguments = new Object[]{component, EXPECTED_CAUSES};
 
         when(logger.isTraceEnabled()).thenReturn(true);
         when(logger.isDebugEnabled()).thenReturn(true);
@@ -101,25 +113,54 @@ public class TestSimpleProcessLogger {
 
             switch (logLevel) {
                 case TRACE:
-                    verify(logger).trace(anyString(), eq(component));
+                    verify(logger).trace(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component));
                     break;
                 case DEBUG:
-                    verify(logger).debug(anyString(), eq(component));
+                    verify(logger).debug(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component));
                     break;
                 case INFO:
-                    verify(logger).info(anyString(), eq(component));
+                    verify(logger).info(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component));
                     break;
                 case WARN:
-                    verify(logger).warn(anyString(), eq(component));
+                    verify(logger).warn(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component));
                     break;
                 case ERROR:
-                    verify(logger).error(anyString(), eq(component));
+                    verify(logger).error(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component));
                     break;
                 default:
                     continue;
             }
 
-            verify(logRepository).addLogMessage(eq(logLevel), anyString(), eq(componentArray));
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_MESSAGE_WITH_COMPONENT), eq(componentArguments));
+        }
+    }
+
+    @Test
+    public void testLogLevelMessageArguments() {
+        for (final LogLevel logLevel : LogLevel.values()) {
+            componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_ARGUMENTS);
+
+            switch (logLevel) {
+                case TRACE:
+                    verify(logger).trace(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
+                    break;
+                case DEBUG:
+                    verify(logger).debug(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
+                    break;
+                case INFO:
+                    verify(logger).info(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
+                    break;
+                case WARN:
+                    verify(logger).warn(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
+                    break;
+                case ERROR:
+                    verify(logger).error(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
+                    break;
+                default:
+                    continue;
+            }
+
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(componentValueArguments));
         }
     }
 
@@ -130,112 +171,83 @@ public class TestSimpleProcessLogger {
 
             switch (logLevel) {
                 case TRACE:
-                    verify(logger).trace(anyString(), eq(component), eq(EXCEPTION));
+                    verify(logger).trace(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component), eq(EXCEPTION));
                     break;
                 case DEBUG:
-                    verify(logger).debug(anyString(), eq(component), eq(EXCEPTION));
+                    verify(logger).debug(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component), eq(EXCEPTION));
                     break;
                 case INFO:
-                    verify(logger).info(anyString(), eq(component), eq(EXCEPTION));
+                    verify(logger).info(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component), eq(EXCEPTION));
                     break;
                 case WARN:
-                    verify(logger).warn(anyString(), eq(component), eq(EXCEPTION));
+                    verify(logger).warn(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component), eq(EXCEPTION));
                     break;
                 case ERROR:
-                    verify(logger).error(anyString(), eq(component), eq(EXCEPTION));
+                    verify(logger).error(eq(LOG_MESSAGE_WITH_COMPONENT), eq(component), eq(EXCEPTION));
                     break;
                 default:
                     continue;
             }
 
-            verify(logRepository).addLogMessage(eq(logLevel), anyString(), eq(componentCausesArray), eq(EXCEPTION));
-        }
-    }
-
-    @Test
-    public void testLogLevelMessageArgumentsLastArgumentThrowable() {
-        for (final LogLevel logLevel : LogLevel.values()) {
-            componentLog.log(logLevel, LOG_MESSAGE, EXCEPTION_ARGUMENTS);
-
-            switch (logLevel) {
-                case TRACE:
-                    verify(logger).trace(anyString(), eq(componentArray), eq(EXCEPTION));
-                    break;
-                case DEBUG:
-                    verify(logger).debug(anyString(), eq(componentArray), eq(EXCEPTION));
-                    break;
-                case INFO:
-                    verify(logger).info(anyString(), eq(componentArray), eq(EXCEPTION));
-                    break;
-                case WARN:
-                    verify(logger).warn(anyString(), eq(componentArray), eq(EXCEPTION));
-                    break;
-                case ERROR:
-                    verify(logger).error(anyString(), eq(componentArray), eq(EXCEPTION));
-                    break;
-                default:
-                    continue;
-            }
-
-            verify(logRepository).addLogMessage(eq(logLevel), anyString(), eq(componentCausesArray), eq(EXCEPTION));
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_MESSAGE_WITH_COMPONENT_AND_CAUSES), eq(componentCausesArguments), eq(EXCEPTION));
         }
     }
 
     @Test
     public void testLogLevelMessageArgumentsThrowable() {
         for (final LogLevel logLevel : LogLevel.values()) {
-            componentLog.log(logLevel, LOG_MESSAGE, EMPTY_ARGUMENTS, EXCEPTION);
+            componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_EXCEPTION_ARGUMENTS);
 
             switch (logLevel) {
                 case TRACE:
-                    verify(logger).trace(anyString(), eq(componentArray), eq(EXCEPTION));
+                    verify(logger).trace(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT),  eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION_STRING), eq(EXCEPTION));
                     break;
                 case DEBUG:
-                    verify(logger).debug(anyString(), eq(componentArray), eq(EXCEPTION));
+                    verify(logger).debug(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION_STRING), eq(EXCEPTION));
                     break;
                 case INFO:
-                    verify(logger).info(anyString(), eq(componentArray), eq(EXCEPTION));
+                    verify(logger).info(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION_STRING), eq(EXCEPTION));
                     break;
                 case WARN:
-                    verify(logger).warn(anyString(), eq(componentArray), eq(EXCEPTION));
+                    verify(logger).warn(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION_STRING), eq(EXCEPTION));
                     break;
                 case ERROR:
-                    verify(logger).error(anyString(), eq(componentArray), eq(EXCEPTION));
+                    verify(logger).error(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND), eq(EXCEPTION_STRING), eq(EXCEPTION));
                     break;
                 default:
                     continue;
             }
 
-            verify(logRepository).addLogMessage(eq(logLevel), anyString(), eq(componentCausesArray), eq(EXCEPTION));
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT_AND_CAUSES), eq(componentValueExceptionStringCausesArguments), eq(EXCEPTION));
         }
     }
 
     @Test
     public void testLogLevelMessageArgumentsThrowableNull() {
         for (final LogLevel logLevel : LogLevel.values()) {
-            componentLog.log(logLevel, LOG_MESSAGE, VALUE_ARGUMENTS, NULL_THROWABLE);
+            componentLog.log(logLevel, LOG_ARGUMENTS_MESSAGE, VALUE_ARGUMENTS, NULL_THROWABLE);
 
             switch (logLevel) {
                 case TRACE:
-                    verify(logger).trace(anyString(), eq(component), eq(FIRST), eq(SECOND));
+                    verify(logger).trace(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
                     break;
                 case DEBUG:
-                    verify(logger).debug(anyString(), eq(component), eq(FIRST), eq(SECOND));
+                    verify(logger).debug(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
                     break;
                 case INFO:
-                    verify(logger).info(anyString(), eq(component), eq(FIRST), eq(SECOND));
+                    verify(logger).info(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
                     break;
                 case WARN:
-                    verify(logger).warn(anyString(), eq(component), eq(FIRST), eq(SECOND));
+                    verify(logger).warn(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
                     break;
                 case ERROR:
-                    verify(logger).error(anyString(), eq(component), eq(FIRST), eq(SECOND));
+                    verify(logger).error(eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(component), eq(FIRST), eq(SECOND));
                     break;
                 default:
                     continue;
             }
 
-            verify(logRepository).addLogMessage(eq(logLevel), anyString(), eq(componentValueArray));
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT), eq(componentValueArguments));
         }
     }
 }

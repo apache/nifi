@@ -51,37 +51,48 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void warn(final String msg, final Throwable t) {
         if (isWarnEnabled()) {
-            final String message = getFormattedMessage(msg, t);
+            final String componentMessage = getComponentMessage(msg);
             final Object[] repositoryArguments = getRepositoryArguments(t);
 
             if (t == null) {
-                logger.warn(message, component);
-                logRepository.addLogMessage(LogLevel.WARN, message, repositoryArguments);
+                logger.warn(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.WARN, componentMessage, repositoryArguments);
             } else {
-                logger.warn(message, component, t);
-                logRepository.addLogMessage(LogLevel.WARN, message, repositoryArguments, t);
+                logger.warn(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), repositoryArguments, t);
             }
         }
     }
 
     @Override
     public void warn(final String msg, final Object[] os) {
-        final Throwable lastThrowable = findLastThrowable(os);
-        warn(msg, removeLastThrowable(os, lastThrowable), lastThrowable);
+        if (isWarnEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.warn(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.WARN, componentMessage, arguments);
+            } else {
+                logger.warn(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
     public void warn(final String msg, final Object[] os, final Throwable t) {
         if (isWarnEnabled()) {
             final String componentMessage = getComponentMessage(msg);
-            final Object[] arguments = addComponent(os);
+            final Object[] arguments = insertComponent(os);
 
             if (t == null) {
                 logger.warn(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.WARN, componentMessage, arguments);
             } else {
                 logger.warn(componentMessage, arguments, t);
-                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
     }
@@ -117,8 +128,19 @@ public class SimpleProcessLogger implements ComponentLog {
 
     @Override
     public void trace(final String msg, final Object[] os) {
-        final Throwable lastThrowable = findLastThrowable(os);
-        trace(msg, removeLastThrowable(os, lastThrowable), lastThrowable);
+        if (isTraceEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.trace(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.TRACE, componentMessage, arguments);
+            } else {
+                logger.trace(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
@@ -130,14 +152,14 @@ public class SimpleProcessLogger implements ComponentLog {
     public void trace(final String msg, final Object[] os, final Throwable t) {
         if (isTraceEnabled()) {
             final String componentMessage = getComponentMessage(msg);
-            final Object[] arguments = addComponent(os);
+            final Object[] arguments = insertComponent(os);
 
             if (t == null) {
                 logger.trace(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.TRACE, componentMessage, arguments);
             } else {
                 logger.trace(componentMessage, arguments, t);
-                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
     }
@@ -178,23 +200,34 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void info(final String msg, final Throwable t) {
         if (isInfoEnabled()) {
-            final String message = t == null ? getComponentMessage(msg) : getCausesMessage(msg);
+            final String componentMessage = getComponentMessage(msg);
             final Object[] repositoryArguments = getRepositoryArguments(t);
 
             if (t == null) {
-                logger.info(message, component);
-                logRepository.addLogMessage(LogLevel.INFO, message, repositoryArguments);
+                logger.info(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.INFO, componentMessage, repositoryArguments);
             } else {
-                logger.info(message, component, t);
-                logRepository.addLogMessage(LogLevel.INFO, message, repositoryArguments, t);
+                logger.info(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), repositoryArguments, t);
             }
         }
     }
 
     @Override
     public void info(final String msg, final Object[] os) {
-        final Throwable lastThrowable = findLastThrowable(os);
-        info(msg, removeLastThrowable(os, lastThrowable), lastThrowable);
+        if (isInfoEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.info(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.INFO, componentMessage, arguments);
+            } else {
+                logger.info(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
@@ -206,14 +239,14 @@ public class SimpleProcessLogger implements ComponentLog {
     public void info(final String msg, final Object[] os, final Throwable t) {
         if (isInfoEnabled()) {
             final String componentMessage = getComponentMessage(msg);
-            final Object[] arguments = addComponent(os);
+            final Object[] arguments = insertComponent(os);
 
             if (t == null) {
                 logger.info(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.INFO, componentMessage, arguments);
             } else {
                 logger.info(componentMessage, arguments, t);
-                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
     }
@@ -240,35 +273,47 @@ public class SimpleProcessLogger implements ComponentLog {
     public void error(final String msg, final Throwable t) {
         if (isErrorEnabled()) {
             final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
             if (t == null) {
                 logger.error(componentMessage, component);
-                logRepository.addLogMessage(LogLevel.ERROR, msg, new Object[]{component});
+                logRepository.addLogMessage(LogLevel.ERROR, componentMessage, repositoryArguments);
             } else {
                 logger.error(componentMessage, component, t);
-                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), repositoryArguments, t);
             }
         }
     }
 
     @Override
     public void error(final String msg, final Object[] os) {
-        final Throwable lastThrowable = findLastThrowable(os);
-        error(msg, removeLastThrowable(os, lastThrowable), lastThrowable);
+        if (isErrorEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.error(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
+            } else {
+                logger.error(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
     public void error(final String msg, final Object[] os, final Throwable t) {
         if (isErrorEnabled()) {
             final String componentMessage = getComponentMessage(msg);
-            final Object[] arguments = addComponent(os);
+            final Object[] arguments = insertComponent(os);
 
             if (t == null) {
                 logger.error(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
             } else {
                 logger.error(componentMessage, arguments, t);
-                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
     }
@@ -285,35 +330,47 @@ public class SimpleProcessLogger implements ComponentLog {
     public void debug(final String msg, final Throwable t) {
         if (isDebugEnabled()) {
             final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
             if (t == null) {
                 logger.debug(componentMessage, component);
-                logRepository.addLogMessage(LogLevel.DEBUG, msg, new Object[]{component});
+                logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, repositoryArguments);
             } else {
                 logger.debug(componentMessage, component, t);
-                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), repositoryArguments, t);
             }
         }
     }
 
     @Override
     public void debug(final String msg, final Object[] os) {
-        final Throwable lastThrowable = findLastThrowable(os);
-        debug(msg, removeLastThrowable(os, lastThrowable), lastThrowable);
+        if (isDebugEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.debug(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, arguments);
+            } else {
+                logger.debug(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
     public void debug(final String msg, final Object[] os, final Throwable t) {
         if (isDebugEnabled()) {
             final String componentMessage = getComponentMessage(msg);
-            final Object[] arguments = addComponent(os);
+            final Object[] arguments = insertComponent(os);
 
             if (t == null) {
                 logger.debug(componentMessage, arguments);
                 logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, arguments);
             } else {
                 logger.debug(componentMessage, arguments, t);
-                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), getComponentAndCauses(t), t);
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), addCauses(arguments, t), t);
             }
         }
     }
@@ -441,10 +498,6 @@ public class SimpleProcessLogger implements ComponentLog {
         }
     }
 
-    private String getFormattedMessage(final String message, final Throwable throwable) {
-        return throwable == null ? getComponentMessage(message) : getCausesMessage(message);
-    }
-
     /**
      * Get arguments for Log Repository including a summary of Throwable causes when Throwable is found
      *
@@ -464,23 +517,31 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     private Object[] getComponentAndCauses(final Throwable throwable) {
+        final String causes = getCauses(throwable);
+        return new Object[]{component, causes};
+    }
+
+    private String getCauses(final Throwable throwable) {
         final List<String> causes = new ArrayList<>();
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
             causes.add(cause.toString());
         }
-        final String causesFormatted = String.join(CAUSED_BY, causes);
-        return new Object[]{component, causesFormatted};
+        return String.join(CAUSED_BY, causes);
     }
 
-    private Object[] addComponent(final Object[] originalArgs) {
-        return prependToArgs(originalArgs, component);
+    private Object[] insertComponent(final Object[] originalArgs) {
+        return ArrayUtils.insert(0, originalArgs, component);
     }
 
-    private Object[] prependToArgs(final Object[] originalArgs, final Object... toAdd) {
-        final Object[] newArgs = new Object[originalArgs.length + toAdd.length];
-        System.arraycopy(toAdd, 0, newArgs, 0, toAdd.length);
-        System.arraycopy(originalArgs, 0, newArgs, toAdd.length, originalArgs.length);
-        return newArgs;
+    private Object[] addCauses(final Object[] arguments, final Throwable throwable) {
+        final String causes = getCauses(throwable);
+        return ArrayUtils.add(arguments, causes);
+    }
+
+    private Object[] setFormattedThrowable(final Object[] arguments, final Throwable throwable) {
+        final int lastIndex = arguments.length - 1;
+        final Object[] argumentsThrowableRemoved = ArrayUtils.remove(arguments, lastIndex);
+        return ArrayUtils.addAll(argumentsThrowableRemoved, throwable.toString(), throwable);
     }
 
     private Throwable findLastThrowable(final Object[] arguments) {
@@ -490,9 +551,5 @@ public class SimpleProcessLogger implements ComponentLog {
             lastThrowable = (Throwable) lastArgument;
         }
         return lastThrowable;
-    }
-
-    private Object[] removeLastThrowable(final Object[] arguments, final Throwable lastThrowable) {
-        return lastThrowable == null ? arguments : ArrayUtils.removeElement(arguments, lastThrowable);
     }
 }
