@@ -28,6 +28,7 @@ import javax.json.Json;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -282,7 +283,8 @@ public class PostSlackTextMessageTest {
     private JsonObject getRequestBodyJson() {
         try {
             final RecordedRequest recordedRequest = mockWebServer.takeRequest();
-            try (final JsonReader reader = Json.createReader(new InputStreamReader(recordedRequest.getBody().inputStream()))) {
+            try (final JsonReader reader = Json.createReader(new InputStreamReader(
+                    recordedRequest.getBody().inputStream(), StandardCharsets.UTF_8))) {
                 return reader.readObject();
             }
         } catch (final InterruptedException e) {
