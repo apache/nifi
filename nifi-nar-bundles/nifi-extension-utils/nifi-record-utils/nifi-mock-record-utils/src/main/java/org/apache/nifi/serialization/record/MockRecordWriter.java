@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.WriteResult;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
 
@@ -85,7 +86,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
             @Override
             public WriteResult write(final RecordSet rs) throws IOException {
                 if (header != null && !headerWritten) {
-                    out.write(header.getBytes());
+                    out.write(header.getBytes(StandardCharsets.UTF_8));
                     out.write("\n".getBytes());
                     headerWritten = true;
                 }
@@ -105,10 +106,10 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                         if (val != null) {
                             if (quoteValues) {
                                 out.write("\"".getBytes());
-                                out.write(val.getBytes());
+                                out.write(val.getBytes(StandardCharsets.UTF_8));
                                 out.write("\"".getBytes());
                             } else {
-                                out.write(val.getBytes());
+                                out.write(val.getBytes(StandardCharsets.UTF_8));
                             }
                         }
 
@@ -134,7 +135,7 @@ public class MockRecordWriter extends AbstractControllerService implements Recor
                 }
 
                 if (header != null && !headerWritten) {
-                    out.write(header.getBytes());
+                    out.write(header.getBytes(StandardCharsets.UTF_8));
                     out.write("\n".getBytes());
                     headerWritten = true;
                 }

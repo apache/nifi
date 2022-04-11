@@ -272,7 +272,7 @@ public class MockFlowFile implements FlowFileRecord {
     }
 
     public void assertContentEquals(final String data) {
-        assertContentEquals(data, "UTF-8");
+        assertContentEquals(data, StandardCharsets.UTF_8);
     }
 
     public void assertContentEquals(final String data, final String charset) {

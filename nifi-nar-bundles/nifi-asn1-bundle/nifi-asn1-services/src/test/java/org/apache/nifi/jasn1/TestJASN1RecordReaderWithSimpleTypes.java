@@ -46,6 +46,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -156,7 +157,7 @@ public class TestJASN1RecordReaderWithSimpleTypes implements JASN1ReadRecordTest
         String dataFile = "target/bmpstring_wrapper.dat";
 
         BMPStringWrapper berValue = new BMPStringWrapper();
-        berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes()));
+        berValue.setValue(new BerBMPString("Some UTF-8 String. こんにちは世界。".getBytes(StandardCharsets.UTF_8)));
 
         Map<String, Object> expectedValues = new HashMap<String, Object>() {{
             put("value", "Some UTF-8 String. こんにちは世界。");
