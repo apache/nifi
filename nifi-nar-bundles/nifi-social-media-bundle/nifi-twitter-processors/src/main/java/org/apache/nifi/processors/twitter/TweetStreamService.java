@@ -34,11 +34,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class TwitterStreamAPI {
+public class TweetStreamService {
     public static final String SEARCH_ENDPOINT = "Search Endpoint";
     public static final String SAMPLE_ENDPOINT = "Sample Endpoint";
-    public static final String SAMPLE_PATH = "/2/tweets/sample/stream";
-    public static final String SEARCH_PATH = "/2/tweets/search/stream";
+    private static final String SAMPLE_PATH = "/2/tweets/sample/stream";
+    private static final String SEARCH_PATH = "/2/tweets/search/stream";
 
     private static final String BEARER_TOKEN_PROPERTY_NAME = "bearer-token";
     private static final String TWEET_FIELDS_PROPERTY_NAME = "tweet-fields";
@@ -76,7 +76,7 @@ public class TwitterStreamAPI {
         return fields;
     }
 
-    public TwitterStreamAPI(final ProcessContext context, final BlockingQueue<String> queue, final ComponentLog logger) {
+    public TweetStreamService(final ProcessContext context, final BlockingQueue<String> queue, final ComponentLog logger) {
         assert context != null;
         assert queue != null;
         assert logger != null;
@@ -107,6 +107,16 @@ public class TwitterStreamAPI {
         api.getApiClient().setBasePath(path);
     }
 
+    public String getTransitUri(final String endpoint) {
+        if (endpoint.equals(SAMPLE_ENDPOINT)) {
+            return api.getApiClient().getBasePath() + SAMPLE_PATH;
+        } else if (endpoint.equals(SEARCH_ENDPOINT)) {
+            return api.getApiClient().getBasePath() + SEARCH_PATH;
+        } else {
+            throw new ProcessException("Endpoint was invalid value: " + endpoint);
+        }
+    }
+
     /**
      * This method would be called when we would like the stream to get started. This method will spin off a thread that
      * will continue to queue tweets on to the given queue passed in the constructor. The thread will continue
@@ -123,10 +133,16 @@ public class TwitterStreamAPI {
                 throw new ProcessException("Endpoint was invalid value: " + endpoint);
             }
         } catch (ApiException e) {
-            logger.error("Received error {}: {}", e.getCode(), e.getMessage());
+            throw new ProcessException(String.format("Received error {}: {}", e.getCode(), e.getMessage()), e);
+        } catch (Exception e) {
+            throw new ProcessException(e);
         }
 
-        executorService.execute(new TweetQueuer());
+        if (stream == null) {
+            throw new ProcessException("Stream is null, could not make a connection to the Twitter API");
+        }
+
+        executorService.execute(new TweetStreamHandler());
     }
 
     /**
@@ -134,39 +150,33 @@ public class TwitterStreamAPI {
      * executorService will be shut down. If it fails to shutdown, then it will be forcefully terminated.
      */
     public void stop() {
-        try {
-            stream.close();
-        } catch (IOException e) {
-            logger.error("IOException occurred while closing stream: {}", e.getMessage());
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                logger.error("Closing response stream failed", e);
+            }
         }
 
-        executorService.shutdown();
-        try {
-            if (!executorService.awaitTermination(3, TimeUnit.SECONDS)) {
-                executorService.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            executorService.shutdownNow();
-            logger.error("InterruptedException occurred while waiting for executor service to shut down: {}", e.getMessage());
-        }
+        executorService.shutdownNow();
     }
 
-    private class TweetQueuer implements Runnable {
+    private class TweetStreamHandler implements Runnable {
         @Override
         public void run() {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
-                String tweetLine = reader.readLine();
-                while (tweetLine != null) {
-                    queue.offer(tweetLine);
+                String tweetRecord = reader.readLine();
+                while (tweetRecord != null) {
+                    queue.offer(tweetRecord);
                     try {
-                        tweetLine = reader.readLine();
+                        tweetRecord = reader.readLine();
                     } catch (IOException e) {
-                        logger.info("Stream closed, no more tweets to read, exiting Queuer");
+                        logger.debug("Read Tweet failed: Stream processing completed");
                         break;
                     }
                 }
             } catch (IOException e) {
-                logger.warn("IOException occurred in TweetQueuer: {}", e.getMessage());
+                logger.warn("Stream processing failed", e);
             }
         }
     }

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.twitter;
 
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -74,10 +75,11 @@ public class TestConsumeTwitter {
             tries++;
         }
 
+
         // there should only be a single FlowFile containing a tweet
         runner.assertTransferCount(ConsumeTwitter.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("[" + SAMPLE_TWEET + "]");
-        flowFile.assertAttributeEquals("mime.type", "application/json");
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
     }
 }

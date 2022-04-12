@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -103,7 +104,7 @@ public class ConsumeTwitter extends AbstractProcessor {
     public static final PropertyDescriptor QUEUE_SIZE = new PropertyDescriptor.Builder()
             .name("queue-size")
             .displayName("Queue Size")
-            .description("The size of the queue used to queue tweets")
+            .description("Maximum size of internal queue for streamed messages")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10000")
@@ -122,7 +123,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Tweet Fields")
             .description("A comma-separated list of tweet fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/tweet " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "attachments, author_id, context_annotations, conversation_id, created_at, entities, geo, id, " +
                     "in_reply_to_user_id, lang, non_public_metrics, organic_metrics, possibly_sensitive, promoted_metrics, " +
                     "public_metrics, referenced_tweets, reply_settings, source, text, withheld")
@@ -134,7 +135,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("User Fields")
             .description("A comma-separated list of user fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/user " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "created_at, description, entities, id, location, name, pinned_tweet_id, profile_image_url, " +
                     "protected, public_metrics, url, username, verified, withheld")
             .required(false)
@@ -145,7 +146,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Media Fields")
             .description("A comma-separated list of media fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/media " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "alt_text, duration_ms, height, media_key, non_public_metrics, organic_metrics, preview_image_url, " +
                     "promoted_metrics, public_metrics, type, url, width")
             .required(false)
@@ -156,7 +157,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Poll Fields")
             .description("A comma-separated list of poll fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/poll " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "duration_minutes, end_datetime, id, options, voting_status")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -166,7 +167,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Place Fields")
             .description("A comma-separated list of place fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/place " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "contained_within, country, country_code, full_name, geo, id, name, place_type")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -176,7 +177,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Expansions")
             .description("A comma-separated list of expansions for objects in the returned tweet. See " +
                     "https://developer.twitter.com/en/docs/twitter-api/expansions " +
-                    "for proper usage. Possible field values are: " +
+                    "for proper usage. Possible field values include: " +
                     "author_id, referenced_tweets.id, referenced_tweets.id.author_id, entities.mentions.username, " +
                     "attachments.poll_ids, attachments.media_keys ,in_reply_to_user_id, geo.place_id")
             .required(false)
@@ -196,21 +197,15 @@ public class ConsumeTwitter extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("All tweets will be routed to this relationship.")
+            .description("FlowFiles containing an array of one or more Tweets")
             .build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
 
-    private TwitterStreamAPI api;
+    private TweetStreamService tweetStreamService;
 
     private volatile BlockingQueue<String> messageQueue;
-
-    private void emptyQueue() {
-        while (!messageQueue.isEmpty()) {
-            messageQueue.poll();
-        }
-    }
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -250,13 +245,13 @@ public class ConsumeTwitter extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) {
         messageQueue = new LinkedBlockingQueue<>(context.getProperty(QUEUE_SIZE).asInteger());
 
-        api = new TwitterStreamAPI(context, messageQueue, getLogger());
-        api.setBasePath(context.getProperty(BASE_PATH).getValue());
+        tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
+        tweetStreamService.setBasePath(context.getProperty(BASE_PATH).getValue());
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         if (ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
-            api.start(TwitterStreamAPI.SAMPLE_ENDPOINT);
+            tweetStreamService.start(TweetStreamService.SAMPLE_ENDPOINT);
         } else if (ENDPOINT_SEARCH.getValue().equals(endpointName)) {
-            api.start(TwitterStreamAPI.SEARCH_ENDPOINT);
+            tweetStreamService.start(TweetStreamService.SEARCH_ENDPOINT);
         } else {
             throw new ProcessException("Endpoint was invalid value: " + endpointName);
         }
@@ -273,46 +268,46 @@ public class ConsumeTwitter extends AbstractProcessor {
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
-                out.write("[".getBytes(StandardCharsets.UTF_8));
+                out.write('[');
                 final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
                 String tweet = messageQueue.poll();
                 out.write(tweet.getBytes(StandardCharsets.UTF_8));
                 int tweetCount = 1;
-                while (tweetCount < batchSize && !messageQueue.isEmpty()) {
-                    out.write(",".getBytes(StandardCharsets.UTF_8));
-                    tweet = messageQueue.poll();
+                while (tweetCount < batchSize &&
+                        (tweet = messageQueue.poll()) != null) {
+                    out.write(',');
                     out.write(tweet.getBytes(StandardCharsets.UTF_8));
                     tweetCount++;
                 }
-                out.write("]".getBytes(StandardCharsets.UTF_8));
+                out.write(']');
             }
         });
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-        attributes.put(CoreAttributes.FILENAME.key(), flowFile.getAttribute(CoreAttributes.FILENAME.key()) + ".json");
+        attributes.put(CoreAttributes.FILENAME.key(), String.format("%s.json", UUID.randomUUID()));
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, REL_SUCCESS);
 
-        String transitUri = api.getBasePath();
         final String endpointName = context.getProperty(ENDPOINT).getValue();
-        if (ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
-            transitUri += TwitterStreamAPI.SAMPLE_PATH;
-        } else if (ENDPOINT_SEARCH.getValue().equals(endpointName)) {
-            transitUri += TwitterStreamAPI.SEARCH_PATH;
-        } else {
-            throw new ProcessException("Endpoint was invalid value: " + endpointName);
-        }
+        final String transitUri = tweetStreamService.getTransitUri(endpointName);
+
         session.getProvenanceReporter().receive(flowFile, transitUri);
     }
 
     @OnStopped
     public void onStopped() {
-        if (api != null) {
-            api.stop();
+        if (tweetStreamService != null) {
+            tweetStreamService.stop();
         }
-        api = null;
+        tweetStreamService = null;
         emptyQueue();
+    }
+
+    private void emptyQueue() {
+        while (!messageQueue.isEmpty()) {
+            messageQueue.poll();
+        }
     }
 }
