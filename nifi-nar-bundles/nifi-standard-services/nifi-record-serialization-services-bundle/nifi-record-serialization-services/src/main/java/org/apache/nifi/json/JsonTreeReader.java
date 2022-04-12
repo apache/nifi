@@ -67,7 +67,23 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
-    private volatile String skipToNestedJsonField;
+    private volatile String startingFieldName;
+    private volatile String startingFieldStrategy;
+
+    public static final AllowableValue ROOT_NODE = new AllowableValue("rootNode", "Root Node", "Begins processing from the root node.");
+    public static final AllowableValue NESTED_NODE = new AllowableValue("nestedNode", "Nested Node",
+            "Skips forward to the given nested JSON field (array or object) to begin processing.");
+
+    public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
+            .name("starting-field-strategy")
+            .displayName("Starting Field Strategy")
+            .description("Start processing from the root node or from a specified nested node.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .allowableValues(ROOT_NODE, NESTED_NODE)
+            .defaultValue(ROOT_NODE.getValue())
+            .build();
+
 
     public static final PropertyDescriptor STARTING_FIELD_NAME = new PropertyDescriptor.Builder()
             .name("starting-field-name")
@@ -76,6 +92,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(null)
+            .dependsOn(STARTING_FIELD_STRATEGY, NESTED_NODE)
             .build();
 
     @Override
@@ -88,16 +105,18 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
+        properties.add(STARTING_FIELD_STRATEGY);
         properties.add(STARTING_FIELD_NAME);
         return properties;
     }
 
     @OnEnabled
-    public void storeFormats(final ConfigurationContext context) {
+    public void storePropertyValues(final ConfigurationContext context) {
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
-        this.skipToNestedJsonField = context.getProperty(STARTING_FIELD_NAME).getValue();
+        this.startingFieldStrategy = context.getProperty(STARTING_FIELD_STRATEGY).getValue();
+        this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
     }
 
     @Override
@@ -110,7 +129,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        final RecordSourceFactory<JsonNode> jsonSourceFactory = (var, in) -> new JsonRecordSource(in, context.getProperty(STARTING_FIELD_NAME).getValue());
+        final RecordSourceFactory<JsonNode> jsonSourceFactory = (var, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
         final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier = () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
         return SchemaInferenceUtil.getSchemaAccessStrategy(strategy, context, getLogger(), jsonSourceFactory, inferenceSupplier,
@@ -126,6 +145,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, skipToNestedJsonField);
+        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
     }
 }

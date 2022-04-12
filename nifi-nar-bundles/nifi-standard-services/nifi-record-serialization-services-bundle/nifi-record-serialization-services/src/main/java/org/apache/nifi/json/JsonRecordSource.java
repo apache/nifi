@@ -29,11 +29,13 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
+import static org.apache.nifi.json.JsonTreeReader.NESTED_NODE;
+
 public class JsonRecordSource implements RecordSource<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonRecordSource.class);
     private static final JsonFactory jsonFactory;
     private final JsonParser jsonParser;
-    private final String skipToNestedJsonField;
+    private final String startingFieldName;
 
     static {
         jsonFactory = new JsonFactory();
@@ -42,35 +44,32 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
     public JsonRecordSource(final InputStream in) throws IOException {
         jsonParser = jsonFactory.createParser(in);
-        skipToNestedJsonField = null;
+        startingFieldName = null;
     }
 
-    public JsonRecordSource(final InputStream in, final String nestedFieldName) throws IOException {
+    public JsonRecordSource(final InputStream in, final String startingFieldStrategy, final String startingFieldName) throws IOException {
         jsonParser = jsonFactory.createParser(in);
-        this.skipToNestedJsonField = nestedFieldName;
+        this.startingFieldName = startingFieldName;
 
-        if (skipToNestedJsonField != null) {
-            final SerializedString serializedNestedField = new SerializedString(skipToNestedJsonField);
-            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken()) {
-            }
-            logger.debug("Skipped to specified json field [{}] while inferring json schema.", skipToNestedJsonField);
+        final boolean isBeginProcessingFromNestedField = NESTED_NODE.getValue().equals(startingFieldStrategy);
+        if (isBeginProcessingFromNestedField) {
+            final SerializedString serializedNestedField = new SerializedString(this.startingFieldName);
+            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());
+            logger.debug("Parsing starting at nested field [{}]", startingFieldName);
         }
     }
 
     @Override
     public JsonNode next() throws IOException {
-        JsonToken token = jsonParser.nextToken();
-        if (skipToNestedJsonField != null && !jsonParser.isExpectedStartArrayToken() && token != JsonToken.START_OBJECT) {
-            logger.debug("Specified json field [{}] to skip to is not found. Schema infer will start from the next nested json object or array.", skipToNestedJsonField);
-        }
         while (true) {
+            final JsonToken token = jsonParser.nextToken();
             if (token == null) {
                 return null;
             }
+
             if (token == JsonToken.START_OBJECT) {
                 return jsonParser.readValueAsTree();
             }
-            token = jsonParser.nextToken();
         }
     }
 }

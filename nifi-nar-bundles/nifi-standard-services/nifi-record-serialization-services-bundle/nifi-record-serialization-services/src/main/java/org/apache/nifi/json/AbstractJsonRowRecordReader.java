@@ -50,6 +50,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.json.JsonTreeReader.NESTED_NODE;
+
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final ComponentLog logger;
     private final Supplier<DateFormat> LAZY_DATE_FORMAT;
@@ -62,6 +64,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private static final ObjectMapper codec = new ObjectMapper();
     private JsonParser jsonParser;
     private JsonNode firstJsonNode;
+    private String startingFieldStrategy;
 
 
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
@@ -101,18 +104,20 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat,
-                                          final String nestedFieldName) throws IOException, MalformedRecordException {
+                                          final String startingFieldStrategy, final String nestedFieldName) throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
+
+        this.startingFieldStrategy = startingFieldStrategy;
 
         try {
             jsonParser = jsonFactory.createParser(in);
             jsonParser.setCodec(codec);
 
-            if (nestedFieldName != null) {
-                final SerializedString serializedSkipToField = new SerializedString(nestedFieldName);
-                while (!jsonParser.nextFieldName(serializedSkipToField) && jsonParser.hasCurrentToken()) {
-                }
+            final boolean isBeginProcessingFromNestedField = NESTED_NODE.getValue().equals(startingFieldStrategy);
+            if (isBeginProcessingFromNestedField) {
+                final SerializedString serializedStartingFieldName = new SerializedString(nestedFieldName);
+                while (!jsonParser.nextFieldName(serializedStartingFieldName) && jsonParser.hasCurrentToken());
                 logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
             }
 
@@ -358,14 +363,16 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             }
 
             switch (token) {
+                case START_ARRAY:
+                case END_ARRAY:
                 case END_OBJECT:
-                    continue;
+                    break;
                 case START_OBJECT:
                     return jsonParser.readValueAsTree();
-                case END_ARRAY:
-                case START_ARRAY:
-                    continue;
-
+                case FIELD_NAME:
+                    if (NESTED_NODE.getValue().equals(startingFieldStrategy)) {
+                        return null;
+                    }
                 default:
                     throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
             }
