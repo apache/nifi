@@ -1046,7 +1046,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "accounts");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE, "accounts");
     }
 
     @Test
@@ -1065,7 +1065,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "account");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE, "account");
     }
 
     @Test
@@ -1088,14 +1088,14 @@ class TestJsonTreeRowRecordReader {
                     }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "accountIds");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE, "accountIds");
     }
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_NODE.name(), "name");
+        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_NODE, "name");
     }
 
     @Test
@@ -1105,7 +1105,7 @@ class TestJsonTreeRowRecordReader {
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
         List<Object> expected = Collections.emptyList();
 
-        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_NODE.name(), "notfound");
+        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_NODE, "notfound");
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
@@ -1115,7 +1115,7 @@ class TestJsonTreeRowRecordReader {
         try (
             InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
         ) {
-            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE.name(), null);
+            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
 
             // WHEN
             // THEN
@@ -1123,11 +1123,11 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath, List<Object> expected, String startingFieldStrategy, String startingFieldName) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonPath, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            RecordSchema schema = inferSchema(jsonStream, startingFieldStrategy, startingFieldName);
-            testReadRecords(jsonStream, schema, expected, startingFieldStrategy, startingFieldName);
+            RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
+            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName);
         }
     }
 
@@ -1138,10 +1138,10 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected, String startingFieldStrategy, String startingFieldName) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            testReadRecords(jsonStream, schema, expected, startingFieldStrategy, startingFieldName);
+            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName);
         }
     }
 
@@ -1172,10 +1172,10 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected, String startingFieldStrategy, String startingFieldName)
+    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName)
             throws IOException, MalformedRecordException {
         try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                startingFieldStrategy, startingFieldName)) {
+                strategy, startingFieldName)) {
             List<Object> actual = new ArrayList<>();
             Record record;
 
@@ -1201,9 +1201,9 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private RecordSchema inferSchema(InputStream jsonStream, String startingFieldStrategy, String startingFieldName) throws IOException {
+    private RecordSchema inferSchema(InputStream jsonStream, StartingFieldStrategy strategy, String startingFieldName) throws IOException {
         RecordSchema schema = new InferSchemaAccessStrategy<>(
-            (__, inputStream) -> new JsonRecordSource(inputStream, startingFieldStrategy, startingFieldName),
+            (__, inputStream) -> new JsonRecordSource(inputStream, strategy, startingFieldName),
             new JsonSchemaInference(new TimeValueInference(null, null, null)),
             mock(ComponentLog.class)
         ).getSchema(Collections.emptyMap(), jsonStream, null);

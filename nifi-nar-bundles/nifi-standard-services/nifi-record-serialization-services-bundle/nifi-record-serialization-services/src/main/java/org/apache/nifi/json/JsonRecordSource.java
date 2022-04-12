@@ -45,12 +45,11 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
         startingFieldName = null;
     }
 
-    public JsonRecordSource(final InputStream in, final String startingFieldStrategy, final String startingFieldName) throws IOException {
+    public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
         jsonParser = jsonFactory.createParser(in);
         this.startingFieldName = startingFieldName;
 
-        final boolean isBeginProcessingFromNestedField = StartingFieldStrategy.NESTED_NODE.name().equals(startingFieldStrategy);
-        if (isBeginProcessingFromNestedField) {
+        if (strategy == StartingFieldStrategy.NESTED_NODE) {
             final SerializedString serializedNestedField = new SerializedString(this.startingFieldName);
             while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());
             logger.debug("Parsing starting at nested field [{}]", startingFieldName);

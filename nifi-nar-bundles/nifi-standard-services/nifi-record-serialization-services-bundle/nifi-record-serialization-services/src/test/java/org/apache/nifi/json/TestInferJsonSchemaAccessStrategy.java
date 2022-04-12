@@ -115,7 +115,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceIncludesAllRecords() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE, null);
 
         final RecordField extraField1 = schema.getField("extra field 1").get();
         assertSame(RecordFieldType.STRING, extraField1.getDataType().getFieldType());
@@ -141,7 +141,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testDateAndTimestampsInferred() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE, null);
 
         final RecordField timestampField = schema.getField("timestamp").get();
         assertEquals(RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), timestampField.getDataType());
@@ -170,7 +170,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testDocsExample() throws IOException {
         final File file = new File("src/test/resources/json/docs-example.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE, null);
 
         assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
         assertSame(RecordFieldType.CHOICE, schema.getDataType("age").get().getFieldType());
@@ -192,9 +192,9 @@ class TestInferJsonSchemaAccessStrategy {
 
     @ParameterizedTest(name = "{index} {2}")
     @MethodSource("startingFieldNameArgumentProvider")
-    void testInferenceStartsFromArray(final String jsonPath, final String startingFieldStrategy, final String startingFieldName, String testName) throws IOException {
+    void testInferenceStartsFromArray(final String jsonPath, final StartingFieldStrategy strategy, final String startingFieldName, String testName) throws IOException {
         final File file = new File(jsonPath);
-        final RecordSchema schema = inferSchema(file, startingFieldStrategy, startingFieldName);
+        final RecordSchema schema = inferSchema(file, strategy, startingFieldName);
 
         final RecordField field1 = schema.getField("id").get();
         assertSame(RecordFieldType.INT, field1.getDataType().getFieldType());
@@ -206,7 +206,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartsFromSimpleFieldAndNoNestedObjectOrArrayFound() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array-middle.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "name");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "name");
 
         assertEquals(0, schema.getFieldCount());
     }
@@ -214,14 +214,14 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartFromNonExistentField() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array.json");
-        final RecordSchema recordSchema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "notfound");
+        final RecordSchema recordSchema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "notfound");
         assertEquals(0, recordSchema.getFieldCount());
     }
 
     @Test
     void testInferenceStartFromMultipleNestedField() throws IOException {
         final File file = new File("src/test/resources/json/multiple-nested-field.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "accountIds");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "accountIds");
 
         final RecordField field1 = schema.getField("id").get();
         assertSame(RecordFieldType.STRING, field1.getDataType().getFieldType());
@@ -230,12 +230,12 @@ class TestInferJsonSchemaAccessStrategy {
         assertSame(RecordFieldType.STRING, field2.getDataType().getFieldType());
     }
 
-    private RecordSchema inferSchema(final File file, final String startingFieldStrategy, final String startingFieldName) throws IOException {
+    private RecordSchema inferSchema(final File file, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
         try (final InputStream in = new FileInputStream(file);
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content, startingFieldStrategy, startingFieldName),
+                    (var, content) -> new JsonRecordSource(content, strategy, startingFieldName),
                     timestampInference, Mockito.mock(ComponentLog.class)
             );
 

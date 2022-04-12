@@ -55,8 +55,8 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
-                                   final String startingFieldStrategy, final String startingFieldName) throws IOException, MalformedRecordException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
+                                   final StartingFieldStrategy strategy, final String startingFieldName) throws IOException, MalformedRecordException {
+        super(in, logger, dateFormat, timeFormat, timestampFormat, strategy, startingFieldName);
         this.schema = schema;
     }
 

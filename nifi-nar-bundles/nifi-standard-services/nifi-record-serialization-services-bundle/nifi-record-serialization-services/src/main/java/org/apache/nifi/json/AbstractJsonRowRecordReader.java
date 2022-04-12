@@ -62,7 +62,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private static final ObjectMapper codec = new ObjectMapper();
     private JsonParser jsonParser;
     private JsonNode firstJsonNode;
-    private String startingFieldStrategy;
+    private StartingFieldStrategy strategy;
 
 
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
@@ -102,17 +102,17 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
     protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat,
-                                          final String startingFieldStrategy, final String nestedFieldName) throws IOException, MalformedRecordException {
+                                          final StartingFieldStrategy strategy, final String nestedFieldName) throws IOException, MalformedRecordException {
 
         this(logger, dateFormat, timeFormat, timestampFormat);
 
-        this.startingFieldStrategy = startingFieldStrategy;
+        this.strategy = strategy;
 
         try {
             jsonParser = jsonFactory.createParser(in);
             jsonParser.setCodec(codec);
 
-            if (isBeginProcessingFromNestedField(startingFieldStrategy)) {
+            if (strategy == StartingFieldStrategy.NESTED_NODE) {
                 final SerializedString serializedStartingFieldName = new SerializedString(nestedFieldName);
                 while (!jsonParser.nextFieldName(serializedStartingFieldName) && jsonParser.hasCurrentToken());
                 logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
@@ -367,17 +367,13 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 case START_OBJECT:
                     return jsonParser.readValueAsTree();
                 case FIELD_NAME:
-                    if (isBeginProcessingFromNestedField(startingFieldStrategy)) {
+                    if (strategy == StartingFieldStrategy.NESTED_NODE) {
                         return null;
                     }
                 default:
                     throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
             }
         }
-    }
-
-    private boolean isBeginProcessingFromNestedField(String startingFieldStrategy) {
-        return StartingFieldStrategy.NESTED_NODE.name().equals(startingFieldStrategy);
     }
 
     @Override

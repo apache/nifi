@@ -69,7 +69,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String timeFormat;
     private volatile String timestampFormat;
     private volatile String startingFieldName;
-    private volatile String startingFieldStrategy;
+    private volatile StartingFieldStrategy startingFieldStrategy;
 
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
@@ -79,8 +79,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(StartingFieldStrategy.ROOT_NODE.name())
             .allowableValues(
-                    Arrays.stream(StartingFieldStrategy.values()).map(strategy ->
-                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    Arrays.stream(StartingFieldStrategy.values()).map(startingStrategy ->
+                            new AllowableValue(startingStrategy.name(), startingStrategy.name(), startingStrategy.getDescription())
                     ).toArray(AllowableValue[]::new))
             .build();
 
@@ -115,7 +115,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
-        this.startingFieldStrategy = context.getProperty(STARTING_FIELD_STRATEGY).getValue();
+        this.startingFieldStrategy = StartingFieldStrategy.valueOf(context.getProperty(STARTING_FIELD_STRATEGY).getValue());
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
     }
 
@@ -128,12 +128,15 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        final RecordSourceFactory<JsonNode> jsonSourceFactory = (var, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
-        final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier = () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String schemaAccessStrategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
+        final RecordSourceFactory<JsonNode> jsonSourceFactory =
+                (var, in) -> new JsonRecordSource(in, startingFieldStrategy, startingFieldName);
 
-        return SchemaInferenceUtil.getSchemaAccessStrategy(strategy, context, getLogger(), jsonSourceFactory, inferenceSupplier,
-                () -> super.getSchemaAccessStrategy(strategy, schemaRegistry, context));
+        final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier =
+                () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
+
+        return SchemaInferenceUtil.getSchemaAccessStrategy(schemaAccessStrategy, context, getLogger(), jsonSourceFactory, inferenceSupplier,
+                () -> super.getSchemaAccessStrategy(schemaAccessStrategy, schemaRegistry, context));
     }
 
     @Override
