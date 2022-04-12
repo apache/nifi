@@ -242,19 +242,16 @@ public class ConnectableTask {
                         shouldRun = repositoryContext.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships);
                     }
                 }
-            } catch (final TerminatedTaskException tte) {
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.info("Failed to process session due to task being terminated", new Object[] {tte});
-            } catch (final ProcessException pe) {
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("Failed to process session due to {}", new Object[] {pe});
-            } catch (final Throwable t) {
-                // Use ComponentLog to log the event so that a bulletin will be created for this processor
-                final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("Failed to process session due to {}; Processor Administratively Yielded for {}",
-                    new Object[] {t, schedulingAgent.getAdministrativeYieldDuration()}, t);
-                logger.warn("Administratively Yielding {} due to uncaught Exception: {}", connectable.getRunnableComponent(), t.toString(), t);
-
+            } catch (final TerminatedTaskException e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.info("Processing terminated", e);
+            } catch (final ProcessException e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.error("Processing failed", e);
+            } catch (final Throwable e) {
+                final ComponentLog componentLog = getComponentLog();
+                componentLog.error("Processing halted: yielding [{}]", schedulingAgent.getAdministrativeYieldDuration(), e);
+                logger.warn("Processing halted: uncaught exception in Component [{}]", connectable.getRunnableComponent(), e);
                 connectable.yield(schedulingAgent.getAdministrativeYieldDuration(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
             }
         } finally {
@@ -291,4 +288,7 @@ public class ConnectableTask {
         return InvocationResult.DO_NOT_YIELD;
     }
 
+    private ComponentLog getComponentLog() {
+        return new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
+    }
 }

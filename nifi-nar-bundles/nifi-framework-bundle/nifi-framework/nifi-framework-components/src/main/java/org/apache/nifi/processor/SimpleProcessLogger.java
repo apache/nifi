@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processor;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogMessage;
@@ -32,6 +32,8 @@ public class SimpleProcessLogger implements ComponentLog {
 
     private static final String CAUSED_BY = String.format("%n- Caused by: ");
 
+    private static final Throwable NULL_THROWABLE = null;
+
     private final Logger logger;
     private final LogRepository logRepository;
     private final Object component;
@@ -46,75 +48,62 @@ public class SimpleProcessLogger implements ComponentLog {
         this.component = component;
     }
 
-    private Object[] addProcessor(final Object[] originalArgs) {
-        return prependToArgs(originalArgs, component);
-    }
-
-    private Object[] prependToArgs(final Object[] originalArgs, final Object... toAdd) {
-        final Object[] newArgs = new Object[originalArgs.length + toAdd.length];
-        System.arraycopy(toAdd, 0, newArgs, 0, toAdd.length);
-        System.arraycopy(originalArgs, 0, newArgs, toAdd.length, originalArgs.length);
-        return newArgs;
-    }
-
-    private boolean lastArgIsException(final Object[] os) {
-        return (os != null && os.length > 0 && (os[os.length - 1] instanceof Throwable));
-    }
-
     @Override
-    public void warn(String msg, final Throwable t) {
-        if (!isWarnEnabled()) {
-            return;
-        }
+    public void warn(final String msg, final Throwable t) {
+        if (isWarnEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
-        msg = "{} " + msg;
-        final Object[] os = {component, getCauses(t), t};
-        logger.warn(msg, os);
-        logRepository.addLogMessage(LogLevel.WARN, msg, os, t);
-    }
-
-    @Override
-    public void warn(String msg, Object[] os) {
-        if (!isWarnEnabled()) {
-            return;
-        }
-
-        if (lastArgIsException(os)) {
-            warn(msg, os, (Throwable) os[os.length - 1]);
-        } else {
-            msg = "{} " + msg;
-            os = addProcessor(os);
-            logger.warn(msg, os);
-            logRepository.addLogMessage(LogLevel.WARN, msg, os);
+            if (t == null) {
+                logger.warn(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.WARN, componentMessage, repositoryArguments);
+            } else {
+                logger.warn(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), repositoryArguments, t);
+            }
         }
     }
 
     @Override
-    public void warn(String msg, Object[] os, final Throwable t) {
-        if (!isWarnEnabled()) {
-            return;
-        }
+    public void warn(final String msg, final Object[] os) {
+        if (isWarnEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
 
-        os = addProcessorAndThrowable(os, t);
-        msg = "{} " + msg + ": {}";
-        logger.warn(msg, os);
-        logRepository.addLogMessage(LogLevel.WARN, msg, os, t);
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.warn(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.WARN, componentMessage, arguments);
+            } else {
+                logger.warn(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
-    public void warn(String msg) {
-        if (!isWarnEnabled()) {
-            return;
-        }
+    public void warn(final String msg, final Object[] os, final Throwable t) {
+        if (isWarnEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
 
-        msg = "{} " + msg;
-        final Object[] os = {component};
-        logger.warn(msg, component);
-        logRepository.addLogMessage(LogLevel.WARN, msg, os);
+            if (t == null) {
+                logger.warn(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.WARN, componentMessage, arguments);
+            } else {
+                logger.warn(componentMessage, arguments, t);
+                logRepository.addLogMessage(LogLevel.WARN, getCausesMessage(msg), addCauses(arguments, t), t);
+            }
+        }
     }
 
     @Override
-    public void warn(LogMessage logMessage) {
+    public void warn(final String msg) {
+        warn(msg, NULL_THROWABLE);
+    }
+
+    @Override
+    public void warn(final LogMessage logMessage) {
         if (isWarnEnabled()) {
             log(LogLevel.WARN, logMessage);
             logRepository.addLogMessage(logMessage);
@@ -122,56 +111,61 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void trace(String msg, Throwable t) {
-        if (!isTraceEnabled()) {
-            return;
-        }
+    public void trace(final String msg, final Throwable t) {
+        if (isTraceEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
-        msg = "{} " + msg;
-        final Object[] os = {component, getCauses(t), t};
-        logger.trace(msg, os);
-        logRepository.addLogMessage(LogLevel.TRACE, msg, os, t);
+            if (t == null) {
+                logger.trace(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.TRACE, componentMessage, repositoryArguments);
+            } else {
+                logger.trace(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), repositoryArguments, t);
+            }
+        }
     }
 
     @Override
-    public void trace(String msg, Object[] os) {
-        if (!isTraceEnabled()) {
-            return;
-        }
+    public void trace(final String msg, final Object[] os) {
+        if (isTraceEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
 
-        msg = "{} " + msg;
-        os = addProcessor(os);
-        logger.trace(msg, os);
-        logRepository.addLogMessage(LogLevel.TRACE, msg, os);
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.trace(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.TRACE, componentMessage, arguments);
+            } else {
+                logger.trace(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
+        }
     }
 
     @Override
-    public void trace(String msg) {
-        if (!isTraceEnabled()) {
-            return;
-        }
-
-        msg = "{} " + msg;
-        final Object[] os = {component};
-        logger.trace(msg, os);
-        logRepository.addLogMessage(LogLevel.TRACE, msg, os);
+    public void trace(final String msg) {
+        trace(msg, NULL_THROWABLE);
     }
 
     @Override
-    public void trace(String msg, Object[] os, Throwable t) {
-        if (!isTraceEnabled()) {
-            return;
+    public void trace(final String msg, final Object[] os, final Throwable t) {
+        if (isTraceEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            if (t == null) {
+                logger.trace(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.TRACE, componentMessage, arguments);
+            } else {
+                logger.trace(componentMessage, arguments, t);
+                logRepository.addLogMessage(LogLevel.TRACE, getCausesMessage(msg), addCauses(arguments, t), t);
+            }
         }
-
-        os = addProcessorAndThrowable(os, t);
-        msg = "{} " + msg + ": {}";
-
-        logger.trace(msg, os);
-        logRepository.addLogMessage(LogLevel.TRACE, msg, os, t);
     }
 
     @Override
-    public void trace(LogMessage logMessage) {
+    public void trace(final LogMessage logMessage) {
         if (isTraceEnabled()) {
             log(LogLevel.TRACE, logMessage);
             logRepository.addLogMessage(logMessage);
@@ -204,58 +198,57 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void info(String msg, Throwable t) {
-        if (!isInfoEnabled()) {
-            return;
-        }
+    public void info(final String msg, final Throwable t) {
+        if (isInfoEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
-        msg = "{} " + msg;
-        final Object[] os = {component, getCauses(t)};
-
-        logger.info(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.info("", t);
+            if (t == null) {
+                logger.info(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.INFO, componentMessage, repositoryArguments);
+            } else {
+                logger.info(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), repositoryArguments, t);
+            }
         }
-        logRepository.addLogMessage(LogLevel.INFO, msg, os, t);
     }
 
     @Override
-    public void info(String msg, Object[] os) {
-        if (!isInfoEnabled()) {
-            return;
+    public void info(final String msg, final Object[] os) {
+        if (isInfoEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.info(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.INFO, componentMessage, arguments);
+            } else {
+                logger.info(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
         }
-
-        msg = "{} " + msg;
-        os = addProcessor(os);
-
-        logger.info(msg, os);
-        logRepository.addLogMessage(LogLevel.INFO, msg, os);
     }
 
     @Override
-    public void info(String msg) {
-        if (!isInfoEnabled()) {
-            return;
-        }
-
-        msg = "{} " + msg;
-        final Object[] os = {component};
-
-        logger.info(msg, os);
-        logRepository.addLogMessage(LogLevel.INFO, msg, os);
+    public void info(final String msg) {
+        info(msg, NULL_THROWABLE);
     }
 
     @Override
-    public void info(String msg, Object[] os, Throwable t) {
-        if (!isInfoEnabled()) {
-            return;
+    public void info(final String msg, final Object[] os, final Throwable t) {
+        if (isInfoEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            if (t == null) {
+                logger.info(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.INFO, componentMessage, arguments);
+            } else {
+                logger.info(componentMessage, arguments, t);
+                logRepository.addLogMessage(LogLevel.INFO, getCausesMessage(msg), addCauses(arguments, t), t);
+            }
         }
-
-        os = addProcessorAndThrowable(os, t);
-        msg = "{} " + msg + ": {}";
-
-        logger.info(msg, os);
-        logRepository.addLogMessage(LogLevel.INFO, msg, os, t);
     }
 
     @Override
@@ -272,138 +265,123 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void error(String msg, Throwable t) {
-        if (!isErrorEnabled()) {
-            return;
-        }
+    public void error(final String msg) {
+        error(msg, NULL_THROWABLE);
+    }
 
-        if (t == null) {
-            msg = "{} " + msg;
-            final Object[] os = new Object[]{component};
-            logger.error(msg, os);
-            logRepository.addLogMessage(LogLevel.ERROR, msg, os);
-        } else {
-            msg = "{} " + msg + ": {}";
-            final Object[] os = new Object[]{component, getCauses(t), t};
-            logger.error(msg, os);
-            logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
+    @Override
+    public void error(final String msg, final Throwable t) {
+        if (isErrorEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
+
+            if (t == null) {
+                logger.error(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.ERROR, componentMessage, repositoryArguments);
+            } else {
+                logger.error(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), repositoryArguments, t);
+            }
         }
     }
 
     @Override
-    public void error(String msg, Object[] os) {
-        if (!isErrorEnabled()) {
-            return;
-        }
+    public void error(final String msg, final Object[] os) {
+        if (isErrorEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
 
-        if (lastArgIsException(os)) {
-            error(msg, os, (Throwable) os[os.length - 1]);
-        } else {
-            os = addProcessor(os);
-            msg = "{} " + msg;
-            logger.error(msg, os);
-            logRepository.addLogMessage(LogLevel.ERROR, msg, os);
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.error(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
+            } else {
+                logger.error(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
         }
     }
 
     @Override
-    public void error(String msg) {
-        this.error(msg, (Throwable) null);
-    }
+    public void error(final String msg, final Object[] os, final Throwable t) {
+        if (isErrorEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
 
-    @Override
-    public void error(String msg, Object[] os, Throwable t) {
-        if (!isErrorEnabled()) {
-            return;
+            if (t == null) {
+                logger.error(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.ERROR, componentMessage, arguments);
+            } else {
+                logger.error(componentMessage, arguments, t);
+                logRepository.addLogMessage(LogLevel.ERROR, getCausesMessage(msg), addCauses(arguments, t), t);
+            }
         }
-
-        os = addProcessorAndThrowable(os, t);
-        msg = "{} " + msg + ": {}";
-
-        logger.error(msg, os);
-        logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
     @Override
-    public void error(LogMessage logMessage) {
+    public void error(final LogMessage logMessage) {
         if (isErrorEnabled()) {
             log(LogLevel.ERROR, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
 
-    private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
-        final Object[] modifiedArgs;
-        if (t == null) {
-            modifiedArgs = new Object[os.length + 2];
-            modifiedArgs[0] = component.toString();
-            System.arraycopy(os, 0, modifiedArgs, 1, os.length);
-            modifiedArgs[modifiedArgs.length - 1] = StringUtils.EMPTY;
-        } else {
-            modifiedArgs = new Object[os.length + 3];
-            modifiedArgs[0] = component.toString();
-            System.arraycopy(os, 0, modifiedArgs, 1, os.length);
-            modifiedArgs[modifiedArgs.length - 2] = getCauses(t);
-            modifiedArgs[modifiedArgs.length - 1] = t;
-        }
+    @Override
+    public void debug(final String msg, final Throwable t) {
+        if (isDebugEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] repositoryArguments = getRepositoryArguments(t);
 
-        return modifiedArgs;
+            if (t == null) {
+                logger.debug(componentMessage, component);
+                logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, repositoryArguments);
+            } else {
+                logger.debug(componentMessage, component, t);
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), repositoryArguments, t);
+            }
+        }
     }
 
     @Override
-    public void debug(String msg, Throwable t) {
-        if (!isDebugEnabled()) {
-            return;
+    public void debug(final String msg, final Object[] os) {
+        if (isDebugEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            final Throwable lastThrowable = findLastThrowable(os);
+            if (lastThrowable == null) {
+                logger.debug(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, arguments);
+            } else {
+                logger.debug(componentMessage, setFormattedThrowable(arguments, lastThrowable));
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), addCauses(arguments, lastThrowable), lastThrowable);
+            }
         }
-
-        msg = "{} " + msg;
-        final Object[] os = {component};
-
-        logger.debug(msg, os, t);
-        logRepository.addLogMessage(LogLevel.DEBUG, msg, os, t);
     }
 
     @Override
-    public void debug(String msg, Object[] os) {
-        if (!isDebugEnabled()) {
-            return;
+    public void debug(final String msg, final Object[] os, final Throwable t) {
+        if (isDebugEnabled()) {
+            final String componentMessage = getComponentMessage(msg);
+            final Object[] arguments = insertComponent(os);
+
+            if (t == null) {
+                logger.debug(componentMessage, arguments);
+                logRepository.addLogMessage(LogLevel.DEBUG, componentMessage, arguments);
+            } else {
+                logger.debug(componentMessage, arguments, t);
+                logRepository.addLogMessage(LogLevel.DEBUG, getCausesMessage(msg), addCauses(arguments, t), t);
+            }
         }
-
-        os = addProcessor(os);
-        msg = "{} " + msg;
-
-        logger.debug(msg, os);
-        logRepository.addLogMessage(LogLevel.DEBUG, msg, os);
     }
 
     @Override
-    public void debug(String msg, Object[] os, Throwable t) {
-        if (!isDebugEnabled()) {
-            return;
-        }
-
-        os = addProcessorAndThrowable(os, t);
-        msg = "{} " + msg + ": {}";
-
-        logger.debug(msg, os);
-        logRepository.addLogMessage(LogLevel.DEBUG, msg, os, t);
+    public void debug(final String msg) {
+        debug(msg, NULL_THROWABLE);
     }
 
     @Override
-    public void debug(String msg) {
-        if (!isDebugEnabled()) {
-            return;
-        }
-
-        msg = "{} " + msg;
-        final Object[] os = {component};
-
-        logger.debug(msg, os);
-        logRepository.addLogMessage(LogLevel.DEBUG, msg, os);
-    }
-
-    @Override
-    public void debug(LogMessage logMessage) {
+    public void debug(final LogMessage logMessage) {
         if (isDebugEnabled()) {
             log(LogLevel.DEBUG, logMessage);
             logRepository.addLogMessage(logMessage);
@@ -411,7 +389,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg, Throwable t) {
+    public void log(final LogLevel level, final String msg, final Throwable t) {
         switch (level) {
             case DEBUG:
                 debug(msg, t);
@@ -433,7 +411,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg, Object[] os) {
+    public void log(final LogLevel level, final String msg, final Object[] os) {
         switch (level) {
             case DEBUG:
                 debug(msg, os);
@@ -455,7 +433,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg) {
+    public void log(final LogLevel level, final String msg) {
         switch (level) {
             case DEBUG:
                 debug(msg);
@@ -477,7 +455,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg, Object[] os, Throwable t) {
+    public void log(final LogLevel level, final String msg, final Object[] os, final Throwable t) {
         switch (level) {
             case DEBUG:
                 debug(msg, os, t);
@@ -499,7 +477,7 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void log(LogMessage message) {
+    public void log(final LogMessage message) {
         switch (message.getLogLevel()) {
             case DEBUG:
                 debug(message);
@@ -520,11 +498,58 @@ public class SimpleProcessLogger implements ComponentLog {
         }
     }
 
+    /**
+     * Get arguments for Log Repository including a summary of Throwable causes when Throwable is found
+     *
+     * @param throwable Throwable instance or null
+     * @return Arguments containing the component or the component and summary of Throwable causes
+     */
+    private Object[] getRepositoryArguments(final Throwable throwable) {
+        return throwable == null ? new Object[]{component} : getComponentAndCauses(throwable);
+    }
+
+    private String getCausesMessage(final String message) {
+        return String.format("{} %s: {}", message);
+    }
+
+    private String getComponentMessage(final String message) {
+        return String.format("{} %s", message);
+    }
+
+    private Object[] getComponentAndCauses(final Throwable throwable) {
+        final String causes = getCauses(throwable);
+        return new Object[]{component, causes};
+    }
+
     private String getCauses(final Throwable throwable) {
         final List<String> causes = new ArrayList<>();
         for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
             causes.add(cause.toString());
         }
         return String.join(CAUSED_BY, causes);
+    }
+
+    private Object[] insertComponent(final Object[] originalArgs) {
+        return ArrayUtils.insert(0, originalArgs, component);
+    }
+
+    private Object[] addCauses(final Object[] arguments, final Throwable throwable) {
+        final String causes = getCauses(throwable);
+        return ArrayUtils.add(arguments, causes);
+    }
+
+    private Object[] setFormattedThrowable(final Object[] arguments, final Throwable throwable) {
+        final int lastIndex = arguments.length - 1;
+        final Object[] argumentsThrowableRemoved = ArrayUtils.remove(arguments, lastIndex);
+        return ArrayUtils.addAll(argumentsThrowableRemoved, throwable.toString(), throwable);
+    }
+
+    private Throwable findLastThrowable(final Object[] arguments) {
+        final Object lastArgument = (arguments == null || arguments.length == 0) ? null : arguments[arguments.length - 1];
+        Throwable lastThrowable = null;
+        if (lastArgument instanceof Throwable) {
+            lastThrowable = (Throwable) lastArgument;
+        }
+        return lastThrowable;
     }
 }
