@@ -97,7 +97,10 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .description("If tags with content (e. g. <field>content</field>) are defined as nested records in the schema, " +
                     "the name of the tag will be used as name for the record and the value of this property will be used as name for the field. " +
                     "If tags with content shall be parsed together with attributes (e. g. <field attribute=\"123\">content</field>), " +
-                    "they have to be defined as records. For additional information, see the section of processor usage.")
+                    "they have to be defined as records. In such a case, the name of the tag will be used as the name for the record and  " +
+                    "the value of this property will be used as the name for the field holding the original content. The name of the attribute " +
+                    "will be used to create a new record field, the content of which will be the value of the attribute. " +
+                    "For more information, see the 'Additional Details...' section of the XMLReader controller service's documentation.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -136,7 +139,12 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
 
     @Override
     protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
-        final RecordSourceFactory<XmlNode> sourceFactory = (variables, contentStream) -> new XmlRecordSource(contentStream, isMultipleRecords(context, variables));
+
+        final RecordSourceFactory<XmlNode> sourceFactory = (variables, contentStream) -> {
+            String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
+            contentFieldName = (contentFieldName == null) ? "value" : contentFieldName;
+            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables));
+        };
         final Supplier<SchemaInferenceEngine<XmlNode>> schemaInference = () -> new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
         return SchemaInferenceUtil.getSchemaAccessStrategy(strategy, context, getLogger(), sourceFactory, schemaInference,

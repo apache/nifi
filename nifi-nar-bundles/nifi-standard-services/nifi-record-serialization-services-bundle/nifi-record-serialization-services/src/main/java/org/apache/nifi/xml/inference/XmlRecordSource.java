@@ -35,8 +35,10 @@ import java.util.Map;
 public class XmlRecordSource implements RecordSource<XmlNode> {
 
     private final XMLEventReader xmlEventReader;
+    private final String contentFieldName;
 
-    public XmlRecordSource(final InputStream in, final boolean ignoreWrapper) throws IOException {
+    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper) throws IOException {
+        this.contentFieldName = contentFieldName;
         try {
             final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 
@@ -125,7 +127,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         } else {
             final String textContent = content.toString().trim();
             if (!textContent.equals("")) {
-                childNodes.put("value", new XmlTextNode("value", textContent));
+                childNodes.put(contentFieldName, new XmlTextNode(contentFieldName, textContent));
             }
 
             return new XmlContainerNode(nodeName, childNodes);

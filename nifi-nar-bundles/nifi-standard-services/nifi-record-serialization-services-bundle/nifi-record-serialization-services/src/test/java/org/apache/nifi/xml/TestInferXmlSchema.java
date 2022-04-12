@@ -93,7 +93,8 @@ public class TestInferXmlSchema {
 
     @Test
     public void testStringFieldWithAttributes() throws IOException {
-        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", true);
+        final String contentFieldName = "contentfield";
+        final RecordSchema schema = inferSchema("src/test/resources/xml/TextNodeWithAttribute.xml", contentFieldName, true);
 
         assertEquals(3, schema.getFieldCount());
 
@@ -106,12 +107,16 @@ public class TestInferXmlSchema {
 
         final RecordSchema childSchema = ((RecordDataType) softwareDataType).getChildSchema();
         assertSame(RecordFieldType.BOOLEAN, childSchema.getDataType("favorite").get().getFieldType());
-        assertSame(RecordFieldType.STRING, childSchema.getDataType("value").get().getFieldType());
+        assertSame(RecordFieldType.STRING, childSchema.getDataType(contentFieldName).get().getFieldType());
     }
 
     private RecordSchema inferSchema(final String filename, final boolean ignoreWrapper) throws IOException {
+        return inferSchema(filename, "contentfield", ignoreWrapper);
+    }
+
+    private RecordSchema inferSchema(final String filename, final String contentFieldName, final boolean ignoreWrapper) throws IOException {
         final File file = new File(filename);
-        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, ignoreWrapper);
+        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, contentFieldName, ignoreWrapper);
         final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
         final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
 

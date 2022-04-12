@@ -17,8 +17,10 @@
 
 package org.apache.nifi.xml;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -31,61 +33,48 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static junit.framework.TestCase.assertEquals;
 
 public class TestXMLReader {
 
-    private XMLReader reader;
-
     private final String ATTRIBUTE_PREFIX = "attribute_prefix";
     private final String CONTENT_NAME = "content_field";
     private final String EVALUATE_IS_ARRAY = "xml.stream.is.array";
 
-    public TestRunner setup(String filePath) throws InitializationException, IOException {
-
+    private TestRunner setup(Map<PropertyDescriptor, String> xmlReaderProperties) throws InitializationException {
         TestRunner runner = TestRunners.newTestRunner(TestXMLReaderProcessor.class);
-        reader = new XMLReader();
+        XMLReader reader = new XMLReader();
+
         runner.addControllerService("xml_reader", reader);
         runner.setProperty(TestXMLReaderProcessor.XML_READER, "xml_reader");
 
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get(filePath)));
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        for (Map.Entry<PropertyDescriptor, String> entry : xmlReaderProperties.entrySet()) {
+            runner.setProperty(reader, entry.getKey(), entry.getValue());
+        }
 
+        runner.enableControllerService(reader);
         return runner;
     }
 
     @Test
-    public void testRecordFormat() throws IOException, InitializationException {
-        TestRunner runner = setup("src/test/resources/xml/testschema");
+    public void testRecordFormatDeterminedBasedOnAttribute() throws IOException, InitializationException {
+        String outputSchemaPath = "src/test/resources/xml/testschema";
+        String outputSchemaText = new String(Files.readAllBytes(Paths.get(outputSchemaPath)));
 
-        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_EVALUATE);
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_EVALUATE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
 
-        runner.enableControllerService(reader);
-
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
-        runner.run();
-
-        List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
-        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
-
-        assertEquals(4, records.size());
-    }
-
-    @Test
-    public void testRecordFormat2() throws IOException, InitializationException {
-        TestRunner runner = setup("src/test/resources/xml/testschema");
-
-        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
-
-        runner.enableControllerService(reader);
-
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
-        runner.run();
+        try (InputStream is = new FileInputStream("src/test/resources/xml/people.xml")) {
+            runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
+            runner.run();
+        }
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
         List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
@@ -94,16 +83,42 @@ public class TestXMLReader {
     }
 
     @Test
-    public void testRecordFormat3() throws IOException, InitializationException {
-        TestRunner runner = setup("src/test/resources/xml/testschema");
+    public void testRecordFormatArray() throws IOException, InitializationException {
+        String outputSchemaPath = "src/test/resources/xml/testschema";
+        String outputSchemaText = new String(Files.readAllBytes(Paths.get(outputSchemaPath)));
 
-        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE);
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
 
-        runner.enableControllerService(reader);
+        try (InputStream is = new FileInputStream("src/test/resources/xml/people.xml")) {
+            runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
+            runner.run();
+        }
 
-        InputStream is = new FileInputStream("src/test/resources/xml/person.xml");
-        runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
-        runner.run();
+        List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
+        List<String> records = Arrays.asList((new String(runner.getContentAsByteArray(flowFile.get(0)))).split("\n"));
+
+        assertEquals(4, records.size());
+    }
+
+    @Test
+    public void testRecordFormatNotArray() throws IOException, InitializationException {
+        String outputSchemaPath = "src/test/resources/xml/testschema";
+        String outputSchemaText = new String(Files.readAllBytes(Paths.get(outputSchemaPath)));
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/person.xml")) {
+            runner.enqueue(is, Collections.singletonMap(EVALUATE_IS_ARRAY, "true"));
+            runner.run();
+        }
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
         List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
@@ -113,16 +128,20 @@ public class TestXMLReader {
 
     @Test
     public void testAttributePrefix() throws IOException, InitializationException {
-        TestRunner runner = setup("src/test/resources/xml/testschema");
+        String outputSchemaPath = "src/test/resources/xml/testschema";
+        String outputSchemaText = new String(Files.readAllBytes(Paths.get(outputSchemaPath)));
 
-        runner.setProperty(reader, XMLReader.ATTRIBUTE_PREFIX, "${" + ATTRIBUTE_PREFIX + "}");
-        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        xmlReaderProperties.put(XMLReader.ATTRIBUTE_PREFIX, "${" + ATTRIBUTE_PREFIX + "}");
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
 
-        runner.enableControllerService(reader);
-
-        InputStream is = new FileInputStream("src/test/resources/xml/people.xml");
-        runner.enqueue(is, Collections.singletonMap(ATTRIBUTE_PREFIX, "ATTR_"));
-        runner.run();
+        try (InputStream is = new FileInputStream("src/test/resources/xml/people.xml")) {
+            runner.enqueue(is, Collections.singletonMap(ATTRIBUTE_PREFIX, "ATTR_"));
+            runner.run();
+        }
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
         List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
@@ -136,16 +155,20 @@ public class TestXMLReader {
 
     @Test
     public void testContentField() throws IOException, InitializationException {
-        TestRunner runner = setup("src/test/resources/xml/testschema2");
+        String outputSchemaPath = "src/test/resources/xml/testschema2";
+        String outputSchemaText = new String(Files.readAllBytes(Paths.get(outputSchemaPath)));
 
-        runner.setProperty(reader, XMLReader.CONTENT_FIELD_NAME, "${" + CONTENT_NAME + "}");
-        runner.setProperty(reader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY);
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, "${" + CONTENT_NAME + "}");
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_ARRAY.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
 
-        runner.enableControllerService(reader);
-
-        InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml");
-        runner.enqueue(is, Collections.singletonMap(CONTENT_NAME, "CONTENT"));
-        runner.run();
+        try (InputStream is = new FileInputStream("src/test/resources/xml/people_tag_in_characters.xml")) {
+            runner.enqueue(is, Collections.singletonMap(CONTENT_NAME, "CONTENT"));
+            runner.run();
+        }
 
         List<MockFlowFile> flowFile = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS);
         List<String> records = Arrays.asList(new String(runner.getContentAsByteArray(flowFile.get(0))).split("\n"));
@@ -156,5 +179,104 @@ public class TestXMLReader {
         assertEquals("MapRecord[{ID=P3, NAME=MapRecord[{CONTENT=Amélie Bonfils, ATTR=attr content, INNER=inner content}], AGE=74}]", records.get(2));
         assertEquals("MapRecord[{ID=P4, NAME=MapRecord[{CONTENT=Elenora Scrivens, ATTR=attr content, INNER=inner content}], AGE=16}]", records.get(3));
         assertEquals("MapRecord[{ID=P5, NAME=MapRecord[{INNER=inner content}]}]", records.get(4));
+    }
+
+    @Test
+    public void testInferSchema() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{software=MapRecord[{" + CONTENT_NAME + "=Apache NiFi, favorite=true}], num=123, name=John Doe}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, CONTENT_NAME);
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/person_record.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameNotSet() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{software=MapRecord[{favorite=true}], num=123, name=John Doe}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/person_record.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameNotSetSubElementExists() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=123}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameSetSubElementExistsNameClash() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{attr=attr_content, value=content of field}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, "value");
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
+    }
+
+    @Test
+    public void testInferSchemaContentFieldNameSetSubElementExistsNoNameClash() throws InitializationException, IOException {
+        String expectedContent = "MapRecord[{field_with_attribute=MapRecord[{" +CONTENT_NAME + "=content of field, " +
+                "attr=attr_content, value=123}]}]";
+
+        Map<PropertyDescriptor, String> xmlReaderProperties = new HashMap<>();
+        xmlReaderProperties.put(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA.getValue());
+        xmlReaderProperties.put(XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        xmlReaderProperties.put(XMLReader.CONTENT_FIELD_NAME, CONTENT_NAME);
+        TestRunner runner = setup(xmlReaderProperties);
+
+        try (InputStream is = new FileInputStream("src/test/resources/xml/field_with_sub-element.xml")) {
+            runner.enqueue(is);
+            runner.run();
+        }
+
+        MockFlowFile out = runner.getFlowFilesForRelationship(TestXMLReaderProcessor.SUCCESS).get(0);
+        String actualContent = out.getContent();
+        assertEquals(expectedContent, actualContent);
     }
 }

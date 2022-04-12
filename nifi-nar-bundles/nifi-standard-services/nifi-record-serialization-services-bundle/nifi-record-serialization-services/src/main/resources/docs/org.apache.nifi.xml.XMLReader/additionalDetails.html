@@ -286,6 +286,357 @@
         for tags containing attributes and content.
     </p>
 
+    <h2>Example: Tags with Attributes and Schema Inference</h2>
+
+    <p>
+        When the record's schema is not provided but inferred based on the data itself, providing a value for the "Field Name for Content" property
+        is especially important. (For detailed information on schema inference, see the "Schema Inference" section below.)
+        Let's focus on cases where an XML element (called <code>&lt;field_with_attribute&gt;</code> in the examples) has an XML attribute and some content and no sub-elements.
+        For the examples below, let's assume that a ConvertRecord processor is used, and it uses an XMLReader controller service and an XMLRecordSetWriter
+        controller service. The settings for XMLReader are provided separately for each example. The settings for XMLRecordSetWriter are common
+        for all the examples below. This way an XML to XML conversion is executed and comparing the input data with the output highlights
+        the schema inference behavior. The same behavior can be observed if a different Writer controller service is used.
+        XMLRecordSetWriter was chosen for these examples so that the input and the output are easily comparable.
+        The settings of the common XMLRecordSetWriter are the following:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Inherit Record Schema</code></td>
+        </tr>
+        <tr>
+            <td>Suppress Null Values</td>
+            <td><code>Never Suppress</code></td>
+        </tr>
+    </table>
+
+    <h3>XML Attributes and Schema Inference Example 1</h3>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td>not set</td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                        content of field
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>As mentioned above, the element called "field_with_attribute" has an attribute and some content but no sub-element.</p>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        &lt;attr&gt;attr_content&lt;/attr&gt;
+                        &lt;value&gt;&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        In the XMLReader's settings, no value is set for the "Field Name for Content" property. In such cases the schema inference logic
+        adds a field named "value" to the schema. However, since "Field Name for Content" is not set, the data processing logic is instructed
+        not to consider the original content of the parent XML tags (<code>&lt;field_with_attribute&gt;</code> the content of which is "content of field"
+        in the example). So a new field named "value" appears in the schema but no value is assigned to it from the data, thus the field is empty.
+        The XML attribute (named "attr") is processed, a field named "attr" is added to the schema and the attribute's value ("attr_content") is assigned to it.
+        In a case like this, the parent field's original content is lost and a new field named "value" appears in the schema with no data assigned to it.
+        This is to make sure that no data is overwritten in the record if it already contains a field named "value". More on that case in Example 3 and Example 4.
+    </p>
+
+    <h3>XML Attributes and Schema Inference Example 2</h3>
+
+    <p>
+        In this example, the XMLReader's "Field Name for Content" property is filled with the value "original_content". The input data is the same as
+        in the previous example.
+    </p>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td><code>original_content</code></td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                        content of field
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        &lt;attr&gt;attr_content&lt;/attr&gt;
+                        &lt;original_content&gt;content of field&lt;/original_content&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        The XMLReader's "Field Name for Content" property contains the value "original_content" (the concrete value is not important, what is important
+        is that a value is provided and it does not clash with the name of any sub-element in <code>&lt;field_with_attribute&gt;</code>).
+        This explicitly tells the XMLReader controller service to create a field named "original_content" and make the original content of
+        the parent XML tag the value of the field named "original_content". Adding the XML attributed named "attr" works just like in the first example.
+        Since the <code>&lt;field_with_attribute&gt;</code> element had no child-element with the name "original_content", no data is lost.
+    </p>
+
+    <h3>XML Attributes and Schema Inference Example 3</h3>
+
+    <p>
+        In this example, XMLReader's "Field Name for Content" property is left empty. In the input data, the <code>&lt;field_with_attribute&gt;</code> element
+        has some content and a sub-element named <code>&lt;value&gt;</code>.
+    </p>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td>not set</td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                          content of field&lt;value&gt;123&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        &lt;attr&gt;attr_content&lt;/attr&gt;
+                        &lt;value&gt;123&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        The "Field Name for Content" property is not set, and the XML element has a sub-element named "value". The name of the sub-element clashes with the
+        default field name added to the schema by the Schema Inference logic (see Example 1). As seen in the output data, the input XML attribute's value
+        is added to the record just like in the previous examples. The value of the <code>&lt;value&gt;</code> element is retained, but the content of the
+        <code>&lt;field_with_attribute&gt;</code> that was outside of the sub-element, is lost.
+    </p>
+
+    <h3>XML Attributes and Schema Inference Example 4</h3>
+
+    <p>
+        In this example, XMLReader's "Field Name for Content" property is given the value "value". In the input data, the <code>&lt;field_with_attribute&gt;</code> element
+       has some content and a sub-element named <code>&lt;value&gt;</code>. The name of the sub-element clashes with the value of the "Field Name for Content" property.
+    </p>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td><code>value</code></td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                          content of field&lt;value&gt;123&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        &lt;attr&gt;attr_content&lt;/attr&gt;
+                        &lt;value&gt;content of field&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        The "Field Name for Content" property's value is "value", and the XML element has a sub-element named "value". The name of the sub-element clashes with the
+        value of the "Field Name for Content" property. The value of the <code>&lt;value&gt;</code> element is replaced by the content of the
+        <code>&lt;field_with_attribute&gt;</code> element, and the original content of the <code>&lt;value&gt;</code> element is lost.
+    </p>
+
+    <h3>XML Attributes and Schema Inference Example 5</h3>
+
+    <p>
+        To avoid losing any data, the XMLReader's "Field Name for Content" property needs to be given a value that does not clash with any sub-element's name
+        in the input data. In this example the input data is the same as in the previous one, but the "Field Name for Content" property's value is "original_content",
+        a value that does not clash with any sub-element name. No data is lost in this case.
+    </p>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td><code>original_content</code></td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                          content of field&lt;value&gt;123&lt;/value&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        &lt;attr&gt;attr_content&lt;/attr&gt;
+                        &lt;value&gt;123&lt;/value&gt;
+                        &lt;original_content&gt;content of field&lt;/original_content&gt;
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        It can be seen in the output data, that the attribute has been added to the <code>&lt;field_with_attribute&gt;</code> element as a sub-element,
+        the <code>&lt;value&gt;</code> retained its value, and the original content of the <code>&lt;field_with_attribute&gt;</code> element has been added as a sub-element
+        named "original_content". This is because a value was chosen for the "Field Name for Content" property that does not clash with any of
+        the existing sub-elements of the input XML element (<code>&lt;field_with_attribute&gt;</code>). No data is lost.
+    </p>
+
     <h2>Example: Array of records</h2>
 
     <p>

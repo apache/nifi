@@ -1,0 +1,5 @@
+<record>
+    <num>123</num>
+    <name>John Doe</name>
+    <software favorite="true">Apache NiFi</software>
+</record>
