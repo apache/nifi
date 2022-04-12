@@ -2349,7 +2349,7 @@ the attribute to 1647613347678234 microseconds since epoch.
 *Return Type*: [.returnType]#Number#
 
 *Examples*: If the "dateTime" attribute has the value of "2022/03/18 10:22:27.678234567", then the Expression
-`${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSSSSS', 'America/New_York'):toNanos()}` converts the Instant value of
+`${dateTime:toInstant('yyyy/MM/dd HH:mm:ss.SSSSSSSSS', 'America/New_York'):toNanos()}` converts the Instant value of
 the attribute to 1647613347678234567 nanoseconds since epoch.
 
 [.function]
