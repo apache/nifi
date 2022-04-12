@@ -294,14 +294,36 @@ public class AbstractHadoopTest {
     }
 
     @Test
-    public void testGetNormalizedPathWithIncorrectFileSystem() throws URISyntaxException {
+    public void testGetNormalizedPathWithIncorrectScheme() throws URISyntaxException {
         AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container3@storageaccount3");
-        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container*@storageaccount*/dir3");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs://container3@storageaccount3/dir3");
 
         Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
 
         assertEquals("/dir3", path.toString());
         assertFalse(runner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    @Test
+    public void testGetNormalizedPathWithIncorrectAuthority() throws URISyntaxException {
+        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container4@storageaccount4");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container*@storageaccount*/dir4");
+
+        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+
+        assertEquals("/dir4", path.toString());
+        assertFalse(runner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    @Test
+    public void testGetNormalizedPathWithoutAuthority() throws URISyntaxException {
+        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("hdfs://myhost:9000");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "hdfs:///dir5");
+
+        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+
+        assertEquals("/dir5", path.toString());
+        assertTrue(runner.getLogger().getWarnMessages().isEmpty());
     }
 
     private AbstractHadoopProcessor initProcessorForTestGetNormalizedPath(String fileSystemUri) throws URISyntaxException {
