@@ -28,6 +28,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -36,6 +37,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -410,7 +412,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
         final PoliciesUsersAndGroups policiesUsersAndGroups = parsePoliciesUsersAndGroups(fingerprint);
         if (isInheritable(policiesUsersAndGroups)) {
-            logger.debug("Inheriting Polciies, Users & Groups");
+            logger.debug("Inheriting Policies, Users & Groups");
             inheritPoliciesUsersAndGroups(policiesUsersAndGroups);
         } else {
             logger.info("Cannot directly inherit Policies, Users & Groups. Will backup existing Policies, Users & Groups, and then replace with proposed configuration");
@@ -427,8 +429,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = createSafeDocumentBuilder();
-            final Document document = docBuilder.parse(in);
+            final Document document = parseFingerprint(in);
             final Element rootElement = document.getDocumentElement();
 
             // parse all the users and add them to the current authorizer
@@ -451,14 +452,14 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                 Node policyNode = policyNodes.item(i);
                 accessPolicies.add(parsePolicy((Element) policyNode));
             }
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
 
         return new PoliciesUsersAndGroups(accessPolicies, users, groups);
     }
 
-    public static DocumentBuilder createSafeDocumentBuilder() throws ParserConfigurationException {
+    private Document parseFingerprint(final InputStream inputStream) throws IOException {
         final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         docFactory.setSchema(null);
         docFactory.setNamespaceAware(true);
@@ -471,7 +472,13 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
         docFactory.setXIncludeAware(false);
         docFactory.setExpandEntityReferences(false);
 
-        return docFactory.newDocumentBuilder();
+        try {
+            docFactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            final DocumentBuilder documentBuilder = docFactory.newDocumentBuilder();
+            return documentBuilder.parse(inputStream);
+        } catch (final ParserConfigurationException|SAXException e) {
+            throw new IOException("Fingerprint parsing failed", e);
+        }
     }
 
     private User parseUser(final Element element) {

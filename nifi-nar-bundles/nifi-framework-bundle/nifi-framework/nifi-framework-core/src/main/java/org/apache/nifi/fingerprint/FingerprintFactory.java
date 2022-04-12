@@ -26,27 +26,26 @@ import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.SensitiveValueEncoder;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
+import org.xml.sax.ErrorHandler;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -83,7 +82,7 @@ public class FingerprintFactory {
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
     private final PropertyEncryptor encryptor;
-    private final DocumentBuilder flowConfigDocBuilder;
+    private final Schema schema;
     private final ExtensionManager extensionManager;
     private final SensitiveValueEncoder sensitiveValueEncoder;
 
@@ -95,25 +94,11 @@ public class FingerprintFactory {
         this.sensitiveValueEncoder = sensitiveValueEncoder;
 
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final Schema schema;
         try {
             schema = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
-        try {
-            flowConfigDocBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
-            flowConfigDocBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create document builder for flow configuration.", e);
-        }
-    }
-
-    public FingerprintFactory(final PropertyEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
-        this.encryptor = encryptor;
-        this.flowConfigDocBuilder = docBuilder;
-        this.extensionManager = extensionManager;
-        this.sensitiveValueEncoder = sensitiveValueEncoder;
     }
 
     /**
@@ -183,9 +168,15 @@ public class FingerprintFactory {
         }
 
         try {
-            return flowConfigDocBuilder.parse(new ByteArrayInputStream(flow));
-        } catch (final SAXException | IOException ex) {
-            throw new FingerprintException(ex);
+            final ErrorHandler errorHandler = new LoggingXmlParserErrorHandler("Flow Configuration", logger);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setSchema(schema);
+            documentProvider.setNamespaceAware(true);
+            documentProvider.setErrorHandler(errorHandler);
+
+            return documentProvider.parse(new ByteArrayInputStream(flow));
+        } catch (final ProcessingException e) {
+            throw new FingerprintException("Flow Parsing failed", e);
         }
     }
 

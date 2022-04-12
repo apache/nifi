@@ -39,19 +39,22 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.xml.SafeXMLConfiguration;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.validation.StandardSchemaValidator;
+import org.apache.nifi.xml.processing.validation.SchemaValidator;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.Source;
+import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -110,6 +113,10 @@ public class ValidateXml extends AbstractProcessor {
 
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
 
+    private static final SchemaValidator SCHEMA_VALIDATOR = new StandardSchemaValidator();
+
+    private static final XMLStreamReaderProvider READER_PROVIDER = new StandardXMLStreamReaderProvider();
+
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
     private final AtomicReference<Schema> schemaRef = new AtomicReference<>();
@@ -156,41 +163,25 @@ public class ValidateXml extends AbstractProcessor {
             return;
         }
 
-        final Schema schema = schemaRef.get();
-        final Validator validator = schema == null ? null : schema.newValidator();
         final ComponentLog logger = getLogger();
         final boolean attributeContainsXML = context.getProperty(XML_SOURCE_ATTRIBUTE).isSet();
 
         for (FlowFile flowFile : flowFiles) {
             final AtomicBoolean valid = new AtomicBoolean(true);
             final AtomicReference<Exception> exception = new AtomicReference<>(null);
-            SafeXMLConfiguration safeXMLConfiguration = new SafeXMLConfiguration();
-            safeXMLConfiguration.setValidating(false);
 
             try {
-                DocumentBuilder docBuilder = safeXMLConfiguration.createDocumentBuilder();
-
                 if (attributeContainsXML) {
                     // If XML source attribute is set, validate attribute value
                     String xml = flowFile.getAttribute(context.getProperty(XML_SOURCE_ATTRIBUTE).evaluateAttributeExpressions().getValue());
-                    ByteArrayInputStream bais = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
+                    ByteArrayInputStream inputStream = new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8));
 
-                    validate(validator, docBuilder, bais);
+                    validate(inputStream);
                 } else {
                     // If XML source attribute is not set, validate flowfile content
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream in) throws IOException {
-                            try {
-                                validate(validator, docBuilder, in);
-                            } catch (final IllegalArgumentException | SAXException e) {
-                                valid.set(false);
-                                exception.set(e);
-                            }
-                        }
-                    });
+                    session.read(flowFile, inputStream -> validate(inputStream));
                 }
-            } catch (final IllegalArgumentException | SAXException | ParserConfigurationException | IOException e) {
+            } catch (final RuntimeException e) {
                 valid.set(false);
                 exception.set(e);
             }
@@ -218,13 +209,23 @@ public class ValidateXml extends AbstractProcessor {
         }
     }
 
-    private void validate(final Validator validator, final DocumentBuilder docBuilder, final InputStream in) throws IllegalArgumentException, SAXException, IOException {
-        if (validator != null) {
-            // If schema is provided, validator will be non-null
-            validator.validate(new StreamSource(in));
+    private void validate(final InputStream in) {
+        final Schema schema = schemaRef.get();
+        if (schema == null) {
+            // Parse Document without schema validation
+            final XMLStreamReader reader = READER_PROVIDER.getStreamReader(new StreamSource(in));
+            try {
+                while (reader.hasNext()) {
+                    reader.next();
+                }
+            } catch (final XMLStreamException e) {
+                throw new ProcessingException("Reading stream failed", e);
+            }
         } else {
-            // Only verify that the XML is well-formed; no schema check
-            docBuilder.parse(in);
+            final XMLStreamReaderProvider readerProvider = new StandardXMLStreamReaderProvider();
+            final XMLStreamReader reader = readerProvider.getStreamReader(new StreamSource(in));
+            final Source source = new StAXSource(reader);
+            SCHEMA_VALIDATOR.validate(schema, source);
         }
     }
 }

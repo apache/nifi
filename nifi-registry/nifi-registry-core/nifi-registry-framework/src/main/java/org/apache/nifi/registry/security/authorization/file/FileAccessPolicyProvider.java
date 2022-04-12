@@ -37,6 +37,9 @@ import org.apache.nifi.registry.security.exception.SecurityProviderCreationExcep
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
 import org.apache.nifi.registry.security.identity.IdentityMapper;
 import org.apache.nifi.registry.util.PropertyValue;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -51,9 +54,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -95,7 +95,6 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
         }
     }
 
-    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     private static final String POLICY_ELEMENT = "policy";
@@ -336,8 +335,8 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-            final Document document = docBuilder.parse(in);
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             // parse all the policies and add them to the current access policy provider
@@ -346,7 +345,7 @@ public class FileAccessPolicyProvider extends AbstractConfigurableAccessPolicyPr
                 Node policyNode = policyNodes.item(i);
                 policies.add(parsePolicy((Element) policyNode));
             }
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
 

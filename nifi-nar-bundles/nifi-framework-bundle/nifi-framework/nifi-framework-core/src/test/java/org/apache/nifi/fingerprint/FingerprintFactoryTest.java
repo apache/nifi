@@ -33,21 +33,14 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
@@ -55,7 +48,6 @@ import java.util.Collections;
 import java.util.Optional;
 
 import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
-import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -170,12 +162,11 @@ public class FingerprintFactoryTest {
     }
 
     @Test
-    public void testPublicPortWithDifferentFingerprintInAccessPolicies() throws IOException, ParserConfigurationException, SAXException {
+    public void testPublicPortWithDifferentFingerprintInAccessPolicies() throws IOException {
         final String f1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
         assertEquals(2, StringUtils.countMatches(f1, "user1group1"));
 
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml"));
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml");
         final Element rootProcessGroup = document.getDocumentElement();
 
         final StringBuilder sb = new StringBuilder();
@@ -190,9 +181,8 @@ public class FingerprintFactoryTest {
     }
 
     @Test
-    public void testPublicPortWithNoAccessPoliciesFingerprint() throws ParserConfigurationException, IOException, SAXException {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml"));
+    public void testPublicPortWithNoAccessPoliciesFingerprint() throws IOException {
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/public-port-with-no-policies.xml");
         final Element rootProcessGroup = document.getDocumentElement();
 
         final StringBuilder sb = new StringBuilder();
@@ -203,52 +193,21 @@ public class FingerprintFactoryTest {
         assertTrue(fingerprint.contains("NO_GROUP_ACCESS_CONTROL"));
     }
 
-    @Test
-    public void testSchemaValidation() throws IOException {
-        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager, null);
-        fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
+    private Document getDocument(final String filePath) throws IOException {
+        try (final FileInputStream inputStream = new FileInputStream(filePath)) {
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            return documentProvider.parse(inputStream);
+        }
     }
 
     private byte[] getResourceBytes(final String resource) throws IOException {
         return IOUtils.toByteArray(FingerprintFactoryTest.class.getResourceAsStream(resource));
     }
 
-    private DocumentBuilder getValidatingDocumentBuilder() {
-        final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final Schema schema;
-        try {
-            schema = schemaFactory.newSchema(FingerprintFactory.class.getResource(FLOW_CONFIG_XSD));
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
-        }
-        try {
-            DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
-            docBuilder.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void warning(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-
-                @Override
-                public void error(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-
-                @Override
-                public void fatalError(SAXParseException e) throws SAXException {
-                    throw e;
-                }
-            });
-            return docBuilder;
-        } catch (final Exception e) {
-            throw new RuntimeException("Failed to create document builder for flow configuration.", e);
-        }
-    }
-
     private <T> Element serializeElement(final PropertyEncryptor encryptor, final Class<T> componentClass, final T component,
                                          final String serializerMethodName, ScheduledStateLookup scheduledStateLookup) throws Exception {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document doc = docBuilder.newDocument();
+        final DocumentProvider documentProvider = new StandardDocumentProvider();
+        final Document doc = documentProvider.newDocument();
 
         final FlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
         final Method serializeMethod = StandardFlowSerializer.class.getDeclaredMethod(serializerMethodName,
@@ -394,9 +353,8 @@ public class FingerprintFactoryTest {
     }
 
     @Test
-    public void testControllerServicesIncludedInGroupFingerprint() throws ParserConfigurationException, IOException, SAXException {
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document document = docBuilder.parse(new File("src/test/resources/nifi/fingerprint/group-with-controller-services.xml"));
+    public void testControllerServicesIncludedInGroupFingerprint() throws IOException {
+        final Document document = getDocument("src/test/resources/nifi/fingerprint/group-with-controller-services.xml");
         final Element processGroup = document.getDocumentElement();
 
         final StringBuilder sb = new StringBuilder();

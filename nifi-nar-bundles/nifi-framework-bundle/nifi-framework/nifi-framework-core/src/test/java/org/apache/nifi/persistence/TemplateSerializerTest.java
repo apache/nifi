@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.persistence;
 
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.diff.EditList;
 import org.eclipse.jgit.diff.HistogramDiff;
@@ -32,6 +33,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -69,7 +71,8 @@ public class TemplateSerializerTest {
         ByteArrayInputStream in = new ByteArrayInputStream(serTemplate);
         JAXBContext context = JAXBContext.newInstance(TemplateDTO.class);
         Unmarshaller unmarshaller = context.createUnmarshaller();
-        XMLStreamReader xsr = XmlUtils.createSafeReader(in);
+        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+        XMLStreamReader xsr = provider.getStreamReader(new StreamSource(in));
         JAXBElement<TemplateDTO> templateElement = unmarshaller.unmarshal(xsr, TemplateDTO.class);
         TemplateDTO deserTemplate = templateElement.getValue();
 

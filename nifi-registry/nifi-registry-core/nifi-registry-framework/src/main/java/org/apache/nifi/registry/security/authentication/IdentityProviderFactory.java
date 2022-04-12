@@ -27,7 +27,8 @@ import org.apache.nifi.registry.security.authentication.annotation.IdentityProvi
 import org.apache.nifi.registry.security.authentication.generated.IdentityProviders;
 import org.apache.nifi.registry.security.authentication.generated.Property;
 import org.apache.nifi.registry.security.authentication.generated.Provider;
-import org.apache.nifi.registry.security.util.XmlUtils;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -147,7 +148,8 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
                 final Schema schema = schemaFactory.newSchema(IdentityProviders.class.getResource(LOGIN_IDENTITY_PROVIDERS_XSD));
 
                 // attempt to unmarshal
-                XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(loginIdentityProvidersConfigurationFile));
+                final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+                XMLStreamReader xsr = provider.getStreamReader(new StreamSource(loginIdentityProvidersConfigurationFile));
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
                 final JAXBElement<IdentityProviders> element = unmarshaller.unmarshal(xsr, IdentityProviders.class);

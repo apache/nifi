@@ -16,32 +16,30 @@
  */
 package org.apache.nifi.registry.service.extension.docs;
 
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Assert;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 
 public class XmlValidator {
+    private static final String DOCTYPE = "<!DOCTYPE html>";
+
+    private static final String EMPTY = "";
 
     public static void assertXmlValid(String xml) {
+        final String html = xml.replace(DOCTYPE, EMPTY);
         try {
-            final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-            dbf.setNamespaceAware(true);
-            dbf.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
-        } catch (SAXException | IOException | ParserConfigurationException e) {
+            final DocumentProvider provider = new StandardDocumentProvider();
+            provider.parse(new ByteArrayInputStream(html.getBytes(StandardCharsets.UTF_8)));
+        } catch (final ProcessingException e) {
             Assert.fail(e.getMessage());
         }
     }
 
     public static void assertContains(String original, String subword) {
         Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
-    }
-
-    public static void assertNotContains(String original, String subword) {
-        Assert.assertFalse(original + " did contain: " + subword, original.contains(subword));
     }
 }

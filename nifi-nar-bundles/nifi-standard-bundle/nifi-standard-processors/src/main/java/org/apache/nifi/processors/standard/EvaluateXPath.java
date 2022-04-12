@@ -22,11 +22,9 @@ import static javax.xml.xpath.XPathConstants.STRING;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,12 +44,11 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
-import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import javax.xml.xpath.XPathFactoryConfigurationException;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -59,6 +56,9 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.SystemResourceConsiderations;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -76,16 +76,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.xml.sax.EntityResolver;
-import org.xml.sax.InputSource;
+import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.w3c.dom.Document;
 
-import net.sf.saxon.lib.NamespaceConstant;
 import net.sf.saxon.xpath.XPathEvaluator;
-import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
+import net.sf.saxon.xpath.XPathFactoryImpl;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 @EventDriven
 @SideEffectFree
@@ -105,6 +103,9 @@ import org.xml.sax.helpers.XMLReaderFactory;
 @WritesAttribute(attribute = "user-defined", description = "This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
 @DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value = "An XPath expression", description = "If <Destination>='flowfile-attribute' "
         + "then the FlowFile attribute is set to the result of the XPath Expression.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XPath Expression.")
+@SystemResourceConsiderations({
+        @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "Processing requires reading the entire FlowFile into memory")
+})
 public class EvaluateXPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -137,7 +138,7 @@ public class EvaluateXPath extends AbstractProcessor {
             .description("Specifies whether or not the XML content should be validated against the DTD.")
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("true")
+            .defaultValue("false")
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -161,10 +162,6 @@ public class EvaluateXPath extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
 
     private final AtomicReference<XPathFactory> factoryRef = new AtomicReference<>();
-
-    static {
-        System.setProperty("javax.xml.xpath.XPathFactory:" + NamespaceConstant.OBJECT_MODEL_SAXON, "net.sf.saxon.xpath.XPathFactoryImpl");
-    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -215,8 +212,8 @@ public class EvaluateXPath extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void initializeXPathFactory() throws XPathFactoryConfigurationException {
-        factoryRef.set(XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON));
+    public void initializeXPathFactory() {
+        factoryRef.set(new XPathFactoryImpl());
     }
 
     @Override
@@ -231,7 +228,6 @@ public class EvaluateXPath extends AbstractProcessor {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final List<FlowFile> flowFiles = session.get(50);
         if (flowFiles.isEmpty()) {
@@ -239,23 +235,6 @@ public class EvaluateXPath extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
-        final XMLReader xmlReader;
-
-        try {
-            xmlReader = XMLReaderFactory.createXMLReader();
-        } catch (SAXException e) {
-            logger.error("Error while constructing XMLReader {}", new Object[]{e});
-            throw new ProcessException(e.getMessage());
-        }
-
-        if (!context.getProperty(VALIDATE_DTD).asBoolean()) {
-            xmlReader.setEntityResolver(new EntityResolver() {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId) throws SAXException, IOException {
-                    return new InputSource(new StringReader(""));
-                }
-            });
-        }
 
         final XPathFactory factory = factoryRef.get();
         final XPathEvaluator xpathEvaluator = (XPathEvaluator) factory.newXPath();
@@ -272,15 +251,6 @@ public class EvaluateXPath extends AbstractProcessor {
             } catch (XPathExpressionException e) {
                 throw new ProcessException(e);  // should not happen because we've already validated the XPath (in XPathValidator)
             }
-        }
-
-        final XPathExpression slashExpression;
-        try {
-            slashExpression = xpathEvaluator.compile("/");
-        } catch (XPathExpressionException e) {
-            logger.error("unable to compile XPath expression due to {}", new Object[]{e});
-            session.transfer(flowFiles, REL_FAILURE);
-            return;
         }
 
         final String destination = context.getProperty(DESTINATION).getValue();
@@ -306,27 +276,25 @@ public class EvaluateXPath extends AbstractProcessor {
                 throw new IllegalStateException("There are no other return types...");
         }
 
+        final boolean validatingDeclaration = context.getProperty(VALIDATE_DTD).asBoolean();
+
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
             final AtomicReference<Throwable> error = new AtomicReference<>(null);
             final AtomicReference<Source> sourceRef = new AtomicReference<>(null);
 
-            session.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(final InputStream rawIn) throws IOException {
+            try {
+                session.read(flowFile, rawIn -> {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
-                        final List<Source> rootList = (List<Source>) slashExpression.evaluate(new SAXSource(xmlReader,
-                                new InputSource(in)), NODESET);
-                        sourceRef.set(rootList.get(0));
-                    } catch (final Exception e) {
-                        error.set(e);
+                        final StandardDocumentProvider documentProvider = validatingDeclaration
+                                ? new DocumentTypeAllowedDocumentProvider()
+                                : new StandardDocumentProvider();
+                        final Document document = documentProvider.parse(in);
+                        sourceRef.set(new DOMSource(document));
                     }
-                }
-            });
-
-            if (error.get() != null) {
-                logger.error("unable to evaluate XPath against {} due to {}; routing to 'failure'",
-                        new Object[]{flowFile, error.get()});
+                });
+            } catch (final Exception e) {
+                logger.error("Input parsing failed {}", flowFile, e);
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
             }
@@ -334,69 +302,60 @@ public class EvaluateXPath extends AbstractProcessor {
             final Map<String, String> xpathResults = new HashMap<>();
 
             for (final Map.Entry<String, XPathExpression> entry : attributeToXPathMap.entrySet()) {
-                Object result = null;
+                Object result;
                 try {
                     result = entry.getValue().evaluate(sourceRef.get(), returnType);
                     if (result == null) {
                         continue;
                     }
                 } catch (final XPathExpressionException e) {
-                    logger.error("failed to evaluate XPath for {} for Property {} due to {}; routing to failure",
-                            new Object[]{flowFile, entry.getKey(), e});
+                    logger.error("XPath Property [{}] evaluation on {} failed", flowFile, entry.getKey(), e);
                     session.transfer(flowFile, REL_FAILURE);
                     continue flowFileLoop;
                 }
 
                 if (returnType == NODESET) {
-                    List<Source> nodeList = (List<Source>) result;
-                    if (nodeList.isEmpty()) {
-                        logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
+                    final NodeList nodeList = (NodeList) result;
+                    if (nodeList.getLength() == 0) {
+                        logger.info("XPath evaluation on {} produced no results", flowFile);
                         session.transfer(flowFile, REL_NO_MATCH);
                         continue flowFileLoop;
-                    } else if (nodeList.size() > 1) {
-                        logger.error("Routing {} to 'failure' because the XPath evaluated to {} XML nodes",
-                                new Object[]{flowFile, nodeList.size()});
+                    } else if (nodeList.getLength() > 1) {
+                        logger.error("XPath evaluation on {} produced unexpected results [{}]", flowFile, nodeList.getLength());
                         session.transfer(flowFile, REL_FAILURE);
                         continue flowFileLoop;
                     }
-                    final Source sourceNode = nodeList.get(0);
+                    final Node firstNode = nodeList.item(0);
+                    final Source sourceNode = new DOMSource(firstNode);
 
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
                         try {
                             ByteArrayOutputStream baos = new ByteArrayOutputStream();
                             doTransform(sourceNode, baos);
-                            xpathResults.put(entry.getKey(), baos.toString("UTF-8"));
-                        } catch (UnsupportedEncodingException e) {
-                            throw new ProcessException(e);
+                            xpathResults.put(entry.getKey(), new String(baos.toByteArray(), StandardCharsets.UTF_8));
                         } catch (TransformerException e) {
                             error.set(e);
                         }
 
                     } else if (DESTINATION_CONTENT.equals(destination)) {
-                        flowFile = session.write(flowFile, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream rawOut) throws IOException {
-                                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                    doTransform(sourceNode, out);
-                                } catch (TransformerException e) {
-                                    error.set(e);
-                                }
+                        flowFile = session.write(flowFile, rawOut -> {
+                            try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                                doTransform(sourceNode, out);
+                            } catch (TransformerException e) {
+                                error.set(e);
                             }
                         });
                     }
 
-                } else if (returnType == STRING) {
+                } else {
                     final String resultString = (String) result;
 
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
                         xpathResults.put(entry.getKey(), resultString);
                     } else if (DESTINATION_CONTENT.equals(destination)) {
-                        flowFile = session.write(flowFile, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream rawOut) throws IOException {
-                                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                    out.write(resultString.getBytes("UTF-8"));
-                                }
+                        flowFile = session.write(flowFile, rawOut -> {
+                            try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                                out.write(resultString.getBytes(StandardCharsets.UTF_8));
                             }
                         });
                     }
@@ -407,18 +366,16 @@ public class EvaluateXPath extends AbstractProcessor {
                 if (DESTINATION_ATTRIBUTE.equals(destination)) {
                     flowFile = session.putAllAttributes(flowFile, xpathResults);
                     final Relationship destRel = xpathResults.isEmpty() ? REL_NO_MATCH : REL_MATCH;
-                    logger.info("Successfully evaluated XPaths against {} and found {} matches; routing to {}",
-                            new Object[]{flowFile, xpathResults.size(), destRel.getName()});
+                    logger.info("XPath evaluation on {} completed with results [{}]: content updated", flowFile, xpathResults.size());
                     session.transfer(flowFile, destRel);
                     session.getProvenanceReporter().modifyAttributes(flowFile);
                 } else if (DESTINATION_CONTENT.equals(destination)) {
-                    logger.info("Successfully updated content for {}; routing to 'matched'", new Object[]{flowFile});
+                    logger.info("XPath evaluation on {} completed: content updated", flowFile);
                     session.transfer(flowFile, REL_MATCH);
                     session.getProvenanceReporter().modifyContent(flowFile);
                 }
             } else {
-                logger.error("Failed to write XPath result for {} due to {}; routing original to 'failure'",
-                        new Object[]{flowFile, error.get()});
+                logger.error("XPath evaluation on {} failed", flowFile, error.get());
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
@@ -443,19 +400,19 @@ public class EvaluateXPath extends AbstractProcessor {
         final AtomicReference<TransformerException> error = new AtomicReference<>(null);
         transformer.setErrorListener(new ErrorListener() {
             @Override
-            public void warning(final TransformerException exception) throws TransformerException {
-                logger.warn("Encountered warning from XPath Engine: ", new Object[]{exception.toString(), exception});
+            public void warning(final TransformerException exception) {
+                logger.warn("Encountered warning from XPath Engine", exception);
             }
 
             @Override
-            public void error(final TransformerException exception) throws TransformerException {
-                logger.error("Encountered error from XPath Engine: ", new Object[]{exception.toString(), exception});
+            public void error(final TransformerException exception) {
+                logger.error("Encountered error from XPath Engine", exception);
                 error.set(exception);
             }
 
             @Override
-            public void fatalError(final TransformerException exception) throws TransformerException {
-                logger.error("Encountered warning from XPath Engine: ", new Object[]{exception.toString(), exception});
+            public void fatalError(final TransformerException exception) {
+                logger.error("Encountered warning from XPath Engine", exception);
                 error.set(exception);
             }
         });
@@ -471,7 +428,7 @@ public class EvaluateXPath extends AbstractProcessor {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
             try {
-                XPathFactory factory = XPathFactory.newInstance(NamespaceConstant.OBJECT_MODEL_SAXON);
+                XPathFactory factory = new XPathFactoryImpl();
                 final XPathEvaluator evaluator = (XPathEvaluator) factory.newXPath();
 
                 String error = null;
@@ -484,7 +441,7 @@ public class EvaluateXPath extends AbstractProcessor {
                 return new ValidationResult.Builder().input(input).subject(subject).valid(error == null).explanation(error).build();
             } catch (final Exception e) {
                 return new ValidationResult.Builder().input(input).subject(subject).valid(false)
-                        .explanation("Unable to initialize XPath engine due to " + e.toString()).build();
+                        .explanation("Unable to initialize XPath engine due to " + e).build();
             }
         }
     }

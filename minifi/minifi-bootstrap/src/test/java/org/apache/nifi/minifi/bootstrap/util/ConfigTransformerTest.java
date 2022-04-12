@@ -34,6 +34,8 @@ import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,9 +44,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -55,7 +54,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringBufferInputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
@@ -80,15 +78,14 @@ public class ConfigTransformerTest {
             Arrays.asList("processor", "inputPort", "outputPort", "funnel", "processGroup", "remoteProcessGroup", "connection"));
     private XPathFactory xPathFactory;
     private Element config;
-    private DocumentBuilder documentBuilder;
 
     @Rule
     final public TemporaryFolder tempOutputFolder = new TemporaryFolder();
 
     @Before
-    public void setup() throws ParserConfigurationException {
-        documentBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        final Document document = documentBuilder.newDocument();
+    public void setup() {
+        final DocumentProvider documentProvider = new StandardDocumentProvider();
+        final Document document = documentProvider.newDocument();
         config = document.createElement("config");
         xPathFactory = XPathFactory.newInstance();
     }
@@ -484,11 +481,11 @@ public class ConfigTransformerTest {
         assertTrue(flowXml.exists());
         assertTrue(flowXml.canRead());
 
-        String flow = loadFlowXML(new FileInputStream(flowXml));
-
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        DocumentBuilder db = dbf.newDocumentBuilder();
-        Document xml = db.parse(new StringBufferInputStream(flow));
+        final DocumentProvider documentProvider = new StandardDocumentProvider();
+        final Document xml;
+        try (final InputStream inputStream = new GZIPInputStream(new FileInputStream(flowXml))) {
+            xml = documentProvider.parse(inputStream);
+        }
 
         XPath xPath = XPathFactory.newInstance().newXPath();
         String result = xPath.evaluate("/flowController/rootGroup/processor/property[name = \"SSL Context Service\"]/value/text()", xml);
@@ -504,7 +501,8 @@ public class ConfigTransformerTest {
 
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         ConfigTransformer.writeFlowXmlFile(configSchema, outputStream);
-        Document document = documentBuilder.parse(new ByteArrayInputStream(outputStream.toByteArray()));
+        final DocumentProvider documentProvider = new StandardDocumentProvider();
+        Document document = documentProvider.parse(new ByteArrayInputStream(outputStream.toByteArray()));
 
         testProcessGroup((Element) xPathFactory.newXPath().evaluate("flowController/rootGroup", document, XPathConstants.NODE), configSchema.getProcessGroupSchema());
         testReportingTasks((Element) xPathFactory.newXPath().evaluate("flowController/reportingTasks", document, XPathConstants.NODE), configSchema.getReportingTasksSchema());
@@ -785,18 +783,5 @@ public class ConfigTransformerTest {
             bootstrapProperties.load(fis);
         }
         return bootstrapProperties;
-    }
-
-    public static String loadFlowXML(InputStream compressedData) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        GZIPInputStream gzipInputStream = new GZIPInputStream(compressedData);
-
-        byte[] buffer = new byte[1024];
-        int len;
-        while ((len = gzipInputStream.read(buffer)) != -1) {
-            byteArrayOutputStream.write(buffer, 0, len);
-        }
-
-        return byteArrayOutputStream.toString();
     }
 }

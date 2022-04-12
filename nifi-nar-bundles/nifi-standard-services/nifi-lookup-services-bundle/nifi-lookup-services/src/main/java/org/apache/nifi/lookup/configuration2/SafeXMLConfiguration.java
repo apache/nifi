@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.xml;
+package org.apache.nifi.lookup.configuration2;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -45,7 +46,7 @@ public class SafeXMLConfiguration extends XMLConfiguration {
     private static final String W3C_XML_SCHEMA =
             "http://www.w3.org/2001/XMLSchema";
 
-    // These features are used to disable processing external entities in the DocumentBuilderFactory to protect against XXE attacks
+    // These features are used to disable processing external entities to protect against XXE attacks
     private static final String DISALLOW_DOCTYPES = "http://apache.org/xml/features/disallow-doctype-decl";
     private static final String ALLOW_EXTERNAL_GENERAL_ENTITIES = "http://xml.org/sax/features/external-general-entities";
     private static final String ALLOW_EXTERNAL_PARAM_ENTITIES = "http://xml.org/sax/features/external-parameter-entities";
@@ -90,6 +91,7 @@ public class SafeXMLConfiguration extends XMLConfiguration {
         }
 
         // Disable DTDs and external entities to protect against XXE
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         factory.setAttribute(DISALLOW_DOCTYPES, true);
         factory.setAttribute(ALLOW_EXTERNAL_GENERAL_ENTITIES, false);
         factory.setAttribute(ALLOW_EXTERNAL_PARAM_ENTITIES, false);

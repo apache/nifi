@@ -39,6 +39,9 @@ import org.apache.nifi.registry.security.authorization.exception.AuthorizationAc
 import org.apache.nifi.registry.security.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.util.PropertyValue;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
 import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
@@ -52,11 +55,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -79,8 +78,6 @@ import java.util.WeakHashMap;
 public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor {
 
     private static final Logger logger = LoggerFactory.getLogger(RangerAuthorizer.class);
-
-    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
 
     private static final String USER_GROUP_PROVIDER_ELEMENT = "userGroupProvider";
 
@@ -326,8 +323,8 @@ public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor
         final StringWriter out = new StringWriter();
         try {
             // create the document
-            final DocumentBuilder documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-            final Document document = documentBuilder.newDocument();
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.newDocument();
 
             // create the root element
             final Element managedRangerAuthorizationsElement = document.createElement("managedRangerAuthorizations");
@@ -344,7 +341,7 @@ public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor
 
             final Transformer transformer = TransformerFactory.newInstance().newTransformer();
             transformer.transform(new DOMSource(document), new StreamResult(out));
-        } catch (ParserConfigurationException | TransformerException e) {
+        } catch (final ProcessingException | TransformerException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         }
 
@@ -355,8 +352,8 @@ public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-            final Document document = docBuilder.parse(in);
+            final DocumentProvider documentProvider = new  StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             final NodeList userGroupProviderList = rootElement.getElementsByTagName(USER_GROUP_PROVIDER_ELEMENT);
@@ -366,7 +363,7 @@ public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor
 
             final Node userGroupProvider = userGroupProviderList.item(0);
             return userGroupProvider.getTextContent();
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
     }

@@ -28,10 +28,10 @@ import org.apache.nifi.processors.evtx.parser.FileHeaderFactory;
 import org.apache.nifi.processors.evtx.parser.MalformedChunkException;
 import org.apache.nifi.processors.evtx.parser.Record;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,11 +43,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLStreamException;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -59,8 +56,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -159,7 +156,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void testProcessFileGranularity() throws IOException, MalformedChunkException, XMLStreamException {
+    public void testProcessFileGranularity() throws IOException, MalformedChunkException {
         String basename = "basename";
         int chunkNum = 5;
         int offset = 10001;
@@ -203,7 +200,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void testProcessChunkGranularity() throws IOException, MalformedChunkException, XMLStreamException {
+    public void testProcessChunkGranularity() throws IOException, MalformedChunkException {
         String basename = "basename";
         int chunkNum = 5;
         int offset = 10001;
@@ -266,7 +263,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void testProcess1RecordGranularity() throws IOException, MalformedChunkException, XMLStreamException {
+    public void testProcess1RecordGranularity() throws IOException, MalformedChunkException {
         String basename = "basename";
         int chunkNum = 5;
         int offset = 10001;
@@ -340,7 +337,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void fileGranularityLifecycleTest() throws IOException, ParserConfigurationException, SAXException {
+    public void fileGranularityLifecycleTest() throws IOException {
         String baseName = "testFileName";
         String name = baseName + ".evtx";
         TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
@@ -374,7 +371,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void chunkGranularityLifecycleTest() throws IOException, ParserConfigurationException, SAXException {
+    public void chunkGranularityLifecycleTest() throws IOException {
         String baseName = "testFileName";
         String name = baseName + ".evtx";
         TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
@@ -406,7 +403,7 @@ public class ParseEvtxTest {
     }
 
     @Test
-    public void recordGranularityLifecycleTest() throws IOException, ParserConfigurationException, SAXException {
+    public void recordGranularityLifecycleTest() throws IOException {
         String baseName = "testFileName";
         String name = baseName + ".evtx";
         TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
@@ -471,12 +468,13 @@ public class ParseEvtxTest {
         testRunner.assertTransferCount(ParseEvtx.REL_SUCCESS, expectedCount);
     }
 
-    private int validateFlowFiles(List<MockFlowFile> successFlowFiles) throws SAXException, IOException, ParserConfigurationException {
+    private int validateFlowFiles(List<MockFlowFile> successFlowFiles) {
         assertTrue(successFlowFiles.size() > 0);
         int totalSize = 0;
         for (MockFlowFile successFlowFile : successFlowFiles) {
             // Verify valid XML output
-            Document document = XmlUtils.createSafeDocumentBuilder(false).parse(new ByteArrayInputStream(successFlowFile.toByteArray()));
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            Document document = documentProvider.parse(successFlowFile.getContentStream());
             Element documentElement = document.getDocumentElement();
             assertEquals(XmlRootNodeHandler.EVENTS, documentElement.getTagName());
             NodeList eventNodes = documentElement.getChildNodes();

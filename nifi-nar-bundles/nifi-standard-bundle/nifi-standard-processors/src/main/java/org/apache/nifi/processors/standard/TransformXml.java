@@ -48,11 +48,12 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 import javax.xml.XMLConstants;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
@@ -363,10 +364,11 @@ public class TransformXml extends AbstractProcessor {
     }
 
     private Source getSecureSource(final StreamSource streamSource) throws TransformerConfigurationException {
+        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
         try {
-            final XMLStreamReader streamReader = XmlUtils.createSafeReader(streamSource);
+            final XMLStreamReader streamReader = provider.getStreamReader(streamSource);
             return new StAXSource(streamReader);
-        } catch (final XMLStreamException e) {
+        } catch (final ProcessingException e) {
             throw new TransformerConfigurationException("XSLT Source Stream Reader creation failed", e);
         }
     }

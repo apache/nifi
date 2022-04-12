@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
@@ -45,12 +43,12 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements ManagedAuthorizer {
     private static final String USER_GROUP_PROVIDER_ELEMENT = "userGroupProvider";
@@ -128,8 +126,8 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
         final StringWriter out = new StringWriter();
         try {
             // create the document
-            final DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(false);
-            final Document document = documentBuilder.newDocument();
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.newDocument();
 
             // create the root element
             final Element managedRangerAuthorizationsElement = document.createElement("managedRangerAuthorizations");
@@ -146,7 +144,7 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
 
             final Transformer transformer = TransformerFactory.newInstance().newTransformer();
             transformer.transform(new DOMSource(document), new StreamResult(out));
-        } catch (ParserConfigurationException | TransformerException e) {
+        } catch (final ProcessingException | TransformerException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         }
 
@@ -192,8 +190,8 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-            final Document document = docBuilder.parse(in);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             final NodeList userGroupProviderList = rootElement.getElementsByTagName(USER_GROUP_PROVIDER_ELEMENT);
@@ -203,7 +201,7 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
 
             final Node userGroupProvider = userGroupProviderList.item(0);
             return userGroupProvider.getTextContent();
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
     }

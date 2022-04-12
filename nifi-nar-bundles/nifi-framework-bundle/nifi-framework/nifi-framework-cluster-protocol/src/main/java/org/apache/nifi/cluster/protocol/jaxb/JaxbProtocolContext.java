@@ -19,14 +19,16 @@ package org.apache.nifi.cluster.protocol.jaxb;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -137,10 +139,11 @@ public class JaxbProtocolContext<T> implements ProtocolContext {
                     final Unmarshaller unmarshaller = jaxbCtx.createUnmarshaller();
                     final byte[] msg = new byte[totalBytesRead];
                     buffer.get(msg);
-                    final XMLStreamReader xsr = XmlUtils.createSafeReader(new ByteArrayInputStream(msg));
+                    final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+                    final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(msg)));
                     return (T) unmarshaller.unmarshal(xsr);
 
-                } catch (final JAXBException | XMLStreamException e) {
+                } catch (final JAXBException | ProcessingException e) {
                     throw new IOException("Failed unmarshalling protocol message due to: " + e, e);
                 }
 
