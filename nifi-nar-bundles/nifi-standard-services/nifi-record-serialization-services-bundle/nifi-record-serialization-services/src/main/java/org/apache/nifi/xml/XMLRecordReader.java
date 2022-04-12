@@ -339,8 +339,8 @@ public class XMLRecordReader implements RecordReader {
                 if (contentFieldName != null) {
                     recordValues.put(contentFieldName, content.toString());
                 } else {
-                    logger.debug("Found content for field that has to be parsed as record but property \"Field Name for Content\" is not set. " +
-                            "The content will not be added to the record.");
+                    logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
+                            "the property was not set. The content was not added to the record.");
                 }
 
                 return new MapRecord(new SimpleRecordSchema(Collections.emptyList()), recordValues);
@@ -486,10 +486,13 @@ public class XMLRecordReader implements RecordReader {
                 if (field.isPresent()) {
                     Object value = parseStringForType(content.toString(), contentFieldName, field.get().getDataType());
                     recordValues.put(contentFieldName, value);
+                } else {
+                    logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property " +
+                            "but no such field was present in the schema. The content was not added to the record.");
                 }
             } else {
-                logger.debug("Found content for field that is defined as record but property \"Field Name for Content\" is not set. " +
-                        "The content will not be added to record.");
+                logger.debug("Found content for a field that was supposed to be named with the value of the \"Field Name for Content\" property but " +
+                        "the property was not set. The content was not added to the record.");
             }
         }
 

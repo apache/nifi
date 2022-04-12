@@ -218,6 +218,7 @@
                         <exclude>src/test/resources/syslog/syslog5424/log_mix.txt</exclude>
                         <exclude>src/test/resources/syslog/syslog5424/log_mix_in_error.txt</exclude>
                         <exclude>src/test/resources/text/testschema</exclude>
+                        <exclude>src/test/resources/xml/field_with_sub-element.xml</exclude>
                         <exclude>src/test/resources/xml/people.xml</exclude>
                         <exclude>src/test/resources/xml/people2.xml</exclude>
                         <exclude>src/test/resources/xml/people3.xml</exclude>
@@ -236,6 +237,7 @@
                         <exclude>src/test/resources/xml/people_tag_in_characters.xml</exclude>
                         <exclude>src/test/resources/xml/people_with_header_and_comments.xml</exclude>
                         <exclude>src/test/resources/xml/person.xml</exclude>
+                        <exclude>src/test/resources/xml/person_record.xml</exclude>
                         <exclude>src/test/resources/xml/testschema</exclude>
                         <exclude>src/test/resources/xml/testschema2</exclude>
                         <exclude>src/test/resources/xml/testschema3</exclude>

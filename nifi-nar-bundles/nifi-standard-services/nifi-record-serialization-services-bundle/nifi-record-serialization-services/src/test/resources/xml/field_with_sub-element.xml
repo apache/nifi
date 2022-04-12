@@ -1,0 +1,4 @@
+<record>
+    <field_with_attribute attr="attr_content">content of field<value>123</value>
+    </field_with_attribute>
+</record>
