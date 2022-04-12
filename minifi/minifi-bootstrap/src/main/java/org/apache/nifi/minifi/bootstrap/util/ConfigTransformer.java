@@ -46,15 +46,14 @@ import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -148,7 +147,7 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static void writeFlowXmlFile(ConfigSchema configSchema, OutputStream outputStream) throws TransformerException, ConfigTransformerException, ConfigurationChangeException, IOException {
+    protected static void writeFlowXmlFile(ConfigSchema configSchema, OutputStream outputStream) throws TransformerException, ConfigTransformerException {
         final StreamResult streamResult = new StreamResult(outputStream);
 
         // configure the transformer and convert the DOM
@@ -307,14 +306,12 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static DOMSource createFlowXml(ConfigSchema configSchema) throws IOException, ConfigurationChangeException, ConfigTransformerException {
+    protected static DOMSource createFlowXml(ConfigSchema configSchema) throws ConfigTransformerException {
         try {
             // create a new, empty document
-            final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            docFactory.setNamespaceAware(true);
-
-            final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            final Document doc = docBuilder.newDocument();
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
+            final Document doc = documentProvider.newDocument();
 
             // populate document with controller state
             final Element rootNode = doc.createElement("flowController");
@@ -365,7 +362,7 @@ public final class ConfigTransformer {
             }
 
             return new DOMSource(doc);
-        } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
+        } catch (final ProcessingException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
             throw new ConfigTransformerException(e);
         } catch (Exception e) {
             throw new ConfigTransformerException("Failed to parse the config YAML while writing the top level of the flow xml", e);

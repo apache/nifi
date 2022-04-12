@@ -36,7 +36,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.xml.XXEValidator;
 
 import java.io.File;
 import java.lang.reflect.ParameterizedType;

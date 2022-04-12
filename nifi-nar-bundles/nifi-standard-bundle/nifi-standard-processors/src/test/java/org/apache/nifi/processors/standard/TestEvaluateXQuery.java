@@ -16,15 +16,18 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,13 +35,12 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import javax.xml.transform.OutputKeys;
-import javax.xml.xpath.XPathFactoryConfigurationException;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TestEvaluateXQuery {
 
@@ -52,16 +54,15 @@ public class TestEvaluateXQuery {
     private static final boolean[] booleans = {true, false};
 
     @Test
-    public void testSetTransformerProperties() throws Exception {
-
-        for (int i = 0; i < methods.length; i++) {
-            for (int j = 0; j < booleans.length; j++) {
-                for (int k = 0; k < booleans.length; k++) {
-                    Properties props = EvaluateXQuery.getTransformerProperties(methods[i], booleans[j], booleans[k]);
+    public void testSetTransformerProperties() {
+        for (final String method : methods) {
+            for (final boolean indent : booleans) {
+                for (final boolean omitDeclaration : booleans) {
+                    Properties props = EvaluateXQuery.getTransformerProperties(method, indent, omitDeclaration);
                     assertEquals(3, props.size());
-                    assertEquals(methods[i], props.getProperty(OutputKeys.METHOD));
-                    assertEquals(booleans[j] ? "yes" : "no", props.getProperty(OutputKeys.INDENT));
-                    assertEquals(booleans[k] ? "yes" : "no", props.getProperty(OutputKeys.OMIT_XML_DECLARATION));
+                    assertEquals(method, props.getProperty(OutputKeys.METHOD));
+                    assertEquals(indent ? "yes" : "no", props.getProperty(OutputKeys.INDENT));
+                    assertEquals(omitDeclaration ? "yes" : "no", props.getProperty(OutputKeys.OMIT_XML_DECLARATION));
                 }
             }
         }
@@ -75,20 +76,20 @@ public class TestEvaluateXQuery {
         final String singleElementNodeQuery = "//fruit[1]";
         final String singleTextNodeQuery = "//fruit[1]/name/text()";
 
-        for (int i = 0; i < methods.length; i++) {
-            for (int j = 0; j < booleans.length; j++) {
-                for (int k = 0; k < booleans.length; k++) {
-                    formattedResults = getFormattedResult(XML_SNIPPET, atomicQuery, methods[i], booleans[j], booleans[k]);
+        for (final String method : methods) {
+            for (final boolean indent : booleans) {
+                for (final boolean omitDeclaration : booleans) {
+                    formattedResults = getFormattedResult(XML_SNIPPET, atomicQuery, method, indent, omitDeclaration);
                     assertEquals(1, formattedResults.size());
                     assertEquals("7", formattedResults.get(0));
                 }
             }
         }
 
-        for (int i = 0; i < methods.length; i++) {
-            for (int j = 0; j < booleans.length; j++) {
-                for (int k = 0; k < booleans.length; k++) {
-                    formattedResults = getFormattedResult(XML_SNIPPET, singleTextNodeQuery, methods[i], booleans[j], booleans[k]);
+        for (final String method : methods) {
+            for (final boolean indent : booleans) {
+                for (final boolean omitDeclaration : booleans) {
+                    formattedResults = getFormattedResult(XML_SNIPPET, singleTextNodeQuery, method, indent, omitDeclaration);
                     assertEquals(1, formattedResults.size());
                     assertEquals("apple", formattedResults.get(0));
                 }
@@ -161,7 +162,6 @@ public class TestEvaluateXQuery {
         List<MockFlowFile> resultFlowFiles;
         List<String> resultStrings = new ArrayList<>();
 
-        runnerProps.clear();
         runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_CONTENT);
         runnerProps.put(EvaluateXQuery.XML_OUTPUT_METHOD.getName(), method);
         runnerProps.put(EvaluateXQuery.XML_OUTPUT_INDENT.getName(), Boolean.toString(indent));
@@ -169,45 +169,44 @@ public class TestEvaluateXQuery {
         runnerProps.put("xquery", xQuery);
         resultFlowFiles = runXquery(xml, runnerProps);
 
-        for (int i = 0; i < resultFlowFiles.size(); i++) {
-            final MockFlowFile out = resultFlowFiles.get(i);
-            final byte[] outData = out.toByteArray();
-            final String outXml = new String(outData, "UTF-8");
+        for (final MockFlowFile flowFile : resultFlowFiles) {
+            final byte[] outData = flowFile.toByteArray();
+            final String outXml = new String(outData, StandardCharsets.UTF_8);
             resultStrings.add(outXml);
         }
 
         return resultStrings;
     }
 
-    @Test(expected = java.lang.AssertionError.class)
-    public void testBadXQuery() throws Exception {
-        doXqueryTest(XML_SNIPPET, "counttttttt(*:fruitbasket/fruit)", Arrays.asList("7"));
+    @Test
+    public void testBadXQuery() {
+        assertThrows(AssertionError.class, () -> doXqueryTest(XML_SNIPPET, "counttttttt(*:fruitbasket/fruit)", Collections.singletonList("7")));
     }
 
     @Test
     public void testXQueries() throws Exception {
 
         /* count matches */
-        doXqueryTest(XML_SNIPPET, "count(*:fruitbasket/fruit)", Arrays.asList("7"));
-        doXqueryTest(XML_SNIPPET, "count(//fruit)", Arrays.asList("7"));
+        doXqueryTest(XML_SNIPPET, "count(*:fruitbasket/fruit)", Collections.singletonList("7"));
+        doXqueryTest(XML_SNIPPET, "count(//fruit)", Collections.singletonList("7"));
 
         /* Using a namespace */
-        doXqueryTest(XML_SNIPPET, "declare namespace fb = \"http://namespace/1\"; count(fb:fruitbasket/fruit)", Arrays.asList("7"));
+        doXqueryTest(XML_SNIPPET, "declare namespace fb = \"http://namespace/1\"; count(fb:fruitbasket/fruit)", Collections.singletonList("7"));
 
         /* determine if node exists */
-        doXqueryTest(XML_SNIPPET, "boolean(//fruit[1])", Arrays.asList("true"));
-        doXqueryTest(XML_SNIPPET, "boolean(//fruit[100])", Arrays.asList("false"));
+        doXqueryTest(XML_SNIPPET, "boolean(//fruit[1])", Collections.singletonList("true"));
+        doXqueryTest(XML_SNIPPET, "boolean(//fruit[100])", Collections.singletonList("false"));
 
         /* XML first match */
-        doXqueryTest(XML_SNIPPET, "//fruit[1]", Arrays.asList(
+        doXqueryTest(XML_SNIPPET, "//fruit[1]", Collections.singletonList(
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\" taste=\"crisp\"><!-- Apples are my favorite --><name>apple</name><color>red</color></fruit>"));
 
         /* XML last match */
-        doXqueryTest(XML_SNIPPET, "//fruit[count(//fruit)]", Arrays.asList(
+        doXqueryTest(XML_SNIPPET, "//fruit[count(//fruit)]", Collections.singletonList(
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\"><name>none</name><color/></fruit>"));
 
         /* XML first match wrapped */
-        doXqueryTest(XML_SNIPPET, "<wrap>{//fruit[1]}</wrap>", Arrays.asList(
+        doXqueryTest(XML_SNIPPET, "<wrap>{//fruit[1]}</wrap>", Collections.singletonList(
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><wrap><fruit xmlns:ns=\"http://namespace/1\" taste=\"crisp\"><!-- Apples are my favorite --><name>apple</name><color>red</color></fruit></wrap>"));
 
         /* XML all matches (multiple results) */
@@ -221,7 +220,7 @@ public class TestEvaluateXQuery {
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?><fruit xmlns:ns=\"http://namespace/1\"><name>none</name><color/></fruit>"));
 
         /* XML all matches wrapped (one result)*/
-        doXqueryTest(XML_SNIPPET, "<wrap>{//fruit}</wrap>", Arrays.asList(
+        doXqueryTest(XML_SNIPPET, "<wrap>{//fruit}</wrap>", Collections.singletonList(
                 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
                 + "<wrap>"
                 + "<fruit xmlns:ns=\"http://namespace/1\" taste=\"crisp\"><!-- Apples are my favorite --><name>apple</name><color>red</color></fruit>"
@@ -237,18 +236,18 @@ public class TestEvaluateXQuery {
         doXqueryTest(XML_SNIPPET, "for $x in //fruit return $x/name/text()", Arrays.asList(fruitNames));
 
         /* String first match fruit name (XPath)*/
-        doXqueryTest(XML_SNIPPET, "//fruit[1]/name/text()", Arrays.asList("apple"));
+        doXqueryTest(XML_SNIPPET, "//fruit[1]/name/text()", Collections.singletonList("apple"));
 
         /* String first match fruit color (XPath)*/
-        doXqueryTest(XML_SNIPPET, "//fruit[1]/color/text()", Arrays.asList("red"));
+        doXqueryTest(XML_SNIPPET, "//fruit[1]/color/text()", Collections.singletonList("red"));
 
         /* String first match fruit name (XQuery)*/
         doXqueryTest(XML_SNIPPET, "for $x in //fruit[1] return string-join(($x/name/text() , $x/color/text()), ' - ')",
-                Arrays.asList("apple - red"));
+                Collections.singletonList("apple - red"));
 
         /* String first match fruit & color (one result)*/
         doXqueryTest(XML_SNIPPET, "for $x in //fruit[1] return string-join(($x/name/text() , $x/color/text()), ' - ')",
-                Arrays.asList("apple - red"));
+                Collections.singletonList("apple - red"));
 
         /* String all matches fruit & color (multiple results)*/
         doXqueryTest(XML_SNIPPET, "for $x in //fruit return string-join(($x/name/text() , $x/color/text()), ' - ')",
@@ -263,7 +262,7 @@ public class TestEvaluateXQuery {
 
         /* String all matches fruit & color (single, newline delimited result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit return string-join(($x/name/text() , $x/color/text()), ' - ')) return $y), '\n')",
-                Arrays.asList(
+                Collections.singletonList(
                         "apple - red\n"
                         + "apple - green\n"
                         + "banana - yellow\n"
@@ -274,7 +273,7 @@ public class TestEvaluateXQuery {
 
         /* String all matches fruit & color using "let" (single, newline delimited result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit let $d := string-join(($x/name/text() , $x/color/text()), ' - ')  return $d) return $y), '\n')",
-                Arrays.asList(
+                Collections.singletonList(
                         "apple - red\n"
                         + "apple - green\n"
                         + "banana - yellow\n"
@@ -285,25 +284,25 @@ public class TestEvaluateXQuery {
 
         /* String all matches name only, comma delimited (one result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $x in //fruit return $x/name/text()), ', ')",
-                Arrays.asList("apple, apple, banana, orange, blueberry, raspberry, none"));
+                Collections.singletonList("apple, apple, banana, orange, blueberry, raspberry, none"));
 
         /* String all matches color and name, comma delimited (one result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit return string-join(($x/color/text() , $x/name/text()), ' ')) return $y), ', ')",
-                Arrays.asList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
+                Collections.singletonList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
 
         /* String all matches color and name, comma delimited using let(one result)*/
         doXqueryTest(XML_SNIPPET, "string-join((for $y in (for $x in //fruit let $d := string-join(($x/color/text() , $x/name/text()), ' ')  return $d) return $y), ', ')",
-                Arrays.asList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
+                Collections.singletonList("red apple, green apple, yellow banana, orange orange, blue blueberry, red raspberry, none"));
 
 
         /* Query for attribute */
-        doXqueryTest(XML_SNIPPET, "string(//fruit[1]/@taste)", Arrays.asList("crisp"));
+        doXqueryTest(XML_SNIPPET, "string(//fruit[1]/@taste)", Collections.singletonList("crisp"));
 
         /* Query for comment */
-        doXqueryTest(XML_SNIPPET, "//fruit/comment()", Arrays.asList(" Apples are my favorite "));
+        doXqueryTest(XML_SNIPPET, "//fruit/comment()", Collections.singletonList(" Apples are my favorite "));
 
         /* Query for processing instruction */
-        doXqueryTest(XML_SNIPPET, "//processing-instruction()[name()='xml-stylesheet']", Arrays.asList("type=\"text/xsl\" href=\"foo.xsl\""));
+        doXqueryTest(XML_SNIPPET, "//processing-instruction()[name()='xml-stylesheet']", Collections.singletonList("type=\"text/xsl\" href=\"foo.xsl\""));
 
     }
 
@@ -313,50 +312,44 @@ public class TestEvaluateXQuery {
         List<MockFlowFile> resultFlowFiles;
 
         // test read from content, write to attribute
-        {
-            runnerProps.clear();
-            runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_ATTRIBUTE);
-            runnerProps.put("xquery", xQuery);
-            resultFlowFiles = runXquery(xml, runnerProps);
+        runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_ATTRIBUTE);
+        runnerProps.put("xquery", xQuery);
+        resultFlowFiles = runXquery(xml, runnerProps);
 
-            assertEquals(1, resultFlowFiles.size());
+        assertEquals(1, resultFlowFiles.size());
 
-            final MockFlowFile out = resultFlowFiles.get(0);
+        final MockFlowFile out = resultFlowFiles.get(0);
 
-            for (int i = 0; i < expectedResults.size(); i++) {
-                String key = "xquery";
-                if (expectedResults.size() > 1) {
-                    key += "." + ((int) i + 1);
-                }
-                final String actual = out.getAttribute(key).replaceAll(">\\s+<", "><");
-                final String expected = expectedResults.get(i).replaceAll(">\\s+<", "><");
-                assertEquals(expected, actual);
+        for (int i = 0; i < expectedResults.size(); i++) {
+            String key = "xquery";
+            if (expectedResults.size() > 1) {
+                key += "." + (i + 1);
             }
+            final String actual = out.getAttribute(key).replaceAll(">\\s+<", "><");
+            final String expected = expectedResults.get(i).replaceAll(">\\s+<", "><");
+            assertEquals(expected, actual);
         }
 
         // test read from content, write to content
-        {
-            runnerProps.clear();
-            runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_CONTENT);
-            runnerProps.put("xquery", xQuery);
-            resultFlowFiles = runXquery(xml, runnerProps);
+        runnerProps.clear();
+        runnerProps.put(EvaluateXQuery.DESTINATION.getName(), EvaluateXQuery.DESTINATION_CONTENT);
+        runnerProps.put("xquery", xQuery);
+        resultFlowFiles = runXquery(xml, runnerProps);
 
-            assertEquals(expectedResults.size(), resultFlowFiles.size());
+        assertEquals(expectedResults.size(), resultFlowFiles.size());
 
-            for (int i = 0; i < resultFlowFiles.size(); i++) {
+        for (int i = 0; i < resultFlowFiles.size(); i++) {
 
-                final MockFlowFile out = resultFlowFiles.get(i);
-                final byte[] outData = out.toByteArray();
-                final String outXml = new String(outData, "UTF-8").replaceAll(">\\s+<", "><");
-                final String actual = outXml;
-                final String expected = expectedResults.get(i).replaceAll(">\\s+<", "><");
-                assertEquals(expected, actual);
-            }
+            final MockFlowFile resultFlowFile = resultFlowFiles.get(i);
+            final byte[] outData = resultFlowFile.toByteArray();
+            final String outXml = new String(outData, StandardCharsets.UTF_8).replaceAll(">\\s+<", "><");
+            final String expected = expectedResults.get(i).replaceAll(">\\s+<", "><");
+            assertEquals(expected, outXml);
         }
     }
 
     private List<MockFlowFile> runXquery(Path xml, Map<String, String> runnerProps) throws Exception {
-        return runXquery(xml, runnerProps, new HashMap<String, String>());
+        return runXquery(xml, runnerProps, new HashMap<>());
     }
 
     private List<MockFlowFile> runXquery(Path xml, Map<String, String> runnerProps, Map<String, String> flowFileAttributes) throws Exception {
@@ -376,7 +369,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testRootPath() throws XPathFactoryConfigurationException, IOException {
+    public void testRootPath() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result1", "/");
@@ -387,13 +380,13 @@ public class TestEvaluateXQuery {
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
         final String attributeString = out.getAttribute("xquery.result1").replaceAll(">\\s+<", "><");
-        final String xmlSnippetString = new String(Files.readAllBytes(XML_SNIPPET), "UTF-8").replaceAll(">\\s+<", "><");
+        final String xmlSnippetString = new String(Files.readAllBytes(XML_SNIPPET), StandardCharsets.UTF_8).replaceAll(">\\s+<", "><");
 
         assertEquals(xmlSnippetString, attributeString);
     }
 
     @Test
-    public void testCheckIfElementExists() throws XPathFactoryConfigurationException, IOException {
+    public void testCheckIfElementExists() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.1", "boolean(/*:fruitbasket/fruit[1])");
@@ -409,7 +402,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testUnmatchedContent() throws XPathFactoryConfigurationException, IOException {
+    public void testUnmatchedContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/node2");
@@ -422,7 +415,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testUnmatchedAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testUnmatchedAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/node2");
@@ -437,7 +430,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testNoXQueryAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testNoXQueryAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
 
@@ -448,17 +441,17 @@ public class TestEvaluateXQuery {
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
-    public void testNoXQueryContent() throws XPathFactoryConfigurationException, IOException {
+    @Test
+    public void testNoXQueryContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
 
         testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        assertThrows(AssertionError.class, testRunner::run);
     }
 
     @Test
-    public void testOneMatchOneUnmatchAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testOneMatchOneUnmatchAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -472,7 +465,7 @@ public class TestEvaluateXQuery {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
 
         for (int i = 0; i < fruitNames.length; i++) {
-            final String outXml = out.getAttribute("some.property." + ((int) i + 1));
+            final String outXml = out.getAttribute("some.property." + (i + 1));
             assertEquals(fruitNames[i], outXml.trim());
         }
 
@@ -481,7 +474,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testMatchedEmptyStringAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchedEmptyStringAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result.exist.2", "/*:fruitbasket/*[name='none']/color/text()");
@@ -496,7 +489,7 @@ public class TestEvaluateXQuery {
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
-    @Test(expected = java.lang.AssertionError.class)
+    @Test
     public void testMultipleXPathForContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
@@ -504,11 +497,11 @@ public class TestEvaluateXQuery {
         testRunner.setProperty("some.property.2", "/*:fruitbasket/fruit[2]");
 
         testRunner.enqueue(XML_SNIPPET);
-        testRunner.run();
+        assertThrows(AssertionError.class, testRunner::run);
     }
 
     @Test
-    public void testWriteStringToAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteStringToAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xquery.result2", "/*:fruitbasket/fruit[1]/name/text()");
@@ -523,7 +516,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testWriteStringToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteStringToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name/text()");
@@ -533,13 +526,11 @@ public class TestEvaluateXQuery {
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
-        final byte[] outData = testRunner.getContentAsByteArray(out);
-        final String outXml = new String(outData, "UTF-8");
-        assertTrue(outXml.trim().equals("apple"));
+        out.assertContentEquals("apple");
     }
 
     @Test
-    public void testWriteXmlToAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteXmlToAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name");
@@ -555,7 +546,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testWriteXmlToContent() throws XPathFactoryConfigurationException, IOException {
+    public void testWriteXmlToContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:fruitbasket/fruit[1]/name");
@@ -566,12 +557,12 @@ public class TestEvaluateXQuery {
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
         final byte[] outData = testRunner.getContentAsByteArray(out);
-        final String outXml = new String(outData, "UTF-8");
+        final String outXml = new String(outData, StandardCharsets.UTF_8);
         assertTrue(outXml.contains("<name xmlns:ns=\"http://namespace/1\">apple</name>"));
     }
 
     @Test
-    public void testMatchesMultipleStringContent() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleStringContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -585,14 +576,12 @@ public class TestEvaluateXQuery {
         for (int i = 0; i < flowFilesForRelMatch.size(); i++) {
 
             final MockFlowFile out = flowFilesForRelMatch.get(i);
-            final byte[] outData = testRunner.getContentAsByteArray(out);
-            final String outXml = new String(outData, "UTF-8");
-            assertEquals(fruitNames[i], outXml.trim());
+            out.assertContentEquals(fruitNames[i]);
         }
     }
 
     @Test
-    public void testMatchesMultipleStringAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleStringAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name/text()");
@@ -605,14 +594,14 @@ public class TestEvaluateXQuery {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
 
         for (int i = 0; i < fruitNames.length; i++) {
-            final String outXml = out.getAttribute("some.property." + ((int) i + 1));
+            final String outXml = out.getAttribute("some.property." + (i + 1));
             assertEquals(fruitNames[i], outXml.trim());
         }
         testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0).assertContentEquals(XML_SNIPPET);
     }
 
     @Test
-    public void testMatchesMultipleXmlContent() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleXmlContent() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "//fruit/name");
@@ -627,14 +616,14 @@ public class TestEvaluateXQuery {
 
             final MockFlowFile out = flowFilesForRelMatch.get(i);
             final byte[] outData = testRunner.getContentAsByteArray(out);
-            final String outXml = new String(outData, "UTF-8");
+            final String outXml = new String(outData, StandardCharsets.UTF_8);
             String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
             assertEquals(expectedXml, outXml.trim());
         }
     }
 
     @Test
-    public void testMatchesMultipleXmlAttribute() throws XPathFactoryConfigurationException, IOException {
+    public void testMatchesMultipleXmlAttribute() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("some.property", "//fruit/name");
@@ -647,7 +636,7 @@ public class TestEvaluateXQuery {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
 
         for (int i = 0; i < fruitNames.length; i++) {
-            final String outXml = out.getAttribute("some.property." + ((int) i + 1));
+            final String outXml = out.getAttribute("some.property." + (i + 1));
             String expectedXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><name xmlns:ns=\"http://namespace/1\">" + fruitNames[i] + "</name>";
             assertEquals(expectedXml, outXml.trim());
         }
@@ -655,7 +644,7 @@ public class TestEvaluateXQuery {
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidation() throws XPathFactoryConfigurationException, IOException {
+    public void testSuccessForEmbeddedDocTypeValidation() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "true");
@@ -666,13 +655,11 @@ public class TestEvaluateXQuery {
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
-        final byte[] outData = testRunner.getContentAsByteArray(out);
-        final String outXml = new String(outData, "UTF-8");
-        assertTrue(outXml.trim().equals("Hello"));
+        out.assertContentEquals("Hello");
     }
 
     @Test
-    public void testSuccessForEmbeddedDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureForEmbeddedDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");
@@ -681,16 +668,12 @@ public class TestEvaluateXQuery {
         testRunner.enqueue(XML_SNIPPET_EMBEDDED_DOCTYPE);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
-        final byte[] outData = testRunner.getContentAsByteArray(out);
-        final String outXml = new String(outData, "UTF-8");
-        assertTrue(outXml.trim().equals("Hello"));
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
     }
 
 
     @Test
-    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureForExternalDocTypeWithDocTypeValidationEnabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
@@ -701,9 +684,8 @@ public class TestEvaluateXQuery {
         testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
     }
 
-
     @Test
-    public void testSuccessForExternalDocTypeWithDocTypeValidationDisabled() throws XPathFactoryConfigurationException, IOException {
+    public void testFailureForExternalDocTypeWithDocTypeValidationDisabled() throws IOException {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXQuery());
         testRunner.setProperty(EvaluateXQuery.DESTINATION, EvaluateXQuery.DESTINATION_CONTENT);
         testRunner.setProperty(EvaluateXQuery.VALIDATE_DTD, "false");
@@ -712,10 +694,6 @@ public class TestEvaluateXQuery {
         testRunner.enqueue(XML_SNIPPET_NONEXISTENT_DOCTYPE);
         testRunner.run();
 
-        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXQuery.REL_MATCH).get(0);
-        final byte[] outData = testRunner.getContentAsByteArray(out);
-        final String outXml = new String(outData, "UTF-8");
-        assertTrue(outXml.trim().equals("Hello"));
+        testRunner.assertAllFlowFilesTransferred(EvaluateXQuery.REL_FAILURE, 1);
     }
 }

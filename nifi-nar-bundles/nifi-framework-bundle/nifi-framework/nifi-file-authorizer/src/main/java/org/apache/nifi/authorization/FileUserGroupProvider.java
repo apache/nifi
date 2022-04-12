@@ -28,16 +28,18 @@ import org.apache.nifi.authorization.file.tenants.generated.Users;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
@@ -45,8 +47,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -598,8 +598,8 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
-            final Document document = docBuilder.parse(in);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             // parse all the users and add them to the current user group provider
@@ -615,7 +615,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
                 Node groupNode = groupNodes.item(i);
                 groups.add(parseGroup((Element) groupNode));
             }
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
 
@@ -724,11 +724,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         final Unmarshaller unmarshaller = JAXB_TENANTS_CONTEXT.createUnmarshaller();
         unmarshaller.setSchema(tenantsSchema);
 
+        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
         try {
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(new StreamSource(tenantsFile));
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(tenantsFile));
             final JAXBElement<Tenants> element = unmarshaller.unmarshal(xsr, Tenants.class);
             return element.getValue();
-        } catch (XMLStreamException e) {
+        } catch (final ProcessingException e) {
             throw new JAXBException("Error unmarshalling tenants", e);
         }
     }
@@ -752,10 +753,11 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             throw new AuthorizerCreationException("Legacy Authorized Users File '" + legacyAuthorizedUsersFile + "' does not exists");
         }
 
-        XMLStreamReader xsr;
+        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+        final XMLStreamReader xsr;
         try {
-            xsr = XmlUtils.createSafeReader(new StreamSource(authorizedUsersFile));
-        } catch (XMLStreamException e) {
+            xsr = provider.getStreamReader(new StreamSource(authorizedUsersFile));
+        } catch (final ProcessingException e) {
             throw new AuthorizerCreationException("Error converting the legacy authorizers file", e);
         }
 

@@ -17,11 +17,12 @@
 package org.apache.nifi.authentication.single.user.writer;
 
 import org.apache.nifi.authentication.single.user.SingleUserCredentials;
+import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLEventWriter;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.Attribute;
@@ -29,6 +30,7 @@ import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.stream.StreamSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -199,10 +201,8 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
         return outputFactory.createXMLEventWriter(outputStream);
     }
 
-    private XMLEventReader getProvidersReader(final InputStream inputStream) throws XMLStreamException {
-        final XMLInputFactory inputFactory = XMLInputFactory.newFactory();
-        inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        return inputFactory.createXMLEventReader(inputStream);
+    private XMLEventReader getProvidersReader(final InputStream inputStream) {
+        final XMLEventReaderProvider readerProvider = new StandardXMLEventReaderProvider();
+        return readerProvider.getEventReader(new StreamSource(inputStream));
     }
 }

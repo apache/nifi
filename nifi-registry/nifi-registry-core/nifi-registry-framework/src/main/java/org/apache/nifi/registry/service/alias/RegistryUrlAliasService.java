@@ -21,9 +21,11 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.provider.ProviderFactoryException;
 import org.apache.nifi.registry.provider.StandardProviderFactory;
-import org.apache.nifi.registry.security.util.XmlUtils;
 import org.apache.nifi.registry.url.aliaser.generated.Alias;
 import org.apache.nifi.registry.url.aliaser.generated.Aliases;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xml.sax.SAXException;
@@ -33,7 +35,7 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
@@ -84,9 +86,11 @@ public class RegistryUrlAliasService {
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
                 unmarshaller.setSchema(schema);
 
-                final JAXBElement<Aliases> element = unmarshaller.unmarshal(XmlUtils.createSafeReader(new StreamSource(configurationFile)), Aliases.class);
+                final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+                final XMLStreamReader reader = provider.getStreamReader(new StreamSource(configurationFile));
+                final JAXBElement<Aliases> element = unmarshaller.unmarshal(reader, Aliases.class);
                 return element.getValue().getAlias();
-            } catch (SAXException | JAXBException | XMLStreamException e) {
+            } catch (final SAXException | JAXBException | ProcessingException e) {
                 throw new ProviderFactoryException("Unable to load the registry alias configuration file at: " + configurationFile.getAbsolutePath(), e);
             }
         } else {
