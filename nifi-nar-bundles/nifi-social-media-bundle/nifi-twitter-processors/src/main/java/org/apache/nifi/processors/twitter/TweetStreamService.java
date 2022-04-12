@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class TweetStreamService {
     public static final String SEARCH_ENDPOINT = "Search Endpoint";

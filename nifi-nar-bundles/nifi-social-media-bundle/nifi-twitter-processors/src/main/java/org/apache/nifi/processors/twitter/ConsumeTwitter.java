@@ -273,8 +273,7 @@ public class ConsumeTwitter extends AbstractProcessor {
                 String tweet = messageQueue.poll();
                 out.write(tweet.getBytes(StandardCharsets.UTF_8));
                 int tweetCount = 1;
-                while (tweetCount < batchSize &&
-                        (tweet = messageQueue.poll()) != null) {
+                while (tweetCount < batchSize && (tweet = messageQueue.poll()) != null) {
                     out.write(',');
                     out.write(tweet.getBytes(StandardCharsets.UTF_8));
                     tweetCount++;
