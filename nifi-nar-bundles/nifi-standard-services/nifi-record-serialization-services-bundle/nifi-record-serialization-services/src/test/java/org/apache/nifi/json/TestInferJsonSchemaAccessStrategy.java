@@ -46,8 +46,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.apache.nifi.json.JsonTreeReader.NESTED_NODE;
-import static org.apache.nifi.json.JsonTreeReader.ROOT_NODE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -117,7 +115,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceIncludesAllRecords() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
-        final RecordSchema schema = inferSchema(file, ROOT_NODE.getValue(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
 
         final RecordField extraField1 = schema.getField("extra field 1").get();
         assertSame(RecordFieldType.STRING, extraField1.getDataType().getFieldType());
@@ -143,7 +141,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testDateAndTimestampsInferred() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
-        final RecordSchema schema = inferSchema(file, ROOT_NODE.getValue(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
 
         final RecordField timestampField = schema.getField("timestamp").get();
         assertEquals(RecordFieldType.TIMESTAMP.getDataType("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"), timestampField.getDataType());
@@ -172,7 +170,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testDocsExample() throws IOException {
         final File file = new File("src/test/resources/json/docs-example.json");
-        final RecordSchema schema = inferSchema(file, ROOT_NODE.getValue(), null);
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.ROOT_NODE.name(), null);
 
         assertSame(RecordFieldType.STRING, schema.getDataType("name").get().getFieldType());
         assertSame(RecordFieldType.CHOICE, schema.getDataType("age").get().getFieldType());
@@ -208,7 +206,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartsFromSimpleFieldAndNoNestedObjectOrArrayFound() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array-middle.json");
-        final RecordSchema schema = inferSchema(file, NESTED_NODE.getValue(), "name");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "name");
 
         assertEquals(0, schema.getFieldCount());
     }
@@ -216,14 +214,14 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartFromNonExistentField() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array.json");
-        final RecordSchema recordSchema = inferSchema(file, NESTED_NODE.getValue(), "notfound");
+        final RecordSchema recordSchema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "notfound");
         assertEquals(0, recordSchema.getFieldCount());
     }
 
     @Test
     void testInferenceStartFromMultipleNestedField() throws IOException {
         final File file = new File("src/test/resources/json/multiple-nested-field.json");
-        final RecordSchema schema = inferSchema(file, NESTED_NODE.getValue(), "accountIds");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE.name(), "accountIds");
 
         final RecordField field1 = schema.getField("id").get();
         assertSame(RecordFieldType.STRING, field1.getDataType().getFieldType());
@@ -246,7 +244,7 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     private static Stream<Arguments> startingFieldNameArgumentProvider() {
-        final String startingFieldStrategy = NESTED_NODE.getValue();
+        final String startingFieldStrategy = StartingFieldStrategy.NESTED_NODE.name();
         return Stream.of(
                 Arguments.of("src/test/resources/json/single-element-nested-array.json", startingFieldStrategy, "accounts", "testInferenceSkipsToNestedArray"),
                 Arguments.of("src/test/resources/json/single-element-nested.json", startingFieldStrategy, "account", "testInferenceSkipsToNestedObject"),

@@ -54,8 +54,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.json.JsonTreeReader.NESTED_NODE;
-import static org.apache.nifi.json.JsonTreeReader.ROOT_NODE;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -1048,7 +1046,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, NESTED_NODE.getValue(), "accounts");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "accounts");
     }
 
     @Test
@@ -1067,7 +1065,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, NESTED_NODE.getValue(), "account");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "account");
     }
 
     @Test
@@ -1090,14 +1088,14 @@ class TestJsonTreeRowRecordReader {
                     }})
         );
 
-        testReadRecords(jsonPath, expected, NESTED_NODE.getValue(), "accountIds");
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_NODE.name(), "accountIds");
     }
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        testReadRecords(jsonPath, Collections.emptyList(), NESTED_NODE.getValue(), "name");
+        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_NODE.name(), "name");
     }
 
     @Test
@@ -1107,7 +1105,7 @@ class TestJsonTreeRowRecordReader {
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
         List<Object> expected = Collections.emptyList();
 
-        testReadRecords(jsonPath, expectedRecordSchema, expected, NESTED_NODE.getValue(), "notfound");
+        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_NODE.name(), "notfound");
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
@@ -1117,7 +1115,7 @@ class TestJsonTreeRowRecordReader {
         try (
             InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
         ) {
-            RecordSchema schema = inferSchema(jsonStream, ROOT_NODE.getValue(), null);
+            RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE.name(), null);
 
             // WHEN
             // THEN

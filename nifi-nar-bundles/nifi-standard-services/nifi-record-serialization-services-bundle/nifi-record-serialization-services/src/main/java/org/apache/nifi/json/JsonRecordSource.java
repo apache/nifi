@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import static org.apache.nifi.json.JsonTreeReader.NESTED_NODE;
-
 public class JsonRecordSource implements RecordSource<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonRecordSource.class);
     private static final JsonFactory jsonFactory;
@@ -51,7 +49,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
         jsonParser = jsonFactory.createParser(in);
         this.startingFieldName = startingFieldName;
 
-        final boolean isBeginProcessingFromNestedField = NESTED_NODE.getValue().equals(startingFieldStrategy);
+        final boolean isBeginProcessingFromNestedField = StartingFieldStrategy.NESTED_NODE.name().equals(startingFieldStrategy);
         if (isBeginProcessingFromNestedField) {
             final SerializedString serializedNestedField = new SerializedString(this.startingFieldName);
             while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());

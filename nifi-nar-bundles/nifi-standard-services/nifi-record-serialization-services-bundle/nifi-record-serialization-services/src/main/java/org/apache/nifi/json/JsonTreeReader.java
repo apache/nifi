@@ -30,8 +30,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.RecordSourceFactory;
+import org.apache.nifi.schema.inference.SchemaInferenceEngine;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
@@ -45,6 +45,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -60,7 +61,7 @@ import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
         + "If an array is encountered, each element in that array will be treated as a separate record. "
         + "If the schema that is configured contains a field that is not present in the JSON, a null value will be used. If the JSON contains "
         + "a field that is not present in the schema, that field will be skipped. "
-    + "See the Usage of the Controller Service for more information and examples.")
+        + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
 public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
 
@@ -70,18 +71,17 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String startingFieldName;
     private volatile String startingFieldStrategy;
 
-    public static final AllowableValue ROOT_NODE = new AllowableValue("rootNode", "Root Node", "Begins processing from the root node.");
-    public static final AllowableValue NESTED_NODE = new AllowableValue("nestedNode", "Nested Node",
-            "Skips forward to the given nested JSON field (array or object) to begin processing.");
-
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
             .displayName("Starting Field Strategy")
             .description("Start processing from the root node or from a specified nested node.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .allowableValues(ROOT_NODE, NESTED_NODE)
-            .defaultValue(ROOT_NODE.getValue())
+            .defaultValue(StartingFieldStrategy.ROOT_NODE.name())
+            .allowableValues(
+                    Arrays.stream(StartingFieldStrategy.values()).map(strategy ->
+                            new AllowableValue(strategy.name(), strategy.name(), strategy.getDescription())
+                    ).toArray(AllowableValue[]::new))
             .build();
 
 
@@ -92,16 +92,16 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(null)
-            .dependsOn(STARTING_FIELD_STRATEGY, NESTED_NODE)
+            .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_NODE.name())
             .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(SCHEMA_CACHE)
-            .dependsOn(SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
-            .build());
+                .fromPropertyDescriptor(SCHEMA_CACHE)
+                .dependsOn(SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
+                .build());
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -133,7 +133,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         final Supplier<SchemaInferenceEngine<JsonNode>> inferenceSupplier = () -> new JsonSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
         return SchemaInferenceUtil.getSchemaAccessStrategy(strategy, context, getLogger(), jsonSourceFactory, inferenceSupplier,
-            () -> super.getSchemaAccessStrategy(strategy, schemaRegistry, context));
+                () -> super.getSchemaAccessStrategy(strategy, schemaRegistry, context));
     }
 
     @Override
