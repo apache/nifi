@@ -22,21 +22,17 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -48,7 +44,6 @@ import java.util.Set;
  */
 @XmlJavaTypeAdapter(DataFlowAdapter.class)
 public class StandardDataFlow implements Serializable, DataFlow {
-    private static final URL FLOW_XSD_RESOURCE = StandardDataFlow.class.getClassLoader().getResource("/FlowConfiguration.xsd");
     private static final Logger logger = LoggerFactory.getLogger(StandardDataFlow.class);
 
     private static final long serialVersionUID = 1L;
@@ -135,21 +130,19 @@ public class StandardDataFlow implements Serializable, DataFlow {
             return null;
         }
 
-        // create document by parsing proposed flow bytes
         try {
-            // create validating document builder
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(true);
-            docBuilder.setErrorHandler(new DefaultHandler() {
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
+            documentProvider.setErrorHandler(new DefaultHandler() {
                 @Override
                 public void error(final SAXParseException e) {
                     logger.warn("Schema validation error parsing Flow Configuration at line {}, col {}: {}", e.getLineNumber(), e.getColumnNumber(), e.getMessage());
                 }
             });
 
-            // parse flow
-            return docBuilder.parse(new ByteArrayInputStream(flow));
-        } catch (final SAXException | ParserConfigurationException | IOException ex) {
-            throw new FlowSerializationException(ex);
+            return documentProvider.parse(new ByteArrayInputStream(flow));
+        } catch (final ProcessingException e) {
+            throw new FlowSerializationException("Flow parsing failed", e);
         }
     }
 
@@ -163,8 +156,7 @@ public class StandardDataFlow implements Serializable, DataFlow {
             objectMapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(objectMapper.getTypeFactory()));
             objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-            final VersionedDataflow versionedDataflow = objectMapper.readValue(flow, VersionedDataflow.class);
-            return versionedDataflow;
+            return objectMapper.readValue(flow, VersionedDataflow.class);
         } catch (final Exception e) {
             throw new FlowSerializationException("Could not parse flow as a VersionedDataflow", e);
         }

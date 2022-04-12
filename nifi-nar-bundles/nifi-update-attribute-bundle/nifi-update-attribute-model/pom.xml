@@ -26,7 +26,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
+            <artifactId>nifi-xml-processing</artifactId>
             <version>1.16.1-SNAPSHOT</version>
         </dependency>
     </dependencies>

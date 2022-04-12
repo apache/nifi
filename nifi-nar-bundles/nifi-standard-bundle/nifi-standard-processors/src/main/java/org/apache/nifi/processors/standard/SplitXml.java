@@ -23,6 +23,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORI
 import static org.apache.nifi.flowfile.attributes.FragmentAttributes.copyAttributesToOriginal;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,8 +35,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParserFactory;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -59,15 +58,13 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.XmlElementNotifier;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.sax.StandardInputSourceParser;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 
 @EventDriven
 @SideEffectFree
@@ -115,22 +112,6 @@ public class SplitXml extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
 
-    private static final String FEATURE_PREFIX = "http://xml.org/sax/features/";
-    public static final String ENABLE_NAMESPACES_FEATURE = FEATURE_PREFIX + "namespaces";
-    public static final String ENABLE_NAMESPACE_PREFIXES_FEATURE = FEATURE_PREFIX + "namespace-prefixes";
-    private static final SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
-
-    static {
-        saxParserFactory.setNamespaceAware(true);
-        try {
-            saxParserFactory.setFeature(ENABLE_NAMESPACES_FEATURE, true);
-            saxParserFactory.setFeature(ENABLE_NAMESPACE_PREFIXES_FEATURE, true);
-        } catch (Exception e) {
-            final Logger staticLogger = LoggerFactory.getLogger(SplitXml.class);
-            staticLogger.warn("Unable to configure SAX Parser to make namespaces available", e);
-        }
-    }
-
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -169,7 +150,7 @@ public class SplitXml extends AbstractProcessor {
         final AtomicInteger numberOfRecords = new AtomicInteger(0);
         final XmlSplitterSaxParser parser = new XmlSplitterSaxParser(xmlTree -> {
             FlowFile split = session.create(original);
-            split = session.write(split, out -> out.write(xmlTree.getBytes("UTF-8")));
+            split = session.write(split, out -> out.write(xmlTree.getBytes(StandardCharsets.UTF_8)));
             split = session.putAttribute(split, FRAGMENT_ID.key(), fragmentIdentifier);
             split = session.putAttribute(split, FRAGMENT_INDEX.key(), Integer.toString(numberOfRecords.getAndIncrement()));
             split = session.putAttribute(split, SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
@@ -180,10 +161,11 @@ public class SplitXml extends AbstractProcessor {
         session.read(original, rawIn -> {
             try (final InputStream in = new java.io.BufferedInputStream(rawIn)) {
                 try {
-                    final XMLReader reader = XmlUtils.createSafeSaxReader(saxParserFactory, parser);
-                    reader.parse(new InputSource(in));
-                } catch (final ParserConfigurationException | SAXException e) {
-                    logger.error("Unable to parse {} due to {}", new Object[]{original, e});
+                    final StandardInputSourceParser inputSourceParser = new StandardInputSourceParser();
+                    inputSourceParser.setNamespaceAware(true);
+                    inputSourceParser.parse(new InputSource(in), parser);
+                } catch (final ProcessingException e) {
+                    logger.error("Parsing failed {}", original, e);
                     failed.set(true);
                 }
             }
@@ -200,7 +182,7 @@ public class SplitXml extends AbstractProcessor {
 
             final FlowFile originalToTransfer = copyAttributesToOriginal(session, original, fragmentIdentifier, numberOfRecords.get());
             session.transfer(originalToTransfer, REL_ORIGINAL);
-            logger.info("Split {} into {} FlowFiles", new Object[]{originalToTransfer, splits.size()});
+            logger.info("Split {} into {} FlowFiles", originalToTransfer, splits.size());
         }
     }
 
@@ -211,7 +193,7 @@ public class SplitXml extends AbstractProcessor {
         private final int splitDepth;
         private final StringBuilder sb = new StringBuilder(XML_PROLOGUE);
         private int depth = 0;
-        private Map<String, String> prefixMap = new TreeMap<>();
+        private final Map<String, String> prefixMap = new TreeMap<>();
 
         public XmlSplitterSaxParser(XmlElementNotifier notifier, int splitDepth) {
             this.notifier = notifier;
@@ -252,11 +234,11 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void endDocument() throws SAXException {
+        public void endDocument() {
         }
 
         @Override
-        public void endElement(String uri, String localName, String qName) throws SAXException {
+        public void endElement(String uri, String localName, String qName) {
             // We have finished processing this element. Decrement the depth.
             int newDepth = --depth;
 
@@ -279,16 +261,16 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void endPrefixMapping(String prefix) throws SAXException {
+        public void endPrefixMapping(String prefix) {
             prefixMap.remove(prefixToNamespace(prefix));
         }
 
         @Override
-        public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException {
+        public void ignorableWhitespace(char[] ch, int start, int length) {
         }
 
         @Override
-        public void processingInstruction(String target, String data) throws SAXException {
+        public void processingInstruction(String target, String data) {
         }
 
         @Override
@@ -296,15 +278,15 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void skippedEntity(String name) throws SAXException {
+        public void skippedEntity(String name) {
         }
 
         @Override
-        public void startDocument() throws SAXException {
+        public void startDocument() {
         }
 
         @Override
-        public void startElement(final String uri, final String localName, final String qName, final Attributes atts) throws SAXException {
+        public void startElement(final String uri, final String localName, final String qName, final Attributes atts) {
             // Increment the current depth because start a new XML element.
             int newDepth = ++depth;
             // Output the element and its attributes if it is
@@ -343,7 +325,7 @@ public class SplitXml extends AbstractProcessor {
         }
 
         @Override
-        public void startPrefixMapping(String prefix, String uri) throws SAXException {
+        public void startPrefixMapping(String prefix, String uri) {
             final String ns = prefixToNamespace(prefix);
             prefixMap.put(ns, uri);
         }

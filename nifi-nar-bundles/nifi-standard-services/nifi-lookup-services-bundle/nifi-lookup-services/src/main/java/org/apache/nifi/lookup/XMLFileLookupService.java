@@ -19,7 +19,7 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
-import org.apache.nifi.security.xml.SafeXMLConfiguration;
+import org.apache.nifi.lookup.configuration2.SafeXMLConfiguration;
 
 
 @Tags({"lookup", "cache", "enrich", "join", "xml", "reloadable", "key", "value"})

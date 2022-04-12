@@ -34,6 +34,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ProcessorDAO;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -43,11 +45,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -180,16 +180,12 @@ public class ProcessorAuditor extends NiFiAuditor {
 
                             try {
 
-                                InputSource is = new InputSource();
-                                is.setCharacterStream(new StringReader(newValue));
-                                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-                                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-                                Document doc = dBuilder.parse(is);
+                                final DocumentProvider documentProvider = new StandardDocumentProvider();
+                                Document doc = documentProvider.parse(new ByteArrayInputStream(newValue.getBytes(StandardCharsets.UTF_8)));
                                 NodeList nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpNew = new HashMap<>();
                                 getItemPaths(nList, ""+doc.getNodeName(), xmlDumpNew);
-                                is.setCharacterStream(new StringReader(oldValue));
-                                doc = dBuilder.parse(is);
+                                doc = documentProvider.parse(new ByteArrayInputStream(oldValue.getBytes(StandardCharsets.UTF_8)));
                                 nList = doc.getChildNodes();
                                 final Map<String, Node> xmlDumpOld = new HashMap<>();
                                 getItemPaths(nList, ""+doc.getNodeName(), xmlDumpOld);
