@@ -26,14 +26,16 @@ import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
+import javax.xml.transform.stream.StreamSource;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -149,9 +151,7 @@ public class SingleUserAuthorizer implements Authorizer {
     }
 
     private XMLEventReader getProvidersReader(final InputStream inputStream) throws XMLStreamException {
-        final XMLInputFactory inputFactory = XMLInputFactory.newFactory();
-        inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
-        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        return inputFactory.createXMLEventReader(inputStream);
+        final XMLEventReaderProvider readerProvider = new StandardXMLEventReaderProvider();
+        return readerProvider.getEventReader(new StreamSource(inputStream));
     }
 }

@@ -65,5 +65,6 @@
         <module>nifi-vault-utils</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
+        <module>nifi-xml-processing</module>
     </modules>
 </project>

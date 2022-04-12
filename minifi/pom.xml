@@ -387,6 +387,11 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-xml-processing</artifactId>
+                <version>1.17.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
                 <version>1.17.0-SNAPSHOT</version>
             </dependency>

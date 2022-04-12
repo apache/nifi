@@ -25,9 +25,12 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import org.apache.nifi.security.xml.XmlUtils;
+import javax.xml.transform.stream.StreamSource;
+
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 @XmlRootElement
 public class ClusterNodeInformation {
@@ -65,9 +68,10 @@ public class ClusterNodeInformation {
     public static ClusterNodeInformation unmarshal(final InputStream is) throws JAXBException {
         try {
             final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(is);
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(is));
             return (ClusterNodeInformation) unmarshaller.unmarshal(xsr);
-        } catch (XMLStreamException e) {
+        } catch (final ProcessingException e) {
             throw new JAXBException("Error unmarshalling the cluster node information", e);
         }
     }

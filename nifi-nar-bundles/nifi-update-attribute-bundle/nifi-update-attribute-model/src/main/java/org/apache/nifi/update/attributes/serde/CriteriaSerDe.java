@@ -26,12 +26,15 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import org.apache.nifi.security.xml.XmlUtils;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.nifi.update.attributes.Criteria;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.Rule;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 /**
  *
@@ -121,13 +124,14 @@ public class CriteriaSerDe {
             try {
                 // deserialize the binding
                 final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-                XMLStreamReader xsr = XmlUtils.createSafeReader(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8)));
+                final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+                XMLStreamReader xsr = provider.getStreamReader(new StreamSource(new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_8))));
                 final JAXBElement<CriteriaBinding> element = unmarshaller.unmarshal(xsr, CriteriaBinding.class);
 
                 // create the criteria from the binding
                 final CriteriaBinding binding = element.getValue();
                 criteria = new Criteria(binding.getFlowFilePolicy(), binding.getRules());
-            } catch (final JAXBException | XMLStreamException e) {
+            } catch (final JAXBException | ProcessingException e) {
                 throw new IllegalArgumentException(e);
             }
         }
