@@ -112,7 +112,8 @@ public class TweetStreamService {
         } else if (endpoint.equals(SEARCH_ENDPOINT)) {
             return api.getApiClient().getBasePath() + SEARCH_PATH;
         } else {
-            throw new ProcessException("Endpoint was invalid value: " + endpoint);
+            logger.warn("Unrecognized endpoint in getTransitUri. Returning basePath");
+            return api.getApiClient().getBasePath();
         }
     }
 
@@ -126,10 +127,8 @@ public class TweetStreamService {
         try {
             if (endpoint.equals(SAMPLE_ENDPOINT)) {
                 stream = api.tweets().sampleStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
-            } else if (endpoint.equals(SEARCH_ENDPOINT)) {
-                stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
             } else {
-                throw new ProcessException("Endpoint was invalid value: " + endpoint);
+                stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
             }
         } catch (ApiException e) {
             throw new ProcessException(String.format("Received error {}: {}", e.getCode(), e.getMessage()), e);

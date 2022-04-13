@@ -250,10 +250,8 @@ public class ConsumeTwitter extends AbstractProcessor {
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         if (ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
             tweetStreamService.start(TweetStreamService.SAMPLE_ENDPOINT);
-        } else if (ENDPOINT_SEARCH.getValue().equals(endpointName)) {
-            tweetStreamService.start(TweetStreamService.SEARCH_ENDPOINT);
         } else {
-            throw new ProcessException("Endpoint was invalid value: " + endpointName);
+            tweetStreamService.start(TweetStreamService.SEARCH_ENDPOINT);
         }
     }
 
