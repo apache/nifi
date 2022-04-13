@@ -73,7 +73,6 @@ public class TestConsumeTwitter {
         runner.setRunSchedule(runSchedule);
         runner.run(maxTries, false, true);
         runner.stop();
-        
 
         // there should only be a single FlowFile containing a tweet
         runner.assertTransferCount(ConsumeTwitter.REL_SUCCESS, 1);
