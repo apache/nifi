@@ -52,7 +52,7 @@ public class TestConsumeTwitter {
     }
 
     @Test
-    public void testReceiveSingleTweetInStream() {
+    public void testReceiveSingleTweetInStream() throws InterruptedException {
         MockResponse response = new MockResponse()
                 .setResponseCode(200)
                 .setBody(SAMPLE_TWEET)
@@ -68,13 +68,12 @@ public class TestConsumeTwitter {
         runner.assertValid();
 
         // the TwitterStreamAPI class spins up another thread and might not be done queueing tweets in one run of the processor
-        final int maxTries = 100;
-        int tries = 0;
-        while (tries < maxTries && runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).size() == 0) {
-            runner.run();
-            tries++;
-        }
-
+        final int maxTries = 3;
+        final long runSchedule = 250;
+        runner.setRunSchedule(runSchedule);
+        runner.run(maxTries, false, true);
+        runner.stop();
+        
 
         // there should only be a single FlowFile containing a tweet
         runner.assertTransferCount(ConsumeTwitter.REL_SUCCESS, 1);
