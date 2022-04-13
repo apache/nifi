@@ -175,6 +175,8 @@ public class TweetStreamService {
                 }
             } catch (IOException e) {
                 logger.warn("Stream processing failed", e);
+            } catch (NullPointerException e) {
+                logger.warn("Stream is null, processing failed", e);
             }
         }
     }
