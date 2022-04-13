@@ -27,7 +27,7 @@ import org.apache.nifi.util.TestRunners;
 
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.Assert;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -282,17 +282,19 @@ public class TestPutCloudWatchMetric {
         runner.assertNotValid();
     }
 
-    @ParameterizedTest
-    @CsvSource({"Count","Bytes","Percent"})
-    public void testValidUnit(String unit) throws Exception {
+    @Test
+    public void testValidUnit() throws Exception {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
-        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
-        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
-        runner.setProperty(PutCloudWatchMetric.VALUE, "1");
-        runner.assertValid();
+        for (String unit: PutCloudWatchMetric.getUnitParameters()) {
+
+            runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+            runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+            runner.setProperty(PutCloudWatchMetric.UNIT, unit);
+            runner.setProperty(PutCloudWatchMetric.VALUE, "1");
+            runner.assertValid();
+        }
     }
 
     @Test
