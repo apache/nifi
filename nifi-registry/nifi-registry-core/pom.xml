@@ -21,14 +21,12 @@
         <artifactId>nifi-registry</artifactId>
         <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry-core</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>The core modules of NiFi Registry.</description>
     <modules>
         <module>nifi-registry-properties</module>
-	<module>nifi-registry-properties-loader</module>
+	    <module>nifi-registry-properties-loader</module>
         <module>nifi-registry-utils</module>
         <module>nifi-registry-data-model</module>
         <module>nifi-registry-flow-diff</module>

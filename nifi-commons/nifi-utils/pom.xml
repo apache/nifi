@@ -21,7 +21,6 @@
         <version>1.17.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-utils</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>
         This nifi-utils module should be a general purpose place to store widely

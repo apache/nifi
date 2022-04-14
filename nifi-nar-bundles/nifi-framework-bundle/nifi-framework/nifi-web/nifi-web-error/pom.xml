@@ -19,7 +19,6 @@
         <artifactId>nifi-web</artifactId>
         <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-error</artifactId>
     <packaging>war</packaging>
     <properties>
