@@ -93,12 +93,9 @@ public final class AuthorizeControllerServiceReference {
                 if (propertyDescriptor.getControllerServiceDefinition() != null) {
                     final String proposedValue = entry.getValue();
 
-                    ComponentNode componentNode = (ComponentNode) authorizable.getAuthorizable();
                     String proposedEffectiveValue = new PropertyConfigurationMapper()
-                        .mapRawPropertyValuesToPropertyConfiguration(
-                            componentNode,
-                            proposedProperties
-                        ).get(propertyName).getEffectiveValue(authorizable.getParameterContext());
+                        .mapRawPropertyValuesToPropertyConfiguration(propertyDescriptor, proposedValue)
+                        .getEffectiveValue(authorizable.getParameterContext());
 
                     final String currentValue = authorizable.getValue(propertyDescriptor);
 
@@ -156,9 +153,7 @@ public final class AuthorizeControllerServiceReference {
             authorize(authorizer, lookup, user, currentValue);
             authorize(authorizer, lookup, user, proposedEffectiveValue);
         } else {
-            throw new IllegalArgumentException("The property '" + propertyDescriptor.getDisplayName() + "' cannot reference a Parameter because the property is a " +
-                "Controller Service reference. Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. " +
-                "As a result, this is not allowed.");
+            throw new IllegalArgumentException(authorizable.getAuthorizable().getResource().getSafeDescription() + " cannot reference Controller Services through Parameters.");
         }
     }
 

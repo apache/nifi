@@ -819,33 +819,36 @@ public class NiFiRegistryFlowMapper {
 
     private Set<VersionedParameter> mapParameters(ParameterContext parameterContext) {
         final Set<VersionedParameter> parameters = parameterContext.getParameters().entrySet().stream()
-                .map(descriptorAndParameter -> {
-                    VersionedParameter versionedParameter;
-
-                    ParameterDescriptor parameterDescriptor = descriptorAndParameter.getKey();
-                    Parameter parameter = descriptorAndParameter.getValue();
-
-                    if (this.flowMappingOptions.isMapControllerServiceReferencesToVersionedId()) {
-                        List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
-                            .getParameterReferenceManager()
-                            .getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName());
-
-                        if (referencedControllerServiceData.isEmpty()) {
-                            versionedParameter = mapParameter(parameter);
-                        } else {
-                            versionedParameter = mapParameter(
-                                parameter,
-                                getId(Optional.ofNullable(referencedControllerServiceData.get(0).getVersionedServiceId()), parameter.getValue())
-                            );
-                        }
-                    } else {
-                        versionedParameter = mapParameter(parameter);
-                    }
-
-                    return versionedParameter;
-                })
+                .map(descriptorAndParameter -> mapParameter(
+                    parameterContext,
+                    descriptorAndParameter.getKey(),
+                    descriptorAndParameter.getValue())
+                )
                 .collect(Collectors.toSet());
         return parameters;
+    }
+
+    private VersionedParameter mapParameter(ParameterContext parameterContext, ParameterDescriptor parameterDescriptor, Parameter parameter) {
+        VersionedParameter versionedParameter;
+
+        if (this.flowMappingOptions.isMapControllerServiceReferencesToVersionedId()) {
+            List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
+                .getParameterReferenceManager()
+                .getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName());
+
+            if (referencedControllerServiceData.isEmpty()) {
+                versionedParameter = mapParameter(parameter);
+            } else {
+                versionedParameter = mapParameter(
+                    parameter,
+                    getId(Optional.ofNullable(referencedControllerServiceData.get(0).getVersionedServiceId()), parameter.getValue())
+                );
+            }
+        } else {
+            versionedParameter = mapParameter(parameter);
+        }
+
+        return versionedParameter;
     }
 
     private VersionedParameter mapParameter(final Parameter parameter) {

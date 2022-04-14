@@ -461,7 +461,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
 
             Optional.ofNullable(effectiveValue)
-                .map(_effectiveValue -> serviceProvider.getControllerServiceNode(_effectiveValue))
+                .map(serviceProvider::getControllerServiceNode)
                 .ifPresent(newNode -> newNode.addReference(this, descriptor));
         }
 
