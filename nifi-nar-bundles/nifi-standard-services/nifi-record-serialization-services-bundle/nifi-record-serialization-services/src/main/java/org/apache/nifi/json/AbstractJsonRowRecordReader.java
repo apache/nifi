@@ -352,7 +352,37 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             firstObjectConsumed = true;
             return firstJsonNode;
         }
+        if (strategy == StartingFieldStrategy.NESTED_NODE) {
+            return getJsonNodeWithNestedNodeStrategy();
+        } else {
+            return getJsonNode();
+        }
 
+    }
+
+    private JsonNode getJsonNodeWithNestedNodeStrategy() throws IOException, MalformedRecordException {
+        while (true) {
+            final JsonToken token = jsonParser.nextToken();
+            if (token == null) {
+                return null;
+            }
+
+            switch (token) {
+                case START_ARRAY:
+                    break;
+                case END_ARRAY:
+                case END_OBJECT:
+                case FIELD_NAME:
+                    return null;
+                case START_OBJECT:
+                    return jsonParser.readValueAsTree();
+                default:
+                    throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
+            }
+        }
+    }
+
+    private JsonNode getJsonNode() throws IOException, MalformedRecordException {
         while (true) {
             final JsonToken token = jsonParser.nextToken();
             if (token == null) {
@@ -366,10 +396,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     break;
                 case START_OBJECT:
                     return jsonParser.readValueAsTree();
-                case FIELD_NAME:
-                    if (strategy == StartingFieldStrategy.NESTED_NODE) {
-                        return null;
-                    }
                 default:
                     throw new MalformedRecordException("Expected to get a JSON Object but got a token of type " + token.name());
             }

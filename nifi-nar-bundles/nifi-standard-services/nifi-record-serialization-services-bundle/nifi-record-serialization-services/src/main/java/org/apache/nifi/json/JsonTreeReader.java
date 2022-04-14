@@ -80,7 +80,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .defaultValue(StartingFieldStrategy.ROOT_NODE.name())
             .allowableValues(
                     Arrays.stream(StartingFieldStrategy.values()).map(startingStrategy ->
-                            new AllowableValue(startingStrategy.name(), startingStrategy.name(), startingStrategy.getDescription())
+                            new AllowableValue(startingStrategy.name(), startingStrategy.getDisplayName(), startingStrategy.getDescription())
                     ).toArray(AllowableValue[]::new))
             .build();
 

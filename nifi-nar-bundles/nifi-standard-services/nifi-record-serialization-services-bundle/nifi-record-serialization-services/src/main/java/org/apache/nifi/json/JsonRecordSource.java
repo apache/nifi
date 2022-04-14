@@ -33,6 +33,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
     private static final Logger logger = LoggerFactory.getLogger(JsonRecordSource.class);
     private static final JsonFactory jsonFactory;
     private final JsonParser jsonParser;
+    private final StartingFieldStrategy strategy;
     private final String startingFieldName;
 
     static {
@@ -42,11 +43,13 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
     public JsonRecordSource(final InputStream in) throws IOException {
         jsonParser = jsonFactory.createParser(in);
+        strategy = null;
         startingFieldName = null;
     }
 
     public JsonRecordSource(final InputStream in, final StartingFieldStrategy strategy, final String startingFieldName) throws IOException {
         jsonParser = jsonFactory.createParser(in);
+        this.strategy = strategy;
         this.startingFieldName = startingFieldName;
 
         if (strategy == StartingFieldStrategy.NESTED_NODE) {
@@ -66,6 +69,10 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
             if (token == JsonToken.START_OBJECT) {
                 return jsonParser.readValueAsTree();
+            }
+
+            if (strategy == StartingFieldStrategy.NESTED_NODE && (token == JsonToken.END_ARRAY || token == JsonToken.END_OBJECT)) {
+                return null;
             }
         }
     }

@@ -208,6 +208,7 @@
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested-array-middle.json</exclude>
+                        <exclude>src/test/resources/json/nested-array-then-start-object.json</exclude>
                         <exclude>src/test/resources/json/output/dataTypes.json</exclude>
                         <exclude>src/test/resources/json/elements-for-record-choice.json</exclude>
                         <exclude>src/test/resources/json/record-choice.avsc</exclude>

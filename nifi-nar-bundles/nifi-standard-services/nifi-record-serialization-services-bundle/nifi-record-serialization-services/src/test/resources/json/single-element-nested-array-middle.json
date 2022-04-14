@@ -9,7 +9,7 @@
 	}],
 	"name": "John Doe",
 	"address": "123 My Street",
-	"city": "My City", 
+	"city": "My City",
 	"state": "MS",
 	"zipCode": "11111",
 	"country": "USA"

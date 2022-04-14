@@ -22,11 +22,12 @@
 
     <body>
         <p>
-        	The JsonTreeReader Controller Service reads a JSON Object and creates a Record object for the entire
-        	JSON Object tree. The Controller Service must be configured with a Schema that describes the structure
-        	of the JSON data. If any field exists in the JSON that is not in the schema, that field will be skipped.
-        	If the schema contains a field for which no JSON field exists, a null value will be used in the Record
-        	(or the default value defined in the schema, if applicable).
+        	The JsonTreeReader Controller Service reads a JSON Object and creates a Record object either for the
+			entire JSON Object tree or a subpart (see "Starting Field Strategies" section). The Controller Service
+			must be configured with a Schema that describes the structure of the JSON data. If any field exists in
+			the JSON that is not in the schema, that field will be skipped. If the schema contains a field for which
+			no JSON field exists, a null value will be used in the Record (or the default value defined in the schema,
+			if applicable).
         </p>
 
         <p>
@@ -168,37 +169,54 @@
         </p>
 
 
+		<h2>Starting Field Strategies</h2>
+
+		<p>
+			When using JsonTreeReader, two different starting field strategies can be selected. With the default Root Node strategy the JsonTreeReader begins processing from the root element
+			of the JSON and creates a Record object for the entire JSON Object tree, while the Nested Node strategy allows to define a nested field of the JSON to begin processing from.
+			Using the latter, a schema corresponding to the nested JSON part should be specified. In case of schema inference, the controller service will automatically
+			infer the matching subschema.
+		</p>
+
 
         <h2>Examples</h2>
 
         <p>
-        	As an example, consider the following JSON is read:
+        	As an example, consider the following JSON is read with the default Root Node strategy:
         </p>
 <code>
 <pre>
-[{
+[
+  {
     "id": 17,
     "name": "John",
     "child": {
-        "id": "1"
+      "id": "1"
     },
-    "dob": "10-29-1982"
+    "dob": "10-29-1982",
     "siblings": [
-        { "name": "Jeremy", "id": 4 },
-        { "name": "Julia", "id": 8}
+      {
+        "name": "Jeremy",
+        "id": 4
+      },
+      {
+        "name": "Julia",
+        "id": 8
+      }
     ]
   },
   {
     "id": 98,
     "name": "Jane",
     "child": {
-        "id": 2
+      "id": 2
     },
-    "dob": "08-30-1984"
+    "dob": "08-30-1984",
     "gender": "F",
     "siblingIds": [],
     "siblings": []
-  }]
+  }
+]
 </pre>
 </code>
 
@@ -329,5 +347,62 @@
     		</tr>
         </table>
 
-    </body>
+		<p>
+			As another example, consider the same JSON is read with the Nested Node strategy where the specified nested
+			field's name is "siblings". The schema that is configured for this JSON is as follows:
+		</p>
+
+<code>
+<pre>
+{
+	"namespace": "nifi",
+	"name": "sibling",
+	"type": "record",
+	"fields": [
+		{ "name": "name", "type": "string" },
+	    { "name": "id", "type": "int" }
+	]
+}
+</pre>
+</code>
+
+		<p>
+			The first Record will consist of the following values:
+		</p>
+
+		<table>
+			<tr>
+				<th>Field Name</th>
+				<th>Field Value</th>
+			</tr>
+			<tr>
+				<td>name</td>
+				<td>Jeremy</td>
+			</tr>
+			<tr>
+				<td>id</td>
+				<td>4</td>
+			</tr>
+		</table>
+
+		<p>
+			The second Record will consist of the following values:
+		</p>
+
+		<table>
+			<tr>
+				<th>Field Name</th>
+				<th>Field Value</th>
+			</tr>
+			<tr>
+				<td>name</td>
+				<td>Julia</td>
+			</tr>
+			<tr>
+				<td>id</td>
+				<td>8</td>
+			</tr>
+		</table>
+
+	</body>
 </html>

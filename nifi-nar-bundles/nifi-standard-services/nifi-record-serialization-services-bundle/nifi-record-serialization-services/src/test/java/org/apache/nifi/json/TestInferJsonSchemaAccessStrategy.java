@@ -196,6 +196,8 @@ class TestInferJsonSchemaAccessStrategy {
         final File file = new File(jsonPath);
         final RecordSchema schema = inferSchema(file, strategy, startingFieldName);
 
+        assertEquals(2, schema.getFieldCount());
+
         final RecordField field1 = schema.getField("id").get();
         assertSame(RecordFieldType.INT, field1.getDataType().getFieldType());
 
@@ -244,12 +246,14 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     private static Stream<Arguments> startingFieldNameArgumentProvider() {
-        final String startingFieldStrategy = StartingFieldStrategy.NESTED_NODE.name();
+        final StartingFieldStrategy strategy = StartingFieldStrategy.NESTED_NODE;
         return Stream.of(
-                Arguments.of("src/test/resources/json/single-element-nested-array.json", startingFieldStrategy, "accounts", "testInferenceSkipsToNestedArray"),
-                Arguments.of("src/test/resources/json/single-element-nested.json", startingFieldStrategy, "account", "testInferenceSkipsToNestedObject"),
-                Arguments.of("src/test/resources/json/single-element-nested-array.json", startingFieldStrategy, "name", "testInferenceSkipsToSimpleFieldFindsNextNestedArray"),
-                Arguments.of("src/test/resources/json/single-element-nested.json", startingFieldStrategy, "name", "testInferenceSkipsToSimpleFieldFindsNextNestedObject")
+                Arguments.of("src/test/resources/json/single-element-nested-array.json", strategy, "accounts", "testInferenceSkipsToNestedArray"),
+                Arguments.of("src/test/resources/json/single-element-nested.json", strategy, "account", "testInferenceSkipsToNestedObject"),
+                Arguments.of("src/test/resources/json/single-element-nested-array.json", strategy, "name", "testInferenceSkipsToSimpleFieldFindsNextNestedArray"),
+                Arguments.of("src/test/resources/json/single-element-nested.json", strategy, "name", "testInferenceSkipsToSimpleFieldFindsNextNestedObject"),
+                Arguments.of("src/test/resources/json/single-element-nested-array-middle.json", strategy, "accounts", "testInferenceSkipsToNestedArrayInMiddle"),
+                Arguments.of("src/test/resources/json/nested-array-then-start-object.json", strategy, "accounts", "testInferenceSkipsToNestedThenStartObject")
         );
     }
 }

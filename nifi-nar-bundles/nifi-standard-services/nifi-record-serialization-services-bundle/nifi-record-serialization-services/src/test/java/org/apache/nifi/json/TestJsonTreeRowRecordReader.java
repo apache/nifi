@@ -1108,6 +1108,29 @@ class TestJsonTreeRowRecordReader {
         testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_NODE, "notfound");
     }
 
+    @Test
+    void testStartFromNestedFieldThenStartObject() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/nested-array-then-start-object.json";
+
+        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
+        ));
+
+        List<Object> expected = Arrays.asList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                    put("id", 42);
+                    put("balance", 4750.89);
+                }}),
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>(){{
+                    put("id", 43);
+                    put("balance", 48212.38);
+                }})
+        );
+
+        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_NODE, "accounts");
+    }
+
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
         // GIVEN
         final File jsonFile = new File(jsonPath);
