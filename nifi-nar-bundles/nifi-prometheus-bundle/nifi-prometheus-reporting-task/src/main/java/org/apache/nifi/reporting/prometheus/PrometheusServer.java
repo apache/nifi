@@ -33,6 +33,7 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
+import javax.net.ssl.SSLContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
@@ -123,23 +124,13 @@ public class PrometheusServer {
     }
 
     private SslContextFactory createSslFactory(final SSLContextService sslService, boolean needClientAuth, boolean wantClientAuth) {
-        SslContextFactory sslFactory = new SslContextFactory.Server();
+        final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
-        sslFactory.setProtocol(sslService.getSslAlgorithm());
 
-        if (sslService.isKeyStoreConfigured()) {
-            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
-            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
-            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
-        }
-
-        if (sslService.isTrustStoreConfigured()) {
-            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
-            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
-            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
-        }
+        final SSLContext sslContext = sslService.createContext();
+        sslFactory.setSslContext(sslContext);
 
         return sslFactory;
     }
