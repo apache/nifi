@@ -25,10 +25,13 @@ import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.security.SecurityLevel;
 
+import java.util.regex.Pattern;
+
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -62,7 +65,7 @@ public class V1V2cSNMPFactoryTest {
         final Snmp snmpManager = snmpFactory.createSnmpManagerInstance(snmpConfiguration);
 
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
-        assertEquals("0.0.0.0" + "/" + managerPort, address);
+        assertTrue(Pattern.compile("0.+?0/" + managerPort).matcher(address).matches());
     }
 
     @Test

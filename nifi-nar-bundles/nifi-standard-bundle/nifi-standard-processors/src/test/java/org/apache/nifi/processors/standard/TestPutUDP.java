@@ -58,7 +58,7 @@ public class TestPutUDP {
     private final static char CONTENT_CHAR = 'x';
     private final static int DATA_WAIT_PERIOD = 50;
     private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
-    private final static int LONG_TEST_TIMEOUT_PERIOD = 100000;
+    private final static int LONG_TEST_TIMEOUT_PERIOD = 30000;
 
     private TestRunner runner;
     private int port;
@@ -187,18 +187,17 @@ public class TestPutUDP {
         runner.assertValid();
     }
 
-    private void sendTestData(final String[] testData) throws InterruptedException {
+    private void sendTestData(final String[] testData) {
         sendTestData(testData, DEFAULT_ITERATIONS, DEFAULT_THREAD_COUNT);
     }
 
-    private void sendTestData(final String[] testData, final int iterations, final int threadCount) throws InterruptedException {
+    private void sendTestData(final String[] testData, final int iterations, final int threadCount) {
         for (String item : testData) {
             runner.setThreadCount(threadCount);
             for (int i = 0; i < iterations; i++) {
                 runner.enqueue(item.getBytes());
-                runner.run(1, false);
-                Thread.sleep(1);
             }
+            runner.run(iterations, false);
         }
 
         // ensure @OnStopped methods get called
