@@ -22,7 +22,6 @@
     </parent>
 
     <artifactId>nifi-druid-bundle</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>

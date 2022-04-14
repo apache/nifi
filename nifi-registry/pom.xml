@@ -23,7 +23,6 @@
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Provides a central location for storage and management of shared resources across one or more instances
         of NiFi and/or MiNiFi.

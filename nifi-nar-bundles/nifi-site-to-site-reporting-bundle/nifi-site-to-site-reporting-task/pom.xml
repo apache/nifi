@@ -23,7 +23,6 @@
 
     <artifactId>nifi-site-to-site-reporting-task</artifactId>
     <description>Publishes NiFi metrics and provenance events via S2S</description>
-    <version>1.17.0-SNAPSHOT</version>
 
     <dependencies>
         <dependency>
