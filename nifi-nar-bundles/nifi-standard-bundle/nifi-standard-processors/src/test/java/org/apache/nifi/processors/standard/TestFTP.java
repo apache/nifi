@@ -35,10 +35,11 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockftpserver.fake.FakeFtpServer;
 import org.mockftpserver.fake.UserAccount;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
@@ -53,7 +54,7 @@ public class TestFTP {
     final String password = "Test test test chocolate";
     int ftpPort;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         fakeFtpServer.setServerControlPort(0);
         fakeFtpServer.addUserAccount(new UserAccount(username, password, "c:\\data"));
@@ -67,7 +68,7 @@ public class TestFTP {
         ftpPort = fakeFtpServer.getServerControlPort();
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         fakeFtpServer.stop();
     }
@@ -142,7 +143,7 @@ public class TestFTP {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         // Check file was uploaded
-        Assert.assertTrue(results.exists("c:\\data\\randombytes-1"));
+        Assertions.assertTrue(results.exists("c:\\data\\randombytes-1"));
     }
 
     @Test
@@ -205,7 +206,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assert.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
         runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
@@ -229,7 +230,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assert.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
         runner.setProperty(FetchFTP.HOSTNAME, "${host}");
@@ -254,6 +255,8 @@ public class TestFTP {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = "file.encoding", matches = "UTF-8",
+            disabledReason = "org.mockftpserver does not support specification of charset")
     public void basicFileFetchWithUTF8FileName() throws IOException {
         FileSystem fs = fakeFtpServer.getFileSystem();
 
@@ -289,7 +292,7 @@ public class TestFTP {
         results.add(sampleFile);
 
         // Check file exists
-        Assert.assertTrue(results.exists("c:\\data\\randombytes-2"));
+        Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
         runner.setProperty(ListFTP.HOSTNAME, "localhost");
