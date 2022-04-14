@@ -131,7 +131,7 @@ public class TweetStreamService {
                 stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
             }
         } catch (ApiException e) {
-            throw new ProcessException(String.format("Received error {}: {}", e.getCode(), e.getMessage()), e);
+            throw new ProcessException(String.format("Received error %d: %s", e.getCode(), e.getMessage()), e);
         } catch (Exception e) {
             throw new ProcessException(e);
         }
@@ -169,14 +169,12 @@ public class TweetStreamService {
                     try {
                         tweetRecord = reader.readLine();
                     } catch (IOException e) {
-                        logger.debug("Read Tweet failed: Stream processing completed");
+                        logger.info("Read Tweet failed: Stream processing completed");
                         break;
                     }
                 }
             } catch (IOException e) {
                 logger.warn("Stream processing failed", e);
-            } catch (NullPointerException e) {
-                logger.warn("Stream is null, processing failed", e);
             }
         }
     }
