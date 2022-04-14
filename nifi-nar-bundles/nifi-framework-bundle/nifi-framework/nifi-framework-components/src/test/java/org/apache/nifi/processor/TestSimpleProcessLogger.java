@@ -83,7 +83,7 @@ public class TestSimpleProcessLogger {
 
     private Object[] componentValueArguments;
 
-    private Object[] componentValueExceptionStringCausesArguments;
+    private Object[] componentValueCausesArguments;
 
     private Object[] componentCausesArguments;
 
@@ -96,7 +96,7 @@ public class TestSimpleProcessLogger {
 
         componentArguments = new Object[]{component};
         componentValueArguments = new Object[]{component, FIRST, SECOND};
-        componentValueExceptionStringCausesArguments = new Object[]{component, FIRST, SECOND, EXCEPTION, EXPECTED_CAUSES};
+        componentValueCausesArguments = new Object[]{component, FIRST, SECOND, EXPECTED_CAUSES};
         componentCausesArguments = new Object[]{component, EXPECTED_CAUSES};
 
         when(logger.isTraceEnabled()).thenReturn(true);
@@ -218,7 +218,7 @@ public class TestSimpleProcessLogger {
                     continue;
             }
 
-            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT_AND_CAUSES), eq(componentValueExceptionStringCausesArguments), eq(EXCEPTION));
+            verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT_AND_CAUSES), eq(componentValueCausesArguments), eq(EXCEPTION));
         }
     }
 
