@@ -138,7 +138,7 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         }
 
         try {
-            Document result = findOne(query, projection);
+            Document result = findOne(query, projection,context);
 
             if(result == null) {
                 return Optional.empty();
@@ -223,7 +223,9 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         return Collections.unmodifiableList(_temp);
     }
 
-    private Document findOne(Document query, Document projection) {
+    private Document findOne(Document query, Document projection,Map<String, String> context) {
+        final String databaseName = getProperty(DATABASE_NAME).evaluateAttributeExpressions(context).getValue();
+        final String collection = getProperty(COLLECTION_NAME).evaluateAttributeExpressions(context).getValue();
         MongoCollection col = controllerService.getDatabase(databaseName).getCollection(collection);
         MongoCursor<Document> it = (projection != null ? col.find(query).projection(projection) : col.find(query)).iterator();
         Document retVal = it.hasNext() ? it.next() : null;
