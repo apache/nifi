@@ -28,6 +28,8 @@ import org.snmp4j.security.USM;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
+import java.util.regex.Pattern;
+
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.LOCALHOST;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PASSPHRASE;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.AUTH_PROTOCOL;
@@ -73,7 +75,7 @@ public class V3SNMPFactoryTest {
 
         final String address = snmpManager.getMessageDispatcher().getTransportMappings().iterator().next().getListenAddress().toString();
         USM usm = (USM) SecurityModels.getInstance().getSecurityModel(new Integer32(3));
-        assertEquals("0.0.0.0" + "/" + managerPort, address);
+        assertTrue(Pattern.compile("0.+?0/" + managerPort).matcher(address).matches());
         assertTrue(usm.hasUser(null, new OctetString("SHAAES128")));
     }
 
