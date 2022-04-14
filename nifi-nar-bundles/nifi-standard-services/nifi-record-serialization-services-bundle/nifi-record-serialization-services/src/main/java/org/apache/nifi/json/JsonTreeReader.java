@@ -92,7 +92,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .defaultValue(null)
-            .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_NODE.name())
+            .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
             .build();
 
     @Override
@@ -102,11 +102,11 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
                 .fromPropertyDescriptor(SCHEMA_CACHE)
                 .dependsOn(SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
                 .build());
+        properties.add(STARTING_FIELD_STRATEGY);
+        properties.add(STARTING_FIELD_NAME);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
-        properties.add(STARTING_FIELD_STRATEGY);
-        properties.add(STARTING_FIELD_NAME);
         return properties;
     }
 

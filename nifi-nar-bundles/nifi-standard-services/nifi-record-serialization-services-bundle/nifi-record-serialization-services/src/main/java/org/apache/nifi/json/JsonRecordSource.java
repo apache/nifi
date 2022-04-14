@@ -52,7 +52,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
         this.strategy = strategy;
         this.startingFieldName = startingFieldName;
 
-        if (strategy == StartingFieldStrategy.NESTED_NODE) {
+        if (strategy == StartingFieldStrategy.NESTED_FIELD) {
             final SerializedString serializedNestedField = new SerializedString(this.startingFieldName);
             while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());
             logger.debug("Parsing starting at nested field [{}]", startingFieldName);
@@ -71,7 +71,7 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
                 return jsonParser.readValueAsTree();
             }
 
-            if (strategy == StartingFieldStrategy.NESTED_NODE && (token == JsonToken.END_ARRAY || token == JsonToken.END_OBJECT)) {
+            if (strategy == StartingFieldStrategy.NESTED_FIELD && (token == JsonToken.END_ARRAY || token == JsonToken.END_OBJECT)) {
                 return null;
             }
         }

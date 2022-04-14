@@ -18,7 +18,7 @@ package org.apache.nifi.json;
 
 public enum StartingFieldStrategy {
     ROOT_NODE("Root Node", "Begins processing from the root node."),
-    NESTED_NODE("Nested Node", "Skips forward to the given nested JSON field (array or object) to begin processing.");
+    NESTED_FIELD("Nested Field", "Skips forward to the given nested JSON field (array or object) to begin processing.");
 
     private final String displayName;
     private final String description;

@@ -208,7 +208,7 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartsFromSimpleFieldAndNoNestedObjectOrArrayFound() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array-middle.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "name");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_FIELD, "name");
 
         assertEquals(0, schema.getFieldCount());
     }
@@ -216,14 +216,14 @@ class TestInferJsonSchemaAccessStrategy {
     @Test
     void testInferenceStartFromNonExistentField() throws IOException {
         final File file = new File("src/test/resources/json/single-element-nested-array.json");
-        final RecordSchema recordSchema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "notfound");
+        final RecordSchema recordSchema = inferSchema(file, StartingFieldStrategy.NESTED_FIELD, "notfound");
         assertEquals(0, recordSchema.getFieldCount());
     }
 
     @Test
     void testInferenceStartFromMultipleNestedField() throws IOException {
         final File file = new File("src/test/resources/json/multiple-nested-field.json");
-        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_NODE, "accountIds");
+        final RecordSchema schema = inferSchema(file, StartingFieldStrategy.NESTED_FIELD, "accountIds");
 
         final RecordField field1 = schema.getField("id").get();
         assertSame(RecordFieldType.STRING, field1.getDataType().getFieldType());
@@ -246,7 +246,7 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     private static Stream<Arguments> startingFieldNameArgumentProvider() {
-        final StartingFieldStrategy strategy = StartingFieldStrategy.NESTED_NODE;
+        final StartingFieldStrategy strategy = StartingFieldStrategy.NESTED_FIELD;
         return Stream.of(
                 Arguments.of("src/test/resources/json/single-element-nested-array.json", strategy, "accounts", "testInferenceSkipsToNestedArray"),
                 Arguments.of("src/test/resources/json/single-element-nested.json", strategy, "account", "testInferenceSkipsToNestedObject"),

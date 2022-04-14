@@ -112,7 +112,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             jsonParser = jsonFactory.createParser(in);
             jsonParser.setCodec(codec);
 
-            if (strategy == StartingFieldStrategy.NESTED_NODE) {
+            if (strategy == StartingFieldStrategy.NESTED_FIELD) {
                 final SerializedString serializedStartingFieldName = new SerializedString(nestedFieldName);
                 while (!jsonParser.nextFieldName(serializedStartingFieldName) && jsonParser.hasCurrentToken());
                 logger.debug("Parsing starting at nested field [{}]", nestedFieldName);
@@ -352,7 +352,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             firstObjectConsumed = true;
             return firstJsonNode;
         }
-        if (strategy == StartingFieldStrategy.NESTED_NODE) {
+        if (strategy == StartingFieldStrategy.NESTED_FIELD) {
             return getJsonNodeWithNestedNodeStrategy();
         } else {
             return getJsonNode();
