@@ -22,7 +22,6 @@
         <version>1.17.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-web-api</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>war</packaging>
 
     <properties>

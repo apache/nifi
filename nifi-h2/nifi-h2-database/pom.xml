@@ -18,7 +18,6 @@
     </parent>
 
     <artifactId>nifi-h2-database</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <dependencies>

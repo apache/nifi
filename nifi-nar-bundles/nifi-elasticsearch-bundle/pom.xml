@@ -18,7 +18,6 @@ language governing permissions and limitations under the License. -->
         <version>1.17.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-elasticsearch-bundle</artifactId>
     <packaging>pom</packaging>
 

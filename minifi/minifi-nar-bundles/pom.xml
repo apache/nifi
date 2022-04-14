@@ -23,7 +23,6 @@ limitations under the License.
         <artifactId>minifi</artifactId>
         <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi-nar-bundles</artifactId>
     <packaging>pom</packaging>
     <modules>

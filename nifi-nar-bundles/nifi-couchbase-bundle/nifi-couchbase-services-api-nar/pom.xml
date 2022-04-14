@@ -23,7 +23,6 @@
     </parent>
 
     <artifactId>nifi-couchbase-services-api-nar</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>

@@ -23,7 +23,6 @@
     </parent>
 
     <artifactId>nifi-system-test-extensions-nar</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <dependencies>
