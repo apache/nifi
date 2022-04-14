@@ -70,8 +70,6 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
             .fromPropertyDescriptor(SCHEMA_NAME)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    private volatile String databaseName;
-    private volatile String collection;
 
     public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
         .name("mongo-lookup-client-service")
@@ -173,17 +171,12 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
         this.controllerService = context.getProperty(CONTROLLER_SERVICE).asControllerService(MongoDBClientService.class);
 
         this.schemaNameProperty = context.getProperty(LOCAL_SCHEMA_NAME).evaluateAttributeExpressions().getValue();
-
-        this.databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions().getValue();
-        this.collection   = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions().getValue();
-
         String configuredProjection = context.getProperty(PROJECTION).isSet()
             ? context.getProperty(PROJECTION).getValue()
             : null;
         if (!StringUtils.isBlank(configuredProjection)) {
             projection = Document.parse(configuredProjection);
         }
-
         super.onEnabled(context);
     }
 
