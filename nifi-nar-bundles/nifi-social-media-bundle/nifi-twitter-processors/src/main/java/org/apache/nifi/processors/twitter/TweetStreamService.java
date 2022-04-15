@@ -22,7 +22,6 @@ import com.twitter.clientlib.api.TwitterApi;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -147,6 +146,20 @@ public class TweetStreamService {
         executorService.shutdownNow();
     }
 
+    private Long calculateBackoffDelay() {
+        long backoff = backoffMultiplier * backoffTime;
+        long delay = (backoff > maximumBackoff) ? maximumBackoff : backoff;
+        return delay;
+    }
+
+    private void scheduleStartStreamWithBackoff() {
+        // use exponential(by factor of 2) backoff in scheduling the next TweetStreamStarter
+        long delay = calculateBackoffDelay();
+        backoffMultiplier *= 2;
+        logger.info("Scheduling new TweetStreamStarter after {}s delay", delay);
+        executorService.schedule(new TweetStreamStarter(), delay, TimeUnit.SECONDS);
+    }
+
     private class TweetStreamStarter implements Runnable {
         @Override
         public void run() {
@@ -158,16 +171,23 @@ public class TweetStreamService {
                 }
             } catch (ApiException e) {
                 stream = null;
-                throw new ProcessException(String.format("Received error %d: %s", e.getCode(), e.getMessage()), e);
+                logger.warn(String.format("Received ApiException, error %d: %s", e.getCode(), e.getMessage()));
+                scheduleStartStreamWithBackoff();
+                return;
             } catch (Exception e) {
                 stream = null;
-                throw new ProcessException(e);
+                logger.warn(String.format("Received Exception %s: %s", e.getClass(), e.getMessage()));
+                scheduleStartStreamWithBackoff();
+                return;
             }
 
             if (stream == null) {
-                throw new ProcessException("Stream is null, could not make a connection to the Twitter API");
+                logger.warn("Stream is null, could not make a connection to the Twitter API");
+                scheduleStartStreamWithBackoff();
+                return;
+            } else {
+                executorService.execute(new TweetStreamHandler());
             }
-            executorService.execute(new TweetStreamHandler());
         }
     }
 
@@ -178,24 +198,21 @@ public class TweetStreamService {
                 String tweetRecord = reader.readLine();
                 while (tweetRecord != null) {
                     queue.offer(tweetRecord);
+
+                    // reset backoff multiplier upon successful receipt of a tweet
                     backoffMultiplier = 1L;
                     try {
                         tweetRecord = reader.readLine();
                     } catch (IOException e) {
-                        logger.info("Read Tweet failed: Stream processing completed");
+                        logger.warn("Read Tweet failed: Stream processing completed");
                         break;
                     }
                 }
             } catch (IOException e) {
                 logger.warn("Stream processing failed", e);
             }
-
-            // use exponential(by factor of 2) backoff in scheduling the next TweetStreamStarter
-            long backoff = backoffMultiplier * backoffTime;
-            long delay = (backoff > maximumBackoff) ? maximumBackoff : backoff;
-            backoffMultiplier *= 2;
-            logger.info("TweetStreamHandler terminating. Scheduling new TweetStreamStarter after {}s delay", delay);
-            executorService.schedule(new TweetStreamStarter(), delay, TimeUnit.SECONDS);
+            logger.info("TweetStreamHandler terminating");
+            scheduleStartStreamWithBackoff();
         }
     }
 
