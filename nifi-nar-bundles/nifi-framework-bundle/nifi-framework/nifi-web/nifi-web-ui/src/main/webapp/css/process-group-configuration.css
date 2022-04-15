@@ -75,6 +75,13 @@
 }
 
 /* general */
+#general-process-group-configuration div.settings-columns {
+    display: flex;
+}
+
+#general-process-group-configuration div.settings-columns .settings-column {
+    margin-right: 20px;
+}
 
 #general-process-group-configuration input, #general-process-group-configuration textarea {
     width: 350px;

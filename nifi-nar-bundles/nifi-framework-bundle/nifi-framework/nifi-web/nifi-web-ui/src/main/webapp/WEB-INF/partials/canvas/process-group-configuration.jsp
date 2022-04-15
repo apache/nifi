@@ -26,91 +26,102 @@
             <button id="add-process-group-configuration-controller-service" class="add-button fa fa-plus" title="Create a new controller service"></button>
             <div id="general-process-group-configuration-tab-content" class="configuration-tab">
                 <div id="general-process-group-configuration">
-                    <div class="setting">
-                        <div class="setting-name">Process group name</div>
-                        <span id="process-group-id" class="hidden"></span>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-name" class="setting-input"/>
+                    <div class="settings-columns">
+                        <div class="settings-column">
+                            <div class="setting">
+                                <div class="setting-name">Process group name</div>
+                                <span id="process-group-id" class="hidden"></span>
+                                <div class="editable setting-field">
+                                    <input type="text" id="process-group-name" class="setting-input"/>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-name" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Process group parameter context</div>
+                                <div class="editable setting-field">
+                                    <div id="process-group-parameter-context-combo"></div>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-parameter-context" class="unset">Unauthorized</span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Process group comments</div>
+                                <div class="editable setting-field">
+                                    <textarea id="process-group-comments" class="setting-input"></textarea>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-comments" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Process group FlowFile concurrency</div>
+                                <div class="editable setting-field">
+                                    <div id="process-group-flowfile-concurrency-combo"></div>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-flowfile-concurrency" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Process group outbound policy</div>
+                                <div class="editable setting-field">
+                                    <div id="process-group-outbound-policy-combo"></div>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-outbound-policy" class="unset"></span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-name" class="unset"></span>
+                        <div class="settings-column">
+                            <div class="setting">
+                                <div class="setting-name">Default FlowFile Expiration
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                </div>
+                                <div class="editable setting-field">
+                                    <input type="text" id="process-group-default-flowfile-expiration" class="setting-input"/>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-default-flowfile-expiration" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Default Back Pressure Object Threshold
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                </div>
+                                <div class="editable setting-field">
+                                    <input type="text" id="process-group-default-back-pressure-object-threshold" class="setting-input"/>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-default-back-pressure-object-threshold" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Default Back Pressure Data Size Threshold
+                                    <div class="fa fa-question-circle" alt="Info" title="This setting applies as the default for any new connections. Configuration of existing connections are unaffected."></div>
+                                </div>
+                                <div class="editable setting-field">
+                                    <input type="text" id="process-group-default-back-pressure-data-size-threshold" class="setting-input"/>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-default-back-pressure-data-size-threshold" class="unset"></span>
+                                </div>
+                            </div>
+                            <div class="setting">
+                                <div class="setting-name">Log File Suffix
+                                    <div class="fa fa-question-circle" alt="Info" title="Turns on dedicated logging. When left empty log messages will be logged only to the primary app log. When set messages logged by components in this group will be sent to the standard app log, as well as a separate log file, with the provided name, specific to this group."></div>
+                                </div>
+                                <div class="editable setting-field">
+                                    <input type="text" id="process-group-log-file-suffix" class="setting-input"/>
+                                </div>
+                                <div class="read-only setting-field">
+                                    <span id="read-only-process-group-log-file-suffix" class="unset"></span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="setting">
-                        <div class="setting-name">Process group parameter context</div>
-                        <div class="editable setting-field">
-                            <div id="process-group-parameter-context-combo"></div>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-parameter-context" class="unset">Unauthorized</span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Process group comments</div>
-                        <div class="editable setting-field">
-                            <textarea id="process-group-comments" class="setting-input"></textarea>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-comments" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Process group FlowFile concurrency</div>
-                        <div class="editable setting-field">
-                            <div id="process-group-flowfile-concurrency-combo"></div>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-flowfile-concurrency" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Process group outbound policy</div>
-                        <div class="editable setting-field">
-                            <div id="process-group-outbound-policy-combo"></div>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-outbound-policy" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Default FlowFile Expiration</div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-default-flowfile-expiration" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-default-flowfile-expiration" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Default Back Pressure Object Threshold</div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-default-back-pressure-object-threshold" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-default-back-pressure-object-threshold" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Default Back Pressure Data Size Threshold</div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-default-back-pressure-data-size-threshold" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-default-back-pressure-data-size-threshold" class="unset"></span>
-                        </div>
-                    </div>
-                    <div class="setting">
-                        <div class="setting-name">Log File Suffix
-                        <div class="fa fa-question-circle" alt="Info" title="Turns on dedicated logging. When left empty log messages will be logged only to the primary app log. When set messages logged by components in this group will be sent to the standard app log, as well as a separate log file, with the provided name, specific to this group."></div>
-                        </div>
-                        <div class="editable setting-field">
-                            <input type="text" id="process-group-log-file-suffix" class="setting-input"/>
-                        </div>
-                        <div class="read-only setting-field">
-                            <span id="read-only-process-group-log-file-suffix" class="unset"></span>
-                        </div>
-                    </div>
-
                     <div class="editable settings-buttons">
                         <div id="process-group-configuration-save" class="button">Apply</div>
                         <div class="clear"></div>
