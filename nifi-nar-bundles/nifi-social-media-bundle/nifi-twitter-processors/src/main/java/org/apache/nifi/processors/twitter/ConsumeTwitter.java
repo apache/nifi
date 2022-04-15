@@ -118,6 +118,24 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10")
             .build();
+    public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
+            .name("backoff-time")
+            .displayName("Backoff Time")
+            .description("The number of seconds to backoff to start attempting a new stream if" +
+                    "the current one fails for any reason. Will increase by factor of 2 every time a restart fails")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .defaultValue("10")
+            .build();
+    public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
+            .name("maximum-backoff-time")
+            .displayName("Maximum Backoff Time")
+            .description("The maximum number of seconds to backoff to start attempting a new stream." +
+                    "It is recommended that this number be much higher than the 'Backoff Time' property")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .defaultValue("180")
+            .build();
     public static final PropertyDescriptor TWEET_FIELDS = new PropertyDescriptor.Builder()
             .name("tweet-fields")
             .displayName("Tweet Fields")
@@ -215,6 +233,8 @@ public class ConsumeTwitter extends AbstractProcessor {
         descriptors.add(BEARER_TOKEN);
         descriptors.add(QUEUE_SIZE);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(BACKOFF_TIME);
+        descriptors.add(MAXIMUM_BACKOFF_TIME);
         descriptors.add(TWEET_FIELDS);
         descriptors.add(USER_FIELDS);
         descriptors.add(MEDIA_FIELDS);
