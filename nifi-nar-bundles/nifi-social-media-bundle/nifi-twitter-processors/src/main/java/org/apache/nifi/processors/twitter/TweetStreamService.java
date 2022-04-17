@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.twitter;
 
+import com.twitter.clientlib.ApiClient;
 import com.twitter.clientlib.ApiException;
 import com.twitter.clientlib.TwitterCredentialsBearer;
 import com.twitter.clientlib.api.TwitterApi;
@@ -98,8 +99,11 @@ public class TweetStreamService {
         this.backoffTime = context.getProperty(ConsumeTwitter.BACKOFF_TIME).asLong();
         this.maximumBackoff = context.getProperty(ConsumeTwitter.MAXIMUM_BACKOFF_TIME).asLong();
 
+        ApiClient client = new ApiClient();
+        client = client.setConnectTimeout(context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asInteger());
+        api = new TwitterApi(client);
+
         TwitterCredentialsBearer creds = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
-        api = new TwitterApi();
         api.setTwitterCredentials(creds);
 
         this.executorService = Executors.newSingleThreadScheduledExecutor();

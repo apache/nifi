@@ -146,6 +146,15 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .defaultValue("180")
             .build();
+    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("connect-timeout")
+            .displayName("Connect Timeout")
+            .description("The number of milliseconds in which client should establish a connection with the " +
+                    "Twitter API. A value of 0 will mean no timeout at all")
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("10000")
+            .build();
     public static final PropertyDescriptor TWEET_FIELDS = new PropertyDescriptor.Builder()
             .name("tweet-fields")
             .displayName("Tweet Fields")
@@ -246,6 +255,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         descriptors.add(BACKOFF_ATTEMPTS);
         descriptors.add(BACKOFF_TIME);
         descriptors.add(MAXIMUM_BACKOFF_TIME);
+        descriptors.add(CONNECT_TIMEOUT);
         descriptors.add(TWEET_FIELDS);
         descriptors.add(USER_FIELDS);
         descriptors.add(MEDIA_FIELDS);
