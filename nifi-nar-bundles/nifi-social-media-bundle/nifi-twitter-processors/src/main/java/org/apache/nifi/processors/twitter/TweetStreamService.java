@@ -22,6 +22,7 @@ import com.twitter.clientlib.api.TwitterApi;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -56,6 +57,8 @@ public class TweetStreamService {
     private InputStream stream;
 
     private Long backoffMultiplier;
+    private int backoffAttempts;
+    private int attemptCounter;
     private Long backoffTime;
     private Long maximumBackoff;
 
@@ -90,6 +93,8 @@ public class TweetStreamService {
         this.backfillMinutes = context.getProperty(ConsumeTwitter.BACKFILL_MINUTES).asInteger();
 
         this.backoffMultiplier = 1L;
+        this.backoffAttempts = context.getProperty(ConsumeTwitter.BACKOFF_ATTEMPTS).asInteger();
+        this.attemptCounter = 0;
         this.backoffTime = context.getProperty(ConsumeTwitter.BACKOFF_TIME).asLong();
         this.maximumBackoff = context.getProperty(ConsumeTwitter.MAXIMUM_BACKOFF_TIME).asLong();
 
@@ -154,10 +159,21 @@ public class TweetStreamService {
 
     private void scheduleStartStreamWithBackoff() {
         // use exponential(by factor of 2) backoff in scheduling the next TweetStreamStarter
+        if (attemptCounter >= backoffAttempts) {
+            final String msg = "Reached maximum attempts to backoff";
+            logger.error(msg);
+            throw new ProcessException(msg);
+        }
+        attemptCounter += 1;
         long delay = calculateBackoffDelay();
         backoffMultiplier *= 2;
         logger.info("Scheduling new TweetStreamStarter after {}s delay", delay);
         executorService.schedule(new TweetStreamStarter(), delay, TimeUnit.SECONDS);
+    }
+
+    private void resetBackoff() {
+        attemptCounter = 0;
+        backoffMultiplier = 1L;
     }
 
     private class TweetStreamStarter implements Runnable {
@@ -200,7 +216,7 @@ public class TweetStreamService {
                     queue.offer(tweetRecord);
 
                     // reset backoff multiplier upon successful receipt of a tweet
-                    backoffMultiplier = 1L;
+                    resetBackoff();
                     try {
                         tweetRecord = reader.readLine();
                     } catch (IOException e) {

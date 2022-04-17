@@ -118,6 +118,16 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10")
             .build();
+    public static final PropertyDescriptor BACKOFF_ATTEMPTS = new PropertyDescriptor.Builder()
+            .name("backoff-attempts")
+            .displayName("Backoff Attempts")
+            .description("The number of reconnection tries the processor will attempt in the event of " +
+                    "a disconnection of the stream for any reason, before throwing an exception. To start a stream after " +
+                    "this exception occur and the connection is fixed, please stop and restart the processor.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("1")
+            .build();
     public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("backoff-time")
             .displayName("Backoff Time")
@@ -233,6 +243,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         descriptors.add(BEARER_TOKEN);
         descriptors.add(QUEUE_SIZE);
         descriptors.add(BATCH_SIZE);
+        descriptors.add(BACKOFF_ATTEMPTS);
         descriptors.add(BACKOFF_TIME);
         descriptors.add(MAXIMUM_BACKOFF_TIME);
         descriptors.add(TWEET_FIELDS);
