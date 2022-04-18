@@ -27,6 +27,7 @@
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
+        <ant.version>1.10.12</ant.version>
     </properties>
 
     <dependencies>
@@ -60,7 +61,23 @@
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-testng</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.apache.ant</groupId>
+                    <artifactId>ant-junit</artifactId>
+                </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <!-- Override ant from groovy-ant -->
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant</artifactId>
+            <version>${ant.version}</version>
+        </dependency>
+        <dependency>
+            <!-- Override ant from groovy-ant -->
+            <groupId>org.apache.ant</groupId>
+            <artifactId>ant-antlr</artifactId>
+            <version>${ant.version}</version>
         </dependency>
     </dependencies>
 </project>
