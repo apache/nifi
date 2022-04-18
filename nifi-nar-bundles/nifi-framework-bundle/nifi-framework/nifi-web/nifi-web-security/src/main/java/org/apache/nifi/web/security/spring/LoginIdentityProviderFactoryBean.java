@@ -66,9 +66,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * Spring Factory Bean implementation requires a generic Object return type to handle a null Provider configuration
  */
-public class LoginIdentityProviderFactoryBean implements FactoryBean<LoginIdentityProvider>, DisposableBean, LoginIdentityProviderLookup {
+public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, DisposableBean, LoginIdentityProviderLookup {
 
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
@@ -100,8 +100,14 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<LoginIdenti
         return loginIdentityProviders.get(identifier);
     }
 
+    /**
+     * Get Login Identity Provider Object or null when not configured
+     *
+     * @return Login Identity Provider instance or null when not configured
+     * @throws Exception Thrown on configuration failures
+     */
     @Override
-    public LoginIdentityProvider getObject() throws Exception {
+    public Object getObject() throws Exception {
         if (loginIdentityProvider == null) {
             // look up the login identity provider to use
             final String loginIdentityProviderIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
@@ -362,7 +368,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean<LoginIdenti
     }
 
     @Override
-    public Class<? extends LoginIdentityProvider> getObjectType() {
+    public Class<?> getObjectType() {
         return LoginIdentityProvider.class;
     }
 
