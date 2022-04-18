@@ -158,6 +158,10 @@ language governing permissions and limitations under the License. -->
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-groovysh</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-ant</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
     </dependencies>
