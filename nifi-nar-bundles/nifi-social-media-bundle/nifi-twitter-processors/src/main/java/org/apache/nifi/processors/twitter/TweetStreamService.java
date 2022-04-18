@@ -224,7 +224,7 @@ public class TweetStreamService {
                     try {
                         tweetRecord = reader.readLine();
                     } catch (IOException e) {
-                        logger.warn("Read Tweet failed: Stream processing completed");
+                        logger.info("Read Tweet failed: Stream processing completed");
                         break;
                     }
                 }

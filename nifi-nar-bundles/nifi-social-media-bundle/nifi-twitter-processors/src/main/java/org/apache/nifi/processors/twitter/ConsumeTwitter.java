@@ -123,10 +123,12 @@ public class ConsumeTwitter extends AbstractProcessor {
             .displayName("Backoff Attempts")
             .description("The number of reconnection tries the processor will attempt in the event of " +
                     "a disconnection of the stream for any reason, before throwing an exception. To start a stream after " +
-                    "this exception occur and the connection is fixed, please stop and restart the processor.")
+                    "this exception occur and the connection is fixed, please stop and restart the processor. If the value" +
+                    "of this property is 0, then backoff will never occur and the processor will always need to be restarted" +
+                    "if the stream fails.")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("1")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("5")
             .build();
     public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("backoff-time")
@@ -135,7 +137,7 @@ public class ConsumeTwitter extends AbstractProcessor {
                     "the current one fails for any reason. Will increase by factor of 2 every time a restart fails")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("10")
+            .defaultValue("60")
             .build();
     public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("maximum-backoff-time")
@@ -144,7 +146,7 @@ public class ConsumeTwitter extends AbstractProcessor {
                     "It is recommended that this number be much higher than the 'Backoff Time' property")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("180")
+            .defaultValue("300")
             .build();
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("connect-timeout")
