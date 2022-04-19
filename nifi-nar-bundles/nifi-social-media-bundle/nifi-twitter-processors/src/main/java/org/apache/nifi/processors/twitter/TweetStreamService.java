@@ -96,11 +96,14 @@ public class TweetStreamService {
         this.backoffMultiplier = 1L;
         this.backoffAttempts = context.getProperty(ConsumeTwitter.BACKOFF_ATTEMPTS).asInteger();
         this.attemptCounter = 0;
-        this.backoffTime = context.getProperty(ConsumeTwitter.BACKOFF_TIME).asLong();
-        this.maximumBackoff = context.getProperty(ConsumeTwitter.MAXIMUM_BACKOFF_TIME).asLong();
+        this.backoffTime = context.getProperty(ConsumeTwitter.BACKOFF_TIME).asTimePeriod(TimeUnit.SECONDS);
+        this.maximumBackoff = context.getProperty(ConsumeTwitter.MAXIMUM_BACKOFF_TIME).asTimePeriod(TimeUnit.SECONDS);
 
         ApiClient client = new ApiClient();
-        client = client.setConnectTimeout(context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asInteger());
+        final int connectTimeout = context.getProperty(ConsumeTwitter.CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int readTimeout = context.getProperty(ConsumeTwitter.READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        client = client.setConnectTimeout(connectTimeout);
+        client = client.setReadTimeout(readTimeout);
         api = new TwitterApi(client);
 
         TwitterCredentialsBearer creds = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());

@@ -133,29 +133,38 @@ public class ConsumeTwitter extends AbstractProcessor {
     public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("backoff-time")
             .displayName("Backoff Time")
-            .description("The number of seconds to backoff to start attempting a new stream if" +
+            .description("The duration to backoff to start attempting a new stream if" +
                     "the current one fails for any reason. Will increase by factor of 2 every time a restart fails")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("60")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 mins")
             .build();
     public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("maximum-backoff-time")
             .displayName("Maximum Backoff Time")
-            .description("The maximum number of seconds to backoff to start attempting a new stream." +
+            .description("The maximum duration to backoff to start attempting a new stream." +
                     "It is recommended that this number be much higher than the 'Backoff Time' property")
             .required(true)
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
-            .defaultValue("300")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("5 mins")
             .build();
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("connect-timeout")
             .displayName("Connect Timeout")
-            .description("The number of milliseconds in which client should establish a connection with the " +
-                    "Twitter API. A value of 0 will mean no timeout at all")
+            .description("The maximum time in which client should establish a connection with the " +
+                    "Twitter API before a time out. A value of 0 will mean no timeout at all")
             .required(true)
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .defaultValue("10000")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 secs")
+            .build();
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("read-timeout")
+            .displayName("Read Timeout")
+            .description("The maximum time of inactivity between receiving tweets from Twitter through " +
+                    "the API before a timeout. A value of 0 will mean no timeout at all")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 secs")
             .build();
     public static final PropertyDescriptor TWEET_FIELDS = new PropertyDescriptor.Builder()
             .name("tweet-fields")
@@ -258,6 +267,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         descriptors.add(BACKOFF_TIME);
         descriptors.add(MAXIMUM_BACKOFF_TIME);
         descriptors.add(CONNECT_TIMEOUT);
+        descriptors.add(READ_TIMEOUT);
         descriptors.add(TWEET_FIELDS);
         descriptors.add(USER_FIELDS);
         descriptors.add(MEDIA_FIELDS);
