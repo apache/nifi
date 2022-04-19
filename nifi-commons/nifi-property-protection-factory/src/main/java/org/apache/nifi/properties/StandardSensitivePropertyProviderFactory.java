@@ -66,10 +66,21 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         HashiCorpVaultTransitSensitivePropertyProvider.class
     );
 
-    private final Optional<String> keyHex;
+    private Optional<String> keyHex;
     private final Supplier<BootstrapProperties> bootstrapPropertiesSupplier;
     private final Map<Class<? extends SensitivePropertyProvider>, SensitivePropertyProvider> providers;
     private Map<String, Pattern> customPropertyContextMap;
+
+    /**
+     * Factory default constructor to support java.util.ServiceLoader
+     */
+    public StandardSensitivePropertyProviderFactory() {
+        this(null, null);
+    }
+
+    public void setKeyHex(final String hexadecimalKey) {
+        this.keyHex = Optional.ofNullable(hexadecimalKey);
+    }
 
     /**
      * Creates a StandardSensitivePropertyProviderFactory using the default bootstrap.conf location and

@@ -57,7 +57,6 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.util.FlowDifferenceFilters;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -747,7 +746,6 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         return flow;
     }
 
-    @NotNull
     private VersionedProcessGroup createFlowContents() {
         final VersionedProcessGroup flowContents = new VersionedProcessGroup();
         flowContents.setIdentifier("unit-test-flow-contents");
@@ -763,7 +761,6 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         bundle.setVersion(coordinate.getVersion());
     }
 
-    @NotNull
     private VersionedFlow createVersionedFlow() {
         final VersionedFlow flow = new VersionedFlow();
         flow.setBucketIdentifier("unit-test-bucket");
@@ -774,7 +771,6 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         return flow;
     }
 
-    @NotNull
     private Bucket createBucket() {
         final Bucket bucket = new Bucket();
         bucket.setCreatedTimestamp(System.currentTimeMillis());
