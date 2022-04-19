@@ -29,6 +29,7 @@
                 <include>slf4j-api</include>
                 <include>logback-classic</include>
                 <include>nifi-api</include>
+                <include>nifi-property-protection-api</include>
             </includes>
         </dependencySet>
 
@@ -59,6 +60,19 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>org.aspectj:aspectjweaver</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write Property Protection implementation libraries to isolated directory-->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/properties</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-property-protection-factory</include>
             </includes>
         </dependencySet>
 

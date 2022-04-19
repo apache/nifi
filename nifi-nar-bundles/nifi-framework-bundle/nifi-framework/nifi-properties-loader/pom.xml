@@ -21,9 +21,6 @@
     </parent>
     <artifactId>nifi-properties-loader</artifactId>
     <name>nifi-properties-loader</name>
-    <description>Handles the loading of the nifi.properties file to an instance of NiFiProperties, and transparently
-        performs any decryption/retrieval of sensitive configuration properties.
-    </description>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
@@ -31,52 +28,18 @@
             <artifactId>nifi-properties</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-security-utils</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-property-protection-loader</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-factory</artifactId>
+            <scope>provided</scope>
+            <!-- Provided through isolated ClassLoader to avoid unnecessary runtime dependencies -->
         </dependency>
     </dependencies>
-    <build>
-        <!-- Required to run Groovy tests without any Java tests -->
-        <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.5</version>
-                <executions>
-                    <execution>
-                        <id>add-test-source</id>
-                        <phase>generate-test-sources</phase>
-                        <goals>
-                            <goal>add-test-source</goal>
-                        </goals>
-                        <configuration>
-                            <sources>
-                                <source>src/test/groovy</source>
-                            </sources>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

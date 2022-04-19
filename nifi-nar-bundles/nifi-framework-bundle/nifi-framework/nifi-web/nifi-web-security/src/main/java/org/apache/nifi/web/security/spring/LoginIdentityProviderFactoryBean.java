@@ -32,7 +32,14 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
+import org.apache.nifi.properties.ProtectedPropertyContext;
+import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.scheme.ProtectionScheme;
+import org.apache.nifi.properties.scheme.ProtectionSchemeResolver;
+import org.apache.nifi.property.protection.loader.PropertyProtectionURLClassLoader;
+import org.apache.nifi.property.protection.loader.PropertyProviderFactoryLoader;
+import org.apache.nifi.property.protection.loader.ProtectionSchemeResolverLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
@@ -59,10 +66,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- *
+ * Spring Factory Bean implementation requires a generic Object return type to handle a null Provider configuration
  */
-public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderFactoryAware
-        implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
+public class LoginIdentityProviderFactoryBean implements FactoryBean<Object>, DisposableBean, LoginIdentityProviderLookup {
 
     private static final String LOGIN_IDENTITY_PROVIDERS_XSD = "/login-identity-providers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authentication.generated";
@@ -94,6 +100,12 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
         return loginIdentityProviders.get(identifier);
     }
 
+    /**
+     * Get Login Identity Provider Object or null when not configured
+     *
+     * @return Login Identity Provider instance or null when not configured
+     * @throws Exception Thrown on configuration failures
+     */
     @Override
     public Object getObject() throws Exception {
         if (loginIdentityProvider == null) {
@@ -109,11 +121,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
                     loginIdentityProviders.put(provider.getIdentifier(), createLoginIdentityProvider(provider.getIdentifier(), provider.getClazz()));
                 }
 
-                // configure each login identity provider
-                for (final Provider provider : loginIdentityProviderConfiguration.getProvider()) {
-                    final LoginIdentityProvider instance = loginIdentityProviders.get(provider.getIdentifier());
-                    instance.onConfigured(loadLoginIdentityProviderConfiguration(provider));
-                }
+                loadProviderProperties(loginIdentityProviderConfiguration);
 
                 // get the login identity provider instance
                 loginIdentityProvider = getLoginIdentityProvider(loginIdentityProviderIdentifier);
@@ -181,8 +189,8 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
             Class<? extends LoginIdentityProvider> loginIdentityProviderClass = rawLoginIdentityProviderClass.asSubclass(LoginIdentityProvider.class);
 
             // otherwise create a new instance
-            Constructor constructor = loginIdentityProviderClass.getConstructor();
-            instance = (LoginIdentityProvider) constructor.newInstance();
+            Constructor<? extends LoginIdentityProvider> constructor = loginIdentityProviderClass.getConstructor();
+            instance = constructor.newInstance();
 
             // method injection
             performMethodInjection(instance, loginIdentityProviderClass);
@@ -201,23 +209,66 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
         return withNarLoader(instance);
     }
 
-    private LoginIdentityProviderConfigurationContext loadLoginIdentityProviderConfiguration(final Provider provider) {
+    private void loadProviderProperties(final LoginIdentityProviders loginIdentityProviderConfiguration) {
+        final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+
+        try {
+            final PropertyProtectionURLClassLoader protectionClassLoader = new PropertyProtectionURLClassLoader(contextClassLoader);
+            Thread.currentThread().setContextClassLoader(protectionClassLoader);
+
+            final ProtectionSchemeResolverLoader resolverLoader = new ProtectionSchemeResolverLoader();
+            final ProtectionSchemeResolver protectionSchemeResolver = resolverLoader.getProtectionSchemeResolver();
+
+            final PropertyProviderFactoryLoader factoryLoader = new PropertyProviderFactoryLoader();
+            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = factoryLoader.getPropertyProviderFactory();
+
+            for (final Provider provider : loginIdentityProviderConfiguration.getProvider()) {
+                final LoginIdentityProvider instance = loginIdentityProviders.get(provider.getIdentifier());
+                final LoginIdentityProviderConfigurationContext configurationContext = getConfigurationContext(provider, sensitivePropertyProviderFactory, protectionSchemeResolver);
+                instance.onConfigured(configurationContext);
+            }
+        } finally {
+            Thread.currentThread().setContextClassLoader(contextClassLoader);
+        }
+    }
+
+    private LoginIdentityProviderConfigurationContext getConfigurationContext(
+            final Provider provider,
+            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
+            final ProtectionSchemeResolver protectionSchemeResolver
+    ) {
+        final String providerIdentifier = provider.getIdentifier();
         final Map<String, String> providerProperties = new HashMap<>();
 
         for (final Property property : provider.getProperty()) {
-            if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName(), provider
-                        .getIdentifier());
-                providerProperties.put(property.getName(), decryptedValue);
-            } else {
+            final String encryption = property.getEncryption();
+
+            if (StringUtils.isBlank(encryption)) {
                 providerProperties.put(property.getName(), property.getValue());
+            } else {
+                final String propertyDecrypted = getPropertyDecrypted(providerIdentifier, property, sensitivePropertyProviderFactory, protectionSchemeResolver);
+                providerProperties.put(property.getName(), propertyDecrypted);
             }
         }
 
-        return new StandardLoginIdentityProviderConfigurationContext(provider.getIdentifier(), providerProperties);
+        return new StandardLoginIdentityProviderConfigurationContext(providerIdentifier, providerProperties);
     }
 
-    private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)
+    private String getPropertyDecrypted(
+            final String providerIdentifier,
+            final Property property,
+            final SensitivePropertyProviderFactory sensitivePropertyProviderFactory,
+            final ProtectionSchemeResolver protectionSchemeResolver
+    ) {
+        final String scheme = property.getEncryption();
+        final ProtectionScheme protectionScheme = protectionSchemeResolver.getProtectionScheme(scheme);
+        final SensitivePropertyProvider propertyProvider = sensitivePropertyProviderFactory.getProvider(protectionScheme);
+        final ProtectedPropertyContext protectedPropertyContext = sensitivePropertyProviderFactory.getPropertyContext(providerIdentifier, property.getName());
+        final String protectedProperty = property.getValue();
+        return propertyProvider.unprotect(protectedProperty, protectedPropertyContext);
+    }
+
+    private void performMethodInjection(final LoginIdentityProvider instance, final Class<?> loginIdentityProviderClass)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 
         for (final Method method : loginIdentityProviderClass.getMethods()) {
@@ -245,13 +296,13 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
             }
         }
 
-        final Class parentClass = loginIdentityProviderClass.getSuperclass();
+        final Class<?> parentClass = loginIdentityProviderClass.getSuperclass();
         if (parentClass != null && LoginIdentityProvider.class.isAssignableFrom(parentClass)) {
             performMethodInjection(instance, parentClass);
         }
     }
 
-    private void performFieldInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass) throws IllegalArgumentException, IllegalAccessException {
+    private void performFieldInjection(final LoginIdentityProvider instance, final Class<?> loginIdentityProviderClass) throws IllegalArgumentException, IllegalAccessException {
         for (final Field field : loginIdentityProviderClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(LoginIdentityProviderContext.class)) {
                 // make the method accessible
@@ -277,7 +328,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
             }
         }
 
-        final Class parentClass = loginIdentityProviderClass.getSuperclass();
+        final Class<?> parentClass = loginIdentityProviderClass.getSuperclass();
         if (parentClass != null && LoginIdentityProvider.class.isAssignableFrom(parentClass)) {
             performFieldInjection(instance, parentClass);
         }
@@ -317,7 +368,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
     }
 
     @Override
-    public Class getObjectType() {
+    public Class<?> getObjectType() {
         return LoginIdentityProvider.class;
     }
 

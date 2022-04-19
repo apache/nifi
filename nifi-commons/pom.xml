@@ -44,6 +44,7 @@
         <module>nifi-property-protection-factory</module>
         <module>nifi-property-protection-gcp</module>
         <module>nifi-property-protection-hashicorp</module>
+        <module>nifi-property-protection-loader</module>
         <module>nifi-property-protection-shared</module>
         <module>nifi-record</module>
         <module>nifi-record-path</module>

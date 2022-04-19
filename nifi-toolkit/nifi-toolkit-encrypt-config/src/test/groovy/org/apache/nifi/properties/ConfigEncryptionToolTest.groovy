@@ -17,8 +17,6 @@
 package org.apache.nifi.properties
 
 import groovy.test.GroovyLogTestCase
-import groovy.test.GroovyShellTestCase
-import groovy.test.GroovyTestCase
 import org.apache.commons.cli.CommandLine
 import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
@@ -974,7 +972,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         File originalFile = new File(originalNiFiPropertiesPath)
         List<String> originalLines = originalFile.readLines()
 
-        ProtectedNiFiProperties protectedProperties = NiFiPropertiesLoader.withKey(KEY_HEX).readProtectedPropertiesFromDisk(new File(originalNiFiPropertiesPath))
+        ProtectedNiFiProperties protectedProperties = NiFiPropertiesLoader.withKey(KEY_HEX).loadProtectedProperties(new File(originalNiFiPropertiesPath))
         int originalProtectedPropertyCount = protectedProperties.getProtectedPropertyKeys().size()
 
         protectedProperties.addSensitivePropertyProvider(DEFAULT_PROVIDER_FACTORY.getProvider(ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME))
@@ -1181,7 +1179,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) != originalValue
@@ -1257,7 +1255,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) != originalValue
@@ -1345,7 +1343,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) != originalValue
@@ -1460,7 +1458,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was re-encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) != originalValue
@@ -3276,7 +3274,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) != originalValue
@@ -3472,7 +3470,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for everything is the same except the sensitive props key
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(workingNiFiPropertiesFile)
                 assert updatedProperties.size() == inputProperties.size()
                 assert updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY) == newFlowPassword
                 originalSensitiveValues.every { String key, String originalValue ->
@@ -3569,7 +3567,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 final List<String> updatedPropertiesLines = workingNiFiPropertiesFile.readLines()
 
                 // Check that the output values for everything is the same including the sensitive props key
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(workingNiFiPropertiesFile)
                 assert updatedProperties.size() == inputProperties.size()
                 originalSensitiveValues.every { String key, String originalValue ->
                     assert updatedProperties.getProperty(key) == originalValue
@@ -3654,7 +3652,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
 
         final String SENSITIVE_PROTECTION_KEY = ApplicationPropertiesProtector.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
-        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.loadProtectedProperties(workingNiFiPropertiesFile)
         def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
         logger.info("Original encrypted values: ${originalEncryptedValues}")
         String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
@@ -3675,7 +3673,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                         .getProvider(ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME)
 
                 // Check that the output values for everything is the same except the sensitive props key
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(workingNiFiPropertiesFile)
                 assert updatedProperties.size() == inputProperties.size()
                 String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
 
@@ -3787,7 +3785,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
 
 
         final String SENSITIVE_PROTECTION_KEY = ApplicationPropertiesProtector.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
-        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.loadProtectedProperties(workingNiFiPropertiesFile)
         def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
         logger.info("Original encrypted values: ${originalEncryptedValues}")
         String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
@@ -3808,7 +3806,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                         .getProvider(ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME)
 
                 // Check that the output values for everything is the same except the sensitive props key
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(workingNiFiPropertiesFile)
                 assert updatedProperties.size() == inputProperties.size()
                 String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
 
@@ -3922,7 +3920,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Original sensitive values: ${originalSensitiveValues}")
 
         final String SENSITIVE_PROTECTION_KEY = ApplicationPropertiesProtector.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY)
-        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+        ProtectedNiFiProperties encryptedProperties = niFiPropertiesLoader.loadProtectedProperties(workingNiFiPropertiesFile)
         def originalEncryptedValues = encryptedProperties.getSensitivePropertyKeys().collectEntries { String key -> [(key): encryptedProperties.getProperty(key)] }
         logger.info("Original encrypted values: ${originalEncryptedValues}")
         String originalSensitiveKeyProtectionScheme = encryptedProperties.getProperty(SENSITIVE_PROTECTION_KEY)
@@ -3960,7 +3958,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 logger.info("Updated key line: ${updatedSensitiveKeyLine}")
 
                 // Check that the output values for everything are the same except the sensitive props key
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(workingNiFiPropertiesFile)
+                NiFiProperties updatedProperties = new NiFiPropertiesLoader().loadProtectedProperties(workingNiFiPropertiesFile)
                 assert updatedProperties.size() == inputProperties.size()
                 String newSensitivePropertyKey = updatedProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
 

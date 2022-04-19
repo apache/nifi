@@ -193,11 +193,9 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 /*** NiFi Properties Assertions ***/
 
                 final List<String> updatedPropertiesLines = outputPropertiesFile.readLines()
-                logger.info("Updated nifi.properties:")
-                logger.info("\n" * 2 + updatedPropertiesLines.join("\n"))
 
                 // Check that the output values for sensitive properties are not the same as the original (i.e. it was encrypted)
-                NiFiProperties updatedProperties = new NiFiPropertiesLoader().readProtectedPropertiesFromDisk(outputPropertiesFile)
+                NiFiProperties updatedProperties = NiFiPropertiesLoader.withKey(TestUtil.KEY_HEX).load(outputPropertiesFile)
                 assert updatedProperties.size() >= inputProperties.size()
 
                 // Check that the new NiFiProperties instance matches the output file (values still encrypted)
