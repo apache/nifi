@@ -23,7 +23,7 @@ import java.util.Objects;
  * Represents a valid value for a {@link PropertyDescriptor}
  * </p>
  */
-public class AllowableValue {
+public class AllowableValue implements Allowable {
 
     private final String value;
     private final String displayName;
