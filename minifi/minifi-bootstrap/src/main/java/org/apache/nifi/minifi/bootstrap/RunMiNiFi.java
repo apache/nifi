@@ -19,6 +19,7 @@ package org.apache.nifi.minifi.bootstrap;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;

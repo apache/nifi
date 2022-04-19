@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.minifi.bootstrap.configuration;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
 import org.slf4j.Logger;
@@ -26,7 +26,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -50,7 +49,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
         final String ingestorsCsv = properties.getProperty(NOTIFIER_INGESTORS_KEY);
 
         if (ingestorsCsv != null && !ingestorsCsv.isEmpty()) {
-            for (String ingestorClassname : Arrays.asList(ingestorsCsv.split(","))) {
+            for (String ingestorClassname : ingestorsCsv.split(",")) {
                 ingestorClassname = ingestorClassname.trim();
                 try {
                     Class<?> ingestorClass = Class.forName(ingestorClassname);
@@ -99,7 +98,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
                 result = new ListenerHandleResult(listener, ex);
             }
             listenerHandleResults.add(result);
-            logger.info("Listener notification result:" + result.toString());
+            logger.info("Listener notification result:" + result);
         }
         return listenerHandleResults;
     }

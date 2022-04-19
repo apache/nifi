@@ -17,6 +17,7 @@
 package org.apache.nifi;
 
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;
@@ -26,13 +27,13 @@ import org.apache.nifi.util.NiFiProperties;
 import java.util.Set;
 
 /**
- *
+ * The main interface for declaring a NiFi-based server application
  */
 public interface NiFiServer {
 
     void start();
 
-    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
+    void initialize(final NiFiProperties properties, final Bundle systemBundle, final Set<Bundle> bundles, final ExtensionMapping extensionMapping);
 
     void stop();
 

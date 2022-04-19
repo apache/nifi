@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 
 import java.io.IOException;

@@ -14,13 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.c2.client.api;
 
-package org.apache.nifi.minifi.bootstrap;
+public interface IdGenerator {
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicReference;
-
-public interface ConfigurationFileHolder {
-
-    AtomicReference<ByteBuffer> getConfigFileReference();
+    String generate();
 }

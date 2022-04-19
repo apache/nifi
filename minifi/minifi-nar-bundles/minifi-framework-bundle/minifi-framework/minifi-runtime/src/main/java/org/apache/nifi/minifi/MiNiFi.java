@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 public class MiNiFi {
 
     private static final Logger logger = LoggerFactory.getLogger(MiNiFi.class);
@@ -73,7 +72,7 @@ public class MiNiFi {
         final File kerberosConfigFile = properties.getKerberosConfigurationFile();
         if (kerberosConfigFile != null) {
             final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
-            logger.info("Setting java.security.krb5.conf to {}", new Object[]{kerberosConfigFilePath});
+            logger.info("Setting java.security.krb5.conf to {}", kerberosConfigFilePath);
             System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
         }
 
@@ -151,6 +150,7 @@ public class MiNiFi {
         }
         minifiServer = (MiNiFiServer) nifiServer;
         Thread.currentThread().setContextClassLoader(minifiServer.getClass().getClassLoader());
+
         // Filter out the framework NAR from being loaded by the NiFiServer
         minifiServer.initialize(properties,
                 systemBundle,
@@ -261,7 +261,7 @@ public class MiNiFi {
     public static void main(String[] args) {
         logger.info("Launching MiNiFi...");
         try {
-            NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, (Map<String,String>) null);
+            NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, (Map<String, String>) null);
             new MiNiFi(niFiProperties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi due to " + t, t);

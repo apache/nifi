@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -18,10 +18,10 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

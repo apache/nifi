@@ -15,15 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces;
+package org.apache.nifi.c2.client.api;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 
-import java.io.IOException;
-import java.util.Properties;
+public interface ConfigurationFileHolder {
 
-public interface Differentiator <T> {
-    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
-
-    boolean isNew(T input) throws IOException;
+    AtomicReference<ByteBuffer> getConfigFileReference();
 }

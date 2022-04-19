@@ -168,7 +168,7 @@ public class SystemDiagnostics implements Cloneable {
         if (maxHeap == -1) {
             return -1;
         } else {
-            return DiagnosticUtils.getUtilization(usedHeap, maxHeap);
+            return Math.round((usedHeap / maxHeap) * 100);
         }
     }
 
@@ -176,7 +176,7 @@ public class SystemDiagnostics implements Cloneable {
         if (maxNonHeap == -1) {
             return -1;
         } else {
-            return DiagnosticUtils.getUtilization(usedNonHeap, maxNonHeap);
+            return Math.round((usedNonHeap / maxNonHeap) * 100);
         }
     }
 

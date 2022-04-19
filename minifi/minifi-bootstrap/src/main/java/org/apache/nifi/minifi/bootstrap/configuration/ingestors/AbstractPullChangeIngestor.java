@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
 import org.slf4j.Logger;

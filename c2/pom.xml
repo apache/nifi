@@ -29,6 +29,7 @@ limitations under the License.
 
     <modules>
         <module>c2-protocol</module>
+        <module>c2-client-bundle</module>
     </modules>
 
     <dependencyManagement>

@@ -32,9 +32,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

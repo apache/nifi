@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
@@ -1302,7 +1303,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     @Override
-    public void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping) {
+    public void initialize(final NiFiProperties properties, final Bundle systemBundle, final Set<Bundle> bundles, final ExtensionMapping extensionMapping) {
         this.props = properties;
         this.systemBundle = systemBundle;
         this.bundles = bundles;
