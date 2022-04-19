@@ -51,7 +51,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  ubuntu-build:
+  ubuntu-build-en:
     timeout-minutes: 120
     runs-on: ubuntu-latest
     name: Ubuntu Zulu JDK 17 EN
@@ -88,12 +88,17 @@ jobs:
           java-version: '17'
       - name: Maven Build
         env:
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
+          NIFI_CI_LOCALE: >-
+            -Duser.language=en
+            -Duser.country=AU
+          SUREFIRE_OPTS: >-
             -Duser.language=en
             -Duser.country=AU
             -Duser.region=AU
             -Duser.timezone=Australia/Melbourne
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+            -DargLine=${env.SUREFIRE_OPTS}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
@@ -110,10 +115,10 @@ jobs:
       - name: Post Disk Usage
         run: df
 
-  ubuntu-build-en:
+  ubuntu-build-hi:
     timeout-minutes: 120
     runs-on: ubuntu-latest
-    name: Ubuntu Zulu JDK 11 EN
+    name: Ubuntu Zulu JDK 11 HI
     steps:
       - name: System Information
         run: |
@@ -147,12 +152,17 @@ jobs:
           java-version: '11'
       - name: Maven Build
         env:
+          NIFI_CI_LOCALE: >-
+            -Duser.language=hi
+            -Duser.country=IN
+          SUREFIRE_OPTS: >-
+            -Duser.language=hi
+            -Duser.country=IN
+            -Duser.region=IN
+            -Duser.timezone=Asia/Kolkata
           MAVEN_OPTS: >-
             ${{ env.DEFAULT_MAVEN_OPTS }}
-            -Duser.language=en
-            -Duser.country=AU
-            -Duser.region=AU
-            -Duser.timezone=Australia/Melbourne
+            -DargLine=${env.SUREFIRE_OPTS}
         run: >
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
@@ -206,12 +216,17 @@ jobs:
           java-version: '8'
       - name: Maven Build
         env:
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
+          NIFI_CI_LOCALE: >-
+            -Duser.language=ja
+            -Duser.country=JP
+          SUREFIRE_OPTS: >-
             -Duser.language=ja
             -Duser.country=JP
             -Duser.region=JP
             -Duser.timezone=Asia/Tokyo
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+            -DargLine=${env.SUREFIRE_OPTS}
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROFILES }}
@@ -271,12 +286,17 @@ jobs:
           java-version: '8'
       - name: Maven Build
         env:
-          MAVEN_OPTS: >-
-            ${{ env.DEFAULT_MAVEN_OPTS }}
+          NIFI_CI_LOCALE: >-
+            -Duser.language=fr
+            -Duser.country=FR
+          SUREFIRE_OPTS: >-
             -Duser.language=fr
             -Duser.country=FR
             -Duser.region=FR
             -Duser.timezone=Europe/Paris
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+            -DargLine=${env.SUREFIRE_OPTS}
         run: >-
           ${{ env.MAVEN_COMMAND }}
           ${{ env.MAVEN_PROJECTS }}
