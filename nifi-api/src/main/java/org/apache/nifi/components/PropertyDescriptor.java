@@ -397,6 +397,20 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         }
 
         /**
+         * Stores allowable values from an enum class.
+         * @param enumClass an enum class that implements the Allowable interface and contains a set of values
+         * @param <E> generic parameter for an enum class that implements the Allowable interface
+         * @return the builder
+         */
+        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
+            this.allowableValues = new ArrayList<>();
+            for (E enumValue : enumClass.getEnumConstants()) {
+                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
+            }
+            return this;
+        }
+
+        /**
          * @param values constrained set of values
          * @return the builder
          */
@@ -569,7 +583,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         public Builder dependsOn(final PropertyDescriptor property, final String firstDependentValue, final String... additionalDependentValues) {
             final AllowableValue[] dependentValues = new AllowableValue[additionalDependentValues.length + 1];
             dependentValues[0] = new AllowableValue(firstDependentValue);
-            int i=1;
+            int i = 1;
             for (final String additionalDependentValue : additionalDependentValues) {
                 dependentValues[i++] = new AllowableValue(additionalDependentValue);
             }
