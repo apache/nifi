@@ -880,7 +880,7 @@ class ConfigEncryptionTool {
 
             passwords.each { password ->
                 if (isVerbose) {
-                    logger.info("Attempting to encrypt ${password.name()} using protection scheme ${protectionScheme}")
+                    logger.info("Attempting to encrypt ${password.name()} using protection scheme ${protectionScheme.path}")
                 }
                 final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
@@ -928,7 +928,7 @@ class ConfigEncryptionTool {
 
             passwords.each { password ->
                 if (isVerbose) {
-                    logger.info("Attempting to encrypt ${password.name()} using protection scheme ${protectionScheme}")
+                    logger.info("Attempting to encrypt ${password.name()} using protection scheme ${protectionScheme.path}")
                 }
                 final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
@@ -982,18 +982,18 @@ class ConfigEncryptionTool {
         // Iterate over each -- encrypt and add .protected if populated
         sensitivePropertyKeys.each { String key ->
             if (!plainProperties.getProperty(key)) {
-                logger.debug("Skipping encryption of ${key} because it is empty")
+                logger.debug("Skipping encryption of [${key}] because it is empty")
             } else {
                 String protectedValue = spp.protect(plainProperties.getProperty(key), ProtectedPropertyContext.defaultContext(key))
 
                 // Add the encrypted value
                 encryptedProperties.setProperty(key, protectedValue)
-                logger.info("Protected ${key} with ${protectionScheme} -> \t${protectedValue}")
+                logger.info("Protected [${key}] using [${protectionScheme.path}] -> \t${protectedValue}")
 
                 // Add the protection key ("x.y.z.protected" -> "aes/gcm/{128,256}")
                 String protectionKey = ApplicationPropertiesProtector.getProtectionKey(key)
                 encryptedProperties.setProperty(protectionKey, spp.getIdentifierKey())
-                logger.info("Updated protection key ${protectionKey}")
+                logger.info("Updated protection key [${protectionKey}]")
 
                 keysToSkip << key << protectionKey
             }
@@ -1330,7 +1330,7 @@ class ConfigEncryptionTool {
     boolean niFiPropertiesAreEncrypted() {
         if (niFiPropertiesPath) {
             try {
-                def nfp = getNiFiPropertiesLoader(keyHex).readProtectedPropertiesFromDisk(new File(niFiPropertiesPath))
+                def nfp = getNiFiPropertiesLoader(keyHex).loadProtectedProperties(new File(niFiPropertiesPath))
                 return nfp.hasProtectedKeys()
             } catch (SensitivePropertyProtectionException | IOException e) {
                 logger.debug("Read Protected Properties failed {}", e.getMessage())
