@@ -40,16 +40,6 @@ public abstract class C2ClientBase implements C2Client {
     }
 
     @Override
-    public void start() {
-
-    }
-
-    @Override
-    public void stop() {
-
-    }
-
-    @Override
     public C2HeartbeatResponse publishHeartbeat(C2Heartbeat heartbeat) throws IOException {
         String heartbeatString = "";
 

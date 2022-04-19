@@ -30,10 +30,6 @@ import java.util.List;
  */
 public interface C2Client {
 
-    void start();
-
-    void stop();
-
     C2HeartbeatResponse publishHeartbeat(C2Heartbeat heartbeat) throws IOException;
 
     ByteBuffer retrieveUpdateContent(FlowUpdateInfo flowUpdateInfo);

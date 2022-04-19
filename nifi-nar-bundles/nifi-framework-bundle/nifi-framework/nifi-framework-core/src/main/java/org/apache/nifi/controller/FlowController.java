@@ -28,9 +28,7 @@ import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.C2ClientService;
-import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.client.api.C2Properties;
-import org.apache.nifi.c2.http.C2HttpClient;
+import org.apache.nifi.c2.C2NiFiProperties;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
 import org.apache.nifi.cluster.coordination.node.ClusterRoles;
@@ -807,14 +805,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 : Optional.empty();
 
         // If standalone and C2 is enabled, create a C2 client
-        final boolean c2Enabled = Boolean.parseBoolean(nifiProperties.getProperty(C2Properties.C2_ENABLE_KEY, "false"));
+        final boolean c2Enabled = Boolean.parseBoolean(nifiProperties.getProperty(C2NiFiProperties.C2_ENABLE_KEY, "false"));
         if (!configuredForClustering && c2Enabled) {
             LOG.info("C2 enabled, creating a C2 client instance");
-            final long clientHeartbeatPeriod = Long.parseLong(nifiProperties.getProperty(C2Properties.C2_AGENT_HEARTBEAT_PERIOD_KEY, String.valueOf(C2Properties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)));
-            c2ClientService = new C2ClientService(nifiProperties, new C2HttpClient(nifiProperties), clientHeartbeatPeriod, this);
+            final long clientHeartbeatPeriod = Long.parseLong(nifiProperties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
+                    String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)));
+            c2ClientService = new C2ClientService(nifiProperties, clientHeartbeatPeriod, this);
             c2ClientService.start();
         } else {
-            LOG.info("Detected a clustered instance or the '" + C2Properties.C2_ENABLE_KEY + "' property is missing/false, not creating a C2 client instance");
+            LOG.info("Detected a clustered instance or the '" + C2NiFiProperties.C2_ENABLE_KEY + "' property is missing/false, not creating a C2 client instance");
             c2ClientService = null;
         }
     }

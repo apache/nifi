@@ -18,10 +18,11 @@ package org.apache.nifi.c2;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
 import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.client.api.C2Properties;
 import org.apache.nifi.c2.client.api.FlowUpdateInfo;
+import org.apache.nifi.c2.client.http.C2HttpClient;
 import org.apache.nifi.c2.protocol.api.AgentInfo;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
@@ -50,6 +51,7 @@ import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +94,7 @@ public class C2ClientService {
     private final AtomicReference<String> deviceIdentifierRef = new AtomicReference<>();
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
     private final ExtensionManifestParser extensionManifestParser = new JAXBExtensionManifestParser();
-    private final NiFiProperties niFiProperties;
+    private final C2ClientConfig clientConfig;
 
     final RuntimeManifestService runtimeManifestService =
             new StandardRuntimeManifestService(ExtensionManagerHolder.getExtensionManager(), extensionManifestParser, RUNTIME_MANIFEST_IDENTIFIER, RUNTIME_TYPE);
@@ -100,11 +102,26 @@ public class C2ClientService {
     private volatile long period = 1000L;
     private volatile int termination_wait = 5000;
 
-    public C2ClientService(final NiFiProperties niFiProperties, final C2Client c2Client, final long clientHeartbeatPeriod, final FlowController flowController) {
-        this.niFiProperties = niFiProperties;
-        this.c2Client = c2Client;
+    public C2ClientService(final NiFiProperties niFiProperties, final long clientHeartbeatPeriod, final FlowController flowController) {
+        this.clientConfig = generateClientConfig(niFiProperties);
+        this.c2Client = new C2HttpClient(clientConfig);
         this.period = clientHeartbeatPeriod;
         this.flowController = flowController;
+    }
+
+    private C2ClientConfig generateClientConfig(NiFiProperties properties) {
+        return new C2ClientConfig.Builder()
+                .agentClass(properties.getProperty(C2NiFiProperties.C2_AGENT_CLASS_KEY, ""))
+                .agentIdentifier(properties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY, String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)))
+                .c2Url(properties.getProperty(C2NiFiProperties.C2_REST_URL_KEY, ""))
+                .c2AckUrl(properties.getProperty(C2NiFiProperties.C2_REST_URL_ACK_KEY, ""))
+                .truststoreFilename(properties.getProperty(C2NiFiProperties.TRUSTSTORE_LOCATION_KEY, ""))
+                .truststorePassword(properties.getProperty(C2NiFiProperties.TRUSTSTORE_PASSWORD_KEY, ""))
+                .truststoreType(KeystoreType.valueOf(properties.getProperty(C2NiFiProperties.TRUSTSTORE_TYPE_KEY, "JKS")))
+                .keystoreFilename(properties.getProperty(C2NiFiProperties.KEYSTORE_LOCATION_KEY, ""))
+                .keystorePassword(properties.getProperty(C2NiFiProperties.KEYSTORE_PASSWORD_KEY, ""))
+                .keystoreType(KeystoreType.valueOf(properties.getProperty(C2NiFiProperties.KEYSTORE_TYPE_KEY, "JKS")))
+                .build();
     }
 
     public void start() {
@@ -339,9 +356,9 @@ public class C2ClientService {
         final AgentInfo agentInfo = new AgentInfo();
 
         // Populate AgentInfo
-        agentInfo.setAgentClass(niFiProperties.getProperty(C2Properties.C2_AGENT_CLASS_KEY));
+        agentInfo.setAgentClass(clientConfig.getAgentClass());
         if (agentIdentifierRef.get() == null) {
-            final String rawAgentIdentifer = niFiProperties.getProperty(C2Properties.C2_AGENT_IDENTIFIER_KEY);
+            final String rawAgentIdentifer = clientConfig.getAgentIdentifier();
             if (StringUtils.isNotBlank(rawAgentIdentifer)) {
                 agentIdentifierRef.set(rawAgentIdentifer.trim());
             } else {
