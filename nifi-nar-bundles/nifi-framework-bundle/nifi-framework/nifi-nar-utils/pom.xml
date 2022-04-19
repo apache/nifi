@@ -34,6 +34,11 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-api</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>c2-client-api</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
+        </dependency>
 
         <!-- Compile-only dependency. At runtime, the agent will use aspectjweaver.jar directly, not from the classpath (see bootstrap.conf).-->
         <dependency>

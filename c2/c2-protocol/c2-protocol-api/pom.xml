@@ -33,5 +33,9 @@ limitations under the License.
             <artifactId>c2-protocol-component-api</artifactId>
             <version>1.17.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
     </dependencies>
 </project>

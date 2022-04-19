@@ -16,7 +16,9 @@
 # under the License.
 #
 
-FROM openjdk:8-jre-alpine
+ARG IMAGE_NAME=openjdk
+ARG IMAGE_TAG=8-jre-alpine
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 MAINTAINER Apache MiNiFi <dev@nifi.apache.org>
 
 # Values are set by Maven

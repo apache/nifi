@@ -17,13 +17,9 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.differentiators;
 
-import okhttp3.Request;
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -33,10 +29,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
+import okhttp3.Request;
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class WholeConfigDifferentiatorTest {
 

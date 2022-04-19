@@ -33,5 +33,10 @@ public enum OperandType {
             .filter(operandType -> operandType.name().equalsIgnoreCase(value))
             .findAny();
     }
+
+    @Override
+    public String toString() {
+        return super.toString().toLowerCase();
+    }
 }
 

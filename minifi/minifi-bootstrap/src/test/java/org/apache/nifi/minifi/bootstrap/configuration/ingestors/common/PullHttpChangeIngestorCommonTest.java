@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.common;
 
+import org.apache.nifi.c2.client.api.Differentiator;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;

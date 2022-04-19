@@ -47,10 +47,19 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
 
     private final ExtensionManager extensionManager;
     private final ExtensionManifestParser extensionManifestParser;
+    private final String runtimeManifestIdentifier;
+    private final String runtimeType;
 
-    public StandardRuntimeManifestService(final ExtensionManager extensionManager, final ExtensionManifestParser extensionManifestParser) {
+    public StandardRuntimeManifestService(final ExtensionManager extensionManager, final ExtensionManifestParser extensionManifestParser,
+                                          final String runtimeManifestIdentifier, final String runtimeType) {
         this.extensionManager = extensionManager;
         this.extensionManifestParser = extensionManifestParser;
+        this.runtimeManifestIdentifier = runtimeManifestIdentifier;
+        this.runtimeType = runtimeType;
+    }
+
+    public StandardRuntimeManifestService(final ExtensionManager extensionManager, final ExtensionManifestParser extensionManifestParser) {
+        this(extensionManager, extensionManifestParser, RUNTIME_MANIFEST_IDENTIFIER, RUNTIME_TYPE);
     }
 
     @Override
@@ -68,14 +77,14 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         buildInfo.setTimestamp(frameworkBuildDate == null ? null : frameworkBuildDate.getTime());
 
         final RuntimeManifestBuilder manifestBuilder = new StandardRuntimeManifestBuilder()
-                .identifier(RUNTIME_MANIFEST_IDENTIFIER)
-                .runtimeType(RUNTIME_TYPE)
+                .identifier(runtimeManifestIdentifier)
+                .runtimeType(runtimeType)
                 .version(buildInfo.getVersion())
                 .schedulingDefaults(SchedulingDefaultsFactory.getNifiSchedulingDefaults())
                 .buildInfo(buildInfo);
 
         for (final Bundle bundle : allBundles) {
-            getExtensionManifest(bundle).ifPresent(em -> manifestBuilder.addBundle(em));
+            getExtensionManifest(bundle).ifPresent(manifestBuilder::addBundle);
         }
 
         return manifestBuilder.build();

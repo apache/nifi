@@ -14,16 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.minifi.bootstrap;
 
-package org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces;
+import java.util.Optional;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+public enum BootstrapCommand {
+    START, RUN, STOP, STATUS, DUMP, RESTART, ENV, FLOWSTATUS, UNKNOWN;
 
-import java.io.IOException;
-import java.util.Properties;
-
-public interface Differentiator <T> {
-    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
-
-    boolean isNew(T input) throws IOException;
+    public static Optional<BootstrapCommand> fromString(String val) {
+        return Optional.ofNullable(val).map(String::toUpperCase).map(BootstrapCommand::valueOf).filter(command -> command != UNKNOWN);
+    }
 }

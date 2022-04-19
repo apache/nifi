@@ -15,12 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.minifi.bootstrap;
+package org.apache.nifi.minifi.bootstrap.command;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicReference;
+public interface CommandRunner {
 
-public interface ConfigurationFileHolder {
-
-    AtomicReference<ByteBuffer> getConfigFileReference();
+    /**
+     * Executes a command.
+     * @param args the input arguments
+     * @return status code
+     */
+    int runCommand(String[] args);
 }

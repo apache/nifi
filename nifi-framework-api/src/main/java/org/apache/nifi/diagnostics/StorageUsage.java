@@ -56,7 +56,7 @@ public class StorageUsage implements Cloneable {
     }
 
     public int getDiskUtilization() {
-        return DiagnosticUtils.getUtilization(getUsedSpace(), totalSpace);
+        return Math.round(((float)getUsedSpace() / totalSpace) * 100);
     }
 
     @Override

@@ -23,11 +23,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
@@ -78,7 +78,7 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     private static final String DEFAULT_CONNECT_TIMEOUT_MS = "5000";
     private static final String DEFAULT_READ_TIMEOUT_MS = "15000";
 
-    private static final String PULL_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".pull.http";
+    public static final String PULL_HTTP_BASE_KEY = NOTIFIER_INGESTORS_KEY + ".pull.http";
     public static final String PULL_HTTP_POLLING_PERIOD_KEY = PULL_HTTP_BASE_KEY + ".period.ms";
     public static final String PORT_KEY = PULL_HTTP_BASE_KEY + ".port";
     public static final String HOST_KEY = PULL_HTTP_BASE_KEY + ".hostname";

@@ -36,7 +36,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesNotDefined() throws Exception {
-        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.default");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         assertFalse(securityPropsOptional.isPresent());
@@ -44,7 +43,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesDefined() throws Exception {
-        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         assertTrue(securityPropsOptional.isPresent());
@@ -73,7 +71,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesDefinedButInvalid() throws Exception {
-        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured.invalid");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         assertTrue(securityPropsOptional.isPresent());
@@ -99,7 +96,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildProvenanceReportingNotDefined() throws Exception {
-        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.default");
         final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
         assertFalse(provenanceReportingPropsOptional.isPresent());
@@ -107,7 +103,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildProvenanceReportingDefined() throws Exception {
-        final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.configured");
         final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
         assertTrue(provenanceReportingPropsOptional.isPresent());

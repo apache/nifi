@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,15 +16,10 @@
  */
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import org.apache.commons.io.input.TeeInputStream;
-import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static java.util.Collections.emptyList;
+import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,16 +34,21 @@ import java.nio.file.WatchService;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-
-import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
-import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
-import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
+import org.apache.commons.io.input.TeeInputStream;
+import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * FileChangeIngestor provides a simple FileSystem monitor for detecting changes for a specified file as generated from its corresponding {@link Path}.  Upon modifications to the associated file,
@@ -98,29 +98,23 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     }
 
     protected boolean targetChanged() {
-        boolean targetChanged = false;
+        boolean targetChanged;
 
-        final WatchKey watchKey = this.watchService.poll();
+        Optional<WatchKey> watchKey = Optional.ofNullable(watchService.poll());
 
-        if (watchKey == null) {
-            return targetChanged;
-        }
-
-        for (WatchEvent<?> watchEvt : watchKey.pollEvents()) {
-            final WatchEvent.Kind<?> evtKind = watchEvt.kind();
-
-            final WatchEvent<Path> pathEvent = (WatchEvent<Path>) watchEvt;
-            final Path changedFile = pathEvent.context();
-
-            // determine target change by verifying if the changed file corresponds to the config file monitored for this path
-            targetChanged = (evtKind == ENTRY_MODIFY && changedFile.equals(configFilePath.getName(configFilePath.getNameCount() - 1)));
-        }
+        targetChanged = watchKey
+            .map(WatchKey::pollEvents)
+            .orElse(emptyList())
+            .stream()
+            .anyMatch(watchEvent -> ENTRY_MODIFY == watchEvent.kind()
+                && ((WatchEvent<Path>) watchEvent).context().equals(configFilePath.getName(configFilePath.getNameCount() - 1)));
 
         // After completing inspection, reset for detection of subsequent change events
-        boolean valid = watchKey.reset();
-        if (!valid) {
-            throw new IllegalStateException("Unable to reinitialize file system watcher.");
-        }
+        watchKey.map(WatchKey::reset)
+            .filter(valid -> !valid)
+            .ifPresent(valid -> {
+                throw new IllegalStateException("Unable to reinitialize file system watcher.");
+            });
 
         return targetChanged;
     }
@@ -212,14 +206,11 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
 
     @Override
     public void start() {
-        executorService = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-            @Override
-            public Thread newThread(final Runnable r) {
-                final Thread t = Executors.defaultThreadFactory().newThread(r);
-                t.setName("File Change Notifier Thread");
-                t.setDaemon(true);
-                return t;
-            }
+        executorService = Executors.newScheduledThreadPool(1, r -> {
+            Thread t = Executors.defaultThreadFactory().newThread(r);
+            t.setName("File Change Notifier Thread");
+            t.setDaemon(true);
+            return t;
         });
         this.executorService.scheduleWithFixedDelay(this, 0, pollingSeconds, DEFAULT_POLLING_PERIOD_UNIT);
     }

@@ -17,12 +17,14 @@
 
 package org.apache.nifi.minifi.commons.schema.serialization;
 
+import java.io.Writer;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.v1.ConfigSchemaV1;
 import org.apache.nifi.minifi.commons.schema.v2.ConfigSchemaV2;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 
@@ -65,6 +67,15 @@ public class SchemaLoader {
         } finally {
             sourceStream.close();
         }
+    }
+
+    public static void toYaml(ConfigSchema schema, Writer writer) {
+        final DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+
+        Yaml yaml = new Yaml(options);
+        yaml.dump(schema.toMap(), writer);
     }
 
     public static ConfigSchema loadConfigSchemaFromYaml(InputStream sourceStream) throws IOException, SchemaLoaderException {

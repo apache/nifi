@@ -17,26 +17,20 @@
 package org.apache.nifi.minifi.bootstrap;
 
 import java.io.IOException;
-import java.io.File;
+import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 
 public class WindowsService {
 
     private static RunMiNiFi bootstrap;
 
-    public static void start(String[] args) throws IOException, InterruptedException {
-
-        final File bootstrapConfigFile = RunMiNiFi.getBootstrapConfFile();
-
-        bootstrap = new RunMiNiFi(bootstrapConfigFile);
-        bootstrap.start();
-
+    public static void start(String[] args) throws IOException {
+        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
+        bootstrap.run(BootstrapCommand.START);
     }
 
-    public static void stop(String[] args) throws IOException, InterruptedException {
-
+    public static void stop(String[] args) {
         bootstrap.setAutoRestartNiFi(false);
-        bootstrap.stop();
-
+        bootstrap.run(BootstrapCommand.STOP);
     }
 
 }

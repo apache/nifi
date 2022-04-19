@@ -30,6 +30,8 @@ limitations under the License.
 
     <properties>
         <minifi.version>${project.version}</minifi.version>
+        <docker.image.name>openjdk</docker.image.name>
+        <docker.image.tag>8-jre-alpine</docker.image.tag>
     </properties>
 
     <profiles>
@@ -57,6 +59,8 @@ limitations under the License.
                                <imageTag>${minifi.version}</imageTag>
                             </imageTags>
                             <buildArgs>
+                                <IMAGE_NAME>${docker.image.name}</IMAGE_NAME>
+                                <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG>
                                 <UID>1000</UID>
                                 <GID>1000</GID>
                                 <MINIFI_VERSION>${minifi.version}</MINIFI_VERSION>

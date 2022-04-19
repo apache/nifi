@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSerializationStrategy;
@@ -180,6 +181,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();
             logger.info("Flow loaded successfully.");
+
         } catch (Exception e) {
             // ensure the flow service is terminated
             if (flowService != null && flowService.isRunning()) {
@@ -223,6 +225,10 @@ public class HeadlessNiFiServer implements NiFiServer {
 
     @Override
     public StatusHistoryDumpFactory getStatusHistoryDumpFactory() {
+        return null;
+    }
+
+    protected C2Client getC2Client() {
         return null;
     }
 

@@ -26,7 +26,7 @@ import org.apache.nifi.util.NiFiProperties;
 import java.util.Set;
 
 /**
- *
+ * The main interface for declaring a NiFi-based server application
  */
 public interface NiFiServer {
 

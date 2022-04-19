@@ -28,13 +28,11 @@ import java.nio.file.Paths;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
-import java.util.Iterator;
-import java.util.List;
+import java.util.Collections;
 import java.util.Properties;
-
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
+import org.apache.nifi.c2.client.api.Differentiator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -140,21 +138,14 @@ public class FileChangeIngestorTest {
 
     /* Helper methods to establish mock environment */
     private WatchKey createMockWatchKeyForPath(String configFilePath) {
-        final WatchKey mockWatchKey = Mockito.mock(WatchKey.class);
-        final List<WatchEvent<?>> mockWatchEvents = (List<WatchEvent<?>>) Mockito.mock(List.class);
-        when(mockWatchKey.pollEvents()).thenReturn(mockWatchEvents);
-        when(mockWatchKey.reset()).thenReturn(true);
-
-        final Iterator mockIterator = Mockito.mock(Iterator.class);
-        when(mockWatchEvents.iterator()).thenReturn(mockIterator);
-
-        final WatchEvent mockWatchEvent = Mockito.mock(WatchEvent.class);
-        when(mockIterator.hasNext()).thenReturn(true, false);
-        when(mockIterator.next()).thenReturn(mockWatchEvent);
+        WatchKey mockWatchKey = Mockito.mock(WatchKey.class);
+        WatchEvent mockWatchEvent = Mockito.mock(WatchEvent.class);
 
         // In this case, we receive a trigger event for the directory monitored, and it was the file monitored
         when(mockWatchEvent.context()).thenReturn(Paths.get(configFilePath));
         when(mockWatchEvent.kind()).thenReturn(ENTRY_MODIFY);
+        when(mockWatchKey.pollEvents()).thenReturn(Collections.singletonList(mockWatchEvent));
+        when(mockWatchKey.reset()).thenReturn(true);
 
         return mockWatchKey;
     }
