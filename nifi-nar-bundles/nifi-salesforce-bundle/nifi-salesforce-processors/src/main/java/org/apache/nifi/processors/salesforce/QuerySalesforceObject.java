@@ -37,6 +37,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
+import org.apache.nifi.json.StartingFieldStrategy;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -218,6 +219,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             .build();
 
     private static final String LAST_AGE_FILTER = "last_age_filter";
+    private static final String STARTING_FIELD_NAME = "records";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
     private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
     private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZ";
@@ -347,7 +349,9 @@ public class QuerySalesforceObject extends AbstractProcessor {
                             convertedSalesforceSchema.querySObjectResultSchema,
                             DATE_FORMAT,
                             TIME_FORMAT,
-                            DATE_TIME_FORMAT
+                            DATE_TIME_FORMAT,
+                            StartingFieldStrategy.NESTED_FIELD,
+                            STARTING_FIELD_NAME
                     );
 
                     RecordSetWriter writer = writerFactory.createWriter(
@@ -364,10 +368,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
                 Record querySObjectRecord;
                 while ((querySObjectRecord = jsonReader.nextRecord()) != null) {
-                    Object[] recordObjectList = querySObjectRecord.getAsArray("records");
-                    for (Object recordObject : recordObjectList) {
-                        writer.write((Record) recordObject);
-                    }
+                    writer.write(querySObjectRecord);
                 }
 
                 WriteResult writeResult = writer.finishRecordSet();
@@ -424,7 +425,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
             RecordSchema recordSchema = salesForceToRecordSchemaConverter.convertSchema(describeSObjectResult, fields);
 
             RecordSchema querySObjectResultSchema = new SimpleRecordSchema(Collections.singletonList(
-                    new RecordField("records", RecordFieldType.ARRAY.getArrayDataType(
+                    new RecordField(STARTING_FIELD_NAME, RecordFieldType.ARRAY.getArrayDataType(
                             RecordFieldType.RECORD.getRecordDataType(
                                     recordSchema
                             )
