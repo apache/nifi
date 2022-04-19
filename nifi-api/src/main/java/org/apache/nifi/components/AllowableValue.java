@@ -23,7 +23,7 @@ import java.util.Objects;
  * Represents a valid value for a {@link PropertyDescriptor}
  * </p>
  */
-public class AllowableValue {
+public class AllowableValue implements DescribedValue {
 
     private final String value;
     private final String displayName;
@@ -71,6 +71,7 @@ public class AllowableValue {
     /**
      * @return the value of this AllowableValue
      */
+    @Override
     public String getValue() {
         return value;
     }
@@ -78,6 +79,7 @@ public class AllowableValue {
     /**
      * @return a human-readable name for this AllowableValue
      */
+    @Override
     public String getDisplayName() {
         return displayName;
     }
@@ -86,6 +88,7 @@ public class AllowableValue {
      * @return a description for this value, or <code>null</code> if no
      * description was provided
      */
+    @Override
     public String getDescription() {
         return description;
     }

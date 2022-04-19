@@ -23,11 +23,13 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -43,7 +45,7 @@ public class TestPropertyDescriptor {
 
     private static Builder invalidDescriptorBuilder;
     private static Builder validDescriptorBuilder;
-    private static String DEFAULT_VALUE = "Default Value";
+    private static final String DEFAULT_VALUE = "Default Value";
 
     @BeforeAll
     public static void setUp() {
@@ -52,18 +54,35 @@ public class TestPropertyDescriptor {
     }
 
     @Test
-    public void testExceptionThrownByDescriptorWithInvalidDefaultValue() {
+    void testExceptionThrownByDescriptorWithInvalidDefaultValue() {
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> invalidDescriptorBuilder.build());
         assertTrue(exception.getMessage().contains("[" + DEFAULT_VALUE + "]") );
     }
 
     @Test
-    public void testNoExceptionThrownByPropertyDescriptorWithValidDefaultValue() {
+    void testNoExceptionThrownByPropertyDescriptorWithValidDefaultValue() {
         assertNotNull(validDescriptorBuilder.build());
     }
 
     @Test
-    public void testExternalResourceIgnoredIfELWithAttributesPresent() {
+    void testPropertyDescriptorWithEnumValue() {
+        Builder enumDescriptorBuilder = new PropertyDescriptor.Builder()
+                .name("enumAllowableValueDescriptor")
+                .allowableValues(EnumAllowableValue.class)
+                .defaultValue(EnumAllowableValue.GREEN.name());
+
+        final PropertyDescriptor propertyDescriptor = enumDescriptorBuilder.build();
+        assertNotNull(propertyDescriptor);
+
+        assertEquals(EnumAllowableValue.GREEN.name(), propertyDescriptor.getDefaultValue());
+        final List<AllowableValue> expectedAllowableValues = Arrays.stream(EnumAllowableValue.values())
+                .map(enumValue -> new AllowableValue(enumValue.name(), enumValue.getDisplayName(), enumValue.getDescription()))
+                .collect(Collectors.toList());
+        assertEquals(expectedAllowableValues, propertyDescriptor.getAllowableValues());
+    }
+
+    @Test
+    void testExternalResourceIgnoredIfELWithAttributesPresent() {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
             .name("dir")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -74,19 +93,16 @@ public class TestPropertyDescriptor {
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         Mockito.when(validationContext.isExpressionLanguagePresent(anyString())).thenReturn(true);
         Mockito.when(validationContext.isExpressionLanguageSupported(anyString())).thenReturn(true);
-        Mockito.when(validationContext.newPropertyValue(anyString())).thenAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final String inputArg = invocation.getArgument(0);
-                return inputArg.replace("${TestPropertyDescriptor.Var1}", "__my_var__").replaceAll("\\$\\{.*}", "");
-            }
+        Mockito.when(validationContext.newPropertyValue(anyString())).thenAnswer(invocation -> {
+            final String inputArg = invocation.getArgument(0);
+            return inputArg.replace("${TestPropertyDescriptor.Var1}", "__my_var__").replaceAll("\\$\\{.*}", "");
         });
 
         assertTrue(descriptor.validate("${TestPropertyDescriptor.Var1}", validationContext).isValid());
     }
 
     @Test
-    public void testExternalResourceConsideredIfELVarRegistryPresent() {
+    void testExternalResourceConsideredIfELVarRegistryPresent() {
         final PropertyDescriptor descriptor = new PropertyDescriptor.Builder()
             .name("dir")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
@@ -98,17 +114,14 @@ public class TestPropertyDescriptor {
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         Mockito.when(validationContext.isExpressionLanguagePresent(anyString())).thenReturn(true);
         Mockito.when(validationContext.isExpressionLanguageSupported(anyString())).thenReturn(true);
-        Mockito.when(validationContext.newPropertyValue(anyString())).thenAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) {
-                final String inputArg = invocation.getArgument(0);
-                final String evaluatedValue = inputArg.replace("${TestPropertyDescriptor.Var1}", variable.get().replaceAll("\\$\\{.*}", ""));
+        Mockito.when(validationContext.newPropertyValue(anyString())).thenAnswer(invocation -> {
+            final String inputArg = invocation.getArgument(0);
+            final String evaluatedValue = inputArg.replace("${TestPropertyDescriptor.Var1}", variable.get().replaceAll("\\$\\{.*}", ""));
 
-                final PropertyValue propertyValue = Mockito.mock(PropertyValue.class);
-                Mockito.when(propertyValue.getValue()).thenReturn(evaluatedValue);
-                Mockito.when(propertyValue.evaluateAttributeExpressions()).thenReturn(propertyValue);
-                return propertyValue;
-            }
+            final PropertyValue propertyValue = Mockito.mock(PropertyValue.class);
+            Mockito.when(propertyValue.getValue()).thenReturn(evaluatedValue);
+            Mockito.when(propertyValue.evaluateAttributeExpressions()).thenReturn(propertyValue);
+            return propertyValue;
         });
 
         // Should not be valid because Expression Language scope is VARIABLE_REGISTRY, so the ${TestPropertyDescriptor.Var1} will be replaced with
