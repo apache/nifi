@@ -657,12 +657,6 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1g
-                            -Djava.net.preferIPv4Stack=true
-                            -Duser.language=${user.language}
-                            -Duser.country=${user.country}
-                            -Duser.timezone=${user.timezone}
-                            -Dfile.encoding=UTF-8</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
