@@ -40,6 +40,14 @@ public class LifecycleState {
     private volatile boolean terminated = false;
     private final Map<ActiveProcessSessionFactory, Object> activeProcessSessionFactories = new WeakHashMap<>();
 
+    public synchronized boolean tryIncrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
+        if ((terminated) || (!scheduled.get())) {
+            return false;
+        }
+        incrementActiveThreadCount(sessionFactory);
+        return true;
+    }
+
     public synchronized int incrementActiveThreadCount(final ActiveProcessSessionFactory sessionFactory) {
         if (terminated) {
             throw new TerminatedTaskException();
@@ -80,7 +88,7 @@ public class LifecycleState {
         return scheduled.get();
     }
 
-    public void setScheduled(final boolean scheduled) {
+    public synchronized void setScheduled(final boolean scheduled) {
         this.scheduled.set(scheduled);
         mustCallOnStoppedMethods.set(true);
 
