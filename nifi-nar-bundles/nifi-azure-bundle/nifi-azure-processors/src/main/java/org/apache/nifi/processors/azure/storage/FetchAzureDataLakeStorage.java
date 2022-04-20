@@ -38,9 +38,13 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "adlsgen2", "datalake"})
 @SeeAlso({PutAzureDataLakeStorage.class, DeleteAzureDataLakeStorage.class, ListAzureDataLakeStorage.class})
@@ -78,13 +82,17 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .defaultValue("0")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            RANGE_START,
+            RANGE_LENGTH,
+            NUM_RETRIES
+    ));
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(super.getSupportedPropertyDescriptors());
-        properties.add(RANGE_START);
-        properties.add(RANGE_LENGTH);
-        properties.add(NUM_RETRIES);
-        return properties;
+        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
+                .flatMap(Collection::stream)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     @Override

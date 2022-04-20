@@ -54,6 +54,17 @@ public class ITFetchAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT 
     }
 
     @Test
+    public void testFetchBlobWithSimpleNameUsingProxyConfigurationService() throws Exception {
+        uploadBlob(BLOB_NAME, BLOB_DATA);
+
+        configureProxyService();
+
+        runProcessor();
+
+        assertSuccess(BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
     public void testFetchBlobWithCompoundName() throws Exception {
         String blobName = "dir1/dir2/blob1";
         runner.setProperty(DeleteAzureBlobStorage_v12.BLOB_NAME, blobName);

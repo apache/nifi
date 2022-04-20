@@ -39,8 +39,11 @@ import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 
@@ -81,6 +84,13 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     ));
 
     @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
+                .flatMap(Collection::stream)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -112,10 +122,5 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
     }
 }

@@ -33,18 +33,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
@@ -72,8 +74,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
 
-    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
-
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("conflict-resolution-strategy")
             .displayName("Conflict Resolution Strategy")
@@ -83,18 +83,36 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
-    private List<PropertyDescriptor> properties;
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            CONFLICT_RESOLUTION
+    ));
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        props.add(CONFLICT_RESOLUTION);
-        properties = Collections.unmodifiableList(props);
+    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
+
+    static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
+        long chunkStart = 0;
+        long chunkSize;
+
+        while (chunkStart < length) {
+            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
+
+            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
+            // if there are more available bytes in the stream after reading the chunk
+            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
+
+            fileClient.append(boundedIn, chunkStart, chunkSize);
+
+            chunkStart += chunkSize;
+        }
+
+        fileClient.flush(length);
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
+                .flatMap(Collection::stream)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     @Override
@@ -170,24 +188,5 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         } catch (Exception e) {
             getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
         }
-    }
-
-    static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
-        long chunkStart = 0;
-        long chunkSize;
-
-        while (chunkStart < length) {
-            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
-
-            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
-            // if there are more available bytes in the stream after reading the chunk
-            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
-
-            fileClient.append(boundedIn, chunkStart, chunkSize);
-
-            chunkStart += chunkSize;
-        }
-
-        fileClient.flush(length);
     }
 }

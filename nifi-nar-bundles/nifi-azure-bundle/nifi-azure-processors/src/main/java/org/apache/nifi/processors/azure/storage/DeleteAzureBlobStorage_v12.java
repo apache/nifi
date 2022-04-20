@@ -36,12 +36,15 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-@Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
+@Tags({"azure", "microsoft", "cloud", "storage", "blob"})
+@SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
 @CapabilityDescription("Deletes the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
@@ -70,8 +73,10 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
     ));
 
     @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
+                .flatMap(Collection::stream)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 
     @Override

@@ -21,6 +21,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 
@@ -50,6 +51,22 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         String inputFlowFileContent = "InputFlowFileContent";
 
         createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        // WHEN
+        // THEN
+        testSuccessfulFetch(fileSystemName, directory, filename, inputFlowFileContent, TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchFileFromDirectoryUsingProxyConfigurationService() throws InitializationException {
+        // GIVEN
+        String directory = "TestDirectory";
+        String filename = "testFile.txt";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, TEST_FILE_CONTENT);
+
+        configureProxyService();
 
         // WHEN
         // THEN
@@ -345,7 +362,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeZeroOne() throws Exception {
+    public void testFetchWithRangeZeroOne() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
@@ -359,7 +376,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeOneOne() throws Exception {
+    public void testFetchWithRangeOneOne() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
@@ -373,7 +390,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeTwentyThreeTwentySix() throws Exception {
+    public void testFetchWithRangeTwentyThreeTwentySix() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
@@ -387,7 +404,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeLengthGreater() throws Exception {
+    public void testFetchWithRangeLengthGreater() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
@@ -401,7 +418,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeLengthUnset() throws Exception {
+    public void testFetchWithRangeLengthUnset() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";
@@ -415,7 +432,7 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
     }
 
     @Test
-    public void testFetchWithRangeStartOutOfRange() throws Exception {
+    public void testFetchWithRangeStartOutOfRange() {
         // GIVEN
         String directory= "A Test Directory";
         String filename = "testFile.txt";

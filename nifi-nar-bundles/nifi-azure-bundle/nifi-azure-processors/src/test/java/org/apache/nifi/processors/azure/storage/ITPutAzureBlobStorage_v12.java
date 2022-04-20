@@ -55,6 +55,15 @@ public class ITPutAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     }
 
     @Test
+    public void testPutBlobWithSimpleNameUsingProxyConfigurationService() throws Exception {
+        configureProxyService();
+
+        runProcessor(BLOB_DATA);
+
+        assertSuccess(getContainerName(), BLOB_NAME, BLOB_DATA);
+    }
+
+    @Test
     public void testPutBlobWithCompoundName() throws Exception {
         String blobName = "dir1/dir2/blob1";
         runner.setProperty(PutAzureBlobStorage_v12.BLOB_NAME, blobName);

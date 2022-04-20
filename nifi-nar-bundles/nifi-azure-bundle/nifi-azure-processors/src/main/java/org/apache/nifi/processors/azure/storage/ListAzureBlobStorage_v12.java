@@ -141,7 +141,8 @@ public class ListAzureBlobStorage_v12 extends AbstractListAzureProcessor<BlobInf
             MIN_AGE,
             MAX_AGE,
             MIN_SIZE,
-            MAX_SIZE
+            MAX_SIZE,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     private BlobServiceClient storageClient;

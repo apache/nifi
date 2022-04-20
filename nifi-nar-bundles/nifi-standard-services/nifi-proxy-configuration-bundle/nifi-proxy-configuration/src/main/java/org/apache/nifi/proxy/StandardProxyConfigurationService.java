@@ -37,7 +37,7 @@ import java.util.List;
 @Tags({"Proxy"})
 public class StandardProxyConfigurationService extends AbstractControllerService implements ProxyConfigurationService {
 
-    static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
             .name("proxy-type")
             .displayName("Proxy Type")
             .description("Proxy type.")
@@ -46,7 +46,17 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .required(true)
             .build();
 
-    static final PropertyDescriptor PROXY_SERVER_HOST = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SOCKS_VERSION = new PropertyDescriptor.Builder()
+        .name("socks-version")
+        .displayName("Socks version")
+        .description("Socks version.")
+        .allowableValues(SocksVersion.values())
+        .defaultValue(SocksVersion.NOT_SPECIFIED.name())
+        .dependsOn(PROXY_TYPE, Proxy.Type.SOCKS.name())
+        .required(true)
+        .build();
+
+    public static final PropertyDescriptor PROXY_SERVER_HOST = new PropertyDescriptor.Builder()
             .name("proxy-server-host")
             .displayName("Proxy Server Host")
             .description("Proxy server hostname or ip-address.")
@@ -54,7 +64,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor PROXY_SERVER_PORT = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PROXY_SERVER_PORT = new PropertyDescriptor.Builder()
             .name("proxy-server-port")
             .displayName("Proxy Server Port")
             .description("Proxy server port number.")
@@ -62,7 +72,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor PROXY_USER_NAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PROXY_USER_NAME = new PropertyDescriptor.Builder()
             .name("proxy-user-name")
             .displayName("Proxy User Name")
             .description("The name of the proxy client for user authentication.")
@@ -70,7 +80,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    static final PropertyDescriptor PROXY_USER_PASSWORD = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PROXY_USER_PASSWORD = new PropertyDescriptor.Builder()
             .name("proxy-user-password")
             .displayName("Proxy User Password")
             .description("The password of the proxy client for user authentication.")
@@ -85,6 +95,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PROXY_TYPE);
+        properties.add(SOCKS_VERSION);
         properties.add(PROXY_SERVER_HOST);
         properties.add(PROXY_SERVER_PORT);
         properties.add(PROXY_USER_NAME);
@@ -95,7 +106,10 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     @OnEnabled
     public void setConfiguredValues(final ConfigurationContext context) {
         configuration = new ProxyConfiguration();
-        configuration.setProxyType(Proxy.Type.valueOf(context.getProperty(PROXY_TYPE).getValue()));
+
+        Proxy.Type proxyType = Proxy.Type.valueOf(context.getProperty(PROXY_TYPE).getValue());
+        configuration.setProxyType(proxyType);
+        configuration.setSocksVersion(proxyType == Proxy.Type.SOCKS ? SocksVersion.valueOf(context.getProperty(SOCKS_VERSION).getValue()) : null);
         configuration.setProxyServerHost(context.getProperty(PROXY_SERVER_HOST).evaluateAttributeExpressions().getValue());
         configuration.setProxyServerPort(context.getProperty(PROXY_SERVER_PORT).evaluateAttributeExpressions().asInteger());
         configuration.setProxyUserName(context.getProperty(PROXY_USER_NAME).evaluateAttributeExpressions().getValue());

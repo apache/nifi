@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import com.azure.core.http.ProxyOptions;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -43,6 +47,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
@@ -310,5 +315,39 @@ public final class AzureStorageUtils {
     public static void setProxy(final OperationContext operationContext, final ProcessContext processContext) {
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(processContext);
         operationContext.setProxy(proxyConfig.createProxy());
+    }
+
+    public static void configureProxy(final NettyAsyncHttpClientBuilder nettyClientBuilder, final PropertyContext propertyContext) {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
+
+        if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
+
+            final ProxyOptions proxyOptions = new ProxyOptions(
+                    getProxyType(proxyConfiguration),
+                    new InetSocketAddress(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort()));
+
+            final String proxyUserName = proxyConfiguration.getProxyUserName();
+            final String proxyUserPassword = proxyConfiguration.getProxyUserPassword();
+            if (proxyUserName != null && proxyUserPassword != null) {
+                proxyOptions.setCredentials(proxyUserName, proxyUserPassword);
+            }
+
+            nettyClientBuilder.proxy(proxyOptions);
+        }
+    }
+
+    private static ProxyOptions.Type getProxyType(ProxyConfiguration proxyConfiguration) {
+        if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
+            return ProxyOptions.Type.HTTP;
+        } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
+            SocksVersion socksVersion = proxyConfiguration.getSocksVersion();
+            if (socksVersion != SocksVersion.NOT_SPECIFIED) {
+                return ProxyOptions.Type.valueOf(socksVersion.name());
+            } else {
+                throw new IllegalArgumentException("Version should be set when SOCKS proxy type is used!");
+            }
+        } else {
+            throw new IllegalArgumentException("Unsupported proxy type: " + proxyConfiguration.getProxyType() + " please use HTTP or SOCKS type.");
+        }
     }
 }
