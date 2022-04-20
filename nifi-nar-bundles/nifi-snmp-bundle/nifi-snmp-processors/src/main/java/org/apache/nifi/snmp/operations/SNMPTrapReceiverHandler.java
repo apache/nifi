@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.snmp4j.Snmp;
 import org.snmp4j.mp.MPv3;
 import org.snmp4j.mp.SnmpConstants;
+import org.snmp4j.security.SecurityLevel;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
@@ -42,6 +43,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 
 public class SNMPTrapReceiverHandler {
@@ -108,12 +110,13 @@ public class SNMPTrapReceiverHandler {
     }
 
     private UsmUser convertToUsmUser(final UserDetails user) {
+        final String msg = " must be provided in users file.";
         return new UsmUser(
-                new OctetString(user.getSecurityName()),
-                SNMPUtils.getAuth(user.getAuthProtocol()),
-                new OctetString(user.getAuthPassphrase()),
-                SNMPUtils.getPriv(user.getPrivProtocol()),
-                new OctetString(user.getPrivPassphrase())
+                new OctetString(Objects.requireNonNull(user.getSecurityName(), "securityName" + msg)),
+                SecurityLevel.noAuthNoPriv.name().equals(configuration.getSecurityLevel()) ? null : SNMPUtils.getAuth(Objects.requireNonNull(user.getAuthProtocol(), "authProtocol" + msg)),
+                user.getAuthPassphrase() == null ? null : new OctetString(user.getAuthPassphrase()),
+                user.getPrivProtocol() == null ? null : SNMPUtils.getPriv(user.getPrivProtocol()),
+                user.getPrivPassphrase() == null ? null : new OctetString(user.getPrivPassphrase())
         );
     }
 

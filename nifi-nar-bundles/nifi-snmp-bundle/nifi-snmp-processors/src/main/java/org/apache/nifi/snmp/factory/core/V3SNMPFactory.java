@@ -46,7 +46,8 @@ public class V3SNMPFactory extends SNMPManagerFactory implements SNMPContext {
         Optional.ofNullable(configuration.getSecurityName())
                 .map(OctetString::new)
                 .ifPresent(securityName -> {
-                    OID authProtocol = Optional.ofNullable(configuration.getAuthProtocol())
+                    OID authProtocol = SecurityLevel.noAuthNoPriv.name().equals(configuration.getSecurityLevel()) ? null
+                            : Optional.ofNullable(configuration.getAuthProtocol())
                             .map(SNMPUtils::getAuth).orElse(null);
                     OctetString authPassphrase = Optional.ofNullable(configuration.getAuthPassphrase())
                             .map(OctetString::new).orElse(null);
