@@ -18,6 +18,8 @@ package org.apache.nifi.controller.repository.io;
 
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.io.IOException;
@@ -32,20 +34,23 @@ public class ContentClaimInputStream extends InputStream {
     private final ContentRepository contentRepository;
     private final ContentClaim contentClaim;
     private final long claimOffset;
+    private final PerformanceTracker performanceTracker;
 
     private InputStream delegate;
     private long bytesConsumed;
     private long currentOffset; // offset into the Content Claim; will differ from bytesRead if reset() is called after reading at least one byte or if claimOffset > 0
     private long markOffset;
 
-    public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset) {
-        this(contentRepository, contentClaim, claimOffset, null);
+    public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset, final PerformanceTracker performanceTracker) {
+        this(contentRepository, contentClaim, claimOffset, null, performanceTracker);
     }
 
-    public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset, final InputStream initialDelegate) {
+    public ContentClaimInputStream(final ContentRepository contentRepository, final ContentClaim contentClaim, final long claimOffset, final InputStream initialDelegate,
+                                   final PerformanceTracker performanceTracker) {
         this.contentRepository = contentRepository;
         this.contentClaim = contentClaim;
         this.claimOffset = claimOffset;
+        this.performanceTracker = performanceTracker;
 
         this.currentOffset = claimOffset;
         this.delegate = initialDelegate;
@@ -142,7 +147,14 @@ public class ContentClaimInputStream extends InputStream {
             }
 
             formDelegate();
-            StreamUtils.skip(delegate, markOffset - claimOffset);
+
+            performanceTracker.beginContentRead();
+            try {
+                StreamUtils.skip(delegate, markOffset - claimOffset);
+            } finally {
+                performanceTracker.endContentRead();
+            }
+
             currentOffset = markOffset;
         }
     }
@@ -159,8 +171,13 @@ public class ContentClaimInputStream extends InputStream {
             delegate.close();
         }
 
-        delegate = contentRepository.read(contentClaim);
-        StreamUtils.skip(delegate, claimOffset);
-        currentOffset = claimOffset;
+        performanceTracker.beginContentRead();
+        try {
+            delegate = new PerformanceTrackingInputStream(contentRepository.read(contentClaim), performanceTracker);
+            StreamUtils.skip(delegate, claimOffset);
+            currentOffset = claimOffset;
+        } finally {
+            performanceTracker.endContentRead();;
+        }
     }
 }

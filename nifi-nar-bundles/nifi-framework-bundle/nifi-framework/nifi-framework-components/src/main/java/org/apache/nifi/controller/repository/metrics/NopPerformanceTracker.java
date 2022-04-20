@@ -14,54 +14,52 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.repository;
 
-import java.util.Map;
+package org.apache.nifi.controller.repository.metrics;
 
-public interface FlowFileEvent {
+public class NopPerformanceTracker implements PerformanceTracker {
+    @Override
+    public void beginContentRead() {
 
-    int getFlowFilesIn();
+    }
 
-    int getFlowFilesOut();
+    @Override
+    public void endContentRead() {
 
-    int getFlowFilesRemoved();
+    }
 
-    long getContentSizeIn();
+    @Override
+    public long getContentReadNanos() {
+        return 0;
+    }
 
-    long getContentSizeOut();
+    @Override
+    public void beginContentWrite() {
 
-    long getContentSizeRemoved();
+    }
 
-    long getBytesRead();
+    @Override
+    public void endContentWrite() {
 
-    long getBytesWritten();
+    }
 
-    long getProcessingNanoseconds();
+    @Override
+    public long getContentWriteNanos() {
+        return 0;
+    }
 
-    long getCpuNanoseconds();
+    @Override
+    public void beginSessionCommit() {
 
-    long getContentReadNanoseconds();
+    }
 
-    long getContentWriteNanoseconds();
+    @Override
+    public void endSessionCommit() {
 
-    long getSessionCommitNanoseconds();
+    }
 
-    long getGargeCollectionMillis();
-
-    long getAverageLineageMillis();
-
-    long getAggregateLineageMillis();
-
-    int getFlowFilesReceived();
-
-    long getBytesReceived();
-
-    int getFlowFilesSent();
-
-    long getBytesSent();
-
-    int getInvocations();
-
-    Map<String, Long> getCounters();
-
+    @Override
+    public long getSessionCommitNanos() {
+        return 0;
+    }
 }

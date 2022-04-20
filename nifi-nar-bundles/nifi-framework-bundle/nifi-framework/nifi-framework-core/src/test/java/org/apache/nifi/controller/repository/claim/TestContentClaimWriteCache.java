@@ -17,16 +17,10 @@
 
 package org.apache.nifi.controller.repository.claim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import org.apache.nifi.controller.repository.FileSystemRepository;
 import org.apache.nifi.controller.repository.StandardContentRepositoryContext;
 import org.apache.nifi.controller.repository.TestFileSystemRepository;
+import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.repository.util.DiskUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -35,6 +29,14 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestContentClaimWriteCache {
 
@@ -62,7 +64,7 @@ public class TestContentClaimWriteCache {
 
     @Test
     public void testFlushWriteCorrectData() throws IOException {
-        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, 4);
+        final ContentClaimWriteCache cache = new StandardContentClaimWriteCache(repository, new NopPerformanceTracker(), 4);
 
         final ContentClaim claim1 = cache.getContentClaim();
         assertNotNull(claim1);

@@ -38,6 +38,8 @@ import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.repository.io.TaskTerminationInputStream;
 import org.apache.nifi.controller.repository.io.TaskTerminationOutputStream;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
+import org.apache.nifi.controller.repository.metrics.PerformanceTrackingInputStream;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
@@ -137,6 +139,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final Map<FlowFile, Path> deleteOnCommit = new HashMap<>();
     private final long sessionId;
     private final String connectableDescription;
+    private final PerformanceTracker performanceTracker;
 
     private Map<String, Long> countersOnCommit;
     private Map<String, Long> immediateCounters;
@@ -180,14 +183,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private final String retryAttribute;
     private final FlowFileLinkage flowFileLinkage = new FlowFileLinkage();
 
-    public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination) {
+    public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination, final PerformanceTracker performanceTracker) {
         this.context = context;
         this.taskTermination = taskTermination;
+        this.performanceTracker = performanceTracker;
 
         this.provenanceReporter = context.createProvenanceReporter(this::isFlowFileKnown, this);
         this.sessionId = idGenerator.getAndIncrement();
         this.connectableDescription = context.getConnectableDescription();
-        this.claimCache = context.createContentClaimWriteCache();
+        this.claimCache = context.createContentClaimWriteCache(performanceTracker);
         LOG.trace("Session {} created for {}", this, connectableDescription);
         processingStartTime = System.nanoTime();
         retryAttribute = "retryCount." + context.getConnectable().getIdentifier();
@@ -564,6 +568,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected void commit(final Checkpoint checkpoint, final boolean asynchronous) {
         try {
+            performanceTracker.beginSessionCommit();
             final long commitStartNanos = System.nanoTime();
 
             resetReadClaim();
@@ -727,6 +732,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             } else {
                 throw new ProcessException(e);
             }
+        } finally {
+            performanceTracker.endSessionCommit();
         }
     }
 
@@ -2597,7 +2604,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                         }
 
                         final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
-                        final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                        final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim,
+                            contentClaimOffset, limitingInputStream, performanceTracker);
                         return contentClaimInputStream;
                     }
                 }
@@ -2609,8 +2617,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 }
 
                 currentReadClaim = claim.getResourceClaim();
+
+                performanceTracker.beginContentRead();
                 final InputStream contentRepoStream = context.getContentRepository().read(claim.getResourceClaim());
-                StreamUtils.skip(contentRepoStream, claim.getOffset() + contentClaimOffset);
+                performanceTracker.endContentRead();
+
+                final InputStream performanceTrackInputStream = new PerformanceTrackingInputStream(contentRepoStream, performanceTracker);
+                StreamUtils.skip(performanceTrackInputStream, claim.getOffset() + contentClaimOffset);
                 final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
                 final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset() + contentClaimOffset);
                 currentReadClaimStream = byteCountingInputStream;
@@ -2621,12 +2634,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 // Finally, we need to wrap the InputStream in a ContentClaimInputStream so that if mark/reset is used, we can provide that capability
                 // without buffering data in memory.
                 final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
-                final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream, performanceTracker);
                 return contentClaimInputStream;
             } else {
                 claimCache.flush(claim);
 
-                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset);
+                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, performanceTracker);
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {
