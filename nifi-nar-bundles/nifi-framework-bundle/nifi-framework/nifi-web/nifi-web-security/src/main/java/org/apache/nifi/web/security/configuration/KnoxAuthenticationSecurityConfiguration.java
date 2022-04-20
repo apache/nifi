@@ -18,12 +18,14 @@ package org.apache.nifi.web.security.configuration;
 
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.knox.KnoxServiceFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 
 /**
  * Knox Configuration for Authentication Security
@@ -41,6 +43,14 @@ public class KnoxAuthenticationSecurityConfiguration {
     ) {
         this.niFiProperties = niFiProperties;
         this.authorizer = authorizer;
+    }
+
+    @Bean
+    public KnoxAuthenticationFilter knoxAuthenticationFilter(final AuthenticationManager authenticationManager) {
+        final KnoxAuthenticationFilter knoxAuthenticationFilter = new KnoxAuthenticationFilter();
+        knoxAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        knoxAuthenticationFilter.setProperties(niFiProperties);
+        return knoxAuthenticationFilter;
     }
 
     @Bean

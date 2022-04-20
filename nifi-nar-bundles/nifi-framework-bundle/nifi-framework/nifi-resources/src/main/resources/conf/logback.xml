@@ -128,6 +128,7 @@
 
     <!-- Suppress non-error messages due to excessive logging by class or library -->
     <logger name="org.springframework" level="ERROR"/>
+    <logger name="org.springframework.security" level="INFO"/>
 
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
@@ -171,9 +172,6 @@
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.apache.nifi.web.api.AccessResource" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.springframework.security.saml.log" level="WARN" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.opensaml" level="WARN" additivity="false">

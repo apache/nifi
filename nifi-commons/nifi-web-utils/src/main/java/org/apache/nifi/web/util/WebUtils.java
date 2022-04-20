@@ -128,7 +128,7 @@ public final class WebUtils {
 
         // Check it against the allowed list
         if (!allowedContextPaths.contains(determinedContextPath)) {
-            final String msg = "The provided context path [" + determinedContextPath + "] was not registered as allowed [" + allowedContextPaths + "]";
+            final String msg = "The provided context path [" + determinedContextPath + "] was not registered as allowed " + allowedContextPaths;
             throw new UriBuilderException(msg);
         }
     }
