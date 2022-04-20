@@ -143,7 +143,7 @@ public class TestPutUDP {
 
     private void sendMessages(final String[] testData) {
         for (String item : testData) {
-            runner.enqueue(item.getBytes(StandardCharsets.UTF_8));
+            runner.enqueue(item.getBytes());
             runner.run();
         }
     }
