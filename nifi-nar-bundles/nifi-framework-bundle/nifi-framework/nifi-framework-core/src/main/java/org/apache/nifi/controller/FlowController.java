@@ -3084,6 +3084,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         }
     }
 
+    /**
+     * Returns a number between 0 (inclusive) and 100 (inclusive) that indicates the percentage of time that processors should
+     * track detailed performance, such as CPU seconds used and time reading from/writing to content repo, etc.
+     * @return the percentage of time that detailed performance metrics should be tracked. A value of 0 indicates that these metrics
+     * should never be tracked; a value of 100 indicates that these metrics should always be tracked.
+     */
+    public int getPerformanceTrackingPercentage() {
+        return nifiProperties.getPerformanceMetricTrackingPercentage();
+    }
 
     public Integer getRemoteSiteListeningPort() {
         return remoteInputSocketPort;

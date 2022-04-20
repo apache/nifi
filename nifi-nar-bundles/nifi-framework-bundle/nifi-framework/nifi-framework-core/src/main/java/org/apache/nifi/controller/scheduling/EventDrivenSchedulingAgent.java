@@ -32,6 +32,7 @@ import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.repository.WeakHashMapProcessSessionFactory;
+import org.apache.nifi.controller.repository.metrics.NopPerformanceTracker;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -224,12 +225,12 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         final StandardProcessSession rawSession;
                         final boolean batch;
                         if (procNode.isSessionBatchingSupported() && runNanos > 0L) {
-                            rawSession = new StandardProcessSession(context, scheduleState::isTerminated);
+                            rawSession = new StandardProcessSession(context, scheduleState::isTerminated, new NopPerformanceTracker());
                             sessionFactory = new BatchingSessionFactory(rawSession);
                             batch = true;
                         } else {
                             rawSession = null;
-                            sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated);
+                            sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated, new NopPerformanceTracker());
                             batch = false;
                         }
 
@@ -292,7 +293,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                             onEvent(procNode);
                         }
                     } else {
-                        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated);
+                        final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(context, scheduleState::isTerminated, new NopPerformanceTracker());
                         final ActiveProcessSessionFactory activeSessionFactory = new WeakHashMapProcessSessionFactory(sessionFactory);
                         final ConnectableProcessContext connectableProcessContext = new ConnectableProcessContext(connectable, encryptor, getStateManager(connectable.getIdentifier()));
                         trigger(connectable, scheduleState, connectableProcessContext, activeSessionFactory);

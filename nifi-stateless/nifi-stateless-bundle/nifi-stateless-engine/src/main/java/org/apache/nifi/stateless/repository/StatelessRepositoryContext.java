@@ -26,6 +26,7 @@ import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,7 +42,7 @@ public class StatelessRepositoryContext extends AbstractRepositoryContext implem
     }
 
     @Override
-    public ContentClaimWriteCache createContentClaimWriteCache() {
+    public ContentClaimWriteCache createContentClaimWriteCache(final PerformanceTracker performanceTracker) {
         return writeCache;
     }
 }

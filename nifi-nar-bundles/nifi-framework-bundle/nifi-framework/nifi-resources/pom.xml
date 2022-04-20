@@ -254,6 +254,8 @@
         <!-- nifi.properties: runtime monitoring properties -->
         <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
         <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
+
+        <nifi.performance.tracking.percentage>0</nifi.performance.tracking.percentage>
     </properties>
     <build>
         <plugins>

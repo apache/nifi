@@ -4131,8 +4131,35 @@ To enable it, both `nifi.monitor.long.running.task.schedule` and `nifi.monitor.l
 |*Property*|*Description*
 |`nifi.monitor.long.running.task.schedule`|The time period between successive executions of the Long-Running Task Monitor (e.g. `1 min`).
 |`nifi.monitor.long.running.task.threshold`|The time period beyond which a task is considered long-running, i.e. stuck / hanging (e.g. `5 mins`).
-
 |====
+
+
+[[performance_tracking_properties]]
+=== Performance Tracking Properties
+
+NiFi exposes a very significant number of metrics by default through the User Interface. However, there are sometimes additional metrics that may add in diagnosing bottlenecks
+and improving the performance of the NiFi dataflow.
+
+The `nifi.performance.tracking.percentage` property can be used to enable the tracking of additional metrics. Gathering these metrics, however, require system calls, which can be
+expensive on some systems. As a result, this property defaults to a value of `0`, indicating that the metrics should be captured 0% of the time. I.e., the feature is disabled by
+default. To enable this feature, set the value of this property to an integer value in the range of 0 to 100, inclusive. This represents what percentage of the time NiFi should
+gather these metrics.
+
+For example, if the value is set to 20, then NiFi will gather these metrics for each processor approximately 20% of the times that the Processor is run. The remainder of the time,
+it will use the values that it has already captured in order to extrapolate the metrics to additional runs.
+
+The metrics that are gathered include what percentage of the time the processor is utilizing the CPU (versus waiting for I/O to complete or blocking due to monitor/lock contention),
+what percentage of time the Processor spends reading from the Content Repository, writing to the Content Repository, blocked due to Garbage Collection, etc.
+
+So, continuing our example, if we set the value of the `nifi.performance.tracking.percentage` and a processor is triggered to run 1,000 times, then NiFi will measure how much CPU
+time was consumed over the 200 iterations during which it was measured (i.e., 20% of 1,000). Let's say that this amounts to 500 milliseconds of CPU time. Additionally, let's consider
+that the Processor took 5,000 milliseconds to complete those 200 invocations because most of the time was spent blocking on Socket I/O. From this, NiFi will calculate that the CPU
+is used approximately 10% of the time (500 / 5,000 * 100%). Now, let's consider that in order to complete all 1,000 invocations the Processor took 35 seconds. NiFi will calculate,
+then, that the Processor has used approximately 3.5 seconds (or 3500 milliseconds) of CPU time.
+
+As a result, if we set the value of this property higher, up to a value of `100`, we will get more accurate results. However, it may be more expensive to monitor.
+
+In order to view these metrics, we can gather diagnostics by running the command `nifi.sh diagnostics <filename>` and inspecting the generated file. See <<nifi_diagnostics>> for more information.
 
 [[custom_properties]]
 === Custom Properties
@@ -4539,8 +4566,9 @@ Example configuration:
    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
 
-NOTE: For backward compatibility reasons, `org.apache.nifi.nar.hadoop.HDFSNarProvider` is still an accepted implementation, but it is suggested to use 'org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider' instead. Features introduced with the External Resource Provider might not work with this implementation!
+NOTE: For backward compatibility reasons, `org.apache.nifi.nar.hadoop.HDFSNarProvider` is still an accepted implementation, but it is suggested to use 'org.apache.nifi.flow.resource.hadoop.HDFSExternalResourceProvider' instead.Features introduced with the External Resource Provider might not work with this implementation!
 
+[[nifi_diagnostics]]
 == NiFi diagnostics
 
 It is possible to get diagnostics data from a NiFi node by executing the below command:

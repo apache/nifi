@@ -41,6 +41,11 @@ public class EventSumValue {
     private long bytesReceived = 0;
     private long bytesSent = 0;
     private long processingNanos = 0;
+    private long cpuNanos = 0;
+    private long contentReadNanos = 0;
+    private long contentWriteNanos = 0;
+    private long sessionCommitNanos = 0;
+    private long gcMillis = 0;
     private long aggregateLineageMillis = 0;
     private int invocations = 0;
     private Map<String, Long> counters;
@@ -70,6 +75,11 @@ public class EventSumValue {
         this.flowFilesSent += flowFileEvent.getFlowFilesSent();
         this.invocations += flowFileEvent.getInvocations();
         this.processingNanos += flowFileEvent.getProcessingNanoseconds();
+        this.cpuNanos += flowFileEvent.getCpuNanoseconds();
+        this.contentReadNanos += flowFileEvent.getContentReadNanoseconds();
+        this.contentWriteNanos += flowFileEvent.getContentWriteNanoseconds();
+        this.gcMillis += flowFileEvent.getGargeCollectionMillis();
+        this.sessionCommitNanos += flowFileEvent.getSessionCommitNanoseconds();
 
         final Map<String, Long> eventCounters = flowFileEvent.getCounters();
         if (eventCounters != null) {
@@ -106,6 +116,11 @@ public class EventSumValue {
         event.setFlowFilesSent(flowFilesSent);
         event.setInvocations(invocations);
         event.setProcessingNanos(processingNanos);
+        event.setCpuNanoseconds(cpuNanos);
+        event.setContentReadNanoseconds(contentReadNanos);
+        event.setContentWriteNanoseconds(contentWriteNanos);
+        event.setSessionCommitNanos(sessionCommitNanos);
+        event.setGarbageCollectionMillis(gcMillis);
         event.setCounters(this.counters == null ? Collections.emptyMap() : Collections.unmodifiableMap(this.counters));
         return event;
     }
@@ -131,6 +146,10 @@ public class EventSumValue {
             this.flowFilesSent += other.flowFilesSent;
             this.invocations += other.invocations;
             this.processingNanos += other.processingNanos;
+            this.cpuNanos += other.cpuNanos;
+            this.contentReadNanos += other.contentReadNanos;
+            this.contentWriteNanos += other.contentWriteNanos;
+            this.sessionCommitNanos += other.sessionCommitNanos;
 
             final Map<String, Long> eventCounters = other.counters;
             if (eventCounters != null) {
@@ -169,6 +188,10 @@ public class EventSumValue {
             this.flowFilesSent -= other.flowFilesSent;
             this.invocations -= other.invocations;
             this.processingNanos -= other.processingNanos;
+            this.cpuNanos -= other.cpuNanos;
+            this.contentReadNanos -= other.contentReadNanos;
+            this.contentWriteNanos -= other.contentWriteNanos;
+            this.sessionCommitNanos -= other.sessionCommitNanos;
 
             final Map<String, Long> eventCounters = other.counters;
             if (eventCounters != null) {

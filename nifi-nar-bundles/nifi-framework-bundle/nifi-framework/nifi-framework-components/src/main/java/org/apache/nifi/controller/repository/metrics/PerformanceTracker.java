@@ -14,21 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller;
 
-import java.util.List;
-import java.util.Map;
+package org.apache.nifi.controller.repository.metrics;
 
-public interface GarbageCollectionLog {
-    long getMinDurationThreshold();
+public interface PerformanceTracker {
+    void beginContentRead();
 
-    List<GarbageCollectionEvent> getGarbageCollectionEvents();
+    void endContentRead();
 
-    Map<String, Long> getGarbageCollectionCounts();
+    long getContentReadNanos();
 
-    Map<String, Long> getAverageGarbageCollectionDurations();
+    void beginContentWrite();
 
-    GarbageCollectionEvent getLongestGarbageCollectionEvent();
+    void endContentWrite();
 
-    long getTotalGarbageCollectionMillis();
+    long getContentWriteNanos();
+
+    void beginSessionCommit();
+
+    void endSessionCommit();
+
+    long getSessionCommitNanos();
 }

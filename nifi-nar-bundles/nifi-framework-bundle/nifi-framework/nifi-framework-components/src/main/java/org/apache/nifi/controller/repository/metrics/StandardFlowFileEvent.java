@@ -32,6 +32,11 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
     private long bytesRead;
     private long bytesWritten;
     private long processingNanos;
+    private long cpuNanos;
+    private long contentReadNanos;
+    private long contentWriteNanos;
+    private long sessionCommitNanos;
+    private long gcMillis;
     private long aggregateLineageMillis;
     private int flowFilesReceived;
     private long bytesReceived;
@@ -120,6 +125,50 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         return processingNanos;
     }
 
+    @Override
+    public long getCpuNanoseconds() {
+        return cpuNanos;
+    }
+
+    public void setCpuNanoseconds(final long nanos) {
+        this.cpuNanos = nanos;
+    }
+
+    @Override
+    public long getContentReadNanoseconds() {
+        return contentReadNanos;
+    }
+
+    public void setContentReadNanoseconds(final long nanos) {
+        this.contentReadNanos = nanos;
+    }
+
+    @Override
+    public long getContentWriteNanoseconds() {
+        return contentWriteNanos;
+    }
+
+    public void setContentWriteNanoseconds(final long nanos) {
+        this.contentWriteNanos = nanos;
+    }
+
+    @Override
+    public long getSessionCommitNanoseconds() {
+        return sessionCommitNanos;
+    }
+
+    public void setSessionCommitNanos(final long nanos) {
+        this.sessionCommitNanos = nanos;
+    }
+
+    public long getGargeCollectionMillis() {
+        return gcMillis;
+    }
+
+    public void setGarbageCollectionMillis(final long gcMillis) {
+        this.gcMillis = gcMillis;
+    }
+
     public void setProcessingNanos(final long processingNanos) {
         this.processingNanos = processingNanos;
     }
@@ -203,6 +252,11 @@ public final class StandardFlowFileEvent implements FlowFileEvent, Cloneable {
         bytesRead += event.getBytesRead();
         bytesWritten += event.getBytesWritten();
         processingNanos += event.getProcessingNanoseconds();
+        cpuNanos += event.getCpuNanoseconds();
+        contentReadNanos += event.getContentReadNanoseconds();
+        contentWriteNanos += event.getContentWriteNanoseconds();
+        sessionCommitNanos += event.getSessionCommitNanoseconds();
+        gcMillis += event.getGargeCollectionMillis();
         aggregateLineageMillis += event.getAggregateLineageMillis();
         flowFilesReceived += event.getFlowFilesReceived();
         bytesReceived += event.getBytesReceived();

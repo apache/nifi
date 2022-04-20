@@ -330,6 +330,12 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_FILE_COUNT = 10;
     public static final String DEFAULT_DIAGNOSTICS_ON_SHUTDOWN_MAX_DIRECTORY_SIZE = "10 MB";
 
+    // performance tracking
+    public static final String TRACK_PERFORMANCE_PERCENTAGE = "nifi.performance.tracking.percentage";
+
+    // performance tracking defaults
+    public static final int DEFAULT_TRACK_PERFORMANCE_PERCENTAGE = 0;
+
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
     public static final String DEFAULT_AUTHORIZER_CONFIGURATION_FILE = "conf/authorizers.xml";
@@ -510,7 +516,7 @@ public class NiFiProperties extends ApplicationProperties {
         try {
             return Integer.parseInt(value.trim());
         } catch (final Exception e) {
-            logger.warn("Configured value is invalid, falling back to default value", e);
+            logger.warn("Configured value for property {} in nifi.properties is invalid, falling back to default value", propertyName, e);
             return defaultValue;
         }
     }
@@ -1561,6 +1567,18 @@ public class NiFiProperties extends ApplicationProperties {
 
     public String getClusterStateProviderId() {
         return getProperty(STATE_MANAGEMENT_CLUSTER_PROVIDER_ID);
+    }
+
+    public int getPerformanceMetricTrackingPercentage() {
+        final int percentage = getIntegerProperty(TRACK_PERFORMANCE_PERCENTAGE, DEFAULT_TRACK_PERFORMANCE_PERCENTAGE);
+        if (percentage < 0) {
+            return 0;
+        }
+        if (percentage > 100) {
+            return 100;
+        }
+
+        return percentage;
     }
 
     public File getEmbeddedZooKeeperPropertiesFile() {
