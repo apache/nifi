@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.build;
 
-import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.platform.commons.util.StringUtils;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VerifyBuildLocaleTest {
@@ -30,33 +29,27 @@ public class VerifyBuildLocaleTest {
      *
      * NiFi Surefire invocations may be executed in the context of a particular locale, in order to verify the locale
      * independence of the code base.
+     *
+     * If "NIFI_CI_LOCALE" is defined, then it must specify each system property enumerated in this test case.
      */
     @Test
-    public void testVerifyLocale() {
-        // NiFi CI build sets this environment variable; it will not normally be set
+    @EnabledIfEnvironmentVariable(named = "NIFI_CI_LOCALE", matches = ".+",
+            disabledReason = "NiFi CI build sets this environment variable; it will not normally be set")
+    public void testEnvironmentLocaleMatchesSystemProperties() {
         final String ciLocale = System.getenv("NIFI_CI_LOCALE");
-        Assumptions.assumeTrue(ciLocale != null);
         // if the flag variable is set, verify the system locale of the surefire process against NIFI_CI_LOCALE
         final String[] systemPropertyKeys = {
                 "user.language",
                 "user.country",
         };
         for (String key : systemPropertyKeys) {
-            // for any key specified in environment variable, verify that it is set correctly
-            if (ciLocale.contains(key)) {
-                final String value = System.getProperty(key);
-                final String message = String.format(
-                        "system property - CI_LOCALE:[%s] ACTUAL:[%s=%s]", ciLocale, key, value);
-                assertNotNull(value, message);
-                assertTrue((value.length() > 0), message);
-                final String expected = String.format("%s=%s", key, value);
-                assertTrue(ciLocale.contains(expected), message);
-            }
+            assertTrue(ciLocale.contains(key));
+            final String value = System.getProperty(key);
+            final String message = String.format(
+                    "system property - CI_LOCALE:[%s] ACTUAL:[%s=%s]", ciLocale, key, value);
+            assertTrue(StringUtils.isNotBlank(value), message);
+            final String expected = String.format("%s=%s", key, value);
+            assertTrue(ciLocale.contains(expected), message);
         }
-    }
-
-    @Test
-    @Disabled("Need this test to show up in CI output to verify that other test case is running")
-    public void testIgnore() {
     }
 }
