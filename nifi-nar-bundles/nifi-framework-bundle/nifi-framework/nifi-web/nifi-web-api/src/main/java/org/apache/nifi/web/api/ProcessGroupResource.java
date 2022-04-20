@@ -349,7 +349,18 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         @ApiResponse(code = 404, message = "The specified resource could not be found."),
         @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
     })
-    public Response exportProcessGroup(@ApiParam(value = "The process group id.", required = true) @PathParam("id") final String groupId) {
+    public Response exportProcessGroup(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "If referenced services from outside the target group should be included",
+                    required = false
+            )
+            @QueryParam("includeReferencedServices")
+            @DefaultValue("false") boolean includeReferencedServices) {
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
             // ensure access to process groups (nested), encapsulated controller services and referenced parameter contexts
@@ -359,7 +370,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         });
 
         // get the versioned flow
-        final VersionedFlowSnapshot currentVersionedFlowSnapshot = serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
+        final VersionedFlowSnapshot currentVersionedFlowSnapshot = includeReferencedServices
+            ? serviceFacade.getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(groupId)
+            : serviceFacade.getCurrentFlowSnapshotByGroupId(groupId);
 
         // determine the name of the attachment - possible issues with spaces in file names
         final VersionedProcessGroup currentVersionedProcessGroup = currentVersionedFlowSnapshot.getFlowContents();

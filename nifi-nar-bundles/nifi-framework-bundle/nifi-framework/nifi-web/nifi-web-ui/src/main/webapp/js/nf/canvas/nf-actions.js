@@ -1719,9 +1719,23 @@
         },
 
         /**
+         * Downloads the current flow, without including the external Controller Services
+         */
+        downloadFlowWithoutExternalServices: function (selection) {
+            this.downloadFlow(selection, false);
+        },
+
+        /**
+         * Downloads the current flow, including the external Controller Services
+         */
+        downloadFlowWithExternalServices: function (selection) {
+            this.downloadFlow(selection, true);
+        },
+
+        /**
          * Downloads the current flow
          */
-        downloadFlow: function (selection) {
+        downloadFlow: function (selection,includeReferencedServices) {
             var processGroupId = null;
 
             if (selection.empty()) {
@@ -1737,7 +1751,7 @@
                 var parameters = {};
 
                 // open the url
-                var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
+                var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download?includeReferencedServices=' + includeReferencedServices;
                 window.open(uri);
             }
         },

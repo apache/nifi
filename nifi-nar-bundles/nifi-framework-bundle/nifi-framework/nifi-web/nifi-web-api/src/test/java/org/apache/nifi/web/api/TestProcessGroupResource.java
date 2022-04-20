@@ -53,7 +53,7 @@ public class TestProcessGroupResource {
         when(versionedFlowSnapshot.getFlowContents()).thenReturn(versionedProcessGroup);
         when(versionedProcessGroup.getName()).thenReturn(flowName);
 
-        final Response response = processGroupResource.exportProcessGroup(groupId);
+        final Response response = processGroupResource.exportProcessGroup(groupId, false);
 
         final VersionedFlowSnapshot resultEntity = (VersionedFlowSnapshot)response.getEntity();
 

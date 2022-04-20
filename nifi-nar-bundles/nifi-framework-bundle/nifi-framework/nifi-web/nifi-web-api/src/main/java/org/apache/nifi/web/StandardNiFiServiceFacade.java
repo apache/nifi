@@ -4682,6 +4682,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId) {
+        return getCurrentFlowSnapshotByGroupId(processGroupId, false);
+    }
+
+    @Override
+    public VersionedFlowSnapshot getCurrentFlowSnapshotByGroupIdWithReferencedControllerServices(final String processGroupId) {
+        return getCurrentFlowSnapshotByGroupId(processGroupId, true);
+    }
+
+    private Set<String> getAllSubGroups(ProcessGroup processGroup) {
+        final Set<String> result = processGroup.findAllProcessGroups().stream()
+                .map(ProcessGroup::getIdentifier)
+                .collect(Collectors.toSet());
+        result.add(processGroup.getIdentifier());
+        return result;
+    }
+
+    private VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(final String processGroupId, final boolean includeReferencedControllerServices) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupId);
 
         // Create a complete (include descendant flows) VersionedProcessGroup snapshot of the flow as it is
@@ -4691,12 +4708,40 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 mapper.mapNonVersionedProcessGroup(processGroup, controllerFacade.getControllerServiceProvider());
 
         // Create a complete (include descendant flows) map of parameter contexts
-        final Map<String, VersionedParameterContext> parameterContexts =
-                mapper.mapParameterContexts(processGroup, true);
+        final Map<String, VersionedParameterContext> parameterContexts = mapper.mapParameterContexts(processGroup, true);
 
+        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
+                Optional.ofNullable(nonVersionedProcessGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
+        final Set<VersionedControllerService> controllerServices = new HashSet<>(nonVersionedProcessGroup.getControllerServices());
         final VersionedFlowSnapshot nonVersionedFlowSnapshot = new VersionedFlowSnapshot();
+
+        ProcessGroup parentGroup = processGroup.getParent();
+
+        if (includeReferencedControllerServices && parentGroup != null) {
+            final Set<VersionedControllerService> externalServices = new HashSet<>();
+
+            do {
+                final Set<ControllerServiceNode> controllerServiceNodes = parentGroup.getControllerServices(false);
+
+                for (final ControllerServiceNode controllerServiceNode : controllerServiceNodes) {
+                    final VersionedControllerService versionedControllerService =
+                            mapper.mapControllerService(controllerServiceNode, controllerFacade.getControllerServiceProvider(), getAllSubGroups(processGroup), externalControllerServiceReferences);
+
+                    if (externalControllerServiceReferences.keySet().contains(versionedControllerService.getIdentifier())) {
+                        versionedControllerService.setGroupIdentifier(processGroupId);
+                        externalServices.add(versionedControllerService);
+                    }
+                }
+            } while ((parentGroup = parentGroup.getParent()) != null);
+
+            controllerServices.addAll(externalServices);
+            nonVersionedFlowSnapshot.setExternalControllerServices(new HashMap<>());
+        } else {
+            nonVersionedFlowSnapshot.setExternalControllerServices(externalControllerServiceReferences);
+        }
+
+        nonVersionedProcessGroup.setControllerServices(controllerServices);
         nonVersionedFlowSnapshot.setFlowContents(nonVersionedProcessGroup);
-        nonVersionedFlowSnapshot.setExternalControllerServices(nonVersionedProcessGroup.getExternalControllerServiceReferences());
         nonVersionedFlowSnapshot.setParameterContexts(parameterContexts);
         nonVersionedFlowSnapshot.setFlowEncodingVersion(RestBasedFlowRegistry.FLOW_ENCODING_VERSION);
 
