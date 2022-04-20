@@ -29,8 +29,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,7 +43,10 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
 
     private static final Set<String> issuedOperationIds = new HashSet<>();
 
+    private final Map<String, String> currentFlowIds;
+
     public SimpleC2ProtocolService() {
+        currentFlowIds = new HashMap<>(1000);
     }
 
     @Override
@@ -94,14 +99,20 @@ public class SimpleC2ProtocolService implements C2ProtocolService {
     public C2HeartbeatResponse processHeartbeat(final C2Heartbeat heartbeat, final C2ProtocolContext context) {
 
         C2HeartbeatResponse c2HeartbeatResponse = new C2HeartbeatResponse();
-        // Create a single UPDATE operation to fetch the flow from the specified URL
-        C2Operation c2Operation = new C2Operation();
-        c2Operation.setIdentifier(UUID.randomUUID().toString());
-        c2Operation.setOperation(OperationType.UPDATE);
-        c2Operation.setOperand(OperandType.CONFIGURATION);
-        c2Operation.setArgs(Collections.singletonMap("location", context.getBaseUri().toString()));
-        List<C2Operation> requestedOperations = Collections.singletonList(c2Operation);
-        c2HeartbeatResponse.setRequestedOperations(requestedOperations);
+        String currentFlowId = currentFlowIds.get(heartbeat.getAgentId());
+        if (currentFlowId == null || !currentFlowId.equals(context.getSha256())) {
+            // Create a single UPDATE operation to fetch the flow from the specified URL
+            C2Operation c2Operation = new C2Operation();
+            final String operationID = UUID.randomUUID().toString();
+            issuedOperationIds.add(operationID);
+            c2Operation.setIdentifier(operationID);
+            c2Operation.setOperation(OperationType.UPDATE);
+            c2Operation.setOperand(OperandType.CONFIGURATION);
+            c2Operation.setArgs(Collections.singletonMap("location", context.getBaseUri().toString()));
+            List<C2Operation> requestedOperations = Collections.singletonList(c2Operation);
+            c2HeartbeatResponse.setRequestedOperations(requestedOperations);
+            currentFlowIds.put(heartbeat.getAgentId(), context.getSha256());
+        }
 
         return c2HeartbeatResponse;
     }

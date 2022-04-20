@@ -28,10 +28,12 @@ public class C2ProtocolContext {
 
     private final URI baseUri;
     private final Long contentLength;
+    private final String sha256;
 
     C2ProtocolContext(final Builder builder) {
         this.baseUri = builder.baseUri;
         this.contentLength = builder.contentLength;
+        this.sha256 = builder.sha256;
     }
 
     public URI getBaseUri() {
@@ -40,6 +42,10 @@ public class C2ProtocolContext {
 
     public Long getContentLength() {
         return contentLength;
+    }
+
+    public String getSha256() {
+        return sha256;
     }
 
     public static Builder builder() {
@@ -54,6 +60,7 @@ public class C2ProtocolContext {
 
         private URI baseUri;
         private Long contentLength;
+        private String sha256;
 
         private Builder() {
         }
@@ -74,6 +81,11 @@ public class C2ProtocolContext {
             } catch (final NumberFormatException e) {
                 logger.debug("Could not parse content length string: " + contentLength, e);
             }
+            return this;
+        }
+
+        public Builder sha256(final String sha256) {
+            this.sha256 = sha256;
             return this;
         }
 

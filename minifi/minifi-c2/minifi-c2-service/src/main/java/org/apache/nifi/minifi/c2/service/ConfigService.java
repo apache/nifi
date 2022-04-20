@@ -215,12 +215,29 @@ public class ConfigService {
         }
 
         try {
+            final String flowId;
             Map<String, List<String>> parameters = Collections.singletonMap("class", Collections.singletonList(heartbeat.getAgentClass()));
             ConfigurationProviderValue configurationProviderValue = configurationCache.get(new ConfigurationProviderKey(acceptValues, parameters));
             org.apache.nifi.minifi.c2.api.Configuration configuration = configurationProviderValue.getConfiguration();
+            try (InputStream inputStream = configuration.getInputStream();
+                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                byte[] buffer = new byte[1024];
+                int read;
+                while ((read = inputStream.read(buffer)) >= 0) {
+                    outputStream.write(buffer, 0, read);
+                    sha256.update(buffer, 0, read);
+                }
+                flowId = bytesToHex(sha256.digest());
+
+            } catch (ConfigurationProviderException | IOException | NoSuchAlgorithmException e) {
+                logger.error("Error reading or checksumming configuration file", e);
+                throw new WebApplicationException(500);
+            }
             final C2ProtocolContext heartbeatContext = C2ProtocolContext.builder()
                     .baseUri(configuration.getURL().toURI())
                     .contentLength(httpServletRequest.getHeader(CONTENT_LENGTH))
+                    .sha256(flowId)
                     .build();
 
             Response response;
