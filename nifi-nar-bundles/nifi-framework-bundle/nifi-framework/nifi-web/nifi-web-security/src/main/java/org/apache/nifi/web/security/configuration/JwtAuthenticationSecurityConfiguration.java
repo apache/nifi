@@ -38,6 +38,7 @@ import org.apache.nifi.web.security.jwt.key.service.VerificationKeyService;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.provider.StandardBearerTokenProvider;
 import org.apache.nifi.web.security.jwt.provider.SupportedClaim;
+import org.apache.nifi.web.security.jwt.resolver.StandardBearerTokenResolver;
 import org.apache.nifi.web.security.jwt.revocation.JwtLogoutListener;
 import org.apache.nifi.web.security.jwt.revocation.JwtRevocationService;
 import org.apache.nifi.web.security.jwt.revocation.JwtRevocationValidator;
@@ -48,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -55,6 +57,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -98,6 +102,19 @@ public class JwtAuthenticationSecurityConfiguration {
         this.idpUserGroupService = idpUserGroupService;
         this.stateManagerProvider = stateManagerProvider;
         this.keyRotationPeriod = niFiProperties.getSecurityUserJwsKeyRotationPeriod();
+    }
+
+
+    @Bean
+    public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter(final AuthenticationManager authenticationManager) {
+        final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter = new BearerTokenAuthenticationFilter(authenticationManager);
+        bearerTokenAuthenticationFilter.setBearerTokenResolver(bearerTokenResolver());
+        return bearerTokenAuthenticationFilter;
+    }
+
+    @Bean
+    public BearerTokenResolver bearerTokenResolver() {
+        return new StandardBearerTokenResolver();
     }
 
     @Bean

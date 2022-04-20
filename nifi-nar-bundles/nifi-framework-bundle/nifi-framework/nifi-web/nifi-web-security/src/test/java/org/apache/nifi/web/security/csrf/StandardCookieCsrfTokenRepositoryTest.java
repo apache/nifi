@@ -27,11 +27,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.web.csrf.CsrfToken;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,6 +45,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StandardCookieCsrfTokenRepositoryTest {
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
+
     private static final int MAX_AGE_SESSION = -1;
 
     private static final int MAX_AGE_EXPIRED = 0;
@@ -69,6 +71,9 @@ public class StandardCookieCsrfTokenRepositoryTest {
     @Mock
     private HttpServletResponse response;
 
+    @Mock
+    private ServletContext servletContext;
+
     @Captor
     private ArgumentCaptor<Cookie> cookieArgumentCaptor;
 
@@ -76,7 +81,7 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     @BeforeEach
     public void setRepository() {
-        this.repository = new StandardCookieCsrfTokenRepository(Collections.emptyList());
+        this.repository = new StandardCookieCsrfTokenRepository();
     }
 
     @Test
@@ -110,6 +115,8 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     @Test
     public void testSaveToken() {
+        when(request.getServletContext()).thenReturn(servletContext);
+
         final CsrfToken csrfToken = repository.generateToken(request);
         repository.saveToken(csrfToken, request, response);
 
@@ -121,6 +128,8 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     @Test
     public void testSaveTokenNullCsrfToken() {
+        when(request.getServletContext()).thenReturn(servletContext);
+
         repository.saveToken(null, request, response);
 
         verify(response).addCookie(cookieArgumentCaptor.capture());
@@ -135,13 +144,17 @@ public class StandardCookieCsrfTokenRepositoryTest {
 
     @Test
     public void testSaveTokenProxyContextPath() {
-        this.repository = new StandardCookieCsrfTokenRepository(Collections.singletonList(CONTEXT_PATH));
+        this.repository = new StandardCookieCsrfTokenRepository();
 
         final CsrfToken csrfToken = repository.generateToken(request);
         when(request.getHeader(eq(WebUtils.PROXY_SCHEME_HTTP_HEADER))).thenReturn(HTTPS);
         when(request.getHeader(eq(WebUtils.PROXY_HOST_HTTP_HEADER))).thenReturn(HOST);
         when(request.getHeader(eq(WebUtils.PROXY_PORT_HTTP_HEADER))).thenReturn(PORT);
         when(request.getHeader(eq(WebUtils.PROXY_CONTEXT_PATH_HTTP_HEADER))).thenReturn(CONTEXT_PATH);
+
+        when(servletContext.getInitParameter(eq(ALLOWED_CONTEXT_PATHS_PARAMETER))).thenReturn(CONTEXT_PATH);
+        when(request.getServletContext()).thenReturn(servletContext);
+
         repository.saveToken(csrfToken, request, response);
 
         verify(response).addCookie(cookieArgumentCaptor.capture());

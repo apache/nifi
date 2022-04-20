@@ -29,8 +29,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URI;
-import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -48,17 +46,6 @@ public class StandardCookieCsrfTokenRepository implements CsrfTokenRepository {
     private static final int MAX_AGE_EXPIRED = 0;
 
     private static final int MAX_AGE_SESSION = -1;
-
-    private final List<String> allowedContextPaths;
-
-    /**
-     * Standard Cookie CSRF Token Repository with list of allowed context paths from proxy headers
-     *
-     * @param allowedContextPaths Allowed context paths from proxy headers
-     */
-    public StandardCookieCsrfTokenRepository(final List<String> allowedContextPaths) {
-        this.allowedContextPaths = Objects.requireNonNull(allowedContextPaths, "Allowed Context Paths required");
-    }
 
     /**
      * Generate CSRF Token or return current Token when present in HTTP Servlet Request Cookie header
@@ -118,7 +105,7 @@ public class StandardCookieCsrfTokenRepository implements CsrfTokenRepository {
     }
 
     private String getCookiePath(final HttpServletRequest httpServletRequest) {
-        final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest, allowedContextPaths);
+        final RequestUriBuilder requestUriBuilder = RequestUriBuilder.fromHttpServletRequest(httpServletRequest);
         requestUriBuilder.path(ROOT_PATH);
         final URI uri = requestUriBuilder.build();
         return uri.getPath();

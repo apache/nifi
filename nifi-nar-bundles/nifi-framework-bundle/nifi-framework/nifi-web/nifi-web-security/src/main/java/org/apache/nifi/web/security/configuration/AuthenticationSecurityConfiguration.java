@@ -19,6 +19,7 @@ package org.apache.nifi.web.security.configuration;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.AuthenticationManager;
 
 /**
  * Spring Configuration for Authentication Security
@@ -55,6 +57,14 @@ public class AuthenticationSecurityConfiguration {
         this.niFiProperties = niFiProperties;
         this.extensionManager = extensionManager;
         this.authorizer = authorizer;
+    }
+
+    @Bean
+    public NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter(final AuthenticationManager authenticationManager) {
+        final NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter = new NiFiAnonymousAuthenticationFilter();
+        anonymousAuthenticationFilter.setProperties(niFiProperties);
+        anonymousAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        return anonymousAuthenticationFilter;
     }
 
     @Bean
