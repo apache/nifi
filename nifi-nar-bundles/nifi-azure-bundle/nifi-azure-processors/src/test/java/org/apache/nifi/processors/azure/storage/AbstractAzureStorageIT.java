@@ -21,12 +21,13 @@ import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.proxy.StandardProxyConfigurationService;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsControllerService;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.FileInputStream;
@@ -36,30 +37,64 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public abstract class AbstractAzureStorageIT {
 
-    private static final Properties CONFIG;
+    private static final Properties CREDENTIALS_CONFIG;
+    private static final Properties PROXY_CONFIG;
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
+    private static final String PROXY_CONFIGURATION_FILE = System.getProperty("user.home") + "/proxy-configuration.PROPERTIES";
 
     static {
-        CONFIG = new Properties();
+        CREDENTIALS_CONFIG = loadConfig(CREDENTIALS_FILE);
+        PROXY_CONFIG = loadConfig(PROXY_CONFIGURATION_FILE);
+    }
+
+    private static Properties loadConfig(String configPath) {
+        Properties loadedProperties = new Properties();
+
         assertDoesNotThrow(() -> {
-            final FileInputStream fis = new FileInputStream(CREDENTIALS_FILE);
-            assertDoesNotThrow(() -> CONFIG.load(fis));
-            FileUtils.closeQuietly(fis);
+            final FileInputStream fIS = new FileInputStream(configPath);
+            assertDoesNotThrow(() -> loadedProperties.load(fIS));
+            FileUtils.closeQuietly(fIS);
         });
+
+        return loadedProperties;
     }
 
     protected String getAccountName() {
-        return CONFIG.getProperty("accountName");
+        return CREDENTIALS_CONFIG.getProperty("accountName");
     }
 
     protected String getAccountKey() {
-        return CONFIG.getProperty("accountKey");
+        return CREDENTIALS_CONFIG.getProperty("accountKey");
     }
 
     protected String getEndpointSuffix() {
-        String endpointSuffix = CONFIG.getProperty("endpointSuffix");
+        String endpointSuffix = CREDENTIALS_CONFIG.getProperty("endpointSuffix");
         return endpointSuffix != null ? endpointSuffix : getDefaultEndpointSuffix();
+    }
+
+    protected String getProxyType() {
+        return PROXY_CONFIG.getProperty("proxyType");
+    }
+
+    protected String getSocksVersion() {
+        return PROXY_CONFIG.getProperty("socksVersion");
+    }
+
+    protected String getProxyServerHost() {
+        return PROXY_CONFIG.getProperty("proxyServerHost");
+    }
+
+    protected String getProxyServerPort() {
+        return PROXY_CONFIG.getProperty("proxyServerPort");
+    }
+
+    protected String getProxyUsername() {
+        return PROXY_CONFIG.getProperty("proxyUsername");
+    }
+
+    protected String getProxyUserPassword() {
+        return PROXY_CONFIG.getProperty("proxyUserPassword");
     }
 
     protected abstract String getDefaultEndpointSuffix();
@@ -101,5 +136,23 @@ public abstract class AbstractAzureStorageIT {
         runner.enableControllerService(credentialsService);
 
         runner.setProperty(AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE, credentialsService.getIdentifier());
+    }
+
+    protected void configureProxyService() throws InitializationException {
+        final StandardProxyConfigurationService proxyConfigurationService = new StandardProxyConfigurationService();
+        runner.addControllerService("proxy-configuration-service", proxyConfigurationService);
+
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.PROXY_TYPE, getProxyType());
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.SOCKS_VERSION, getSocksVersion());
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.PROXY_SERVER_HOST, getProxyServerHost());
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.PROXY_SERVER_PORT, getProxyServerPort());
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.PROXY_USER_NAME, getProxyUsername());
+        runner.setProperty(proxyConfigurationService, StandardProxyConfigurationService.PROXY_USER_PASSWORD, getProxyUserPassword());
+
+        runner.assertValid(proxyConfigurationService);
+
+        runner.enableControllerService(proxyConfigurationService);
+
+        runner.setProperty(AzureStorageUtils.PROXY_CONFIGURATION_SERVICE, proxyConfigurationService.getIdentifier());
     }
 }

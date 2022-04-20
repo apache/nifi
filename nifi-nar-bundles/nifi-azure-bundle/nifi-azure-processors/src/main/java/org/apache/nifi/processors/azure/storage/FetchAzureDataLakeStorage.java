@@ -37,8 +37,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
-import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -78,13 +80,20 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .defaultValue("0")
             .build();
 
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            ADLS_CREDENTIALS_SERVICE,
+            FILESYSTEM,
+            DIRECTORY,
+            FILE,
+            RANGE_START,
+            RANGE_LENGTH,
+            NUM_RETRIES,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
+    ));
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(super.getSupportedPropertyDescriptors());
-        properties.add(RANGE_START);
-        properties.add(RANGE_LENGTH);
-        properties.add(NUM_RETRIES);
-        return properties;
+        return PROPERTIES;
     }
 
     @Override

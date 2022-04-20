@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
+import com.azure.core.http.ProxyOptions;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -43,9 +46,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
+import reactor.netty.http.client.HttpClient;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -310,5 +315,44 @@ public final class AzureStorageUtils {
     public static void setProxy(final OperationContext operationContext, final ProcessContext processContext) {
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(processContext);
         operationContext.setProxy(proxyConfig.createProxy());
+    }
+
+    /**
+     *
+     * Creates the {@link ProxyOptions proxy options} that {@link HttpClient} will use.
+     *
+     * @param propertyContext is sed to supply Proxy configurations
+     * @return {@link ProxyOptions proxy options}, null if Proxy is not set
+     */
+    public static ProxyOptions getProxyOptions(final PropertyContext propertyContext) {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
+
+        if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
+
+            final ProxyOptions proxyOptions = new ProxyOptions(
+                    getProxyType(proxyConfiguration),
+                    new InetSocketAddress(proxyConfiguration.getProxyServerHost(), proxyConfiguration.getProxyServerPort()));
+
+            final String proxyUserName = proxyConfiguration.getProxyUserName();
+            final String proxyUserPassword = proxyConfiguration.getProxyUserPassword();
+            if (proxyUserName != null && proxyUserPassword != null) {
+                proxyOptions.setCredentials(proxyUserName, proxyUserPassword);
+            }
+
+            return proxyOptions;
+        }
+
+         return null;
+    }
+
+    private static ProxyOptions.Type getProxyType(ProxyConfiguration proxyConfiguration) {
+        if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
+            return ProxyOptions.Type.HTTP;
+        } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
+            final SocksVersion socksVersion = proxyConfiguration.getSocksVersion();
+            return ProxyOptions.Type.valueOf(socksVersion.name());
+        } else {
+            throw new IllegalArgumentException("Unsupported proxy type: " + proxyConfiguration.getProxyType());
+        }
     }
 }

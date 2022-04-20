@@ -42,6 +42,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -143,7 +144,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             MIN_AGE,
             MAX_AGE,
             MIN_SIZE,
-            MAX_SIZE));
+            MAX_SIZE,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,

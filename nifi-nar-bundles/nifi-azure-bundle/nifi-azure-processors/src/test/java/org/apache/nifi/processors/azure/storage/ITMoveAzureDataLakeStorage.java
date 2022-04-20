@@ -82,6 +82,17 @@ public class ITMoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
+    public void testMoveFileToExistingDirectoryUsingProxyConfigurationService() throws Exception {
+        createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
+        createDirectory(DESTINATION_DIRECTORY);
+        configureProxyService();
+
+        runProcessor(FILE_DATA);
+
+        assertSuccess(SOURCE_DIRECTORY, DESTINATION_DIRECTORY, FILE_NAME, FILE_DATA);
+    }
+
+    @Test
     public void testMoveFileToExistingDirectoryWithReplaceResolution() throws Exception {
         createDirectoryAndUploadFile(SOURCE_DIRECTORY, FILE_NAME, FILE_DATA);
         createDirectory(DESTINATION_DIRECTORY);

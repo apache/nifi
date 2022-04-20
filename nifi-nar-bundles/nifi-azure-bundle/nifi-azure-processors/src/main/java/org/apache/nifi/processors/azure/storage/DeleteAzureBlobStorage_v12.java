@@ -40,8 +40,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
-@SeeAlso({ ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
+@Tags({"azure", "microsoft", "cloud", "storage", "blob"})
+@SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
 @CapabilityDescription("Deletes the specified blob from Azure Blob Storage. The processor uses Azure Blob Storage client library v12.")
 @InputRequirement(Requirement.INPUT_REQUIRED)
 public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
@@ -66,11 +66,12 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
             BLOB_NAME,
-            DELETE_SNAPSHOTS_OPTION
+            DELETE_SNAPSHOTS_OPTION,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override
-    public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 

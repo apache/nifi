@@ -18,6 +18,8 @@ package org.apache.nifi.processors.azure;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredential;
@@ -45,11 +47,11 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
@@ -94,22 +96,10 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             "Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            FILE
-    ));
-
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -136,42 +126,40 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
         final String endpoint = String.format("https://%s.%s", accountName, endpointSuffix);
 
-        final DataLakeServiceClient storageClient;
+        final DataLakeServiceClientBuilder dataLakeServiceClientBuilder = new DataLakeServiceClientBuilder();
+        dataLakeServiceClientBuilder.endpoint(endpoint);
+
         if (StringUtils.isNotBlank(accountKey)) {
-            final StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName,
-                    accountKey);
-            storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).credential(credential)
-                    .buildClient();
+            final StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName, accountKey);
+            dataLakeServiceClientBuilder.credential(credential);
         } else if (StringUtils.isNotBlank(sasToken)) {
-            storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).sasToken(sasToken)
-                    .buildClient();
+            dataLakeServiceClientBuilder.sasToken(sasToken);
         } else if (accessToken != null) {
             final TokenCredential credential = tokenRequestContext -> Mono.just(accessToken);
-
-            storageClient = new DataLakeServiceClientBuilder().endpoint(endpoint).credential(credential)
-                    .buildClient();
+            dataLakeServiceClientBuilder.credential(credential);
         } else if (useManagedIdentity) {
             final ManagedIdentityCredential misCredential = new ManagedIdentityCredentialBuilder()
                     .clientId(managedIdentityClientId)
                     .build();
-            storageClient = new DataLakeServiceClientBuilder()
-                    .endpoint(endpoint)
-                    .credential(misCredential)
-                    .buildClient();
+            dataLakeServiceClientBuilder.credential(misCredential);
         } else if (StringUtils.isNoneBlank(servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret)) {
             final ClientSecretCredential credential = new ClientSecretCredentialBuilder()
                     .tenantId(servicePrincipalTenantId)
                     .clientId(servicePrincipalClientId)
                     .clientSecret(servicePrincipalClientSecret)
                     .build();
-
-            storageClient = new DataLakeServiceClientBuilder()
-                    .endpoint(endpoint)
-                    .credential(credential)
-                    .buildClient();
+            dataLakeServiceClientBuilder.credential(credential);
         } else {
             throw new IllegalArgumentException("No valid credentials were provided");
         }
+
+        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
+        nettyClientBuilder.proxy(getProxyOptions(context));
+
+        final HttpClient nettyClient = nettyClientBuilder.build();
+        dataLakeServiceClientBuilder.httpClient(nettyClient);
+
+        final DataLakeServiceClient storageClient = dataLakeServiceClientBuilder.buildClient();
 
         return storageClient;
     }

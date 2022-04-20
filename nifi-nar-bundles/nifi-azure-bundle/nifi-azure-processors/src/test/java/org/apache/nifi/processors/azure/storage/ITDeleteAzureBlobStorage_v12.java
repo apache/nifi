@@ -57,6 +57,17 @@ public class ITDeleteAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT
     }
 
     @Test
+    public void testDeleteBlobWithSimpleNameUsingProxyConfigurationService() throws Exception {
+        uploadBlob(BLOB_NAME, BLOB_DATA);
+
+        configureProxyService();
+
+        runProcessor();
+
+        assertSuccess(BLOB_NAME);
+    }
+
+    @Test
     public void testDeleteBlobWithCompoundName() throws Exception {
         String blobName = "dir1/dir2/blob1";
         runner.setProperty(DeleteAzureBlobStorage_v12.BLOB_NAME, blobName);

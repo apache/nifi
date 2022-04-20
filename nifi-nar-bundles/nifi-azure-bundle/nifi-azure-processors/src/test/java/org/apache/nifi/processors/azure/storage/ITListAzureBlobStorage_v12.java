@@ -56,6 +56,17 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     }
 
     @Test
+    public void testListBlobsUsingProxyConfigurationService() throws Exception {
+        uploadBlobs();
+
+        configureProxyService();
+
+        runProcessor();
+
+        assertSuccess(BLOB_NAME_1, BLOB_NAME_2, BLOB_NAME_3, BLOB_NAME_4);
+    }
+
+    @Test
     public void testListBlobsWithPrefix_1() throws Exception {
         uploadBlobs();
         runner.setProperty(ListAzureBlobStorage_v12.BLOB_NAME_PREFIX, "blob");

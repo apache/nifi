@@ -18,6 +18,8 @@ package org.apache.nifi.processors.azure;
 
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.blob.BlobClient;
@@ -45,6 +47,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_NAME_CONTAINER;
@@ -110,11 +113,18 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
     }
 
     public static BlobServiceClient createStorageClient(PropertyContext context) {
-        AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
-        AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
+        final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
+        final AzureStorageCredentialsDetails_v12 credentialsDetails = credentialsService.getCredentialsDetails();
 
-        BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
+        final BlobServiceClientBuilder clientBuilder = new BlobServiceClientBuilder();
         clientBuilder.endpoint(String.format("https://%s.%s", credentialsDetails.getAccountName(), credentialsDetails.getEndpointSuffix()));
+
+        final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
+
+        nettyClientBuilder.proxy(getProxyOptions(context));
+
+        final HttpClient nettyClient = nettyClientBuilder.build();
+        clientBuilder.httpClient(nettyClient);
 
         configureCredential(clientBuilder, credentialsService, credentialsDetails);
 
@@ -131,7 +141,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
                 break;
             case MANAGED_IDENTITY:
                 clientBuilder.credential(new ManagedIdentityCredentialBuilder()
-                                .clientId(credentialsDetails.getManagedIdentityClientId())
+                        .clientId(credentialsDetails.getManagedIdentityClientId())
                         .build());
                 break;
             case SERVICE_PRINCIPAL:

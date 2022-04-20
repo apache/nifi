@@ -36,6 +36,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -131,7 +132,8 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             DESTINATION_FILESYSTEM,
             DESTINATION_DIRECTORY,
             FILE,
-            CONFLICT_RESOLUTION
+            CONFLICT_RESOLUTION,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override

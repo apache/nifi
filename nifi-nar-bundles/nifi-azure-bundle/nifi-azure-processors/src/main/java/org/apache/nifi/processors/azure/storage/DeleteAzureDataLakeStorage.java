@@ -36,6 +36,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -77,7 +78,8 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             FILESYSTEM,
             FILESYSTEM_OBJECT_TYPE,
             DIRECTORY,
-            FILE
+            FILE,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override

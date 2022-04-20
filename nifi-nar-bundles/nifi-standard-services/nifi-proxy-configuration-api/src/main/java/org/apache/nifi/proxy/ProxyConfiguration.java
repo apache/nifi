@@ -50,6 +50,10 @@ public class ProxyConfiguration {
         description.append(" Supported proxies: ");
         description.append(specs.stream().map(ProxySpec::getDisplayName).collect(Collectors.joining(", ")));
 
+        if (specs.contains(SOCKS)) {
+            description.append(" In case of SOCKS, it is not guaranteed that the selected SOCKS Version will be used by the processor.");
+        }
+
         return new PropertyDescriptor.Builder()
                 .fromPropertyDescriptor(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE)
                 .description(description.toString())
@@ -62,7 +66,7 @@ public class ProxyConfiguration {
      * @return sorted unique specs
      */
     private static Set<ProxySpec> getUniqueProxySpecs(ProxySpec ... _specs) {
-        final Set<ProxySpec> specs = Arrays.stream(_specs).sorted().collect(Collectors.toSet());
+        final Set<ProxySpec> specs = Arrays.stream(_specs).collect(Collectors.toSet());
         if (specs.contains(HTTP_AUTH)) {
             specs.remove(HTTP);
         }
@@ -148,6 +152,7 @@ public class ProxyConfiguration {
     }
 
     private Proxy.Type proxyType = Proxy.Type.DIRECT;
+    private SocksVersion socksVersion;
     private String proxyServerHost;
     private Integer proxyServerPort;
     private String proxyUserName;
@@ -159,6 +164,14 @@ public class ProxyConfiguration {
 
     public void setProxyType(Proxy.Type proxyType) {
         this.proxyType = proxyType;
+    }
+
+    public SocksVersion getSocksVersion() {
+        return socksVersion;
+    }
+
+    public void setSocksVersion(SocksVersion socksVersion) {
+        this.socksVersion = socksVersion;
     }
 
     public String getProxyServerHost() {
