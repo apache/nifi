@@ -224,7 +224,7 @@ public class StatelessBootstrap {
         }
 
         final String filename = file.getName();
-        if (filename.endsWith(".class") || filename.endsWith(".jar") || filename.endsWith(".jmod")) {
+        if (filename.endsWith(".jar") || filename.endsWith(".jmod")) {
             loadable.add(file);
         }
     }
