@@ -23,9 +23,6 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.lang.StringUtils;
@@ -45,6 +42,8 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.apache.nifi.xml.processing.transform.TransformProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -142,9 +141,9 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
                 userGroupProviderElement.appendChild(document.createTextNode(((ConfigurableUserGroupProvider) userGroupProvider).getFingerprint()));
             }
 
-            final Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            transformer.transform(new DOMSource(document), new StreamResult(out));
-        } catch (final ProcessingException | TransformerException e) {
+            final TransformProvider transformProvider = new StandardTransformProvider();
+            transformProvider.transform(new DOMSource(document), new StreamResult(out));
+        } catch (final ProcessingException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         }
 
