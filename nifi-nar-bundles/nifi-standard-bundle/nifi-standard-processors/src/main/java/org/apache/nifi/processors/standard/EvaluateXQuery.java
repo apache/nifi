@@ -30,14 +30,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import net.sf.saxon.s9api.Processor;
@@ -75,7 +69,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
+import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
 
 @EventDriven
@@ -315,9 +311,9 @@ public class EvaluateXQuery extends AbstractProcessor {
                             final XdmItem item = result.itemAt(0);
                             flowFile = session.write(flowFile, rawOut -> {
                                 try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                    writeformattedItem(item, context, out);
-                                } catch (TransformerFactoryConfigurationError | TransformerException e) {
-                                    throw new IOException(e);
+                                    writeFormattedItem(item, context, out);
+                                } catch (final ProcessingException e) {
+                                    throw new IOException("Writing Formatted Output failed", e);
                                 }
                             });
                         } else {
@@ -326,9 +322,9 @@ public class EvaluateXQuery extends AbstractProcessor {
                                 ff = session.write(ff, rawOut -> {
                                     try (final OutputStream out = new BufferedOutputStream(rawOut)) {
                                         try {
-                                            writeformattedItem(item, context, out);
-                                        } catch (TransformerFactoryConfigurationError | TransformerException e) {
-                                            throw new IOException(e);
+                                            writeFormattedItem(item, context, out);
+                                        } catch (final ProcessingException e) {
+                                            throw new IOException("Writing Formatted Output failed", e);
                                         }
                                     }
                                 });
@@ -341,7 +337,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                     session.transfer(flowFile, REL_FAILURE);
                     session.remove(childrenFlowFiles);
                     continue flowFileLoop;
-                } catch (TransformerFactoryConfigurationError | TransformerException | IOException e) {
+                } catch (final IOException e) {
                     logger.error("XQuery Property [{}] configuration failed", entry.getKey(), e);
                     session.transfer(flowFile, REL_FAILURE);
                     session.remove(childrenFlowFiles);
@@ -369,14 +365,13 @@ public class EvaluateXQuery extends AbstractProcessor {
         } // end flowFileLoop
     }
 
-    private String formatItem(XdmItem item, ProcessContext context) throws TransformerFactoryConfigurationError, TransformerException, IOException {
+    private String formatItem(XdmItem item, ProcessContext context) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        writeformattedItem(item, context, baos);
+        writeFormattedItem(item, context, baos);
         return baos.toString();
     }
 
-    void writeformattedItem(XdmItem item, ProcessContext context, OutputStream out)
-            throws TransformerFactoryConfigurationError, TransformerException, IOException {
+    void writeFormattedItem(XdmItem item, ProcessContext context, OutputStream out) throws IOException {
 
         if (item.isAtomicValue()) {
             out.write(item.getStringValue().getBytes(StandardCharsets.UTF_8));
@@ -385,30 +380,23 @@ public class EvaluateXQuery extends AbstractProcessor {
             switch (node.getNodeKind()) {
                 case DOCUMENT:
                 case ELEMENT:
-                    Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                    final Properties props = getTransformerProperties(context);
-                    transformer.setOutputProperties(props);
-                    transformer.transform(node.asSource(), new StreamResult(out));
+                    final StandardTransformProvider transformProvider = new StandardTransformProvider();
+                    final String method = context.getProperty(XML_OUTPUT_METHOD).getValue();
+                    transformProvider.setMethod(method);
+
+                    final boolean indentEnabled = context.getProperty(XML_OUTPUT_INDENT).asBoolean();
+                    transformProvider.setIndent(indentEnabled);
+
+                    final boolean omitXmlDeclaration = context.getProperty(XML_OUTPUT_OMIT_XML_DECLARATION).asBoolean();
+                    transformProvider.setOmitXmlDeclaration(omitXmlDeclaration);
+
+                    final StreamResult result = new StreamResult(out);
+                    transformProvider.transform(node.asSource(), result);
                     break;
                 default:
                     out.write(node.getStringValue().getBytes(StandardCharsets.UTF_8));
             }
         }
-    }
-
-    private Properties getTransformerProperties(ProcessContext context) {
-        final String method = context.getProperty(XML_OUTPUT_METHOD).getValue();
-        boolean indent = context.getProperty(XML_OUTPUT_INDENT).asBoolean();
-        boolean omitDeclaration = context.getProperty(XML_OUTPUT_OMIT_XML_DECLARATION).asBoolean();
-        return getTransformerProperties(method, indent, omitDeclaration);
-    }
-
-    static Properties getTransformerProperties(final String method, final boolean indent, final boolean omitDeclaration) {
-        final Properties props = new Properties();
-        props.setProperty(OutputKeys.METHOD, method);
-        props.setProperty(OutputKeys.INDENT, indent ? "yes" : "no");
-        props.setProperty(OutputKeys.OMIT_XML_DECLARATION, omitDeclaration ? "yes" : "no");
-        return props;
     }
 
     private static class XQueryValidator implements Validator {

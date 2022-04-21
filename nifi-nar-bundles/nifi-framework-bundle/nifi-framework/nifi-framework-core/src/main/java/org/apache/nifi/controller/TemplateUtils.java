@@ -32,10 +32,10 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RelationshipDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.apache.nifi.xml.processing.transform.TransformProvider;
 import org.w3c.dom.Element;
 
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
@@ -58,9 +58,8 @@ public class TemplateUtils {
 
             // need to stream the template element as the TemplateDeserializer.deserialize operation needs to re-parse
             // in order to apply explicit properties on the XMLInputFactory
-            final TransformerFactory transformerFactory = TransformerFactory.newInstance();
-            final Transformer transformer = transformerFactory.newTransformer();
-            transformer.transform(domSource, streamResult);
+            final TransformProvider transformProvider = new StandardTransformProvider();
+            transformProvider.transform(domSource, streamResult);
 
             return parseDto(baos.toByteArray());
         } catch (final Exception e) {

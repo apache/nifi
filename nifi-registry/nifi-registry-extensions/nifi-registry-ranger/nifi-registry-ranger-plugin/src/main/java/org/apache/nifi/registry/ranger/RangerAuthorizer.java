@@ -42,6 +42,8 @@ import org.apache.nifi.registry.util.PropertyValue;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.apache.nifi.xml.processing.transform.TransformProvider;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
 import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
@@ -56,9 +58,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
@@ -339,9 +338,9 @@ public class RangerAuthorizer implements ManagedAuthorizer, AuthorizationAuditor
                 userGroupProviderElement.appendChild(document.createTextNode(((ConfigurableUserGroupProvider) userGroupProvider).getFingerprint()));
             }
 
-            final Transformer transformer = TransformerFactory.newInstance().newTransformer();
-            transformer.transform(new DOMSource(document), new StreamResult(out));
-        } catch (final ProcessingException | TransformerException e) {
+            final TransformProvider transformProvider = new StandardTransformProvider();
+            transformProvider.transform(new DOMSource(document), new StreamResult(out));
+        } catch (final ProcessingException e) {
             throw new AuthorizationAccessException("Unable to generate fingerprint", e);
         }
 

@@ -27,6 +27,8 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.apache.nifi.xml.processing.transform.TransformProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -40,8 +42,6 @@ import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
@@ -278,13 +278,14 @@ public class FlowParser {
      * @param flowDocument flowDocument of the associated XML content to write to disk
      * @param flowXmlPath  path on disk to write the flow
      * @throws IOException if there are issues in accessing the target destination for the flow
-     * @throws TransformerException if there are issues in the xml transformation process
      */
-    public void writeFlow(final Document flowDocument, final Path flowXmlPath) throws IOException, TransformerException {
+    public void writeFlow(final Document flowDocument, final Path flowXmlPath) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final Source xmlSource = new DOMSource(flowDocument);
         final Result outputTarget = new StreamResult(outputStream);
-        TransformerFactory.newInstance().newTransformer().transform(xmlSource, outputTarget);
+
+        final TransformProvider transformProvider = new StandardTransformProvider();
+        transformProvider.transform(xmlSource, outputTarget);
         final InputStream is = new ByteArrayInputStream(outputStream.toByteArray());
 
         try (final OutputStream output = Files.newOutputStream(flowXmlPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);

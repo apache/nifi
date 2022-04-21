@@ -32,9 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
-
-import javax.xml.transform.OutputKeys;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -52,21 +49,6 @@ public class TestEvaluateXQuery {
 
     private static final String[] methods = {EvaluateXQuery.OUTPUT_METHOD_XML, EvaluateXQuery.OUTPUT_METHOD_HTML, EvaluateXQuery.OUTPUT_METHOD_TEXT};
     private static final boolean[] booleans = {true, false};
-
-    @Test
-    public void testSetTransformerProperties() {
-        for (final String method : methods) {
-            for (final boolean indent : booleans) {
-                for (final boolean omitDeclaration : booleans) {
-                    Properties props = EvaluateXQuery.getTransformerProperties(method, indent, omitDeclaration);
-                    assertEquals(3, props.size());
-                    assertEquals(method, props.getProperty(OutputKeys.METHOD));
-                    assertEquals(indent ? "yes" : "no", props.getProperty(OutputKeys.INDENT));
-                    assertEquals(omitDeclaration ? "yes" : "no", props.getProperty(OutputKeys.OMIT_XML_DECLARATION));
-                }
-            }
-        }
-    }
 
     @Test
     public void testFormatting() throws Exception {
