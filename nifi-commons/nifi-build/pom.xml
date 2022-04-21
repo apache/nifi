@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.16.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-build</artifactId>
 </project>
