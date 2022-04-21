@@ -70,7 +70,7 @@ public class InFlightMessageTracker {
 
     public void fail(final FlowFile flowFile, final Exception exception) {
         failures.putIfAbsent(flowFile, exception);
-        logger.error("Failed to send " + flowFile + " to Kafka", exception);
+        logger.error("Failed to send {} to Kafka", flowFile, exception);
 
         synchronized (progressMutex) {
             progressMutex.notify();
