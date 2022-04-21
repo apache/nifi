@@ -32,18 +32,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.namespace.QName;
-import javax.xml.transform.ErrorListener;
-import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpression;
@@ -77,7 +70,9 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.xml.DocumentTypeAllowedDocumentProvider;
+import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.Document;
 
 import net.sf.saxon.xpath.XPathEvaluator;
@@ -278,6 +273,8 @@ public class EvaluateXPath extends AbstractProcessor {
 
         final boolean validatingDeclaration = context.getProperty(VALIDATE_DTD).asBoolean();
 
+        final StandardTransformProvider transformProvider = new StandardTransformProvider();
+        transformProvider.setIndent(true);
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
             final AtomicReference<Throwable> error = new AtomicReference<>(null);
@@ -331,17 +328,19 @@ public class EvaluateXPath extends AbstractProcessor {
                     if (DESTINATION_ATTRIBUTE.equals(destination)) {
                         try {
                             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                            doTransform(sourceNode, baos);
+                            final StreamResult streamResult = new StreamResult(baos);
+                            transformProvider.transform(sourceNode, streamResult);
                             xpathResults.put(entry.getKey(), new String(baos.toByteArray(), StandardCharsets.UTF_8));
-                        } catch (TransformerException e) {
+                        } catch (final ProcessingException e) {
                             error.set(e);
                         }
 
                     } else if (DESTINATION_CONTENT.equals(destination)) {
                         flowFile = session.write(flowFile, rawOut -> {
                             try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                doTransform(sourceNode, out);
-                            } catch (TransformerException e) {
+                                final StreamResult streamResult = new StreamResult(out);
+                                transformProvider.transform(sourceNode, streamResult);
+                            } catch (final ProcessingException e) {
                                 error.set(e);
                             }
                         });
@@ -378,48 +377,6 @@ public class EvaluateXPath extends AbstractProcessor {
                 logger.error("XPath evaluation on {} failed", flowFile, error.get());
                 session.transfer(flowFile, REL_FAILURE);
             }
-        }
-    }
-
-    private void doTransform(final Source sourceNode, OutputStream out) throws TransformerFactoryConfigurationError, TransformerException {
-        final Transformer transformer;
-        try {
-            transformer = TransformerFactory.newInstance().newTransformer();
-        } catch (final Exception e) {
-            throw new ProcessException(e);
-        }
-
-        final Properties props = new Properties();
-        props.setProperty(OutputKeys.METHOD, "xml");
-        props.setProperty(OutputKeys.INDENT, "no");
-        props.setProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
-        transformer.setOutputProperties(props);
-
-        final ComponentLog logger = getLogger();
-
-        final AtomicReference<TransformerException> error = new AtomicReference<>(null);
-        transformer.setErrorListener(new ErrorListener() {
-            @Override
-            public void warning(final TransformerException exception) {
-                logger.warn("Encountered warning from XPath Engine", exception);
-            }
-
-            @Override
-            public void error(final TransformerException exception) {
-                logger.error("Encountered error from XPath Engine", exception);
-                error.set(exception);
-            }
-
-            @Override
-            public void fatalError(final TransformerException exception) {
-                logger.error("Encountered warning from XPath Engine", exception);
-                error.set(exception);
-            }
-        });
-
-        transformer.transform(sourceNode, new StreamResult(out));
-        if (error.get() != null) {
-            throw error.get();
         }
     }
 

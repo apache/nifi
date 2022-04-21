@@ -48,17 +48,13 @@ import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.FileOutputStream;
@@ -147,20 +143,18 @@ public final class ConfigTransformer {
         }
     }
 
-    protected static void writeFlowXmlFile(ConfigSchema configSchema, OutputStream outputStream) throws TransformerException, ConfigTransformerException {
+    protected static void writeFlowXmlFile(ConfigSchema configSchema, OutputStream outputStream) throws ConfigTransformerException {
         final StreamResult streamResult = new StreamResult(outputStream);
 
         // configure the transformer and convert the DOM
-        final TransformerFactory transformFactory = TransformerFactory.newInstance();
-        final Transformer transformer = transformFactory.newTransformer();
-        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        final StandardTransformProvider transformProvider = new StandardTransformProvider();
+        transformProvider.setIndent(true);
 
         // transform the document to byte stream
-        transformer.transform(createFlowXml(configSchema), streamResult);
+        transformProvider.transform(createFlowXml(configSchema), streamResult);
     }
 
-    protected static void writeFlowXmlFile(ConfigSchema configSchema, String path) throws IOException, TransformerException, ConfigurationChangeException, ConfigTransformerException {
+    protected static void writeFlowXmlFile(ConfigSchema configSchema, String path) throws IOException, ConfigTransformerException {
         try (OutputStream fileOut = Files.newOutputStream(Paths.get(path, "flow.xml.gz"))) {
             try (OutputStream outStream = new GZIPOutputStream(fileOut)) {
                 writeFlowXmlFile(configSchema, outStream);
@@ -362,7 +356,7 @@ public final class ConfigTransformer {
             }
 
             return new DOMSource(doc);
-        } catch (final ProcessingException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
+        } catch (final ProcessingException | DOMException | IllegalArgumentException e) {
             throw new ConfigTransformerException(e);
         } catch (Exception e) {
             throw new ConfigTransformerException("Failed to parse the config YAML while writing the top level of the flow xml", e);
