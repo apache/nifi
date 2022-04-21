@@ -25,6 +25,8 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
@@ -33,11 +35,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
@@ -94,13 +91,11 @@ public class StandardContentViewerController extends HttpServlet {
                         final StreamSource source = new StreamSource(content.getContentStream());
                         final StreamResult result = new StreamResult(writer);
 
-                        final TransformerFactory transformFactory = TransformerFactory.newInstance();
-                        final Transformer transformer = transformFactory.newTransformer();
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                        final StandardTransformProvider transformProvider = new StandardTransformProvider();
+                        transformProvider.setIndent(true);
 
-                        transformer.transform(source, result);
-                    } catch (final TransformerFactoryConfigurationError | TransformerException te) {
+                        transformProvider.transform(source, result);
+                    } catch (final ProcessingException te) {
                         throw new IOException("Unable to transform content as XML: " + te, te);
                     }
 

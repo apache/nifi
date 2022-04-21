@@ -52,16 +52,12 @@ import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedOutputStream;
@@ -127,7 +123,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             }
 
             return doc;
-        } catch (final ProcessingException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
+        } catch (final ProcessingException | DOMException | IllegalArgumentException e) {
             throw new FlowSerializationException(e);
         }
     }
@@ -139,15 +135,13 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             final StreamResult streamResult = new StreamResult(new BufferedOutputStream(os));
 
             // configure the transformer and convert the DOM
-            final TransformerFactory transformFactory = TransformerFactory.newInstance();
-            final Transformer transformer = transformFactory.newTransformer();
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            final StandardTransformProvider transformProvider = new StandardTransformProvider();
+            transformProvider.setIndent(true);
 
             // transform the document to byte stream
-            transformer.transform(domSource, streamResult);
+            transformProvider.transform(domSource, streamResult);
 
-        } catch (final DOMException | TransformerFactoryConfigurationError | IllegalArgumentException | TransformerException e) {
+        } catch (final DOMException | IllegalArgumentException | ProcessingException e) {
             throw new FlowSerializationException(e);
         }
     }
