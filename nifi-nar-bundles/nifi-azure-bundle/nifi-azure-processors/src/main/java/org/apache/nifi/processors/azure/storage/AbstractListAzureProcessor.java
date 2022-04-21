@@ -64,21 +64,20 @@ public abstract class AbstractListAzureProcessor<T extends ListableEntity> exten
         final long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final Long maxAge = context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        if (lastModified >= minimumTimestamp) {
-            if (minSize > size) {
-                return false;
-            }
-            if (maxSize != null && maxSize < size) {
-                return false;
-            }
-            final long fileAge = System.currentTimeMillis() - lastModified;
-            if (minAge > fileAge) {
-                return false;
-            }
-            if (maxAge != null && maxAge < fileAge) {
-                return false;
-            }
-        } else {
+        if (lastModified < minimumTimestamp) {
+            return false;
+        }
+        final long fileAge = System.currentTimeMillis() - lastModified;
+        if (minAge > fileAge) {
+            return false;
+        }
+        if (maxAge != null && maxAge < fileAge) {
+            return false;
+        }
+        if (minSize > size) {
+            return false;
+        }
+        if (maxSize != null && maxSize < size) {
             return false;
         }
         return true;
