@@ -100,19 +100,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-proxy-configuration-api</artifactId>
         </dependency>
-
-        <!-- overriding jackson-databind in aws-java-sdk-core -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
-        <!-- overriding jackson-dataformat-cbor in aws-java-sdk-core -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-cbor</artifactId>
-            <version>${jackson.version}</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>

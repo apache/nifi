@@ -24,17 +24,6 @@
     <packaging>jar</packaging>
     <dependencyManagement>
         <dependencies>
-            <!-- Override jackson from hadoop-common -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
             <!-- Override commons-compress:1.19 -->
             <dependency>
                 <groupId>org.apache.commons</groupId>

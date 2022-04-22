@@ -68,7 +68,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency> <!-- TODO: Remove this when the next version of google-auth-library-oauth2-http is released and brings this in-->
     </dependencies>
 </project>
