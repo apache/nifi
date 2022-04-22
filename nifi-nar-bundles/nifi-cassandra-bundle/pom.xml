@@ -47,17 +47,6 @@
                 <artifactId>nifi-cassandra-processors</artifactId>
                 <version>1.17.0-SNAPSHOT</version>
             </dependency>
-            <!-- Override jackson 2.7.9.3 from cassandra -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
             <!-- Override commons-compress -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
