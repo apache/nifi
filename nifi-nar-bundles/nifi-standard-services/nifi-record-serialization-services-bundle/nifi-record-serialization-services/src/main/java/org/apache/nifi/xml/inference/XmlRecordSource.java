@@ -36,11 +36,11 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
 
     private final XMLEventReader xmlEventReader;
     private final String contentFieldName;
-    private final boolean parseXMLAttributes;
+    private final boolean parseXmlAttributes;
 
-    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXMLAttributes) throws IOException {
+    public XmlRecordSource(final InputStream in, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXmlAttributes) throws IOException {
         this.contentFieldName = contentFieldName;
-        this.parseXMLAttributes = parseXMLAttributes;
+        this.parseXmlAttributes = parseXmlAttributes;
         try {
             final XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 
@@ -79,8 +79,8 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         final StringBuilder content = new StringBuilder();
         final Map<String, XmlNode> childNodes = new LinkedHashMap<>();
 
-        if (parseXMLAttributes) {
-            addXMLAttributesToChildNodes(startElement, childNodes);
+        if (parseXmlAttributes) {
+            addXmlAttributesToChildNodes(startElement, childNodes);
         }
 
         while (xmlEventReader.hasNext()) {
@@ -146,7 +146,7 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
         return null;
     }
 
-    private void addXMLAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
+    private void addXmlAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
         final Iterator<?> attributeIterator = startElement.getAttributes();
         while (attributeIterator.hasNext()) {
             final Attribute attribute = (Attribute) attributeIterator.next();

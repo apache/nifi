@@ -120,14 +120,14 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .dependsOn(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, INFER_SCHEMA)
             .build();
 
-    private volatile boolean parseXMLAttributes;
+    private volatile boolean parseXmlAttributes;
     private volatile String dateFormat;
     private volatile String timeFormat;
     private volatile String timestampFormat;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.parseXMLAttributes = context.getProperty(PARSE_XML_ATTRIBUTES).asBoolean();
+        this.parseXmlAttributes = context.getProperty(PARSE_XML_ATTRIBUTES).asBoolean();
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
@@ -160,7 +160,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSourceFactory<XmlNode> sourceFactory = (variables, contentStream) -> {
             String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
             contentFieldName = (contentFieldName == null) ? "value" : contentFieldName;
-            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables), parseXMLAttributes);
+            return new XmlRecordSource(contentStream, contentFieldName, isMultipleRecords(context, variables), parseXmlAttributes);
         };
         final Supplier<SchemaInferenceEngine<XmlNode>> schemaInference = () -> new XmlSchemaInference(new TimeValueInference(dateFormat, timeFormat, timestampFormat));
 
@@ -196,7 +196,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         final String contentFieldName = trim(context.getProperty(CONTENT_FIELD_NAME).evaluateAttributeExpressions(variables).getValue());
         final boolean isArray = isMultipleRecords(context, variables);
 
-        return new XMLRecordReader(in, schema, isArray, parseXMLAttributes, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
+        return new XMLRecordReader(in, schema, isArray, parseXmlAttributes, attributePrefix, contentFieldName, dateFormat, timeFormat, timestampFormat, logger);
     }
 
     private String trim(final String value) {

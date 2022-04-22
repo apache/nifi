@@ -55,7 +55,7 @@ public class XMLRecordReader implements RecordReader {
 
     private final ComponentLog logger;
     private final RecordSchema schema;
-    private final boolean parseXMLAttributes;
+    private final boolean parseXmlAttributes;
     private final String attributePrefix;
     private final String contentFieldName;
 
@@ -68,10 +68,10 @@ public class XMLRecordReader implements RecordReader {
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     public XMLRecordReader(final InputStream in, final RecordSchema schema, final boolean isArray,
-                           final boolean parseXMLAttributes, final String attributePrefix, final String contentFieldName,
+                           final boolean parseXmlAttributes, final String attributePrefix, final String contentFieldName,
                            final String dateFormat, final String timeFormat, final String timestampFormat, final ComponentLog logger) throws MalformedRecordException {
         this.schema = schema;
-        this.parseXMLAttributes = parseXMLAttributes;
+        this.parseXmlAttributes = parseXmlAttributes;
         this.attributePrefix = attributePrefix;
         this.contentFieldName = contentFieldName;
         this.logger = logger;
@@ -256,7 +256,7 @@ public class XMLRecordReader implements RecordReader {
     private Object parseUnknownField(StartElement startElement, boolean dropUnknown, RecordSchema schema) throws XMLStreamException {
         final Map<String, Object> recordValues = new HashMap<>();
 
-        if (parseXMLAttributes) {
+        if (parseXmlAttributes) {
             parseAttributesForUnknownField(startElement, schema, dropUnknown, recordValues);
         }
 
@@ -349,16 +349,17 @@ public class XMLRecordReader implements RecordReader {
         while (iterator.hasNext()) {
             final Attribute attribute = (Attribute) iterator.next();
             final String attributeName = attribute.getName().toString();
+            final String fieldName = ((attributePrefix == null) ? attributeName : (attributePrefix + attributeName));
 
             if (dropUnknown) {
                 if (schema != null) {
                     final Optional<RecordField> field = schema.getField(attributeName);
                     if (field.isPresent()){
-                        recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
+                        recordValues.put(fieldName, attribute.getValue());
                     }
                 }
             } else {
-                recordValues.put(attributePrefix == null ? attributeName : attributePrefix + attributeName, attribute.getValue());
+                recordValues.put(fieldName, attribute.getValue());
             }
         }
     }
@@ -367,7 +368,7 @@ public class XMLRecordReader implements RecordReader {
         final Map<String, Object> recordValues = new HashMap<>();
 
         // parse attributes
-        if (parseXMLAttributes) {
+        if (parseXmlAttributes) {
             parseAttributesForRecord(startElement, schema, coerceTypes, dropUnknown, recordValues);
         }
 
