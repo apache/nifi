@@ -92,7 +92,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.jr</groupId>
             <artifactId>jackson-jr-objects</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

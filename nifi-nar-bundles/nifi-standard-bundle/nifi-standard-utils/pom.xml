@@ -30,12 +30,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.bazaarvoice.jolt</groupId>
             <artifactId>json-utils</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -48,7 +42,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
     </dependencies>
     <build>
