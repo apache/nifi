@@ -23,6 +23,10 @@
     <artifactId>nifi-spark-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <zookeeper.version>3.5.9</zookeeper.version>
+    </properties>
+
     <modules>
         <module>nifi-livy-nar</module>
         <module>nifi-livy-controller-service-api-nar</module>
@@ -73,7 +77,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.14</version>
+                <version>${zookeeper.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
