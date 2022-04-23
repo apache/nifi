@@ -25,6 +25,10 @@
     <artifactId>nifi-ranger-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <zookeeper.version>3.5.9</zookeeper.version>
+    </properties>
+
     <modules>
         <module>nifi-ranger-plugin</module>
         <module>nifi-ranger-nar</module>
@@ -37,7 +41,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.14</version>
+                <version>${zookeeper.version}</version>
             </dependency>
             <!-- Override commons-io:2.5 from ranger -->
             <dependency>
