@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.1</version>
+        <version>1.16.2-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-sql-reporting-bundle</artifactId>
     <packaging>pom</packaging>
@@ -30,7 +30,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-sql-reporting-tasks</artifactId>
-                <version>1.16.1</version>
+                <version>1.16.2-SNAPSHOT</version>
             </dependency>
             <!-- Override snakeyaml:1.23 -->
             <dependency>
@@ -48,6 +48,6 @@
     </dependencyManagement>
 
   <scm>
-    <tag>nifi-1.16.1-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

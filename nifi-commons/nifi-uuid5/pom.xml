@@ -30,11 +30,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.1</version>
+        <version>1.16.2-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-uuid5</artifactId>
 
   <scm>
-    <tag>nifi-1.16.1-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.1</version>
+        <version>1.16.2-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-extension-utils</artifactId>
@@ -45,6 +45,6 @@
     </modules>
 
   <scm>
-    <tag>nifi-1.16.1-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

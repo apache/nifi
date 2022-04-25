@@ -15,7 +15,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-avro-bundle</artifactId>
-        <version>1.16.1</version>
+        <version>1.16.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-avro-processors</artifactId>
@@ -29,7 +29,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.1</version>
+            <version>1.16.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -51,7 +51,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.16.1</version>
+            <version>1.16.2-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -72,6 +72,6 @@ language governing permissions and limitations under the License. -->
     </build>
 
   <scm>
-    <tag>nifi-1.16.1-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>
