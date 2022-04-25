@@ -79,7 +79,7 @@ public class ScriptRunnerFactory {
 
         if (!"Clojure".equals(scriptEngineName)
                 && !"Groovy".equals(scriptEngineName)
-                && "ECMAScript".equals(scriptEngineName)) {
+                && !"ECMAScript".equals(scriptEngineName)) {
             return new URL[0];
         }
 
