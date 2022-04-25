@@ -21,7 +21,7 @@ limitations under the License.
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi</artifactId>
-        <version>1.16.1-SNAPSHOT</version>
+        <version>1.16.1</version>
     </parent>
     <groupId>org.apache.nifi.minifi</groupId>
     <artifactId>minifi-nar-bundles</artifactId>
@@ -34,6 +34,6 @@ limitations under the License.
     </modules>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.1-RC1</tag>
   </scm>
 </project>
