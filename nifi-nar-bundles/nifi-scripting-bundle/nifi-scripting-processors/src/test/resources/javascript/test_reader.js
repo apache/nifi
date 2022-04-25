@@ -27,6 +27,7 @@ var Relationship = Java.type("org.apache.nifi.processor.Relationship");
 var PropertyDescriptor = Java.type("org.apache.nifi.components.PropertyDescriptor");
 var StandardValidators = Java.type("org.apache.nifi.processor.util.StandardValidators");
 var StreamUtils = Java.type("org.apache.nifi.stream.io.StreamUtils");
+var Primes = Java.type("org.apache.commons.math3.primes.Primes")
 
 var REL_TEST = new Relationship.Builder()
         .name("test")
@@ -72,7 +73,8 @@ var processor = new Object() {
 
         this.logger.info("Read content={}", [content]);
 
-        flowFile = session.putAttribute(flowFile, "from-content", content)
+        flowFile = session.putAttribute(flowFile, "from-content", content);
+        flowFile = session.putAttribute(flowFile, "is3Prime", Primes.isPrime(3))
         // transfer
         session.transfer(flowFile, REL_TEST)
         session.commitAsync()

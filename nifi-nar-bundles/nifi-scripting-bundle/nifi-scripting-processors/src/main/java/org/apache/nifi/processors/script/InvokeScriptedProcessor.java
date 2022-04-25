@@ -262,10 +262,6 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
             scriptNeedsReload.set(true);
             scriptRunner = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
-            if (isConfigurationRestored()) {
-                // Once the configuration has been restored, each call to onPropertyModified() is due to a change made after the processor was loaded, so reload the script
-                setup();
-            }
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {
