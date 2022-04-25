@@ -58,7 +58,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
+        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -86,7 +86,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
 
         context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
+        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
         processor.setup(context);
@@ -112,7 +112,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      * @Any error encountered while testing
      */
     @Test
-    public void testScriptDefinedRelationship() {
+    public void testScriptDefinedRelationshipWithExternalJar() {
         InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
         MockProcessContext context = new MockProcessContext(processor);
         MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
@@ -121,7 +121,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
 
         context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
+        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
 
         // State Manger is unused, and a null reference is specified
         processor.customValidate(new MockValidationContext(context));
