@@ -16,8 +16,23 @@
  */
 package org.apache.nifi.components;
 
-public interface Allowable {
+/**
+ * Describes a processor property value with display name and description.
+ */
+public interface DescribedValue {
 
+    /**
+     * @return the property value as a string
+     */
+    String getValue();
+
+    /**
+     * @return the property display name as a string
+     */
     String getDisplayName();
+
+    /**
+     * @return the proeprty description as a string
+     */
     String getDescription();
 }

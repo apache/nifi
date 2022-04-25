@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.components;
 
-public enum EnumAllowableValue implements Allowable {
+public enum EnumAllowableValue implements DescribedValue {
 
     GREEN {
         @Override
@@ -40,5 +40,10 @@ public enum EnumAllowableValue implements Allowable {
         public String getDescription() {
             return "RedDescription";
         }
+    };
+
+    @Override
+    public String getValue() {
+        return name();
     }
 }

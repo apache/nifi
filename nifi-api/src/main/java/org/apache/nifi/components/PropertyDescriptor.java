@@ -402,7 +402,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
          * @param <E> generic parameter for an enum class that implements the Allowable interface
          * @return the builder
          */
-        public <E extends Enum<E> & Allowable> Builder allowableValues(final Class<E> enumClass) {
+        public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
             this.allowableValues = new ArrayList<>();
             for (E enumValue : enumClass.getEnumConstants()) {
                 this.allowableValues.add(new AllowableValue(enumValue.name(), enumValue.getDisplayName(), enumValue.getDescription()));
