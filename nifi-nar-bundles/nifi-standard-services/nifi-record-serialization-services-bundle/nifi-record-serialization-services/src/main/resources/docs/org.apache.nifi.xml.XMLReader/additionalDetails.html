@@ -36,8 +36,7 @@
                 &lt;record&gt;
                   &lt;field1&gt;content&lt;/field1&gt;
                   &lt;field2&gt;content&lt;/field2&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -56,8 +55,7 @@
                     &lt;field1&gt;content&lt;/field1&gt;
                     &lt;field2&gt;content&lt;/field2&gt;
                   &lt;/record&gt;
-                &lt;/root&gt;
-            </pre>
+                &lt;/root&gt;</pre>
     </code>
 
     <h2>Example: Simple Fields</h2>
@@ -73,8 +71,7 @@
                   &lt;record&gt;
                     &lt;simple_field&gt;content&lt;/simple_field&gt;
                   &lt;/record&gt;
-                &lt;/root&gt;
-            </pre>
+                &lt;/root&gt;</pre>
     </code>
 
     <p>
@@ -91,8 +88,7 @@
                   "fields": [
                     { "name": "simple_field", "type": "string" }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
     <h2>Example: Arrays with Simple Fields</h2>
@@ -109,8 +105,7 @@
                   &lt;array_field&gt;content&lt;/array_field&gt;
                   &lt;array_field&gt;content&lt;/array_field&gt;
                   &lt;simple_field&gt;content&lt;/simple_field&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -129,8 +124,7 @@
                     },
                     { "name": "simple_field", "type": "string" }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
     <p>
@@ -151,8 +145,7 @@
             <pre>
                 &lt;record&gt;
                   &lt;field_with_attribute attr="attr_content"&gt;content of field&lt;/field_with_attribute&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -207,8 +200,7 @@
                         ]
                     }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
     <p>
@@ -225,14 +217,18 @@
                         RecordField "prefix_attr" = "attr_content",
                         RecordField "field_name_for_content" = "content of field"
                     )
-                )
-            </pre>
+                )</pre>
     </code>
 
     <p>
         Principally, the field "field_with_attribute" could also be defined as a simple field. In this case, the attributes
         simply would be ignored. Vice versa, the simple field in example 1 above could also be defined as a record (assuming that
         the property "Field Name for Content" is set.
+    </p>
+
+    <p>
+        It is possible that the schema is not provided explicitly, but schema inference is used.
+        For details on XML attributes and schema inference, see "Example: Tags with Attributes and Schema Inference" below.
     </p>
 
     <h2>Example: Tags within tags</h2>
@@ -248,8 +244,7 @@
                     &lt;embedded_field&gt;embedded content&lt;/embedded_field&gt;
                     &lt;another_embedded_field&gt;another embedded content&lt;/another_embedded_field&gt;
                   &lt;/field_with_embedded_fields&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -277,8 +272,7 @@
                         ]
                     }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
     <p>
@@ -318,6 +312,11 @@
     <h3>XML Attributes and Schema Inference Example 1</h3>
 
     <p>
+        The simplest case is when XML attributes are ignored completely during schema inference. To achieve this, the "Parse XML Attributes" property in
+        XMLReader is set to "false".
+    </p>
+
+    <p>
         XMLReader settings:
     </p>
 
@@ -329,6 +328,78 @@
         <tr>
             <td>Schema Access Strategy</td>
             <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Expect Records as Array</td>
+            <td><code>false</code></td>
+        </tr>
+        <tr>
+            <td>Field Name for Content</td>
+            <td>not set</td>
+        </tr>
+    </table>
+
+    <p>
+        Input:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute attr="attr_content"&gt;
+                        content of field
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        Output:
+    </p>
+
+    <code>
+            <pre>
+                &lt;record&gt;
+                    &lt;field_with_attribute&gt;
+                        content of field
+                    &lt;/field_with_attribute&gt;
+                &lt;/record&gt;</pre>
+    </code>
+
+    <p>
+        If "Parse XML Attributes" is "false", the XML attribute is not parsed. Its name does not appear in the inferred schema and its value
+        is ignored. The reader behaves as if the XML attribute was not there.
+    </p>
+
+    <p>
+        Important note: "Field Name for Content" was not set in this example. This could lead to data loss if "field_with_attribute" had child elements,
+        similarly to what is described in "XML Attributes and Schema Inference Example 2" and
+        "XML Attributes and Schema Inference Example 4". To avoid that, "Field Name for Content" needs to be assigned a value that is
+        different from any existing XML tags in the data, like in "XML Attributes and Schema Inference Example 6".
+
+    </p>
+
+    <h3>XML Attributes and Schema Inference Example 2</h3>
+
+    <p>
+        XMLReader settings:
+    </p>
+
+    <table>
+        <tr>
+            <th>Property Name</th>
+            <th>Property Value</th>
+        </tr>
+        <tr>
+            <td>Schema Access Strategy</td>
+            <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>true</code></td>
         </tr>
         <tr>
             <td>Expect Records as Array</td>
@@ -376,10 +447,10 @@
         in the example). So a new field named "value" appears in the schema but no value is assigned to it from the data, thus the field is empty.
         The XML attribute (named "attr") is processed, a field named "attr" is added to the schema and the attribute's value ("attr_content") is assigned to it.
         In a case like this, the parent field's original content is lost and a new field named "value" appears in the schema with no data assigned to it.
-        This is to make sure that no data is overwritten in the record if it already contains a field named "value". More on that case in Example 3 and Example 4.
+        This is to make sure that no data is overwritten in the record if it already contains a field named "value". More on that case in Example 4 and Example 5.
     </p>
 
-    <h3>XML Attributes and Schema Inference Example 2</h3>
+    <h3>XML Attributes and Schema Inference Example 3</h3>
 
     <p>
         In this example, the XMLReader's "Field Name for Content" property is filled with the value "original_content". The input data is the same as
@@ -398,6 +469,10 @@
         <tr>
             <td>Schema Access Strategy</td>
             <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>true</code></td>
         </tr>
         <tr>
             <td>Expect Records as Array</td>
@@ -444,7 +519,7 @@
         Since the <code>&lt;field_with_attribute&gt;</code> element had no child-element with the name "original_content", no data is lost.
     </p>
 
-    <h3>XML Attributes and Schema Inference Example 3</h3>
+    <h3>XML Attributes and Schema Inference Example 4</h3>
 
     <p>
         In this example, XMLReader's "Field Name for Content" property is left empty. In the input data, the <code>&lt;field_with_attribute&gt;</code> element
@@ -463,6 +538,10 @@
         <tr>
             <td>Schema Access Strategy</td>
             <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>true</code></td>
         </tr>
         <tr>
             <td>Expect Records as Array</td>
@@ -503,16 +582,16 @@
 
     <p>
         The "Field Name for Content" property is not set, and the XML element has a sub-element named "value". The name of the sub-element clashes with the
-        default field name added to the schema by the Schema Inference logic (see Example 1). As seen in the output data, the input XML attribute's value
+        default field name added to the schema by the Schema Inference logic (see Example 2). As seen in the output data, the input XML attribute's value
         is added to the record just like in the previous examples. The value of the <code>&lt;value&gt;</code> element is retained, but the content of the
         <code>&lt;field_with_attribute&gt;</code> that was outside of the sub-element, is lost.
     </p>
 
-    <h3>XML Attributes and Schema Inference Example 4</h3>
+    <h3>XML Attributes and Schema Inference Example 5</h3>
 
     <p>
         In this example, XMLReader's "Field Name for Content" property is given the value "value". In the input data, the <code>&lt;field_with_attribute&gt;</code> element
-       has some content and a sub-element named <code>&lt;value&gt;</code>. The name of the sub-element clashes with the value of the "Field Name for Content" property.
+        has some content and a sub-element named <code>&lt;value&gt;</code>. The name of the sub-element clashes with the value of the "Field Name for Content" property.
     </p>
 
     <p>
@@ -527,6 +606,10 @@
         <tr>
             <td>Schema Access Strategy</td>
             <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>true</code></td>
         </tr>
         <tr>
             <td>Expect Records as Array</td>
@@ -571,7 +654,7 @@
         <code>&lt;field_with_attribute&gt;</code> element, and the original content of the <code>&lt;value&gt;</code> element is lost.
     </p>
 
-    <h3>XML Attributes and Schema Inference Example 5</h3>
+    <h3>XML Attributes and Schema Inference Example 6</h3>
 
     <p>
         To avoid losing any data, the XMLReader's "Field Name for Content" property needs to be given a value that does not clash with any sub-element's name
@@ -591,6 +674,10 @@
         <tr>
             <td>Schema Access Strategy</td>
             <td><code>Infer Schema</code></td>
+        </tr>
+        <tr>
+            <td>Parse XML Attributes</td>
+            <td><code>true</code></td>
         </tr>
         <tr>
             <td>Expect Records as Array</td>
@@ -656,8 +743,7 @@
                     &lt;embedded_field&gt;embedded content 2&lt;/embedded_field&gt;
                     &lt;another_embedded_field&gt;another embedded content 2&lt;/another_embedded_field&gt;
                   &lt;/array_field&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -686,8 +772,7 @@
                       }
                     }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
     <h2>Example: Array in record</h2>
@@ -704,8 +789,7 @@
                     &lt;element&gt;content 2&lt;/element&gt;
                   &lt;/field_enclosing_array&gt;
                   &lt;field_without_array&gt; content 3&lt;/field_without_array&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -737,8 +821,7 @@
                     },
                     { "name": "field_without_array", "type": "string" }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
 
@@ -757,8 +840,7 @@
                     ...
                   &lt;/map_field&gt;
                   &lt;simple_field&gt;content&lt;/simple_field&gt;
-                &lt;/record&gt;
-            </pre>
+                &lt;/record&gt;</pre>
     </code>
 
     <p>
@@ -777,8 +859,7 @@
                     },
                     { "name": "simple_field", "type": "string" }
                   ]
-                }
-            </pre>
+                }</pre>
     </code>
 
 
@@ -794,21 +875,22 @@
     <p>
         A common concern when inferring schemas is how to handle the condition of two values that have different types. For example, consider a FlowFile with the following two records:
     </p>
-    <code><pre>
-<root>
-    <record>
-        <name>John</name>
-        <age>8</age>
-        <values>N/A</values>
-    </record>
-    <record>
-        <name>Jane</name>
-        <age>Ten</age>
-        <values>8</values>
-        <values>Ten</values>
-    </record>
-</root>
-</pre></code>
+    <code>
+        <pre>
+            &lt;root&gt;
+                &lt;record&gt;
+                    &lt;name&gt;John&lt;/name&gt;
+                    &lt;age&gt;8&lt;/age&gt;
+                    &lt;values&gt;N/A&lt;/values&gt;
+                &lt;/record&gt;
+                &lt;record&gt;
+                    &lt;name&gt;Jane&lt;/name&gt;
+                    &lt;age&gt;Ten&lt;/age&gt;
+                    &lt;values&gt;8&lt;/values&gt;
+                    &lt;values&gt;Ten&lt;/values&gt;
+                &lt;/record&gt;
+            &lt;/root&gt;</pre>
+    </code>
 
     <p>
         It is clear that the "name" field will be inferred as a STRING type. However, how should we handle the "age" field? Should the field be an CHOICE between INT and STRING? Should we
@@ -875,8 +957,6 @@
         This allows the Record Reader to infer a schema accurately, since it is inferred based on all data in the FlowFile, and still allows this to happen efficiently since the schema
         will typically only be inferred once, regardless of how many Processors handle the data.
     </p>
-
-
 
     </body>
 </html>
