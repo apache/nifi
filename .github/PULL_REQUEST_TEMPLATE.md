@@ -1,50 +1,54 @@
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-Thank you for submitting a contribution to Apache NiFi.
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more -->
+<!-- contributor license agreements.  See the NOTICE file distributed with -->
+<!-- this work for additional information regarding copyright ownership. -->
+<!-- The ASF licenses this file to You under the Apache License, Version 2.0 -->
+<!-- (the "License"); you may not use this file except in compliance with -->
+<!-- the License.  You may obtain a copy of the License at -->
+<!--     http://www.apache.org/licenses/LICENSE-2.0 -->
+<!-- Unless required by applicable law or agreed to in writing, software -->
+<!-- distributed under the License is distributed on an "AS IS" BASIS, -->
+<!-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. -->
+<!-- See the License for the specific language governing permissions and -->
+<!-- limitations under the License. -->
 
-Please provide a short description of the PR here:
+# Summary
 
-#### Description of PR
+_[NIFI-0000](https://issues.apache.org/jira/browse/NIFI-0000) includes the following changes..._
 
-_Enables X functionality; fixes bug NIFI-YYYY._
+# Tracking
 
-In order to streamline the review of the contribution we ask you
-to ensure the following steps have been taken:
+Please complete the following tracking steps prior to pull request creation.
 
-### For all changes:
-- [ ] Is there a JIRA ticket associated with this PR? Is it referenced 
-     in the commit message?
+### Issue Tracking
 
-- [ ] Does your PR title start with **NIFI-XXXX** where XXXX is the JIRA number you are trying to resolve? Pay particular attention to the hyphen "-" character.
+- [ ] [Apache NiFi Jira](https://issues.apache.org/jira/browse/NIFI) issue created
 
-- [ ] Has your PR been rebased against the latest commit within the target branch (typically `main`)?
+### Pull Request Tracking
 
-- [ ] Is your initial contribution a single, squashed commit? _Additional commits in response to PR reviewer feedback should be made on this branch and pushed to allow change tracking. Do not `squash` or use `--force` when pushing to allow for clean monitoring of changes._
+- [ ] Pull Request title starts with Apache NiFi Jira issue number, such as `NIFI-0000`
+- [ ] Pull Request commit message starts with Apache NiFi Jira issue number, as such `NIFI-0000`
 
-### For code changes:
-- [ ] Have you ensured that the full suite of tests is executed via `mvn -Pcontrib-check clean install` at the root `nifi` folder?
-- [ ] Have you written or updated unit tests to verify your changes?
-- [ ] Have you verified that the full build is successful on JDK 8?
-- [ ] Have you verified that the full build is successful on JDK 11?
-- [ ] If adding new dependencies to the code, are these dependencies licensed in a way that is compatible for inclusion under [ASF 2.0](http://www.apache.org/legal/resolved.html#category-a)?
-- [ ] If applicable, have you updated the `LICENSE` file, including the main `LICENSE` file under `nifi-assembly`?
-- [ ] If applicable, have you updated the `NOTICE` file, including the main `NOTICE` file found under `nifi-assembly`?
-- [ ] If adding new Properties, have you added `.displayName` in addition to .name (programmatic access) for each of the new properties?
+### Pull Request Formatting
 
-### For documentation related changes:
-- [ ] Have you ensured that format looks appropriate for the output in which it is rendered?
+- [ ] Pull Request based on current revision of the `main` branch
+- [ ] Pull Request refers to a feature branch with one commit containing changes
 
-### Note:
-Please ensure that once the PR is submitted, you check GitHub Actions CI for build issues and submit an update to your PR as soon as possible.
+# Verification
+
+Please indicate the verification steps performed prior to pull request creation.
+
+### Build
+
+- [ ] Build completed using `mvn clean install -P contrib-check`
+  - [ ] JDK 8
+  - [ ] JDK 11
+  - [ ] JDK 17
+
+### Licensing
+
+- [ ] New dependencies are compatible with the [Apache License 2.0](https://apache.org/licenses/LICENSE-2.0) according to the [License Policy](https://www.apache.org/legal/resolved.html)
+- [ ] New dependencies are documented in applicable `LICENSE` and `NOTICE` files
+
+### Documentation
+
+- [ ] Documentation formatting appears as expected in rendered files
