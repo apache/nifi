@@ -20,9 +20,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockProcessContext;
-import org.apache.nifi.util.MockProcessorInitializationContext;
-import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,8 +27,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -56,9 +58,7 @@ public class TestInvokeJavascript extends BaseScriptTest {
      */
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() {
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
-        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
+        setScriptProperties();
 
         runner.assertValid();
         runner.enqueue("test content".getBytes(StandardCharsets.UTF_8));
@@ -78,20 +78,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
      */
     @Test
     public void testScriptDefinedAttribute() {
-        InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
-        MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
+        setScriptProperties();
+        runner.assertValid();
 
-        processor.initialize(initContext);
-
-        context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
-        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
-        // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context));
-        processor.setup(context);
-
-        List<PropertyDescriptor> descriptors = processor.getSupportedPropertyDescriptors();
+        List<PropertyDescriptor> descriptors = runner.getProcessor().getPropertyDescriptors();
         assertNotNull(descriptors);
         assertTrue(descriptors.size() > 0);
         boolean found = false;
@@ -113,21 +103,10 @@ public class TestInvokeJavascript extends BaseScriptTest {
      */
     @Test
     public void testScriptDefinedRelationshipWithExternalJar() {
-        InvokeScriptedProcessor processor = new InvokeScriptedProcessor();
-        MockProcessContext context = new MockProcessContext(processor);
-        MockProcessorInitializationContext initContext = new MockProcessorInitializationContext(processor, context);
+        setScriptProperties();
+        runner.assertValid();
 
-        processor.initialize(initContext);
-
-        context.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
-        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
-        context.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/jar");
-
-        // State Manger is unused, and a null reference is specified
-        processor.customValidate(new MockValidationContext(context));
-        processor.setup(context);
-
-        Set<Relationship> relationships = processor.getRelationships();
+        Set<Relationship> relationships = runner.getProcessor().getRelationships();
         assertNotNull(relationships);
         assertTrue(relationships.size() > 0);
         boolean found = false;
@@ -187,5 +166,22 @@ public class TestInvokeJavascript extends BaseScriptTest {
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "");
         runner.assertNotValid();
+    }
+
+    private void setScriptProperties() {
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, getResource("/javascript/test_reader.js"));
+        runner.setProperty(ScriptingComponentUtils.MODULES, getResource("/jar"));
+    }
+
+    private String getResource(final String resourcePath) {
+        final URL resourceUrl = Objects.requireNonNull(TestInvokeJavascript.class.getResource(resourcePath), resourcePath);
+        final URI resourceUri;
+        try {
+            resourceUri = resourceUrl.toURI();
+        } catch (final URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+        return Paths.get(resourceUri).toString();
     }
 }
