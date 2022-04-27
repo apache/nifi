@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.c2;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.PersistentUuidGenerator;
@@ -35,8 +35,10 @@ import org.apache.nifi.c2.protocol.api.DeviceInfo;
 import org.apache.nifi.c2.protocol.api.FlowInfo;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.NetworkInfo;
+import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.apache.nifi.c2.protocol.api.SystemInfo;
+import org.apache.nifi.c2.serializer.C2JacksonSerializer;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -71,12 +73,17 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class C2ClientService {
 
@@ -86,6 +93,7 @@ public class C2ClientService {
     private static final String CONF_DIR_KEY = "conf.dir";
     private static final String AGENT_IDENTIFIER_FILENAME = "agent-identifier";
     private static final String DEVICE_IDENTIFIER_FILENAME = "device-identifier";
+    private static final String LOCATION = "location";
 
     private final C2Client c2Client;
     protected final AtomicReference<FlowUpdateInfo> updateInfo = new AtomicReference<>();
@@ -104,7 +112,7 @@ public class C2ClientService {
 
     public C2ClientService(final NiFiProperties niFiProperties, final long clientHeartbeatPeriod, final FlowController flowController) {
         this.clientConfig = generateClientConfig(niFiProperties);
-        this.c2Client = new C2HttpClient(clientConfig);
+        this.c2Client = new C2HttpClient(clientConfig, new C2JacksonSerializer());
         this.period = clientHeartbeatPeriod;
         this.flowController = flowController;
     }
@@ -137,14 +145,8 @@ public class C2ClientService {
                             logger.trace("Determined that current flow id is {}.", flowId);
                             c2Heartbeat.getFlowInfo().setFlowId(flowId);
                         }
-                        C2HeartbeatResponse c2HeartbeatResponse = c2Client.publishHeartbeat(c2Heartbeat);
-                        if (c2HeartbeatResponse != null) {
-                            List<C2Operation> requestedOperations = c2HeartbeatResponse.getRequestedOperations();
-                            if (requestedOperations != null && requestedOperations.size() > 0) {
-                                logger.info("Received {} operations from the C2 server", requestedOperations.size());
-                                handleRequestedOperations(requestedOperations);
-                            } // TODO else?
-                        } // TODO else?
+                        c2Client.publishHeartbeat(c2Heartbeat)
+                            .ifPresent(this::processResponse);
                     } catch (IOException ioe) {
                         // TODO
                         logger.error("C2 Error", ioe);
@@ -157,19 +159,25 @@ public class C2ClientService {
         }
     }
 
+    private void processResponse(C2HeartbeatResponse response) {
+        List<C2Operation> requestedOperations = response.getRequestedOperations();
+        if (CollectionUtils.isNotEmpty(requestedOperations)) {
+            logger.info("Received {} operations from the C2 server", requestedOperations.size());
+            handleRequestedOperations(requestedOperations);
+        } else {
+            logger.trace("No operations received from the C2 server in the server. Nothing to do.");
+        }
+    }
+
     private void handleRequestedOperations(List<C2Operation> requestedOperations) {
         for (C2Operation requestedOperation : requestedOperations) {
             C2OperationAck operationAck = new C2OperationAck();
-            if (requestedOperation.getOperation().equals(OperationType.UPDATE)) {
-                final String identifier = requestedOperation.getIdentifier();
-                final String opIdentifier = (identifier == null) ? "" : identifier;
-                final Map<String, String> args = requestedOperation.getArgs();
-                final String updateLocation;
-                if (args == null || args.isEmpty()) {
-                    updateLocation = "";
-                } else {
-                    updateLocation = args.get("location") == null ? "" : args.get("location");
-                }
+            if (requestedOperation.getOperation().equals(OperationType.UPDATE) && requestedOperation.getOperand().equals(OperandType.CONFIGURATION)) {
+                String opIdentifier = Optional.ofNullable(requestedOperation.getIdentifier())
+                    .orElse(EMPTY);
+                String updateLocation = Optional.ofNullable(requestedOperation.getArgs())
+                    .map(map -> map.get(LOCATION))
+                    .orElse(EMPTY);
 
                 final FlowUpdateInfo fui = new FlowUpdateInfo(updateLocation, opIdentifier);
                 final FlowUpdateInfo currentFui = updateInfo.get();
@@ -359,7 +367,7 @@ public class C2ClientService {
         agentInfo.setAgentClass(clientConfig.getAgentClass());
         if (agentIdentifierRef.get() == null) {
             final String rawAgentIdentifer = clientConfig.getAgentIdentifier();
-            if (StringUtils.isNotBlank(rawAgentIdentifer)) {
+            if (isNotBlank(rawAgentIdentifer)) {
                 agentIdentifierRef.set(rawAgentIdentifer.trim());
             } else {
                 final File idFile = new File(getConfDirectory(), AGENT_IDENTIFIER_FILENAME);
@@ -504,7 +512,7 @@ public class C2ClientService {
 
     private File getConfDirectory() {
         final Properties bootstrapProperties = getBootstrapProperties();
-        final String confDirectoryName = StringUtils.defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
+        final String confDirectoryName = defaultIfBlank(bootstrapProperties.getProperty(CONF_DIR_KEY), "./conf");
         final File confDirectory = new File(confDirectoryName);
         if (!confDirectory.exists() || !confDirectory.isDirectory()) {
             throw new IllegalStateException("Specified conf directory " + confDirectoryName + " does not exist or is not a directory.");

@@ -17,7 +17,6 @@
 package org.apache.nifi;
 
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
 import org.apache.nifi.diagnostics.DiagnosticsFactory;

@@ -53,8 +53,8 @@ public class FlowUpdateInfo {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FlowUpdateInfo that = (FlowUpdateInfo) o;
-        return Objects.equals(flowUpdateUrl, that.flowUpdateUrl) &&
-                Objects.equals(requestId, that.requestId);
+        return Objects.equals(flowUpdateUrl, that.flowUpdateUrl)
+            && Objects.equals(requestId, that.requestId);
     }
 
     @Override

@@ -17,21 +17,10 @@
 package org.apache.nifi.c2.client.api;
 
 import java.util.Optional;
-import org.apache.nifi.c2.protocol.api.C2Heartbeat;
-import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
+public interface C2Serializer {
 
-/**
- * Defines interface methods used to implement a C2 Client. The controller can be application-specific but is used for such tasks as updating the flow.
- */
-public interface C2Client {
+    <T> Optional<String> serialize(T content);
 
-    Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat) throws IOException;
-
-    ByteBuffer retrieveUpdateContent(FlowUpdateInfo flowUpdateInfo);
-
-    void acknowledgeOperation(C2OperationAck operationAck);
+    <T> Optional<T> deserialize(String content, Class<T> valueType);
 }
