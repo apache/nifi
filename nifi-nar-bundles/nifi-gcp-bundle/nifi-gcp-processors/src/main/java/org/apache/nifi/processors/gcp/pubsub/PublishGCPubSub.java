@@ -86,7 +86,7 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
 })
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
         + "will be read into memory to be sent as a PubSub message.")
-public class PublishGCPubSub extends AbstractGCPubSubProcessor {
+public class PublishGCPubSub extends AbstractGCPubSubWithProxyProcessor {
     private static final List<String> REQUIRED_PERMISSIONS = Collections.singletonList("pubsub.topics.publish");
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
@@ -168,6 +168,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
             try {
                 final PublisherStubSettings publisherStubSettings = PublisherStubSettings.newBuilder()
                         .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))
+                        .setTransportChannelProvider(getTransportChannelProvider(context))
                         .build();
 
                 final GrpcPublisherStub publisherStub = GrpcPublisherStub.create(publisherStubSettings);
