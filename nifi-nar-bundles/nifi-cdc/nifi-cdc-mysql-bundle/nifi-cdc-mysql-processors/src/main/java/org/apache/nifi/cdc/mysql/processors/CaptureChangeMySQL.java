@@ -1190,7 +1190,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
      * @param key A TableInfoCacheKey reference, which contains the database and table names
      * @return A TableInfo instance with the ColumnDefinitions provided (if retrieved successfully from the database)
      */
-    public TableInfo loadTableInfo(TableInfoCacheKey key) throws SQLException {
+    protected TableInfo loadTableInfo(TableInfoCacheKey key) throws SQLException {
         TableInfo tableInfo = null;
         if (jdbcConnectionHolder != null) {
 
