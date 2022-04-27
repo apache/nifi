@@ -405,7 +405,9 @@ public class TestConvertRecord {
             assertTrue(avroStream.hasNext());
             assertEquals(1, avroStream.next().get("date")); // see https://avro.apache.org/docs/1.10.0/spec.html#Date
         } finally {
-            System.setProperty("user.timezone", timezone);
+            if (timezone != null) {
+                System.setProperty("user.timezone", timezone);
+            }
         }
     }
 }
