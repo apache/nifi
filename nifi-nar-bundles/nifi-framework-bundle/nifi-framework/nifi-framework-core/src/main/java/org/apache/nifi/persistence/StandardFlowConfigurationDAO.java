@@ -18,6 +18,7 @@ package org.apache.nifi.persistence;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.XmlFlowSynchronizer;
@@ -62,11 +63,13 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
 
     private volatile boolean jsonFileExists;
     private final String clusterFlowSerializationFormat;
+    private final FlowSerializationStrategy serializationStrategy;
 
     public StandardFlowConfigurationDAO(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties,
-                                        final ExtensionManager extensionManager) throws IOException {
+                                        final ExtensionManager extensionManager, final FlowSerializationStrategy serializationStrategy) throws IOException {
         this.nifiProperties = nifiProperties;
         this.clusterFlowSerializationFormat = nifiProperties.getProperty(CLUSTER_FLOW_SERIALIZATION_FORMAT);
+        this.serializationStrategy = serializationStrategy;
 
         xmlFile = nifiProperties.getFlowConfigurationFile();
         jsonFile = nifiProperties.getFlowConfigurationJsonFile();
@@ -184,8 +187,12 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             throw new NullPointerException();
         }
 
-        saveJson(controller, archive);
-        saveXml(controller, archive);
+        if (serializationStrategy.writesJson()) {
+            saveJson(controller, archive);
+        }
+        if (serializationStrategy.writesXml()) {
+            saveXml(controller, archive);
+        }
     }
 
     private void saveJson(final FlowController controller, final boolean archive) throws IOException {
