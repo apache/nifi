@@ -17,7 +17,7 @@
 package org.apache.nifi.components;
 
 /**
- * Describes a processor property value with display name and description.
+ * Describes a component property value with display name and description.
  */
 public interface DescribedValue {
 

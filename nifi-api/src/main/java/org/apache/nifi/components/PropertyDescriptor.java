@@ -405,7 +405,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
         public <E extends Enum<E> & DescribedValue> Builder allowableValues(final Class<E> enumClass) {
             this.allowableValues = new ArrayList<>();
             for (E enumValue : enumClass.getEnumConstants()) {
-                this.allowableValues.add(new AllowableValue(enumValue.name(), enumValue.getDisplayName(), enumValue.getDescription()));
+                this.allowableValues.add(new AllowableValue(enumValue.getValue(), enumValue.getDisplayName(), enumValue.getDescription()));
             }
             return this;
         }
