@@ -35,6 +35,7 @@ import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.FileSystemSwapManager;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowSerializationStrategy;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.XmlFlowSynchronizer;
@@ -334,7 +335,7 @@ public class FrameworkIntegrationTest {
         logger.info("Shutting down for restart....");
 
         // Save Flow to a byte array
-        final FlowConfigurationDAO flowDao = new StandardFlowConfigurationDAO(flowController.getEncryptor(), nifiProperties, getExtensionManager());
+        final FlowConfigurationDAO flowDao = new StandardFlowConfigurationDAO(flowController.getEncryptor(), nifiProperties, getExtensionManager(), FlowSerializationStrategy.WRITE_XML_AND_JSON);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         flowDao.save(flowController, baos);
         final byte[] flowBytes = baos.toByteArray();
