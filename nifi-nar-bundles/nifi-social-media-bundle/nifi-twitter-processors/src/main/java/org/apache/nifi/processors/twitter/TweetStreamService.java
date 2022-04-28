@@ -201,7 +201,7 @@ public class TweetStreamService {
                     tweetRecord = reader.readLine();
                 }
             } catch (IOException e) {
-                logger.warn("Stream processing failed", e);
+                logger.info("Stream is closed or has stopped", e);
             }
             logger.info("Tweet stream processing completed");
             scheduleStartStreamWithBackoff();
