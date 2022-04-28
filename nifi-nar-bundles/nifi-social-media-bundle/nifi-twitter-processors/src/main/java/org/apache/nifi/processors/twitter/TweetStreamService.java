@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
@@ -37,11 +38,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class TweetStreamService {
-    public static final String SEARCH_ENDPOINT = "Search Endpoint";
-    public static final String SAMPLE_ENDPOINT = "Sample Endpoint";
-    private static final String SAMPLE_PATH = "/2/tweets/sample/stream";
-    private static final String SEARCH_PATH = "/2/tweets/search/stream";
-
     private final BlockingQueue<String> queue;
     private final ComponentLog logger;
 
@@ -63,34 +59,22 @@ public class TweetStreamService {
     private Long backoffTime;
     private Long maximumBackoff;
 
-    private String endpoint;
-
-    private Set<String> parseCommaSeparatedListPropreties(final ProcessContext context, final PropertyDescriptor property) {
-        Set<String> fields = null;
-        if (context.getProperty(property).isSet()) {
-            fields = new HashSet<>();
-            final String fieldsString = context.getProperty(property).getValue();
-            for (final String field: fieldsString.split(",")) {
-                fields.add(field.trim());
-            }
-        }
-        return fields;
-    }
+    private StreamEndpoint endpoint;
 
     public TweetStreamService(final ProcessContext context, final BlockingQueue<String> queue, final ComponentLog logger) {
-        assert context != null;
-        assert queue != null;
-        assert logger != null;
+        Objects.requireNonNull(context);
+        Objects.requireNonNull(queue);
+        Objects.requireNonNull(logger);
 
         this.queue = queue;
         this.logger = logger;
 
-        this.tweetFields = parseCommaSeparatedListPropreties(context, ConsumeTwitter.TWEET_FIELDS);
-        this.userFields = parseCommaSeparatedListPropreties(context, ConsumeTwitter.USER_FIELDS);
-        this.mediaFields = parseCommaSeparatedListPropreties(context, ConsumeTwitter.MEDIA_FIELDS);
-        this.pollFields = parseCommaSeparatedListPropreties(context, ConsumeTwitter.POLL_FIELDS);
-        this.placeFields = parseCommaSeparatedListPropreties(context, ConsumeTwitter.PLACE_FIELDS);
-        this.expansions = parseCommaSeparatedListPropreties(context, ConsumeTwitter.EXPANSIONS);
+        this.tweetFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.TWEET_FIELDS);
+        this.userFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.USER_FIELDS);
+        this.mediaFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.MEDIA_FIELDS);
+        this.pollFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.POLL_FIELDS);
+        this.placeFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.PLACE_FIELDS);
+        this.expansions = parseCommaSeparatedPropreties(context, ConsumeTwitter.EXPANSIONS);
         this.backfillMinutes = context.getProperty(ConsumeTwitter.BACKFILL_MINUTES).asInteger();
 
         this.backoffMultiplier = 1L;
@@ -121,10 +105,10 @@ public class TweetStreamService {
     }
 
     public String getTransitUri(final String endpoint) {
-        if (endpoint.equals(SAMPLE_ENDPOINT)) {
-            return api.getApiClient().getBasePath() + SAMPLE_PATH;
-        } else if (endpoint.equals(SEARCH_ENDPOINT)) {
-            return api.getApiClient().getBasePath() + SEARCH_PATH;
+        if (endpoint.equals(StreamEndpoint.SAMPLE_ENDPOINT.getEndpointName())) {
+            return api.getApiClient().getBasePath() + StreamEndpoint.SAMPLE_ENDPOINT.getPath();
+        } else if (endpoint.equals(StreamEndpoint.SEARCH_ENDPOINT.getEndpointName())) {
+            return api.getApiClient().getBasePath() + StreamEndpoint.SEARCH_ENDPOINT.getPath();
         } else {
             logger.warn("Unrecognized endpoint in getTransitUri. Returning basePath");
             return api.getApiClient().getBasePath();
@@ -137,7 +121,7 @@ public class TweetStreamService {
      * to run until {@code stop} is called.
      * @param endpoint {@code TwitterStreamAPI.SAMPLE_ENDPOINT} or {@code TwitterStreamAPI.SEARCH_ENDPOINT}
      */
-    public void start(final String endpoint) {
+    public void start(final StreamEndpoint endpoint) {
         this.endpoint = endpoint;
         executorService.execute(new TweetStreamStarter());
     }
@@ -167,14 +151,12 @@ public class TweetStreamService {
     private void scheduleStartStreamWithBackoff() {
         // use exponential(by factor of 2) backoff in scheduling the next TweetStreamStarter
         if (attemptCounter >= backoffAttempts) {
-            final String msg = "Reached maximum attempts to backoff";
-            logger.error(msg);
-            throw new ProcessException(msg);
+            throw new ProcessException(String.format("Connection failed after maximum attempts [%d]", attemptCounter));
         }
         attemptCounter += 1;
         long delay = calculateBackoffDelay();
         backoffMultiplier *= 2;
-        logger.info("Scheduling new TweetStreamStarter after {}s delay", delay);
+        logger.info("Scheduling new stream connection after delay [{} s]", delay);
         executorService.schedule(new TweetStreamStarter(), delay, TimeUnit.SECONDS);
     }
 
@@ -187,29 +169,20 @@ public class TweetStreamService {
         @Override
         public void run() {
             try {
-                if (endpoint.equals(SAMPLE_ENDPOINT)) {
+                if (endpoint.equals(StreamEndpoint.SAMPLE_ENDPOINT)) {
                     stream = api.tweets().sampleStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
                 } else {
                     stream = api.tweets().searchStream(expansions, tweetFields, userFields, mediaFields, placeFields, pollFields, backfillMinutes);
                 }
+                executorService.execute(new TweetStreamHandler());
             } catch (ApiException e) {
                 stream = null;
-                logger.warn(String.format("Received ApiException, error %d: %s", e.getCode(), e.getMessage()));
+                logger.warn("Twitter Stream [{}] API connection failed: HTTP {}", endpoint.getEndpointName(), e.getCode(), e);
                 scheduleStartStreamWithBackoff();
-                return;
             } catch (Exception e) {
                 stream = null;
-                logger.warn(String.format("Received Exception %s: %s", e.getClass(), e.getMessage()));
+                logger.warn("Twitter Stream [{}] connection failed", endpoint.getEndpointName(), e);
                 scheduleStartStreamWithBackoff();
-                return;
-            }
-
-            if (stream == null) {
-                logger.warn("Stream is null, could not make a connection to the Twitter API");
-                scheduleStartStreamWithBackoff();
-                return;
-            } else {
-                executorService.execute(new TweetStreamHandler());
             }
         }
     }
@@ -224,19 +197,26 @@ public class TweetStreamService {
 
                     // reset backoff multiplier upon successful receipt of a tweet
                     resetBackoff();
-                    try {
-                        tweetRecord = reader.readLine();
-                    } catch (IOException e) {
-                        logger.info("Read Tweet failed: Stream processing completed");
-                        break;
-                    }
+
+                    tweetRecord = reader.readLine();
                 }
             } catch (IOException e) {
                 logger.warn("Stream processing failed", e);
             }
-            logger.info("TweetStreamHandler terminating");
+            logger.info("Tweet stream processing completed");
             scheduleStartStreamWithBackoff();
         }
     }
 
+    private Set<String> parseCommaSeparatedPropreties(final ProcessContext context, final PropertyDescriptor property) {
+        Set<String> fields = null;
+        if (context.getProperty(property).isSet()) {
+            fields = new HashSet<>();
+            final String fieldsString = context.getProperty(property).getValue();
+            for (final String field: fieldsString.split(",")) {
+                fields.add(field.trim());
+            }
+        }
+        return fields;
+    }
 }

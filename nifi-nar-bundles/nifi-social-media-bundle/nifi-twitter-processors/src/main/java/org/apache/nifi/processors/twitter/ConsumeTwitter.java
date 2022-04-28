@@ -65,18 +65,20 @@ import java.util.concurrent.LinkedBlockingQueue;
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
 public class ConsumeTwitter extends AbstractProcessor {
 
-    static final AllowableValue ENDPOINT_SAMPLE = new AllowableValue("Sample Endpoint",
-            "Sample Endpoint",
-            "The endpoint that provides a stream of about 1% of tweets in real-time");
-    static final AllowableValue ENDPOINT_SEARCH = new AllowableValue("Search Endpoint",
-            "Search Endpoint",
+    static final AllowableValue ENDPOINT_SAMPLE = new AllowableValue(StreamEndpoint.SAMPLE_ENDPOINT.getEndpointName(),
+            "Sample Stream",
+            "Streams about one percent of all Tweets. " +
+                    "https://developer.twitter.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample-stream");
+    static final AllowableValue ENDPOINT_SEARCH = new AllowableValue(StreamEndpoint.SEARCH_ENDPOINT.getEndpointName(),
+            "Search Stream",
             "The endpoint that provides a stream of tweets that matches the rules you added to the stream. " +
-                    "If rules are not configured, then the stream will be empty");
+                    "If rules are not configured, then the stream will be empty. " +
+                    "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream");
 
     public static final PropertyDescriptor ENDPOINT = new PropertyDescriptor.Builder()
-            .name("consume-twitter-endpoint")
-            .displayName("Twitter Endpoint")
-            .description("Specifies which endpoint tweets should be pulled from. " +
+            .name("stream-endpoint")
+            .displayName("Stream Endpoint")
+            .description("Specifies which endpoint tweets should be streamed. " +
                     "Usage of search endpoint requires that rules be uploaded beforehand. See " +
                     "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/" +
                     "post-tweets-search-stream-rules")
@@ -166,6 +168,17 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 secs")
             .build();
+    public static final PropertyDescriptor BACKFILL_MINUTES = new PropertyDescriptor.Builder()
+            .name("backfill-minutes")
+            .displayName("Backfill Minutes")
+            .description("The number of minutes (up to 5 minutes) of streaming data to be requested after a " +
+                    "disconnect. Only available for project with academic research access. See " +
+                    "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/" +
+                    "recovery-and-redundancy-features")
+            .required(true)
+            .defaultValue("0")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
     public static final PropertyDescriptor TWEET_FIELDS = new PropertyDescriptor.Builder()
             .name("tweet-fields")
             .displayName("Tweet Fields")
@@ -231,17 +244,6 @@ public class ConsumeTwitter extends AbstractProcessor {
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    public static final PropertyDescriptor BACKFILL_MINUTES = new PropertyDescriptor.Builder()
-            .name("backfill-minutes")
-            .displayName("Backfill Minutes")
-            .description("The number of minutes (up to 5 minutes) of streaming data to be requested after a " +
-                    "disconnect. Only available for project with academic research access. See " +
-                    "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/" +
-                    "recovery-and-redundancy-features")
-            .required(true)
-            .defaultValue("0")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -268,13 +270,13 @@ public class ConsumeTwitter extends AbstractProcessor {
         descriptors.add(MAXIMUM_BACKOFF_TIME);
         descriptors.add(CONNECT_TIMEOUT);
         descriptors.add(READ_TIMEOUT);
+        descriptors.add(BACKFILL_MINUTES);
         descriptors.add(TWEET_FIELDS);
         descriptors.add(USER_FIELDS);
         descriptors.add(MEDIA_FIELDS);
         descriptors.add(POLL_FIELDS);
         descriptors.add(PLACE_FIELDS);
         descriptors.add(EXPANSIONS);
-        descriptors.add(BACKFILL_MINUTES);
 
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -302,9 +304,9 @@ public class ConsumeTwitter extends AbstractProcessor {
         tweetStreamService.setBasePath(context.getProperty(BASE_PATH).getValue());
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         if (ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
-            tweetStreamService.start(TweetStreamService.SAMPLE_ENDPOINT);
+            tweetStreamService.start(StreamEndpoint.SAMPLE_ENDPOINT);
         } else {
-            tweetStreamService.start(TweetStreamService.SEARCH_ENDPOINT);
+            tweetStreamService.start(StreamEndpoint.SEARCH_ENDPOINT);
         }
     }
 
@@ -319,11 +321,12 @@ public class ConsumeTwitter extends AbstractProcessor {
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
-                out.write('[');
+
                 final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
                 String tweet = messageQueue.poll();
-                out.write(tweet.getBytes(StandardCharsets.UTF_8));
                 int tweetCount = 1;
+                out.write('[');
+                out.write(tweet.getBytes(StandardCharsets.UTF_8));
                 while (tweetCount < batchSize && (tweet = messageQueue.poll()) != null) {
                     out.write(',');
                     out.write(tweet.getBytes(StandardCharsets.UTF_8));

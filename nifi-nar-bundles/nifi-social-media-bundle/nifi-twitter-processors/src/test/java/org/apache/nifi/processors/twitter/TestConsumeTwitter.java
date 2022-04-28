@@ -34,6 +34,7 @@ public class TestConsumeTwitter {
     private TestRunner runner;
 
     private final String SAMPLE_TWEET = "{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}";
+    private final String EXPECTED_TWEET = "[{\"data\":{\"id\":\"123\",\"text\":\"This is a sample tweet and is not real!\"}}]";
 
     @BeforeEach
     public void setRunnerAndAPI() {
@@ -77,7 +78,7 @@ public class TestConsumeTwitter {
         // there should only be a single FlowFile containing a tweet
         runner.assertTransferCount(ConsumeTwitter.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).get(0);
-        flowFile.assertContentEquals("[" + SAMPLE_TWEET + "]");
+        flowFile.assertContentEquals(EXPECTED_TWEET);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
     }
 }
