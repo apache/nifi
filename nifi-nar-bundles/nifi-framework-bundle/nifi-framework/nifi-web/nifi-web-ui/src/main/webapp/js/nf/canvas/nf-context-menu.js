@@ -862,8 +862,8 @@
         {id: 'group-menu-item', condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
         {separator: true},
         {id: 'download-menu-item', groupMenuItem: {clazz: 'fa', text: 'Download flow definition'}, menuItems: [
-            {id: 'download-menu-item-without', condition: hasUpstream, menuItem: {clazz: 'fa', text: 'Without external services', action: 'downloadFlowWithoutExternalServices'}},
-            {id: 'download-menu-item-with', condition: hasDownstream, menuItem: {clazz: 'fa', text: 'With external services', action: 'downloadFlowWithExternalServices'}}
+            {id: 'download-menu-item-without', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'Without external services', action: 'downloadFlowWithoutExternalServices'}},
+            {id: 'download-menu-item-with', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'With external services', action: 'downloadFlowWithExternalServices'}}
         ]},
         {separator: true},
         {id: 'upload-template-menu-item', condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
