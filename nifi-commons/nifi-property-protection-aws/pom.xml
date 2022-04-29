@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.1-SNAPSHOT</version>
+        <version>1.16.2-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-property-protection-aws</artifactId>
     <properties>
@@ -28,12 +28,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>1.16.1-SNAPSHOT</version>
+            <version>1.16.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-shared</artifactId>
-            <version>1.16.1-SNAPSHOT</version>
+            <version>1.16.2-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
