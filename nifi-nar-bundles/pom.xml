@@ -95,7 +95,6 @@
         <module>nifi-metrics-reporting-bundle</module>
         <module>nifi-spark-bundle</module>
         <module>nifi-atlas-bundle</module>
-        <module>nifi-druid-bundle</module>
         <module>nifi-jolt-record-bundle</module>
 	    <module>nifi-network-bundle</module>
         <module>nifi-prometheus-bundle</module>
