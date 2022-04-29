@@ -322,11 +322,6 @@
                 <version>9.10.2</version>
             </dependency>
             <dependency>
-                <groupId>net.minidev</groupId>
-                <artifactId>json-smart</artifactId>
-                <version>2.4.7</version>
-            </dependency>
-            <dependency>
                 <groupId>com.nimbusds</groupId>
                 <artifactId>lang-tag</artifactId>
                 <version>1.5</version>
