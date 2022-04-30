@@ -20,15 +20,14 @@ import org.apache.nifi.registry.security.authorization.exception.AuthorizationAc
 import org.apache.nifi.registry.security.authorization.exception.UninheritableAuthorizationsException;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -47,7 +46,6 @@ import java.util.Set;
  */
 public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer {
 
-    static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     static final String USER_ELEMENT = "user";
@@ -378,8 +376,8 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
-            final Document document = docBuilder.parse(in);
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            final Document document = documentProvider.parse(in);
             final Element rootElement = document.getDocumentElement();
 
             // parse all the users and add them to the current authorizer
@@ -402,7 +400,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                 Node policyNode = policyNodes.item(i);
                 accessPolicies.add(parsePolicy((Element) policyNode));
             }
-        } catch (SAXException | ParserConfigurationException | IOException e) {
+        } catch (final ProcessingException | IOException e) {
             throw new AuthorizationAccessException("Unable to parse fingerprint", e);
         }
 

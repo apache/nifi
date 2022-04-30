@@ -39,6 +39,8 @@
             <excludes>
                 <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
+                <exclude>nifi-property-protection-api</exclude>
+                <exclude>nifi-property-protection-factory</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
                 <exclude>org.apache.nifi:nifi-ranger-resources:jar</exclude>

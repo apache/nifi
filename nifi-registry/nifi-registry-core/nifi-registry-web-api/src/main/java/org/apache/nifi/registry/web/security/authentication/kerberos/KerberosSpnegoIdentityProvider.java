@@ -67,7 +67,7 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
     private static final String AUTHORIZATION = "Authorization";
     private static final String AUTHORIZATION_NEGOTIATE = "Negotiate";
 
-    private long expiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);;
+    private long expiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
     private KerberosServiceAuthenticationProvider kerberosServiceAuthenticationProvider;
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource;
 
@@ -106,10 +106,6 @@ public class KerberosSpnegoIdentityProvider implements IdentityProvider {
         logger.debug("Detected 'Authorization: Negotiate header in request {}", request.getRequestURL());
         byte[] base64Token = headerValue.substring(headerValue.indexOf(" ") + 1).getBytes(StandardCharsets.UTF_8);
         byte[] kerberosTicket = Base64.decode(base64Token);
-        if (kerberosTicket != null) {
-            logger.debug("Successfully decoded SPNEGO/Kerberos ticket passed in Authorization: Negotiate <ticket> header.", request.getRequestURL());
-        }
-
         return new AuthenticationRequest(null, kerberosTicket, authenticationDetailsSource.buildDetails(request));
 
     }

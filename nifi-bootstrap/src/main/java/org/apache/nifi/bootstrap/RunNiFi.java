@@ -1032,7 +1032,7 @@ public class RunNiFi {
             final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
             if (waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0) {
                 if (isProcessRunning(pid, logger)) {
-                    logger.warn("NiFi PID [{}] shutdown not completed after {} seconds: Killing process", gracefulShutdownSeconds);
+                    logger.warn("NiFi PID [{}] shutdown not completed after {} seconds: Killing process", pid, gracefulShutdownSeconds);
                     try {
                         killProcessTree(pid, logger);
                     } catch (final IOException ioe) {

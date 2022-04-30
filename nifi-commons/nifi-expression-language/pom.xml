@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-expression-language</artifactId>
     <packaging>jar</packaging>
@@ -61,22 +61,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-parameter</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-uuid5</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
@@ -91,7 +91,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -105,7 +104,6 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.14</version>
         </dependency>
     </dependencies>
 </project>

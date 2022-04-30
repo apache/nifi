@@ -18,14 +18,13 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hbase_1_1_2-client-service-bundle</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <properties>
         <hadoop.version>2.7.3</hadoop.version>
+        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
     <modules>
         <module>nifi-hbase_1_1_2-client-service</module>
@@ -109,7 +108,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.14</version>
+                <version>${zookeeper.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

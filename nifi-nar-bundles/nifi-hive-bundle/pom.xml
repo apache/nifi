@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hive-bundle</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -61,17 +61,6 @@
                 <artifactId>calcite-core</artifactId>
                 <version>${calcite.version}</version>
             </dependency>
-            <!-- Override jackson -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
             <!-- Override snakeyaml:1.17 -->
             <dependency>
                 <groupId>org.yaml</groupId>
@@ -100,7 +89,13 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.14</version>
+                <version>${zookeeper.version}</version>
+            </dependency>
+            <!-- Override ant -->
+            <dependency>
+                <groupId>org.apache.ant</groupId>
+                <artifactId>ant</artifactId>
+                <version>1.10.12</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -108,12 +103,13 @@
     <properties>
         <hive11.version>1.1.1</hive11.version>
         <hive11.hadoop.version>2.6.2</hive11.hadoop.version>
-        <hive12.version>1.2.1</hive12.version>
+        <hive12.version>1.2.2</hive12.version>
         <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
         <hive3.version>3.1.2</hive3.version>
         <hive.version>${hive3.version}</hive.version>
         <calcite.version>1.27.0</calcite.version>
         <calcite.avatica.version>1.6.0</calcite.avatica.version>
+        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
 
     <build>
@@ -130,5 +126,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

@@ -118,6 +118,7 @@ public class NiFiRegistryExtensionRegistry extends AbstractExtensionRegistry<NiF
                 .artifact(bundleVersionMetadata.getArtifactId())
                 .version(bundleVersionMetadata.getVersion())
                 .bundleIdentifier(bundleVersionMetadata.getBundleId())
+                .timestamp(bundleVersionMetadata.getTimestamp())
                 .registryIdentifier(getIdentifier())
                 .build();
     }

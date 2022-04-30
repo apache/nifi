@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -48,6 +49,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -60,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 @Tags({"grok", "logs", "logfiles", "parse", "unstructured", "text", "record", "reader", "regex", "pattern", "logstash"})
 @CapabilityDescription("Provides a mechanism for reading unstructured text data, such as log files, and structuring the data "
@@ -71,8 +74,7 @@ import java.util.regex.Matcher;
     + "no stack trace, it will have a NULL value for the stackTrace field (assuming that the schema does in fact include a stackTrace field of type String). "
     + "Assuming that the schema includes a '_raw' field of type String, the raw message will be included in the Record.")
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
-    private volatile GrokCompiler grokCompiler;
-    private volatile Grok grok;
+    private volatile List<Grok> groks;
     private volatile NoMatchStrategy noMatchStrategy;
     private volatile RecordSchema recordSchema;
     private volatile RecordSchema recordSchemaFromGrok;
@@ -87,8 +89,10 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             "The line of text that does not match the Grok Expression will only be added to the _raw field.");
 
     static final AllowableValue STRING_FIELDS_FROM_GROK_EXPRESSION = new AllowableValue("string-fields-from-grok-expression", "Use String Fields From Grok Expression",
-        "The schema will be derived by using the field names present in the Grok Expression. All fields will be assumed to be of type String. Additionally, a field will be included "
-            + "with a name of 'stackTrace' and a type of String.");
+            "The schema will be derived using the field names present in all configured Grok Expressions. "
+            + "All schema fields will have a String type and will be marked as nullable. "
+            + "The schema will also include a `stackTrace` field, and a `_raw` field containing the input line string."
+    );
 
     static final PropertyDescriptor PATTERN_FILE = new PropertyDescriptor.Builder()
         .name("Grok Pattern File")
@@ -102,10 +106,14 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     static final PropertyDescriptor GROK_EXPRESSION = new PropertyDescriptor.Builder()
         .name("Grok Expression")
+        .displayName("Grok Expressions")
         .description("Specifies the format of a log line in Grok format. This allows the Record Reader to understand how to parse each log line. "
-            + "If a line in the log file does not match this pattern, the line will be assumed to belong to the previous log message."
-            + "If other Grok expressions are referenced by this expression, they need to be supplied in the Grok Pattern File")
+            + "The property supports one or more Grok expressions. The Reader attempts to parse input lines according to the configured order of the expressions."
+            + "If a line in the log file does not match any expressions, the line will be assumed to belong to the previous log message."
+            + "If other Grok patterns are referenced by this expression, they need to be supplied in the Grok Pattern File property."
+        )
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.TEXT, ResourceType.URL, ResourceType.FILE)
         .required(true)
         .build();
 
@@ -130,11 +138,10 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     @OnEnabled
     public void preCompile(final ConfigurationContext context) throws GrokException, IOException {
-        grokCompiler = GrokCompiler.newInstance();
+        GrokCompiler grokCompiler = GrokCompiler.newInstance();
 
-        try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
-            final Reader reader = new InputStreamReader(in)) {
-            grokCompiler.register(reader);
+        try (final Reader defaultPatterns = getDefaultPatterns()) {
+            grokCompiler.register(defaultPatterns);
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
@@ -144,10 +151,11 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             }
         }
 
-        grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue());
+        groks = readGrokExpressions(context).stream()
+                .map(grokCompiler::compile)
+                .collect(Collectors.toList());
 
-
-        if(context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue())) {
+        if (context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue())) {
             noMatchStrategy = NoMatchStrategy.APPEND;
         } else if (context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(RAW_LINE.getValue())) {
             noMatchStrategy = NoMatchStrategy.RAW;
@@ -155,7 +163,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             noMatchStrategy = NoMatchStrategy.SKIP;
         }
 
-        this.recordSchemaFromGrok = createRecordSchema(grok);
+        this.recordSchemaFromGrok = createRecordSchema(groks);
 
         final String schemaAccess = context.getProperty(getSchemaAcessStrategyDescriptor()).getValue();
         if (STRING_FIELDS_FROM_GROK_EXPRESSION.getValue().equals(schemaAccess)) {
@@ -167,42 +175,61 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        ArrayList<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        // validate the grok expression against configuration
-        GrokCompiler grokCompiler = GrokCompiler.newInstance();
-        String subject = GROK_EXPRESSION.getName();
-        String input = validationContext.getProperty(GROK_EXPRESSION).getValue();
-        GrokExpressionValidator validator;
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        final GrokCompiler grokCompiler = GrokCompiler.newInstance();
 
-        try (final InputStream in = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
-             final Reader reader = new InputStreamReader(in)) {
-            grokCompiler.register(reader);
-        } catch (IOException e) {
+        final String expressionSubject = GROK_EXPRESSION.getDisplayName();
+
+        try (final Reader defaultPatterns = getDefaultPatterns()) {
+            grokCompiler.register(defaultPatterns);
+        } catch (final IOException e) {
             results.add(new ValidationResult.Builder()
-                    .input(input)
-                    .subject(subject)
+                    .input("Default Grok Patterns")
+                    .subject(expressionSubject)
                     .valid(false)
                     .explanation("Unable to load default patterns: " + e.getMessage())
                     .build());
         }
 
-        validator = new GrokExpressionValidator(validationContext.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue(),grokCompiler);
-        results.add(validator.validate(subject,input,validationContext));
+        final String patternFileName = validationContext.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue();
+        final GrokExpressionValidator validator = new GrokExpressionValidator(patternFileName, grokCompiler);
+
+        try {
+            final List<String> grokExpressions = readGrokExpressions(validationContext);
+            final List<ValidationResult> grokExpressionResults = grokExpressions.stream()
+                    .map(grokExpression -> validator.validate(expressionSubject, grokExpression, validationContext)).collect(Collectors.toList());
+            results.addAll(grokExpressionResults);
+        } catch (final IOException e) {
+            results.add(new ValidationResult.Builder()
+                    .input("Configured Grok Expressions")
+                    .subject(expressionSubject)
+                    .valid(false)
+                    .explanation(String.format("Read Grok Expressions failed: %s", e.getMessage()))
+                    .build());
+        }
+
         return results;
     }
 
-    static RecordSchema createRecordSchema(final Grok grok) {
+    private List<String> readGrokExpressions(final PropertyContext propertyContext) throws IOException {
+        final ResourceReference expressionsResource = propertyContext.getProperty(GROK_EXPRESSION).asResource();
+        try (
+                final InputStream expressionsStream = expressionsResource.read();
+                final BufferedReader expressionsReader = new BufferedReader(new InputStreamReader(expressionsStream))
+        ) {
+            return expressionsReader.lines().collect(Collectors.toList());
+        }
+    }
+
+    static RecordSchema createRecordSchema(final List<Grok> groks) {
         final Set<RecordField> fields = new LinkedHashSet<>();
 
-        String grokExpression = grok.getOriginalGrokPattern();
-        populateSchemaFieldNames(grok, grokExpression, fields);
+        groks.forEach(grok -> populateSchemaFieldNames(grok, grok.getOriginalGrokPattern(), fields));
 
         fields.add(new RecordField(GrokRecordReader.STACK_TRACE_COLUMN_NAME, RecordFieldType.STRING.getDataType(), true));
         fields.add(new RecordField(GrokRecordReader.RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
 
-        final RecordSchema schema = new SimpleRecordSchema(new ArrayList<>(fields));
-
-        return schema;
+        return new SimpleRecordSchema(new ArrayList<>(fields));
     }
 
     private static void populateSchemaFieldNames(final Grok grok, String grokExpression, final Collection<RecordField> fields) {
@@ -267,7 +294,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
 
             @Override
-            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
+            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
                 return recordSchema;
             }
 
@@ -281,6 +308,14 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, noMatchStrategy);
+        return new GrokRecordReader(in, groks, schema, recordSchemaFromGrok, noMatchStrategy);
+    }
+
+    private Reader getDefaultPatterns() throws IOException {
+        final InputStream inputStream = getClass().getResourceAsStream(DEFAULT_PATTERN_NAME);
+        if (inputStream == null) {
+            throw new IOException(String.format("Default Patterns [%s] not found", DEFAULT_PATTERN_NAME));
+        }
+        return new InputStreamReader(inputStream);
     }
 }

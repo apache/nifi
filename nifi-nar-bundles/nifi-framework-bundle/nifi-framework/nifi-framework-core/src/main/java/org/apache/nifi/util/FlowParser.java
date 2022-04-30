@@ -22,25 +22,26 @@ import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
+import org.apache.nifi.xml.processing.transform.TransformProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.validation.Schema;
@@ -117,7 +118,7 @@ public class FlowParser {
 
             return parseJson(flowBytes);
         } catch (final SAXException | ParserConfigurationException | IOException ex) {
-            logger.error("Unable to parse flow {} due to {}", new Object[] { flowPath.toAbsolutePath(), ex });
+            logger.error("Unable to parse flow {}", flowPath.toAbsolutePath(), ex);
             return null;
         }
     }
@@ -133,11 +134,14 @@ public class FlowParser {
 
     private FlowInfo parseXml(final byte[] flowBytes) throws ParserConfigurationException, IOException, SAXException {
         // create validating document builder
-        final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(flowSchema);
-        docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
+        final ErrorHandler errorHandler = new LoggingXmlParserErrorHandler("Flow Configuration", logger);
+        final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+        documentProvider.setSchema(flowSchema);
+        documentProvider.setNamespaceAware(true);
+        documentProvider.setErrorHandler(errorHandler);
 
         // parse the flow
-        final Document document = docBuilder.parse(new ByteArrayInputStream(flowBytes));
+        final Document document = documentProvider.parse(new ByteArrayInputStream(flowBytes));
 
         // extract the root group id
         final Element rootElement = document.getDocumentElement();
@@ -236,11 +240,13 @@ public class FlowParser {
             }
 
             // create validating document builder
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(flowSchema);
-            docBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
-            return docBuilder.parse(new ByteArrayInputStream(flowBytes));
-        } catch (final SAXException | ParserConfigurationException | IOException ex) {
-            logger.error("Unable to parse flow {} due to {}", new Object[]{flowPath.toAbsolutePath(), ex});
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
+            documentProvider.setSchema(flowSchema);
+            documentProvider.setNamespaceAware(true);
+            return documentProvider.parse(new ByteArrayInputStream(flowBytes));
+        } catch (final ProcessingException | IOException e) {
+            logger.error("Unable to parse flow {}", flowPath.toAbsolutePath(), e);
             return null;
         }
     }
@@ -272,13 +278,14 @@ public class FlowParser {
      * @param flowDocument flowDocument of the associated XML content to write to disk
      * @param flowXmlPath  path on disk to write the flow
      * @throws IOException if there are issues in accessing the target destination for the flow
-     * @throws TransformerException if there are issues in the xml transformation process
      */
-    public void writeFlow(final Document flowDocument, final Path flowXmlPath) throws IOException, TransformerException {
+    public void writeFlow(final Document flowDocument, final Path flowXmlPath) throws IOException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final Source xmlSource = new DOMSource(flowDocument);
         final Result outputTarget = new StreamResult(outputStream);
-        TransformerFactory.newInstance().newTransformer().transform(xmlSource, outputTarget);
+
+        final TransformProvider transformProvider = new StandardTransformProvider();
+        transformProvider.transform(xmlSource, outputTarget);
         final InputStream is = new ByteArrayInputStream(outputStream.toByteArray());
 
         try (final OutputStream output = Files.newOutputStream(flowXmlPath, StandardOpenOption.WRITE, StandardOpenOption.CREATE);

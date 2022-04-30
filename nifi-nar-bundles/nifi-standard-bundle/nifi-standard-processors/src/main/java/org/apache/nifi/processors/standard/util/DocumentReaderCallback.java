@@ -18,12 +18,10 @@ package org.apache.nifi.processors.standard.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 
 public class DocumentReaderCallback implements InputStreamCallback {
 
@@ -42,10 +40,11 @@ public class DocumentReaderCallback implements InputStreamCallback {
     @Override
     public void process(final InputStream stream) throws IOException {
         try {
-            DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(isNamespaceAware);
-            document = builder.parse(stream);
-        } catch (ParserConfigurationException | SAXException pce) {
-            throw new IOException(pce.getLocalizedMessage(), pce);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(isNamespaceAware);
+            document = documentProvider.parse(stream);
+        } catch (final ProcessingException e) {
+            throw new IOException(e.getLocalizedMessage(), e);
         }
     }
 

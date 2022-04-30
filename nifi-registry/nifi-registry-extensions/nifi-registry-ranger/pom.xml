@@ -17,12 +17,16 @@
     <parent>
         <artifactId>nifi-registry-extensions</artifactId>
         <groupId>org.apache.nifi.registry</groupId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>nifi-registry-ranger</artifactId>
     <packaging>pom</packaging>
+
+    <properties>
+        <zookeeper.version>3.5.9</zookeeper.version>
+    </properties>
 
     <modules>
         <module>nifi-registry-ranger-assembly</module>
@@ -43,17 +47,6 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
                 <version>1.21</version>
-            </dependency>
-            <!-- Override jackson-databind -->
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
             </dependency>
             <!-- Override snakeyaml:1.17 -->
             <dependency>
@@ -81,7 +74,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.14</version>
+                <version>${zookeeper.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -167,7 +167,7 @@ public class CompositeUserGroupProvider implements UserGroupProvider {
                     compositeUserAndGroups.setUser(userAndGroups.getUser());
                     providerClassForUser = userGroupProvider.getClass().getName();
                 } else {
-                    logger.warn("Multiple UserGroupProviders are claiming to provide user '{}': [{} and {}] ",
+                    logger.warn("Multiple UserGroupProviders are claiming to provide identity [{}] user '{}': [{} and {}] ",
                             identity,
                             userAndGroups.getUser(),
                             providerClassForUser, userGroupProvider.getClass().getName());

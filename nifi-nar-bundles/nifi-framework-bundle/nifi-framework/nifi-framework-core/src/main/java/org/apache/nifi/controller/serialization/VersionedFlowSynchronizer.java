@@ -62,7 +62,7 @@ import org.apache.nifi.groups.AbstractComponentScheduler;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ComponentIdGenerator;
 import org.apache.nifi.groups.ComponentScheduler;
-import org.apache.nifi.groups.GroupSynchronizationOptions;
+import org.apache.nifi.groups.FlowSynchronizationOptions;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
@@ -100,6 +100,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -310,7 +311,11 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
 
-                final ComponentScheduler componentScheduler = new FlowControllerComponentScheduler(controller);
+                // Use a Versioned Component State Lookup that will check to see if the component is scheduled to start upon FlowController initialization.
+                // Otherwise, fallback to the identity lookup (i.e., use whatever is set on the component itself).
+                final VersionedComponentStateLookup stateLookup = controller.createVersionedComponentStateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP);
+
+                final ComponentScheduler componentScheduler = new FlowControllerComponentScheduler(controller, stateLookup);
 
                 if (rootGroup.isEmpty()) {
                     final VersionedProcessGroup versionedRoot = versionedExternalFlow.getFlowContents();
@@ -327,7 +332,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 allTemplates.forEach(template -> template.getProcessGroup().removeTemplate(template));
 
                 // Synchronize the root group
-                final GroupSynchronizationOptions syncOptions = new GroupSynchronizationOptions.Builder()
+                final FlowSynchronizationOptions syncOptions = new FlowSynchronizationOptions.Builder()
                     .componentIdGenerator(componentIdGenerator)
                     .componentScheduler(componentScheduler)
                     .ignoreLocalModifications(true)
@@ -343,7 +348,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
                     .mapSensitiveConfiguration(true)
                     .mapPropertyDescriptors(false)
-                    .stateLookup(VersionedComponentStateLookup.IDENTITY_LOOKUP)
+                    .stateLookup(stateLookup)
                     .sensitiveValueEncryptor(encryptor::encrypt)
                     .componentIdLookup(ComponentIdLookup.VERSIONED_OR_GENERATE)
                     .mapInstanceIdentifiers(true)
@@ -985,7 +990,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static class FlowControllerComponentScheduler extends AbstractComponentScheduler implements ComponentScheduler {
         private final FlowController flowController;
 
-        public FlowControllerComponentScheduler(final FlowController flowController) {
+        public FlowControllerComponentScheduler(final FlowController flowController, final VersionedComponentStateLookup stateLookup) {
+            super(flowController.getControllerServiceProvider(), stateLookup);
             this.flowController = flowController;
         }
 
@@ -1004,6 +1010,20 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                     flowController.startTransmitting((RemoteGroupPort) component);
                     break;
             }
+        }
+
+        @Override
+        public void stopComponent(final Connectable component) {
+            flowController.stopConnectable(component);
+        }
+
+        @Override
+        protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
+            flowController.getControllerServiceProvider().enableControllerServices(controllerServices);
+        }
+
+        protected void startNow(final ReportingTaskNode reportingTask) {
+            flowController.startReportingTask(reportingTask);
         }
     }
 }

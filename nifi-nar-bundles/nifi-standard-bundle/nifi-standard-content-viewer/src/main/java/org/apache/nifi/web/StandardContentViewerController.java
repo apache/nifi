@@ -25,6 +25,8 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
@@ -33,17 +35,13 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Set;
 
 public class StandardContentViewerController extends HttpServlet {
@@ -94,13 +92,11 @@ public class StandardContentViewerController extends HttpServlet {
                         final StreamSource source = new StreamSource(content.getContentStream());
                         final StreamResult result = new StreamResult(writer);
 
-                        final TransformerFactory transformFactory = TransformerFactory.newInstance();
-                        final Transformer transformer = transformFactory.newTransformer();
-                        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                        final StandardTransformProvider transformProvider = new StandardTransformProvider();
+                        transformProvider.setIndent(true);
 
-                        transformer.transform(source, result);
-                    } catch (final TransformerFactoryConfigurationError | TransformerException te) {
+                        transformProvider.transform(source, result);
+                    } catch (final ProcessingException te) {
                         throw new IOException("Unable to transform content as XML: " + te, te);
                     }
 
@@ -112,19 +108,23 @@ public class StandardContentViewerController extends HttpServlet {
                     // Use Avro conversions to display logical type values in human readable way.
                     final GenericData genericData = new GenericData(){
                         @Override
-                        protected void toString(Object datum, StringBuilder buffer) {
+                        protected void toString(Object datum, StringBuilder buffer, IdentityHashMap<Object, Object> seenObjects) {
                             // Since these types are not quoted and produce a malformed JSON string, quote it here.
                             if (datum instanceof LocalDate || datum instanceof LocalTime || datum instanceof DateTime) {
                                 buffer.append("\"").append(datum).append("\"");
                                 return;
                             }
-                            super.toString(datum, buffer);
+                            super.toString(datum, buffer, seenObjects);
                         }
                     };
                     genericData.addLogicalTypeConversion(new Conversions.DecimalConversion());
                     genericData.addLogicalTypeConversion(new TimeConversions.DateConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimeConversion());
-                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimeMicrosConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimeMillisConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampMicrosConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.TimestampMillisConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMicrosConversion());
+                    genericData.addLogicalTypeConversion(new TimeConversions.LocalTimestampMillisConversion());
                     final DatumReader<GenericData.Record> datumReader = new GenericDatumReader<>(null, null, genericData);
                     try (final DataFileStream<GenericData.Record> dataFileReader = new DataFileStream<>(content.getContentStream(), datumReader)) {
                         while (dataFileReader.hasNext()) {

@@ -245,7 +245,8 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void unschedule(final ReportingTaskNode taskNode) {
+    public Future<Void> unschedule(final ReportingTaskNode taskNode) {
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override

@@ -19,7 +19,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
+    <version>1.17.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -92,13 +92,18 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+        <!-- Set minimum Java version for maven-enforcer-plugin from parent POM -->
+        <minimalJavaBuildVersion>1.8.0-251</minimalJavaBuildVersion>
         <maven.surefire.arguments />
+        <!-- Disable maven-site-plugin from parent POM -->
+        <maven.site.skip>true</maven.site.skip>
         <node.version>v16.13.2</node.version>
         <frontend.mvn.plugin.version>1.12.1</frontend.mvn.plugin.version>
-        <project.build.outputTimestamp>10</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1647889104</project.build.outputTimestamp>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
+        <kotlin.version>1.6.20</kotlin.version>
         <okhttp.version>4.9.3</okhttp.version>
         <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
         <org.apache.httpcomponents.httpclient.version>4.5.13</org.apache.httpcomponents.httpclient.version>
@@ -106,10 +111,12 @@
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.45.v20220203</jetty.version>
-        <jackson.version>2.13.1</jackson.version>
+        <jetty.version>9.4.46.v20220331</jetty.version>
+        <jackson.bom.version>2.13.2</jackson.bom.version>
+        <avro.version>1.11.0</avro.version>
         <jaxb.runtime.version>2.3.5</jaxb.runtime.version>
         <jakarta.xml.bind-api.version>2.3.3</jakarta.xml.bind-api.version>
+        <json.smart.version>2.4.8</json.smart.version>
         <nifi.groovy.version>3.0.8</nifi.groovy.version>
         <surefire.version>3.0.0-M5</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
@@ -123,8 +130,8 @@
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <netty.4.version>4.1.74.Final</netty.4.version>
-        <spring.version>5.3.16</spring.version>
-        <spring.security.version>5.6.2</spring.security.version>
+        <spring.version>5.3.19</spring.version>
+        <spring.security.version>5.6.3</spring.security.version>
         <h2.version>2.1.210</h2.version>
     </properties>
 
@@ -269,6 +276,16 @@
                 <version>${org.bouncycastle.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro-ipc</artifactId>
+                <version>${avro.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${org.apache.commons.lang3.version}</version>
@@ -288,6 +305,13 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpcore</artifactId>
                 <version>${org.apache.httpcomponents.httpcore.version}</version>
+            </dependency>
+
+            <!-- Commons Codec -->
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <version>1.15</version>
             </dependency>
 
             <!-- These junit/mockito/groovy/spock/hamcrest dependencies are here to encourage consistent unit test library usage -->
@@ -502,6 +526,18 @@
                 <artifactId>aspectjweaver</artifactId>
                 <version>${aspectj.version}</version>
             </dependency>
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${json.smart.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <!-- Set snappy-java version for compatibility across multiple Java versions -->
             <dependency>
                 <groupId>org.xerial.snappy</groupId>
@@ -512,7 +548,7 @@
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-bom</artifactId>
-                <version>2.17.1</version>
+                <version>2.17.2</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -541,6 +577,13 @@
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
                 <version>${okhttp.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -631,12 +674,6 @@
                             <exclude>**/*ITSpec.class</exclude>
                         </excludes>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine combine.children="append">-Xmx1g
-                            -Djava.net.preferIPv4Stack=true
-                            -Duser.language=${user.language}
-                            -Duser.country=${user.country}
-                            -Duser.timezone=${user.timezone}
-                            -Dfile.encoding=UTF-8</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -1185,7 +1222,7 @@
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
-                        <version>6.5.3</version>
+                        <version>7.1.0</version>
                         <executions>
                             <execution>
                                 <inherited>false</inherited>

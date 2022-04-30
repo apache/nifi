@@ -59,7 +59,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
 
-        final Reader reader = new InputStreamReader(new BOMInputStream(in));
+        final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
         CsvSchema.Builder csvSchemaBuilder = CsvSchema.builder()
                 .setColumnSeparator(csvFormat.getDelimiter())

@@ -19,16 +19,14 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry-core</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>The core modules of NiFi Registry.</description>
     <modules>
         <module>nifi-registry-properties</module>
-	<module>nifi-registry-properties-loader</module>
+	    <module>nifi-registry-properties-loader</module>
         <module>nifi-registry-utils</module>
         <module>nifi-registry-data-model</module>
         <module>nifi-registry-flow-diff</module>
@@ -109,26 +107,6 @@
                 <version>3.0.1-b08</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-jaxb-annotations</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>2.10.0</version>
@@ -172,20 +150,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>mysql5.7-test</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>integration-test</goal>
-                                    <goal>verify</goal>
-                                </goals>
-                                <configuration>
-                                    <systemPropertyVariables>
-                                        <spring.profiles.active>mysql-57</spring.profiles.active>
-                                    </systemPropertyVariables>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>mysql58-test</id>
+                                <id>mysql8-test</id>
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>integration-test</goal>
@@ -198,7 +163,7 @@
                                 </configuration>
                             </execution>
                             <execution>
-                                <id>postgres-test</id>
+                                <id>mariadb-10_2-test</id>
                                 <phase>verify</phase>
                                 <goals>
                                     <goal>integration-test</goal>
@@ -206,7 +171,20 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <spring.profiles.active>postgres</spring.profiles.active>
+                                        <spring.profiles.active>mariadb-10-2</spring.profiles.active>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>mariadb-10_3-test</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <spring.profiles.active>mariadb-10-3</spring.profiles.active>
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>
@@ -262,11 +240,23 @@
                                     </systemPropertyVariables>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>postgres14-test</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>integration-test</goal>
+                                    <goal>verify</goal>
+                                </goals>
+                                <configuration>
+                                    <systemPropertyVariables>
+                                        <spring.profiles.active>postgres-14</spring.profiles.active>
+                                    </systemPropertyVariables>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
-
 </project>

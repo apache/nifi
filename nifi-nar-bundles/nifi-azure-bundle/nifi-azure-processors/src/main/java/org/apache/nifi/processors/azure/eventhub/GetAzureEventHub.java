@@ -81,6 +81,9 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 public class GetAzureEventHub extends AbstractProcessor {
+    private static final String TRANSIT_URI_FORMAT_STRING = "amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s";
+    private static final String FORMAT_STRING_FOR_CONECTION_BUILDER = "amqps://%s%s";
+
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("Event Hub Name")
             .description("The name of the event hub to pull messages from")
@@ -94,15 +97,7 @@ public class GetAzureEventHub extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .build();
-    static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("Service Bus Endpoint")
-            .description("To support namespaces in non-standard Host URIs ( not .servicebus.windows.net,  ie .servicebus.chinacloudapi.cn) select from the drop down acceptable options ")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(".servicebus.windows.net",".servicebus.chinacloudapi.cn")
-            .defaultValue(".servicebus.windows.net")
-            .required(true)
-            .build();
+    static final PropertyDescriptor SERVICE_BUS_ENDPOINT =AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
@@ -315,12 +310,12 @@ public class GetAzureEventHub extends AbstractProcessor {
         final String connectionString;
 
         if(useManagedIdentity){
-            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace,eventHubName);
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespace, serviceBusEndpoint, eventHubName);
         } else {
             final String policyName = context.getProperty(ACCESS_POLICY).getValue();
             final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
             connectionString = new ConnectionStringBuilder()
-                                    .setEndpoint(new URI("amqps://"+namespace+serviceBusEndpoint))
+                                    .setEndpoint(new URI(String.format(FORMAT_STRING_FOR_CONECTION_BUILDER, namespace, serviceBusEndpoint)))
                                     .setEventHubName(eventHubName)
                                     .setSasKeyName(policyName)
                                     .setSasKey(policyKey).toString();
@@ -394,7 +389,8 @@ public class GetAzureEventHub extends AbstractProcessor {
                     final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
                     final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
                     final String serviceBusEndPoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-                    final String transitUri = "amqps://" + namespace + serviceBusEndPoint + "/" + eventHubName + "/ConsumerGroups/" + consumerGroup + "/Partitions/" + partitionId;
+                    final String transitUri = String.format(TRANSIT_URI_FORMAT_STRING,
+                            namespace, serviceBusEndPoint, eventHubName, consumerGroup, partitionId);
                     session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 }
             }

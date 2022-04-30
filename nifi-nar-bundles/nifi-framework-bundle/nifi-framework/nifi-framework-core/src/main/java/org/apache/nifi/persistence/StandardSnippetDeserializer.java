@@ -21,11 +21,14 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 public class StandardSnippetDeserializer {
 
@@ -33,10 +36,11 @@ public class StandardSnippetDeserializer {
         try {
             JAXBContext context = JAXBContext.newInstance(StandardSnippet.class);
             Unmarshaller unmarshaller = context.createUnmarshaller();
-            XMLStreamReader xsr = XmlUtils.createSafeReader(inStream);
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            XMLStreamReader xsr = provider.getStreamReader(new StreamSource(inStream));
             JAXBElement<StandardSnippet> snippetElement = unmarshaller.unmarshal(xsr, StandardSnippet.class);
             return snippetElement.getValue();
-        } catch (final JAXBException | XMLStreamException e) {
+        } catch (final JAXBException | ProcessingException e) {
             throw new FlowSerializationException(e);
         }
     }

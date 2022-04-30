@@ -18,21 +18,22 @@
 package org.apache.nifi.controller.state.config;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.state.ConfigParseException;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
 public class StateManagerConfiguration {
     private final Map<String, StateProviderConfiguration> providers;
@@ -62,11 +63,10 @@ public class StateManagerConfiguration {
 
     public static StateManagerConfiguration parse(final File configFile) throws IOException, ConfigParseException {
         final Document document;
-        DocumentBuilder builder;
-        try {
-            builder = XmlUtils.createSafeDocumentBuilder(false);
-            document = builder.parse(configFile);
-        } catch (ParserConfigurationException | SAXException e) {
+        try (final InputStream inputStream = new FileInputStream(configFile)) {
+            final DocumentProvider documentProvider = new StandardDocumentProvider();
+            document = documentProvider.parse(inputStream);
+        } catch (final ProcessingException e) {
             throw new ConfigParseException("Unable to parse file " + configFile + ", as it does not appear to be a valid XML File", e);
         }
 

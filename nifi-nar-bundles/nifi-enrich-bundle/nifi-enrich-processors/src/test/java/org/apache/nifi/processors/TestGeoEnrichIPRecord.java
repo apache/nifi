@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors;
 
+import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.avro.Schema;
 import org.apache.commons.io.IOUtils;
@@ -27,7 +28,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -37,9 +37,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -50,13 +49,15 @@ import java.util.List;
 import java.util.Map;
 
 import static org.apache.nifi.processors.GeoEnrichTestUtils.getFullCityResponse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class TestGeoEnrichIPRecord {
     private TestRunner runner;
     private DatabaseReader reader;
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         reader = mock(DatabaseReader.class);
         final CityResponse cityResponse = getFullCityResponse();
@@ -90,7 +91,6 @@ public class TestGeoEnrichIPRecord {
         runner.enableControllerService(writer);
 
         runner.setProperty(GeoEnrichIPRecord.GEO_CITY, "/geo/city");
-        runner.setProperty(GeoEnrichIPRecord.GEO_ACCURACY, "/geo/accuracy");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY, "/geo/country");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY_ISO, "/geo/country_iso");
         runner.setProperty(GeoEnrichIPRecord.GEO_POSTAL_CODE, "/geo/country_postal");
@@ -131,20 +131,19 @@ public class TestGeoEnrichIPRecord {
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> result = (List<Map<String, Object>>)mapper.readValue(content, List.class);
 
-        Assert.assertNotNull(result);
-        Assert.assertEquals(1, result.size());
+        assertNotNull(result);
+        assertEquals(1, result.size());
 
         Map<String, Object> element = result.get(0);
         Map<String, Object> geo = (Map<String, Object>) element.get("geo");
 
-        Assert.assertNotNull(geo);
-        Assert.assertNotNull(geo.get("accuracy"));
-        Assert.assertNotNull(geo.get("city"));
-        Assert.assertNotNull(geo.get("country"));
-        Assert.assertNotNull(geo.get("country_iso"));
-        Assert.assertNotNull(geo.get("country_postal"));
-        Assert.assertNotNull(geo.get("lat"));
-        Assert.assertNotNull(geo.get("lon"));
+        assertNotNull(geo);
+        assertNotNull(geo.get("city"));
+        assertNotNull(geo.get("country"));
+        assertNotNull(geo.get("country_iso"));
+        assertNotNull(geo.get("country_postal"));
+        assertNotNull(geo.get("lat"));
+        assertNotNull(geo.get("lon"));
     }
 
     class TestableGeoEnrichIPRecord extends GeoEnrichIPRecord {
@@ -153,7 +152,7 @@ public class TestGeoEnrichIPRecord {
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             return Collections.unmodifiableList(Arrays.asList(
-                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_ACCURACY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
+                    READER, WRITER, IP_RECORD_PATH, SPLIT_FOUND_NOT_FOUND, GEO_CITY, GEO_LATITUDE, GEO_LONGITUDE, GEO_COUNTRY, GEO_COUNTRY_ISO, GEO_POSTAL_CODE
             ));
         }
         @OnScheduled

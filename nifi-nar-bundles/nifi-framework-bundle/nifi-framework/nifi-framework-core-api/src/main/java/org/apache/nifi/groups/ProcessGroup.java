@@ -889,7 +889,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param synchronizationOptions options for how the synchronization should occur
      * @param flowMappingOptions options for how to map the existing dataflow into Versioned components so that it can be compared to the proposed snapshot
      */
-    void synchronizeFlow(VersionedExternalFlow proposedSnapshot, GroupSynchronizationOptions synchronizationOptions, FlowMappingOptions flowMappingOptions);
+    void synchronizeFlow(VersionedExternalFlow proposedSnapshot, FlowSynchronizationOptions synchronizationOptions, FlowMappingOptions flowMappingOptions);
 
     /**
      * Verifies a template with the specified name can be created.

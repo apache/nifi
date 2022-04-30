@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-registry-framework</artifactId>
@@ -159,7 +159,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-data-model</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -178,7 +178,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- will be in lib dir -->
         </dependency>
         <dependency>
@@ -194,22 +194,27 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-bundle-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-flow-diff</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-h2-database-migrator</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-xml-processing</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -340,7 +345,6 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.12</version>
         </dependency>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -355,23 +359,20 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-jaxb-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-test</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -428,7 +429,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

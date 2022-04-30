@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-graph-bundle</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-graph-test-clients</artifactId>
@@ -35,27 +35,7 @@
                 <artifactId>commons-io</artifactId>
                 <version>2.10.0</version>
             </dependency>
-            <!-- Override Gremlin and Groovy -->
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy</artifactId>
-                <classifier>indy</classifier>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-json</artifactId>
-                <classifier>indy</classifier>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-groovysh</artifactId>
-                <classifier>indy</classifier>
-            </dependency>
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-jsr223</artifactId>
-                <classifier>indy</classifier>
-            </dependency>
+            <!-- Override Gremlin -->
             <dependency>
                 <groupId>org.apache.tinkerpop</groupId>
                 <artifactId>gremlin-core</artifactId>
@@ -82,7 +62,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -92,7 +72,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-graph-client-service-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 

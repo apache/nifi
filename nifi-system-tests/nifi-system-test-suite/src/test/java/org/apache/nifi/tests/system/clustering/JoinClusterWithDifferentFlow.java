@@ -20,7 +20,6 @@ import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.encrypt.PropertyEncryptorFactory;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.tests.system.InstanceConfiguration;
 import org.apache.nifi.tests.system.NiFiInstance;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
@@ -45,20 +44,19 @@ import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.junit.Test;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,12 +67,12 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
     @Override
-    protected NiFiInstanceFactory getInstanceFactory() {
+    public NiFiInstanceFactory getInstanceFactory() {
         final Map<String, String> propertyOverrides = Collections.singletonMap("nifi.cluster.flow.serialization.format", "XML");
 
         return new SpawnedClusterNiFiInstanceFactory(
@@ -142,8 +140,8 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         final File confDir = backupFile.getParentFile();
         final String loadedFlow = readFlow(new File(confDir, "flow.xml.gz"));
 
-        final DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(false);
-        final Document document = documentBuilder.parse(new InputSource(new StringReader(loadedFlow)));
+        final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+        final Document document = documentProvider.parse(new ByteArrayInputStream(loadedFlow.getBytes(StandardCharsets.UTF_8)));
         final Element rootElement = (Element) document.getElementsByTagName("flowController").item(0);
         final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
 

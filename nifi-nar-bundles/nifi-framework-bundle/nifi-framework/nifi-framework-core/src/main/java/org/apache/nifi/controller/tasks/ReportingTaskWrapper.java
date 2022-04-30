@@ -39,7 +39,9 @@ public class ReportingTaskWrapper implements Runnable {
 
     @Override
     public synchronized void run() {
-        lifecycleState.incrementActiveThreadCount(null);
+        if (!lifecycleState.tryIncrementActiveThreadCount(null)) {
+            return;
+        }
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, taskNode.getReportingTask().getClass(), taskNode.getIdentifier())) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
@@ -58,7 +60,7 @@ public class ReportingTaskWrapper implements Runnable {
                     }
                 }
             } finally {
-                lifecycleState.decrementActiveThreadCount(null);
+                lifecycleState.decrementActiveThreadCount();
             }
         }
     }

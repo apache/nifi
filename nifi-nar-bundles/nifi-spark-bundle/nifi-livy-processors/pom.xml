@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-spark-bundle</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-livy-processors</artifactId>
@@ -31,7 +31,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-controller-service-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -70,7 +70,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-controller-service</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -81,7 +81,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
-            <version>1.16.0-SNAPSHOT</version>
+            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -24,15 +24,12 @@ import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TestName;
-import org.junit.rules.TestWatcher;
-import org.junit.rules.Timeout;
-import org.junit.runner.Description;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,7 +46,9 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public abstract class NiFiSystemIT {
+@ExtendWith(TroubleshootingTestWatcher.class)
+@Timeout(value = 5, unit = TimeUnit.MINUTES)
+public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiSystemIT.class);
     private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
 
@@ -65,31 +64,16 @@ public abstract class NiFiSystemIT {
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
     private static volatile String nifiFrameworkVersion = null;
 
-    @Rule
-    public TestName name = new TestName();
-    @Rule
-    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
-
-    @Rule(order = Integer.MIN_VALUE)
-    public TestWatcher quarantineRule = new TestWatcher() {
-        @Override
-        protected void failed(final Throwable t, final Description description) {
-            final String testName = description.getMethodName();
-            try {
-                final File dir = quarantineTroubleshootingInfo(testName, t);
-                logger.info("Test failure for <{}>. Successfully wrote troubleshooting info to {}", testName, dir.getAbsolutePath());
-            } catch (final Exception e) {
-                logger.error("Failed to quarantine troubleshooting info for test " + testName, e);
-            }
-        }
-    };
-
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
     private static final AtomicReference<NiFiInstance> nifiRef = new AtomicReference<>();
 
-    @Before
-    public void setup() throws IOException {
+    private TestInfo testInfo;
+
+    @BeforeEach
+    public void setup(final TestInfo testInfo) throws IOException {
+        this.testInfo = testInfo;
+
         Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
         setupClient();
 
@@ -107,7 +91,7 @@ public abstract class NiFiSystemIT {
         }
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         final NiFiInstance nifi = nifiRef.get();
         nifiRef.set(null);
@@ -116,7 +100,7 @@ public abstract class NiFiSystemIT {
         }
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         try {
             Exception destroyFlowFailure = null;
@@ -147,21 +131,23 @@ public abstract class NiFiSystemIT {
         }
     }
 
-    protected File quarantineTroubleshootingInfo(final String methodName, final Throwable failureCause) throws IOException {
-        NiFiInstance instance = getNiFiInstance();
+    @Override
+    public NiFiInstance getNiFiInstance() {
+        return nifiRef.get();
+    }
 
-        // The @AfterClass may or may not have already run at this point. If it has, the instance will be null.
-        // In that case, just create a new instance and use it - it will map to the same directories.
-        if (instance == null) {
-            instance = getInstanceFactory().createInstance();
-        }
+    @Override
+    public NiFiInstanceFactory getInstanceFactory() {
+        return new SpawnedStandaloneNiFiInstanceFactory(
+                new InstanceConfiguration.Builder()
+                        .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
+                        .instanceDirectory("target/standalone-instance")
+                        .overrideNifiProperties(getNifiPropertiesOverrides())
+                        .build());
+    }
 
-        final File troubleshooting = new File("target/troubleshooting");
-        final File quarantineDir = new File(troubleshooting, methodName);
-        quarantineDir.mkdirs();
-
-        instance.quarantineTroubleshootingInfo(quarantineDir, failureCause);
-        return quarantineDir;
+    protected String getTestName() {
+        return testInfo.getDisplayName();
     }
 
     protected boolean isDestroyEnvironmentAfterEachTest() {
@@ -253,11 +239,6 @@ public abstract class NiFiSystemIT {
         return CLIENT_API_PORT;
     }
 
-
-    protected String getTestName() {
-        return name.getMethodName();
-    }
-
     protected NiFiClient getNifiClient() {
         Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
         return nifiClient;
@@ -283,10 +264,6 @@ public abstract class NiFiSystemIT {
         throw new IllegalStateException("Could not determine version of NiFi");
     }
 
-    protected NiFiInstance getNiFiInstance() {
-        return nifiRef.get();
-    }
-
     protected int getNumberOfNodes() {
         return getNumberOfNodes(true);
     }
@@ -298,15 +275,6 @@ public abstract class NiFiSystemIT {
         }
 
         return instance.getNumberOfNodes(includeOnlyAutoStartInstances);
-    }
-
-    protected NiFiInstanceFactory getInstanceFactory() {
-        return new SpawnedStandaloneNiFiInstanceFactory(
-            new InstanceConfiguration.Builder()
-                .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
-                .instanceDirectory("target/standalone-instance")
-                .overrideNifiProperties(getNifiPropertiesOverrides())
-                .build());
     }
 
     protected Map<String, String> getNifiPropertiesOverrides() {
@@ -398,9 +366,7 @@ public abstract class NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
-            e.printStackTrace();
-            Assert.fail("Failed to obtain connection status");
-            return null;
+            throw new RuntimeException("Failed to obtain connection status");
         }
     }
 

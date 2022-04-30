@@ -194,6 +194,24 @@ public class TestLookupRecord {
         unmatched.assertContentEquals("Jane Doe,47,\n");
     }
 
+    @Test
+    public void testAllMatchButFirstRouteToSuccess() {
+        lookupService.addValue("Jane Doe", "Soccer");
+        lookupService.addValue("Jimmy Doe", "Football");
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(LookupRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(LookupRecord.REL_SUCCESS, 1);
+
+        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        matched.assertAttributeEquals("record.count", "3");
+        matched.assertAttributeEquals("mime.type", "text/plain");
+        matched.assertContentEquals("John Doe,48,\nJane Doe,47,Soccer\nJimmy Doe,14,Football\n");
+    }
+
 
     @Test
     public void testResultPathNotFound() {

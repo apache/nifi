@@ -19,11 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry</artifactId>
-    <version>1.16.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Provides a central location for storage and management of shared resources across one or more instances
         of NiFi and/or MiNiFi.
@@ -37,7 +36,7 @@
     </modules>
     <properties>
         <jax.rs.api.version>2.1</jax.rs.api.version>
-        <spring.boot.version>2.6.4</spring.boot.version>
+        <spring.boot.version>2.6.7</spring.boot.version>
         <flyway.version>8.4.2</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
@@ -110,64 +109,69 @@
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-utils</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties-loader</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-factory</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-property-protection-loader</artifactId>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-utils</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-bootstrap</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-runtime</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-security-api</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-provider-api</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-ui</artifactId>
                 <type>war</type>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-api</artifactId>
                 <type>war</type>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-resources</artifactId>
-                <version>1.16.0-SNAPSHOT</version>
+                <version>1.17.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -215,6 +219,32 @@
                 <artifactId>groovy-cli-commons</artifactId>
                 <version>${nifi.groovy.version}</version>
                 <type>test</type>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mysql</artifactId>
+                <version>${testcontainers.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>jcl-over-slf4j</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>mariadb</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${testcontainers.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -286,7 +316,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>2.5.2</version>
+                    <version>3.3.0</version>
                     <configuration>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
@@ -299,7 +329,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>2.4</version>
+                    <version>3.2.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -309,7 +339,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.5</version>
+                    <version>3.2.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

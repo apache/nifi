@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.16.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hwx-schema-registry-bundle</artifactId>
@@ -47,5 +47,4 @@
         <module>nifi-hwx-schema-registry-service</module>
         <module>nifi-hwx-schema-registry-nar</module>
     </modules>
-
 </project>

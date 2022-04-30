@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -316,7 +317,7 @@ public class ConvertExcelToCSVProcessor
             ff = session.write(ff, new OutputStreamCallback() {
                 @Override
                 public void process(OutputStream out) throws IOException {
-                    PrintStream outPrint = new PrintStream(out);
+                    PrintStream outPrint = new PrintStream(out, false, StandardCharsets.UTF_8.name());
                     sheetHandler.setOutput(outPrint);
 
                     try {
@@ -386,7 +387,7 @@ public class ConvertExcelToCSVProcessor
         }
 
         public void setOutput(PrintStream output){
-            final OutputStreamWriter streamWriter = new OutputStreamWriter(output);
+            final OutputStreamWriter streamWriter = new OutputStreamWriter(output, StandardCharsets.UTF_8);
 
             try {
                 printer = new CSVPrinter(streamWriter, csvFormat);

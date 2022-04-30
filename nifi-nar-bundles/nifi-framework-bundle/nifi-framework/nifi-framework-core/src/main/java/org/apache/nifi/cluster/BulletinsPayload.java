@@ -27,12 +27,15 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.jaxb.BulletinAdapter;
 import org.apache.nifi.reporting.Bulletin;
-import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 
 /**
  * The payload of the bulletins.
@@ -80,9 +83,10 @@ public class BulletinsPayload {
     public static BulletinsPayload unmarshal(final InputStream is) throws ProtocolException {
         try {
             final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-            final XMLStreamReader xsr = XmlUtils.createSafeReader(is);
+            final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
+            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(is));
             return (BulletinsPayload) unmarshaller.unmarshal(xsr);
-        } catch (final JAXBException | XMLStreamException e) {
+        } catch (final JAXBException | ProcessingException e) {
             throw new ProtocolException(e);
         }
     }

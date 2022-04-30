@@ -68,6 +68,7 @@ import java.util.stream.Collectors;
                   "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
     @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
     @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type that is provided by the configured Record Writer"),
 })
 @Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "
     + "This allows the Processor to list only files that have been added or modified after "

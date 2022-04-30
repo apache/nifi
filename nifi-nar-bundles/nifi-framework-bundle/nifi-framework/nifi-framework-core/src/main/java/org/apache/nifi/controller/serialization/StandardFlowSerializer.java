@@ -48,21 +48,16 @@ import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.BufferedOutputStream;
@@ -93,8 +88,9 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
     public Document transform(final FlowController controller, final ScheduledStateLookup scheduledStateLookup) throws FlowSerializationException {
         try {
             // create a new, empty document
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(true);
-            final Document doc = docBuilder.newDocument();
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
+            final Document doc = documentProvider.newDocument();
 
             // populate document with controller state
             final Element rootNode = doc.createElement("flowController");
@@ -127,7 +123,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             }
 
             return doc;
-        } catch (final ParserConfigurationException | DOMException | TransformerFactoryConfigurationError | IllegalArgumentException e) {
+        } catch (final ProcessingException | DOMException | IllegalArgumentException e) {
             throw new FlowSerializationException(e);
         }
     }
@@ -139,15 +135,13 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             final StreamResult streamResult = new StreamResult(new BufferedOutputStream(os));
 
             // configure the transformer and convert the DOM
-            final TransformerFactory transformFactory = TransformerFactory.newInstance();
-            final Transformer transformer = transformFactory.newTransformer();
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+            final StandardTransformProvider transformProvider = new StandardTransformProvider();
+            transformProvider.setIndent(true);
 
             // transform the document to byte stream
-            transformer.transform(domSource, streamResult);
+            transformProvider.transform(domSource, streamResult);
 
-        } catch (final DOMException | TransformerFactoryConfigurationError | IllegalArgumentException | TransformerException e) {
+        } catch (final DOMException | IllegalArgumentException | ProcessingException e) {
             throw new FlowSerializationException(e);
         }
     }
@@ -685,10 +679,11 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         try {
             final byte[] serialized = TemplateSerializer.serialize(template.getDetails());
 
-            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(true);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
+            documentProvider.setNamespaceAware(true);
             final Document document;
             try (final InputStream in = new ByteArrayInputStream(serialized)) {
-                document = docBuilder.parse(in);
+                document = documentProvider.parse(in);
             }
 
             final Node templateNode = element.getOwnerDocument().importNode(document.getDocumentElement(), true);

@@ -23,15 +23,15 @@ import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class StatelessPerformanceIT extends StatelessSystemIT {
     @Test
-    @Ignore("For manual testing purposes only")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true")
     public void testCreateDestroyPerf() throws InterruptedException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "WARN");
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();

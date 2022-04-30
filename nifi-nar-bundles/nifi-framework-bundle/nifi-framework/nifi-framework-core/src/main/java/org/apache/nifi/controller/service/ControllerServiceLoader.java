@@ -24,11 +24,12 @@ import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.xml.processing.ProcessingException;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -36,8 +37,6 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,9 +59,9 @@ public class ControllerServiceLoader {
         final PropertyEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
 
         try (final InputStream in = new BufferedInputStream(serializedStream)) {
-            final DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(null);
+            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
 
-            builder.setErrorHandler(new org.xml.sax.ErrorHandler() {
+            documentProvider.setErrorHandler(new org.xml.sax.ErrorHandler() {
 
                 @Override
                 public void fatalError(final SAXParseException err) throws SAXException {
@@ -92,15 +91,15 @@ public class ControllerServiceLoader {
                 }
             });
 
-            final Document document = builder.parse(in);
+            final Document document = documentProvider.parse(in);
             final Element controllerServices = document.getDocumentElement();
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
 
             final Map<ControllerServiceNode, Element> controllerServiceMap = ControllerServiceLoader.loadControllerServices(serviceElements, controller, parentGroup, encryptor, encodingVersion);
             enableControllerServices(controllerServiceMap, controller, encryptor, autoResumeState, encodingVersion);
             return new ArrayList<>(controllerServiceMap.keySet());
-        } catch (SAXException | ParserConfigurationException sxe) {
-            throw new IOException(sxe);
+        } catch (final ProcessingException e) {
+            throw new IOException("Parsing Controller Services failed", e);
         }
     }
 
