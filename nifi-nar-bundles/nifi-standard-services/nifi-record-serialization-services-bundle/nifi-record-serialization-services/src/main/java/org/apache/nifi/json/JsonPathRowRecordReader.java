@@ -184,6 +184,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             switch (dataType.getFieldType()) {
                 case DATE:
                 case TIME:
+                case UUID:
                 case TIMESTAMP:
                     try {
                         return DataTypeUtils.convertType(value, dataType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);

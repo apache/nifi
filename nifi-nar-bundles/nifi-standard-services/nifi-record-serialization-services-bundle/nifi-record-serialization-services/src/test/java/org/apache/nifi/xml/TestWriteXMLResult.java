@@ -197,6 +197,7 @@ public class TestWriteXMLResult {
         valueMap.put("enum", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
+        valueMap.put("uuid", "8bb20bf2-ec41-4b94-80a4-922f4dba009c");
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
@@ -207,7 +208,7 @@ public class TestWriteXMLResult {
         writer.write(rs);
         writer.flush();
 
-        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><char>c</char><enum /><short>8</short>" +
+        String xmlResult = "<ROOT><RECORD><string>string</string><boolean>true</boolean><byte>1</byte><uuid>8bb20bf2-ec41-4b94-80a4-922f4dba009c</uuid><char>c</char><enum /><short>8</short>" +
                 "<int>9</int><bigint>8</bigint><long>8</long><float>8.0</float><double>8.0</double><decimal>8.1</decimal>" +
                 "<date>2017-01-01</date><time>17:00:00</time><timestamp>2017-01-01 17:00:00</timestamp><record /><choice>48</choice><array />" +
                 "<map><height>48</height><width>96</width></map></RECORD></ROOT>";
