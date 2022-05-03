@@ -35,6 +35,7 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -67,6 +68,7 @@ public class PublisherLease implements Closeable {
     private final boolean useTransactions;
     private final Pattern attributeNameRegex;
     private final Charset headerCharacterSet;
+    private final RecordSetWriterFactory recordKeyWriterFactory;
     private volatile boolean poisoned = false;
     private final AtomicLong messagesSent = new AtomicLong(0L);
 
@@ -75,8 +77,9 @@ public class PublisherLease implements Closeable {
 
     private InFlightMessageTracker tracker;
 
-    public PublisherLease(final Producer<byte[], byte[]> producer, final int maxMessageSize, final long maxAckWaitMillis, final ComponentLog logger,
-        final boolean useTransactions, final Pattern attributeNameRegex, final Charset headerCharacterSet) {
+    public PublisherLease(final Producer<byte[], byte[]> producer, final int maxMessageSize, final long maxAckWaitMillis,
+                          final ComponentLog logger, final boolean useTransactions, final Pattern attributeNameRegex,
+                          final Charset headerCharacterSet, final RecordSetWriterFactory recordKeyWriterFactory) {
         this.producer = producer;
         this.maxMessageSize = maxMessageSize;
         this.logger = logger;
@@ -84,6 +87,7 @@ public class PublisherLease implements Closeable {
         this.useTransactions = useTransactions;
         this.attributeNameRegex = attributeNameRegex;
         this.headerCharacterSet = headerCharacterSet;
+        this.recordKeyWriterFactory = recordKeyWriterFactory;
     }
 
     protected void poison() {
@@ -193,10 +197,21 @@ public class PublisherLease implements Closeable {
                     additionalAttributes = writeResult.getAttributes();
                     writer.flush();
                 }
-
                 final byte[] messageContent = baos.toByteArray();
-                final String key = messageKeyField == null ? null : record.getAsString(messageKeyField);
-                final byte[] messageKey = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
+
+                final byte[] messageKey;
+                if (recordKeyWriterFactory == null) {
+                    messageKey = Optional.ofNullable(record.getAsString(messageKeyField))
+                            .map(s -> s.getBytes(StandardCharsets.UTF_8)).orElse(null);
+                } else {
+                    final ByteArrayOutputStream os = new ByteArrayOutputStream(1024);
+                    final MapRecord keyRecord = (MapRecord) record.getValue(messageKeyField);
+                    try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
+                        writerKey.write(keyRecord);
+                        writerKey.flush();
+                    }
+                    messageKey = os.toByteArray();
+                }
 
                 final Integer partition = partitioner == null ? null : partitioner.apply(record);
                 publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker, partition);

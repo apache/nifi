@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
@@ -37,7 +38,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -60,9 +60,14 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.BYTE_ARRAY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.DO_NOT_ADD_KEY_AS_ATTRIBUTE;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.RECORD;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.STRING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.USE_WRAPPER;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.WRITE_VALUE_ONLY;
 
 @CapabilityDescription("Consumes messages from Apache Kafka specifically built against the Kafka 2.6 Consumer API. "
     + "The complementary NiFi processor for sending messages is PublishKafkaRecord_2_6. Please note that, at this time, the Processor assumes that "
@@ -212,6 +217,31 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .defaultValue("UTF-8")
         .required(false)
         .build();
+    static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
+            .name("output-strategy")
+            .displayName("Output Strategy")
+            .description("This is a PropertyDescriptor description.")
+            .required(true)
+            .defaultValue(WRITE_VALUE_ONLY.getValue())
+            .allowableValues(WRITE_VALUE_ONLY, USE_WRAPPER)
+            .build();
+    static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
+            .name("key-format")
+            .displayName("Key Format")
+            .description("This is a PropertyDescriptor description.")
+            .required(true)
+            .defaultValue(BYTE_ARRAY.getValue())
+            .allowableValues(STRING, BYTE_ARRAY, RECORD)
+            .dependsOn(OUTPUT_STRATEGY, USE_WRAPPER)
+            .build();
+    static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
+            .name("key-record-reader")
+            .displayName("Key Record Reader")
+            .description("The Key Record Reader to use for incoming FlowFiles")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .dependsOn(KEY_FORMAT, RECORD)
+            .build();
     static final PropertyDescriptor HEADER_NAME_REGEX = new Builder()
         .name("header-name-regex")
         .displayName("Headers to Add as Attributes (Regex)")
@@ -224,6 +254,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
+        .dependsOn(OUTPUT_STRATEGY, WRITE_VALUE_ONLY)
         .build();
 
     static final PropertyDescriptor SEPARATE_BY_KEY = new Builder()
@@ -242,6 +273,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .required(true)
         .defaultValue(UTF8_ENCODING.getValue())
         .allowableValues(UTF8_ENCODING, HEX_ENCODING, DO_NOT_ADD_KEY_AS_ATTRIBUTE)
+        .dependsOn(OUTPUT_STRATEGY, WRITE_VALUE_ONLY)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -282,10 +314,13 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         descriptors.add(SEPARATE_BY_KEY);
+        descriptors.add(OUTPUT_STRATEGY);
+        descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(KEY_ATTRIBUTE_ENCODING);
+        descriptors.add(KEY_FORMAT);
+        descriptors.add(KEY_RECORD_READER);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(MESSAGE_HEADER_ENCODING);
-        descriptors.add(HEADER_NAME_REGEX);
         descriptors.add(MAX_POLL_RECORDS);
         descriptors.add(COMMS_TIMEOUT);
         DESCRIPTORS = Collections.unmodifiableList(descriptors);
@@ -410,6 +445,10 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
 
+        final String outputStrategy = context.getProperty(OUTPUT_STRATEGY).getValue();
+        final String keyFormat = context.getProperty(KEY_FORMAT).getValue();
+        final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
+
         final int[] partitionsToConsume;
         try {
             partitionsToConsume = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
@@ -426,11 +465,13 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             }
 
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume, commitOffsets);
+                    bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
+                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
-                bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume, commitOffsets);
+                    bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
+                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;
