@@ -110,6 +110,12 @@ public final class KafkaProcessorUtils {
         "When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on the top of its queue so that it will be the next FlowFile tried again. " +
             "For dataflows where ordering of FlowFiles is important, this strategy can be used along with ensuring that the each processor in the dataflow uses only a single Concurrent Task.");
 
+    static final AllowableValue WRITE_VALUE_ONLY = new AllowableValue("write-value-only", "Write Value Only", "Write only the Kafka Record value.");
+    static final AllowableValue USE_WRAPPER = new AllowableValue("use-wrapper", "Use Wrapper", "Write the Kafka Record key, value, headers, and metadata.");
+    static final AllowableValue KEY_AS_STRING = new AllowableValue("string", "String", "Format the Kafka ConsumerRecord key as a UTF-8 string.");
+    static final AllowableValue KEY_AS_BYTE_ARRAY = new AllowableValue("byte-array", "Byte Array", "Format the Kafka ConsumerRecord key as a byte array.");
+    static final AllowableValue KEY_AS_RECORD = new AllowableValue("record", "Record", "Format the Kafka ConsumerRecord key as a record.");
+
     public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")

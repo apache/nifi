@@ -189,5 +189,30 @@
             See the SSL section for a description of how to configure the SSL Context Service based on the
             ssl.client.auth property.
         </p>
+        <h2>Record Key Output</h2>
+        <div>
+            <p>This processor includes optional properties that control the serialization of the key into the target
+                Kafka record.</p>
+            <ul>
+                <li>'Publish Strategy'</li>
+                <li>'Record Key Writer'</li>
+            </ul>
+
+            <p>'Publish Strategy' controls the mode used to convert the FlowFile record into a Kafka record.</p>
+            <ul>
+                <li>'Write Value Only' (the default) persists the record key as a byte array.</li>
+                <li>'Use Wrapper' persists the record key as a record.</li>
+            </ul>
+
+            <p>If Publish Strategy 'Use Wrapper' is enabled, an additional processor configuration property is
+                activated: 'Record Key Writer'.</p>
+
+            <p>'Record Key Writer', if enabled, serializes the NiFi record key field into the Kafka record using the
+                specified implementation of the NiFi 'RecordSetWriter' interface. This may be used to emit the key field
+                as JSON, Avro, XML, or some other data format, where it may be used in the decision-making process of
+                downstream data processing (including that available in ConsumeKafkaRecord_2_6). If not defined, the
+                default implementation serializes the record key as an unmodified byte array (unchanged from previous
+                versions of the processor).</p>
+        </div>
     </body>
 </html>

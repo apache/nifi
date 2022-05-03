@@ -256,5 +256,69 @@
             ssl.client.auth property.
         </p>
 
+        <h2>Output Modes</h2>
+        <div>
+            <p>This processor (NiFi 1.17+) offers multiple output strategies (configured via processor property 'Consume
+                Strategy') for converting Kafka records into FlowFiles.</p>
+            <ul>
+                <li>Consume Strategy 'Write Value Only' (the default) emits flowfile records containing only the Kafka
+                    record value.
+                </li>
+                <li>Consume Strategy 'Use Wrapper' (new) emits flowfile records containing the Kafka record key, value,
+                    and headers, as well as additional metadata from the Kafka record.
+                </li>
+            </ul>
+
+
+            <p>The record schema that is used when 'Use Wrapper' is active is as follows:</p>
+            <ul>
+                <li>key: one of RECORD, STRING, or BYTE_ARRAY (based on processor configuration property 'Key Format')
+                </li>
+                <li>value: RECORD</li>
+                <li>headers: MAP (STRING, STRING)</li>
+                <li>metadata: RECORD
+                    <ul>
+                        <li>topic: STRING</li>
+                        <li>partition: INTEGER</li>
+                        <li>offset: LONG</li>
+                        <li>timestamp: TIMESTAMP</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <p>If the Consume Strategy property 'Use Wrapper' is active, an additional processor configuration property
+                ('Key Format') is activated. This property is used to fine-tune the transformation of the incoming Kafka
+                record. The possible values for 'Key Format' are 'Byte Array', 'String', or 'Record'.</p>
+            <ul>
+                <li>'Byte Array' supplies the Kafka Record Key bytes unchanged from the incoming Kafka record.</li>
+                <li>'String' converts the Kafka Record Key bytes into a string using the UTF-8 character encoding.
+                    (Failure to parse the key bytes as UTF-8 will result in the record being routed to the
+                    'parse.failure' relationship.)
+                </li>
+                <li>'Record' converts the Kafka Record Key bytes into a deserialized NiFi record, using the associated
+                    'Key Record Reader' controller service.
+                </li>
+            </ul>
+
+            <p>If the Key Format property is set to 'Record', an additional processor configuration property is
+                activated.</p>
+            <ul>
+                <li>'Key Record Reader' is used to specify the controller service that is used to deserialize the key
+                    bytes. It may be set to any available implementation of the NiFi 'RecordReaderFactory' interface.
+                </li>
+            </ul>
+
+            <p>These new processor properties may be used to extend the capabilities of ConsumeKafkaRecord_2_6, by
+                optionally incorporating additional information from the Kafka record (key, headers, metadata) into the
+                outbound flowfile. And the Kafka key data may now be interpreted as a record, rather than as a string,
+                enabling additional decision-making by downstream processors in your flow.</p>
+
+            <p>Additionally, the choice of the 'Consume Strategy' processor property affects the related properties
+                'Headers to Add as Attributes (Regex)' and 'Key Attribute Encoding'. Since Output Strategy 'Use
+                Wrapper' includes headers and keys in the FlowFile content, they are not also added to the FlowFile
+                attributes. These properties are available only when the FlowFile Output Strategy is set to 'Write
+                Value Only'.</p>
+        </div>
+
     </body>
 </html>
