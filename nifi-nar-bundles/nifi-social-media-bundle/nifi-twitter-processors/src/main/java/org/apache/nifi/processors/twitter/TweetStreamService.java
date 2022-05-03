@@ -59,7 +59,7 @@ public class TweetStreamService {
     private Long backoffTime;
     private Long maximumBackoff;
 
-    private StreamEndpoint endpoint;
+    private final StreamEndpoint endpoint;
 
     public TweetStreamService(final ProcessContext context, final BlockingQueue<String> queue, final ComponentLog logger) {
         Objects.requireNonNull(context);
@@ -69,12 +69,19 @@ public class TweetStreamService {
         this.queue = queue;
         this.logger = logger;
 
-        this.tweetFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.TWEET_FIELDS);
-        this.userFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.USER_FIELDS);
-        this.mediaFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.MEDIA_FIELDS);
-        this.pollFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.POLL_FIELDS);
-        this.placeFields = parseCommaSeparatedPropreties(context, ConsumeTwitter.PLACE_FIELDS);
-        this.expansions = parseCommaSeparatedPropreties(context, ConsumeTwitter.EXPANSIONS);
+        final String endpointName = context.getProperty(ConsumeTwitter.ENDPOINT).getValue();
+        if (ConsumeTwitter.ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
+            this.endpoint = StreamEndpoint.SAMPLE_ENDPOINT;
+        } else {
+            this.endpoint = StreamEndpoint.SEARCH_ENDPOINT;
+        }
+
+        this.tweetFields = parseCommaSeparatedProperties(context, ConsumeTwitter.TWEET_FIELDS);
+        this.userFields = parseCommaSeparatedProperties(context, ConsumeTwitter.USER_FIELDS);
+        this.mediaFields = parseCommaSeparatedProperties(context, ConsumeTwitter.MEDIA_FIELDS);
+        this.pollFields = parseCommaSeparatedProperties(context, ConsumeTwitter.POLL_FIELDS);
+        this.placeFields = parseCommaSeparatedProperties(context, ConsumeTwitter.PLACE_FIELDS);
+        this.expansions = parseCommaSeparatedProperties(context, ConsumeTwitter.EXPANSIONS);
         this.backfillMinutes = context.getProperty(ConsumeTwitter.BACKFILL_MINUTES).asInteger();
 
         this.backoffMultiplier = 1L;
@@ -93,15 +100,10 @@ public class TweetStreamService {
         TwitterCredentialsBearer creds = new TwitterCredentialsBearer(context.getProperty(ConsumeTwitter.BEARER_TOKEN).getValue());
         api.setTwitterCredentials(creds);
 
+        final String basePath = context.getProperty(ConsumeTwitter.BASE_PATH).getValue();
+        api.getApiClient().setBasePath(basePath);
+
         this.executorService = Executors.newSingleThreadScheduledExecutor();
-    }
-
-    public String getBasePath() {
-        return api.getApiClient().getBasePath();
-    }
-
-    public void setBasePath(final String path) {
-        api.getApiClient().setBasePath(path);
     }
 
     public String getTransitUri(final String endpoint) {
@@ -119,10 +121,8 @@ public class TweetStreamService {
      * This method would be called when we would like the stream to get started. This method will spin off a thread that
      * will continue to queue tweets on to the given queue passed in the constructor. The thread will continue
      * to run until {@code stop} is called.
-     * @param endpoint {@code TwitterStreamAPI.SAMPLE_ENDPOINT} or {@code TwitterStreamAPI.SEARCH_ENDPOINT}
      */
-    public void start(final StreamEndpoint endpoint) {
-        this.endpoint = endpoint;
+    public void start() {
         executorService.execute(new TweetStreamStarter());
     }
 
@@ -177,7 +177,7 @@ public class TweetStreamService {
                 executorService.execute(new TweetStreamHandler());
             } catch (ApiException e) {
                 stream = null;
-                logger.warn("Twitter Stream [{}] API connection failed: HTTP {}", endpoint.getEndpointName(), e.getCode(), e);
+                logger.warn("Twitter Stream [{}] API connection failed: HTTP {} {}", endpoint.getEndpointName(), e.getCode(), e.getResponseBody(), e);
                 scheduleStartStreamWithBackoff();
             } catch (Exception e) {
                 stream = null;
@@ -193,7 +193,7 @@ public class TweetStreamService {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
                 String tweetRecord = reader.readLine();
                 while (tweetRecord != null) {
-                    queue.offer(tweetRecord);
+                    queue.put(tweetRecord);
 
                     // reset backoff multiplier upon successful receipt of a tweet
                     resetBackoff();
@@ -202,13 +202,17 @@ public class TweetStreamService {
                 }
             } catch (IOException e) {
                 logger.info("Stream is closed or has stopped", e);
+
+            } catch (InterruptedException e) {
+                logger.info("Interrupted while waiting for process of adding tweet to queue to unblock", e);
+                return;
             }
             logger.info("Tweet stream processing completed");
             scheduleStartStreamWithBackoff();
         }
     }
 
-    private Set<String> parseCommaSeparatedPropreties(final ProcessContext context, final PropertyDescriptor property) {
+    private Set<String> parseCommaSeparatedProperties(final ProcessContext context, final PropertyDescriptor property) {
         Set<String> fields = null;
         if (context.getProperty(property).isSet()) {
             fields = new HashSet<>();

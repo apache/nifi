@@ -80,5 +80,6 @@ public class TestConsumeTwitter {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(EXPECTED_TWEET);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
+        flowFile.assertAttributeEquals("tweets", "1");
     }
 }

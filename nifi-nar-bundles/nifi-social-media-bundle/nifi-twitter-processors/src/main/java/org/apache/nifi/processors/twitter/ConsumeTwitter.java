@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @PrimaryNodeOnly
 @SupportsBatching
@@ -60,8 +61,7 @@ import java.util.concurrent.LinkedBlockingQueue;
     + "stream based on previously uploaded rules. This processor also provides a pass through for certain fields of the "
     + "tweet to be returned as part of the response. See "
     + "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/introduction for more information regarding the "
-    + "Tweet object model. \n\n"
-    + "Warning: the underlying Java SDK used is still in beta as of the publishing of this processor feature.")
+    + "Tweet object model.")
 @WritesAttribute(attribute = "mime.type", description = "Sets mime type to application/json")
 public class ConsumeTwitter extends AbstractProcessor {
 
@@ -71,17 +71,14 @@ public class ConsumeTwitter extends AbstractProcessor {
                     "https://developer.twitter.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample-stream");
     static final AllowableValue ENDPOINT_SEARCH = new AllowableValue(StreamEndpoint.SEARCH_ENDPOINT.getEndpointName(),
             "Search Stream",
-            "The endpoint that provides a stream of tweets that matches the rules you added to the stream. " +
-                    "If rules are not configured, then the stream will be empty. " +
+            "The search stream produces Tweets that match filtering rules configured on Twitter services. " +
+                    "At least one well-formed filtering rule must be configured. " +
                     "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream");
 
     public static final PropertyDescriptor ENDPOINT = new PropertyDescriptor.Builder()
             .name("stream-endpoint")
             .displayName("Stream Endpoint")
-            .description("Specifies which endpoint tweets should be streamed. " +
-                    "Usage of search endpoint requires that rules be uploaded beforehand. See " +
-                    "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/" +
-                    "post-tweets-search-stream-rules")
+            .description("The source from which the processor will consume Tweets.")
             .required(true)
             .allowableValues(ENDPOINT_SAMPLE, ENDPOINT_SEARCH)
             .defaultValue(ENDPOINT_SAMPLE.getValue())
@@ -89,8 +86,8 @@ public class ConsumeTwitter extends AbstractProcessor {
     public static final PropertyDescriptor BASE_PATH = new PropertyDescriptor.Builder()
             .name("base-path")
             .displayName("Base Path")
-            .description("Specifies which base path the API client will use for HTTP requests. " +
-                    "Generally should not be changed from the default https://api.twitter.com except for testing")
+            .description("The base path that the processor will use for making HTTP requests. " +
+                    "The default value should be sufficient for most use cases.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("https://api.twitter.com")
@@ -114,11 +111,11 @@ public class ConsumeTwitter extends AbstractProcessor {
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("batch-size")
             .displayName("Batch Size")
-            .description("The maximum size of the number of tweets to be written to a single FlowFile." +
-                    "Will write less tweets if it there are not any tweets left in queue")
+            .description("The maximum size of the number of Tweets to be written to a single FlowFile. " +
+                    "Will write fewer Tweets based on the number available in the queue at the time of processor invocation.")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("10")
+            .defaultValue("1000")
             .build();
     public static final PropertyDescriptor BACKOFF_ATTEMPTS = new PropertyDescriptor.Builder()
             .name("backoff-attempts")
@@ -135,7 +132,7 @@ public class ConsumeTwitter extends AbstractProcessor {
     public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
             .name("backoff-time")
             .displayName("Backoff Time")
-            .description("The duration to backoff to start attempting a new stream if" +
+            .description("The duration to backoff before requesting a new stream if" +
                     "the current one fails for any reason. Will increase by factor of 2 every time a restart fails")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -154,7 +151,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .name("connect-timeout")
             .displayName("Connect Timeout")
             .description("The maximum time in which client should establish a connection with the " +
-                    "Twitter API before a time out. A value of 0 will mean no timeout at all")
+                    "Twitter API before a time out. Setting the value to 0 disables connection timeouts.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 secs")
@@ -163,7 +160,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .name("read-timeout")
             .displayName("Read Timeout")
             .description("The maximum time of inactivity between receiving tweets from Twitter through " +
-                    "the API before a timeout. A value of 0 will mean no timeout at all")
+                    "the API before a timeout. Setting the value to 0 disables read timeouts.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("10 secs")
@@ -301,36 +298,31 @@ public class ConsumeTwitter extends AbstractProcessor {
         messageQueue = new LinkedBlockingQueue<>(context.getProperty(QUEUE_SIZE).asInteger());
 
         tweetStreamService = new TweetStreamService(context, messageQueue, getLogger());
-        tweetStreamService.setBasePath(context.getProperty(BASE_PATH).getValue());
-        final String endpointName = context.getProperty(ENDPOINT).getValue();
-        if (ENDPOINT_SAMPLE.getValue().equals(endpointName)) {
-            tweetStreamService.start(StreamEndpoint.SAMPLE_ENDPOINT);
-        } else {
-            tweetStreamService.start(StreamEndpoint.SEARCH_ENDPOINT);
-        }
+        tweetStreamService.start();
     }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        if (messageQueue.isEmpty()) {
+        final String firstTweet = messageQueue.poll();
+        if (firstTweet == null) {
             context.yield();
             return;
         }
 
+        final AtomicInteger tweetCount = new AtomicInteger(1);
         FlowFile flowFile = session.create();
         flowFile = session.write(flowFile, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
 
                 final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-                String tweet = messageQueue.poll();
-                int tweetCount = 1;
+                String tweet = firstTweet;
                 out.write('[');
                 out.write(tweet.getBytes(StandardCharsets.UTF_8));
-                while (tweetCount < batchSize && (tweet = messageQueue.poll()) != null) {
+                while (tweetCount.get() < batchSize && (tweet = messageQueue.poll()) != null) {
                     out.write(',');
                     out.write(tweet.getBytes(StandardCharsets.UTF_8));
-                    tweetCount++;
+                    tweetCount.getAndIncrement();
                 }
                 out.write(']');
             }
@@ -339,6 +331,7 @@ public class ConsumeTwitter extends AbstractProcessor {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
         attributes.put(CoreAttributes.FILENAME.key(), String.format("%s.json", UUID.randomUUID()));
+        attributes.put("tweets", Integer.toString(tweetCount.get()));
         flowFile = session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, REL_SUCCESS);
