@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.TestRunner;
@@ -30,7 +31,9 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import org.junit.jupiter.api.Test;
 import org.junit.Assert;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Unit tests for {@link PutCloudWatchMetric}.
@@ -282,19 +285,21 @@ public class TestPutCloudWatchMetric {
         runner.assertNotValid();
     }
 
-    @Test
-    public void testValidUnit() throws Exception {
+    private static Stream<Arguments> data() {
+        return PutCloudWatchMetric.units.stream().map(Arguments::of);
+    }
+
+    @ParameterizedTest
+    @MethodSource("data")
+    public void testValidUnit(String unit) {
         MockPutCloudWatchMetric mockPutCloudWatchMetric = new MockPutCloudWatchMetric();
         final TestRunner runner = TestRunners.newTestRunner(mockPutCloudWatchMetric);
 
-        for (String unit: PutCloudWatchMetric.getUnitParameters()) {
-
-            runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
-            runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
-            runner.setProperty(PutCloudWatchMetric.UNIT, unit);
-            runner.setProperty(PutCloudWatchMetric.VALUE, "1");
-            runner.assertValid();
-        }
+        runner.setProperty(PutCloudWatchMetric.NAMESPACE, "TestNamespace");
+        runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "TestMetric");
+        runner.setProperty(PutCloudWatchMetric.UNIT, unit);
+        runner.setProperty(PutCloudWatchMetric.VALUE, "1");
+        runner.assertValid();
     }
 
     @Test
