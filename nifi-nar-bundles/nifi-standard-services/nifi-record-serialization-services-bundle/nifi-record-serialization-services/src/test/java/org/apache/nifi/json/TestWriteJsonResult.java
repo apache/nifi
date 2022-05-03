@@ -102,6 +102,7 @@ class TestWriteJsonResult {
         valueMap.put("enum", null);
         valueMap.put("choice", 48L);
         valueMap.put("map", map);
+        valueMap.put("uuid", "8bb20bf2-ec41-4b94-80a4-922f4dba009c");
 
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);

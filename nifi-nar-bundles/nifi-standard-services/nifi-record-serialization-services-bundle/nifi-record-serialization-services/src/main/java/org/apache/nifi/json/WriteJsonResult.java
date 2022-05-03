@@ -374,6 +374,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
             case SHORT:
                 generator.writeNumber(DataTypeUtils.toInteger(coercedValue, fieldName));
                 break;
+            case UUID:
             case CHAR:
             case STRING:
                 generator.writeString(coercedValue.toString());

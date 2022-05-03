@@ -154,6 +154,7 @@ public class XMLRecordReader implements RecordReader {
             case STRING:
             case DATE:
             case TIME:
+            case UUID:
             case TIMESTAMP: {
 
                 StringBuilder content = new StringBuilder();

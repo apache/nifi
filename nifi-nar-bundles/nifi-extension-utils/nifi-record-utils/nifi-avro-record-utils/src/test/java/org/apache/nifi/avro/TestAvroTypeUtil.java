@@ -187,6 +187,41 @@ public class TestAvroTypeUtil {
     }
 
     @Test
+    public void testUUIDSupport() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("uuidv4", RecordFieldType.UUID.getDataType(), false));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Schema result = AvroTypeUtil.extractAvroSchema(schema);
+        assertNotNull(result);
+        assertEquals(1, result.getFields().size());
+        assertNotNull(result.getFields().get(0));
+        assertEquals(LogicalTypes.uuid(), result.getFields().get(0).schema().getLogicalType());
+    }
+
+    @Test
+    public void testAvroUUIDToRecordApiUUID() {
+        String avroSchema = "{\n" +
+                "\t\"type\": \"record\",\n" +
+                "\t\"name\": \"test\",\n" +
+                "\t\"fields\": [\n" +
+                "\t\t{\n" +
+                "\t\t\t\"name\": \"uuid_test\",\n" +
+                "\t\t\t\"type\": {\n" +
+                "\t\t\t\t\"type\": \"string\",\n" +
+                "\t\t\t\t\"logicalType\": \"uuid\"\n" +
+                "\t\t\t}\n" +
+                "\t\t}\n" +
+                "\t]\n" +
+                "}";
+        Schema schema = new Schema.Parser().parse(avroSchema);
+        RecordSchema recordSchema = AvroTypeUtil.createSchema(schema);
+        Optional<RecordField> uuidField = recordSchema.getField("uuid_test");
+        assertTrue(uuidField.isPresent());
+        RecordField field = uuidField.get();
+        assertTrue(field.getDataType() == RecordFieldType.UUID.getDataType());
+    }
+
+    @Test
     public void testCreateAvroSchemaPrimitiveTypes() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("int", RecordFieldType.INT.getDataType()));

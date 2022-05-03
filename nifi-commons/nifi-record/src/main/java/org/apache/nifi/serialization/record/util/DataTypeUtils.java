@@ -38,6 +38,7 @@ import java.io.Reader;
 import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
@@ -72,6 +73,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -210,6 +212,8 @@ public class DataTypeUtils {
                 return toTime(value, timeFormat, fieldName);
             case TIMESTAMP:
                 return toTimestamp(value, timestampFormat, fieldName);
+            case UUID:
+                return toUUID(value);
             case ARRAY:
                 return toArray(value, fieldName, ((ArrayDataType)dataType).getElementType(), charset);
             case MAP:
@@ -231,6 +235,40 @@ public class DataTypeUtils {
         }
 
         return null;
+    }
+
+    private static Object toUUID(Object value) {
+        if (value == null) {
+            throw new IllegalTypeConversionException("Null values cannot be converted to a UUID");
+        }
+
+        if (value instanceof String) {
+            try {
+                return UUID.fromString((String)value);
+            } catch (Exception ex) {
+                throw new IllegalTypeConversionException(String.format("Could not parse %s into a UUID", value), ex);
+            }
+        } else if (value instanceof byte[]) {
+            return uuidFromBytes((byte[])value);
+        } else if (value instanceof Byte[]) {
+            Byte[] array = (Byte[])value;
+            byte[] converted = new byte[array.length];
+            for (int x = 0; x < array.length; x++) {
+                converted[x] = array[x];
+            }
+            return uuidFromBytes(converted);
+        } else {
+            throw new IllegalTypeConversionException(value.getClass() + " cannot be converted into a UUID");
+        }
+    }
+
+    private static UUID uuidFromBytes(byte[] bytes) {
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap(bytes);
+            return new UUID(buffer.getLong(), buffer.getLong());
+        } catch (Exception ex) {
+            throw new IllegalTypeConversionException("Could not convert bytes to UUID");
+        }
     }
 
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
@@ -710,6 +748,20 @@ public class DataTypeUtils {
                 dest[i] = src[i];
             }
             return dest;
+        }
+
+        if (value instanceof UUID) {
+            UUID uuid = (UUID)value;
+            ByteBuffer buffer = ByteBuffer.allocate(16);
+            buffer.putLong(uuid.getMostSignificantBits());
+            buffer.putLong(uuid.getLeastSignificantBits());
+            Byte[] result = new Byte[16];
+            byte[] array = buffer.array();
+            for (int index = 0; index < array.length; index++) {
+                result[index] = array[index];
+            }
+
+            return result;
         }
 
         if (value instanceof List) {

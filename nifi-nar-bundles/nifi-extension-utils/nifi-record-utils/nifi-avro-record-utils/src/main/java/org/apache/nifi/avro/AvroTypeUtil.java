@@ -89,6 +89,7 @@ public class AvroTypeUtil {
     private static final String LOGICAL_TYPE_TIMESTAMP_MILLIS = "timestamp-millis";
     private static final String LOGICAL_TYPE_TIMESTAMP_MICROS = "timestamp-micros";
     private static final String LOGICAL_TYPE_DECIMAL = "decimal";
+    private static final String LOGICAL_TYPE_UUID = "uuid";
 
 
     public static Schema extractAvroSchema(final RecordSchema recordSchema) {
@@ -299,6 +300,10 @@ public class AvroTypeUtil {
                 schema = Schema.create(Type.LONG);
                 LogicalTypes.timestampMillis().addToSchema(schema);
                 break;
+            case UUID:
+                schema = Schema.create(Type.STRING);
+                LogicalTypes.uuid().addToSchema(schema);
+                break;
             case ENUM:
                 final EnumDataType enumType = (EnumDataType) dataType;
                 schema = Schema.createEnum(fieldName, "", "org.apache.nifi", enumType.getEnums());
@@ -362,6 +367,8 @@ public class AvroTypeUtil {
                 case LOGICAL_TYPE_DECIMAL:
                     final LogicalTypes.Decimal decimal = (LogicalTypes.Decimal) logicalType;
                     return RecordFieldType.DECIMAL.getDecimalDataType(decimal.getPrecision(), decimal.getScale());
+                case LOGICAL_TYPE_UUID:
+                    return RecordFieldType.UUID.getDataType();
             }
         }
 
