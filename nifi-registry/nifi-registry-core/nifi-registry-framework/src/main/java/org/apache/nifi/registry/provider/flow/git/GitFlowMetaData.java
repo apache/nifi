@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.provider.flow.git;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.LsRemoteCommand;
@@ -24,6 +25,7 @@ import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectStream;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.lib.RepositoryCache;
@@ -522,7 +524,8 @@ class GitFlowMetaData {
 
     byte[] getContent(String objectId) throws IOException {
         final ObjectId flowSnapshotObjectId = gitRepo.resolve(objectId);
-        return gitRepo.newObjectReader().open(flowSnapshotObjectId).getBytes();
+        ObjectStream objStream = gitRepo.newObjectReader().open(flowSnapshotObjectId).openStream();
+        return IOUtils.toByteArray(objStream);
     }
 
 }
