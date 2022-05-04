@@ -18,20 +18,20 @@ package org.apache.nifi.json;
 
 import org.apache.nifi.components.DescribedValue;
 
-public enum StartingFieldStrategy implements DescribedValue {
-    ROOT_NODE(
-            "Root Node",
-            "Begins processing from the root node."
+public enum SchemaApplicationStrategy implements DescribedValue {
+    WHOLE_JSON(
+            "Whole JSON",
+            "Applies the schema for the whole JSON."
     ),
-    NESTED_FIELD(
-            "Nested Field",
-            "Skips forward to the given nested JSON field (array or object) to begin processing."
+    SELECTED_PART(
+            "Selected Part",
+            "Applies the schema for the selected part starting from the \"Starting Field Name\"."
     );
 
     private final String displayName;
     private final String description;
 
-    StartingFieldStrategy(final String displayName, final String description) {
+    SchemaApplicationStrategy(String displayName, String description) {
         this.displayName = displayName;
         this.description = description;
     }

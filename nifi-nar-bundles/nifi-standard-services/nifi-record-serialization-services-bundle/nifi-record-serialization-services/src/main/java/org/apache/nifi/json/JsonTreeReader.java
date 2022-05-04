@@ -45,12 +45,16 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.apache.nifi.schema.access.SchemaAccessUtils.CONFLUENT_ENCODED_SCHEMA;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_CONTENT_ENCODED_SCHEMA;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.HWX_SCHEMA_REF_ATTRIBUTES;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 
@@ -70,6 +74,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     private volatile String timestampFormat;
     private volatile String startingFieldName;
     private volatile StartingFieldStrategy startingFieldStrategy;
+    private volatile SchemaApplicationStrategy schemaApplicationStrategy;
+
 
     public static final PropertyDescriptor STARTING_FIELD_STRATEGY = new PropertyDescriptor.Builder()
             .name("starting-field-strategy")
@@ -77,11 +83,8 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .description("Start processing from the root node or from a specified nested node.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue(StartingFieldStrategy.ROOT_NODE.name())
-            .allowableValues(
-                    Arrays.stream(StartingFieldStrategy.values()).map(startingStrategy ->
-                            new AllowableValue(startingStrategy.name(), startingStrategy.getDisplayName(), startingStrategy.getDescription())
-                    ).toArray(AllowableValue[]::new))
+            .defaultValue(StartingFieldStrategy.ROOT_NODE.getValue())
+            .allowableValues(StartingFieldStrategy.class)
             .build();
 
 
@@ -95,6 +98,18 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
             .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
             .build();
 
+    public static final PropertyDescriptor SCHEMA_APPLICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("schema-application-strategy")
+            .displayName("Schema Application Strategy")
+            .description("Specifies whether the schema is defined for the whole JSON or for the selected part starting from \"Starting Field Name\".")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue(SchemaApplicationStrategy.SELECTED_PART.getValue())
+            .dependsOn(STARTING_FIELD_STRATEGY, StartingFieldStrategy.NESTED_FIELD.name())
+            .dependsOn(SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY, HWX_SCHEMA_REF_ATTRIBUTES, HWX_CONTENT_ENCODED_SCHEMA, CONFLUENT_ENCODED_SCHEMA)
+            .allowableValues(SchemaApplicationStrategy.class)
+            .build();
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
@@ -104,6 +119,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
                 .build());
         properties.add(STARTING_FIELD_STRATEGY);
         properties.add(STARTING_FIELD_NAME);
+        properties.add(SCHEMA_APPLICATION_STRATEGY);
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
@@ -117,6 +133,7 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
         this.startingFieldStrategy = StartingFieldStrategy.valueOf(context.getProperty(STARTING_FIELD_STRATEGY).getValue());
         this.startingFieldName = context.getProperty(STARTING_FIELD_NAME).getValue();
+        this.schemaApplicationStrategy = SchemaApplicationStrategy.valueOf(context.getProperty(SCHEMA_APPLICATION_STRATEGY).getValue());
     }
 
     @Override
@@ -148,6 +165,6 @@ public class JsonTreeReader extends SchemaRegistryService implements RecordReade
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
             throws IOException, MalformedRecordException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
+        return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName, schemaApplicationStrategy);
     }
 }

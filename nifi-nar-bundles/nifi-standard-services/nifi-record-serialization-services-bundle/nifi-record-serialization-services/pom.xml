@@ -222,6 +222,7 @@
                         <exclude>src/test/resources/json/single-bank-account.json</exclude>
                         <exclude>src/test/resources/json/single-bank-account-wrong-field-type.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested-array.json</exclude>
+                        <exclude>src/test/resources/json/single-element-deep-nested.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested.json</exclude>
                         <exclude>src/test/resources/json/single-element-nested-array-middle.json</exclude>
                         <exclude>src/test/resources/json/nested-array-then-start-object.json</exclude>

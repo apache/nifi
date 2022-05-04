@@ -36,6 +36,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
+import org.apache.nifi.json.SchemaApplicationStrategy;
 import org.apache.nifi.json.StartingFieldStrategy;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -347,7 +348,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
                             TIME_FORMAT,
                             DATE_TIME_FORMAT,
                             StartingFieldStrategy.NESTED_FIELD,
-                            STARTING_FIELD_NAME
+                            STARTING_FIELD_NAME,
+                            SchemaApplicationStrategy.SELECTED_PART
                     );
 
                     RecordSetWriter writer = writerFactory.createWriter(

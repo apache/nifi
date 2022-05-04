@@ -39,35 +39,73 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
+
     private final RecordSchema schema;
 
-
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
-        final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat);
-        this.schema = schema;
+                                   final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
+        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null);
     }
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat,
-                                   final StartingFieldStrategy strategy, final String startingFieldName) throws IOException, MalformedRecordException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat, strategy, startingFieldName);
-        this.schema = schema;
+                                   final StartingFieldStrategy startingFieldStrategy, final String startingFieldName,
+                                   final SchemaApplicationStrategy schemaApplicationStrategy)
+            throws IOException, MalformedRecordException {
+
+        super(in, logger, dateFormat, timeFormat, timestampFormat, startingFieldStrategy, startingFieldName);
+        if (startingFieldStrategy == StartingFieldStrategy.NESTED_FIELD && schemaApplicationStrategy == SchemaApplicationStrategy.WHOLE_JSON) {
+            this.schema = getSelectedSchema(schema, startingFieldName);
+        } else {
+            this.schema = schema;
+        }
+    }
+
+    private RecordSchema getSelectedSchema(final RecordSchema schema, final String startingFieldName) {
+        final Queue<RecordSchema> schemas = new LinkedList<>();
+        schemas.add(schema);
+        while (!schemas.isEmpty()) {
+            final RecordSchema currentSchema = schemas.poll();
+            final Optional<RecordField> optionalRecordField = currentSchema.getField(startingFieldName);
+            if (optionalRecordField.isPresent()) {
+                return getChildSchemaFromField(optionalRecordField.get());
+            } else {
+                for (RecordField field : currentSchema.getFields()) {
+                    if (field.getDataType() instanceof  ArrayDataType || field.getDataType() instanceof RecordDataType) {
+                        schemas.add(getChildSchemaFromField(field));
+                    }
+                }
+            }
+
+        }
+        throw new RuntimeException(String.format("Selected schema field [%s] not found.", startingFieldName));
+    }
+
+    private RecordSchema getChildSchemaFromField(final RecordField recordField) {
+        if (recordField.getDataType() instanceof ArrayDataType) {
+            return ((RecordDataType) ((ArrayDataType) recordField.getDataType()).getElementType()).getChildSchema();
+        } else if (recordField.getDataType() instanceof RecordDataType) {
+            return ((RecordDataType) recordField.getDataType()).getChildSchema();
+        } else
+            throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", recordField.getFieldName()));
     }
 
     @Override
     protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields)
-        throws IOException, MalformedRecordException {
+            throws IOException, MalformedRecordException {
         return convertJsonNodeToRecord(jsonNode, schema, coerceTypes, dropUnknownFields, null);
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknown, final String fieldNamePrefix)
-        throws IOException, MalformedRecordException {
+            throws IOException, MalformedRecordException {
         if (jsonNode == null) {
             return null;
         }
@@ -90,7 +128,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
-            final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
+                                           final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount() * 2);
 

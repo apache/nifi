@@ -93,6 +93,13 @@ class TestJsonTreeRowRecordReader {
         return new SimpleRecordSchema(accountFields);
     }
 
+    private RecordSchema getSchema() {
+        final DataType accountType = RecordFieldType.RECORD.getRecordDataType(getAccountSchema());
+        final List<RecordField> fields = getDefaultFields();
+        fields.add(new RecordField("account", accountType));
+        fields.remove(new RecordField("balance", RecordFieldType.DOUBLE.getDataType()));
+        return new SimpleRecordSchema(fields);
+    }
 
     @Test
     void testReadChoiceOfStringOrArrayOfRecords() throws IOException, MalformedRecordException {
@@ -1050,7 +1057,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartsFromNestedObject() throws IOException, MalformedRecordException {
+    void testStartFromNestedObject() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1069,7 +1076,7 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartsFromMultipleNestedField() throws IOException, MalformedRecordException {
+    void testStartFromMultipleNestedField() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/multiple-nested-field.json";
 
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
@@ -1105,7 +1112,8 @@ class TestJsonTreeRowRecordReader {
         SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(getDefaultFields());
         List<Object> expected = Collections.emptyList();
 
-        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD, "notfound");
+        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "notfound", SchemaApplicationStrategy.SELECTED_PART);
     }
 
     @Test
@@ -1128,29 +1136,119 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD, "accounts");
+        testReadRecords(jsonPath, expectedRecordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "accounts", SchemaApplicationStrategy.SELECTED_PART);
+    }
+
+    @Test
+    void testStartFromNestedObjectWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/single-element-nested.json";
+
+        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
+        ));
+
+        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("account", RecordFieldType.RECORD.getRecordDataType(accountSchema))
+        ));
+
+        RecordSchema expectedRecordSchema = accountSchema;
+
+        List<Object> expected = Collections.singletonList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("id", 42);
+                    put("balance", 4750.89);
+                }})
+        );
+
+        testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "account", SchemaApplicationStrategy.WHOLE_JSON);
+    }
+
+    @Test
+    void testStartFromNestedArrayWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/single-element-nested-array.json";
+
+        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
+        ));
+
+        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountSchema)))
+        ));
+
+        RecordSchema expectedRecordSchema = accountSchema;
+
+        List<Object> expected = Arrays.asList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("id", 42);
+                    put("balance", 4750.89);
+                }}),
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("id", 43);
+                    put("balance", 48212.38);
+                }})
+        );
+
+        testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "accounts", SchemaApplicationStrategy.WHOLE_JSON);
+    }
+
+    @Test
+    void testStartFromDeepNestedObject() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/single-element-deep-nested.json";
+
+        RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("rootInt", RecordFieldType.INT.getDataType()),
+                new RecordField("rootString", RecordFieldType.STRING.getDataType()),
+                new RecordField("nestedLevel1Record", RecordFieldType.RECORD.getRecordDataType(
+                        new SimpleRecordSchema(Arrays.asList(
+                                new RecordField("nestedLevel1Int", RecordFieldType.INT.getDataType()),
+                                new RecordField("nestedLevel1String", RecordFieldType.STRING.getDataType()),
+                                new RecordField("nestedLevel2Record", RecordFieldType.RECORD.getRecordDataType(
+                                        new SimpleRecordSchema(Arrays.asList(
+                                                new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
+                                                new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
+                                        ))
+                                ))
+                        ))
+                ))
+        ));
+
+        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
+                new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
+        ));
+
+        List<Object> expected = Collections.singletonList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("nestedLevel2Int", 111);
+                    put("nestedLevel2String", "root.level1.level2:string");
+                }})
+        );
+
+        testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
-        // GIVEN
         final File jsonFile = new File(jsonPath);
-
         try (
             InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))
         ) {
             RecordSchema schema = inferSchema(jsonStream, StartingFieldStrategy.ROOT_NODE, null);
-
-            // WHEN
-            // THEN
             testReadRecords(jsonStream, schema, expected);
         }
     }
 
-    private void testReadRecords(String jsonPath, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonPath, List<Object> expected, StartingFieldStrategy strategy,
+                                 String startingFieldName) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
-            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName);
+            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 
@@ -1161,10 +1259,11 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName) throws IOException, MalformedRecordException {
+    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy,
+                                 String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
-            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName);
+            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
         }
     }
 
@@ -1195,10 +1294,11 @@ class TestJsonTreeRowRecordReader {
         }
     }
 
-    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy, String startingFieldName)
+    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected, StartingFieldStrategy strategy,
+                                 String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy)
             throws IOException, MalformedRecordException {
         try (JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat,
-                strategy, startingFieldName)) {
+                strategy, startingFieldName, schemaApplicationStrategy)) {
             List<Object> actual = new ArrayList<>();
             Record record;
 
