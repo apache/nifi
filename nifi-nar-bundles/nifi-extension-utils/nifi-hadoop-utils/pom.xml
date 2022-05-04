@@ -126,12 +126,6 @@
     </dependencies>
     <dependencyManagement>
         <dependencies>
-            <!-- Override commons-io:2.5 from hadoop -->
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.10.0</version>
-            </dependency>
             <!-- Override commons-compress:1.19 from hadoop -->
             <dependency>
                 <groupId>org.apache.commons</groupId>

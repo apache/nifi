@@ -36,12 +36,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override commons-io:2.5 from ranger -->
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.10.0</version>
-            </dependency>
             <!-- Override commons-compress:1.19 from ranger -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
