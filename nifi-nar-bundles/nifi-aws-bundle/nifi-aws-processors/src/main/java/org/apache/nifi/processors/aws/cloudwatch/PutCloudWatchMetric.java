@@ -81,10 +81,6 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
                     "Gigabits/Second", "Terabits/Second", "Count/Second",
                     "None", "")));
 
-    public static Set<String> getUnitParameters() {
-        return units;
-    }
-
     private static final Validator UNIT_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {

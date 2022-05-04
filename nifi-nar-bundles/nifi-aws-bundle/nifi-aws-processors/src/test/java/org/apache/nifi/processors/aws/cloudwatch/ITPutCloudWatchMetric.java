@@ -27,8 +27,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-
 /**
  * Provides integration level testing with actual AWS CloudWatch resources for
  * {@link PutCloudWatchMetric} and requires additional configuration and resources to work.
