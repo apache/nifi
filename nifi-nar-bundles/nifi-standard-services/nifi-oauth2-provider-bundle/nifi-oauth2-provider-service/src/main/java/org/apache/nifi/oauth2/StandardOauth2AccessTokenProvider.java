@@ -315,19 +315,18 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         this.accessDetails = getAccessDetails(refreshRequest);
     }
 
-    private AccessToken getAccessDetails(Request newRequest) {
+    private AccessToken getAccessDetails(final Request newRequest) {
         try {
-            Response response = httpClient.newCall(newRequest).execute();
-            String responseBody = response.body().string();
-            if (response.code() != 200) {
+            final Response response = httpClient.newCall(newRequest).execute();
+            final String responseBody = response.body().string();
+            if (response.isSuccessful()) {
+                getLogger().debug("OAuth2 Access Token retrieved [HTTP {}]", response.code());
+                return ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
+            } else {
                 getLogger().error(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", response.code(), responseBody));
                 throw new ProcessException(String.format("OAuth2 access token request failed [HTTP %d]", response.code()));
             }
-
-            AccessToken accessDetails = ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
-
-            return accessDetails;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("OAuth2 access token request failed", e);
         }
     }
