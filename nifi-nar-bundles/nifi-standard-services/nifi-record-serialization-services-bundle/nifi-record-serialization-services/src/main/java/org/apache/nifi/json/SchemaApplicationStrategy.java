@@ -18,26 +18,27 @@ package org.apache.nifi.json;
 
 import org.apache.nifi.components.DescribedValue;
 
-public enum StartingFieldStrategy implements DescribedValue {
-    ROOT_NODE {
+public enum SchemaApplicationStrategy implements DescribedValue {
+    WHOLE_JSON {
         @Override
         public String getDisplayName() {
-            return "Root Node";
+            return "Whole JSON";
         }
 
         @Override
         public String getDescription() {
-            return "Begins processing from the root node.";
+            return "Applies the schema for the whole JSON.";
         }
-    }, NESTED_FIELD {
+    },
+    SELECTED_PART {
         @Override
         public String getDisplayName() {
-            return "Nested Field";
+            return "Selected Part";
         }
 
         @Override
         public String getDescription() {
-            return "Skips forward to the given nested JSON field (array or object) to begin processing.";
+            return "Applies the schema for the selected part starting from the \"Starting Field Name\".";
         }
     };
 
