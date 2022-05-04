@@ -30,6 +30,8 @@ public class StandardProtectionSchemeResolverTest {
 
     private static final String AES_GCM_PATH = "aes/gcm";
 
+    private static final String AES_GCM_256_PATH = "aes/gcm/256";
+
     private static final String UNKNOWN = "UNKNOWN";
 
     private StandardProtectionSchemeResolver resolver;
@@ -42,6 +44,13 @@ public class StandardProtectionSchemeResolverTest {
     @Test
     public void getProtectionSchemeAesGcmFound() {
         final ProtectionScheme protectionScheme = resolver.getProtectionScheme(AES_GCM);
+        assertNotNull(protectionScheme);
+        assertEquals(AES_GCM_PATH, protectionScheme.getPath());
+    }
+
+    @Test
+    public void getProtectionSchemeAesGcm256Found() {
+        final ProtectionScheme protectionScheme = resolver.getProtectionScheme(AES_GCM_256_PATH);
         assertNotNull(protectionScheme);
         assertEquals(AES_GCM_PATH, protectionScheme.getPath());
     }
