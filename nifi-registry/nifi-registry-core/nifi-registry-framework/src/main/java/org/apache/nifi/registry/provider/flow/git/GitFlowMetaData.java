@@ -524,7 +524,7 @@ class GitFlowMetaData {
 
     byte[] getContent(String objectId) throws IOException {
         final ObjectId flowSnapshotObjectId = gitRepo.resolve(objectId);
-        ObjectStream objStream = gitRepo.newObjectReader().open(flowSnapshotObjectId).openStream();
+        final ObjectStream objStream = gitRepo.newObjectReader().open(flowSnapshotObjectId).openStream();
         return IOUtils.toByteArray(objStream);
     }
 
