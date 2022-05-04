@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -138,19 +137,13 @@ public class PutDynamoDB extends AbstractWriteDynamoDBProcessor {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             session.exportTo(flowFile, baos);
 
-            try {
-                if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
-                    tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
-                        .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
-                } else {
-                    tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
-                        .withKeyComponent(rangeKeyName, rangeKeyValue)
-                        .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
-                }
-            } catch (IOException ioe) {
-                getLogger().error("IOException while creating put item : " + ioe.getMessage());
-                flowFile = session.putAttribute(flowFile, DYNAMODB_ITEM_IO_ERROR, ioe.getMessage());
-                session.transfer(flowFile, REL_FAILURE);
+            if (rangeKeyValue == null || StringUtils.isBlank(rangeKeyValue.toString())) {
+                tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
+                    .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
+            } else {
+                tableWriteItems.addItemToPut(new Item().withKeyComponent(hashKeyName, hashKeyValue)
+                    .withKeyComponent(rangeKeyName, rangeKeyValue)
+                    .withJSON(jsonDocument, IOUtils.toString(baos.toByteArray(), charset)));
             }
             keysToFlowFileMap.put(new ItemKeys(hashKeyValue, rangeKeyValue), flowFile);
         }

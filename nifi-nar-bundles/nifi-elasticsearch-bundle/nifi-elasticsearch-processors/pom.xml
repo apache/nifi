@@ -93,7 +93,6 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.10.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
