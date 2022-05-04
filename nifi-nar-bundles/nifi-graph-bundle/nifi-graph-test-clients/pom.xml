@@ -29,12 +29,6 @@
     </properties>
     <dependencyManagement>
         <dependencies>
-            <!-- Override commons-io:2.3 from janusgraph-core -->
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.10.0</version>
-            </dependency>
             <!-- Override Gremlin -->
             <dependency>
                 <groupId>org.apache.tinkerpop</groupId>

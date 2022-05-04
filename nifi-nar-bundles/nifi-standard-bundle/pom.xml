@@ -126,11 +126,6 @@
                 <version>${yammer.metrics.version}</version>
             </dependency>
             <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.10.0</version>
-            </dependency>
-            <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
                 <version>3.6</version>

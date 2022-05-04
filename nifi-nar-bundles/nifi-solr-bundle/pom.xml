@@ -27,14 +27,4 @@
         <module>nifi-solr-processors</module>
         <module>nifi-solr-nar</module>
     </modules>
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override commons-io:2.5 from solr -->
-            <dependency>
-                <groupId>commons-io</groupId>
-                <artifactId>commons-io</artifactId>
-                <version>2.10.0</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>
