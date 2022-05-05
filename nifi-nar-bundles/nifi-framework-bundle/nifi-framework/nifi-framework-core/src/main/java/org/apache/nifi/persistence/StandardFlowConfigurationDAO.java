@@ -187,10 +187,10 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             throw new NullPointerException();
         }
 
-        if (serializationStrategy == FlowSerializationStrategy.WRITE_JSON || serializationStrategy == FlowSerializationStrategy.WRITE_XML_AND_JSON) {
+        if (serializationStrategy.writesJson()) {
             saveJson(controller, archive);
         }
-        if (serializationStrategy == FlowSerializationStrategy.WRITE_XML || serializationStrategy == FlowSerializationStrategy.WRITE_XML_AND_JSON) {
+        if (serializationStrategy.writesXml()) {
             saveXml(controller, archive);
         }
     }

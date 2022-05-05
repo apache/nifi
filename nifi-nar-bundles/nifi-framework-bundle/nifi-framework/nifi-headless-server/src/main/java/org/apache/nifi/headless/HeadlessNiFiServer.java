@@ -157,7 +157,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     encryptor,
                     null, // revision manager
                     authorizer,
-                    FlowSerializationStrategy.WRITE_XML);
+                    FlowSerializationStrategy.WRITE_XML_ONLY);
 
             diagnosticsFactory = new BootstrapDiagnosticsFactory();
             ((BootstrapDiagnosticsFactory) diagnosticsFactory).setFlowController(flowController);

@@ -17,7 +17,15 @@
 package org.apache.nifi.controller;
 
 public enum FlowSerializationStrategy {
-    WRITE_XML,
-    WRITE_JSON,
-    WRITE_XML_AND_JSON
+    WRITE_XML_ONLY,
+    WRITE_JSON_ONLY,
+    WRITE_XML_AND_JSON;
+
+    public boolean writesJson() {
+        return this == WRITE_JSON_ONLY || this == WRITE_XML_AND_JSON;
+    }
+
+    public boolean writesXml() {
+        return this == WRITE_XML_ONLY || this == WRITE_XML_AND_JSON;
+    }
 }
