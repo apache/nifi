@@ -144,7 +144,6 @@ public class JASN1RecordReader implements RecordReader {
             } else {
                 return null;
             }
-
         });
     }
 

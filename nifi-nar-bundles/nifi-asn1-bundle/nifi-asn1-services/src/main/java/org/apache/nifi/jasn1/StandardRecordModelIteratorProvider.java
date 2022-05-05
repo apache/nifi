@@ -35,7 +35,52 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
     @Override
     @SuppressWarnings("unchecked")
     public Iterator<BerType> iterator(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass, String recordField, Field seqOfField) {
+        if (StringUtils.isEmpty(recordField)) {
+            return new Iterator<BerType>() {
+                @Override
+                public boolean hasNext() {
+                    boolean hasNext;
+
+                    try {
+                        hasNext = inputStream.available() > 0;
+                    } catch (IOException e) {
+                        hasNext = false;
+                    }
+
+                    return hasNext;
+                }
+
+                @Override
+                public BerType next() {
+                    final BerType model = decode(inputStream, logger, rootClass);
+
+                    return model;
+                }
+            };
+        } else {
+            final BerType model = decode(inputStream, logger, rootClass);
+
+            final List<BerType> recordModels;
+            try {
+                final Method recordModelGetter = rootClass.getMethod(JASN1Utils.toGetterMethod(recordField));
+                final BerType readPointModel = (BerType) recordModelGetter.invoke(model);
+                if (seqOfField != null) {
+                    final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
+                    recordModels = (List<BerType>) invokeGetter(readPointModel, JASN1Utils.toGetterMethod(seqOf.getSimpleName()));
+                } else {
+                    recordModels = Collections.singletonList(readPointModel);
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException("Failed to get record models due to " + e, e);
+            }
+
+            return recordModels.iterator();
+        }
+    }
+
+    private BerType decode(InputStream inputStream, ComponentLog logger, Class<? extends BerType> rootClass) {
         final BerType model;
+
         try {
             model = rootClass.getDeclaredConstructor().newInstance();
         } catch (ReflectiveOperationException e) {
@@ -49,24 +94,6 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
             throw new RuntimeException("Failed to decode " + rootClass.getCanonicalName(), e);
         }
 
-        final List<BerType> recordModels;
-        if (StringUtils.isEmpty(recordField)) {
-            recordModels = Collections.singletonList(model);
-        } else {
-            try {
-                final Method recordModelGetter = rootClass.getMethod(JASN1Utils.toGetterMethod(recordField));
-                final BerType readPointModel = (BerType) recordModelGetter.invoke(model);
-                if (seqOfField != null) {
-                    final Class seqOf = JASN1Utils.getSeqOfElementType(seqOfField);
-                    recordModels = (List<BerType>) invokeGetter(readPointModel, JASN1Utils.toGetterMethod(seqOf.getSimpleName()));
-                } else {
-                    recordModels = Collections.singletonList(readPointModel);
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException("Failed to get record models due to " + e, e);
-            }
-        }
-
-        return recordModels.iterator();
+        return model;
     }
 }
