@@ -59,7 +59,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -120,7 +119,7 @@ public class ConfigService {
             cacheBuilder.refreshAfterWrite(cacheTtlMillis, TimeUnit.MILLISECONDS);
         }
         this.configurationCache = cacheBuilder
-                .build(new CacheLoader<ConfigurationProviderKey, ConfigurationProviderValue>() {
+                .build(new CacheLoader<>() {
                     @Override
                     public ConfigurationProviderValue load(ConfigurationProviderKey key) throws Exception {
                         return initConfigurationProviderValue(key);
@@ -216,49 +215,53 @@ public class ConfigService {
 
         try {
             final String flowId;
-            Map<String, List<String>> parameters = Collections.singletonMap("class", Collections.singletonList(heartbeat.getAgentClass()));
-            ConfigurationProviderValue configurationProviderValue = configurationCache.get(new ConfigurationProviderKey(acceptValues, parameters));
-            org.apache.nifi.minifi.c2.api.Configuration configuration = configurationProviderValue.getConfiguration();
-            try (InputStream inputStream = configuration.getInputStream();
-                 ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-                byte[] buffer = new byte[1024];
-                int read;
-                while ((read = inputStream.read(buffer)) >= 0) {
-                    outputStream.write(buffer, 0, read);
-                    sha256.update(buffer, 0, read);
-                }
-                flowId = bytesToHex(sha256.digest());
-
-            } catch (ConfigurationProviderException | IOException | NoSuchAlgorithmException e) {
-                logger.error("Error reading or checksumming configuration file", e);
-                throw new WebApplicationException(500);
-            }
-            final C2ProtocolContext heartbeatContext = C2ProtocolContext.builder()
-                    .baseUri(configuration.getURL().toURI())
-                    .contentLength(httpServletRequest.getHeader(CONTENT_LENGTH))
-                    .sha256(flowId)
-                    .build();
-
             Response response;
+            final String agentClass = heartbeat.getAgentClass();
+            if (agentClass == null || agentClass.equals("")) {
+                logger.warn("No agent class provided, returning OK (200)");
+                response = Response.ok().build();
+                return response;
+            } else {
+                Map<String, List<String>> parameters = Collections.singletonMap("class", Collections.singletonList(agentClass));
+                ConfigurationProviderValue configurationProviderValue = configurationCache.get(new ConfigurationProviderKey(acceptValues, parameters));
+                org.apache.nifi.minifi.c2.api.Configuration configuration;
+                try {
+                    configuration = configurationProviderValue.getConfiguration();
+                } catch (ConfigurationProviderException cpe) {
+                    logger.warn("No flow available for agent class " + agentClass + ", returning No Content (204)");
+                    response = Response.noContent().build();
+                    return response;
+                }
+                try (InputStream inputStream = configuration.getInputStream();
+                     ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+                    MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                    byte[] buffer = new byte[1024];
+                    int read;
+                    while ((read = inputStream.read(buffer)) >= 0) {
+                        outputStream.write(buffer, 0, read);
+                        sha256.update(buffer, 0, read);
+                    }
+                    flowId = bytesToHex(sha256.digest());
 
-            try {
-                final C2HeartbeatResponse heartbeatResponse = c2ProtocolService.processHeartbeat(heartbeat, heartbeatContext);
-                response = Response.ok(heartbeatResponse).build();
-            } catch (Exception e) {
-                logger.error("Heartbeat processing failed", e);
-                response = Response.status(BAD_REQUEST).entity(e.getMessage()).build();
+                } catch (ConfigurationProviderException | IOException | NoSuchAlgorithmException e) {
+                    logger.error("Error reading or checksumming configuration file", e);
+                    throw new WebApplicationException(500);
+                }
+                final C2ProtocolContext heartbeatContext = C2ProtocolContext.builder()
+                        .baseUri(uriInfo.getBaseUriBuilder().path("/config").queryParam("class", agentClass).build())
+                        .contentLength(httpServletRequest.getHeader(CONTENT_LENGTH))
+                        .sha256(flowId)
+                        .build();
+
+                try {
+                    final C2HeartbeatResponse heartbeatResponse = c2ProtocolService.processHeartbeat(heartbeat, heartbeatContext);
+                    response = Response.ok(heartbeatResponse).build();
+                } catch (Exception e) {
+                    logger.error("Heartbeat processing failed", e);
+                    response = Response.status(BAD_REQUEST).entity(e.getMessage()).build();
+                }
             }
             return response;
-        } catch (AuthorizationException e) {
-            logger.warn(HttpRequestUtil.getClientString(request) + " not authorized to access " + uriInfo, e);
-            return Response.status(403).build();
-        } catch (InvalidParameterException e) {
-            logger.info(HttpRequestUtil.getClientString(request) + " made invalid request with " + HttpRequestUtil.getQueryString(request), e);
-            return Response.status(400).entity("Invalid request.").build();
-        } catch (ConfigurationProviderException | URISyntaxException e) {
-            logger.warn("Unable to get configuration.", e);
-            return Response.status(500).build();
         } catch (ExecutionException | UncheckedExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof WebApplicationException) {
