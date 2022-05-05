@@ -32,7 +32,6 @@
         <module>nifi-flowfile-repo-serialization</module>
         <module>nifi-framework-components</module>
         <module>nifi-framework-core</module>
-        <module>nifi-framework-c2</module>
         <module>nifi-framework-cluster-protocol</module>
         <module>nifi-framework-cluster</module>
         <module>nifi-framework-nar-utils</module>
