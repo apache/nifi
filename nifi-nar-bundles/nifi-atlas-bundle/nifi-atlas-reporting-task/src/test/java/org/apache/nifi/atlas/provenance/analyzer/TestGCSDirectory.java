@@ -38,19 +38,24 @@ import static org.mockito.Mockito.when;
 
 public class TestGCSDirectory {
 
-    protected static final ProvenanceEventType PROVENANCE_EVENT_TYPE = ProvenanceEventType.SEND;
-    protected static final String ATLAS_NAMESPACE = "namespace1";
-    protected static final String GCS_BUCKET = "bucket1";
-    protected static final String GCS_FILENAME = "file1";
+    private static final ProvenanceEventType PROVENANCE_EVENT_TYPE = ProvenanceEventType.SEND;
+    private static final String ATLAS_NAMESPACE = "namespace1";
+    private static final String GCS_BUCKET = "bucket1";
+    private static final String GCS_FILENAME = "file1";
+    private static final String GCS_QUALIFIED_NAME_FORMAT = "gs://%s%s/@%s";
+    private static final String GCS_ROOT_QUALIFIED_NAME_FORMAT = "gs://%s@%s";
+    private static final String GCS_TRANSIT_URI_FORMAT = "gs://%s%s/%s";
+    private static final String GCS_ROOT_TRANSIT_URI_FORMAT = "gs://%s/%s";
 
 
     @Test
     public void testSimpleDirectory() {
         String processorName = "PutHDFS";
         String dirPath = "/dir1";
+        String expectedDirectoryQualifiedName = String.format(GCS_QUALIFIED_NAME_FORMAT, GCS_BUCKET, dirPath, ATLAS_NAMESPACE);
+        String transitUri = String.format(GCS_TRANSIT_URI_FORMAT, GCS_BUCKET, dirPath, GCS_FILENAME);
 
-        String expectedDirectoryQualifiedName = String.format("gs://%s%s/@%s", GCS_BUCKET, dirPath, ATLAS_NAMESPACE);
-        executeTest(processorName, dirPath, "dir1", "/", GCS_BUCKET,
+        executeTest(processorName, transitUri, "dir1", "/", GCS_BUCKET,
                 GCP_STORAGE_VIRTUAL_DIRECTORY, expectedDirectoryQualifiedName, AtlasPathExtractorUtil.GCS_BUCKET);
     }
 
@@ -58,25 +63,25 @@ public class TestGCSDirectory {
     public void testCompoundDirectory() {
         String processorName = "PutHDFS";
         String dirPath = "/dir1/dir2/dir3/dir4/dir5";
-        String expectedDirectoryQualifiedName = String.format("gs://%s%s/@%s", GCS_BUCKET, dirPath, ATLAS_NAMESPACE);
+        String expectedDirectoryQualifiedName = String.format(GCS_QUALIFIED_NAME_FORMAT, GCS_BUCKET, dirPath, ATLAS_NAMESPACE);
+        String transitUri = String.format(GCS_TRANSIT_URI_FORMAT, GCS_BUCKET, dirPath, GCS_FILENAME);
 
-        executeTest(processorName, dirPath, "dir5", "/dir1/dir2/dir3/dir4/", "dir4",
+        executeTest(processorName, transitUri, "dir5", "/dir1/dir2/dir3/dir4/", "dir4",
                 GCP_STORAGE_VIRTUAL_DIRECTORY, expectedDirectoryQualifiedName, AtlasPathExtractorUtil.GCS_VIRTUAL_DIR);
     }
 
     @Test
     public void testRootDirectory() {
         String processorName = "PutHDFS";
-        String dirPath = "/";
-        String expectedDirectoryQualifiedName = String.format("gs://%s@%s", GCS_BUCKET, ATLAS_NAMESPACE);
+        String expectedDirectoryQualifiedName = String.format(GCS_ROOT_QUALIFIED_NAME_FORMAT, GCS_BUCKET, ATLAS_NAMESPACE);
+        String transitUri = String.format(GCS_ROOT_TRANSIT_URI_FORMAT, GCS_BUCKET, GCS_FILENAME);
 
-        executeTest(processorName, dirPath, GCS_BUCKET, null, "/",
+        executeTest(processorName, transitUri, GCS_BUCKET, null, "/",
                 "gcp_storage_bucket", expectedDirectoryQualifiedName, AtlasPathExtractorUtil.GCS_BUCKET);
     }
 
-    protected void executeTest(String processorName, String directory, String lastDirName, String parentPath, String parentName,
+    protected void executeTest(String processorName, String transitUri, String lastDirName, String parentPath, String parentName,
                                String directoryType, String expectedDirectoryQualifiedName, String parentType) {
-        String transitUri = createTransitUri(directory);
 
         ProvenanceEventRecord provenanceEvent = mockProvenanceEvent(processorName, transitUri);
         AnalysisContext analysisContext = mockAnalysisContext();
@@ -102,19 +107,11 @@ public class TestGCSDirectory {
         Assertions.assertEquals(lastDirName, directoryRef.get(ATTR_NAME));
         Assertions.assertEquals(parentPath, directoryRef.get(AtlasPathExtractorUtil.ATTRIBUTE_OBJECT_PREFIX));
 
-        Referenceable bucketRef = (Referenceable) directoryRef.get(REL_PARENT);
         if (parentPath != null) {
+            Referenceable bucketRef = (Referenceable) directoryRef.get(REL_PARENT);
             Assertions.assertNotNull(bucketRef);
             Assertions.assertEquals(parentType, bucketRef.getTypeName());
             Assertions.assertEquals(parentName, bucketRef.get(ATTR_NAME));
-        }
-    }
-
-    private String createTransitUri(String directory) {
-        if (directory.equals("/")) {
-            return String.format("gs://%s/%s", GCS_BUCKET, GCS_FILENAME);
-        } else {
-            return String.format("gs://%s%s/%s", GCS_BUCKET, directory, GCS_FILENAME);
         }
     }
 
