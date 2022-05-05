@@ -27,7 +27,7 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.c2.C2ClientService;
+import org.apache.nifi.c2.C2NifiClientService;
 import org.apache.nifi.c2.C2NiFiProperties;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
@@ -299,7 +299,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     private final ZooKeeperStateServer zooKeeperStateServer;
 
-    private final C2ClientService c2ClientService;
+    private final C2NifiClientService c2NifiClientService;
 
     // The Heartbeat Bean is used to provide an Atomic Reference to data that is used in heartbeats that may
     // change while the instance is running. We do this because we want to generate heartbeats even if we
@@ -810,11 +810,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             LOG.info("C2 enabled, creating a C2 client instance");
             final long clientHeartbeatPeriod = Long.parseLong(nifiProperties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
                     String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)));
-            c2ClientService = new C2ClientService(nifiProperties, clientHeartbeatPeriod, this);
-            c2ClientService.start();
+            c2NifiClientService = new C2NifiClientService(nifiProperties, clientHeartbeatPeriod, this);
+            c2NifiClientService.start();
         } else {
             LOG.info("Detected a clustered instance or the '" + C2NiFiProperties.C2_ENABLE_KEY + "' property is missing/false, not creating a C2 client instance");
-            c2ClientService = null;
+            c2NifiClientService = null;
         }
     }
 
@@ -1316,8 +1316,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 throw new IllegalStateException("Controller already stopped or still stopping...");
             }
 
-            if (c2ClientService != null) {
-                c2ClientService.stop();
+            if (c2NifiClientService != null) {
+                c2NifiClientService.stop();
             }
 
             if (leaderElectionManager != null) {

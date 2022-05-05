@@ -26,6 +26,9 @@ public class C2NiFiProperties {
     public static final String C2_AGENT_PROTOCOL_KEY = NIFI_PREFIX + "c2.agent.protocol.class";
     public static final String C2_COAP_HOST_KEY = NIFI_PREFIX + "c2.agent.coap.host";
     public static final String C2_COAP_PORT_KEY = NIFI_PREFIX + "c2.agent.coap.port";
+    public static final String C2_CONFIG_DIRECTORY_KEY = NIFI_PREFIX + "c2.config.directory";
+    public static final String C2_RUNTIME_MANIFEST_IDENTIFIER_KEY = NIFI_PREFIX + "c2.runtime.manifest.identifier";
+    public static final String C2_RUNTIME_TYPE_KEY = NIFI_PREFIX + "c2.runtime.type";
     public static final String C2_REST_URL_KEY = NIFI_PREFIX + "c2.rest.url";
     public static final String C2_REST_URL_ACK_KEY = NIFI_PREFIX + "c2.rest.url.ack";
     public static final String C2_ROOT_CLASSES_KEY = NIFI_PREFIX + "c2.root.classes";

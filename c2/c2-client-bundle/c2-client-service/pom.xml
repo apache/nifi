@@ -19,23 +19,31 @@ limitations under the License.
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>c2</artifactId>
+        <artifactId>c2-client-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
         <version>1.17.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>c2-client-bundle</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>c2-client-service</artifactId>
+    <packaging>jar</packaging>
 
-    <modules>
-        <module>c2-client-api</module>
-        <module>c2-client-base</module>
-        <module>c2-client-http</module>
-        <module>c2-client-service</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>c2-client-api</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>c2-client-base</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>c2-client-http</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
-    <dependencyManagement>
-        <dependencies>
-        </dependencies>
-    </dependencyManagement>
 </project>

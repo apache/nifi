@@ -29,6 +29,9 @@ public class C2ClientConfig {
     private final String c2AckUrl;
     private final String agentClass;
     private final String agentIdentifier;
+    private final String confDirectory;
+    private final String runtimeManifestIdentifier;
+    private final String runtimeType;
     private final String keystoreFilename;
     private final String keystorePass;
     private final String keyPass;
@@ -46,6 +49,9 @@ public class C2ClientConfig {
         this.c2AckUrl = builder.c2AckUrl;
         this.agentClass = builder.agentClass;
         this.agentIdentifier = builder.agentIdentifier;
+        this.confDirectory = builder.confDirectory;
+        this.runtimeManifestIdentifier = builder.runtimeManifestIdentifier;
+        this.runtimeType = builder.runtimeType;
         this.keystoreFilename = builder.keystoreFilename;
         this.keystorePass = builder.keystorePass;
         this.keyPass = builder.keyPass;
@@ -72,6 +78,18 @@ public class C2ClientConfig {
 
     public String getAgentIdentifier() {
         return agentIdentifier;
+    }
+
+    public String getConfDirectory() {
+        return confDirectory;
+    }
+
+    public String getRuntimeManifestIdentifier() {
+        return runtimeManifestIdentifier;
+    }
+
+    public String getRuntimeType() {
+        return runtimeType;
     }
 
     public String getKeystoreFilename() {
@@ -123,6 +141,9 @@ public class C2ClientConfig {
         private String c2AckUrl;
         private String agentClass;
         private String agentIdentifier;
+        private String confDirectory;
+        private String runtimeManifestIdentifier;
+        private String runtimeType;
         private String keystoreFilename;
         private String keystorePass;
         private String keyPass;
@@ -151,6 +172,21 @@ public class C2ClientConfig {
 
         public Builder agentIdentifier(final String agentIdentifier) {
             this.agentIdentifier = agentIdentifier;
+            return this;
+        }
+
+        public Builder confDirectory(final String confDirectory) {
+            this.confDirectory = confDirectory;
+            return this;
+        }
+
+        public Builder runtimeManifestIdentifier(final String runtimeManifestIdentifier) {
+            this.runtimeManifestIdentifier = runtimeManifestIdentifier;
+            return this;
+        }
+
+        public Builder runtimeType(final String runtimeType) {
+            this.runtimeType = runtimeType;
             return this;
         }
 
