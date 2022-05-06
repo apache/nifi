@@ -2238,15 +2238,18 @@ In order to run the correct method, the parameter types must be correct. The Exp
 === formatInstant
 
 *Description*: [.description]#Formats a number or string as a date/time according to the format specified by the argument.
-The argument must be a String that is a valid Java DateTimeFormatter format. The Subject is expected to be a Number that
-represents the number of milliseconds since Midnight GMT on January 1, 1970 or a String with one of the following
+
+The first argument must be a String that is a valid Java DateTimeFormatter format.
+The second argument must be a String that is a valid time zone.
+The Subject is expected to be a Number that represents the number of milliseconds since Midnight GMT on January 1, 1970 or a String with one of the following
+
 DateTimeFormatter syntaxes:#
 
 - _ISO_OFFSET_ such as '2011-12-03T10:15:30+01:00'
 - _ISO_INSTANT_ such as '2011-12-03T10:15:30Z'
 - _RFC_1123_ such as 'Thu, 01 Dec 1994 16:00:00 GMT'
 
-*Subject Type*: [.subject]#Number#
+*Subject Type*: [.subject]#Number or Date/Time#
 
 *Arguments*:
 

@@ -38,9 +38,8 @@ import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvalu
 import org.apache.nifi.attribute.expression.language.evaluation.cast.BooleanCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DateCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.DecimalCastEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.cast.EpochTimeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.InstantCastEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.cast.MicrosCastEvaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.cast.NanosCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.NumberCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.StringCastEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.cast.WholeNumberCastEvaluator;
@@ -146,6 +145,7 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.net.UnknownHostException;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -910,7 +910,7 @@ public class ExpressionCompiler {
             case TO_MICROS: {
                 verifyArgCount(argEvaluators, 0, "toMicros");
                 if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
-                    return addToken(new MicrosCastEvaluator(subjectEvaluator), "toMicros");
+                    return addToken(new EpochTimeEvaluator(ChronoUnit.MICROS, subjectEvaluator), "toMicros");
                 } else {
                     throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
                 }
@@ -918,7 +918,7 @@ public class ExpressionCompiler {
             case TO_NANOS: {
                 verifyArgCount(argEvaluators, 0, "toNanos");
                 if (subjectEvaluator.getResultType() == ResultType.INSTANT) {
-                    return addToken(new NanosCastEvaluator(subjectEvaluator), "toNanos");
+                    return addToken(new EpochTimeEvaluator(ChronoUnit.NANOS, subjectEvaluator), "toNanos");
                 } else {
                     throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.INSTANT);
                 }
