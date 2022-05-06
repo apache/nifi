@@ -103,6 +103,7 @@ public class BootstrapCodec {
 
                 final boolean started = Boolean.parseBoolean(args[0]);
                 runner.setNiFiStarted(started);
+                runner.startChangeNotifier();
                 writer.write("OK");
                 writer.newLine();
                 writer.flush();

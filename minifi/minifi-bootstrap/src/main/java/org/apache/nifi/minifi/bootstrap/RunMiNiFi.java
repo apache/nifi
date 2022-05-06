@@ -1501,6 +1501,15 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         }
     }
 
+    public void startChangeNotifier() {
+        try {
+            getChangeCoordinator().close();
+            getChangeCoordinator().start();
+        } catch (IOException e) {
+            defaultLogger.warn("Could not successfully start notifier ", e);
+        }
+    }
+
     public void shutdownChangeNotifier() {
         try {
             getChangeCoordinator().close();

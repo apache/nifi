@@ -14,29 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.c2.client.service.operation;
 
-package org.apache.nifi.c2.protocol.api;
+import org.apache.nifi.c2.protocol.api.C2Operation;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.apache.nifi.c2.protocol.api.OperandType;
+import org.apache.nifi.c2.protocol.api.OperationType;
 
-import java.util.Arrays;
-import java.util.Optional;
+public interface C2OperationHandler {
 
-public enum OperandType {
+    OperationType getOperationType();
 
-    CONFIGURATION,
-    CONNECTION,
-    DEBUG,
-    MANIFEST,
-    REPOSITORY;
+    OperandType getOperandType();
 
-    public static Optional<OperandType> fromString(String value) {
-        return Arrays.stream(values())
-            .filter(operandType -> operandType.name().equalsIgnoreCase(value))
-            .findAny();
-    }
-
-    @Override
-    public String toString() {
-        return super.toString().toLowerCase();
-    }
+    C2OperationAck handle(C2Operation operation);
 }
-

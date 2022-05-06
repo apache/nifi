@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.c2;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
 import org.apache.nifi.c2.client.service.C2ClientService;
@@ -51,38 +58,44 @@ public class C2NifiClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(C2NifiClientService.class);
     private static final String DEFAULT_CONF_DIR = "./conf";
+    private static final String TARGET_CONFIG_FILE = "/config-new.yml";
     private static final String ROOT_GROUP_ID = "root";
     private static final Long INITIAL_DELAY = 0L;
     private static final Integer TERMINATION_WAIT = 5000;
 
     private final C2ClientService c2ClientService;
     private final FlowController flowController;
+    private final String propertiesDir;
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
     private final ExtensionManifestParser extensionManifestParser = new JAXBExtensionManifestParser();
 
     private final RuntimeManifestService runtimeManifestService;
     private final long heartbeatPeriod;
 
-    public C2NifiClientService(final NiFiProperties niFiProperties, final long clientHeartbeatPeriod, final FlowController flowController) {
+    public C2NifiClientService(final NiFiProperties niFiProperties, final FlowController flowController) {
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
+        this.propertiesDir = niFiProperties.getProperty(NiFiProperties.PROPERTIES_FILE_PATH, null);
         this.runtimeManifestService = new StandardRuntimeManifestService(
             ExtensionManagerHolder.getExtensionManager(),
             extensionManifestParser,
             clientConfig.getRuntimeManifestIdentifier(),
             clientConfig.getRuntimeType()
         );
-        this.heartbeatPeriod = clientHeartbeatPeriod;
+        this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
         this.flowController = flowController;
         this.c2ClientService = new C2ClientService(
             new C2HttpClient(clientConfig, new C2JacksonSerializer()),
-            new C2HeartbeatFactory(clientConfig)
+            new C2HeartbeatFactory(clientConfig),
+            this::updateFlowContent
         );
     }
 
     private C2ClientConfig generateClientConfig(NiFiProperties properties) {
         return new C2ClientConfig.Builder()
                 .agentClass(properties.getProperty(C2NiFiProperties.C2_AGENT_CLASS_KEY, ""))
-                .agentIdentifier(properties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY, String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)))
+                .agentIdentifier(properties.getProperty(C2NiFiProperties.C2_AGENT_IDENTIFIER_KEY))
+                .heartbeatPeriod(Long.valueOf(properties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
+                    String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD))))
                 .c2Url(properties.getProperty(C2NiFiProperties.C2_REST_URL_KEY, ""))
                 .confDirectory(properties.getProperty(C2NiFiProperties.C2_CONFIG_DIRECTORY_KEY, DEFAULT_CONF_DIR))
                 .runtimeManifestIdentifier(properties.getProperty(C2NiFiProperties.C2_RUNTIME_MANIFEST_IDENTIFIER_KEY, ""))
@@ -161,5 +174,27 @@ public class C2NifiClientService {
         }
 
         return processGroupStatus;
+    }
+
+    private boolean updateFlowContent(ByteBuffer updateContent) {
+        logger.info("Update content: \n{}", StandardCharsets.UTF_8.decode(updateContent));
+        Path path = getTargetConfigFile().toPath();
+        try {
+            Files.write(getTargetConfigFile().toPath(), updateContent.array());
+            logger.info("Updated configuration was written to: {}", path);
+            return true;
+        } catch (IOException e) {
+            logger.error("Configuration update failed. File creation was not successful targeting: {}", path);
+            logger.error("Exception: ", e);
+            return false;
+        }
+    }
+
+    private File getTargetConfigFile() {
+        return Optional.ofNullable(propertiesDir)
+            .map(File::new)
+            .map(File::getParent)
+            .map(parentDir -> new File(parentDir + TARGET_CONFIG_FILE))
+            .orElse( new File(DEFAULT_CONF_DIR + TARGET_CONFIG_FILE));
     }
 }

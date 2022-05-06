@@ -808,9 +808,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final boolean c2Enabled = Boolean.parseBoolean(nifiProperties.getProperty(C2NiFiProperties.C2_ENABLE_KEY, "false"));
         if (!configuredForClustering && c2Enabled) {
             LOG.info("C2 enabled, creating a C2 client instance");
-            final long clientHeartbeatPeriod = Long.parseLong(nifiProperties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
-                    String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD)));
-            c2NifiClientService = new C2NifiClientService(nifiProperties, clientHeartbeatPeriod, this);
+            c2NifiClientService = new C2NifiClientService(nifiProperties, this);
             c2NifiClientService.start();
         } else {
             LOG.info("Detected a clustered instance or the '" + C2NiFiProperties.C2_ENABLE_KEY + "' property is missing/false, not creating a C2 client instance");

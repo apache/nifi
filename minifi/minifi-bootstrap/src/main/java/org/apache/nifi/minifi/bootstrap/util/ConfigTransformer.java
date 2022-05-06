@@ -17,6 +17,8 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import java.util.Collections;
+import java.util.Optional;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
@@ -112,6 +114,13 @@ public final class ConfigTransformer {
                 logger.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
             }
         }
+
+        Optional.ofNullable(bootstrapProperties)
+            .map(Properties::entrySet)
+            .orElse(Collections.emptySet())
+            .stream()
+            .filter(entry -> ((String) entry.getKey()).startsWith("c2"))
+            .forEach(entry -> configSchema.getNifiPropertiesOverrides().putIfAbsent((String) entry.getKey(), (String) entry.getValue()));
 
         // Create nifi.properties and flow.xml.gz in memory
         ByteArrayOutputStream nifiPropertiesOutputStream = new ByteArrayOutputStream();

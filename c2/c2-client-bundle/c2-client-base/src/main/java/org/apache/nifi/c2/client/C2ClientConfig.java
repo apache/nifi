@@ -32,6 +32,7 @@ public class C2ClientConfig {
     private final String confDirectory;
     private final String runtimeManifestIdentifier;
     private final String runtimeType;
+    private final Long heartbeatPeriod;
     private final String keystoreFilename;
     private final String keystorePass;
     private final String keyPass;
@@ -52,6 +53,7 @@ public class C2ClientConfig {
         this.confDirectory = builder.confDirectory;
         this.runtimeManifestIdentifier = builder.runtimeManifestIdentifier;
         this.runtimeType = builder.runtimeType;
+        this.heartbeatPeriod = builder.heartbeatPeriod;
         this.keystoreFilename = builder.keystoreFilename;
         this.keystorePass = builder.keystorePass;
         this.keyPass = builder.keyPass;
@@ -90,6 +92,10 @@ public class C2ClientConfig {
 
     public String getRuntimeType() {
         return runtimeType;
+    }
+
+    public Long getHeartbeatPeriod() {
+        return heartbeatPeriod;
     }
 
     public String getKeystoreFilename() {
@@ -144,6 +150,7 @@ public class C2ClientConfig {
         private String confDirectory;
         private String runtimeManifestIdentifier;
         private String runtimeType;
+        private Long heartbeatPeriod;
         private String keystoreFilename;
         private String keystorePass;
         private String keyPass;
@@ -187,6 +194,11 @@ public class C2ClientConfig {
 
         public Builder runtimeType(final String runtimeType) {
             this.runtimeType = runtimeType;
+            return this;
+        }
+
+        public Builder heartbeatPeriod(final Long heartbeatPeriod) {
+            this.heartbeatPeriod = heartbeatPeriod;
             return this;
         }
 

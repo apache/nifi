@@ -16,43 +16,44 @@
  */
 package org.apache.nifi.c2.client.service;
 
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.api.FlowUpdateInfo;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
+import org.apache.nifi.c2.client.service.operation.C2OperationService;
+import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.c2.protocol.api.OperandType;
-import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class C2ClientService {
 
     private static final Logger logger = LoggerFactory.getLogger(C2ClientService.class);
-    private static final String LOCATION = "location";
 
     private final C2Client client;
     private final C2HeartbeatFactory c2HeartbeatFactory;
-    private FlowUpdateInfo currentFlowUpdateInfo;
+    private final C2OperationService operationService;
+    private final UpdateConfigurationOperationHandler updateConfigurationOperationHandler;
 
-    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory) {
+    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, Function<ByteBuffer, Boolean> updateFlow) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
+        this.updateConfigurationOperationHandler = new UpdateConfigurationOperationHandler(client, updateFlow);
+        this.operationService = new C2OperationService(Arrays.asList(updateConfigurationOperationHandler));
     }
 
     public void sendHeartbeat(RuntimeInfoWrapper runtimeInfoWrapper) {
         try {
             // TODO exception handling for all the C2 Client interactions (IOExceptions, logger.error vs logger.warn, etc.)
             C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
-            Optional.ofNullable(currentFlowUpdateInfo)
+            Optional.ofNullable(updateConfigurationOperationHandler.getCurrentFlowUpdateInfo())
                 .map(FlowUpdateInfo::getFlowId)
                 .ifPresent(flowId -> {
                     logger.trace("Determined that current flow id is {}.", flowId);
@@ -78,33 +79,8 @@ public class C2ClientService {
 
     private void handleRequestedOperations(List<C2Operation> requestedOperations) {
         for (C2Operation requestedOperation : requestedOperations) {
-            C2OperationAck operationAck = new C2OperationAck();
-            if (requestedOperation.getOperation().equals(OperationType.UPDATE) && requestedOperation.getOperand().equals(OperandType.CONFIGURATION)) {
-                String opIdentifier = Optional.ofNullable(requestedOperation.getIdentifier())
-                    .orElse(EMPTY);
-                String updateLocation = Optional.ofNullable(requestedOperation.getArgs())
-                    .map(map -> map.get(LOCATION))
-                    .orElse(EMPTY);
-
-                FlowUpdateInfo flowUpdateInfo = new FlowUpdateInfo(updateLocation, opIdentifier);
-                if (currentFlowUpdateInfo == null || !currentFlowUpdateInfo.getFlowId().equals(flowUpdateInfo.getFlowId())) {
-                    logger.info("Will perform flow update from {} for command #{}.  Previous flow id was {} with new id {}", updateLocation, opIdentifier,
-                        currentFlowUpdateInfo == null ? "not set" : currentFlowUpdateInfo.getFlowId(), flowUpdateInfo.getFlowId());
-                    currentFlowUpdateInfo = flowUpdateInfo;
-                } else {
-                    logger.info("Flow is current...");
-                }
-
-                currentFlowUpdateInfo = flowUpdateInfo;
-                ByteBuffer updateContent = client.retrieveUpdateContent(flowUpdateInfo);
-                if (updateContent != null) {
-                    // TODO processUpdateContent(ByteBuffer updateContentByteBuffer);
-                }
-
-                operationAck.setOperationId(flowUpdateInfo.getRequestId());
-            } // else other operations
-
-            client.acknowledgeOperation(operationAck);
+            operationService.handleOperation(requestedOperation)
+                .ifPresent(client::acknowledgeOperation);
         }
     }
 }

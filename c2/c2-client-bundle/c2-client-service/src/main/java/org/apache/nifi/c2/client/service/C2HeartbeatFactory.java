@@ -19,6 +19,8 @@ package org.apache.nifi.c2.client.service;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 import java.io.File;
+import java.lang.management.ManagementFactory;
+import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.util.Enumeration;
@@ -216,9 +218,14 @@ public class C2HeartbeatFactory {
 
     private SystemInfo generateSystemInfo() {
         SystemInfo systemInfo = new SystemInfo();
-        systemInfo.setMachineArch(System.getProperty("os.arch"));
         systemInfo.setPhysicalMem(Runtime.getRuntime().maxMemory());
+        systemInfo.setMemoryUsage(Runtime.getRuntime().maxMemory() - Runtime.getRuntime().freeMemory());
         systemInfo.setvCores(Runtime.getRuntime().availableProcessors());
+
+        OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
+        systemInfo.setMachineArch(osMXBean.getArch());
+        systemInfo.setOperatingSystem(osMXBean.getName());
+        systemInfo.setCpuUtilization(osMXBean.getSystemLoadAverage() / (double) osMXBean.getAvailableProcessors());
 
         return systemInfo;
     }
