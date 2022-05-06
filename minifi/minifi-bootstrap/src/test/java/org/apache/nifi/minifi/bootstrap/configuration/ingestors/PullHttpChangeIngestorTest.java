@@ -20,14 +20,14 @@ package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.PullHttpChangeIngestorCommonTest;
 import org.eclipse.jetty.server.ServerConnector;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
 
 import java.util.Properties;
 
 public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws Exception {
         PullHttpChangeIngestorCommonTest.init();
 

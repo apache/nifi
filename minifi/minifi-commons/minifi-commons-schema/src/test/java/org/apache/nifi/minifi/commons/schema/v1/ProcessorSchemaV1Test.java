@@ -20,8 +20,8 @@
 package org.apache.nifi.minifi.commons.schema.v1;
 
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,8 +45,8 @@ import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PR
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.YIELD_PERIOD_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class ProcessorSchemaV1Test {
     private String testName;
@@ -66,7 +66,7 @@ public class ProcessorSchemaV1Test {
     private String testValue2;
     private Map<String, Object> testProperties;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testName = "testName";
         testProcessorClass = "testProcessorClass";

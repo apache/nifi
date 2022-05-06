@@ -22,19 +22,18 @@ import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcessGroupSchema, RemoteProcessGroupDTO> {
     private final RemoteInputPortSchemaTest remoteInputPortSchemaTest;
@@ -52,7 +51,7 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
         remoteInputPortSchemaTest = new RemoteInputPortSchemaTest();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         remoteInputPortSchemaTest.setup();
 
@@ -62,7 +61,7 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
         dto.setTargetUri(testUrl);
 
         RemoteProcessGroupContentsDTO contents = new RemoteProcessGroupContentsDTO();
-        contents.setInputPorts(Arrays.asList(remoteInputPortSchemaTest.dto).stream().collect(Collectors.toSet()));
+        contents.setInputPorts(Collections.singleton(remoteInputPortSchemaTest.dto));
         dto.setContents(contents);
 
         dto.setComments(testComment);
@@ -75,7 +74,7 @@ public class RemoteProcessGroupSchemaTest extends BaseSchemaTester<RemoteProcess
         map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(RemoteProcessGroupSchema.URL_KEY, testUrl);
-        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, new ArrayList<>(Arrays.asList(remoteInputPortSchemaTest.map)));
+        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, new ArrayList<>(Collections.singletonList(remoteInputPortSchemaTest.map)));
         map.put(CommonPropertyKeys.COMMENT_KEY, testComment);
         map.put(RemoteProcessGroupSchema.TIMEOUT_KEY, testTimeout);
         map.put(CommonPropertyKeys.YIELD_PERIOD_KEY, testYieldPeriod);

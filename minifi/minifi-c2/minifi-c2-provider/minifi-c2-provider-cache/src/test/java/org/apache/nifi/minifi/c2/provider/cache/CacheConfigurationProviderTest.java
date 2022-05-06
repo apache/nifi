@@ -21,14 +21,14 @@ import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
 import org.apache.nifi.minifi.c2.api.cache.WriteableConfiguration;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +39,7 @@ public class CacheConfigurationProviderTest {
     private CacheConfigurationProvider cacheConfigurationProvider;
     private ConfigurationCache configConfigurationCache;
 
-    @Before
+    @BeforeEach
     public void setup() {
         configConfigurationCache = mock(ConfigurationCache.class);
         cacheConfigurationProvider = new CacheConfigurationProvider(Arrays.asList(TEST_CONTENT_TYPE, TEST_CONTENT_TYPE_2), configConfigurationCache);

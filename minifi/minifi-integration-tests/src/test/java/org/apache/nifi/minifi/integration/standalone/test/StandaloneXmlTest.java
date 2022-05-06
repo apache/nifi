@@ -21,33 +21,31 @@ import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaSaver;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 
-import javax.xml.bind.JAXBException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class StandaloneXmlTest extends StandaloneYamlTest {
-    public StandaloneXmlTest(String version, String name) throws IOException, JAXBException {
-        super(version, name);
+    public void setDocker(String version, String name) throws Exception {
+        super.setDocker(version, name);
         ConfigSchema configSchema;
         try (InputStream inputStream = StandaloneXmlTest.class.getClassLoader().getResourceAsStream("./standalone/" + version + "/" + name + "/xml/" + name + ".xml")) {
             configSchema = ConfigMain.transformTemplateToSchema(inputStream);
         }
         try (OutputStream outputStream = Files.newOutputStream(Paths.get(StandaloneXmlTest.class.getClassLoader().getResource("docker-compose-v1-standalone.yml").getFile())
-                .getParent().toAbsolutePath().resolve(getConfigYml()))) {
+                .getParent().toAbsolutePath().resolve(getConfigYml(version, name)))) {
             SchemaSaver.saveConfigSchema(configSchema, outputStream);
         }
     }
 
     @Override
-    protected String getConfigYml() {
+    protected String getConfigYml(final String version, final String name) {
         return "./standalone/" + version + "/" + name + "/xml/" + name + ".yml";
     }
 
     @Override
-    protected String getExpectedJson() {
+    protected String getExpectedJson(final String version, final String name) {
         return "standalone/" + version + "/" + name + "/xml/expected.json";
     }
 }

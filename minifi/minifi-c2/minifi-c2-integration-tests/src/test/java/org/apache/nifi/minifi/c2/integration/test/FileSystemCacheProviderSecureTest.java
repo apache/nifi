@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -33,7 +33,7 @@ public class FileSystemCacheProviderSecureTest extends AbstractTestSecure {
     private static SSLSocketFactory healthCheckSocketFactory;
 
     // Not annotated as rule because we need to generate certificatesDirectory first
-    public static DockerComposeRule docker = DockerComposeRule.builder()
+    public static DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("target/test-classes/docker-compose-FileSystemCacheProviderSecureTest.yml")
             .waitingForServices(Arrays.asList("squid", "c2"),
                     new HttpsStatusCodeHealthCheck(container -> C2_URL, containers -> containers.get(0), containers -> containers.get(1), () -> healthCheckSocketFactory, 403))
@@ -48,7 +48,7 @@ public class FileSystemCacheProviderSecureTest extends AbstractTestSecure {
     /**
      * Generates certificates with the tls-toolkit and then starts up the docker compose file
      */
-    @BeforeClass
+    @BeforeAll
     public static void initCertificates() throws Exception {
         certificatesDirectory = Paths.get(FileSystemCacheProviderSecureTest.class.getClassLoader()
                 .getResource("docker-compose-FileSystemCacheProviderSecureTest.yml").getFile()).getParent().toAbsolutePath().resolve("certificates-FileSystemCacheProviderSecureTest");
@@ -57,12 +57,12 @@ public class FileSystemCacheProviderSecureTest extends AbstractTestSecure {
         docker.before();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         docker.after();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(docker);
     }

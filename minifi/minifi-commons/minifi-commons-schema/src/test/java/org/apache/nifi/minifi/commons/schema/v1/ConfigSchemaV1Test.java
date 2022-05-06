@@ -26,7 +26,7 @@ import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,8 +37,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.NAME_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class ConfigSchemaV1Test {
     @Test

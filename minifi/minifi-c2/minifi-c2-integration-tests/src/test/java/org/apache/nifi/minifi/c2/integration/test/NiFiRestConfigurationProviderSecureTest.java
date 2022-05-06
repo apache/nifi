@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -26,9 +26,9 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -47,7 +47,7 @@ public class NiFiRestConfigurationProviderSecureTest extends AbstractTestSecure 
     private static SSLContext trustSslContext;
 
     // Not annotated as rule because we need to generate certificatesDirectory first
-    public static DockerComposeRule docker = DockerComposeRule.builder()
+    public static DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("target/test-classes/docker-compose-NiFiRestConfigurationProviderSecureTest.yml")
             .waitingForServices(Arrays.asList("squid", "mocknifi"),
                     new HttpsStatusCodeHealthCheck(container -> "https://mocknifi:8443/", containers -> containers.get(0), containers -> containers.get(1), () -> {
@@ -77,7 +77,7 @@ public class NiFiRestConfigurationProviderSecureTest extends AbstractTestSecure 
     /**
      * Generates certificates with the tls-toolkit and then starts up the docker compose file
      */
-    @BeforeClass
+    @BeforeAll
     public static void initCertificates() throws Exception {
         certificatesDirectory = Paths.get(NiFiRestConfigurationProviderSecureTest.class.getClassLoader()
                 .getResource("docker-compose-NiFiRestConfigurationProviderSecureTest.yml").getFile()).getParent().toAbsolutePath().resolve("certificates-NiFiRestConfigurationProviderSecureTest");
@@ -106,12 +106,12 @@ public class NiFiRestConfigurationProviderSecureTest extends AbstractTestSecure 
         docker.before();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         docker.after();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(docker);
     }

@@ -21,32 +21,30 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.web.api.dto.PortDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PortSchemaFunctionTest {
     private String testId;
     private String testName;
-    private String testWrapperName;
     private PortDTO portDTO;
     private PortSchemaFunction portSchemaFunction;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
         testName = "testName";
-        testWrapperName = "testWrapperName";
         portDTO = new PortDTO();
         portDTO.setId(testId);
         portDTO.setName(testName);
-        portSchemaFunction = new PortSchemaFunction(testWrapperName);
+        portSchemaFunction = new PortSchemaFunction("testWrapperName");
     }
 
     @Test

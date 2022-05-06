@@ -18,13 +18,12 @@
 package org.apache.nifi.minifi.toolkit.configuration.dto;
 
 import org.apache.nifi.minifi.commons.schema.common.WritableSchema;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public abstract class BaseSchemaTester<Schema extends WritableSchema, DTO> {
     protected final Function<DTO, Schema> dtoSchemaFunction;
@@ -44,7 +43,7 @@ public abstract class BaseSchemaTester<Schema extends WritableSchema, DTO> {
         assertEquals(dtoSchema.getValidationIssues(), mapSchema.getValidationIssues());
         assertSchemaEquals(dtoSchema, mapSchemaFunction.apply(dtoSchema.toMap()));
         assertSchemaEquals(mapSchema, mapSchemaFunction.apply(mapSchema.toMap()));
-        assertEquals(dtoSchema.getValidationIssues().stream().collect(Collectors.joining(", ")), validationErrors, dtoSchema.getValidationIssues().size());
+        assertEquals(validationErrors, dtoSchema.getValidationIssues().size(), String.join(", ", dtoSchema.getValidationIssues()));
     }
 
     public abstract void assertSchemaEquals(Schema one, Schema two);

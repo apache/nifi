@@ -21,16 +21,16 @@ package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.BaseSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RemoteProcessGroupSchemaTest {
     @Test
@@ -140,6 +140,6 @@ public class RemoteProcessGroupSchemaTest {
     private void validateIssuesNumMatches(int expected, RemoteProcessGroupSchema remoteProcessGroupSchema) {
         int actual = remoteProcessGroupSchema.getValidationIssues().size();
         String issues = "[" + System.lineSeparator() + remoteProcessGroupSchema.getValidationIssues().stream().collect(Collectors.joining("," + System.lineSeparator())) + "]";
-        assertEquals("Expected " + expected + " issue(s), got " + actual + ": " + issues, expected, actual);
+        assertEquals(expected, actual, "Expected " + expected + " issue(s), got " + actual + ": " + issues);
     }
 }

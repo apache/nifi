@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.DockerPort;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
@@ -29,7 +29,7 @@ import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -50,23 +50,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public abstract class AbstractTestSecure extends AbstractTestUnsecure {
     public static final String C2_URL = "https://c2:10443/c2/config";
 
-    private final DockerComposeRule docker;
+    private final DockerComposeExtension docker;
     private final Path certificatesDirectory;
     private final SSLContext trustSslContext;
 
-    protected AbstractTestSecure(DockerComposeRule docker, Path certificatesDirectory, SSLContext trustSslContext) {
+    protected AbstractTestSecure(DockerComposeExtension docker, Path certificatesDirectory, SSLContext trustSslContext) {
         this.docker = docker;
         this.certificatesDirectory = certificatesDirectory;
         this.trustSslContext = trustSslContext;
     }
 
     @Override
-    protected String getConfigUrl(DockerComposeRule docker) {
+    protected String getConfigUrl(DockerComposeExtension docker) {
         return C2_URL;
     }
 
@@ -79,11 +80,11 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
         }
         Files.createDirectories(certificatesDirectory);
         TlsToolkitStandaloneCommandLine tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine();
-        tlsToolkitStandaloneCommandLine.parse(toolkitCommandLine.toArray(new String[toolkitCommandLine.size()]));
+        tlsToolkitStandaloneCommandLine.parse(toolkitCommandLine.toArray(new String[0]));
         new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
 
         tlsToolkitStandaloneCommandLine = new TlsToolkitStandaloneCommandLine();
-        tlsToolkitStandaloneCommandLine.parse(new String[]{"-O", "-o", certificatesDirectory.getParent().resolve("badCert").toFile().getAbsolutePath(), "-C", "CN=user3"});
+        tlsToolkitStandaloneCommandLine.parse("-O", "-o", certificatesDirectory.getParent().resolve("badCert").toFile().getAbsolutePath(), "-C", "CN=user3");
         new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
 
         final KeyStore trustStore = KeyStoreUtils.getKeyStore("jks");
@@ -144,9 +145,9 @@ public abstract class AbstractTestSecure extends AbstractTestUnsecure {
         assertEquals("raspi3.v2", configSchema.getFlowControllerProperties().getName());
     }
 
-    @Test(expected = IOException.class)
-    public void testUser3WrongCA() throws Exception {
-        assertReturnCode("?class=raspi3", loadSslContext("user3", certificatesDirectory.getParent().resolve("badCert")), 403);
+    @Test
+    public void testUser3WrongCA() {
+        assertThrows(IOException.class, () -> assertReturnCode("?class=raspi3", loadSslContext("user3", certificatesDirectory.getParent().resolve("badCert")), 403));
     }
 
     @Test

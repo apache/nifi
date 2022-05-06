@@ -20,7 +20,7 @@ package org.apache.nifi.minifi.commons.schema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,10 +33,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ID_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ConfigSchemaTest {
     @Test
@@ -128,10 +128,6 @@ public class ConfigSchemaTest {
         assertEquals(overrides, configSchema.toMap().get(CommonPropertyKeys.NIFI_PROPERTIES_OVERRIDES_KEY));
     }
 
-    public static List<Map<String, Object>> getListWithNames(String... names) {
-        return getListWithKeyValues(CommonPropertyKeys.NAME_KEY, names);
-    }
-
     public static List<Map<String, Object>> getListWithKeyValues(String key, String... values) {
         List<Map<String, Object>> result = new ArrayList<>(values.length);
         for (String value : values) {
@@ -142,7 +138,7 @@ public class ConfigSchemaTest {
 
     public static void assertMessageDoesNotExist(ConfigSchema configSchema, String message) {
         for (String validationIssue : configSchema.getValidationIssues()) {
-            assertFalse("Did not expect to find message: " + validationIssue, validationIssue.startsWith(message));
+            assertFalse(validationIssue.startsWith(message), "Did not expect to find message: " + validationIssue);
         }
     }
 
