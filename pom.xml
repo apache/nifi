@@ -110,7 +110,7 @@
         <org.apache.httpcomponents.httpcore.version>4.4.15</org.apache.httpcomponents.httpcore.version>
         <org.bouncycastle.version>1.70</org.bouncycastle.version>
         <org.slf4j.version>1.7.36</org.slf4j.version>
-        <ranger.version>2.1.0</ranger.version>
+        <ranger.version>2.2.0</ranger.version>
         <jetty.version>9.4.46.v20220331</jetty.version>
         <jackson.bom.version>2.13.2</jackson.bom.version>
         <avro.version>1.11.0</avro.version>
