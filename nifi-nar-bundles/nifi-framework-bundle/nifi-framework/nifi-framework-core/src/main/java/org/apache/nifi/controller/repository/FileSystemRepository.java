@@ -357,8 +357,7 @@ public class FileSystemRepository implements ContentRepository {
                             }
 
                             // Check if this is an 'archive' directory
-                            final Path relativePath = realPath.relativize(file);
-                            if (relativePath.getNameCount() > 3 && ARCHIVE_DIR_NAME.equals(relativePath.subpath(1, 2).toString())) {
+                            if (isArchived(file)) {
                                 final long lastModifiedTime = getLastModTime(file);
 
                                 if (lastModifiedTime < oldestDateHolder.get()) {
@@ -399,6 +398,21 @@ public class FileSystemRepository implements ContentRepository {
 
         containers.clear();
         containers.putAll(realPathMap);
+    }
+
+    // Visible for testing
+    boolean isArchived(final Path path) {
+        return isArchived(path.toFile());
+    }
+
+    // Visible for testing
+    boolean isArchived(final File file) {
+        final File parentFile = file.getParentFile();
+        if (parentFile == null) {
+            return false;
+        }
+
+        return ARCHIVE_DIR_NAME.equals(parentFile.getName());
     }
 
     @Override
@@ -1194,7 +1208,7 @@ public class FileSystemRepository implements ContentRepository {
     // marked protected for visibility and ability to override for unit tests.
     protected boolean archive(final Path curPath) throws IOException {
         // check if already archived
-        final boolean alreadyArchived = ARCHIVE_DIR_NAME.equals(curPath.getParent().toFile().getName());
+        final boolean alreadyArchived = isArchived(curPath);
         if (alreadyArchived) {
             return false;
         }
@@ -1349,6 +1363,8 @@ public class FileSystemRepository implements ContentRepository {
         // Go through each container and grab the archived data into a List
         archiveExpirationLog.debug("Searching for more archived data to expire");
         final StopWatch stopWatch = new StopWatch(true);
+        final AtomicLong expiredFilesDeleted = new AtomicLong(0L);
+        final AtomicLong expiredBytesDeleted = new AtomicLong(0L);
         for (int i = 0; i < SECTIONS_PER_CONTAINER; i++) {
             final Path sectionContainer = container.resolve(String.valueOf(i));
             final Path archive = sectionContainer.resolve("archive");
@@ -1368,6 +1384,9 @@ public class FileSystemRepository implements ContentRepository {
                         final long lastModTime = getLastModTime(file);
                         if (lastModTime < timestampThreshold) {
                             try {
+                                expiredFilesDeleted.incrementAndGet();
+                                expiredBytesDeleted.addAndGet(file.toFile().length());
+
                                 Files.deleteIfExists(file);
                                 containerState.decrementArchiveCount();
                                 LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because it was older than the configured max archival duration",
@@ -1443,7 +1462,7 @@ public class FileSystemRepository implements ContentRepository {
 
         // Remove the first 'counter' elements from the list because those were removed.
         notYetExceedingThreshold.subList(0, archiveFilesDeleted).clear();
-        LOG.info("Successfully deleted {} files ({}) from archive", archiveFilesDeleted, FormatUtils.formatDataSize(archiveBytesDeleted));
+        LOG.info("Successfully deleted {} files ({}) from archive", (archiveFilesDeleted + expiredFilesDeleted.get()), FormatUtils.formatDataSize(archiveBytesDeleted + expiredBytesDeleted.get()));
 
         final long deleteOldestMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - sortRemainingMillis - deleteExpiredMillis;
 
@@ -1708,7 +1727,7 @@ public class FileSystemRepository implements ContentRepository {
                 while (isWaitRequired()) {
                     try {
                         final String message = String.format("Unable to write flowfile content to content repository container %s due to archive file size constraints;" +
-                                " waiting for archive cleanup", containerName);
+                                " waiting for archive cleanup. Total number of files currently archived = %s", containerName, archivedFileCount.get());
                         LOG.warn(message);
                         eventReporter.reportEvent(Severity.WARNING, "FileSystemRepository", message);
                         condition.await();
@@ -1727,8 +1746,9 @@ public class FileSystemRepository implements ContentRepository {
 
             lock.lock();
             try {
+                long free = 0;
                 try {
-                    final long free = getContainerUsableSpace(containerName);
+                    free = getContainerUsableSpace(containerName);
                     bytesUsed = capacity - free;
                     checkUsedCutoffTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1L);
                 } catch (final Exception e) {
@@ -1737,7 +1757,8 @@ public class FileSystemRepository implements ContentRepository {
                     checkUsedCutoffTimestamp = 0L; // Signal that the free space should be calculated again next time it's checked.
                 }
 
-                LOG.debug("Container {} signaled to allow Content Claim Creation", containerName);
+                LOG.info("Archive cleanup completed for container {}; will now allow writing to this container. Bytes used = {}, bytes free = {}, capacity = {}", containerName,
+                    FormatUtils.formatDataSize(bytesUsed), FormatUtils.formatDataSize(free), FormatUtils.formatDataSize(capacity));
                 condition.signalAll();
             } finally {
                 lock.unlock();
