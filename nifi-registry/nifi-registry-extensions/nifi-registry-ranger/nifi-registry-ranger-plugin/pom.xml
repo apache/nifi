@@ -25,8 +25,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <ranger.version>2.1.0</ranger.version>
-        <ranger.hadoop.version>3.1.4</ranger.hadoop.version>
+        <ranger.hadoop.version>3.3.2</ranger.hadoop.version>
         <ranger.ozone.version>1.2.1</ranger.ozone.version>
         <ranger.gcs.version>2.1.5</ranger.gcs.version>
     </properties>
