@@ -13,7 +13,7 @@
 
 # Summary
 
-_[NIFI-0000](https://issues.apache.org/jira/browse/NIFI-0000) includes the following changes..._
+[NIFI-00000](https://issues.apache.org/jira/browse/NIFI-00000)
 
 # Tracking
 
@@ -25,8 +25,8 @@ Please complete the following tracking steps prior to pull request creation.
 
 ### Pull Request Tracking
 
-- [ ] Pull Request title starts with Apache NiFi Jira issue number, such as `NIFI-0000`
-- [ ] Pull Request commit message starts with Apache NiFi Jira issue number, as such `NIFI-0000`
+- [ ] Pull Request title starts with Apache NiFi Jira issue number, such as `NIFI-00000`
+- [ ] Pull Request commit message starts with Apache NiFi Jira issue number, as such `NIFI-00000`
 
 ### Pull Request Formatting
 
