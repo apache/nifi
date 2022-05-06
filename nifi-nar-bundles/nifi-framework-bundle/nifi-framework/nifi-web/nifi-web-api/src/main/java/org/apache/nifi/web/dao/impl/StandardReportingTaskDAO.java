@@ -53,6 +53,7 @@ import org.quartz.CronExpression;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -384,7 +385,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                 reportingTask.setComments(comments);
             }
             if (isNotNull(properties)) {
-                reportingTask.setProperties(properties);
+                final Set<String> sensitiveDynamicPropertyNames = reportingTaskDTO.getSensitiveDynamicPropertyNames();
+                reportingTask.setProperties(properties, false,sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
             }
         } finally {
             reportingTask.resumeValidationTrigger();

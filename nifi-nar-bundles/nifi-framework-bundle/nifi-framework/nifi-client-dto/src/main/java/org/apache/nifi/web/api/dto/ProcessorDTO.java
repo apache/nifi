@@ -42,6 +42,7 @@ public class ProcessorDTO extends ComponentDTO {
     private Boolean supportsParallelProcessing;
     private Boolean supportsEventDriven;
     private Boolean supportsBatching;
+    private Boolean supportsSensitiveDynamicProperties;
     private Boolean persistsState;
     private Boolean restricted;
     private Boolean deprecated;
@@ -148,6 +149,20 @@ public class ProcessorDTO extends ComponentDTO {
 
     public void setSupportsParallelProcessing(Boolean supportsParallelProcessing) {
         this.supportsParallelProcessing = supportsParallelProcessing;
+    }
+
+    /**
+     * @return whether this processor supports sensitive dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the processor supports sensitive dynamic properties."
+    )
+    public Boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
     }
 
     /**

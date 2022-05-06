@@ -30,6 +30,7 @@ public class ProcessorConfigDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
+    private Set<String> sensitiveDynamicPropertyNames;
 
     // settings
     private String schedulingPeriod;
@@ -224,6 +225,20 @@ public class ProcessorConfigDTO {
 
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
+    }
+
+    /**
+     * @return Set of sensitive dynamic property names
+     */
+    @ApiModelProperty(
+            value = "Set of sensitive dynamic property names"
+    )
+    public Set<String> getSensitiveDynamicPropertyNames() {
+        return sensitiveDynamicPropertyNames;
+    }
+
+    public void setSensitiveDynamicPropertyNames(final Set<String> sensitiveDynamicPropertyNames) {
+        this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
     /**

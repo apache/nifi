@@ -15,5 +15,6 @@
 
 org.apache.nifi.cs.tests.system.EnsureControllerServiceConfigurationCorrect
 org.apache.nifi.cs.tests.system.FakeControllerService1
+org.apache.nifi.cs.tests.system.SensitiveDynamicPropertiesService
 org.apache.nifi.cs.tests.system.StandardCountService
 org.apache.nifi.cs.tests.system.StandardSleepService

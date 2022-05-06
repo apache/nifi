@@ -53,6 +53,9 @@ public class StaticDifferenceDescriptor implements DifferenceDescriptor {
             case PROPERTY_CHANGED:
                 description = String.format("Property '%s' for %s with ID %s is different", fieldName, componentA.getComponentType().getTypeName(), getId(componentA));
                 break;
+            case PROPERTY_SENSITIVITY_CHANGED:
+                description = String.format("Property '%s' for %s with ID %s has a different sensitive status", fieldName, componentA.getComponentType().getTypeName(), componentA.getIdentifier());
+                break;
             case PROPERTY_PARAMETERIZED:
                 description = String.format("Property '%s' is a parameter reference in %s but not in %s", fieldName, flowAName, flowBName);
                 break;

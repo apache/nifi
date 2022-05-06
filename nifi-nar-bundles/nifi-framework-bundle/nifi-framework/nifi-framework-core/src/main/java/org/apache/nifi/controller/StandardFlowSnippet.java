@@ -251,7 +251,8 @@ public class StandardFlowSnippet implements FlowSnippet {
             for (final ControllerServiceDTO controllerServiceDTO : dto.getControllerServices()) {
                 final String serviceId = controllerServiceDTO.getId();
                 final ControllerServiceNode serviceNode = flowManager.getControllerServiceNode(serviceId);
-                serviceNode.setProperties(controllerServiceDTO.getProperties());
+                final Set<String> sensitiveDynamicPropertyNames = controllerServiceDTO.getSensitiveDynamicPropertyNames();
+                serviceNode.setProperties(controllerServiceDTO.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
             }
         } finally {
             serviceNodes.forEach(ControllerServiceNode::resumeValidationTrigger);
@@ -420,7 +421,8 @@ public class StandardFlowSnippet implements FlowSnippet {
                 group.addProcessor(procNode);
 
                 if (config.getProperties() != null) {
-                    procNode.setProperties(config.getProperties());
+                    final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
+                    procNode.setProperties(config.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
                 }
 
                 // Notify the processor node that the configuration (properties, e.g.) has been restored

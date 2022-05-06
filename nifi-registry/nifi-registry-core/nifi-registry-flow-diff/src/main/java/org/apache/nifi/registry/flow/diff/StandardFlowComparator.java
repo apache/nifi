@@ -291,9 +291,12 @@ public class StandardFlowComparator implements FlowComparator {
             final String valueB = decrypt(rawValueB, descriptorsB.get(key));
             final String valueA = decrypt(rawValueA, descriptorsA.get(key));
 
-            VersionedPropertyDescriptor descriptor = descriptorsA.get(key);
+            final VersionedPropertyDescriptor descriptorA = descriptorsA.get(key);
+            final VersionedPropertyDescriptor descriptorB = descriptorsB.get(key);
+
+            VersionedPropertyDescriptor descriptor = descriptorA;
             if (descriptor == null) {
-                descriptor = descriptorsB.get(key);
+                descriptor = descriptorB;
             }
 
             final String displayName;
@@ -301,6 +304,12 @@ public class StandardFlowComparator implements FlowComparator {
                 displayName = key;
             } else {
                 displayName = descriptor.getDisplayName() == null ? descriptor.getName() : descriptor.getDisplayName();
+            }
+
+            if (descriptorA != null && descriptorB != null) {
+                if (descriptorA.isSensitive() != descriptorB.isSensitive()) {
+                    differences.add(difference(DifferenceType.PROPERTY_SENSITIVITY_CHANGED, componentA, componentB, key, displayName, descriptorA.isSensitive(), descriptorB.isSensitive()));
+                }
             }
 
             if (valueA == null && valueB != null) {

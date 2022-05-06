@@ -53,7 +53,7 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StatelessReportingContext(statelessEngine, flowManager, getEffectivePropertyValues(), getReportingTask(), getVariableRegistry(), getParameterLookup());
+        return new StatelessReportingContext(statelessEngine, flowManager, getEffectivePropertyValues(), this, getVariableRegistry(), getParameterLookup());
     }
 
     @Override

@@ -45,9 +45,11 @@ public class ControllerServiceDTO extends ComponentDTO {
     private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
+    private Boolean supportsSensitiveDynamicProperties;
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
+    private Set<String> sensitiveDynamicPropertyNames;
 
     private String customUiUrl;
     private String annotationData;
@@ -202,6 +204,20 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     /**
+     * @return whether this controller service supports sensitive dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the controller service supports sensitive dynamic properties."
+    )
+    public Boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
+    }
+
+    /**
      * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */
     @ApiModelProperty(
@@ -242,6 +258,20 @@ public class ControllerServiceDTO extends ComponentDTO {
 
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
+    }
+
+    /**
+     * @return Set of sensitive dynamic property names
+     */
+    @ApiModelProperty(
+            value = "Set of sensitive dynamic property names"
+    )
+    public Set<String> getSensitiveDynamicPropertyNames() {
+        return sensitiveDynamicPropertyNames;
+    }
+
+    public void setSensitiveDynamicPropertyNames(final Set<String> sensitiveDynamicPropertyNames) {
+        this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
     /**

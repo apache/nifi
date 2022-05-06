@@ -216,7 +216,8 @@ public class ControllerServiceLoader {
         node.pauseValidationTrigger();
         try {
             node.setAnnotationData(dto.getAnnotationData());
-            node.setProperties(dto.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = dto.getSensitiveDynamicPropertyNames();
+            node.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
         } finally {
             node.resumeValidationTrigger();
         }

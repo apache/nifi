@@ -726,7 +726,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(dto.getAnnotationData());
-            reportingTask.setProperties(dto.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = dto.getSensitiveDynamicPropertyNames();
+            reportingTask.setProperties(dto.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
             return reportingTask;
         } else {
             // otherwise return the existing reporting task node
@@ -1269,7 +1270,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
                 procNode.setAutoTerminatedRelationships(relationships);
             }
 
-            procNode.setProperties(config.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
+            procNode.setProperties(config.getProperties(), false, sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
 
             final ScheduledState scheduledState = ScheduledState.valueOf(processorDTO.getState());
             if (ScheduledState.RUNNING.equals(scheduledState)) {

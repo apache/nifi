@@ -35,6 +35,8 @@ import java.util.Collection;
  */
 public abstract class NiFiAuditor {
 
+    protected static final String SENSITIVE_VALUE_PLACEHOLDER = "********";
+
     private AuditService auditService;
     private NiFiServiceFacade serviceFacade;
     private ProcessGroupDAO processGroupDAO;

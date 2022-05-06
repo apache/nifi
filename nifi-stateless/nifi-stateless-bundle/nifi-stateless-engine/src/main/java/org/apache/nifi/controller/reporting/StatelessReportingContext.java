@@ -19,12 +19,12 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.stateless.engine.StatelessEngine;
 
 import java.util.Map;
@@ -34,9 +34,9 @@ public class StatelessReportingContext extends AbstractReportingContext implemen
     private final FlowManager flowManager;
 
     public StatelessReportingContext(final StatelessEngine statelessEngine, final FlowManager flowManager,
-                                     final Map<PropertyDescriptor, String> properties, final ReportingTask reportingTask,
+                                     final Map<PropertyDescriptor, String> properties, final ReportingTaskNode reportingTaskNode,
                                      final VariableRegistry variableRegistry, final ParameterLookup parameterLookup) {
-        super(reportingTask, statelessEngine.getBulletinRepository(), properties, statelessEngine.getControllerServiceProvider(), parameterLookup, variableRegistry);
+        super(reportingTaskNode, statelessEngine.getBulletinRepository(), properties, statelessEngine.getControllerServiceProvider(), parameterLookup, variableRegistry);
         this.statelessEngine = statelessEngine;
         this.flowManager = flowManager;
     }

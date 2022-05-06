@@ -146,7 +146,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         }
 
         // Get the "canonical" Property Descriptor from the Processor
-        final PropertyDescriptor canonicalDescriptor = procNode.getProcessor().getPropertyDescriptor(descriptor.getName());
+        final PropertyDescriptor canonicalDescriptor = procNode.getPropertyDescriptor(descriptor.getName());
         final String defaultValue = canonicalDescriptor.getDefaultValue();
 
         return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
@@ -160,8 +160,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public PropertyValue getProperty(final String propertyName) {
         verifyTaskActive();
-        final Processor processor = procNode.getProcessor();
-        final PropertyDescriptor descriptor = processor.getPropertyDescriptor(propertyName);
+        final PropertyDescriptor descriptor = procNode.getPropertyDescriptor(propertyName);
         if (descriptor == null) {
             return null;
         }

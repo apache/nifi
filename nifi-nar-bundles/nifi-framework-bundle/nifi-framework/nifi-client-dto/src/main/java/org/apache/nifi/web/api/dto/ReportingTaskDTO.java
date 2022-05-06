@@ -21,6 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Component that is capable of reporting internal NiFi state to an external service
@@ -41,6 +42,7 @@ public class ReportingTaskDTO extends ComponentDTO {
     private Boolean deprecated;
     private Boolean isExtensionMissing;
     private Boolean multipleVersionsAvailable;
+    private Boolean supportsSensitiveDynamicProperties;
 
     private String schedulingPeriod;
     private String schedulingStrategy;
@@ -48,6 +50,7 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
+    private Set<String> sensitiveDynamicPropertyNames;
 
     private String customUiUrl;
     private String annotationData;
@@ -201,6 +204,20 @@ public class ReportingTaskDTO extends ComponentDTO {
     }
 
     /**
+     * @return whether this reporting task supports sensitive dynamic properties
+     */
+    @ApiModelProperty(
+            value = "Whether the reporting task supports sensitive dynamic properties."
+    )
+    public Boolean getSupportsSensitiveDynamicProperties() {
+        return supportsSensitiveDynamicProperties;
+    }
+
+    public void setSupportsSensitiveDynamicProperties(final Boolean supportsSensitiveDynamicProperties) {
+        this.supportsSensitiveDynamicProperties = supportsSensitiveDynamicProperties;
+    }
+
+    /**
      * @return current scheduling state of the reporting task
      */
     @ApiModelProperty(
@@ -255,6 +272,20 @@ public class ReportingTaskDTO extends ComponentDTO {
 
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
+    }
+
+    /**
+     * @return Set of sensitive dynamic property names
+     */
+    @ApiModelProperty(
+            value = "Set of sensitive dynamic property names"
+    )
+    public Set<String> getSensitiveDynamicPropertyNames() {
+        return sensitiveDynamicPropertyNames;
+    }
+
+    public void setSensitiveDynamicPropertyNames(final Set<String> sensitiveDynamicPropertyNames) {
+        this.sensitiveDynamicPropertyNames = sensitiveDynamicPropertyNames;
     }
 
     /**

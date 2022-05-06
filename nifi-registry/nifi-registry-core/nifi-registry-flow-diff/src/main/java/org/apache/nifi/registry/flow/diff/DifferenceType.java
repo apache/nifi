@@ -129,6 +129,11 @@ public enum DifferenceType {
     PROPERTY_REMOVED("Property Removed"),
 
     /**
+     * The sensitive status of the property changed
+     */
+    PROPERTY_SENSITIVITY_CHANGED("Property Sensitivity Changed"),
+
+    /**
      * Property is unset or set to an explicit value in Flow A but set to (exactly) a parameter reference in Flow B. Note that if Flow A
      * has a property set to "#{param1} abc" and it is changed to "#{param1} abc #{param2}" this would indicate a Difference Type of @{link #PROPERTY_CHANGED}, not
      * PROPERTY_PARAMETERIZED

@@ -41,6 +41,7 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,21 +49,21 @@ import java.util.concurrent.TimeUnit;
 
 public interface ComponentNode extends ComponentAuthorizable {
     @Override
-    public String getIdentifier();
+    String getIdentifier();
 
-    public String getName();
+    String getName();
 
-    public void setName(String name);
+    void setName(String name);
 
-    public String getAnnotationData();
+    String getAnnotationData();
 
-    public void setAnnotationData(String data);
+    void setAnnotationData(String data);
 
-    public default void setProperties(Map<String, String> properties) {
-        setProperties(properties, false);
+    default void setProperties(Map<String, String> properties) {
+        setProperties(properties, false, Collections.emptySet());
     }
 
-    public void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiredProperties);
+    void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiresProperties, Set<String> sensitiveDynamicPropertyNames);
 
     void verifyCanUpdateProperties(final Map<String, String> properties);
 
@@ -191,6 +192,15 @@ public interface ComponentNode extends ComponentAuthorizable {
     boolean isValidationNecessary();
 
     /**
+     * Indicates whether the Component supports sensitive dynamic properties
+     *
+     * @return Support status for Sensitive Dynamic Properties
+     */
+    default boolean isSupportsSensitiveDynamicProperties() {
+        return false;
+    }
+
+    /**
      * @return the variable registry for this component
      */
     ComponentVariableRegistry getVariableRegistry();
@@ -200,7 +210,7 @@ public interface ComponentNode extends ComponentAuthorizable {
      *
      * @return the processor's current Validation Status
      */
-    public abstract ValidationStatus getValidationStatus();
+    ValidationStatus getValidationStatus();
 
     /**
      * Returns the processor's Validation Status, waiting up to the given amount of time for the Validation to complete
@@ -212,7 +222,7 @@ public interface ComponentNode extends ComponentAuthorizable {
      * @param unit the time unit
      * @return the ValidationStatus
      */
-    public abstract ValidationStatus getValidationStatus(long timeout, TimeUnit unit);
+    ValidationStatus getValidationStatus(long timeout, TimeUnit unit);
 
     /**
      * Validates the component against the current configuration

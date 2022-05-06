@@ -3642,13 +3642,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getProcessorPropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getProcessorPropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ProcessorNode processor = processorDAO.getProcessor(id);
         PropertyDescriptor descriptor = processor.getPropertyDescriptor(property);
 
         // return an invalid descriptor if the processor doesn't support this property
         if (descriptor == null) {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        } else if (descriptor.isDynamic() && sensitive) {
+            descriptor = new PropertyDescriptor.Builder().fromPropertyDescriptor(descriptor).sensitive(true).build();
         }
 
         return dtoFactory.createPropertyDescriptorDto(descriptor, processor.getProcessGroup().getIdentifier());
@@ -4511,13 +4513,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getControllerServicePropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getControllerServicePropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
-        PropertyDescriptor descriptor = controllerService.getControllerServiceImplementation().getPropertyDescriptor(property);
+        PropertyDescriptor descriptor = controllerService.getPropertyDescriptor(property);
 
         // return an invalid descriptor if the controller service doesn't support this property
         if (descriptor == null) {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        } else if (descriptor.isDynamic() && sensitive) {
+            descriptor = new PropertyDescriptor.Builder().fromPropertyDescriptor(descriptor).sensitive(true).build();
         }
 
         final String groupId = controllerService.getProcessGroup() == null ? null : controllerService.getProcessGroup().getIdentifier();
@@ -4555,13 +4559,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(id);
-        PropertyDescriptor descriptor = reportingTask.getReportingTask().getPropertyDescriptor(property);
+        PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property);
 
         // return an invalid descriptor if the reporting task doesn't support this property
         if (descriptor == null) {
             descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        } else if (descriptor.isDynamic() && sensitive) {
+            descriptor = new PropertyDescriptor.Builder().fromPropertyDescriptor(descriptor).sensitive(true).build();
         }
 
         return dtoFactory.createPropertyDescriptorDto(descriptor, null);

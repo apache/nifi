@@ -22,6 +22,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -30,6 +31,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Jersey implementation of ReportingTasksClient.
@@ -183,4 +185,19 @@ public class JerseyReportingTasksClient extends AbstractJerseyClient implements 
         });
     }
 
+    @Override
+    public PropertyDescriptorEntity getPropertyDescriptor(final String componentId, final String propertyName, final Boolean sensitive) throws NiFiClientException, IOException {
+        Objects.requireNonNull(componentId, "Component ID required");
+        Objects.requireNonNull(propertyName, "Property Name required");
+
+        return executeAction("Error retrieving Property Descriptor", () -> {
+            final WebTarget target = reportingTasksTarget
+                    .path("{id}/descriptors")
+                    .resolveTemplate("id", componentId)
+                    .queryParam("propertyName", propertyName)
+                    .queryParam("sensitive", sensitive);
+
+            return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
+        });
+    }
 }

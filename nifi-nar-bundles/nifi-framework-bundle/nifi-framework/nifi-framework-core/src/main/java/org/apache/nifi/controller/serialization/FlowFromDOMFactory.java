@@ -121,6 +121,7 @@ public class FlowFromDOMFactory {
         final boolean enabled = getBoolean(element, "enabled");
         dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
 
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         dto.setAnnotationData(getString(element, "annotationData"));
 
@@ -139,6 +140,7 @@ public class FlowFromDOMFactory {
         dto.setState(getString(element, "scheduledState"));
         dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
 
+        dto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         dto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         dto.setAnnotationData(getString(element, "annotationData"));
 
@@ -539,6 +541,7 @@ public class FlowFromDOMFactory {
             configDto.setRunDurationMillis(TimeUnit.NANOSECONDS.toMillis(runDurationNanos));
         }
 
+        configDto.setSensitiveDynamicPropertyNames(getSensitivePropertyNames(element));
         configDto.setProperties(getProperties(element, encryptor, flowEncodingVersion));
         configDto.setAnnotationData(getString(element, "annotationData"));
 
@@ -550,6 +553,21 @@ public class FlowFromDOMFactory {
         configDto.setAutoTerminatedRelationships(autoTerminatedRelationships);
 
         return dto;
+    }
+
+    private static Set<String> getSensitivePropertyNames(final Element element) {
+        final Set<String> sensitivePropertyNames = new LinkedHashSet<>();
+
+        final List<Element> propertyElements = getChildrenByTagName(element, "property");
+        for (final Element propertyElement : propertyElements) {
+            final String rawPropertyValue = getString(propertyElement, "value");
+            if (isValueSensitive(rawPropertyValue)) {
+                final String name = getString(propertyElement, "name");
+                sensitivePropertyNames.add(name);
+            }
+        }
+
+        return sensitivePropertyNames;
     }
 
     private static LinkedHashMap<String, String> getProperties(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
@@ -636,7 +654,7 @@ public class FlowFromDOMFactory {
     }
 
     private static String decrypt(final String value, final PropertyEncryptor encryptor) {
-        if (value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX)) {
+        if (isValueSensitive(value)) {
             try {
                 return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
             } catch (EncryptionException e) {
@@ -648,5 +666,9 @@ public class FlowFromDOMFactory {
         } else {
             return value;
         }
+    }
+
+    private static boolean isValueSensitive(final String value) {
+        return value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX);
     }
 }

@@ -302,7 +302,7 @@ public class StandardVersionedComponentSynchronizerTest {
         synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
 
         // Ensure that the processor was updated as expected.
-        verify(processorA).setProperties(versionedProcessor.getProperties(), true);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
         verify(processorA).setName(versionedProcessor.getName());
         verify(componentScheduler, times(0)).startComponent(any(Connectable.class));
     }
@@ -327,7 +327,7 @@ public class StandardVersionedComponentSynchronizerTest {
         synchronizer.synchronize(processorA, versionedProcessor, group, synchronizationOptions);
 
         verify(group, times(1)).stopProcessor(processorA);
-        verify(processorA).setProperties(versionedProcessor.getProperties(), true);
+        verify(processorA).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
         verify(componentScheduler, atLeast(1)).startComponent(any(Connectable.class));
     }
 
@@ -346,7 +346,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verifyStopped(processorA);
         verifyNotRestarted(processorA);
         verify(processorA, times(0)).terminate();
-        verify(processorA, times(0)).setProperties(versionedProcessor.getProperties());
+        verify(processorA, times(0)).setProperties(eq(versionedProcessor.getProperties()), anyBoolean(), anySet());
         verify(processorA, times(0)).setName(versionedProcessor.getName());
     }
 
@@ -362,7 +362,7 @@ public class StandardVersionedComponentSynchronizerTest {
         verifyStopped(processorA);
         verifyRestarted(processorA);
         verify(processorA, times(1)).terminate();
-        verify(processorA, times(1)).setProperties(versionedProcessor.getProperties(), true);
+        verify(processorA, times(1)).setProperties(versionedProcessor.getProperties(), true, Collections.emptySet());
         verify(processorA, times(1)).setName(versionedProcessor.getName());
     }
 

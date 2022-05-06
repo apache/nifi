@@ -142,6 +142,8 @@ public class ProcessorAuditor extends NiFiAuditor {
 
         // ensure the user was found
         if (user != null) {
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processorDTO);
+
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
 
@@ -167,13 +169,13 @@ public class ProcessorAuditor extends NiFiAuditor {
                 // create a configuration action accordingly
                 if (operation != null) {
                     // clear the value if this property is sensitive
-                    final PropertyDescriptor propertyDescriptor = processor.getProcessor().getPropertyDescriptor(property);
-                    if (propertyDescriptor != null && propertyDescriptor.isSensitive()) {
+                    final PropertyDescriptor propertyDescriptor = processor.getPropertyDescriptor(property);
+                    if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
                         if (newValue != null) {
-                            newValue = "********";
+                            newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                         if (oldValue != null) {
-                            oldValue = "********";
+                            oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
                         if (newValue != null && oldValue != null) {
@@ -352,6 +354,14 @@ public class ProcessorAuditor extends NiFiAuditor {
         }
 
         return action;
+    }
+
+    private Set<String> getSensitiveDynamicPropertyNames(final ProcessorDTO processorDTO) {
+        final ProcessorConfigDTO config = processorDTO.getConfig();
+        if (config == null) {
+            return Collections.emptySet();
+        }
+        return config.getSensitiveDynamicPropertyNames() == null ? Collections.emptySet() : config.getSensitiveDynamicPropertyNames();
     }
 
     /**

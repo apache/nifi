@@ -23,12 +23,14 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Objects;
 
 public class JerseyProcessorClient extends AbstractJerseyClient implements ProcessorClient {
     private volatile WebTarget processGroupTarget;
@@ -255,6 +257,22 @@ public class JerseyProcessorClient extends AbstractJerseyClient implements Proce
                 .resolveTemplate("requestId", verificationRequestId);
 
             return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public PropertyDescriptorEntity getPropertyDescriptor(final String processorId, final String propertyName, final Boolean sensitive) throws NiFiClientException, IOException {
+        Objects.requireNonNull(processorId, "Processor ID required");
+        Objects.requireNonNull(propertyName, "Property Name required");
+
+        return executeAction("Error retrieving Property Descriptor", () -> {
+            final WebTarget target = processorTarget
+                    .path("/descriptors")
+                    .resolveTemplate("id", processorId)
+                    .queryParam("propertyName", propertyName)
+                    .queryParam("sensitive", sensitive);
+
+            return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
         });
     }
 }
