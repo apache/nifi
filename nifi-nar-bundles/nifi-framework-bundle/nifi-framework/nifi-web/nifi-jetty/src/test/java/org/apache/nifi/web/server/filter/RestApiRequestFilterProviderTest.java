@@ -17,14 +17,11 @@
 package org.apache.nifi.web.server.filter;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
-import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
-import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
-import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlets.DoSFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.web.header.HeaderWriterFilter;
 
 import javax.servlet.Filter;
 import java.util.Collections;
@@ -59,11 +56,8 @@ public class RestApiRequestFilterProviderTest {
         assertNotNull(filters);
         assertFalse(filters.isEmpty());
 
+        assertFilterClassFound(filters, HeaderWriterFilter.class);
         assertFilterClassFound(filters, DataTransferExcludedDoSFilter.class);
-        assertFilterClassFound(filters, XFrameOptionsFilter.class);
-        assertFilterClassFound(filters, ContentSecurityPolicyFilter.class);
-        assertFilterClassFound(filters, XSSProtectionFilter.class);
-        assertFilterClassFound(filters, XContentTypeOptionsFilter.class);
     }
 
     private void assertFilterClassFound(final List<FilterHolder> filters, final Class<? extends Filter> filterClass) {
