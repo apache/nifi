@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -26,8 +26,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.PROPERTIES_FILE_APACHE_2_0_LICENSE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class OrderedPropertiesTest {
     @Test

@@ -17,22 +17,22 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.HealthChecks;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpStatusCodeHealthCheck;
-import org.junit.Before;
-import org.junit.ClassRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class NiFiRestConfigurationProviderUnsecureTest extends AbstractTestUnsecure {
-    @ClassRule
-    public static DockerComposeRule docker = DockerComposeRule.builder()
+    @RegisterExtension
+    public static DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("target/test-classes/docker-compose-NiFiRestConfigurationProviderUnsecureTest.yml")
             .waitingForService("mocknifi", HealthChecks.toRespond2xxOverHttp(8080,
                     dockerPort -> "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort() + "/"))
             .waitingForService("c2", new HttpStatusCodeHealthCheck(FileSystemCacheProviderUnsecureTest::getUnsecureConfigUrl, 400))
             .build();
 
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(docker);
     }

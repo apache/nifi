@@ -20,14 +20,14 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 import org.apache.nifi.minifi.commons.schema.RemotePortSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemotePortSchema, RemoteProcessGroupPortDTO> {
 
@@ -41,7 +41,7 @@ public class RemoteInputPortSchemaTest extends BaseSchemaTester<RemotePortSchema
         super(new RemotePortSchemaFunction(), RemotePortSchema::new);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         dto = new RemoteProcessGroupPortDTO();
         dto.setId(testId);

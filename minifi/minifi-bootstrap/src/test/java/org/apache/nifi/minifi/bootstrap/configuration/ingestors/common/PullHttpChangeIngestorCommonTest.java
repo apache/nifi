@@ -34,13 +34,12 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -53,8 +52,8 @@ import java.util.Collections;
 import java.util.Properties;
 
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PATH_KEY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,15 +83,15 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
     public abstract void pullHttpChangeIngestorInit(Properties properties);
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void setListeners() {
         Mockito.reset(testNotifier);
         ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
         when(testListener.getDescriptor()).thenReturn("MockChangeListener");
         Mockito.when(testNotifier.notifyListeners(Mockito.any())).thenReturn(Collections.singleton(new ListenerHandleResult(testListener)));
     }
 
-    @AfterClass
+    @AfterAll
     public static void shutdown() throws Exception {
         jetty.stop();
     }
@@ -226,7 +225,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
 
         @Override
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
-                throws IOException, ServletException {
+                throws IOException {
 
             baseRequest.setHandled(true);
 

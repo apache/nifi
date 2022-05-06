@@ -20,14 +20,14 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ProcessGroupSchemaTest {
     @Test
@@ -38,14 +38,14 @@ public class ProcessGroupSchemaTest {
     @Test
     public void testInputPortsRootGroup() {
         Map<String, Object> map = new HashMap<>();
-        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("testId", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
+        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Collections.singletonList(createPortSchema("testId", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         validateIssuesNumMatches(1, new ProcessGroupSchema(map, ConfigSchema.TOP_LEVEL_NAME));
     }
 
     @Test
     public void testOutputPortsRootGroup() {
         Map<String, Object> map = new HashMap<>();
-        map.put(CommonPropertyKeys.OUTPUT_PORTS_KEY, Arrays.asList(createPortSchema("testId", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
+        map.put(CommonPropertyKeys.OUTPUT_PORTS_KEY, Collections.singletonList(createPortSchema("testId", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         validateIssuesNumMatches(1, new ProcessGroupSchema(map, ConfigSchema.TOP_LEVEL_NAME));
     }
 
@@ -59,6 +59,6 @@ public class ProcessGroupSchemaTest {
     private void validateIssuesNumMatches(int expected, ProcessGroupSchema processGroupSchema) {
         int actual = processGroupSchema.getValidationIssues().size();
         String issues = "[" + System.lineSeparator() + processGroupSchema.getValidationIssues().stream().collect(Collectors.joining("," + System.lineSeparator())) + "]";
-        assertEquals("Expected " + expected + " issue(s), got " + actual + ": " + issues, expected, actual);
+        assertEquals(expected, actual, "Expected " + expected + " issue(s), got " + actual + ": " + issues);
     }
 }

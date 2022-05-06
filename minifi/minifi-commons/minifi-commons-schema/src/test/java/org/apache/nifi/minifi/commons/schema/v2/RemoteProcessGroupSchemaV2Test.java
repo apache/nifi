@@ -23,14 +23,14 @@ import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.PortSchema;
 import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RemoteProcessGroupSchemaV2Test {
     @Test
@@ -41,7 +41,7 @@ public class RemoteProcessGroupSchemaV2Test {
     @Test
     public void testInputPortsRootGroup() {
         Map<String, Object> map = new HashMap<>();
-        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
+        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Collections.singletonList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
         map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
         validateIssuesNumMatches(0, new RemoteProcessGroupSchemaV2(map));
@@ -50,7 +50,7 @@ public class RemoteProcessGroupSchemaV2Test {
     @Test
     public void testTransportProtocol() {
         Map<String, Object> map = new HashMap<>();
-        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Arrays.asList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
+        map.put(CommonPropertyKeys.INPUT_PORTS_KEY, Collections.singletonList(createPortSchema("f94d2469-39f8-4f07-a0d8-acd9396f639e", "testName", ConfigSchema.TOP_LEVEL_NAME).toMap()));
         map.put(RemoteProcessGroupSchema.URL_KEY, "http://localhost:8080/nifi");
         map.put(CommonPropertyKeys.ID_KEY, "a58d2fab-7efe-4cb7-8224-12a60bd8003d");
         map.put(RemoteProcessGroupSchema.TRANSPORT_PROTOCOL_KEY, "not valid");
@@ -77,6 +77,6 @@ public class RemoteProcessGroupSchemaV2Test {
     private void validateIssuesNumMatches(int expected, RemoteProcessGroupSchemaV2 remoteProcessGroupSchema) {
         int actual = remoteProcessGroupSchema.getValidationIssues().size();
         String issues = "[" + System.lineSeparator() + remoteProcessGroupSchema.getValidationIssues().stream().collect(Collectors.joining("," + System.lineSeparator())) + "]";
-        assertEquals("Expected " + expected + " issue(s), got " + actual + ": " + issues, expected, actual);
+        assertEquals(expected, actual, "Expected " + expected + " issue(s), got " + actual + ": " + issues);
     }
 }

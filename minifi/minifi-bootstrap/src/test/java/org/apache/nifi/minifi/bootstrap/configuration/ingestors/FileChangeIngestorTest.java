@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,9 +35,9 @@ import java.util.Properties;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class FileChangeIngestorTest {
@@ -50,8 +51,8 @@ public class FileChangeIngestorTest {
     private Differentiator<InputStream> mockDifferentiator;
     private ConfigurationChangeNotifier testNotifier;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         mockWatchService = Mockito.mock(WatchService.class);
         notifierSpy = Mockito.spy(new FileChangeIngestor());
         mockDifferentiator = Mockito.mock(Differentiator.class);
@@ -67,30 +68,30 @@ public class FileChangeIngestorTest {
         testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, FileChangeIngestor.DEFAULT_POLLING_PERIOD_INTERVAL);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() {
         notifierSpy.close();
     }
 
-    @Test(expected = IllegalStateException.class)
-    public void testInitialize_invalidFile() throws Exception {
+    @Test
+    public void testInitializeInvalidFile() {
         testProperties.put(FileChangeIngestor.CONFIG_FILE_PATH_KEY, "/land/of/make/believe");
+        assertThrows(IllegalStateException.class, () -> notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class)));
+    }
+
+    @Test
+    public void testInitializeValidFile()  {
         notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
 
     @Test
-    public void testInitialize_validFile() throws Exception {
-        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInitialize_invalidPollingPeriod() throws Exception {
+    public void testInitializeInvalidPollingPeriod() {
         testProperties.put(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY, "abc");
-        notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
+        assertThrows(IllegalStateException.class, () -> notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class)));
     }
 
     @Test
-    public void testInitialize_useDefaultPolling() throws Exception {
+    public void testInitializeUseDefaultPolling() {
         testProperties.remove(FileChangeIngestor.POLLING_PERIOD_INTERVAL_KEY);
         notifierSpy.initialize(testProperties, Mockito.mock(ConfigurationFileHolder.class), Mockito.mock(ConfigurationChangeNotifier.class));
     }
@@ -102,20 +103,20 @@ public class FileChangeIngestorTest {
         final ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
         // In this case the WatchKey is null because there were no events found
-        establishMockEnvironmentForChangeTests(testNotifier, null);
+        establishMockEnvironmentForChangeTests(null);
 
         verify(testNotifier, Mockito.never()).notifyListeners(Mockito.any(ByteBuffer.class));
     }
 
     @Test
-    public void testTargetChangedWithModificationEvent_nonConfigFile() throws Exception {
+    public void testTargetChangedWithModificationEventNonConfigFile() throws Exception {
         when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(false);
         final ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
         // In this case, we receive a trigger event for the directory monitored, but it was another file not being monitored
         final WatchKey mockWatchKey = createMockWatchKeyForPath("footage_not_found.yml");
 
-        establishMockEnvironmentForChangeTests(testNotifier, mockWatchKey);
+        establishMockEnvironmentForChangeTests(mockWatchKey);
 
         notifierSpy.targetChanged();
 
@@ -128,7 +129,7 @@ public class FileChangeIngestorTest {
 
         final WatchKey mockWatchKey = createMockWatchKeyForPath(CONFIG_FILENAME);
         // Provided as a spy to allow injection of mock objects for some tests when dealing with the finalized FileSystems class
-        establishMockEnvironmentForChangeTests(testNotifier, mockWatchKey);
+        establishMockEnvironmentForChangeTests(mockWatchKey);
 
         // Invoke the method of interest
         notifierSpy.run();
@@ -158,7 +159,7 @@ public class FileChangeIngestorTest {
         return mockWatchKey;
     }
 
-    private void establishMockEnvironmentForChangeTests(ConfigurationChangeNotifier configurationChangeNotifier, final WatchKey watchKey) throws Exception {
+    private void establishMockEnvironmentForChangeTests(final WatchKey watchKey) {
         // Establish the file mock and its parent directory
         final Path mockConfigFilePath = Mockito.mock(Path.class);
         final Path mockConfigFileParentPath = Mockito.mock(Path.class);

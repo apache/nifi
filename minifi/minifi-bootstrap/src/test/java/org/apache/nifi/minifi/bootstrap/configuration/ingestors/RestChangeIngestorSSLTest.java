@@ -17,15 +17,14 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ListenerHandleResult;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -47,11 +46,9 @@ import java.util.Properties;
 
 import static org.mockito.Mockito.when;
 
-
 public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
 
-
-    @BeforeClass
+    @BeforeAll
     public static void setUpHttps() throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, UnrecoverableKeyException, KeyManagementException, InterruptedException {
         Properties properties = new Properties();
         properties.setProperty(RestChangeIngestor.TRUSTSTORE_LOCATION_KEY, "./src/test/resources/localhost-ts.jks");
@@ -125,26 +122,9 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
         client = clientBuilder.build();
     }
 
-    @AfterClass
+    @AfterAll
     public static void stop() throws Exception {
         restChangeIngestor.close();
         client = null;
-    }
-
-    private static KeyStore readKeyStore(String path) throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore ks = KeyStore.getInstance("jks");
-
-        char[] password = "localtest".toCharArray();
-
-        java.io.FileInputStream fis = null;
-        try {
-            fis = new java.io.FileInputStream(path);
-            ks.load(fis, password);
-        } finally {
-            if (fis != null) {
-                fis.close();
-            }
-        }
-        return ks;
     }
 }

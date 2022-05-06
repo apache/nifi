@@ -17,12 +17,12 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -37,7 +37,7 @@ public class DelegatingConfigurationProviderSecureTest extends AbstractTestSecur
     private static SSLContext trustSslContext;
 
     // Not annotated as rule because we need to generate certificatesDirectory first
-    public static DockerComposeRule docker = DockerComposeRule.builder()
+    public static DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("target/test-classes/docker-compose-DelegatingProviderSecureTest.yml")
             .waitingForServices(Arrays.asList("squid", "c2-upstream"),
                     new HttpsStatusCodeHealthCheck(container -> C2_UPSTREAM_URL, containers -> containers.get(0), containers -> containers.get(1), () -> healthCheckSocketFactory, 403))
@@ -52,7 +52,7 @@ public class DelegatingConfigurationProviderSecureTest extends AbstractTestSecur
     /**
      * Generates certificates with the tls-toolkit and then starts up the docker compose file
      */
-    @BeforeClass
+    @BeforeAll
     public static void initCertificates() throws Exception {
         certificatesDirectory = Paths.get(DelegatingConfigurationProviderSecureTest.class.getClassLoader()
                 .getResource("docker-compose-DelegatingProviderSecureTest.yml").getFile()).getParent().toAbsolutePath().resolve("certificates-DelegatingConfigurationProviderSecureTest");
@@ -62,12 +62,12 @@ public class DelegatingConfigurationProviderSecureTest extends AbstractTestSecur
         docker.before();
     }
 
-    @AfterClass
+    @AfterAll
     public static void cleanup() {
         docker.after();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         super.setup(docker);
     }

@@ -36,10 +36,8 @@ import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.xml.processing.parsers.DocumentProvider;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -67,11 +65,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ConfigTransformerTest {
     public static final Map<String, Integer> PG_ELEMENT_ORDER_MAP = generateOrderMap(
@@ -79,10 +77,7 @@ public class ConfigTransformerTest {
     private XPathFactory xPathFactory;
     private Element config;
 
-    @Rule
-    final public TemporaryFolder tempOutputFolder = new TemporaryFolder();
-
-    @Before
+    @BeforeEach
     public void setup() {
         final DocumentProvider documentProvider = new StandardDocumentProvider();
         final Document document = documentProvider.newDocument();
@@ -174,7 +169,7 @@ public class ConfigTransformerTest {
         properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
 
         for (String name : pre216Properties.stringPropertyNames()) {
-            assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+            assertEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " doesn't match.");
         }
     }
 
@@ -197,7 +192,7 @@ public class ConfigTransformerTest {
         properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
 
         for (String name : pre216Properties.stringPropertyNames()) {
-            assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+            assertEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " doesn't match.");
         }
     }
 
@@ -216,7 +211,7 @@ public class ConfigTransformerTest {
         properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
 
         for (String name : initialProperties.stringPropertyNames()) {
-            assertEquals("Property key " + name + " doesn't match.", initialProperties.getProperty(name), properties.getProperty(name));
+            assertEquals(initialProperties.getProperty(name), properties.getProperty(name), "Property key " + name + " doesn't match.");
         }
     }
 
@@ -701,9 +696,9 @@ public class ConfigTransformerTest {
         for (String name : pre216Properties.stringPropertyNames()) {
             // Verify the Content Repo property was overridden
             if ("nifi.content.repository.implementation".equals(name)) {
-                assertNotEquals("Property key " + name + " was not overridden.", pre216Properties.getProperty(name), properties.getProperty(name));
+                assertNotEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " was not overridden.");
             } else {
-                assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+                assertEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " doesn't match.");
             }
         }
     }
@@ -724,9 +719,9 @@ public class ConfigTransformerTest {
         for (String name : pre216Properties.stringPropertyNames()) {
             // Verify the Content Repo property was overridden
             if ("nifi.flowfile.repository.implementation".equals(name)) {
-                assertNotEquals("Property key " + name + " was not overridden.", pre216Properties.getProperty(name), properties.getProperty(name));
+                assertNotEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " was not overridden.");
             } else {
-                assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+                assertEquals(pre216Properties.getProperty(name), properties.getProperty(name), "Property key " + name + " doesn't match.");
             }
         }
     }
@@ -769,7 +764,7 @@ public class ConfigTransformerTest {
             if (index != null) {
                 if (elementOrderList > index) {
                     fail("Found " + nodeName + " after " + lastOrderedElementName + "; expected all " + nodeName + " elements to come before the following elements: " + orderMap.entrySet().stream()
-                            .filter(e -> e.getValue() > index).sorted(Comparator.comparingInt(e -> e.getValue())).map(e -> e.getKey()).collect(Collectors.joining(", ")));
+                            .filter(e -> e.getValue() > index).sorted(Comparator.comparingInt(Map.Entry::getValue)).map(Map.Entry::getKey).collect(Collectors.joining(", ")));
                 }
                 lastOrderedElementName = nodeName;
                 elementOrderList = index;

@@ -43,8 +43,8 @@ import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.UserAwareEventAccess;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
@@ -65,9 +65,8 @@ import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.a
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addProcessorStatus;
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addReportingTaskStatus;
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addSystemDiagnosticStatus;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -79,7 +78,7 @@ public class StatusConfigReporterTest {
     private BulletinRepository bulletinRepo;
     private ProcessGroup processGroup;
 
-    @Before
+    @BeforeEach
     public void setup() {
         mockFlowController = mock(FlowController.class);
         mockFlowManager = mock(FlowManager.class);
@@ -105,7 +104,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, false, false, false, false);
 
@@ -120,7 +119,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, false, false, false, false);
 
@@ -135,7 +134,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, true, false, false, false);
 
@@ -150,7 +149,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addProcessorStatus(expected, true, true, true, true, true);
 
@@ -165,7 +164,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport status = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addConnectionStatus(expected, true, false);
 
@@ -181,7 +180,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
         addConnectionStatus(expected, true, true);
 
         assertEquals(expected, actual);
@@ -202,7 +201,7 @@ public class StatusConfigReporterTest {
 
         addProcessorStatus(expected, true, false, false, false, false);
 
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         assertEquals(expected, actual);
     }
@@ -215,7 +214,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
         addReportingTaskStatus(expected, true, false, false, false);
 
         assertEquals(expected, actual);
@@ -230,7 +229,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addReportingTaskStatus(expected, false, false, true, true);
 
@@ -245,7 +244,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addReportingTaskStatus(expected, true, true, true, true);
 
@@ -260,7 +259,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, true, false, false, false, false);
 
@@ -275,7 +274,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, true, false, false, false);
 
@@ -290,7 +289,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, true, false, false);
 
@@ -305,7 +304,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, false, true, false);
 
@@ -320,7 +319,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, false, false, false, false, true);
 
@@ -336,7 +335,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addSystemDiagnosticStatus(expected, true, true, true, true, true);
 
@@ -351,7 +350,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
         addInstanceStatus(expected, true, false, false, false);
 
         assertEquals(expected, actual);
@@ -365,7 +364,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, false, false, true, true);
 
@@ -380,7 +379,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, false, true, false, false);
 
@@ -395,7 +394,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addInstanceStatus(expected, true, true, true, true);
 
@@ -410,7 +409,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, false, false, false);
 
@@ -425,7 +424,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, false, false, true, true);
 
@@ -441,7 +440,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, true, true, true);
 
@@ -456,7 +455,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, true, false, false, false, false, false);
 
@@ -471,7 +470,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, false, false, true, true);
 
@@ -486,7 +485,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, true, false, false, false, false);
 
@@ -501,7 +500,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, true, false, false, false);
 
@@ -516,7 +515,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, false, false, false, true, false, false);
 
@@ -532,7 +531,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addExpectedRemoteProcessGroupStatus(expected, true, true, true, true, true, true);
 
@@ -541,7 +540,7 @@ public class StatusConfigReporterTest {
 
     @Test
     public void statusEverything() throws Exception {
-        when(bulletinRepo.findBulletins(anyObject())).thenReturn(Collections.emptyList());
+        when(bulletinRepo.findBulletins(any())).thenReturn(Collections.emptyList());
 
         populateControllerService(true, false);
         populateInstance(true);
@@ -558,7 +557,7 @@ public class StatusConfigReporterTest {
         FlowStatusReport actual = StatusConfigReporter.getStatus(mockFlowController, statusRequest, LoggerFactory.getLogger(StatusConfigReporterTest.class));
 
         FlowStatusReport expected = new FlowStatusReport();
-        expected.setErrorsGeneratingReport(Collections.EMPTY_LIST);
+        expected.setErrorsGeneratingReport(Collections.emptyList());
 
         addControllerServiceStatus(expected, true, true, true, false);
         addInstanceStatus(expected, true, true, true, true);
@@ -651,7 +650,7 @@ public class StatusConfigReporterTest {
 
             when(reportingTaskNode.getValidationErrors()).thenReturn(validationResultList);
         } else {
-            when(reportingTaskNode.getValidationErrors()).thenReturn(Collections.EMPTY_LIST);
+            when(reportingTaskNode.getValidationErrors()).thenReturn(Collections.emptyList());
         }
     }
 
@@ -718,7 +717,7 @@ public class StatusConfigReporterTest {
 
             when(processorNode.getValidationErrors()).thenReturn(validationResultList);
         } else {
-            when(processorNode.getValidationErrors()).thenReturn(Collections.EMPTY_LIST);
+            when(processorNode.getValidationErrors()).thenReturn(Collections.emptyList());
         }
     }
 
@@ -854,7 +853,7 @@ public class StatusConfigReporterTest {
         bulletinList.add(bulletin);
 
         BulletinQueryAnswer bulletinQueryAnswer = new BulletinQueryAnswer(sourceId, bulletinList);
-        when(bulletinRepo.findBulletins(anyObject())).then(bulletinQueryAnswer);
+        when(bulletinRepo.findBulletins(any())).then(bulletinQueryAnswer);
     }
 
     private void addValidationErrors(ComponentNode connectable) {
@@ -887,7 +886,7 @@ public class StatusConfigReporterTest {
         }
 
         @Override
-        public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+        public Object answer(InvocationOnMock invocationOnMock) {
             BulletinQuery bulletinQuery = (BulletinQuery) invocationOnMock.getArguments()[0];
             if (idToMatch.equals(bulletinQuery.getSourceIdPattern().toString())) {
                 return bulletinList;

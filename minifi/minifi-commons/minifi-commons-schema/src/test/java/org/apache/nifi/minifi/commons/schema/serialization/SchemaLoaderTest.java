@@ -22,16 +22,16 @@ import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.ProcessorSchema;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.v1.ConfigSchemaV1;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class SchemaLoaderTest {
     @Test
@@ -76,16 +76,12 @@ public class SchemaLoaderTest {
     public void testUnsupportedVersion() throws IOException, SchemaLoaderException {
         Map<String, Object> yamlAsMap = SchemaLoader.loadYamlAsMap(SchemaLoaderTest.class.getClassLoader().getResourceAsStream("config-minimal-v2.yml"));
         yamlAsMap.put(ConfigSchema.VERSION, "9999999");
-        try {
-            SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap);
-            fail();
-        } catch (SchemaLoaderException e) {
-            assertEquals("YAML configuration version 9999999 not supported.  Supported versions: 1, 2, 3", e.getMessage());
-        }
+        final SchemaLoaderException e = assertThrows(SchemaLoaderException.class, () -> SchemaLoader.loadConfigSchemaFromYaml(yamlAsMap));
+        assertEquals("YAML configuration version 9999999 not supported.  Supported versions: 1, 2, 3", e.getMessage());
     }
 
     private void validateMinimalConfigVersion1Parse(ConfigSchema configSchema) {
-        assertTrue(configSchema instanceof ConfigSchema);
+        assertInstanceOf(ConfigSchema.class, configSchema);
 
         List<ConnectionSchema> connections = configSchema.getProcessGroupSchema().getConnections();
         assertNotNull(connections);
@@ -97,6 +93,6 @@ public class SchemaLoaderTest {
         assertEquals(2, processors.size());
         processors.forEach(p -> assertNotNull(p.getId()));
 
-        assertEquals("Expected no errors, got: " + configSchema.getValidationIssues(), 0, configSchema.getValidationIssues().size());
+        assertEquals(0, configSchema.getValidationIssues().size(), "Expected no errors, got: " + configSchema.getValidationIssues());
     }
 }

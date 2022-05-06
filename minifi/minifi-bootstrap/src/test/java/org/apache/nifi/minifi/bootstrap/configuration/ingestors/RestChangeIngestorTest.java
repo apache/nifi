@@ -17,22 +17,20 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.RestChangeIngestorCommonTest;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
 
 import java.net.MalformedURLException;
 import java.util.Properties;
 
-
 public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws InterruptedException, MalformedURLException {
         Properties properties = new Properties();
         restChangeIngestor = new RestChangeIngestor();
@@ -49,7 +47,7 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
         Thread.sleep(1000);
     }
 
-    @AfterClass
+    @AfterAll
     public static void stop() throws Exception {
         restChangeIngestor.close();
         client = null;

@@ -22,8 +22,8 @@ package org.apache.nifi.minifi.commons.schema.v1;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -32,8 +32,8 @@ import java.util.Map;
 
 import static org.apache.nifi.minifi.commons.schema.ConfigSchemaTest.assertMessageDoesNotExist;
 import static org.apache.nifi.minifi.commons.schema.ConfigSchemaTest.getListWithKeyValues;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class ConnectionSchemaV1Test {
     private String testName;
@@ -45,7 +45,7 @@ public class ConnectionSchemaV1Test {
     private String testFlowfileExpiration;
     private String testQueuePrioritizerClass;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testName = "testName";
         testSourceRelationship = "testSourceRelationship";

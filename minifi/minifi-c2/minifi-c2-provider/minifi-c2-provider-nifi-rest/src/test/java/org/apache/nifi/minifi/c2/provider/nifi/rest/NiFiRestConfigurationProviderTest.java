@@ -19,9 +19,9 @@ package org.apache.nifi.minifi.c2.provider.nifi.rest;
 
 import org.apache.nifi.minifi.c2.api.cache.ConfigurationCache;
 import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Comparator;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class NiFiRestConfigurationProviderTest {
@@ -38,7 +38,7 @@ public class NiFiRestConfigurationProviderTest {
     private NiFiRestConfigurationProvider niFiRestConfigurationProvider;
     private Path cachePath;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         configConfigurationCache = mock(ConfigurationCache.class);
         httpConnector = mock(HttpConnector.class);
@@ -46,7 +46,7 @@ public class NiFiRestConfigurationProviderTest {
         cachePath = Files.createTempDirectory(NiFiRestConfigurationProviderTest.class.getCanonicalName());
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         Files.walk(cachePath)
                 .sorted(Comparator.reverseOrder())

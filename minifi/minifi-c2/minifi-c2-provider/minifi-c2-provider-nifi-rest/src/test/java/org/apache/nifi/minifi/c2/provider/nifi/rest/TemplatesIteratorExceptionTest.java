@@ -17,12 +17,11 @@
 
 package org.apache.nifi.minifi.c2.provider.nifi.rest;
 
-import org.apache.nifi.minifi.c2.provider.nifi.rest.TemplatesIteratorException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
 public class TemplatesIteratorExceptionTest {

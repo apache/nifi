@@ -23,8 +23,8 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RelationshipDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -35,7 +35,7 @@ import java.util.UUID;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.ANNOTATION_DATA_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.CLASS_KEY;
 import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.PROPERTIES_KEY;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, ProcessorDTO> {
     private final String testName = "testName";
@@ -85,7 +85,7 @@ public class ProcessorSchemaTest extends BaseSchemaTester<ProcessorSchema, Proce
         super(new ProcessorSchemaFunction(), ProcessorSchema::new);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         config = new ProcessorConfigDTO();
 

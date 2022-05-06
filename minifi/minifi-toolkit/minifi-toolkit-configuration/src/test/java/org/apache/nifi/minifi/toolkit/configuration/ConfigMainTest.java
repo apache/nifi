@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.toolkit.configuration;
 
-import org.apache.commons.io.Charsets;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
@@ -27,12 +26,11 @@ import org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.xml.bind.JAXBException;
 import java.io.ByteArrayInputStream;
@@ -41,6 +39,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,12 +48,12 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.minifi.toolkit.configuration.ConfigMain.SUCCESS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ConfigMainTest {
     @Mock
     PathInputStreamFactory pathInputStreamFactory;
@@ -68,7 +67,7 @@ public class ConfigMainTest {
 
     String testOutput;
 
-    @Before
+    @BeforeEach
     public void setup() {
         configMain = new ConfigMain(pathInputStreamFactory, pathOutputStreamFactory);
         testInput = "testInput";
@@ -98,7 +97,7 @@ public class ConfigMainTest {
 
     @Test
     public void testValidateUnableToParseConfig() throws FileNotFoundException {
-        when(pathInputStreamFactory.create(testInput)).thenReturn(new ByteArrayInputStream("!@#$%^&".getBytes(Charsets.UTF_8)));
+        when(pathInputStreamFactory.create(testInput)).thenReturn(new ByteArrayInputStream("!@#$%^&".getBytes(StandardCharsets.UTF_8)));
         assertEquals(ConfigMain.ERR_UNABLE_TO_PARSE_CONFIG, configMain.execute(new String[]{ConfigMain.VALIDATE, testInput}));
     }
 
@@ -144,7 +143,7 @@ public class ConfigMainTest {
 
     @Test
     public void testTransformErrorReadingTemplate() throws FileNotFoundException {
-        when(pathInputStreamFactory.create(testInput)).thenAnswer(invocation -> new ByteArrayInputStream("malformed xml".getBytes(Charsets.UTF_8)));
+        when(pathInputStreamFactory.create(testInput)).thenAnswer(invocation -> new ByteArrayInputStream("malformed xml".getBytes(StandardCharsets.UTF_8)));
         assertEquals(ConfigMain.ERR_UNABLE_TO_READ_TEMPLATE, configMain.execute(new String[]{ConfigMain.TRANSFORM, testInput, testOutput}));
     }
 
@@ -239,22 +238,22 @@ public class ConfigMainTest {
     }
 
     @Test
-    public void testSuccessTransformProcessGroup() throws IOException, JAXBException, SchemaLoaderException {
+    public void testSuccessTransformProcessGroup() throws IOException, JAXBException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithProcessGroup.xml")).toMap();
     }
 
     @Test
-    public void testSuccessTransformInputPort() throws IOException, JAXBException, SchemaLoaderException {
+    public void testSuccessTransformInputPort() throws IOException, JAXBException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithOutputPort.xml")).toMap();
     }
 
     @Test
-    public void testSuccessTransformOutputPort() throws IOException, JAXBException, SchemaLoaderException {
+    public void testSuccessTransformOutputPort() throws IOException, JAXBException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithInputPort.xml")).toMap();
     }
 
     @Test
-    public void testSuccessTransformFunnel() throws IOException, JAXBException, SchemaLoaderException {
+    public void testSuccessTransformFunnel() throws IOException, JAXBException {
         ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("TemplateWithFunnel.xml")).toMap();
     }
 
@@ -305,9 +304,9 @@ public class ConfigMainTest {
     }
 
     @Test
-    public void testSuccessTransformDualRPGs() throws IOException, JAXBException, SchemaLoaderException {
+    public void testSuccessTransformDualRPGs() throws IOException, JAXBException {
         ConfigSchema configSchema = ConfigMain.transformTemplateToSchema(getClass().getClassLoader().getResourceAsStream("MINIFI-496/dual_rpgs.xml"));
-        Assert.assertTrue(configSchema.isValid());
+        assertTrue(configSchema.isValid());
     }
 
     private void transformRoundTrip(String name) throws JAXBException, IOException, SchemaLoaderException {

@@ -17,20 +17,20 @@
 
 package org.apache.nifi.minifi.c2.integration.test;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
 import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public abstract class AbstractTestUnsecure {
     protected String c2Url;
@@ -40,11 +40,11 @@ public abstract class AbstractTestUnsecure {
         return "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort() + "/c2/config";
     }
 
-    protected void setup(DockerComposeRule docker) {
+    protected void setup(DockerComposeExtension docker) {
         c2Url = getConfigUrl(docker);
     }
 
-    protected String getConfigUrl(DockerComposeRule docker) {
+    protected String getConfigUrl(DockerComposeExtension docker) {
         return getUnsecureConfigUrl(docker.containers().container("c2"));
     }
 

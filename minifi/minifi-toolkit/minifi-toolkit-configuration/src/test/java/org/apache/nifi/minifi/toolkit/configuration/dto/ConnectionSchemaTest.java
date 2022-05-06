@@ -22,36 +22,36 @@ import org.apache.nifi.minifi.commons.schema.ConnectionSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, ConnectionDTO> {
-    private final String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
-    private final String testName = "testName";
-    private final String testSourceId = "testSourceId";
-    private final String testSelectedRelationship = "testSelectedRelationship";
-    private final String testDestinationId = "testDestinationId";
-    private final long testMaxWorkQueueSize = 101L;
-    private final String testMaxWorkQueueDataSize = "120 GB";
-    private final String testFlowfileExpiration = "1 day";
-    private final String testQueuePrioritizerClass = "testQueuePrioritizerClass";
+    private static final String testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
+    private static final String testName = "testName";
+    private static final String testSourceId = "testSourceId";
+    private static final String testSelectedRelationship = "testSelectedRelationship";
+    private static final String testDestinationId = "testDestinationId";
+    private static final long testMaxWorkQueueSize = 101L;
+    private static final String testMaxWorkQueueDataSize = "120 GB";
+    private static final String testFlowfileExpiration = "1 day";
+    private static final String testQueuePrioritizerClass = "testQueuePrioritizerClass";
 
     public ConnectionSchemaTest() {
         super(new ConnectionSchemaFunction(), ConnectionSchema::new);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         ConnectableDTO source = new ConnectableDTO();
         source.setId(testSourceId);
@@ -63,18 +63,18 @@ public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, Con
         dto.setId(testId);
         dto.setName(testName);
         dto.setSource(source);
-        dto.setSelectedRelationships(Arrays.asList(testSelectedRelationship).stream().collect(Collectors.toSet()));
+        dto.setSelectedRelationships(Collections.singleton(testSelectedRelationship));
         dto.setDestination(destination);
         dto.setBackPressureObjectThreshold(testMaxWorkQueueSize);
         dto.setBackPressureDataSizeThreshold(testMaxWorkQueueDataSize);
         dto.setFlowFileExpiration(testFlowfileExpiration);
-        dto.setPrioritizers(Arrays.asList(testQueuePrioritizerClass));
+        dto.setPrioritizers(Collections.singletonList(testQueuePrioritizerClass));
 
         map = new HashMap<>();
         map.put(CommonPropertyKeys.ID_KEY, testId);
         map.put(CommonPropertyKeys.NAME_KEY, testName);
         map.put(ConnectionSchema.SOURCE_ID_KEY, testSourceId);
-        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>(Arrays.asList(testSelectedRelationship)));
+        map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>(Collections.singletonList(testSelectedRelationship)));
         map.put(ConnectionSchema.DESTINATION_ID_KEY, testDestinationId);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_SIZE_KEY, testMaxWorkQueueSize);
         map.put(ConnectionSchema.MAX_WORK_QUEUE_DATA_SIZE_KEY, testMaxWorkQueueDataSize);
@@ -106,7 +106,7 @@ public class ConnectionSchemaTest extends BaseSchemaTester<ConnectionSchema, Con
     @Test
     public void testDtoMultipleSourceRelationships() {
         List<String> relationships = Arrays.asList("one", "two");
-        dto.setSelectedRelationships(relationships.stream().collect(Collectors.toSet()));
+        dto.setSelectedRelationships(new LinkedHashSet<>(relationships));
         map.put(ConnectionSchema.SOURCE_RELATIONSHIP_NAMES_KEY, new ArrayList<>(relationships));
         assertDtoAndMapConstructorAreSame(0);
     }

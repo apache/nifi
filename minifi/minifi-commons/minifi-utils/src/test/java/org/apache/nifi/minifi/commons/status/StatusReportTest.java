@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.commons.status;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,7 +33,7 @@ import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.a
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addProcessorStatus;
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addReportingTaskStatus;
 import static org.apache.nifi.minifi.commons.status.util.StatusReportPopulator.addSystemDiagnosticStatus;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class StatusReportTest {
 

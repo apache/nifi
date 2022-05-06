@@ -24,8 +24,8 @@ import org.apache.nifi.minifi.c2.api.cache.ConfigurationCacheFileInfo;
 import org.apache.nifi.minifi.c2.api.cache.WriteableConfiguration;
 import org.apache.nifi.minifi.c2.api.security.authorization.AuthorizationException;
 import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,8 +38,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,7 +55,7 @@ public class DelegatingConfigurationProviderTest {
     private String endpointPath;
     private String contentType;
 
-    @Before
+    @BeforeEach
     public void setup() throws ConfigurationProviderException {
         contentType = "text/yml";
         version = 2;
@@ -88,38 +89,38 @@ public class DelegatingConfigurationProviderTest {
         verify(httpURLConnection).setRequestProperty("Accepts", contentType);
     }
 
-    @Test(expected = AuthorizationException.class)
-    public void testGetDelegateConnection403() throws ConfigurationProviderException, IOException {
+    @Test
+    public void testGetDelegateConnection403() throws IOException {
         when(httpURLConnection.getResponseCode()).thenReturn(403);
-        delegatingConfigurationProvider.getDelegateConnection(contentType, parameters);
+        assertThrows(AuthorizationException.class, () -> delegatingConfigurationProvider.getDelegateConnection(contentType, parameters));
     }
 
-    @Test(expected = InvalidParameterException.class)
-    public void testGetDelegateConnection400() throws IOException, ConfigurationProviderException {
+    @Test
+    public void testGetDelegateConnection400() throws IOException {
         when(httpURLConnection.getResponseCode()).thenThrow(new IOException("Server returned HTTP response code: 400 for URL: " + endpointPath));
-        delegatingConfigurationProvider.getDelegateConnection(contentType, parameters);
+        assertThrows(InvalidParameterException.class, () -> delegatingConfigurationProvider.getDelegateConnection(contentType, parameters));
     }
 
-    @Test(expected = ConfigurationProviderException.class)
-    public void testGetDelegateConnection401() throws IOException, ConfigurationProviderException {
+    @Test
+    public void testGetDelegateConnection401() throws IOException {
         when(httpURLConnection.getResponseCode()).thenReturn(401);
-        delegatingConfigurationProvider.getDelegateConnection(contentType, parameters);
+        assertThrows(ConfigurationProviderException.class, () -> delegatingConfigurationProvider.getDelegateConnection(contentType, parameters));
     }
 
-    @Test(expected = ConfigurationProviderException.class)
+    @Test
     public void testGetContentTypesMalformed() throws ConfigurationProviderException, IOException {
         endpointPath = "/c2/config/contentTypes";
         initMocks();
         when(httpURLConnection.getInputStream()).thenReturn(new ByteArrayInputStream("[malformed".getBytes(StandardCharsets.UTF_8)));
-        delegatingConfigurationProvider.getContentTypes();
+        assertThrows(ConfigurationProviderException.class, () -> delegatingConfigurationProvider.getContentTypes());
     }
 
-    @Test(expected = ConfigurationProviderException.class)
+    @Test
     public void testGetContentTypesIOE() throws ConfigurationProviderException, IOException {
         endpointPath = "/c2/config/contentTypes";
         initMocks();
         when(httpURLConnection.getInputStream()).thenThrow(new IOException());
-        delegatingConfigurationProvider.getContentTypes();
+        assertThrows(ConfigurationProviderException.class, () -> delegatingConfigurationProvider.getContentTypes());
     }
 
     @Test
