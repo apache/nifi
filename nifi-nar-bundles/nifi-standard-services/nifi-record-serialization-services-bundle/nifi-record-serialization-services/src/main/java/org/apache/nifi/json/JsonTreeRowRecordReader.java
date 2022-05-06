@@ -44,13 +44,12 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
-    private final RecordSchema schema;
 
+    private final RecordSchema schema;
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,
                                    final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException, MalformedRecordException {
-        super(in, logger, dateFormat, timeFormat, timestampFormat);
-        this.schema = schema;
+        this(in, logger, schema, dateFormat, timeFormat, timestampFormat, null, null, null);
     }
 
     public JsonTreeRowRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema,

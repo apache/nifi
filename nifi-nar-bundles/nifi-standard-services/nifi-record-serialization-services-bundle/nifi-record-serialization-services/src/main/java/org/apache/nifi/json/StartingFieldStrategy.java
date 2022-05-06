@@ -19,27 +19,32 @@ package org.apache.nifi.json;
 import org.apache.nifi.components.DescribedValue;
 
 public enum StartingFieldStrategy implements DescribedValue {
-    ROOT_NODE {
-        @Override
-        public String getDisplayName() {
-            return "Root Node";
-        }
+    ROOT_NODE(
+            "Root Node",
+            "Begins processing from the root node."
+    ),
+    NESTED_FIELD(
+            "Nested Field",
+            "Skips forward to the given nested JSON field (array or object) to begin processing."
+    );
 
-        @Override
-        public String getDescription() {
-            return "Begins processing from the root node.";
-        }
-    }, NESTED_FIELD {
-        @Override
-        public String getDisplayName() {
-            return "Nested Field";
-        }
+    private final String displayName;
+    private final String description;
 
-        @Override
-        public String getDescription() {
-            return "Skips forward to the given nested JSON field (array or object) to begin processing.";
-        }
-    };
+    StartingFieldStrategy(final String displayName, final String description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 
     @Override
     public String getValue() {

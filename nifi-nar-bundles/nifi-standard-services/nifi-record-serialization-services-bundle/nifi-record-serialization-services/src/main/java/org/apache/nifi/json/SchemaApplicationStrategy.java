@@ -19,28 +19,32 @@ package org.apache.nifi.json;
 import org.apache.nifi.components.DescribedValue;
 
 public enum SchemaApplicationStrategy implements DescribedValue {
-    WHOLE_JSON {
-        @Override
-        public String getDisplayName() {
-            return "Whole JSON";
-        }
+    WHOLE_JSON(
+            "Whole JSON",
+            "Applies the schema for the whole JSON."
+    ),
+    SELECTED_PART(
+            "Selected Part",
+            "Applies the schema for the selected part starting from the \"Starting Field Name\"."
+    );
 
-        @Override
-        public String getDescription() {
-            return "Applies the schema for the whole JSON.";
-        }
-    },
-    SELECTED_PART {
-        @Override
-        public String getDisplayName() {
-            return "Selected Part";
-        }
+    private final String displayName;
+    private final String description;
 
-        @Override
-        public String getDescription() {
-            return "Applies the schema for the selected part starting from the \"Starting Field Name\".";
-        }
-    };
+    SchemaApplicationStrategy(String displayName, String description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    @Override
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    @Override
+    public String getDescription() {
+        return description;
+    }
 
     @Override
     public String getValue() {

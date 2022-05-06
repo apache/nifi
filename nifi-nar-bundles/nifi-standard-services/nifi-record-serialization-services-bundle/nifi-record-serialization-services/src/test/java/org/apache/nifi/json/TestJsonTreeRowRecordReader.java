@@ -1145,12 +1145,19 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    void testStartsFromNestedObjectWithWholeJsonSchemaApplicationStrategy() throws IOException, MalformedRecordException {
+    void testStartFromNestedObjectWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        RecordSchema recordSchema = getSchema();
+        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
+        ));
 
-        RecordSchema expectedRecordSchema = getAccountSchema();
+        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("account", RecordFieldType.RECORD.getRecordDataType(accountSchema))
+        ));
+
+        RecordSchema expectedRecordSchema = accountSchema;
 
         List<Object> expected = Collections.singletonList(
                 new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
@@ -1161,7 +1168,36 @@ class TestJsonTreeRowRecordReader {
 
         testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
                 "account", SchemaApplicationStrategy.WHOLE_JSON);
+    }
 
+    @Test
+    void testStartFromNestedArrayWithWholeJsonSchemaScope() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/single-element-nested-array.json";
+
+        RecordSchema accountSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("balance", RecordFieldType.DOUBLE.getDataType())
+        ));
+
+        RecordSchema recordSchema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("accounts", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(accountSchema)))
+        ));
+
+        RecordSchema expectedRecordSchema = accountSchema;
+
+        List<Object> expected = Arrays.asList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("id", 42);
+                    put("balance", 4750.89);
+                }}),
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("id", 43);
+                    put("balance", 48212.38);
+                }})
+        );
+
+        testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "accounts", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {

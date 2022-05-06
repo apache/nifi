@@ -64,7 +64,6 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private JsonNode firstJsonNode;
     private StartingFieldStrategy strategy;
 
-
     private AbstractJsonRowRecordReader(final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat) {
         this.logger = logger;
 
@@ -80,25 +79,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat)
             throws IOException, MalformedRecordException {
 
-        this(logger, dateFormat, timeFormat, timestampFormat);
-
-        try {
-            jsonParser = jsonFactory.createParser(in);
-            jsonParser.setCodec(codec);
-
-            JsonToken token = jsonParser.nextToken();
-            if (token == JsonToken.START_ARRAY) {
-                token = jsonParser.nextToken(); // advance to START_OBJECT token
-            }
-
-            if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
-                firstJsonNode = jsonParser.readValueAsTree();
-            } else {
-                firstJsonNode = null;
-            }
-        } catch (final JsonParseException e) {
-            throw new MalformedRecordException("Could not parse data as JSON", e);
-        }
+        this(in, logger, dateFormat, timeFormat, timestampFormat, null, null);
     }
 
     protected AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat,
