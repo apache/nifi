@@ -21,8 +21,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import org.apache.nifi.minifi.c2.api.ConfigurationProviderException;
 import org.apache.nifi.minifi.c2.api.util.Pair;
 import org.apache.nifi.minifi.c2.provider.util.HttpConnector;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -30,8 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,7 @@ public class TemplatesIteratorTest {
     private HttpURLConnection httpURLConnection;
     private HttpConnector httpConnector;
 
-    @Before
+    @BeforeEach
     public void setup() throws ConfigurationProviderException {
         jsonFactory = new JsonFactory();
         httpURLConnection = mock(HttpURLConnection.class);
@@ -49,13 +50,13 @@ public class TemplatesIteratorTest {
         when(httpConnector.get(TemplatesIterator.FLOW_TEMPLATES)).thenReturn(httpURLConnection);
     }
 
-    @Test(expected = NoSuchElementException.class)
+    @Test
     public void testIteratorNoSuchElementException() throws ConfigurationProviderException, IOException {
         when(httpURLConnection.getInputStream()).thenReturn(TemplatesIteratorTest.class.getClassLoader().getResourceAsStream("noTemplates.json"));
 
         try (TemplatesIterator templatesIterator = new TemplatesIterator(httpConnector, jsonFactory)) {
             assertFalse(templatesIterator.hasNext());
-            templatesIterator.next();
+            assertThrows(NoSuchElementException.class, templatesIterator::next);
         } finally {
             verify(httpURLConnection).disconnect();
         }

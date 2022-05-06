@@ -20,13 +20,17 @@ import org.apache.nifi.minifi.bootstrap.util.BootstrapTransformer;
 import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
 import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
 import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.Properties;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RunMiNiFiTest {
 
@@ -35,7 +39,7 @@ public class RunMiNiFiTest {
         final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.default");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
-        Assert.assertTrue(!securityPropsOptional.isPresent());
+        assertFalse(securityPropsOptional.isPresent());
     }
 
     @Test
@@ -43,28 +47,28 @@ public class RunMiNiFiTest {
         final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
-        Assert.assertTrue(securityPropsOptional.isPresent());
+        assertTrue(securityPropsOptional.isPresent());
 
         final SecurityPropertiesSchema securityPropertiesSchema = securityPropsOptional.get();
-        Assert.assertEquals("/my/test/keystore.jks", securityPropertiesSchema.getKeystore());
-        Assert.assertEquals("JKS", securityPropertiesSchema.getKeystoreType());
-        Assert.assertEquals("mykeystorepassword", securityPropertiesSchema.getKeystorePassword());
-        Assert.assertEquals("mykeypassword", securityPropertiesSchema.getKeyPassword());
+        assertEquals("/my/test/keystore.jks", securityPropertiesSchema.getKeystore());
+        assertEquals("JKS", securityPropertiesSchema.getKeystoreType());
+        assertEquals("mykeystorepassword", securityPropertiesSchema.getKeystorePassword());
+        assertEquals("mykeypassword", securityPropertiesSchema.getKeyPassword());
 
-        Assert.assertEquals("/my/test/truststore.jks", securityPropertiesSchema.getTruststore());
-        Assert.assertEquals("JKS", securityPropertiesSchema.getTruststoreType());
-        Assert.assertEquals("mytruststorepassword", securityPropertiesSchema.getTruststorePassword());
+        assertEquals("/my/test/truststore.jks", securityPropertiesSchema.getTruststore());
+        assertEquals("JKS", securityPropertiesSchema.getTruststoreType());
+        assertEquals("mytruststorepassword", securityPropertiesSchema.getTruststorePassword());
 
-        Assert.assertEquals("TLS", securityPropertiesSchema.getSslProtocol());
+        assertEquals("TLS", securityPropertiesSchema.getSslProtocol());
 
         final SensitivePropsSchema sensitiveProps = securityPropertiesSchema.getSensitiveProps();
-        Assert.assertNotNull(sensitiveProps);
+        assertNotNull(sensitiveProps);
 
-        Assert.assertEquals("sensitivepropskey", sensitiveProps.getKey());
-        Assert.assertEquals("algo", sensitiveProps.getAlgorithm());
+        assertEquals("sensitivepropskey", sensitiveProps.getKey());
+        assertEquals("algo", sensitiveProps.getAlgorithm());
 
 
-        Assert.assertTrue(securityPropertiesSchema.isValid());
+        assertTrue(securityPropertiesSchema.isValid());
     }
 
     @Test
@@ -72,26 +76,25 @@ public class RunMiNiFiTest {
         final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured.invalid");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
-        Assert.assertTrue(securityPropsOptional.isPresent());
+        assertTrue(securityPropsOptional.isPresent());
 
         final SecurityPropertiesSchema securityPropertiesSchema = securityPropsOptional.get();
-        Assert.assertEquals("/my/test/keystore.jks", securityPropertiesSchema.getKeystore());
-        Assert.assertEquals("NOTAKEYSTORETYPE", securityPropertiesSchema.getKeystoreType());
-        Assert.assertEquals("mykeystorepassword", securityPropertiesSchema.getKeystorePassword());
-        Assert.assertEquals("mykeypassword", securityPropertiesSchema.getKeyPassword());
+        assertEquals("/my/test/keystore.jks", securityPropertiesSchema.getKeystore());
+        assertEquals("NOTAKEYSTORETYPE", securityPropertiesSchema.getKeystoreType());
+        assertEquals("mykeystorepassword", securityPropertiesSchema.getKeystorePassword());
+        assertEquals("mykeypassword", securityPropertiesSchema.getKeyPassword());
 
-        Assert.assertEquals("/my/test/truststore.jks", securityPropertiesSchema.getTruststore());
-        Assert.assertEquals("JKS", securityPropertiesSchema.getTruststoreType());
-        Assert.assertEquals("mytruststorepassword", securityPropertiesSchema.getTruststorePassword());
+        assertEquals("/my/test/truststore.jks", securityPropertiesSchema.getTruststore());
+        assertEquals("JKS", securityPropertiesSchema.getTruststoreType());
+        assertEquals("mytruststorepassword", securityPropertiesSchema.getTruststorePassword());
 
         final SensitivePropsSchema sensitiveProps = securityPropertiesSchema.getSensitiveProps();
-        Assert.assertNotNull(sensitiveProps);
+        assertNotNull(sensitiveProps);
 
-        Assert.assertEquals("sensitivepropskey", sensitiveProps.getKey());
-        Assert.assertEquals("algo", sensitiveProps.getAlgorithm());
+        assertEquals("sensitivepropskey", sensitiveProps.getKey());
+        assertEquals("algo", sensitiveProps.getAlgorithm());
 
-        Assert.assertFalse(securityPropertiesSchema.isValid());
-
+        assertFalse(securityPropertiesSchema.isValid());
     }
 
     @Test
@@ -99,7 +102,7 @@ public class RunMiNiFiTest {
         final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.default");
         final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
-        Assert.assertTrue(!provenanceReportingPropsOptional.isPresent());
+        assertFalse(provenanceReportingPropsOptional.isPresent());
     }
 
     @Test
@@ -107,16 +110,16 @@ public class RunMiNiFiTest {
         final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-provenance-reporting/bootstrap.conf.configured");
         final Optional<ProvenanceReportingSchema> provenanceReportingPropsOptional = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties);
-        Assert.assertTrue(provenanceReportingPropsOptional.isPresent());
+        assertTrue(provenanceReportingPropsOptional.isPresent());
 
         final ProvenanceReportingSchema provenanceReportingSchema = provenanceReportingPropsOptional.get();
-        Assert.assertEquals("This is a comment!", provenanceReportingSchema.getComment());
-        Assert.assertEquals("TIMER_DRIVEN", provenanceReportingSchema.getSchedulingStrategy());
-        Assert.assertEquals("15 secs", provenanceReportingSchema.getSchedulingPeriod());
-        Assert.assertEquals("http://localhost:8080/", provenanceReportingSchema.getDestinationUrl());
-        Assert.assertEquals("provenance", provenanceReportingSchema.getPortName());
-        Assert.assertEquals("http://${hostname(true)}:8081/nifi", provenanceReportingSchema.getOriginatingUrl());
-        Assert.assertEquals("10 secs", provenanceReportingSchema.getTimeout());
+        assertEquals("This is a comment!", provenanceReportingSchema.getComment());
+        assertEquals("TIMER_DRIVEN", provenanceReportingSchema.getSchedulingStrategy());
+        assertEquals("15 secs", provenanceReportingSchema.getSchedulingPeriod());
+        assertEquals("http://localhost:8080/", provenanceReportingSchema.getDestinationUrl());
+        assertEquals("provenance", provenanceReportingSchema.getPortName());
+        assertEquals("http://${hostname(true)}:8081/nifi", provenanceReportingSchema.getOriginatingUrl());
+        assertEquals("10 secs", provenanceReportingSchema.getTimeout());
     }
 
 

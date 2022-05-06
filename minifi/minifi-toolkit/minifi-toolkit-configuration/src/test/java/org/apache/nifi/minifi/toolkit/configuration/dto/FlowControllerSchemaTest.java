@@ -20,32 +20,32 @@ package org.apache.nifi.minifi.toolkit.configuration.dto;
 import org.apache.nifi.minifi.commons.schema.FlowControllerSchema;
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class FlowControllerSchemaTest extends BaseSchemaTester<FlowControllerSchema, TemplateDTO> {
-    private String testName = "testName";
-    private String testComment = "testComment";
+    private static final String TEST_NAME = "testName";
+    private static final String TEST_COMMENT = "testComment";
 
     public FlowControllerSchemaTest() {
         super(new FlowControllerSchemaFunction(), FlowControllerSchema::new);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         dto = new TemplateDTO();
 
-        dto.setName(testName);
-        dto.setDescription(testComment);
+        dto.setName(TEST_NAME);
+        dto.setDescription(TEST_COMMENT);
 
         map = new HashMap<>();
 
-        map.put(CommonPropertyKeys.NAME_KEY, testName);
-        map.put(CommonPropertyKeys.COMMENT_KEY, testComment);
+        map.put(CommonPropertyKeys.NAME_KEY, TEST_NAME);
+        map.put(CommonPropertyKeys.COMMENT_KEY, TEST_COMMENT);
     }
 
     @Test

@@ -18,51 +18,43 @@
 package org.apache.nifi.minifi.integration.standalone.test;
 
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.HealthChecks;
 import org.apache.nifi.minifi.integration.util.LogUtil;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
 public class StandaloneYamlTest {
-    private static final Logger logger = LoggerFactory.getLogger(StandaloneYamlTest.class);
 
-    protected final String version;
-    protected final String name;
-
-    @Parameterized.Parameters(name = "{index}: Schema Version: {0} Name: {1}")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {"v1", "CsvToJson"},
-                {"v1", "DecompressionCircularFlow"},
-                {"v1", "MiNiFiTailLogAttribute"},
-                {"v1", "ReplaceTextExpressionLanguageCSVReformatting"},
-                {"v2", "MultipleRelationships"},
-                {"v2", "ProcessGroups"},
-                {"v2", "StressTestFramework"}
-        });
+    static Stream<Arguments> verifyLogEntries() {
+        return Stream.of(
+                Arguments.of("v1", "CsvToJson"),
+                Arguments.of("v1", "DecompressionCircularFlow"),
+                Arguments.of("v1", "MiNiFiTailLogAttribute"),
+                Arguments.of("v1", "ReplaceTextExpressionLanguageCSVReformatting"),
+                Arguments.of("v2", "MultipleRelationships"),
+                Arguments.of("v2", "ProcessGroups"),
+                Arguments.of("v2", "StressTestFramework")
+        );
     }
 
-    @Rule
-    public DockerComposeRule dockerComposeRule;
+    DockerComposeExtension docker;
 
-    public StandaloneYamlTest(String version, String name) throws IOException {
-        this.version = version;
-        this.name = name;
+    @AfterEach
+    void stopDocker() {
+        docker.after();
+    }
+
+    public void setDocker(final String version, final String name) throws Exception {
         String dockerComposeYmlFile = "target/test-classes/docker-compose-" + version + "-" + name + "Test-yml.yml";
         try (InputStream inputStream = StandaloneYamlTest.class.getClassLoader().getResourceAsStream("docker-compose-v1-standalone.yml");
              InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
@@ -71,26 +63,29 @@ public class StandaloneYamlTest {
              BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
-                bufferedWriter.write(line.replace("REPLACED_WITH_CONFIG_FILE", getConfigYml()));
+                bufferedWriter.write(line.replace("REPLACED_WITH_CONFIG_FILE", getConfigYml(version, name)));
                 bufferedWriter.newLine();
             }
         }
-        dockerComposeRule = DockerComposeRule.builder()
+        docker = DockerComposeExtension.builder()
                 .file(dockerComposeYmlFile)
                 .waitingForService("minifi", HealthChecks.toRespond2xxOverHttp(8000, dockerPort -> "http://" + dockerPort.getIp() + ":" + dockerPort.getExternalPort()))
                 .build();
+        docker.before();
     }
 
-    protected String getConfigYml() {
+    protected String getConfigYml(final String version, final String name) {
         return "./standalone/" + version + "/" + name + "/yml/" + name + ".yml";
     }
 
-    protected String getExpectedJson() {
+    protected String getExpectedJson(final String version, final String name) {
         return "standalone/" + version + "/" + name + "/yml/expected.json";
     }
 
-    @Test(timeout = 60_000)
-    public void verifyLogEntries() throws Exception {
-        LogUtil.verifyLogEntries(getExpectedJson(), dockerComposeRule.containers().container("minifi"));
+    @ParameterizedTest(name = "{index}: Schema Version: {0} Name: {1}")
+    @MethodSource
+    public void verifyLogEntries(final String version, final String name) throws Exception {
+        setDocker(version, name);
+        LogUtil.verifyLogEntries(getExpectedJson(version, name), docker.containers().container("minifi"));
     }
 }

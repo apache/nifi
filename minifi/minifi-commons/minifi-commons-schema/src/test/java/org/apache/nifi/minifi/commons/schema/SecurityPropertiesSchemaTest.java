@@ -17,20 +17,20 @@
 
 package org.apache.nifi.minifi.commons.schema;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SecurityPropertiesSchemaTest {
     private SecurityPropertiesSchema securityPropertiesSchema;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        securityPropertiesSchema = new SecurityPropertiesSchema(new HashMap());
+        securityPropertiesSchema = new SecurityPropertiesSchema(new HashMap<>());
     }
 
     @Test

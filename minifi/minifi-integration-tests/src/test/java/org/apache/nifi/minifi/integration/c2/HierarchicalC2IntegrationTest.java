@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.integration.c2;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
 import org.apache.nifi.minifi.integration.util.LogUtil;
 import org.apache.nifi.security.util.KeystoreType;
@@ -26,9 +26,10 @@ import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -39,13 +40,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+@Timeout(180)
 public class HierarchicalC2IntegrationTest {
     private static Path certificatesDirectory;
     private static SSLContext trustSslContext;
     private static SSLSocketFactory healthCheckSocketFactory;
 
     // Not annotated as rule because we need to generate certificatesDirectory first
-    public static DockerComposeRule docker = DockerComposeRule.builder()
+    public static DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("target/test-classes/docker-compose-c2-hierarchical.yml")
             .waitingForServices(Arrays.asList("squid-edge3", "c2"),
                     new HttpsStatusCodeHealthCheck(container -> "https://c2-authoritative:10443/c2/config",
@@ -60,7 +62,7 @@ public class HierarchicalC2IntegrationTest {
     /**
      * Generates certificates with the tls-toolkit and then starts up the docker compose file
      */
-    @BeforeClass
+    @BeforeAll
     public static void initCertificates() throws Exception {
         resourceDirectory = Paths.get(HierarchicalC2IntegrationTest.class.getClassLoader()
                 .getResource("docker-compose-c2-hierarchical.yml").getFile()).getParent();
@@ -101,12 +103,12 @@ public class HierarchicalC2IntegrationTest {
         docker.before();
     }
 
-    @AfterClass
-    public static void afterClass() {
+    @AfterAll
+    public static void stopDocker() {
         docker.after();
     }
 
-    @Test(timeout = 180_000)
+    @Test
     public void testMiNiFiEdge1() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge1/expected.json", docker.containers().container("minifi-edge1"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
@@ -114,7 +116,7 @@ public class HierarchicalC2IntegrationTest {
         LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge1"));
     }
 
-    @Test(timeout = 180_000)
+    @Test
     public void testMiNiFiEdge2() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge2/expected.json", docker.containers().container("minifi-edge2"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");
@@ -122,7 +124,7 @@ public class HierarchicalC2IntegrationTest {
         LogUtil.verifyLogEntries("standalone/v1/CsvToJson/yml/expected.json", docker.containers().container("minifi-edge2"));
     }
 
-    @Test(timeout = 180_000)
+    @Test
     public void testMiNiFiEdge3() throws Exception {
         LogUtil.verifyLogEntries("c2/hierarchical/minifi-edge3/expected.json", docker.containers().container("minifi-edge3"));
         Path csvToJsonDir = resourceDirectory.resolve("standalone").resolve("v1").resolve("CsvToJson").resolve("yml");

@@ -21,9 +21,8 @@ import okhttp3.Request;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.differentiators.interfaces.Differentiator;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.FileInputStream;
@@ -35,8 +34,8 @@ import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 public class WholeConfigDifferentiatorTest {
@@ -51,8 +50,8 @@ public class WholeConfigDifferentiatorTest {
 
     public static Request dummyRequest;
 
-    @BeforeClass
-    public static void beforeClass() throws IOException {
+    @BeforeAll
+    public static void setConfiguration() throws IOException {
         dummyRequest = new Request.Builder()
                 .get()
                 .url("https://nifi.apache.org/index.html")
@@ -64,10 +63,6 @@ public class WholeConfigDifferentiatorTest {
         configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
 
         when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(defaultConfigBuffer));
-    }
-
-    @Before
-    public void beforeEach() {
     }
 
     // InputStream differentiator methods

@@ -20,8 +20,8 @@
 package org.apache.nifi.minifi.commons.schema;
 
 import org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConnectionSchemaTest {
     private String testId;
@@ -46,7 +46,7 @@ public class ConnectionSchemaTest {
     private String testFlowfileExpiration;
     private String testQueuePrioritizerClass;
 
-    @Before
+    @BeforeEach
     public void setup() {
         testId = UUID.nameUUIDFromBytes("testId".getBytes(StandardCharsets.UTF_8)).toString();
         testName = "testName";
@@ -67,7 +67,7 @@ public class ConnectionSchemaTest {
 
     private ConnectionSchema createSchema(Map<String, Object> map, int expectedValidationIssues) {
         ConnectionSchema connectionSchema = new ConnectionSchema(map);
-        assertEquals(connectionSchema.getValidationIssues().toString(), expectedValidationIssues, connectionSchema.getValidationIssues().size());
+        assertEquals(expectedValidationIssues, connectionSchema.getValidationIssues().size(), connectionSchema.getValidationIssues().toString());
         return connectionSchema;
     }
 

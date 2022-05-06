@@ -18,10 +18,9 @@
 package org.apache.nifi.minifi.bootstrap.configuration;
 
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.InputStream;
@@ -30,25 +29,26 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Properties;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
 public class ConfigurationChangeCoordinatorTest {
 
     private ConfigurationChangeCoordinator coordinatorSpy;
-    private Properties properties = new Properties();
+    private final Properties properties = new Properties();
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         coordinatorSpy = Mockito.spy(new ConfigurationChangeCoordinator());
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         coordinatorSpy.close();
     }
 
     @Test
-    public void testInit() throws Exception {
+    public void testInit() {
         properties.put("nifi.minifi.notifier.ingestors", "org.apache.nifi.minifi.bootstrap.configuration.ingestors.RestChangeIngestor");
         final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
         coordinatorSpy.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), Collections.singleton(testListener));
@@ -59,7 +59,7 @@ public class ConfigurationChangeCoordinatorTest {
         final ConfigurationChangeListener testListener = Mockito.mock(ConfigurationChangeListener.class);
         coordinatorSpy.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), Collections.singleton(testListener));
 
-        Assert.assertEquals("Did not receive the correct number of registered listeners", coordinatorSpy.getChangeListeners().size(), 1);
+        assertEquals(coordinatorSpy.getChangeListeners().size(), 1, "Did not receive the correct number of registered listeners");
 
         coordinatorSpy.notifyListeners(ByteBuffer.allocate(1));
 
@@ -67,18 +67,18 @@ public class ConfigurationChangeCoordinatorTest {
     }
 
     @Test
-    public void testRegisterListener() throws Exception {
+    public void testRegisterListener() {
         final ConfigurationChangeListener firstListener = Mockito.mock(ConfigurationChangeListener.class);
         coordinatorSpy.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), Collections.singleton(firstListener));
 
-        Assert.assertEquals("Did not receive the correct number of registered listeners", coordinatorSpy.getChangeListeners().size(), 1);
+        assertEquals(coordinatorSpy.getChangeListeners().size(), 1, "Did not receive the correct number of registered listeners");
 
         coordinatorSpy.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), Arrays.asList(firstListener, firstListener));
-        Assert.assertEquals("Did not receive the correct number of registered listeners", coordinatorSpy.getChangeListeners().size(), 1);
+        assertEquals(coordinatorSpy.getChangeListeners().size(), 1, "Did not receive the correct number of registered listeners");
 
         final ConfigurationChangeListener secondListener = Mockito.mock(ConfigurationChangeListener.class);
         coordinatorSpy.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), Arrays.asList(firstListener, secondListener));
-        Assert.assertEquals("Did not receive the correct number of registered listeners", coordinatorSpy.getChangeListeners().size(), 2);
+        assertEquals(coordinatorSpy.getChangeListeners().size(), 2, "Did not receive the correct number of registered listeners");
 
     }
 }
