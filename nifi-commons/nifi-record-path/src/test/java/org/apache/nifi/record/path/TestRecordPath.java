@@ -79,7 +79,9 @@ public class TestRecordPath {
 
     @AfterAll
     public static void setSystemTimezone() {
-        System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+        if (SYSTEM_TIMEZONE != null) {
+            System.setProperty(USER_TIMEZONE_PROPERTY, SYSTEM_TIMEZONE);
+        }
     }
 
     @Test

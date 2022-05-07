@@ -328,8 +328,12 @@ public class NiFiOrcUtils {
         String type = schema.getProp("logicalType");
         switch (type){
             case "decimal":
-                int precision = schema.getJsonProp("precision").asInt(10);
-                int scale = schema.getJsonProp("scale").asInt(2);
+                int precision = schema.getObjectProp("precision") != null
+                        ? Integer.valueOf(schema.getObjectProp("precision").toString())
+                        : 10;
+                int scale = schema.getObjectProp("scale") != null
+                        ? Integer.valueOf(schema.getObjectProp("scale").toString())
+                        : 2;
                 return new DecimalTypeInfo(precision, scale);
         }
         throw new IllegalArgumentException("Logical type " + type + " is not supported!");

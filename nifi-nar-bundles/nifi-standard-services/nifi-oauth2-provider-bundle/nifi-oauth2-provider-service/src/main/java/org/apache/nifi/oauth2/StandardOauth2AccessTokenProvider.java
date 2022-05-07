@@ -122,6 +122,14 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
 
+    public static final PropertyDescriptor SCOPE = new PropertyDescriptor.Builder()
+        .name("scope")
+        .displayName("Scope")
+        .description("Space-delimited, case-sensitive list of scopes of the access request (as per the OAuth 2.0 specification)")
+        .required(false)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
     public static final PropertyDescriptor REFRESH_WINDOW = new PropertyDescriptor.Builder()
             .name("refresh-window")
             .displayName("Refresh Window")
@@ -146,6 +154,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         PASSWORD,
         CLIENT_ID,
         CLIENT_SECRET,
+        SCOPE,
         REFRESH_WINDOW,
         SSL_CONTEXT
     ));
@@ -162,6 +171,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String password;
     private volatile String clientId;
     private volatile String clientSecret;
+    private volatile String scope;
     private volatile long refreshWindowSeconds;
 
     private volatile AccessToken accessDetails;
@@ -182,6 +192,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         password = context.getProperty(PASSWORD).getValue();
         clientId = context.getProperty(CLIENT_ID).evaluateAttributeExpressions().getValue();
         clientSecret = context.getProperty(CLIENT_SECRET).getValue();
+        scope = context.getProperty(SCOPE).getValue();
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
     }
@@ -264,6 +275,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             acquireTokenBuilder.add("client_secret", clientSecret);
         }
 
+        if (scope != null) {
+            acquireTokenBuilder.add("scope", scope);
+        }
+
         RequestBody acquireTokenRequestBody = acquireTokenBuilder.build();
 
         Request acquireTokenRequest = new Request.Builder()
@@ -286,6 +301,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
             refreshTokenBuilder.add("client_secret", clientSecret);
         }
 
+        if (scope != null) {
+            refreshTokenBuilder.add("scope", scope);
+        }
+
         RequestBody refreshTokenRequestBody = refreshTokenBuilder.build();
 
         Request refreshRequest = new Request.Builder()
@@ -296,19 +315,18 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         this.accessDetails = getAccessDetails(refreshRequest);
     }
 
-    private AccessToken getAccessDetails(Request newRequest) {
+    private AccessToken getAccessDetails(final Request newRequest) {
         try {
-            Response response = httpClient.newCall(newRequest).execute();
-            String responseBody = response.body().string();
-            if (response.code() != 200) {
+            final Response response = httpClient.newCall(newRequest).execute();
+            final String responseBody = response.body().string();
+            if (response.isSuccessful()) {
+                getLogger().debug("OAuth2 Access Token retrieved [HTTP {}]", response.code());
+                return ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
+            } else {
                 getLogger().error(String.format("OAuth2 access token request failed [HTTP %d], response:%n%s", response.code(), responseBody));
                 throw new ProcessException(String.format("OAuth2 access token request failed [HTTP %d]", response.code()));
             }
-
-            AccessToken accessDetails = ACCESS_DETAILS_MAPPER.readValue(responseBody, AccessToken.class);
-
-            return accessDetails;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new UncheckedIOException("OAuth2 access token request failed", e);
         }
     }

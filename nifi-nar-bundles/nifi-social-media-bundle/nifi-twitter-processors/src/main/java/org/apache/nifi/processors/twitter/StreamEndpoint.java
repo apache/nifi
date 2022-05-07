@@ -14,17 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.processors.twitter;
 
-package org.apache.nifi.controller.api.druid;
+public enum StreamEndpoint {
+    SAMPLE_ENDPOINT("Sample Endpoint", "/2/tweets/sample/stream"),
+    SEARCH_ENDPOINT("Search Endpoint", "/2/tweets/search/stream");
 
-import java.util.Map;
+    private String endpointName;
+    private String path;
 
-import org.apache.nifi.controller.ControllerService;
+    StreamEndpoint(final String endpointName, final String path) {
+        this.endpointName = endpointName;
+        this.path = path;
+    }
 
-import com.metamx.tranquility.tranquilizer.Tranquilizer;
+    public String getEndpointName() {
+        return this.endpointName;
+    }
 
-public interface DruidTranquilityService extends ControllerService {
-    Tranquilizer<Map<String, Object>> getTranquilizer();
-
-    String getTransitUri();
+    public String getPath() {
+        return this.path;
+    }
 }

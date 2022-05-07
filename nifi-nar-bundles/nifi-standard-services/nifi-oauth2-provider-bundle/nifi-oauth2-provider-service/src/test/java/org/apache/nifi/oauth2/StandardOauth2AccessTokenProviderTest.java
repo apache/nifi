@@ -64,6 +64,9 @@ public class StandardOauth2AccessTokenProviderTest {
     private static final String CLIENT_SECRET = "clientSecret";
     private static final long FIVE_MINUTES = 300;
 
+    private static final int HTTP_OK = 200;
+    private static final int HTTP_ACCEPTED = 201;
+
     private StandardOauth2AccessTokenProvider testSubject;
 
     @Mock(answer = Answers.RETURNS_DEEP_STUBS)
@@ -146,7 +149,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         // GIVEN
         Response response = buildResponse(
-            200,
+            HTTP_OK,
             "{ \"access_token\":\"" + accessTokenValue + "\" }"
         );
 
@@ -166,12 +169,12 @@ public class StandardOauth2AccessTokenProviderTest {
         String expectedToken = "second_token";
 
         Response response1 = buildResponse(
-            200,
+                HTTP_OK,
             "{ \"access_token\":\"" + firstToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
         );
 
         Response response2 = buildResponse(
-            200,
+                HTTP_OK,
             "{ \"access_token\":\"" + expectedToken + "\" }"
         );
 
@@ -230,7 +233,7 @@ public class StandardOauth2AccessTokenProviderTest {
         String expectedToken = "expected_token";
 
         Response successfulAcquireResponse = buildResponse(
-            200,
+                HTTP_ACCEPTED,
             "{ \"access_token\":\"" + expectedToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
         );
 
@@ -319,7 +322,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
         Response errorRefreshResponse = buildResponse(500, expectedRefreshErrorResponse);
         Response successfulAcquireResponse = buildResponse(
-            200,
+                HTTP_OK,
             "{ \"access_token\":\"" + expectedToken + "\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
         );
 
@@ -358,7 +361,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
     private Response buildSuccessfulInitResponse() {
         return buildResponse(
-            200,
+                HTTP_OK,
             "{ \"access_token\":\"exists_but_value_irrelevant\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
         );
     }
