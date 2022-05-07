@@ -119,14 +119,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.EXT_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.FORMAT_DESCRIPTION;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_DELETE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.PRE_GA_WRITE_ROWS;
-import static com.github.shyiko.mysql.binlog.event.EventType.ROTATE;
-import static com.github.shyiko.mysql.binlog.event.EventType.WRITE_ROWS;
+import static com.github.shyiko.mysql.binlog.event.EventType.*;
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.
@@ -624,7 +617,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             currentSequenceId.set(Long.parseLong(seqIdString));
         }
         //get inTransaction value from state
-        inTransaction = "true".equals(stateMap.get("inTransaction")) ? true : false;
+        inTransaction = "true".equals(stateMap.get("inTransaction"));
 
         // Get reference to Distributed Cache if one exists. If it does not, no enrichment (resolution of column names, e.g.) will be performed
         boolean createEnrichmentConnection = false;
@@ -1089,7 +1082,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             // Advance the current binlog position. This way if no more events are received and the processor is stopped, it will resume after the event that was just processed.
             // We always get ROTATE and FORMAT_DESCRIPTION messages no matter where we start (even from the end), and they won't have the correct "next position" value, so only
             // advance the position if it is not that type of event.
-            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid && eventType !=XID) {
+            if (eventType != ROTATE && eventType != FORMAT_DESCRIPTION && !useGtid && eventType != XID) {
                 currentBinlogPosition = header.getNextPosition();
             }
         }

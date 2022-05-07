@@ -35,7 +35,7 @@ import org.apache.nifi.cdc.event.ColumnDefinition
 import org.apache.nifi.cdc.event.TableInfo
 import org.apache.nifi.cdc.event.TableInfoCacheKey
 import org.apache.nifi.cdc.event.io.EventWriter
-import org.apache.nifi.cdc.mysql.MockBinlogClient
+import org.apache.nifi.cdc.mysql.MockBinlogClientJava
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo
 import org.apache.nifi.cdc.mysql.processors.ssl.BinaryLogSSLSocketFactory
 import org.apache.nifi.components.PropertyDescriptor
@@ -87,13 +87,13 @@ class CaptureChangeMySQLTest {
     private static final String DRIVER_LOCATION = "http://mysql-driver.com/driver.jar"
     CaptureChangeMySQL processor
     TestRunner testRunner
-    MockBinlogClient client
+    MockBinlogClientJava client
 
     @BeforeEach
     void setUp() throws Exception {
         processor = new MockCaptureChangeMySQL()
         testRunner = TestRunners.newTestRunner(processor)
-        client = new MockBinlogClient('localhost', 3306, 'root', 'password')
+        client = new MockBinlogClientJava('localhost', 3306, 'root', 'password')
     }
 
     @Test
