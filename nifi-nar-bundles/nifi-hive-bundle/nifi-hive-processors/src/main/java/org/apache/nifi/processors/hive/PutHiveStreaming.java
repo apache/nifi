@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hive;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import org.apache.avro.AvroRuntimeException;
 import org.apache.avro.file.CodecFactory;
 import org.apache.avro.file.DataFileConstants;
 import org.apache.avro.file.DataFileStream;
@@ -776,6 +777,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 throw s;
 
             } catch (IllegalArgumentException
+                    | AvroRuntimeException
                     | HiveWriter.WriteFailure
                     | SerializationError inputError) {
 

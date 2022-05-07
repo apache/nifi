@@ -345,7 +345,7 @@ public class QuerySalesforceObject extends AbstractProcessor {
                     JsonTreeRowRecordReader jsonReader = new JsonTreeRowRecordReader(
                             querySObjectResultInputStream,
                             getLogger(),
-                            convertedSalesforceSchema.querySObjectResultSchema,
+                            convertedSalesforceSchema.recordSchema,
                             DATE_FORMAT,
                             TIME_FORMAT,
                             DATE_TIME_FORMAT,

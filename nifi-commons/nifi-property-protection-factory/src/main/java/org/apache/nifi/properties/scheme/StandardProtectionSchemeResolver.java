@@ -37,7 +37,9 @@ public class StandardProtectionSchemeResolver implements ProtectionSchemeResolve
     public ProtectionScheme getProtectionScheme(final String scheme) {
         Objects.requireNonNull(scheme, "Scheme required");
         return Arrays.stream(PropertyProtectionScheme.values())
-                .filter(propertyProtectionScheme -> propertyProtectionScheme.name().equals(scheme))
+                .filter(propertyProtectionScheme ->
+                        propertyProtectionScheme.name().equals(scheme) || scheme.startsWith(propertyProtectionScheme.getPath())
+                )
                 .findFirst()
                 .orElseThrow(() -> new SensitivePropertyProtectionException(String.format("Protection Scheme [%s] not supported", scheme)));
     }

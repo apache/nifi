@@ -20,18 +20,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.headers.ContentSecurityPolicyFilter;
-import org.apache.nifi.web.security.headers.StrictTransportSecurityFilter;
-import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
-import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
-import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
 import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlets.DoSFilter;
+import org.springframework.security.web.header.HeaderWriter;
+import org.springframework.security.web.header.HeaderWriterFilter;
+import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
+import org.springframework.security.web.header.writers.HstsHeaderWriter;
+import org.springframework.security.web.header.writers.XContentTypeOptionsHeaderWriter;
+import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
+import org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter;
 
 import javax.servlet.Filter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +44,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class StandardRequestFilterProvider implements RequestFilterProvider {
     private static final int MAX_CONTENT_SIZE_DISABLED = 0;
+
+    private static final String STANDARD_CONTENT_POLICY = "frame-ancestors 'self'";
 
     /**
      * Get Filters using provided NiFi Properties
@@ -54,13 +59,9 @@ public class StandardRequestFilterProvider implements RequestFilterProvider {
 
         final List<FilterHolder> filters = new ArrayList<>();
 
-        filters.add(getFilterHolder(XFrameOptionsFilter.class));
-        filters.add(getFilterHolder(ContentSecurityPolicyFilter.class));
-        filters.add(getFilterHolder(XSSProtectionFilter.class));
-        filters.add(getFilterHolder(XContentTypeOptionsFilter.class));
+        filters.add(getHeaderWriterFilter());
 
         if (properties.isHTTPSConfigured()) {
-            filters.add(getFilterHolder(StrictTransportSecurityFilter.class));
             filters.add(getFilterHolder(RequestAuthenticationFilter.class));
         }
 
@@ -92,6 +93,21 @@ public class StandardRequestFilterProvider implements RequestFilterProvider {
         return filter;
     }
 
+    private FilterHolder getHeaderWriterFilter() {
+        final List<HeaderWriter> headerWriters = Arrays.asList(
+                new ContentSecurityPolicyHeaderWriter(STANDARD_CONTENT_POLICY),
+                new HstsHeaderWriter(),
+                new XContentTypeOptionsHeaderWriter(),
+                new XFrameOptionsHeaderWriter(XFrameOptionsHeaderWriter.XFrameOptionsMode.SAMEORIGIN),
+                new XXssProtectionHeaderWriter()
+        );
+
+        final HeaderWriterFilter headerWriterFilter = new HeaderWriterFilter(headerWriters);
+        final FilterHolder filterHolder = new FilterHolder(headerWriterFilter);
+        filterHolder.setName(HeaderWriterFilter.class.getSimpleName());
+        return filterHolder;
+    }
+
     private FilterHolder getFilterHolder(final Class<? extends Filter> filterClass) {
         final FilterHolder filter = new FilterHolder(filterClass);
         filter.setName(filterClass.getSimpleName());
@@ -99,7 +115,7 @@ public class StandardRequestFilterProvider implements RequestFilterProvider {
     }
 
     private FilterHolder getContentLengthFilter(final int maxContentSize) {
-        final FilterHolder filter = new FilterHolder(ContentLengthFilter.class);
+        final FilterHolder filter = getFilterHolder(ContentLengthFilter.class);
         filter.setInitParameter(ContentLengthFilter.MAX_LENGTH_INIT_PARAM, Integer.toString(maxContentSize));
         filter.setName(ContentLengthFilter.class.getSimpleName());
         return filter;
