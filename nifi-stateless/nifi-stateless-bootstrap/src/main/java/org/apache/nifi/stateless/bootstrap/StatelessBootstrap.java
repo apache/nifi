@@ -158,6 +158,8 @@ public class StatelessBootstrap {
             filesAllowed.add(file.getName());
         }
 
+        findClassNamesInDirectory(narDirectory, narDirectory, classesAllowed, filesAllowed);
+
         final File java11Directory = new File(narDirectory, "java11");
         final File[] java11DirectoryFiles = java11Directory.listFiles();
         if (java11DirectoryFiles != null) {
@@ -174,7 +176,7 @@ public class StatelessBootstrap {
             javaHomeFilenames.add(file.getName());
         }
 
-        logger.debug("The following JAR files will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesAllowed);
+        logger.debug("The following class/JAR files will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, filesAllowed);
         logger.debug("The following JAR/JMOD files from ${JAVA_HOME} will be explicitly allowed to be loaded by Stateless Extensions ClassLoaders from parent {}: {}", parent, javaHomeFilenames);
         logger.debug("The final list of classes allowed to be loaded by Stateless Extension ClassLoaders from parent {}: {}", parent, classesAllowed);
 
@@ -255,6 +257,36 @@ public class StatelessBootstrap {
                     classNames.add(className);
                 }
             }
+        }
+    }
+
+    static void findClassNamesInDirectory(final File file, final File baseDirectory, final Set<String> classNames, final Set<String> fileNames) {
+        if (file.isDirectory()) {
+            final File[] children = file.listFiles();
+            if (children != null) {
+                for (final File child : children) {
+                    findClassNamesInDirectory(child, baseDirectory, classNames, fileNames);
+                }
+            }
+
+            return;
+        }
+
+        final String filename = file.getName();
+        if (filename.endsWith(".class")) {
+            final String absolutePath = file.getAbsolutePath();
+            final String baseDirectoryPath = baseDirectory.getAbsolutePath();
+            if (!absolutePath.startsWith(baseDirectoryPath)) {
+                return;
+            }
+
+            final File relativeFile = baseDirectory.toPath().relativize(file.toPath()).toFile();
+            final String relativePath = relativeFile.getPath();
+
+            final int lastIndex = relativePath.lastIndexOf(".class");
+            final String className = relativePath.substring(0, lastIndex).replace(File.separator, ".");
+            classNames.add(className);
+            fileNames.add(filename);
         }
     }
 
