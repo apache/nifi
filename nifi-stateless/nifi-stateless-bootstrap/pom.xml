@@ -74,8 +74,17 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.16.0-RC3</tag>
-  </scm>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/FakeBootstrap.class</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
