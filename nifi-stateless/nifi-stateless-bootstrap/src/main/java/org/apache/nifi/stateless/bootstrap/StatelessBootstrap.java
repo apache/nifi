@@ -284,7 +284,7 @@ public class StatelessBootstrap {
             final String relativePath = relativeFile.getPath();
 
             final int lastIndex = relativePath.lastIndexOf(".class");
-            final String className = relativePath.substring(0, lastIndex).replace("/", ".");
+            final String className = relativePath.substring(0, lastIndex).replace(File.separator, ".");
             classNames.add(className);
             fileNames.add(filename);
         }
