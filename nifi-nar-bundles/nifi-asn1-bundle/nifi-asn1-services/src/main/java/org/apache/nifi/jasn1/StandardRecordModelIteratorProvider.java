@@ -39,25 +39,22 @@ public class StandardRecordModelIteratorProvider implements RecordModelIteratorP
             return new Iterator<BerType>() {
                 @Override
                 public boolean hasNext() {
-                    return true;
-                }
-
-                @Override
-                public BerType next() {
                     boolean hasNext;
+
                     try {
                         hasNext = inputStream.available() > 0;
                     } catch (IOException e) {
                         hasNext = false;
                     }
 
-                    if (hasNext) {
-                        final BerType model = decode(inputStream, logger, rootClass);
+                    return hasNext;
+                }
 
-                        return model;
-                    } else {
-                        return null;
-                    }
+                @Override
+                public BerType next() {
+                    final BerType model = decode(inputStream, logger, rootClass);
+
+                    return model;
                 }
             };
         } else {

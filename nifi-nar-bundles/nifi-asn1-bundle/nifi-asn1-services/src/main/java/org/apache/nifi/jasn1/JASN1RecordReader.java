@@ -139,13 +139,11 @@ public class JASN1RecordReader implements RecordReader {
                 recordModelIterator = recordModelIteratorProvider.iterator(inputStream, logger, rootClass, recordField, seqOfField);
             }
 
-            BerType next;
-            if (recordModelIterator.hasNext() && (next = recordModelIterator.next()) != null) {
-                return convertBerRecord(next);
+            if (recordModelIterator.hasNext()) {
+                return convertBerRecord(recordModelIterator.next());
             } else {
                 return null;
             }
-
         });
     }
 
