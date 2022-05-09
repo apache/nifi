@@ -624,10 +624,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                             }
                             if (dependentValues.size() == 1) {
                                 final String requiredValue = dependentValues.iterator().next();
-                                for (AllowableValue av : dependencyProperty.getAllowableValues()) {
-                                    if (requiredValue.equals(av.getValue())) {
-                                        suffix = "has a value of \"" + av.getDisplayName() + "\".";
-                                        break;
+                                final List<AllowableValue> allowableValues = dependencyProperty.getAllowableValues();
+                                if (allowableValues != null) {
+                                    for (AllowableValue av : allowableValues) {
+                                        if (requiredValue.equals(av.getValue())) {
+                                            suffix = "has a value of \"" + av.getDisplayName() + "\".";
+                                            break;
+                                        }
                                     }
                                 }
                             } else {
