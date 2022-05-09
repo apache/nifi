@@ -404,7 +404,8 @@ public class ParameterContextResource extends ApplicationResource {
                 // Verify READ and WRITE permissions for user, for every component that is affected
                 affectedComponents.forEach(component -> authorizeAffectedComponent(component, lookup, user, true, true));
 
-                requestEntity.getComponent().getParameters().forEach(parameterEntity -> {
+                Set<ParameterEntity> parametersEntities = requestEntity.getComponent().getParameters();
+                for (ParameterEntity parameterEntity : parametersEntities) {
                     String parameterName = parameterEntity.getParameter().getName();
                     List<ParameterReferencedControllerServiceData> referencedControllerServiceDataSet = parameterContext
                         .getParameterReferenceManager()
@@ -418,41 +419,43 @@ public class ParameterContextResource extends ApplicationResource {
                     if (referencedControllerServiceTypes.size() > 1) {
                         throw new IllegalStateException("Parameter is used by multiple different types of controller service references");
                     } else if (!referencedControllerServiceTypes.isEmpty()) {
-                        Optional.ofNullable(parameterEntity)
-                            .map(ParameterEntity::getParameter)
-                            .map(ParameterDTO::getName)
-                            .flatMap(parameterContext::getParameter)
-                            .map(Parameter::getValue)
-                            .map(lookup::getControllerService)
-                            .map(ComponentAuthorizable::getAuthorizable)
-                            .ifPresent(controllerServiceAuthorizable -> {
-                                controllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                controllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-                            });
-
-                        Optional.ofNullable(parameterEntity)
-                            .map(ParameterEntity::getParameter)
-                            .map(ParameterDTO::getValue)
-                            .map(lookup::getControllerService)
-                            .map(ComponentAuthorizable::getAuthorizable)
-                            .ifPresent(controllerServiceAuthorizable -> {
-                                controllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
-                                controllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
-
-                                if (
-                                    !referencedControllerServiceTypes
-                                        .stream()
-                                        .findFirst()
-                                        .get()
-                                        .isAssignableFrom(
-                                            ((StandardControllerServiceNode) controllerServiceAuthorizable).getComponent().getClass()
-                                        )
-                                ) {
-                                    throw new IllegalArgumentException("New Parameter value attempts to reference an incompatible controller service");
+                        Optional<Parameter> parameterOptional = parameterContext.getParameter(parameterName);
+                        if (parameterOptional.isPresent()) {
+                            String currentParameterValue = parameterOptional.get().getValue();
+                            if (currentParameterValue != null) {
+                                ComponentAuthorizable currentControllerService = lookup.getControllerService(currentParameterValue);
+                                if (currentControllerService != null) {
+                                    Authorizable currentControllerServiceAuthorizable = currentControllerService.getAuthorizable();
+                                    if (currentControllerServiceAuthorizable != null) {
+                                        currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                        currentControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+                                    }
                                 }
-                            });
+                            }
+                        }
+
+                        String newParameterValue = parameterEntity.getParameter().getValue();
+                        if (newParameterValue != null) {
+                            ComponentAuthorizable newControllerService = lookup.getControllerService(newParameterValue);
+                            if (newControllerService != null) {
+                                Authorizable newControllerServiceAuthorizable = newControllerService.getAuthorizable();
+                                if (newControllerServiceAuthorizable != null) {
+                                    newControllerServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+                                    newControllerServiceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+
+                                    if (
+                                        !referencedControllerServiceTypes.iterator().next()
+                                            .isAssignableFrom(
+                                                ((StandardControllerServiceNode) newControllerServiceAuthorizable).getComponent().getClass()
+                                            )
+                                    ) {
+                                        throw new IllegalArgumentException("New Parameter value attempts to reference an incompatible controller service");
+                                    }
+                                }
+                            }
+                        }
                     }
-                });
+                }
             },
             () -> {
                 // Verify Request
