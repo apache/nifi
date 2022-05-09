@@ -82,9 +82,9 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
 
         final AtomicReference<ParameterContext> parameterContextReference = new AtomicReference<>();
         flowManager.withParameterContextResolution(() -> {
-            final List<String> referencedIds = parameterContextDto.getInheritedParameterContexts().stream()
-                .map(ParameterContextReferenceEntity::getId)
-                .collect(Collectors.toList());
+            final List<String> referencedIds = parameterContextDto.getInheritedParameterContexts() == null
+                    ? new ArrayList<>(0)
+                    : parameterContextDto.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
 
             final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters, referencedIds);
             if (parameterContextDto.getDescription() != null) {
