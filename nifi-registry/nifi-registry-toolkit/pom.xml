@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>nifi-registry-toolkit</artifactId>
     <packaging>pom</packaging>
@@ -30,6 +30,6 @@
     </modules>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC1</tag>
   </scm>
 </project>

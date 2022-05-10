@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>nifi-xml-processing</artifactId>
-    <version>1.16.2-SNAPSHOT</version>
+    <version>1.16.2</version>
     <packaging>jar</packaging>
     <build>
         <plugins>
@@ -52,4 +52,8 @@
             </plugin>
         </plugins>
     </build>
+
+  <scm>
+    <tag>nifi-1.16.2-RC1</tag>
+  </scm>
 </project>

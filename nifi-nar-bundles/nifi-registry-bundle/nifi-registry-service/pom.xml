@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-registry-bundle</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>nifi-registry-service</artifactId>
     <packaging>jar</packaging>
@@ -34,7 +34,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-avro-record-utils</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -43,7 +43,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -57,6 +57,6 @@ language governing permissions and limitations under the License. -->
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC1</tag>
   </scm>
 </project>
