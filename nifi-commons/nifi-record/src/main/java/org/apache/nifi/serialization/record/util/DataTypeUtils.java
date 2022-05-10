@@ -238,6 +238,10 @@ public class DataTypeUtils {
     }
 
     private static Object toUUID(Object value) {
+        if (value == null) {
+            throw new IllegalTypeConversionException("Null values cannot be converted to a UUID");
+        }
+
         if (value instanceof String) {
             try {
                 return UUID.fromString((String)value);
