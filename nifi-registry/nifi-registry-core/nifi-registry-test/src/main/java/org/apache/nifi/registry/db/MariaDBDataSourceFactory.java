@@ -22,7 +22,6 @@ import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 
 import javax.annotation.PostConstruct;
-import javax.script.ScriptException;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 
@@ -38,7 +37,6 @@ public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {
             dataSource.setUrl(container.getJdbcUrl());
             dataSource.setUser(container.getUsername());
             dataSource.setPassword(container.getPassword());
-            dataSource.setDatabaseName(container.getDatabaseName());
             return dataSource;
         } catch (SQLException e) {
             throw new RuntimeException("Unable to create MariaDB DataSource", e);
@@ -46,7 +44,7 @@ public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {
     }
 
     @PostConstruct
-    public void initDatabase() throws SQLException, ScriptException {
+    public void initDatabase() {
         DatabaseDelegate databaseDelegate = new JdbcDatabaseDelegate(mariaDBContainer(), "");
         databaseDelegate.execute("DROP DATABASE test; CREATE DATABASE test;", "", 0, false, true);
     }
