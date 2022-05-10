@@ -146,7 +146,7 @@ public class TestRuntimeManifest {
         assertNull(listHdfsDefinition.isRestricted());
         assertNull(listHdfsDefinition.getRestrictedExplanation());
         assertNull(listHdfsDefinition.getExplicitRestrictions());
-        
+
         // Verify FetchHDFS definition has restrictions
         final ProcessorDefinition fetchHdfsDefinition = getProcessorDefinition(bundles, "nifi-hadoop-nar",
                 "org.apache.nifi.processors.hadoop.FetchHDFS");
