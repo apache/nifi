@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.SslSessionStatus;
 import org.apache.nifi.event.transport.configuration.BufferAllocator;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
@@ -74,12 +75,24 @@ import java.util.concurrent.LinkedBlockingQueue;
         "as the message demarcator. The default behavior is for each message to produce a single FlowFile, however this can " +
         "be controlled by increasing the Batch Size to a larger value for higher throughput. The Receive Buffer Size must be " +
         "set as large as the largest messages expected to be received, meaning if every 100kb there is a line separator, then " +
-        "the Receive Buffer Size must be greater than 100kb.")
+        "the Receive Buffer Size must be greater than 100kb. " +
+        "The processor can be configured to use an SSL Context Service to only allow secure connections. " +
+        "When connected clients present certificates for mutual TLS authentication, the Distinguished Names of the client certificate's " +
+        "issuer and subject are added to the outgoing FlowFiles as attributes. " +
+        "The processor does not perform authorization based on Distinguished Name values, but since these values " +
+        "are attached to the outgoing FlowFiles, authorization can be implemented based on these attributes.")
 @WritesAttributes({
         @WritesAttribute(attribute="tcp.sender", description="The sending host of the messages."),
-        @WritesAttribute(attribute="tcp.port", description="The sending port the messages were received.")
+        @WritesAttribute(attribute="tcp.port", description="The sending port the messages were received."),
+        @WritesAttribute(attribute="client.certificate.issuer.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+                "Certificate Authority that issued the client's certificate " +
+                "is attached to the FlowFile."),
+        @WritesAttribute(attribute="client.certificate.subject.dn", description="For connections using mutual TLS, the Distinguished Name of the " +
+                "client certificate's owner (subject) is attached to the FlowFile.")
 })
 public class ListenTCP extends AbstractProcessor {
+    private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
+    private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -213,6 +226,7 @@ public class ListenTCP extends AbstractProcessor {
             }
 
             final Map<String,String> attributes = getAttributes(entry.getValue());
+            addClientCertificateAttributes(attributes, events.get(0));
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             getLogger().debug("Transferring {} to success", flowFile);
@@ -290,5 +304,13 @@ public class ListenTCP extends AbstractProcessor {
             };
         }
         return eventBatcher;
+    }
+
+    private void addClientCertificateAttributes(final Map<String, String> attributes, final ByteArrayMessage event) {
+        final SslSessionStatus sslSessionStatus = event.getSslSessionStatus();
+        if (sslSessionStatus != null) {
+            attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, sslSessionStatus.getSubject().getName());
+            attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, sslSessionStatus.getIssuer().getName());
+        }
     }
 }
