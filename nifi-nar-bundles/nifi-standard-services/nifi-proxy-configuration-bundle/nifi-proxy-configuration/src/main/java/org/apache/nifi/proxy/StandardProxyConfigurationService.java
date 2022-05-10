@@ -107,7 +107,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     public void setConfiguredValues(final ConfigurationContext context) {
         configuration = new ProxyConfiguration();
 
-        Proxy.Type proxyType = Proxy.Type.valueOf(context.getProperty(PROXY_TYPE).getValue());
+        final Proxy.Type proxyType = Proxy.Type.valueOf(context.getProperty(PROXY_TYPE).getValue());
         configuration.setProxyType(proxyType);
         configuration.setSocksVersion(proxyType == Proxy.Type.SOCKS ? SocksVersion.valueOf(context.getProperty(SOCKS_VERSION).getValue()) : null);
         configuration.setProxyServerHost(context.getProperty(PROXY_SERVER_HOST).evaluateAttributeExpressions().getValue());

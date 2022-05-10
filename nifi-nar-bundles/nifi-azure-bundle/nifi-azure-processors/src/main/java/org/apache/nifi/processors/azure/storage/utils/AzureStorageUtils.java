@@ -340,7 +340,7 @@ public final class AzureStorageUtils {
         if (proxyConfiguration.getProxyType() == Proxy.Type.HTTP) {
             return ProxyOptions.Type.HTTP;
         } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
-            SocksVersion socksVersion = proxyConfiguration.getSocksVersion();
+            final SocksVersion socksVersion = proxyConfiguration.getSocksVersion();
             if (socksVersion != SocksVersion.NOT_SPECIFIED) {
                 return ProxyOptions.Type.valueOf(socksVersion.name());
             } else {
