@@ -17,7 +17,7 @@
 package org.apache.nifi.event.transport.message;
 
 import org.apache.nifi.event.transport.NetworkEvent;
-import org.apache.nifi.event.transport.SslInfo;
+import org.apache.nifi.event.transport.SslSessionStatus;
 
 /**
  * Byte Array Message with Sender
@@ -26,12 +26,12 @@ public class ByteArrayMessage implements NetworkEvent {
     private final byte[] message;
 
     private final String sender;
-    private final SslInfo sslInfo;
+    private final SslSessionStatus sslSessionStatus;
 
-    public ByteArrayMessage(final byte[] message, final String sender, final SslInfo sslInfo) {
+    public ByteArrayMessage(final byte[] message, final String sender, final SslSessionStatus sslSessionStatus) {
         this.message = message;
         this.sender = sender;
-        this.sslInfo = sslInfo;
+        this.sslSessionStatus = sslSessionStatus;
     }
 
     public ByteArrayMessage(final byte[] message, final String sender) {
@@ -46,7 +46,7 @@ public class ByteArrayMessage implements NetworkEvent {
         return sender;
     }
 
-    public SslInfo getSslInfo() {
-        return sslInfo;
+    public SslSessionStatus getSslSessionStatus() {
+        return sslSessionStatus;
     }
 }

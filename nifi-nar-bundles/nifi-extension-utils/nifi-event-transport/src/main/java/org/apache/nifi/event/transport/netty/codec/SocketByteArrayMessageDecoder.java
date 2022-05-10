@@ -20,7 +20,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.ssl.SslHandler;
-import org.apache.nifi.event.transport.SslInfo;
+import org.apache.nifi.event.transport.SslSessionStatus;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -28,13 +28,14 @@ import javax.net.ssl.SSLSession;
 import java.net.InetSocketAddress;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Message Decoder for bytes received from Socket Channels
  */
 public class SocketByteArrayMessageDecoder extends MessageToMessageDecoder<byte[]> {
-    private static String SSL_HANDLER = "SslHandler#0";
     /**
      * Decode bytes to Byte Array Message with remote address from Channel.remoteAddress()
      *
@@ -47,28 +48,36 @@ public class SocketByteArrayMessageDecoder extends MessageToMessageDecoder<byte[
         final InetSocketAddress remoteAddress = (InetSocketAddress) channelHandlerContext.channel().remoteAddress();
         final String address = remoteAddress.getHostString();
 
-        ByteArrayMessage message = getMessageWithSslInfo(channelHandlerContext, bytes, address);
+        ByteArrayMessage message = getMessageWithSslSessionStatus(channelHandlerContext, bytes, address);
         if (message == null) {
             message = new ByteArrayMessage(bytes, address);
         }
         decoded.add(message);
     }
 
-    private ByteArrayMessage getMessageWithSslInfo(final ChannelHandlerContext channelHandlerContext, final byte[] bytes, final String address) {
-        final ChannelHandler sslHandler = channelHandlerContext.channel().pipeline().get(SSL_HANDLER);
-        if (sslHandler != null) {
-            final SSLSession sslSession = ((SslHandler)sslHandler).engine().getSession();
-            try {
-                final Certificate[] certificates = sslSession.getPeerCertificates();
-                if (certificates.length > 0) {
-                    final X509Certificate certificate = (X509Certificate) certificates[0];
-                    final String subjectDN = certificate.getSubjectDN().toString();
-                    final String issuerDN = certificate.getIssuerDN().toString();
-                    return new ByteArrayMessage(bytes, address, new SslInfo(subjectDN, issuerDN));
-                }
-            } catch (SSLPeerUnverifiedException peerUnverifiedException) {
-                return null;
+    private ByteArrayMessage getMessageWithSslSessionStatus(final ChannelHandlerContext channelHandlerContext, final byte[] bytes, final String address) {
+        Iterator<Map.Entry<String, ChannelHandler>> iterator = channelHandlerContext.channel().pipeline().iterator();
+        while (iterator.hasNext()) {
+            final ChannelHandler channelHandler = iterator.next().getValue();
+            if (channelHandler instanceof SslHandler) {
+                return createMessageWithSslSessionStatus((SslHandler)channelHandler, bytes, address);
             }
+        }
+        return null;
+    }
+
+    private ByteArrayMessage createMessageWithSslSessionStatus(final SslHandler sslHandler, final byte[] bytes, final String address) {
+        final SSLSession sslSession = sslHandler.engine().getSession();
+        try {
+            final Certificate[] certificates = sslSession.getPeerCertificates();
+            if (certificates.length > 0) {
+                final X509Certificate certificate = (X509Certificate) certificates[0];
+                final String subjectDN = certificate.getSubjectDN().toString();
+                final String issuerDN = certificate.getIssuerDN().toString();
+                return new ByteArrayMessage(bytes, address, new SslSessionStatus(subjectDN, issuerDN));
+            }
+        } catch (SSLPeerUnverifiedException peerUnverifiedException) {
+            return null;
         }
         return null;
     }

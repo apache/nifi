@@ -17,11 +17,11 @@
 
 package org.apache.nifi.event.transport;
 
-public class SslInfo {
+public class SslSessionStatus {
     private final String subjectDN;
     private final String issuerDN;
 
-    public SslInfo(final String subjectDN, final String issuerDN) {
+    public SslSessionStatus(final String subjectDN, final String issuerDN) {
         this.subjectDN = subjectDN;
         this.issuerDN = issuerDN;
     }

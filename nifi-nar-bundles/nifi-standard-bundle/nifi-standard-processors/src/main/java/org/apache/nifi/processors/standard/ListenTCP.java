@@ -30,7 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
-import org.apache.nifi.event.transport.SslInfo;
+import org.apache.nifi.event.transport.SslSessionStatus;
 import org.apache.nifi.event.transport.configuration.BufferAllocator;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
@@ -307,10 +307,10 @@ public class ListenTCP extends AbstractProcessor {
     }
 
     private void addClientCertificateAttributes(final Map<String, String> attributes, final ByteArrayMessage event) {
-        final SslInfo sslInfo = event.getSslInfo();
-        if (sslInfo != null) {
-            attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, sslInfo.getSubjectDN());
-            attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, sslInfo.getIssuerDN());
+        final SslSessionStatus sslSessionStatus = event.getSslSessionStatus();
+        if (sslSessionStatus != null) {
+            attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, sslSessionStatus.getSubjectDN());
+            attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, sslSessionStatus.getIssuerDN());
         } else {
             getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
                     event.getSender());
