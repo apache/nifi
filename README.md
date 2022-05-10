@@ -280,31 +280,13 @@ If no profile is specified then an H2 DataSource will be used by default and no 
 
 Assuming Docker is running on the system where the build is running, then the following commands can be run:
 
-| Target Database | Build Command | 
-| --------------- | ------------- |
-| All supported   | `mvn verify -Ptest-all-dbs` |
-| H2 (default)    | `mvn verify` |
-| PostgreSQL 9.x  | `mvn verify -Dspring.profiles.active=postgres` | 
-| PostgreSQL 10.x | `mvn verify -Dspring.profiles.active=postgres-10` | 
-| MySQL 5.6       | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-56` |
-| MySQL 5.7       | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-57` |
-| MySQL 8         | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-8`  |
-      
- When one of the Testcontainer profiles is activated, the test output should show logs that indicate a container has been started, such as the following:
- 
-    2019-05-15 16:14:45.078  INFO 66091 --- [           main] 🐳 [mysql:5.7]                           : Creating container for image: mysql:5.7
-    2019-05-15 16:14:45.145  INFO 66091 --- [           main] o.t.utility.RegistryAuthLocator          : Credentials not found for host (index.docker.io) when using credential helper/store (docker-credential-osxkeychain)
-    2019-05-15 16:14:45.646  INFO 66091 --- [           main] 🐳 [mysql:5.7]                           : Starting container with ID: ca85c8c5a1990d2a898fad04c5897ddcdb3a9405e695cc11259f50f2ebe67c5f
-    2019-05-15 16:14:46.437  INFO 66091 --- [           main] 🐳 [mysql:5.7]                           : Container mysql:5.7 is starting: ca85c8c5a1990d2a898fad04c5897ddcdb3a9405e695cc11259f50f2ebe67c5f
-    2019-05-15 16:14:46.479  INFO 66091 --- [           main] 🐳 [mysql:5.7]                           : Waiting for database connection to become available at jdbc:mysql://localhost:33051/test?useSSL=false&allowPublicKeyRetrieval=true using query 'SELECT 1'
-
-The Flyway connection should also indicate the given database:
-
-    2019-05-15 16:15:02.114  INFO 66091 --- [           main] o.a.n.r.db.CustomFlywayConfiguration     : Determined database type is MYSQL
-    2019-05-15 16:15:02.115  INFO 66091 --- [           main] o.a.n.r.db.CustomFlywayConfiguration     : Setting migration locations to [classpath:db/migration/common, classpath:db/migration/mysql]
-    2019-05-15 16:15:02.373  INFO 66091 --- [           main] o.a.n.r.d.CustomFlywayMigrationStrategy  : First time initializing database...
-    2019-05-15 16:15:02.380  INFO 66091 --- [           main] o.f.c.internal.license.VersionPrinter    : Flyway Community Edition 5.2.1 by Boxfuse
-    2019-05-15 16:15:02.403  INFO 66091 --- [           main] o.f.c.internal.database.DatabaseFactory  : Database: jdbc:mysql://localhost:33051/test (MySQL 5.7)
+| Target Database | Build Command                                                      | 
+|-----------------|--------------------------------------------------------------------|
+| All supported   | `mvn verify -Ptest-all-dbs`                                        |
+| H2 (default)    | `mvn verify`                                                       |
+| MariaDB 10.3    | `mvn verify -Pcontrib-check -Dspring.profiles.active=mariadb-10-3` |
+| MySQL 8         | `mvn verify -Pcontrib-check -Dspring.profiles.active=mysql-8`      |
+| PostgreSQL 10   | `mvn verify -Dspring.profiles.active=postgres-10`                  |
 
 For a full list of the available DataSource factories, consult the `nifi-registry-test` module.
 
