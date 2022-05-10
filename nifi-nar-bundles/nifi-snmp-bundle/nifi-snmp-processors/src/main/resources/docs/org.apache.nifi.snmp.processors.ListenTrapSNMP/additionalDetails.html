@@ -24,10 +24,11 @@
 <h2>Summary</h2>
 <p>
     This processor listens to SNMP traps and creates a flowfile from the trap PDU.
-    The versions SNMPv1, SNMPv2c and SNMPv3 are supproted. The component is based on <a href="http://www.snmp4j.org/">SNMP4J</a>.
+    The versions SNMPv1, SNMPv2c and SNMPv3 are supported. The component is based on <a href="http://www.snmp4j.org/">SNMP4J</a>.
 </p>
 <p>
-    In case of SNMPv3, users can be specified in a json file. E.g.:
+    SNMPv3 has user-based security. The USM Users Source property allows users to choose between three different ways to provide the USM user database.
+    An example json file containing two users:
 <pre>
 <code>
 [

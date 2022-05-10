@@ -36,11 +36,11 @@ public class V3SecurityProperties {
 
     // SNMPv3 security levels
     public static final AllowableValue NO_AUTH_NO_PRIV = new AllowableValue(SecurityLevel.noAuthNoPriv.name(), SecurityLevel.noAuthNoPriv.name(),
-            "No authentication or encryption.");
+            "Communication without authentication and privacy.");
     public static final AllowableValue AUTH_NO_PRIV = new AllowableValue(SecurityLevel.authNoPriv.name(), SecurityLevel.authNoPriv.name(),
-            "Authentication without encryption.");
+            "Communication with authentication and without privacy.");
     public static final AllowableValue AUTH_PRIV = new AllowableValue(SecurityLevel.authPriv.name(), SecurityLevel.authPriv.name(),
-            "Authentication and encryption.");
+            "Communication with authentication and privacy.");
 
     // SNMPv3 authentication protocols
     public static final AllowableValue MD5 = new AllowableValue("MD5", "MD5",

@@ -1,7 +1,7 @@
 [
   {
     "securityName":"user1",
-    "authProtocol":"MD5",
+    "authProtocol":"INVALID",
     "authPassphrase":"abc12345",
     "privProtocol":"DES",
     "privPassphrase":"abc12345"

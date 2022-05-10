@@ -16,35 +16,28 @@
  */
 package org.apache.nifi.snmp.operations;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.apache.nifi.snmp.dto.UserDetails;
-import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.apache.nifi.snmp.utils.JsonFileUsmReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.snmp4j.Snmp;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -95,52 +88,25 @@ public class SNMPTrapReceiverHandlerTest {
     }
 
     @Test
-    public void testAddUsmUsers() throws JsonProcessingException, FileNotFoundException {
-        final Set<String> expectedUserAttributes = new HashSet<>();
-        try (Scanner scanner = new Scanner(new File(USERS_JSON))) {
-            final String content = scanner.useDelimiter("\\Z").next();
-            final ObjectMapper mapper = new ObjectMapper();
-            final List<UserDetails> userDetails = mapper.readValue(content, new TypeReference<List<UserDetails>>() {
-            });
-            userDetails
-                    .forEach(user -> {
-                        expectedUserAttributes.add(user.getSecurityName());
-                        expectedUserAttributes.add(SNMPUtils.getAuth(user.getAuthProtocol()).toString());
-                        expectedUserAttributes.add(user.getAuthPassphrase());
-                        expectedUserAttributes.add(SNMPUtils.getPriv(user.getPrivProtocol()).toString());
-                        expectedUserAttributes.add(user.getPrivPassphrase());
-                    });
-        }
-        final Set<String> usmAttributes = new HashSet<>();
-        final SNMPConfiguration snmpConfiguration = mock(SNMPConfiguration.class);
-        final ProcessSessionFactory mockProcessSessionFactory = mock(ProcessSessionFactory.class);
-        final MockComponentLog mockComponentLog = new MockComponentLog("componentId", new Object());
-        final Snmp mockSnmpManager = mock(Snmp.class);
-        final USM mockUsm = mock(USM.class);
+    public void testAddUsmUsers() {
+        final List<UsmUser> usmUsers = new JsonFileUsmReader(USERS_JSON).readUsm();
 
-        when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
-        when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version3);
-        doAnswer(invocation -> {
-            UsmUser usmUser = (UsmUser) invocation.getArgument(0);
-            usmAttributes.add(usmUser.getSecurityName().toString());
-            usmAttributes.add(usmUser.getAuthenticationProtocol().toString());
-            usmAttributes.add(usmUser.getAuthenticationPassphrase().toString());
-            usmAttributes.add(usmUser.getPrivacyProtocol().toString());
-            usmAttributes.add(usmUser.getPrivacyPassphrase().toString());
-            return null;
-        }).when(mockUsm).addUser(any(UsmUser.class));
-        when(mockSnmpManager.getUSM()).thenReturn(mockUsm);
+        final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
+                .setManagerPort(NetworkUtils.getAvailableUdpPort())
+                .setVersion(SnmpConstants.version3)
+                .build();
 
-        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, USERS_JSON);
+        final Snmp mockSnmpManager = mock(Snmp.class, RETURNS_DEEP_STUBS);
+        final ArgumentCaptor<UsmUser> usmUserCaptor = ArgumentCaptor.forClass(UsmUser.class);
+
+        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, usmUsers);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
-        trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
+        trapReceiverHandler.createTrapReceiver(null, null);
 
-
+        verify(mockSnmpManager.getUSM(), times(2)).addUser(usmUserCaptor.capture());
         verify(mockSnmpManager).addCommandResponder(any(SNMPTrapReceiver.class));
 
         assertTrue(trapReceiverHandler.isStarted());
-
-        assertEquals(expectedUserAttributes, usmAttributes);
+        assertEquals(usmUsers, usmUserCaptor.getAllValues());
     }
-
 }

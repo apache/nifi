@@ -20,6 +20,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.AGENT_ADDRESS_MUST_BE_SPECIFIED;
+import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.ENTERPRISE_OID_MUST_BE_SPECIFIED;
+import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED;
+import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6;
+import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -51,7 +56,7 @@ public class V1TrapConfigurationTest {
     @Test
     public void testRequireNonNullEnterpriseOid() {
         exceptionRule.expect(IllegalArgumentException.class);
-        exceptionRule.expectMessage("Enterprise OID must be specified.");
+        exceptionRule.expectMessage(ENTERPRISE_OID_MUST_BE_SPECIFIED);
         V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
@@ -62,7 +67,7 @@ public class V1TrapConfigurationTest {
     @Test
     public void testRequireNonNullAgentAddress() {
         exceptionRule.expect(IllegalArgumentException.class);
-        exceptionRule.expectMessage("Agent address must be specified.");
+        exceptionRule.expectMessage(AGENT_ADDRESS_MUST_BE_SPECIFIED);
         V1TrapConfiguration.builder()
                 .enterpriseOid(ENTERPRISE_OID)
                 .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
@@ -78,7 +83,7 @@ public class V1TrapConfigurationTest {
                 .genericTrapType("-1")
                 .build()
         );
-        assertEquals("Generic Trap Type must be between 0 and 6.", exception.getMessage());
+        assertEquals(GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6, exception.getMessage());
     }
 
     @Test
@@ -89,7 +94,7 @@ public class V1TrapConfigurationTest {
                 .genericTrapType("7")
                 .build()
         );
-        assertEquals("Generic Trap Type must be between 0 and 6.", exception.getMessage());
+        assertEquals(GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6, exception.getMessage());
     }
 
     @Test
@@ -112,7 +117,7 @@ public class V1TrapConfigurationTest {
                 .specificTrapType("-1")
                 .build()
         );
-        assertEquals("Specific Trap Type must be between 0 and 2147483647.", exception.getMessage());
+        assertEquals(SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647, exception.getMessage());
     }
 
     @Test
@@ -123,19 +128,6 @@ public class V1TrapConfigurationTest {
                 .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
                 .build()
         );
-        assertEquals("Generic Trap Type is [6 - Enterprise Specific] but Specific Trap Type is not provided or not a number.", exception.getMessage());
+        assertEquals(GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED, exception.getMessage());
     }
-
-    @Test
-    public void testGenericTrapTypeIsNotEnterpriseSpecificButSpecificTrapTypeIsSet() {
-        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
-                .agentAddress(AGENT_ADDRESS)
-                .enterpriseOid(ENTERPRISE_OID)
-                .genericTrapType("5")
-                .specificTrapType("123")
-                .build()
-        );
-        assertEquals("Invalid argument: Generic Trap Type is not [6 - Enterprise Specific] but Specific Trap Type is provided.", exception.getMessage());
-    }
-
 }

@@ -105,7 +105,7 @@ public class SNMPV3TestRunnerFactory implements SNMPTestRunnerFactory {
         final SNMPConfiguration snmpConfiguration = snmpV3ConfigurationFactory.createSnmpListenTrapConfig(managerPort);
         runner.setProperty(ListenTrapSNMP.SNMP_MANAGER_PORT, String.valueOf(snmpConfiguration.getManagerPort()));
         runner.setProperty(BasicProperties.SNMP_VERSION, getVersionName(snmpConfiguration.getVersion()));
-        runner.setProperty(ListenTrapSNMP.SNMP_USM_USERS_FILE_PATH, USM_USERS_FILE_PATH);
+        runner.setProperty(ListenTrapSNMP.SNMP_USM_USERS_JSON_FILE_PATH, USM_USERS_FILE_PATH);
 
         return runner;
     }
