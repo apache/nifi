@@ -41,6 +41,10 @@ public class ExtensionComponent extends DefinedType {
     private Boolean deprecated;
     private String deprecationReason;
 
+    private Boolean restricted;
+    private String restrictedExplanation;
+    private Set<Restriction> explicitRestrictions;
+
     @ApiModelProperty("The build metadata for this component")
     public BuildInfo getBuildInfo() {
         return buildInfo;
@@ -85,6 +89,33 @@ public class ExtensionComponent extends DefinedType {
 
     public void setDeprecationReason(String deprecationReason) {
         this.deprecationReason = deprecationReason;
+    }
+
+    @ApiModelProperty("Whether or not the component has a general restriction")
+    public Boolean isRestricted() {
+        return restricted;
+    }
+
+    public void setRestricted(Boolean restricted) {
+        this.restricted = restricted;
+    }
+
+    @ApiModelProperty("An optional description of the general restriction")
+    public String getRestrictedExplanation() {
+        return restrictedExplanation;
+    }
+
+    public void setRestrictedExplanation(String restrictedExplanation) {
+        this.restrictedExplanation = restrictedExplanation;
+    }
+
+    @ApiModelProperty("Explicit restrictions that indicate a require permission to use the component")
+    public Set<Restriction> getExplicitRestrictions() {
+        return explicitRestrictions;
+    }
+
+    public void setExplicitRestrictions(Set<Restriction> explicitRestrictions) {
+        this.explicitRestrictions = explicitRestrictions;
     }
 
     @Override

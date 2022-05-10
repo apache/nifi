@@ -27,8 +27,10 @@ import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
 import org.apache.nifi.c2.protocol.component.api.PropertyResourceDefinition;
 import org.apache.nifi.c2.protocol.component.api.Relationship;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
+import org.apache.nifi.c2.protocol.component.api.Restriction;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.c2.protocol.component.api.SchedulingDefaults;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -39,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -138,6 +141,20 @@ public class TestRuntimeManifest {
         assertNotNull(resourceDefinition.getResourceTypes());
         assertEquals(1, resourceDefinition.getResourceTypes().size());
         assertEquals(ResourceType.FILE, resourceDefinition.getResourceTypes().stream().findFirst().get());
+
+        // Verify FetchHDFS definition has restrictions
+        final ProcessorDefinition fetchHdfsDefinition = getProcessorDefinition(bundles, "nifi-hadoop-nar",
+                "org.apache.nifi.processors.hadoop.FetchHDFS");
+        assertNotNull(fetchHdfsDefinition.isRestricted());
+        assertTrue(fetchHdfsDefinition.isRestricted());
+
+        final Set<Restriction> restrictions = fetchHdfsDefinition.getExplicitRestrictions();
+        assertNotNull(restrictions);
+        assertEquals(1, restrictions.size());
+
+        final Restriction restriction = restrictions.stream().findFirst().orElse(null);
+        assertEquals(RequiredPermission.READ_DISTRIBUTED_FILESYSTEM.getPermissionLabel(), restriction.getRequiredPermission());
+        assertNotNull(restriction.getExplanation());
 
         // Verify ConsumeKafka_2_6 definition which has properties with dependencies
         final ProcessorDefinition consumeKafkaDefinition = getProcessorDefinition(bundles, "nifi-kafka-2-6-nar",
