@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.snmp.operations;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.apache.nifi.snmp.dto.UserDetails;
 import org.apache.nifi.snmp.factory.core.SNMPManagerFactory;
-import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.apache.nifi.snmp.utils.UsmReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snmp4j.Snmp;
@@ -34,29 +30,30 @@ import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.SecurityModels;
 import org.snmp4j.security.SecurityProtocols;
 import org.snmp4j.security.USM;
-import org.snmp4j.security.UsmUser;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
-import java.util.Scanner;
 
 public class SNMPTrapReceiverHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(SNMPTrapReceiverHandler.class);
 
     private final SNMPConfiguration configuration;
-    private final String usmUsersFilePath;
+    private final String usmUsersData;
+    private final UsmReader usmReader;
     private Snmp snmpManager;
     private boolean isStarted;
 
-    public SNMPTrapReceiverHandler(final SNMPConfiguration configuration, final String usmUsersFilePath) {
+    public SNMPTrapReceiverHandler(final SNMPConfiguration configuration, final String usmUsersData, final UsmReader usmReader) {
         this.configuration = configuration;
-        this.usmUsersFilePath = usmUsersFilePath;
+        this.usmUsersData = usmUsersData;
+        this.usmReader = usmReader;
         snmpManager = new SNMPManagerFactory().createSnmpManagerInstance(configuration);
+    }
+
+    public SNMPTrapReceiverHandler(final SNMPConfiguration configuration) {
+        this(configuration, null, null);
     }
 
     public void createTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {
@@ -90,31 +87,9 @@ public class SNMPTrapReceiverHandler {
             USM usm = new USM(SecurityProtocols.getInstance(), new OctetString(MPv3.createLocalEngineID()), 0);
             SecurityModels.getInstance().addSecurityModel(usm);
 
-            try (Scanner scanner = new Scanner(new File(usmUsersFilePath))) {
-                final String content = scanner.useDelimiter("\\Z").next();
-                final ObjectMapper mapper = new ObjectMapper();
-                final List<UserDetails> userDetails = mapper.readValue(content, new TypeReference<List<UserDetails>>() {
-                });
-                userDetails.stream()
-                        .map(this::convertToUsmUser)
-                        .forEach(user -> snmpManager.getUSM().addUser(user));
-
-            } catch (FileNotFoundException e) {
-                throw new ProcessException("USM user file not found, please check the file path and file permissions.", e);
-            } catch (JsonProcessingException e) {
-                throw new ProcessException("Could not parse USM user file, please check the processor details for examples.", e);
-            }
+            usmReader.readUsm(usmUsersData)
+                    .forEach(user -> snmpManager.getUSM().addUser(user));
         }
-    }
-
-    private UsmUser convertToUsmUser(final UserDetails user) {
-        return new UsmUser(
-                new OctetString(user.getSecurityName()),
-                SNMPUtils.getAuth(user.getAuthProtocol()),
-                new OctetString(user.getAuthPassphrase()),
-                SNMPUtils.getPriv(user.getPrivProtocol()),
-                new OctetString(user.getPrivPassphrase())
-        );
     }
 
     // Visible for testing.
