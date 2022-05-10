@@ -46,6 +46,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRuntimeManifest {
@@ -142,6 +143,10 @@ public class TestRuntimeManifest {
         assertEquals(1, resourceDefinition.getResourceTypes().size());
         assertEquals(ResourceType.FILE, resourceDefinition.getResourceTypes().stream().findFirst().get());
 
+        assertNull(listHdfsDefinition.isRestricted());
+        assertNull(listHdfsDefinition.getRestrictedExplanation());
+        assertNull(listHdfsDefinition.getExplicitRestrictions());
+        
         // Verify FetchHDFS definition has restrictions
         final ProcessorDefinition fetchHdfsDefinition = getProcessorDefinition(bundles, "nifi-hadoop-nar",
                 "org.apache.nifi.processors.hadoop.FetchHDFS");
