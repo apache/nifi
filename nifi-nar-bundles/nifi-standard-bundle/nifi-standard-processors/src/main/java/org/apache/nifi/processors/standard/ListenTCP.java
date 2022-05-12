@@ -309,11 +309,8 @@ public class ListenTCP extends AbstractProcessor {
     private void addClientCertificateAttributes(final Map<String, String> attributes, final ByteArrayMessage event) {
         final SslSessionStatus sslSessionStatus = event.getSslSessionStatus();
         if (sslSessionStatus != null) {
-            attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, sslSessionStatus.getSubjectDN());
-            attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, sslSessionStatus.getIssuerDN());
-        } else {
-            getLogger().debug("Remote Peer [{}] not verified: client certificates not provided",
-                    event.getSender());
+            attributes.put(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, sslSessionStatus.getSubject().getName());
+            attributes.put(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, sslSessionStatus.getIssuer().getName());
         }
     }
 }

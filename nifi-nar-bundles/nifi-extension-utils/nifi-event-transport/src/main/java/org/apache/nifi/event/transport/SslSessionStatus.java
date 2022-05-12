@@ -17,20 +17,22 @@
 
 package org.apache.nifi.event.transport;
 
+import javax.security.auth.x500.X500Principal;
+
 public class SslSessionStatus {
-    private final String subjectDN;
-    private final String issuerDN;
+    private final X500Principal subject;
+    private final X500Principal issuer;
 
-    public SslSessionStatus(final String subjectDN, final String issuerDN) {
-        this.subjectDN = subjectDN;
-        this.issuerDN = issuerDN;
+    public SslSessionStatus(final X500Principal subject, final X500Principal issuer) {
+        this.subject = subject;
+        this.issuer = issuer;
     }
 
-    public String getSubjectDN() {
-        return subjectDN;
+    public X500Principal getSubject() {
+        return subject;
     }
 
-    public String getIssuerDN() {
-        return issuerDN;
+    public X500Principal getIssuer() {
+        return issuer;
     }
 }

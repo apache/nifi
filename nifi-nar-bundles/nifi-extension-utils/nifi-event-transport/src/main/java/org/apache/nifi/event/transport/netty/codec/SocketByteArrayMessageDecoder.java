@@ -25,6 +25,7 @@ import org.apache.nifi.event.transport.message.ByteArrayMessage;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import javax.security.auth.x500.X500Principal;
 import java.net.InetSocketAddress;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -48,33 +49,32 @@ public class SocketByteArrayMessageDecoder extends MessageToMessageDecoder<byte[
         final InetSocketAddress remoteAddress = (InetSocketAddress) channelHandlerContext.channel().remoteAddress();
         final String address = remoteAddress.getHostString();
 
-        ByteArrayMessage message = getMessageWithSslSessionStatus(channelHandlerContext, bytes, address);
-        if (message == null) {
-            message = new ByteArrayMessage(bytes, address);
-        }
+        final SslSessionStatus sslSessionStatus = getSslSessionStatus(channelHandlerContext);
+        final ByteArrayMessage message = new ByteArrayMessage(bytes, address, sslSessionStatus);
+
         decoded.add(message);
     }
 
-    private ByteArrayMessage getMessageWithSslSessionStatus(final ChannelHandlerContext channelHandlerContext, final byte[] bytes, final String address) {
-        Iterator<Map.Entry<String, ChannelHandler>> iterator = channelHandlerContext.channel().pipeline().iterator();
+    private SslSessionStatus getSslSessionStatus(final ChannelHandlerContext channelHandlerContext) {
+        final Iterator<Map.Entry<String, ChannelHandler>> iterator = channelHandlerContext.channel().pipeline().iterator();
         while (iterator.hasNext()) {
             final ChannelHandler channelHandler = iterator.next().getValue();
             if (channelHandler instanceof SslHandler) {
-                return createMessageWithSslSessionStatus((SslHandler)channelHandler, bytes, address);
+                return createSslSessionStatusFromSslHandler((SslHandler) channelHandler);
             }
         }
         return null;
     }
 
-    private ByteArrayMessage createMessageWithSslSessionStatus(final SslHandler sslHandler, final byte[] bytes, final String address) {
+    private SslSessionStatus createSslSessionStatusFromSslHandler(final SslHandler sslHandler) {
         final SSLSession sslSession = sslHandler.engine().getSession();
         try {
             final Certificate[] certificates = sslSession.getPeerCertificates();
             if (certificates.length > 0) {
                 final X509Certificate certificate = (X509Certificate) certificates[0];
-                final String subjectDN = certificate.getSubjectDN().toString();
-                final String issuerDN = certificate.getIssuerDN().toString();
-                return new ByteArrayMessage(bytes, address, new SslSessionStatus(subjectDN, issuerDN));
+                final X500Principal subject = certificate.getSubjectX500Principal();
+                final X500Principal issuer = certificate.getIssuerX500Principal();
+                return new SslSessionStatus(subject, issuer);
             }
         } catch (SSLPeerUnverifiedException peerUnverifiedException) {
             return null;
