@@ -48,10 +48,10 @@ public class StandardProxyConfigurationService extends AbstractControllerService
 
     public static final PropertyDescriptor SOCKS_VERSION = new PropertyDescriptor.Builder()
         .name("socks-version")
-        .displayName("Socks version")
-        .description("Socks version.")
+        .displayName("SOCKS version")
+        .description("SOCKS Protocol Version")
         .allowableValues(SocksVersion.values())
-        .defaultValue(SocksVersion.NOT_SPECIFIED.name())
+        .defaultValue(SocksVersion.SOCKS5.name())
         .dependsOn(PROXY_TYPE, Proxy.Type.SOCKS.name())
         .required(true)
         .build();

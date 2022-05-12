@@ -341,13 +341,9 @@ public final class AzureStorageUtils {
             return ProxyOptions.Type.HTTP;
         } else if (proxyConfiguration.getProxyType() == Proxy.Type.SOCKS) {
             final SocksVersion socksVersion = proxyConfiguration.getSocksVersion();
-            if (socksVersion != SocksVersion.NOT_SPECIFIED) {
-                return ProxyOptions.Type.valueOf(socksVersion.name());
-            } else {
-                throw new IllegalArgumentException("Version should be set when SOCKS proxy type is used!");
-            }
+            return ProxyOptions.Type.valueOf(socksVersion.name());
         } else {
-            throw new IllegalArgumentException("Unsupported proxy type: " + proxyConfiguration.getProxyType() + " please use HTTP or SOCKS type.");
+            throw new IllegalArgumentException("Unsupported proxy type: " + proxyConfiguration.getProxyType());
         }
     }
 }

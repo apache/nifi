@@ -17,7 +17,6 @@
 package org.apache.nifi.proxy;
 
 public enum SocksVersion {
-    NOT_SPECIFIED,
     SOCKS4,
     SOCKS5
 }
