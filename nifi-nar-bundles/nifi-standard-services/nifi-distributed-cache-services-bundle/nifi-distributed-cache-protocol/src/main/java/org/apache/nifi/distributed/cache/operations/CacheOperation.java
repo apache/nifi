@@ -17,22 +17,13 @@
 package org.apache.nifi.distributed.cache.operations;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Cache Operation definition
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
-
-    private final String operation;
-
-    SetOperation(final String operation) {
-        this.operation = operation;
-    }
-
-    @Override
-    public String value() {
-        return operation;
-    }
+public interface CacheOperation {
+    /**
+     * Get Cache Operation value used during protocol communication
+     *
+     * @return Cache Operation value
+     */
+    String value();
 }

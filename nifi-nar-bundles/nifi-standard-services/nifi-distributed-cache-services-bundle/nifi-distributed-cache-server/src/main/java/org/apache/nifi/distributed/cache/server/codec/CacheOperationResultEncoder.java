@@ -14,25 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.operations;
+package org.apache.nifi.distributed.cache.server.codec;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToByteEncoder;
+import org.apache.nifi.distributed.cache.server.protocol.CacheOperationResult;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Message Encoder for Cache Operation Results
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
-
-    private final String operation;
-
-    SetOperation(final String operation) {
-        this.operation = operation;
-    }
-
+@ChannelHandler.Sharable
+public class CacheOperationResultEncoder extends MessageToByteEncoder<CacheOperationResult> {
     @Override
-    public String value() {
-        return operation;
+    protected void encode(final ChannelHandlerContext channelHandlerContext, final CacheOperationResult cacheOperationResult, final ByteBuf byteBuf) {
+        final int code = cacheOperationResult.isSuccess() ? 1 : 0;
+        byteBuf.writeByte(code);
     }
 }

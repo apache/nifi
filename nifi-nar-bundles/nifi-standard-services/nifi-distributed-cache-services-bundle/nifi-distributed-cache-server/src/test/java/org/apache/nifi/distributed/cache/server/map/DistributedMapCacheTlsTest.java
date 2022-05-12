@@ -29,9 +29,9 @@ import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -40,18 +40,10 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Verify basic functionality of {@link DistributedMapCacheClientService}, in the context of a TLS authenticated
- * socket session.
- * <p>
- * This test instantiates both the server and client {@link org.apache.nifi.controller.ControllerService} objects
- * implementing the distributed cache protocol.  It assumes that the default distributed cache port (4557)
- * is available.
- */
 public class DistributedMapCacheTlsTest {
 
     private static TestRunner runner = null;
@@ -61,8 +53,8 @@ public class DistributedMapCacheTlsTest {
     private static final Serializer<String> serializer = new StringSerializer();
     private static final Deserializer<String> deserializer = new StringDeserializer();
 
-    @BeforeClass
-    public static void beforeClass() throws Exception {
+    @BeforeAll
+    public static void setServices() throws Exception {
         final String port = Integer.toString(NetworkUtils.getAvailableTcpPort());
         runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
         sslContextService = createSslContextService();
@@ -83,8 +75,8 @@ public class DistributedMapCacheTlsTest {
         runner.enableControllerService(client);
     }
 
-    @AfterClass
-    public static void afterClass() {
+    @AfterAll
+    public static void shutdown() {
         runner.disableControllerService(client);
         runner.removeControllerService(client);
 
