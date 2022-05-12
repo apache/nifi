@@ -77,7 +77,7 @@
         </dependency>
         <dependency>
             <groupId>org.python</groupId>
-            <artifactId>jython-slim</artifactId>
+            <artifactId>jython-standalone</artifactId>
             <version>2.7.2</version>
         </dependency>
         <dependency>
