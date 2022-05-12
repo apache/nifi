@@ -19,7 +19,7 @@ package org.apache.nifi.distributed.cache.operations;
 /**
  * Represents a distributed set cache operation which may be invoked.
  */
-public enum MapOperation {
+public enum MapOperation implements CacheOperation {
     CONTAINS_KEY("containsKey"),
     FETCH("fetch"),
     GET("get"),
@@ -41,6 +41,7 @@ public enum MapOperation {
         this.operation = operation;
     }
 
+    @Override
     public String value() {
         return operation;
     }

@@ -14,39 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.remote.io.socket.ssl;
+package org.apache.nifi.distributed.cache.server.protocol;
 
-import java.io.IOException;
-import java.io.OutputStream;
+/**
+ * Map Value Response
+ */
+public class MapValueResponse {
+    private final int length;
 
-public class SSLSocketChannelOutputStream extends OutputStream {
+    private final byte[] value;
 
-    private final SSLSocketChannel channel;
+    private Long revision;
 
-    public SSLSocketChannelOutputStream(final SSLSocketChannel channel) {
-        this.channel = channel;
+    public MapValueResponse(
+            final int length,
+            final byte[] value
+    ) {
+        this.length = length;
+        this.value = value;
     }
 
-    @Override
-    public void write(final int b) throws IOException {
-        channel.write(b);
+    public MapValueResponse(
+            final int length,
+            final byte[] value,
+            final Long revision
+    ) {
+        this(length, value);
+        this.revision = revision;
     }
 
-    @Override
-    public void write(byte[] b) throws IOException {
-        channel.write(b);
+    public int getLength() {
+        return length;
     }
 
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        channel.write(b, off, len);
+    public byte[] getValue() {
+        return value;
     }
 
-    /**
-     * Closes the underlying SSLSocketChannel, which also will close the InputStream and the connection
-     */
-    @Override
-    public void close() throws IOException {
-        channel.close();
+    public Long getRevision() {
+        return revision;
     }
 }

@@ -14,25 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.operations;
+package org.apache.nifi.distributed.cache.server.protocol;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Cache Version Request contains the protocol version which the peer requested
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
+public class CacheVersionRequest {
+    private final int version;
 
-    private final String operation;
-
-    SetOperation(final String operation) {
-        this.operation = operation;
+    public CacheVersionRequest(
+            final int version
+    ) {
+        this.version = version;
     }
 
-    @Override
-    public String value() {
-        return operation;
+    public int getVersion() {
+        return version;
     }
 }

@@ -14,25 +14,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.operations;
+package org.apache.nifi.distributed.cache.server.protocol;
+
+import org.apache.nifi.distributed.cache.operations.CacheOperation;
+
+import java.util.Objects;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Cache Request Packet
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
+public class CacheRequest {
+    private final CacheOperation cacheOperation;
 
-    private final String operation;
+    private final byte[] body;
 
-    SetOperation(final String operation) {
-        this.operation = operation;
+    public CacheRequest(
+            final CacheOperation cacheOperation,
+            final byte[] body
+    ) {
+        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
+        this.body = Objects.requireNonNull(body, "Body required");
     }
 
-    @Override
-    public String value() {
-        return operation;
+    public CacheOperation getCacheOperation() {
+        return cacheOperation;
+    }
+
+    public byte[] getBody() {
+        return body;
     }
 }

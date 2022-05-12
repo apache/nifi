@@ -25,6 +25,8 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
+import org.apache.nifi.distributed.cache.protocol.ProtocolVersion;
+import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.processor.DataUnit;
@@ -224,11 +226,11 @@ public class TestDistributedMapServerAndClient {
         // Create a server that only supports protocol version 1.
         server = new DistributedMapCacheServer() {
             @Override
-            protected MapCacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
-                return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize) {
+            protected CacheServer createMapCacheServer(int port, int maxSize, SSLContext sslContext, EvictionPolicy evictionPolicy, File persistenceDir, int maxReadSize) throws IOException {
+                return new StandardMapCacheServer(getLogger(), getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize) {
                     @Override
-                    protected StandardVersionNegotiator getVersionNegotiator() {
-                        return new StandardVersionNegotiator(1);
+                    protected StandardVersionNegotiator createVersionNegotiator() {
+                        return new StandardVersionNegotiator(ProtocolVersion.V1.value());
                     }
                 };
             }

@@ -75,10 +75,23 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         }
     }
 
-    protected MapCacheServer createMapCacheServer(
-            final int port, final int maxSize, final SSLContext sslContext, final EvictionPolicy evictionPolicy,
-            final File persistenceDir, final int maxReadSize) throws IOException {
-        return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir, maxReadSize);
+    protected CacheServer createMapCacheServer(
+            final int port,
+            final int maxSize,
+            final SSLContext sslContext,
+            final EvictionPolicy evictionPolicy,
+            final File persistenceDir,
+            final int maxReadSize
+    ) throws IOException {
+        return new StandardMapCacheServer(
+                getLogger(),
+                getIdentifier(),
+                sslContext,
+                port,
+                maxSize,
+                evictionPolicy,
+                persistenceDir,
+                maxReadSize
+        );
     }
-
 }

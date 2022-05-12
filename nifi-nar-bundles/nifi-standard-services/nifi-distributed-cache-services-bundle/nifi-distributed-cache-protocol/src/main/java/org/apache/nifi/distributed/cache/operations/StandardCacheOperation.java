@@ -17,17 +17,14 @@
 package org.apache.nifi.distributed.cache.operations;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Standard Cache Operation
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
+public enum StandardCacheOperation implements CacheOperation {
     CLOSE("close");
 
     private final String operation;
 
-    SetOperation(final String operation) {
+    StandardCacheOperation(final String operation) {
         this.operation = operation;
     }
 

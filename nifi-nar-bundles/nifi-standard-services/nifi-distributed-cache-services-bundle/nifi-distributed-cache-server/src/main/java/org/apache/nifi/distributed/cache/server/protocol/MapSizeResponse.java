@@ -14,25 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.operations;
+package org.apache.nifi.distributed.cache.server.protocol;
 
 /**
- * Represents a distributed set cache operation which may be invoked.
+ * Map Size Response
  */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
+public class MapSizeResponse {
+    private final int size;
 
-    private final String operation;
-
-    SetOperation(final String operation) {
-        this.operation = operation;
+    public MapSizeResponse(
+            final int size
+    ) {
+        this.size = size;
     }
 
-    @Override
-    public String value() {
-        return operation;
+    public int getSize() {
+        return size;
     }
 }

@@ -14,25 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.distributed.cache.operations;
+package org.apache.nifi.distributed.cache.server.protocol;
 
-/**
- * Represents a distributed set cache operation which may be invoked.
- */
-public enum SetOperation implements CacheOperation {
-    ADD_IF_ABSENT("addIfAbsent"),
-    CONTAINS("contains"),
-    REMOVE("remove"),
-    CLOSE("close");
+public class CacheOperationResult {
+    private final boolean success;
 
-    private final String operation;
-
-    SetOperation(final String operation) {
-        this.operation = operation;
+    public CacheOperationResult(
+            final boolean success
+    ) {
+        this.success = success;
     }
 
-    @Override
-    public String value() {
-        return operation;
+    public boolean isSuccess() {
+        return success;
     }
 }
