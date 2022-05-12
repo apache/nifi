@@ -504,11 +504,11 @@ public class FileSystemRepository implements ContentRepository {
 
         final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, id, false, false);
         if (resourceClaimManager.getClaimantCount(resourceClaim) == 0) {
-            removeIncompleteContent(fileToRemove);
+            removeIncompleteContent(fileToRemove, containerName);
         }
     }
 
-    private void removeIncompleteContent(final Path fileToRemove) {
+    private void removeIncompleteContent(final Path fileToRemove, final String containerName) {
         String fileDescription = null;
         try {
             fileDescription = fileToRemove.toFile().getAbsolutePath() + " (" + Files.size(fileToRemove) + " bytes)";
@@ -520,7 +520,16 @@ public class FileSystemRepository implements ContentRepository {
 
         try {
             if (archiveData) {
-                archive(fileToRemove);
+                final boolean archived = archive(fileToRemove);
+
+                if (archived) {
+                    final ContainerState containerState = containerStateMap.get(containerName);
+                    if (containerState == null) {
+                        LOG.warn("Failed to increment container's archive count for {} because container {} could not be found", fileToRemove.toFile(), containerName);
+                    } else {
+                        containerState.incrementArchiveCount();
+                    }
+                }
             } else {
                 Files.delete(fileToRemove);
             }
@@ -529,6 +538,16 @@ public class FileSystemRepository implements ContentRepository {
             LOG.warn("Unable to {} unknown file {} from File System Repository due to {}", action, fileDescription, e.toString());
             LOG.warn("", e);
         }
+    }
+
+    // Visible for testing
+    long getArchiveCount(String containerName) {
+        final ContainerState containerState = containerStateMap.get(containerName);
+        if (containerState == null) {
+            throw new IllegalArgumentException("No container exists with name " + containerName);
+        }
+
+        return containerState.getArchiveCount();
     }
 
     @Override
@@ -1767,6 +1786,10 @@ public class FileSystemRepository implements ContentRepository {
 
         public void incrementArchiveCount() {
             archivedFileCount.incrementAndGet();
+        }
+
+        public long getArchiveCount() {
+            return archivedFileCount.get();
         }
 
         public void decrementArchiveCount() {

@@ -55,6 +55,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -139,6 +140,55 @@ public class TestFileSystemRepository {
         assertTrue(repository.isArchived(Paths.get("a/archive/1.txt")));
         assertTrue(repository.isArchived(Paths.get("a/b/c/archive/1.txt")));
     }
+
+    @Test
+    public void testUnreferencedFilesAreArchivedOnCleanup() throws IOException {
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertTrue(containerPaths.size() > 0);
+
+        for (final Map.Entry<String, Path> entry : containerPaths.entrySet()) {
+            final String containerName = entry.getKey();
+            final Path containerPath = entry.getValue();
+
+            final Path section1 = containerPath.resolve("1");
+            final Path file1 = section1.resolve("file-1");
+            Files.write(file1, "hello".getBytes(), StandardOpenOption.CREATE);
+
+            // Should be nothing in the archive at this point
+            assertEquals(0, repository.getArchiveCount(containerName));
+
+            // When we cleanup, we should see one file moved to archive
+            repository.cleanup();
+            assertEquals(1, repository.getArchiveCount(containerName));
+        }
+    }
+
+    @Test
+    public void testAlreadyArchivedFilesCounted() throws IOException {
+        // We want to make sure that the initialization code counts files in archive, so we need to create a new FileSystemRepository to do this.
+        repository.shutdown();
+
+        final Map<String, Path> containerPaths = nifiProperties.getContentRepositoryPaths();
+        assertTrue(containerPaths.size() > 0);
+
+        for (final Path containerPath : containerPaths.values()) {
+            final Path section1 = containerPath.resolve("1");
+            final Path archive = section1.resolve("archive");
+            Files.createDirectories(archive);
+
+            for (int i=0; i < 3; i++) {
+                final Path file1 = archive.resolve("file-" + i);
+                Files.write(file1, "hello".getBytes(), StandardOpenOption.CREATE);
+            }
+        }
+
+        repository = new FileSystemRepository(nifiProperties);
+
+        for (final String containerName : containerPaths.keySet()) {
+            assertEquals(3, repository.getArchiveCount(containerName));
+        }
+    }
+
 
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
