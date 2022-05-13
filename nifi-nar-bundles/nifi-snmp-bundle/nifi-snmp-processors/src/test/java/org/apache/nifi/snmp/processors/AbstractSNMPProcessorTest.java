@@ -25,8 +25,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
 import java.util.Collections;
@@ -34,12 +34,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AbstractSNMPProcessorTest {
+class AbstractSNMPProcessorTest {
 
     private static final String TEST_OID = "1.3.6.1.4.1.32437.1.5.1.4.2.0";
     private static final String UNSUPPORTED_SECURITY_LEVEL = "1.3.6.1.6.3.15.1.1.1";
@@ -51,7 +51,7 @@ public class AbstractSNMPProcessorTest {
     private SNMPSingleResponse mockResponse;
     private TestRunner getTestRunner;
 
-    @Before
+    @BeforeEach
     public void init() {
         getTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), TEST_OID, "GET");
         getSNMP = (GetSNMP) getTestRunner.getProcessor();
@@ -62,7 +62,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testProcessResponseWithInvalidResponseThrowsException() {
+    void testProcessResponseWithInvalidResponseThrowsException() {
         final String errorStatus = "Test error status text";
         when(mockResponse.getErrorStatusText()).thenReturn(errorStatus);
 
@@ -75,7 +75,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testProcessResponseWithNoSuchObjectThrowsException() {
+    void testProcessResponseWithNoSuchObjectThrowsException() {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.getVersion()).thenReturn(SnmpConstants.version2c);
 
@@ -92,7 +92,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testValidProcessResponseWithoutVariableBindingThrowsException() {
+    void testValidProcessResponseWithoutVariableBindingThrowsException() {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.getVersion()).thenReturn(SnmpConstants.version2c);
 
@@ -107,7 +107,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testValidProcessResponse() {
+    void testValidProcessResponse() {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.getVersion()).thenReturn(SnmpConstants.version2c);
 
@@ -124,7 +124,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testProcessResponseWithReportPduWithoutErrorMessage() {
+    void testProcessResponseWithReportPduWithoutErrorMessage() {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.isReportPdu()).thenReturn(true);
 
@@ -143,7 +143,7 @@ public class AbstractSNMPProcessorTest {
     }
 
     @Test
-    public void testProcessResponseWithReportPdu() {
+    void testProcessResponseWithReportPdu() {
         when(mockResponse.isValid()).thenReturn(true);
         when(mockResponse.isReportPdu()).thenReturn(true);
 

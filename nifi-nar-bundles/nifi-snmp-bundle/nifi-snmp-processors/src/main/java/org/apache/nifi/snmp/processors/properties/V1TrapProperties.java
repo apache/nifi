@@ -31,9 +31,39 @@ public class V1TrapProperties {
         // Utility class, not needed to instantiate.
     }
 
-    private static final AllowableValue GENERIC_TRAP_TYPE_ENTERPRISE_SPECIFIC = new AllowableValue("6", "Enterprise Specific",
+    static final AllowableValue COLD_START = new AllowableValue("0", "Cold Start",
+            "A coldStart trap signifies that the sending protocol entity is reinitializing itself such that the agent's configuration or the protocol" +
+                    " entity implementation may be altered");
+
+    static final AllowableValue WARM_START = new AllowableValue("1", "Warm Start",
+            "A warmStart trap signifies that the sending protocol entity is reinitializing itself such that neither the agent configuration nor the" +
+                    " protocol entity implementation is altered.");
+
+    static final AllowableValue LINK_DOWN = new AllowableValue("2", "Link Down",
+            "A linkDown trap signifies that the sending protocol entity recognizes a failure in one of the communication links represented in the agent's" +
+                    " configuration.");
+
+    static final AllowableValue LINK_UP = new AllowableValue("3", "Link Up",
+            "A linkUp trap signifies that the sending protocol entity recognizes that one of the communication links represented in the agent's configuration" +
+                    " has come up.");
+
+    static final AllowableValue AUTHENTICATION_FAILURE = new AllowableValue("4", "Authentication Failure",
+            "An authenticationFailure trap signifies that the sending protocol entity is the addressee of a protocol message that is not properly authenticated." +
+                    " While implementations of the SNMP must be capable of generating this trap, they must also be capable of suppressing the emission of such traps via" +
+                    " an implementation- specific mechanism.");
+
+    static final AllowableValue EGP_NEIGHBORLOSS = new AllowableValue("5", "EGP Neighborloss",
+            "An egpNeighborLoss trap signifies that an EGP neighbor for whom the sending protocol entity was an EGP peer has been marked down and the peer relationship" +
+                    " no longer obtains");
+
+    static final AllowableValue ENTERPRISE_SPECIFIC = new AllowableValue("6", "Enterprise Specific",
             "An enterpriseSpecific trap signifies that a particular enterprise-specific trap has occurred which " +
                     "can be defined in the Specific Trap Type field.");
+
+    public static final String GENERIC_TRAP_TYPE_FF_ATTRIBUTE = "generic-trap-type";
+
+    public static final AllowableValue WITH_FLOW_FILE_ATTRIBUTE = new AllowableValue(GENERIC_TRAP_TYPE_FF_ATTRIBUTE, "With \"generic-trap-type\" FlowFile Attribute",
+            "Provide the Generic Trap Type with the \"generic-trap-type\" flowfile attribute.");
 
     public static final PropertyDescriptor ENTERPRISE_OID = new PropertyDescriptor.Builder()
             .name("snmp-trap-enterprise-oid")
@@ -50,7 +80,6 @@ public class V1TrapProperties {
             .displayName("SNMP Trap Agent Address")
             .description("The address where the SNMP Manager sends the trap.")
             .required(true)
-            .defaultValue("0")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .dependsOn(SNMP_VERSION, SNMP_V1)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -60,10 +89,10 @@ public class V1TrapProperties {
             .name("snmp-trap-generic-type")
             .displayName("Generic Trap Type")
             .description("Generic trap type is an integer in the range of 0 to 6. See processor usage for details.")
-            .required(false)
-            .addValidator(StandardValidators.createLongValidator(0, 6, true))
+            .required(true)
             .dependsOn(SNMP_VERSION, SNMP_V1)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .allowableValues(COLD_START, WARM_START, LINK_DOWN, LINK_UP, AUTHENTICATION_FAILURE, EGP_NEIGHBORLOSS,
+                    ENTERPRISE_SPECIFIC, WITH_FLOW_FILE_ATTRIBUTE)
             .build();
 
     public static final PropertyDescriptor SPECIFIC_TRAP_TYPE = new PropertyDescriptor.Builder()
@@ -72,9 +101,10 @@ public class V1TrapProperties {
             .description("Specific trap type is a number that further specifies the nature of the event that generated " +
                     "the trap in the case of traps of generic type 6 (enterpriseSpecific). The interpretation of this " +
                     "code is vendor-specific.")
-            .required(true)
+            .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .dependsOn(SNMP_VERSION, SNMP_V1)
+            .dependsOn(GENERIC_TRAP_TYPE, ENTERPRISE_SPECIFIC)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 }

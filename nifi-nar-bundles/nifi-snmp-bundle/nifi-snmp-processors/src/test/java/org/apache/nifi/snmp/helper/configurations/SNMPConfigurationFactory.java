@@ -23,7 +23,7 @@ public interface SNMPConfigurationFactory {
     String LOCALHOST = "127.0.0.1";
     String COMMUNITY_STRING = "public";
 
-    SNMPConfiguration createSnmpGetSetConfiguration(int agentPort);
+    SNMPConfiguration createSnmpGetSetConfiguration(final int agentPort);
 
     SNMPConfiguration createSnmpGetSetConfigWithCustomHost(final String host, final int agentPort);
 

@@ -18,7 +18,7 @@ package org.apache.nifi.snmp.factory.core;
 
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.UserTarget;
@@ -38,18 +38,18 @@ import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFact
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-public class V3SNMPFactoryTest {
+class V3SNMPFactoryTest {
 
     private static final int RETRIES = 3;
     private static final int EXPECTED_SECURITY_LEVEL = 3;
 
     @Test
-    public void testFactoryCreatesTarget() {
+    void testFactoryCreatesTarget() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final int managerPort = NetworkUtils.getAvailableUdpPort();
         final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
@@ -65,7 +65,7 @@ public class V3SNMPFactoryTest {
     }
 
     @Test
-    public void testFactoryCreatesSnmpManager() {
+    void testFactoryCreatesSnmpManager() {
         final V3SNMPFactory snmpFactory = new V3SNMPFactory();
         final int managerPort = NetworkUtils.getAvailableUdpPort();
         final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());
@@ -80,7 +80,7 @@ public class V3SNMPFactoryTest {
     }
 
     @Test
-    public void testFactoryCreatesResourceHandler() {
+    void testFactoryCreatesResourceHandler() {
         final V3SNMPFactory snmpFactory = spy(V3SNMPFactory.class);
         final int managerPort = NetworkUtils.getAvailableUdpPort();
         final String targetPort = String.valueOf(NetworkUtils.getAvailableUdpPort());

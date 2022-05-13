@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.snmp.dto;
 
-import org.apache.nifi.util.LogMessage;
-import org.apache.nifi.util.MockComponentLog;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.snmp4j.CommunityTarget;
 import org.snmp4j.Target;
@@ -35,7 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,7 +59,7 @@ public class SNMPTreeResponseTest {
     @Mock
     private static Target target;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         vbMap = new HashMap<>();
         vbMap.put(SNMP_PREFIX + OID_1 + SNMP_SEPARATOR + VB_SYNTAX, OID_1_VALUE);
@@ -83,7 +81,7 @@ public class SNMPTreeResponseTest {
     }
 
     @Test
-    public void testGetAttributes() {
+    void testGetAttributes() {
         final TreeEvent treeEvent1 = mock(TreeEvent.class);
         when(treeEvent1.getVariableBindings()).thenReturn(vbs1);
         final TreeEvent treeEvent2 = mock(TreeEvent.class);
@@ -102,7 +100,7 @@ public class SNMPTreeResponseTest {
     }
 
     @Test
-    public void testGetAttributesFlattensEmptyVariableBindingArrays() {
+    void testGetAttributesFlattensEmptyVariableBindingArrays() {
         final TreeEvent emptyTreeEvent = mock(TreeEvent.class);
         when(emptyTreeEvent.getVariableBindings()).thenReturn(new VariableBinding[0]);
         final TreeEvent normalTreeEvent = mock(TreeEvent.class);
@@ -119,7 +117,7 @@ public class SNMPTreeResponseTest {
     }
 
     @Test
-    public void testGetAttributesFiltersNullVariableBindings() {
+    void testGetAttributesFiltersNullVariableBindings() {
         final TreeEvent nullTreeEvent = mock(TreeEvent.class);
         when(nullTreeEvent.getVariableBindings()).thenReturn(null);
         final TreeEvent normalTreeEvent = mock(TreeEvent.class);
@@ -136,7 +134,7 @@ public class SNMPTreeResponseTest {
     }
 
     @Test
-    public void testGetTargetAddress() {
+    void testGetTargetAddress() {
         final TreeEvent treeEvent = mock(TreeEvent.class);
         final List<TreeEvent> treeEvents = new ArrayList<>();
         treeEvents.add(treeEvent);
@@ -144,22 +142,5 @@ public class SNMPTreeResponseTest {
         final String actualTargetAddress = snmpTreeResponse.getTargetAddress();
 
         assertEquals(TARGET_ADDRESS, actualTargetAddress);
-    }
-
-    @Test
-    public void testLogErrors() {
-        final MockComponentLog logger = new MockComponentLog("id1", new Object());
-
-
-        final List<TreeEvent> treeEvents = new ArrayList<>();
-        final TreeEvent treeEvent = mock(TreeEvent.class);
-        when(treeEvent.isError()).thenReturn(true);
-        when(treeEvent.getErrorMessage()).thenReturn("ERROR MESSAGE");
-        treeEvents.add(treeEvent);
-        final SNMPTreeResponse snmpTreeResponse = new SNMPTreeResponse(target, treeEvents);
-        snmpTreeResponse.logErrors(logger);
-
-        final List<LogMessage> errorMessages = logger.getErrorMessages();
-        System.out.println("asd");
     }
 }

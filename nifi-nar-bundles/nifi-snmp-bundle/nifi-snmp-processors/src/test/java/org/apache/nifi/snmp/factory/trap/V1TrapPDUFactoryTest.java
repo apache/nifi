@@ -17,17 +17,17 @@
 package org.apache.nifi.snmp.factory.trap;
 
 import org.apache.nifi.snmp.configuration.V1TrapConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
 import org.snmp4j.Target;
 
 import java.time.Instant;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 
-public class V1TrapPDUFactoryTest {
+class V1TrapPDUFactoryTest {
 
     private static final String AGENT_ADDRESS = "127.0.0.1";
     private static final String ENTERPRISE_OID = "1.3.6.1.4.1.8072.2.3.0.1";
@@ -35,7 +35,7 @@ public class V1TrapPDUFactoryTest {
     private static final int SPECIFIC_TRAP_TYPE = 2;
 
     @Test
-    public void testCreateV1TrapPdu() {
+    void testCreateV1TrapPdu() {
         final Target mockTarget = mock(Target.class);
         final V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
                 .enterpriseOid(ENTERPRISE_OID)

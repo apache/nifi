@@ -26,20 +26,20 @@ import org.apache.nifi.snmp.helper.testrunners.SNMPV2cTestRunnerFactory;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TrapSNMPIT {
+class TrapSNMPIT {
 
     protected static final String SYSTEM_DESCRIPTION_OID = "1.3.6.1.2.1.1.1.0";
     protected static final String SYSTEM_DESCRIPTION_OID_VALUE = "optionalTrapOidTestValue";
 
     @Test
-    public void testSendReceiveV1Trap() throws InterruptedException {
+    void testSendReceiveV1Trap() throws InterruptedException {
         final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V1TrapConfiguration v1TrapConfiguration = TrapConfigurationFactory.getV1TrapConfiguration();
@@ -71,7 +71,7 @@ public class TrapSNMPIT {
     }
 
     @Test
-    public void testSendReceiveV2Trap() throws InterruptedException {
+    void testSendReceiveV2Trap() throws InterruptedException {
         final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V2TrapConfiguration v2TrapConfiguration = TrapConfigurationFactory.getV2TrapConfiguration();
@@ -99,10 +99,10 @@ public class TrapSNMPIT {
         listenTrapTestRunner.shutdown();
     }
 
-    @Ignore("The ListenTrapSNMP and SendTrapSNMP processors use the same SecurityProtocols instance" +
+    @Disabled("The ListenTrapSNMP and SendTrapSNMP processors use the same SecurityProtocols instance" +
             " and same USM (the USM is stored in a map by version), hence this case shall be manually tested." +
             " Check assertByVersion() to see what the trap payload must contain.")
     @Test
-    public void testReceiveV3Trap() {
+    void testReceiveV3Trap() {
     }
 }

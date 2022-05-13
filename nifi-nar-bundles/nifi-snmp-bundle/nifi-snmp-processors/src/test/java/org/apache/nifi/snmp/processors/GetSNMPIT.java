@@ -28,26 +28,23 @@ import org.apache.nifi.snmp.testagents.TestSNMPV3Agent;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.snmp4j.agent.mo.DefaultMOFactory;
 import org.snmp4j.agent.mo.MOAccessImpl;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
-@RunWith(Parameterized.class)
-public class GetSNMPIT {
+class GetSNMPIT {
 
     private static final String LOCALHOST = "127.0.0.1";
     private static final String READ_ONLY_OID_1 = "1.3.6.1.4.1.32437.1.5.1.4.2.0";
@@ -73,82 +70,87 @@ public class GetSNMPIT {
         registerManagedObjects(v3TestAgent);
     }
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {v1TestAgent, v1TestRunnerFactory},
-                {v2cTestAgent, v2cTestRunnerFactory},
-                {v3TestAgent, v3TestRunnerFactory}
-        });
+    private static Stream<Arguments> provideArguments() {
+        return Stream.of(
+                Arguments.of(v1TestAgent, v1TestRunnerFactory),
+                Arguments.of(v2cTestAgent, v2cTestRunnerFactory),
+                Arguments.of(v3TestAgent, v3TestRunnerFactory)
+        );
     }
 
-    private final TestAgent testAgent;
-    private final SNMPTestRunnerFactory testRunnerFactory;
-
-    public GetSNMPIT(final TestAgent testAgent, final SNMPTestRunnerFactory testRunnerFactory) {
-        this.testAgent = testAgent;
-        this.testRunnerFactory = testRunnerFactory;
-    }
-
-    @Before
-    public void setUp() throws IOException {
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void testSnmpGet(TestAgent testAgent, SNMPTestRunnerFactory testRunnerFactory) throws IOException {
         testAgent.start();
-    }
+        try {
+            final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), READ_ONLY_OID_1, GET);
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
 
-    @After
-    public void tearDown() {
-        testAgent.stop();
-        testAgent.unregister();
-    }
-
-    @Test
-    public void testSnmpGet() {
-
-        final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), READ_ONLY_OID_1, GET);
-        runner.run();
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
-
-        assertNotNull(successFF);
-        assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-    }
-
-    @Test
-    public void testSnmpWalk() {
-        final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), WALK_OID, WALK);
-        runner.run();
-        final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
-        assertNotNull(successFF);
-
-        assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        assertEquals(READ_ONLY_OID_VALUE_2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_2 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-    }
-
-    @Test
-    public void testSnmpGetWithEmptyResponse() {
-        final MockFlowFile mockFlowFile = new MockFlowFile(0L);
-        mockFlowFile.putAttributes(Collections.singletonMap("snmp$" + NOT_FOUND_OID, StringUtils.EMPTY));
-        final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), NOT_FOUND_OID, GET);
-        runner.enqueue(mockFlowFile);
-        runner.run();
-
-        if (testAgent == v1TestAgent) {
-            final MockFlowFile failureFF = runner.getFlowFilesForRelationship(GetSNMP.REL_FAILURE).get(0);
-            assertNotNull(failureFF);
-            assertEquals(StringUtils.EMPTY, failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + NOT_FOUND_OID));
-            assertEquals("No such name", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
-        } else {
-            final MockFlowFile failureFF = runner.getFlowFilesForRelationship(GetSNMP.REL_FAILURE).get(0);
-            assertNotNull(failureFF);
-             assertEquals("noSuchObject", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + NOT_FOUND_OID + SNMPUtils.SNMP_PROP_DELIMITER + "128"));
-            assertEquals("Success", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
+            assertNotNull(successFF);
+            assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+        } catch (Exception e) {
+            fail(e);
+        } finally {
+            testAgent.stop();
+            testAgent.unregister();
         }
+    }
 
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void testSnmpWalk(TestAgent testAgent, SNMPTestRunnerFactory testRunnerFactory) throws IOException {
+        testAgent.start();
+        try {
+            final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), WALK_OID, WALK);
+            runner.run();
+            final MockFlowFile successFF = runner.getFlowFilesForRelationship(GetSNMP.REL_SUCCESS).get(0);
+            assertNotNull(successFF);
+
+            assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+            assertEquals(READ_ONLY_OID_VALUE_2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_2 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
+        } catch (Exception e) {
+            fail(e);
+        } finally {
+            testAgent.stop();
+            testAgent.unregister();
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideArguments")
+    void testSnmpGetWithEmptyResponse(TestAgent testAgent, SNMPTestRunnerFactory testRunnerFactory) throws IOException {
+        testAgent.start();
+        try {
+            final MockFlowFile mockFlowFile = new MockFlowFile(0L);
+            mockFlowFile.putAttributes(Collections.singletonMap("snmp$" + NOT_FOUND_OID, StringUtils.EMPTY));
+            final TestRunner runner = testRunnerFactory.createSnmpGetTestRunner(testAgent.getPort(), NOT_FOUND_OID, GET);
+            runner.enqueue(mockFlowFile);
+            runner.run();
+
+            if (testAgent == v1TestAgent) {
+                final MockFlowFile failureFF = runner.getFlowFilesForRelationship(GetSNMP.REL_FAILURE).get(0);
+                assertNotNull(failureFF);
+                assertEquals(StringUtils.EMPTY, failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + NOT_FOUND_OID));
+                assertEquals("No such name", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
+            } else {
+                final MockFlowFile failureFF = runner.getFlowFilesForRelationship(GetSNMP.REL_FAILURE).get(0);
+                assertNotNull(failureFF);
+                assertEquals("noSuchObject", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + NOT_FOUND_OID + SNMPUtils.SNMP_PROP_DELIMITER + "128"));
+                assertEquals("Success", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
+            }
+        } catch (Exception e) {
+            fail(e);
+        } finally {
+            testAgent.stop();
+            testAgent.unregister();
+        }
     }
 
     private static void registerManagedObjects(final TestAgent agent) {
         agent.registerManagedObjects(
                 DefaultMOFactory.getInstance().createScalar(new OID(READ_ONLY_OID_1), MOAccessImpl.ACCESS_READ_ONLY, new OctetString(READ_ONLY_OID_VALUE_1)),
                 DefaultMOFactory.getInstance().createScalar(new OID(READ_ONLY_OID_2), MOAccessImpl.ACCESS_READ_ONLY, new OctetString(READ_ONLY_OID_VALUE_2))
-                );
+        );
     }
 }

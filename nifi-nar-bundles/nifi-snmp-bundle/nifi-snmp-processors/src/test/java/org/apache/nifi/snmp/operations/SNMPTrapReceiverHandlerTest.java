@@ -21,7 +21,7 @@ import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.utils.JsonFileUsmReader;
 import org.apache.nifi.util.MockComponentLog;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.snmp4j.Snmp;
 import org.snmp4j.mp.SnmpConstants;
@@ -31,9 +31,9 @@ import org.snmp4j.security.UsmUser;
 import java.io.IOException;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -41,12 +41,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class SNMPTrapReceiverHandlerTest {
+class SNMPTrapReceiverHandlerTest {
 
     public static final String USERS_JSON = "src/test/resources/users.json";
 
     @Test
-    public void testTrapReceiverCreatesCommandResponder() {
+    void testTrapReceiverCreatesCommandResponder() {
         final SNMPConfiguration snmpConfiguration = mock(SNMPConfiguration.class);
         final ProcessSessionFactory mockProcessSessionFactory = mock(ProcessSessionFactory.class);
         final MockComponentLog mockComponentLog = new MockComponentLog("componentId", new Object());
@@ -65,7 +65,7 @@ public class SNMPTrapReceiverHandlerTest {
     }
 
     @Test
-    public void testCloseTrapReceiverCleansUpResources() throws IOException {
+    void testCloseTrapReceiverCleansUpResources() throws IOException {
         final SNMPConfiguration snmpConfiguration = mock(SNMPConfiguration.class);
         final ProcessSessionFactory mockProcessSessionFactory = mock(ProcessSessionFactory.class);
         final MockComponentLog mockComponentLog = new MockComponentLog("componentId", new Object());
@@ -88,7 +88,7 @@ public class SNMPTrapReceiverHandlerTest {
     }
 
     @Test
-    public void testAddUsmUsers() {
+    void testAddUsmUsers() {
         final List<UsmUser> usmUsers = new JsonFileUsmReader(USERS_JSON).readUsm();
 
         final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()

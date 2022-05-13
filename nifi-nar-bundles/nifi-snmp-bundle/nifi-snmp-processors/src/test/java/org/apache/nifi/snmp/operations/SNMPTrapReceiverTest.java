@@ -24,8 +24,8 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.CommandResponderEvent;
 import org.snmp4j.PDU;
 import org.snmp4j.PDUv1;
@@ -36,13 +36,13 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SNMPTrapReceiverTest {
+class SNMPTrapReceiverTest {
 
     private static final Object MOCK_COMPONENT_ID = new Object();
 
@@ -53,7 +53,7 @@ public class SNMPTrapReceiverTest {
     private SNMPTrapReceiver snmpTrapReceiver;
 
 
-    @Before
+    @BeforeEach
     public void init() {
         mockProcessSessionFactory = mock(ProcessSessionFactory.class);
         mockComponentLog = new MockComponentLog("componentId", MOCK_COMPONENT_ID);
@@ -64,7 +64,7 @@ public class SNMPTrapReceiverTest {
     }
 
     @Test
-    public void testReceiveTrapWithNullPduLogsError() {
+    void testReceiveTrapWithNullPduLogsError() {
         CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
 
         snmpTrapReceiver.processPdu(mockEvent);
@@ -75,7 +75,7 @@ public class SNMPTrapReceiverTest {
     }
 
     @Test
-    public void testReceiveTrapWithInvalidPduTypeLogsError() {
+    void testReceiveTrapWithInvalidPduTypeLogsError() {
         final CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
 
         when(mockPdu.getType()).thenReturn(PDU.REPORT);
@@ -88,7 +88,7 @@ public class SNMPTrapReceiverTest {
     }
 
     @Test
-    public void testTrapReceiverCreatesTrapPduV1FlowFile() {
+    void testTrapReceiverCreatesTrapPduV1FlowFile() {
         final CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
         final PDUv1 mockV1Pdu = mock(PDUv1.class);
 
@@ -110,7 +110,7 @@ public class SNMPTrapReceiverTest {
     }
 
     @Test
-    public void testTrapReceiverCreatesTrapPduV2FlowFile() {
+    void testTrapReceiverCreatesTrapPduV2FlowFile() {
         final CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
 
         when(mockPdu.getType()).thenReturn(PDU.TRAP);
@@ -131,7 +131,7 @@ public class SNMPTrapReceiverTest {
     }
 
     @Test
-    public void testReceiveTrapWithErrorGetsTransferredToFailure() {
+    void testReceiveTrapWithErrorGetsTransferredToFailure() {
         final CommandResponderEvent mockEvent = mock(CommandResponderEvent.class);
 
         when(mockPdu.getType()).thenReturn(PDU.TRAP);

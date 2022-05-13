@@ -38,7 +38,7 @@ public class SNMPV3TestRunnerFactory implements SNMPTestRunnerFactory {
     private static final SNMPConfigurationFactory snmpV3ConfigurationFactory = new SNMPV3ConfigurationFactory();
 
     @Override
-    public TestRunner createSnmpGetTestRunner(int agentPort, String oid, String strategy) {
+    public TestRunner createSnmpGetTestRunner(final int agentPort, final String oid, final String strategy) {
         final TestRunner runner = TestRunners.newTestRunner(GetSNMP.class);
         final SNMPConfiguration snmpConfiguration = snmpV3ConfigurationFactory.createSnmpGetSetConfiguration(agentPort);
         runner.setProperty(GetSNMP.OID, oid);
@@ -57,7 +57,7 @@ public class SNMPV3TestRunnerFactory implements SNMPTestRunnerFactory {
     }
 
     @Override
-    public TestRunner createSnmpSetTestRunner(int agentPort, String oid, String oidValue) {
+    public TestRunner createSnmpSetTestRunner(final int agentPort, final String oid, final String oidValue) {
         final TestRunner runner = TestRunners.newTestRunner(SetSNMP.class);
         final SNMPConfiguration snmpConfiguration = snmpV3ConfigurationFactory.createSnmpGetSetConfiguration(agentPort);
         runner.setProperty(SetSNMP.AGENT_HOST, snmpConfiguration.getTargetHost());
@@ -76,7 +76,7 @@ public class SNMPV3TestRunnerFactory implements SNMPTestRunnerFactory {
     }
 
     @Override
-    public TestRunner createSnmpSendTrapTestRunner(int managerPort, final String oid, final String oidValue) {
+    public TestRunner createSnmpSendTrapTestRunner(final int managerPort, final String oid, final String oidValue) {
         final TestRunner runner = TestRunners.newTestRunner(SendTrapSNMP.class);
         final SNMPConfiguration snmpConfiguration = snmpV3ConfigurationFactory.createSnmpGetSetConfiguration(managerPort);
         final V2TrapConfiguration trapConfiguration = TrapConfigurationFactory.getV2TrapConfiguration();
@@ -100,7 +100,7 @@ public class SNMPV3TestRunnerFactory implements SNMPTestRunnerFactory {
     }
 
     @Override
-    public TestRunner createSnmpListenTrapTestRunner(int managerPort) {
+    public TestRunner createSnmpListenTrapTestRunner(final int managerPort) {
         final TestRunner runner = TestRunners.newTestRunner(ListenTrapSNMP.class);
         final SNMPConfiguration snmpConfiguration = snmpV3ConfigurationFactory.createSnmpListenTrapConfig(managerPort);
         runner.setProperty(ListenTrapSNMP.SNMP_MANAGER_PORT, String.valueOf(snmpConfiguration.getManagerPort()));

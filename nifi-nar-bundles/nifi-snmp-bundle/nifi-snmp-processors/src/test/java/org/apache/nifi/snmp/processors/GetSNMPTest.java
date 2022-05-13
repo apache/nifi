@@ -30,12 +30,12 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
-public class GetSNMPTest {
+class GetSNMPTest {
 
     private static final String OID = "1.3.6.1.4.1.32437.1.5.1.4.2.0";
 
     @Test
-    public void testOnTriggerWithGetStrategyPerformsSnmpGet() {
+    void testOnTriggerWithGetStrategyPerformsSnmpGet() {
         final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "GET");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
@@ -48,7 +48,7 @@ public class GetSNMPTest {
     }
 
     @Test
-    public void testOnTriggerWithWalkStrategyPerformsSnmpWalk() {
+    void testOnTriggerWithWalkStrategyPerformsSnmpWalk() {
         final TestRunner getSnmpTestRunner = new SNMPV1TestRunnerFactory().createSnmpGetTestRunner(NetworkUtils.getAvailableUdpPort(), OID, "WALK");
         final GetSNMP spyGetSNMP = spy((GetSNMP) getSnmpTestRunner.getProcessor());
         final MockProcessSession mockProcessSession = new MockProcessSession(new SharedSessionState(spyGetSNMP, new AtomicLong(0L)), spyGetSNMP);
