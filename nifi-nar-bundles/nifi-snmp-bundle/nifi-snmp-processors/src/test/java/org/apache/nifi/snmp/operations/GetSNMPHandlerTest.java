@@ -20,9 +20,8 @@ import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.dto.SNMPTreeResponse;
 import org.apache.nifi.snmp.exception.RequestTimeoutException;
 import org.apache.nifi.snmp.exception.SNMPWalkException;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.snmp4j.PDU;
@@ -44,13 +43,14 @@ import java.util.Optional;
 import static org.apache.nifi.snmp.operations.GetSNMPHandler.EMPTY_SUBTREE_EXCEPTION_MESSAGE;
 import static org.apache.nifi.snmp.operations.GetSNMPHandler.LEAF_ELEMENT_EXCEPTION_MESSAGE;
 import static org.apache.nifi.snmp.operations.GetSNMPHandler.SNMP_ERROR_EXCEPTION_MESSAGE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class GetSNMPHandlerTest {
+class GetSNMPHandlerTest {
 
     private static final String OID = "1.3.6.1.4.1.343";
 
@@ -58,7 +58,7 @@ public class GetSNMPHandlerTest {
     private Snmp mockSnmpManager;
     private SNMPResourceHandler snmpResourceHandler;
 
-    @Before
+    @BeforeEach
     public void init() {
         mockTarget = mock(Target.class);
         mockSnmpManager = mock(Snmp.class);
@@ -66,7 +66,7 @@ public class GetSNMPHandlerTest {
     }
 
     @Test
-    public void testGetSnmpWithEmptyFlowFile() throws IOException {
+    void testGetSnmpWithEmptyFlowFile() throws IOException {
         final ResponseEvent mockResponseEvent = mock(ResponseEvent.class);
         final PDU mockPdu = mock(PDU.class);
         when(mockResponseEvent.getResponse()).thenReturn(mockPdu);
@@ -84,7 +84,7 @@ public class GetSNMPHandlerTest {
     }
 
     @Test
-    public void testGetSnmpWithInvalidFlowFile() throws IOException {
+    void testGetSnmpWithInvalidFlowFile() throws IOException {
         final Map<String, String> invalidFlowFileAttributes = new HashMap<>();
         invalidFlowFileAttributes.put("invalid", "flowfile attribute");
 
@@ -100,7 +100,7 @@ public class GetSNMPHandlerTest {
     }
 
     @Test
-    public void testGetSnmpWithValidFlowFile() throws IOException {
+    void testGetSnmpWithValidFlowFile() throws IOException {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("snmp$" + flowFileOid, "OID value");
@@ -123,14 +123,14 @@ public class GetSNMPHandlerTest {
     }
 
     @Test
-    public void testGetSnmpWhenTimeout() throws IOException {
+    void testGetSnmpWhenTimeout() throws IOException {
         final ResponseEvent mockResponseEvent = mock(ResponseEvent.class);
         when(mockResponseEvent.getResponse()).thenReturn(null);
         when(mockSnmpManager.get(any(PDU.class), any(Target.class))).thenReturn(mockResponseEvent);
 
         final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
 
-        final RequestTimeoutException requestTimeoutException = Assert.assertThrows(
+        final RequestTimeoutException requestTimeoutException = assertThrows(
                 RequestTimeoutException.class,
                 () -> getSNMPHandler.get(OID)
         );
@@ -141,7 +141,7 @@ public class GetSNMPHandlerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testWalkSnmpWithEmptyFlowFile() {
+    void testWalkSnmpWithEmptyFlowFile() {
         final TreeUtils mockTreeUtils = mock(TreeUtils.class);
         final TreeEvent mockTreeEvent = mock(TreeEvent.class);
         final List<TreeEvent> mockSubtree = (List<TreeEvent>) mock(List.class);
@@ -163,7 +163,7 @@ public class GetSNMPHandlerTest {
     }
 
     @Test
-    public void testWalkSnmpWithInvalidFlowFile() {
+    void testWalkSnmpWithInvalidFlowFile() {
         final Map<String, String> invalidFlowFileAttributes = new HashMap<>();
         invalidFlowFileAttributes.put("invalid", "flowfile attribute");
 
@@ -175,7 +175,7 @@ public class GetSNMPHandlerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testWalkSnmpWithValidFlowFile() {
+    void testWalkSnmpWithValidFlowFile() {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("snmp$" + flowFileOid, "OID value");
@@ -203,7 +203,7 @@ public class GetSNMPHandlerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testWalkSnmpWithEmptySubtreeThrowsException() {
+    void testWalkSnmpWithEmptySubtreeThrowsException() {
         final TreeUtils mockTreeUtils = mock(TreeUtils.class);
         final List<TreeEvent> mockSubtree = (List<TreeEvent>) mock(List.class);
 
@@ -213,7 +213,7 @@ public class GetSNMPHandlerTest {
         final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
         getSNMPHandler.setTreeUtils(mockTreeUtils);
 
-        final SNMPWalkException snmpWalkException = Assert.assertThrows(
+        final SNMPWalkException snmpWalkException = assertThrows(
                 SNMPWalkException.class,
                 () -> getSNMPHandler.walk(OID)
         );
@@ -223,7 +223,7 @@ public class GetSNMPHandlerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testWalkSnmpWithSubtreeErrorThrowsException() {
+    void testWalkSnmpWithSubtreeErrorThrowsException() {
         final TreeUtils mockTreeUtils = mock(TreeUtils.class);
         final TreeEvent mockTreeEvent = mock(TreeEvent.class);
         final List<TreeEvent> mockSubtree = (List<TreeEvent>) mock(List.class);
@@ -236,7 +236,7 @@ public class GetSNMPHandlerTest {
         final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
         getSNMPHandler.setTreeUtils(mockTreeUtils);
 
-        final SNMPWalkException snmpWalkException = Assert.assertThrows(
+        final SNMPWalkException snmpWalkException = assertThrows(
                 SNMPWalkException.class,
                 () -> getSNMPHandler.walk(OID)
         );
@@ -246,7 +246,7 @@ public class GetSNMPHandlerTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testWalkSnmpWithLeafElementSubtreeThrowsException() {
+    void testWalkSnmpWithLeafElementSubtreeThrowsException() {
         final TreeUtils mockTreeUtils = mock(TreeUtils.class);
         final TreeEvent mockTreeEvent = mock(TreeEvent.class);
         final List<TreeEvent> mockSubtree = (List<TreeEvent>) mock(List.class);
@@ -261,7 +261,7 @@ public class GetSNMPHandlerTest {
         final GetSNMPHandler getSNMPHandler = new GetSNMPHandler(snmpResourceHandler);
         getSNMPHandler.setTreeUtils(mockTreeUtils);
 
-        final SNMPWalkException snmpWalkException = Assert.assertThrows(
+        final SNMPWalkException snmpWalkException = assertThrows(
                 SNMPWalkException.class,
                 () -> getSNMPHandler.walk(OID)
         );

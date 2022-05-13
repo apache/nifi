@@ -16,30 +16,23 @@
  */
 package org.apache.nifi.snmp.configuration;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
-import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.AGENT_ADDRESS_MUST_BE_SPECIFIED;
-import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.ENTERPRISE_OID_MUST_BE_SPECIFIED;
 import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED;
 import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6;
 import static org.apache.nifi.snmp.configuration.V1TrapConfiguration.SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class V1TrapConfigurationTest {
+class V1TrapConfigurationTest {
 
     private static final String AGENT_ADDRESS = "127.0.0.1";
     private static final String ENTERPRISE_OID = "1.3.6.1.4.1.8072.2.3.0.1";
     private static final int GENERIC_TRAP_TYPE = 6;
     private static final Integer SPECIFIC_TRAP_TYPE = 2;
 
-    @Rule
-    public ExpectedException exceptionRule = ExpectedException.none();
-
     @Test
-    public void testMembersAreSetCorrectly() {
+    void testMembersAreSetCorrectly() {
         final V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
                 .enterpriseOid(ENTERPRISE_OID)
                 .agentAddress(AGENT_ADDRESS)
@@ -54,29 +47,32 @@ public class V1TrapConfigurationTest {
     }
 
     @Test
-    public void testRequireNonNullEnterpriseOid() {
-        exceptionRule.expect(IllegalArgumentException.class);
-        exceptionRule.expectMessage(ENTERPRISE_OID_MUST_BE_SPECIFIED);
-        V1TrapConfiguration.builder()
-                .agentAddress(AGENT_ADDRESS)
-                .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
-                .specificTrapType(String.valueOf(SPECIFIC_TRAP_TYPE))
-                .build();
+    void testRequireNonNullEnterpriseOid() {
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                V1TrapConfiguration.builder()
+                        .agentAddress(AGENT_ADDRESS)
+                        .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
+                        .specificTrapType(String.valueOf(SPECIFIC_TRAP_TYPE))
+                        .build()
+        );
+        assertEquals("Enterprise OID must be specified.", exception.getMessage());
     }
 
     @Test
-    public void testRequireNonNullAgentAddress() {
-        exceptionRule.expect(IllegalArgumentException.class);
-        exceptionRule.expectMessage(AGENT_ADDRESS_MUST_BE_SPECIFIED);
-        V1TrapConfiguration.builder()
-                .enterpriseOid(ENTERPRISE_OID)
-                .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
-                .specificTrapType(String.valueOf(SPECIFIC_TRAP_TYPE))
-                .build();
+    void testRequireNonNullAgentAddress() {
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+                        V1TrapConfiguration.builder()
+                                .enterpriseOid(ENTERPRISE_OID)
+                                .genericTrapType(String.valueOf(GENERIC_TRAP_TYPE))
+                                .specificTrapType(String.valueOf(SPECIFIC_TRAP_TYPE))
+                                .build()
+        );
+
+        assertEquals("Agent address must be specified.", exception.getMessage());
     }
 
     @Test
-    public void testGenericTypeIsNegative() {
+    void testGenericTypeIsNegative() {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .enterpriseOid(ENTERPRISE_OID)
@@ -87,7 +83,7 @@ public class V1TrapConfigurationTest {
     }
 
     @Test
-    public void testGenericTypeIsGreaterThan6() {
+    void testGenericTypeIsGreaterThan6() {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .enterpriseOid(ENTERPRISE_OID)
@@ -98,7 +94,7 @@ public class V1TrapConfigurationTest {
     }
 
     @Test
-    public void testGenericTypeIsNotANumber() {
+    void testGenericTypeIsNotANumber() {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .enterpriseOid(ENTERPRISE_OID)
@@ -109,7 +105,7 @@ public class V1TrapConfigurationTest {
     }
 
     @Test
-    public void testSpecificTrapTypeIsNegative() {
+    void testSpecificTrapTypeIsNegative() {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .enterpriseOid(ENTERPRISE_OID)
@@ -121,7 +117,7 @@ public class V1TrapConfigurationTest {
     }
 
     @Test
-    public void testGenericTrapTypeIsEnterpriseSpecificButSpecificTrapTypeIsNotSet() {
+    void testGenericTrapTypeIsEnterpriseSpecificButSpecificTrapTypeIsNotSet() {
         final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> V1TrapConfiguration.builder()
                 .agentAddress(AGENT_ADDRESS)
                 .enterpriseOid(ENTERPRISE_OID)

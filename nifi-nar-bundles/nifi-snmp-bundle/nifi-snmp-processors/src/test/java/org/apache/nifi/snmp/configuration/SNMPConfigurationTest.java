@@ -17,7 +17,7 @@
 package org.apache.nifi.snmp.configuration;
 
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
 import static org.apache.nifi.snmp.helper.configurations.SNMPConfigurationFactory.COMMUNITY_STRING;
@@ -28,9 +28,9 @@ import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFact
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.PRIV_PROTOCOL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_LEVEL;
 import static org.apache.nifi.snmp.helper.configurations.SNMPV3ConfigurationFactory.SECURITY_NAME;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SNMPConfigurationTest {
+class SNMPConfigurationTest {
 
     private static final int MANAGER_PORT = NetworkUtils.getAvailableUdpPort();
     private static final String TARGET_PORT = "55556";
@@ -39,7 +39,7 @@ public class SNMPConfigurationTest {
     private static final int TIMEOUT_IN_MS = 3000;
 
     @Test
-    public void testMembersAreSetCorrectly() {
+    void testMembersAreSetCorrectly() {
         final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
                 .setManagerPort(MANAGER_PORT)
                 .setTargetHost(LOCALHOST)

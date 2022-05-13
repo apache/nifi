@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.snmp.factory.core;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.mp.SnmpConstants;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-public class SNMPFactoryProviderTest {
+class SNMPFactoryProviderTest {
 
     @Test
-    public void testCreateFactoryByVersion() {
+    void testCreateFactoryByVersion() {
         final SNMPContext snmpV1V2cFactoryFromVersion1 = SNMPFactoryProvider.getFactory(SnmpConstants.version1);
         final SNMPContext snmpV1V2cFactoryFromVersion2c = SNMPFactoryProvider.getFactory(SnmpConstants.version2c);
         final SNMPContext snmpV3Factory = SNMPFactoryProvider.getFactory(SnmpConstants.version3);

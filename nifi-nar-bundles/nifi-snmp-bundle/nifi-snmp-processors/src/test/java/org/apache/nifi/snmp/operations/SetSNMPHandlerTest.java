@@ -18,10 +18,9 @@ package org.apache.nifi.snmp.operations;
 
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
 import org.apache.nifi.snmp.exception.RequestTimeoutException;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
@@ -35,14 +34,15 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.nifi.snmp.operations.SNMPResourceHandler.REQUEST_TIMEOUT_EXCEPTION_TEMPLATE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class SetSNMPHandlerTest {
+class SetSNMPHandlerTest {
 
     private static final PDUFactory defaultSetPduFactory = new DefaultPDUFactory(PDU.SET);
 
@@ -54,7 +54,7 @@ public class SetSNMPHandlerTest {
 
     private SetSNMPHandler setSNMPHandler;
 
-    @Before
+    @BeforeEach
     public void init() {
         mockTarget = mock(Target.class);
         mockSnmpManager = mock(Snmp.class);
@@ -70,13 +70,13 @@ public class SetSNMPHandlerTest {
         SetSNMPHandler.setSetPduFactory(mockPduFactory);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SetSNMPHandler.setSetPduFactory(defaultSetPduFactory);
     }
 
     @Test
-    public void testSetSnmpValidResponse() throws IOException {
+    void testSetSnmpValidResponse() throws IOException {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("snmp$" + flowFileOid, "OID value");
@@ -90,14 +90,14 @@ public class SetSNMPHandlerTest {
     }
 
     @Test
-    public void testSetSnmpTimeoutThrowsException() throws IOException {
+    void testSetSnmpTimeoutThrowsException() throws IOException {
         final String flowFileOid = "1.3.6.1.2.1.1.1.0";
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("snmp$" + flowFileOid, "OID value");
 
         when(mockSnmpManager.set(any(PDU.class), any(Target.class))).thenReturn(mockResponseEvent);
 
-        final RequestTimeoutException requestTimeoutException = Assert.assertThrows(
+        final RequestTimeoutException requestTimeoutException = assertThrows(
                 RequestTimeoutException.class,
                 () -> setSNMPHandler.set(flowFileAttributes)
         );
@@ -106,7 +106,7 @@ public class SetSNMPHandlerTest {
     }
 
     @Test
-    public void testSetSnmpWithInvalidPduThrowsException() throws IOException {
+    void testSetSnmpWithInvalidPduThrowsException() throws IOException {
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put("invalid key", "invalid value");
 

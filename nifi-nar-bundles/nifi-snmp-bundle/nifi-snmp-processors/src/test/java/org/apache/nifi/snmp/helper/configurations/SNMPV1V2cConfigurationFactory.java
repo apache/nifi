@@ -20,7 +20,7 @@ import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 
 public class SNMPV1V2cConfigurationFactory implements SNMPConfigurationFactory {
 
-    private int snmpVersion;
+    private final int snmpVersion;
 
     public SNMPV1V2cConfigurationFactory(int snmpVersion) {
         this.snmpVersion = snmpVersion;

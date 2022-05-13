@@ -17,7 +17,7 @@
 package org.apache.nifi.snmp.factory.core;
 
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 
@@ -26,10 +26,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class SNMPContextTest {
+class SNMPContextTest {
 
     @Test
-    public void testCreateSNMPContext() {
+    void testCreateSNMPContext() {
         final SNMPContext snmpContext = spy(SNMPContext.class);
         final Snmp mockSnmpManager = mock(Snmp.class);
         final Target mockTarget = mock(Target.class);

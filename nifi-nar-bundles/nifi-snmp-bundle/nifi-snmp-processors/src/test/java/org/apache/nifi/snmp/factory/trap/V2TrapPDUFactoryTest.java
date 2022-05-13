@@ -17,7 +17,7 @@
 package org.apache.nifi.snmp.factory.trap;
 
 import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.snmp4j.PDU;
 import org.snmp4j.Target;
 import org.snmp4j.mp.SnmpConstants;
@@ -31,15 +31,15 @@ import java.util.Vector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class V2TrapPDUFactoryTest {
+class V2TrapPDUFactoryTest {
 
     private static final String TRAP_OID = "1.3.6.1.4.1.8072.2.3.0.1";
 
     @Test
-    public void testCreateV2TrapPdu() {
+    void testCreateV2TrapPdu() {
         final Target mockTarget = mock(Target.class);
         final V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(TRAP_OID);
         final V2TrapPDUFactory v2TrapPduFactory = new V2TrapPDUFactory(mockTarget, Instant.now());

@@ -41,8 +41,11 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -120,32 +123,53 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
         final FlowFile flowFile = processSession.get();
-        if (flowFile != null) {
-            try {
-                final int snmpVersion = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
-                if (SnmpConstants.version1 == snmpVersion) {
-                    V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
-                            .enterpriseOid(context.getProperty(V1TrapProperties.ENTERPRISE_OID).evaluateAttributeExpressions(flowFile).getValue())
-                            .agentAddress(context.getProperty(V1TrapProperties.AGENT_ADDRESS).evaluateAttributeExpressions(flowFile).getValue())
-                            .genericTrapType(context.getProperty(V1TrapProperties.GENERIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue())
-                            .specificTrapType(context.getProperty(V1TrapProperties.SPECIFIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue())
-                            .build();
-                    snmpHandler.sendTrap(flowFile.getAttributes(), v1TrapConfiguration);
-                } else {
-                    V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(
-                            context.getProperty(V2TrapProperties.TRAP_OID_VALUE).evaluateAttributeExpressions(flowFile).getValue()
-                    );
-                    snmpHandler.sendTrap(flowFile.getAttributes(), v2TrapConfiguration);
-                }
-                processSession.transfer(flowFile, REL_SUCCESS);
-            } catch (IOException e) {
-                getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
-                processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-            } catch (IllegalArgumentException e) {
-                getLogger().error("Invalid trap configuration.", e);
-                processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        final Map<String, String> attributes = new HashMap<>(
+                Optional.ofNullable(flowFile)
+                        .map(FlowFile::getAttributes)
+                        .orElse(Collections.emptyMap())
+        );
+
+        try {
+            final int snmpVersion = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
+            if (SnmpConstants.version1 == snmpVersion) {
+
+                final String enterpriseOid = context.getProperty(V1TrapProperties.ENTERPRISE_OID).evaluateAttributeExpressions(flowFile).getValue();
+                final String agentAddress = context.getProperty(V1TrapProperties.AGENT_ADDRESS).evaluateAttributeExpressions(flowFile).getValue();
+                final String genericTrapType = context.getProperty(V1TrapProperties.GENERIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+                final String specificTrapType = context.getProperty(V1TrapProperties.SPECIFIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+                V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
+                        .enterpriseOid(enterpriseOid)
+                        .agentAddress(agentAddress)
+                        .genericTrapType(genericTrapType)
+                        .specificTrapType(specificTrapType)
+                        .build();
+                attributes.put("agentAddress", agentAddress);
+                attributes.put("enterpriseOid", enterpriseOid);
+                attributes.put("genericTrapType", genericTrapType);
+                attributes.put("specificTrapType", specificTrapType);
+                snmpHandler.sendTrap(attributes, v1TrapConfiguration);
+            } else {
+                final String trapOidValue = context.getProperty(V2TrapProperties.TRAP_OID_VALUE).evaluateAttributeExpressions(flowFile).getValue();
+                V2TrapConfiguration v2TrapConfiguration = new V2TrapConfiguration(trapOidValue);
+                attributes.put("trapOidValue", trapOidValue);
+                snmpHandler.sendTrap(attributes, v2TrapConfiguration);
             }
+            if (flowFile == null) {
+                FlowFile outgoingFlowFile = processSession.create();
+                processSession.putAllAttributes(outgoingFlowFile, attributes);
+                processSession.transfer(outgoingFlowFile, REL_SUCCESS);
+            } else {
+                processSession.putAllAttributes(flowFile, attributes);
+                processSession.transfer(flowFile, REL_SUCCESS);
+            }
+        } catch (IOException e) {
+            getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
+            processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        } catch (IllegalArgumentException e) {
+            getLogger().error("Invalid trap configuration.", e);
+            processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
         }
+
     }
 
     @Override
