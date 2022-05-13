@@ -4057,8 +4057,8 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         assert migratedCipherTexts.size() == cipherTextCount
 
         // Ensure that everything else is identical
-        assert flowXmlFile.text.replaceAll(WFXCTR, "") ==
-                workingFile.text.replaceAll(WFXCTR, "")
+        assertEquals(removeXmlDeclarationAndComments(flowXmlFile.text).replaceAll(WFXCTR, "").trim(),
+                removeXmlDeclarationAndComments(workingFile.text).replaceAll(WFXCTR, "").trim())
     }
 
 
@@ -4109,8 +4109,8 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 assert newCipherTexts.size() == ORIGINAL_CIPHER_TEXT_COUNT
 
                 // Ensure that everything else is identical
-                assert new File(workingFile.path).text.replaceAll(WFXCTR, "") ==
-                        flowXmlFile.text.replaceAll(WFXCTR, "")
+                assertEquals(removeXmlDeclarationAndComments(new File(workingFile.path).text).replaceAll(WFXCTR, "").trim(),
+                        removeXmlDeclarationAndComments(flowXmlFile.text).replaceAll(WFXCTR, "").trim())
 
                 // Update the "source" XML content for the next iteration
                 currentXmlContent = tool.loadFlowXml(workingFile.path)
@@ -4234,7 +4234,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Loaded flow.xml.gz: \n${readXmlContent}")
 
         // Assert
-        assert readXmlContent == xmlContent
+        assert readXmlContent.trim() == xmlContent.trim()
     }
 
     @Test
@@ -4700,5 +4700,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         fieldsFound
     }
 
-// TODO: Test with 128/256-bit available
+    private String removeXmlDeclarationAndComments(final String xmlFlow) {
+        return xmlFlow.replaceAll("<\\?xml.+\\?>", "").replaceAll("(?s)<!--.*?-->", "")
+    }
 }

@@ -18,26 +18,17 @@ package org.apache.nifi.flow.encryptor;
 
 import org.apache.nifi.encrypt.PropertyEncryptor;
 
-import java.io.BufferedReader;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.UncheckedIOException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Standard Flow Encryptor handles reading Input Steam and writing Output Stream
  */
 public class StandardFlowEncryptor implements FlowEncryptor {
-    private static final Pattern ENCRYPTED_PATTERN = Pattern.compile("enc\\{([^\\}]+?)\\}");
-
-    private static final int FIRST_GROUP = 1;
-
-    private static final String ENCRYPTED_FORMAT = "enc{%s}";
+    private static final int XML_DECLARATION = '<';
 
     /**
      * Process Flow Configuration Stream replacing existing encrypted properties with new encrypted properties
@@ -48,39 +39,17 @@ public class StandardFlowEncryptor implements FlowEncryptor {
      * @param outputEncryptor Property Encryptor for Output Configuration
      */
     @Override
-    public void processFlow(final InputStream inputStream, final OutputStream outputStream, final PropertyEncryptor inputEncryptor, final PropertyEncryptor outputEncryptor) {
-        try (final PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream))) {
-            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-                reader.lines().forEach(line -> {
-                    final Matcher matcher = ENCRYPTED_PATTERN.matcher(line);
-
-                    final StringBuffer sb = new StringBuffer();
-                    boolean matched = false;
-                    while (matcher.find()) {
-                        final String outputEncrypted = getOutputEncrypted(matcher.group(FIRST_GROUP), inputEncryptor, outputEncryptor);
-                        matcher.appendReplacement(sb, outputEncrypted);
-                        matched = true;
-                    }
-
-                    final String outputLine;
-                    if (matched) {
-                        matcher.appendTail(sb);
-                        outputLine = sb.toString();
-                    } else {
-                        outputLine = line;
-                    }
-
-                    writer.println(outputLine);
-                });
-            }
+    public void processFlow(final InputStream inputStream, final OutputStream outputStream,
+                            final PropertyEncryptor inputEncryptor, final PropertyEncryptor outputEncryptor) {
+        final BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
+        bufferedInputStream.mark(1);
+        try {
+            final int firstByte = bufferedInputStream.read();
+            bufferedInputStream.reset();
+            final FlowEncryptor flowEncryptor = (firstByte == XML_DECLARATION) ? new XmlFlowEncryptor() : new JsonFlowEncryptor();
+            flowEncryptor.processFlow(bufferedInputStream, outputStream, inputEncryptor, outputEncryptor);
         } catch (final IOException e) {
-            throw new UncheckedIOException("Failed Processing Flow Configuration", e);
+            throw new UncheckedIOException(e);
         }
-    }
-
-    private String getOutputEncrypted(final String inputEncrypted, final PropertyEncryptor inputEncryptor, final PropertyEncryptor outputEncryptor) {
-        final String inputDecrypted = inputEncryptor.decrypt(inputEncrypted);
-        final String outputEncrypted = outputEncryptor.encrypt(inputDecrypted);
-        return String.format(ENCRYPTED_FORMAT, outputEncrypted);
     }
 }
