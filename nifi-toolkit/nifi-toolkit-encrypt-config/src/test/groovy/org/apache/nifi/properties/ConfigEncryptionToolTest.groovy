@@ -4057,8 +4057,8 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         assert migratedCipherTexts.size() == cipherTextCount
 
         // Ensure that everything else is identical
-        assert flowXmlFile.text.replaceAll(WFXCTR, "") ==
-                workingFile.text.replaceAll(WFXCTR, "")
+        assertEquals(removeXmlRootTagAndComments(flowXmlFile.text).replaceAll(WFXCTR, "").trim(),
+                removeXmlRootTagAndComments(workingFile.text).replaceAll(WFXCTR, "").trim())
     }
 
 
@@ -4109,8 +4109,8 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
                 assert newCipherTexts.size() == ORIGINAL_CIPHER_TEXT_COUNT
 
                 // Ensure that everything else is identical
-                assert new File(workingFile.path).text.replaceAll(WFXCTR, "") ==
-                        flowXmlFile.text.replaceAll(WFXCTR, "")
+                assertEquals(removeXmlRootTagAndComments(new File(workingFile.path).text).replaceAll(WFXCTR, "").trim(),
+                        removeXmlRootTagAndComments(flowXmlFile.text).replaceAll(WFXCTR, "").trim())
 
                 // Update the "source" XML content for the next iteration
                 currentXmlContent = tool.loadFlowXml(workingFile.path)
@@ -4234,7 +4234,7 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
         logger.info("Loaded flow.xml.gz: \n${readXmlContent}")
 
         // Assert
-        assert readXmlContent == xmlContent
+        assert readXmlContent.trim() == xmlContent.trim()
     }
 
     @Test
@@ -4698,6 +4698,17 @@ class ConfigEncryptionToolTest extends GroovyLogTestCase {
             }
         }
         fieldsFound
+    }
+
+    /**
+     * Utility method to remove the opening root tag of an XML Flow and comments, to facilitate string comparison
+     * Note: This method assumes the first line of the XMLFlow is the root tag
+     * @param xmlFlow a string containing a xml flow
+     * @return an XML Flow with the root tag and comments removed
+     */
+    private String removeXmlRootTagAndComments(final String xmlFlow) {
+        // this method assumes the first line of an xmlFlow string is the root tag
+        return xmlFlow.split(System.lineSeparator(), 2)[1].replaceAll("(?s)<!--.*?-->", "");
     }
 
 // TODO: Test with 128/256-bit available
