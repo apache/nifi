@@ -90,6 +90,7 @@
         <module>nifi-cybersecurity-bundle</module>
         <module>nifi-parquet-bundle</module>
         <module>nifi-extension-utils</module>
+        <module>nifi-ranger-bundle</module>
         <module>nifi-redis-bundle</module>
         <module>nifi-metrics-reporting-bundle</module>
         <module>nifi-spark-bundle</module>
@@ -172,39 +173,6 @@
             </activation>
             <modules>
                 <module>nifi-grpc-bundle</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>include-ranger</id>
-            <!-- This profile handles the inclusion of ranger artifacts. Currently, ranger
-            uses JNA libraries that require x86 components, so it is platform dependent. -->
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <modules>
-                <module>nifi-ranger-bundle</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>include-ranger-x86</id>
-            <activation>
-                <os>
-                    <arch>x86_64</arch>
-                </os>
-            </activation>
-            <modules>
-                <module>nifi-ranger-bundle</module>
-            </modules>
-        </profile>
-        <profile>
-            <id>include-ranger-amd64</id>
-            <activation>
-                <os>
-                    <arch>amd64</arch>
-                </os>
-            </activation>
-            <modules>
-                <module>nifi-ranger-bundle</module>
             </modules>
         </profile>
     </profiles>
