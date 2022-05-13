@@ -212,6 +212,18 @@
     </dependencies>
 
     <profiles>
+        <!-- Disable tests on AArch64 which does not have necessary platform-specific libraries -->
+        <profile>
+            <id>disable-ranger-tests</id>
+            <activation>
+                <os>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
         <!-- Includes hadoop-aws for accessing HDFS with an s3a:// filesystem -->
         <profile>
             <id>include-hadoop-aws</id>
