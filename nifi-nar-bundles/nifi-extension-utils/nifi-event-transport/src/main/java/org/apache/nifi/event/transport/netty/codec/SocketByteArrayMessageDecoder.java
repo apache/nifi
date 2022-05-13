@@ -29,7 +29,6 @@ import javax.security.auth.x500.X500Principal;
 import java.net.InetSocketAddress;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -56,29 +55,30 @@ public class SocketByteArrayMessageDecoder extends MessageToMessageDecoder<byte[
     }
 
     private SslSessionStatus getSslSessionStatus(final ChannelHandlerContext channelHandlerContext) {
-        final Iterator<Map.Entry<String, ChannelHandler>> iterator = channelHandlerContext.channel().pipeline().iterator();
-        while (iterator.hasNext()) {
-            final ChannelHandler channelHandler = iterator.next().getValue();
+        SslHandler sslHandler = null;
+        for (final Map.Entry<String, ChannelHandler> entry : channelHandlerContext.channel().pipeline()) {
+            final ChannelHandler channelHandler = entry.getValue();
             if (channelHandler instanceof SslHandler) {
-                return createSslSessionStatusFromSslHandler((SslHandler) channelHandler);
+                sslHandler = (SslHandler) channelHandler;
+                break;
             }
         }
-        return null;
+        return ((sslHandler != null) ? createSslSessionStatusFromSslHandler(sslHandler) : null);
     }
 
     private SslSessionStatus createSslSessionStatusFromSslHandler(final SslHandler sslHandler) {
         final SSLSession sslSession = sslHandler.engine().getSession();
+        SslSessionStatus sslSessionStatus = null;
         try {
             final Certificate[] certificates = sslSession.getPeerCertificates();
             if (certificates.length > 0) {
                 final X509Certificate certificate = (X509Certificate) certificates[0];
                 final X500Principal subject = certificate.getSubjectX500Principal();
                 final X500Principal issuer = certificate.getIssuerX500Principal();
-                return new SslSessionStatus(subject, issuer);
+                sslSessionStatus = new SslSessionStatus(subject, issuer);
             }
-        } catch (SSLPeerUnverifiedException peerUnverifiedException) {
-            return null;
-        }
-        return null;
+        } catch (SSLPeerUnverifiedException peerUnverifiedException) { }
+
+        return sslSessionStatus;
     }
 }
