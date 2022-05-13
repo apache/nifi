@@ -42,7 +42,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class NiFiPropertiesLoader {
+public class NiFiPropertiesLoader implements PropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
     private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();

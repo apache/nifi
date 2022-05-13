@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.properties;
 
 import org.apache.nifi.properties.BootstrapProperties;
+import org.apache.nifi.properties.PropertiesLoader;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
@@ -31,7 +32,7 @@ import java.io.IOException;
 import java.security.Security;
 import java.util.Properties;
 
-public class NiFiRegistryPropertiesLoader {
+public class NiFiRegistryPropertiesLoader implements PropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
 
