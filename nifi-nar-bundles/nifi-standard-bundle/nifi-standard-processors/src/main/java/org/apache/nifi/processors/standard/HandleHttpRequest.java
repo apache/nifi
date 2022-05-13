@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -40,21 +41,17 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
@@ -187,6 +184,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .required(false)
             .identifiesControllerService(RestrictedSSLContextService.class)
             .build();
+    public static final PropertyDescriptor HTTP_PROTOCOL_STRATEGY = new PropertyDescriptor.Builder()
+            .name("HTTP Protocols")
+            .description("HTTP Protocols supported for Application Layer Protocol Negotiation with TLS")
+            .required(true)
+            .allowableValues(HttpProtocolStrategy.class)
+            .defaultValue(HttpProtocolStrategy.HTTP_1_1.getValue())
+            .dependsOn(SSL_CONTEXT)
+            .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Default URL Character Set")
             .description("The character set to use for decoding URL parameters if the HTTP Request does not supply one")
@@ -303,6 +308,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(PORT);
         descriptors.add(HOSTNAME);
         descriptors.add(SSL_CONTEXT);
+        descriptors.add(HTTP_PROTOCOL_STRATEGY);
         descriptors.add(HTTP_CONTEXT_MAP);
         descriptors.add(PATH_REGEX);
         descriptors.add(URL_CHARACTER_SET);
@@ -356,61 +362,24 @@ public class HandleHttpRequest extends AbstractProcessor {
         final long requestTimeout = httpContextMap.getRequestTimeout(TimeUnit.MILLISECONDS);
 
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-        final boolean need;
-        final boolean want;
-        if (CLIENT_NEED.getValue().equals(clientAuthValue)) {
-            need = true;
-            want = false;
-        } else if (CLIENT_WANT.getValue().equals(clientAuthValue)) {
-            need = false;
-            want = true;
-        } else {
-            need = false;
-            want = false;
+        final Server server = new Server();
+
+        final StandardServerConnectorFactory serverConnectorFactory = new StandardServerConnectorFactory(server, port);
+        final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
+        serverConnectorFactory.setNeedClientAuth(needClientAuth);
+        final boolean wantClientAuth = CLIENT_WANT.getValue().equals(clientAuthValue);
+        serverConnectorFactory.setNeedClientAuth(wantClientAuth);
+        final SSLContext sslContext = sslService == null ? null : sslService.createContext();
+        serverConnectorFactory.setSslContext(sslContext);
+        final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
+        serverConnectorFactory.setApplicationLayerProtocols(httpProtocolStrategy.getApplicationLayerProtocols());
+
+        final ServerConnector serverConnector = serverConnectorFactory.getServerConnector();
+        serverConnector.setIdleTimeout(Math.max(serverConnector.getIdleTimeout(), requestTimeout));
+        if (StringUtils.isNotBlank(host)) {
+            serverConnector.setHost(host);
         }
-
-        final SslContextFactory sslFactory = (sslService == null) ? null : createSslFactory(sslService, need, want);
-        final Server server = new Server(port);
-
-        // create the http configuration
-        final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        if (sslFactory == null) {
-            // create the connector
-            final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
-
-            // set host and port
-            if (StringUtils.isNotBlank(host)) {
-                http.setHost(host);
-            }
-            http.setPort(port);
-
-            // If request timeout is longer than default Idle Timeout, then increase Idle Timeout as well.
-            http.setIdleTimeout(Math.max(http.getIdleTimeout(), requestTimeout));
-
-            // add this connector
-            server.setConnectors(new Connector[]{http});
-        } else {
-            // add some secure config
-            final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
-            httpsConfiguration.setSecureScheme("https");
-            httpsConfiguration.setSecurePort(port);
-            httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
-
-            // build the connector
-            final ServerConnector https = new ServerConnector(server, new SslConnectionFactory(sslFactory, "http/1.1"), new HttpConnectionFactory(httpsConfiguration));
-
-            // set host and port
-            if (StringUtils.isNotBlank(host)) {
-                https.setHost(host);
-            }
-            https.setPort(port);
-
-            // If request timeout is longer than default Idle Timeout, then increase Idle Timeout as well.
-            https.setIdleTimeout(Math.max(https.getIdleTimeout(), requestTimeout));
-
-            // add this connector
-            server.setConnectors(new Connector[]{https});
-        }
+        server.addConnector(serverConnector);
 
         final Set<String> allowedMethods = new HashSet<>();
         if (context.getProperty(ALLOW_GET).asBoolean()) {
@@ -520,18 +489,6 @@ public class HandleHttpRequest extends AbstractProcessor {
 
     protected int getRequestQueueSize() {
         return containerQueue.size();
-    }
-
-    private SslContextFactory createSslFactory(final SSLContextService sslContextService, final boolean needClientAuth, final boolean wantClientAuth) {
-        final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
-
-        sslFactory.setNeedClientAuth(needClientAuth);
-        sslFactory.setWantClientAuth(wantClientAuth);
-
-        final SSLContext sslContext = sslContextService.createContext();
-        sslFactory.setSslContext(sslContext);
-
-        return sslFactory;
     }
 
     @OnUnscheduled

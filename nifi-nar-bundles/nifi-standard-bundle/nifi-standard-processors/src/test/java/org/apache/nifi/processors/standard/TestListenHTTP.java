@@ -47,6 +47,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processors.standard.http.HttpProtocolStrategy;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -99,7 +100,6 @@ public class TestListenHTTP {
     private static final Duration CLIENT_CALL_TIMEOUT = Duration.ofSeconds(10);
     public static final String LOCALHOST_DN = "CN=localhost";
 
-    private static TlsConfiguration tlsConfiguration;
     private static TlsConfiguration serverConfiguration;
     private static TlsConfiguration serverTls_1_3_Configuration;
     private static TlsConfiguration serverNoTruststoreConfiguration;
@@ -117,7 +117,7 @@ public class TestListenHTTP {
     @BeforeClass
     public static void setUpSuite() throws GeneralSecurityException {
         // generate new keystore and truststore
-        tlsConfiguration = new TemporaryKeyStoreBuilder().build();
+        final TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
         serverConfiguration = new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
@@ -223,23 +223,25 @@ public class TestListenHTTP {
     }
 
     @Test
-    public void testSecurePOSTRequestsReceivedWithoutEL() throws Exception {
+    public void testSecurePOSTRequestsReceivedWithoutELHttp2AndHttp1() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2_HTTP_1_1.getValue());
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_OK, true, false);
     }
 
     @Test
-    public void testSecurePOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
+    public void testSecurePOSTRequestsReturnCodeReceivedWithoutELHttp2() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
 
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
+        runner.setProperty(ListenHTTP.HTTP_PROTOCOL_STRATEGY, HttpProtocolStrategy.H2.getValue());
         runner.assertValid();
 
         testPOSTRequestsReceived(HttpServletResponse.SC_NO_CONTENT, true, false);

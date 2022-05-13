@@ -188,7 +188,6 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         try {
             session.exportTo(flowFile, response.getOutputStream());
-            response.flushBuffer();
         } catch (final ProcessException e) {
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
             try {
