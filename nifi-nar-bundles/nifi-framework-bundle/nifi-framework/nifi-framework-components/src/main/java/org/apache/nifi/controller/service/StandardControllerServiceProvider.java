@@ -470,11 +470,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
         }
 
-        final Set<ControllerServiceNode> servicesForGroup = groupOfInterest.getControllerServices(true);
-        for (final ControllerServiceNode serviceNode : servicesForGroup) {
-            if (serviceIdentifier.equals(serviceNode.getIdentifier())) {
-                return serviceNode.getProxiedControllerService();
-            }
+        final ControllerServiceNode serviceNode = groupOfInterest.findControllerService(serviceIdentifier, false, true);
+        if (serviceNode != null) {
+            return serviceNode.getProxiedControllerService();
         }
 
         return null;

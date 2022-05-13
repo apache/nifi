@@ -873,6 +873,40 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         });
     }
 
+    @Test
+    public void testRejoinAfterControllerServiceEnabled() throws NiFiClientException, IOException, InterruptedException {
+        final ControllerServiceEntity controllerService = getClientUtil().createControllerService("StandardCountService");
+        disconnectNode(2);
+
+        getClientUtil().enableControllerService(controllerService);
+        reconnectNode(2);
+        waitForAllNodesConnected();
+
+        switchClientToNode(2);
+        waitFor(() -> {
+            final ControllerServiceEntity currentService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(controllerService.getId());
+            return ControllerServiceState.ENABLED.name().equals(currentService.getComponent().getState());
+        });
+    }
+
+    @Test
+    public void testRejoinAfterControllerServiceDisabled() throws NiFiClientException, IOException, InterruptedException {
+        final ControllerServiceEntity controllerService = getClientUtil().createControllerService("StandardCountService");
+        getClientUtil().enableControllerService(controllerService);
+
+        disconnectNode(2);
+        getClientUtil().disableControllerService(controllerService);
+
+        reconnectNode(2);
+        waitForAllNodesConnected();
+
+        switchClientToNode(2);
+        waitFor(() -> {
+            final ControllerServiceEntity currentService = getNifiClient().getControllerServicesClient(DO_NOT_REPLICATE).getControllerService(controllerService.getId());
+            return ControllerServiceState.DISABLED.name().equals(currentService.getComponent().getState());
+        });
+    }
+
 
     private VersionedDataflow getNode2Flow() throws IOException {
         final File instanceDir = getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
