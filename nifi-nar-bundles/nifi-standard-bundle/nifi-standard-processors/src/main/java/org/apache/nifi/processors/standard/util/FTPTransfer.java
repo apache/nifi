@@ -325,13 +325,13 @@ public class FTPTransfer implements FileTransfer {
         FlowFile resultFlowFile;
         try (InputStream in = client.retrieveFileStream(remoteFileName)) {
             if (in == null) {
-                final int replyCode = client.getReplyCode();
-
                 final String reply = client.getReplyString();
                 if (reply == null) {
-                    throw new IOException(String.format("Retrieve File Failed: %d", replyCode));
+                    throw new IOException("Retrieve File Failed: FTP server response not found");
                 }
 
+                // Get reply code after checking for reply string
+                final int replyCode = client.getReplyCode();
                 if (REPLY_CODE_FILE_UNAVAILABLE == replyCode) {
                     if (NOT_FOUND_MESSAGE_PATTERN.matcher(reply).find()) {
                         throw new FileNotFoundException(reply);
