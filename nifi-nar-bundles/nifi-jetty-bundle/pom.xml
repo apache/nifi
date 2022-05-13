@@ -78,5 +78,15 @@
             <artifactId>apache-jstl</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-alpn-server</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty.http2</groupId>
+            <artifactId>http2-server</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>
