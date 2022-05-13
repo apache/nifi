@@ -33,9 +33,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
@@ -45,6 +45,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TestListenTCP {
+    private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
+    private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";
     private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
     private static final String LOCALHOST = "localhost";
@@ -56,13 +58,13 @@ public class TestListenTCP {
 
     private TestRunner runner;
 
-    @BeforeClass
+    @BeforeAll
     public static void configureServices() throws TlsException {
         keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
         trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         runner = TestRunners.newTestRunner(ListenTCP.class);
     }
@@ -122,6 +124,7 @@ public class TestListenTCP {
 
     @Test
     public void testRunClientAuthRequired() throws Exception {
+        final String expectedDistinguishedName = "CN=localhost";
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -137,6 +140,10 @@ public class TestListenTCP {
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
+            mockFlowFiles.get(i).assertAttributeExists(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE);
+            mockFlowFiles.get(i).assertAttributeExists(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE);
+            mockFlowFiles.get(i).assertAttributeEquals(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE, expectedDistinguishedName);
+            mockFlowFiles.get(i).assertAttributeEquals(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE, expectedDistinguishedName);
         }
     }
 
@@ -157,6 +164,8 @@ public class TestListenTCP {
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
             mockFlowFiles.get(i).assertContentEquals("This is message " + (i + 1));
+            mockFlowFiles.get(i).assertAttributeNotExists(CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE);
+            mockFlowFiles.get(i).assertAttributeNotExists(CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE);
         }
     }
 
