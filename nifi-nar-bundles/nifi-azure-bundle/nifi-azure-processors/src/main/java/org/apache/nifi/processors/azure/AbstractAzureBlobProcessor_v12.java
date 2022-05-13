@@ -45,7 +45,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -87,17 +86,31 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             .description("Unsuccessful operations will be transferred to the failure relationship.")
             .build();
 
-    protected static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            STORAGE_CREDENTIALS_SERVICE,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
-
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
 
     private BlobServiceClient storageClient;
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
+
+    @OnScheduled
+    public void onScheduled(ProcessContext context) {
+        storageClient = createStorageClient(context);
+    }
+
+    @OnStopped
+    public void onStopped() {
+        storageClient = null;
+    }
+
+    protected BlobServiceClient getStorageClient() {
+        return storageClient;
+    }
 
     public static BlobServiceClient createStorageClient(PropertyContext context) {
         final AzureStorageCredentialsService_v12 credentialsService = context.getProperty(STORAGE_CREDENTIALS_SERVICE).asControllerService(AzureStorageCredentialsService_v12.class);
@@ -117,8 +130,7 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
         return clientBuilder.buildClient();
     }
 
-    private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsService_v12 credentialsService,
-                                            AzureStorageCredentialsDetails_v12 credentialsDetails) {
+    private static void configureCredential(BlobServiceClientBuilder clientBuilder, AzureStorageCredentialsService_v12 credentialsService, AzureStorageCredentialsDetails_v12 credentialsDetails) {
         switch (credentialsDetails.getCredentialsType()) {
             case ACCOUNT_KEY:
                 clientBuilder.credential(new StorageSharedKeyCredential(credentialsDetails.getAccountName(), credentialsDetails.getAccountKey()));
@@ -145,30 +157,6 @@ public abstract class AbstractAzureBlobProcessor_v12 extends AbstractProcessor {
             default:
                 throw new IllegalArgumentException("Unhandled credentials type: " + credentialsDetails.getCredentialsType());
         }
-    }
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
-
-    @Override
-    public Set<Relationship> getRelationships() {
-        return RELATIONSHIPS;
-    }
-
-    @OnScheduled
-    public void onScheduled(ProcessContext context) {
-        storageClient = createStorageClient(context);
-    }
-
-    @OnStopped
-    public void onStopped() {
-        storageClient = null;
-    }
-
-    protected BlobServiceClient getStorageClient() {
-        return storageClient;
     }
 
     protected Map<String, String> createBlobAttributesMap(BlobClient blobClient) {

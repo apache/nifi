@@ -47,14 +47,14 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .build();
 
     public static final PropertyDescriptor SOCKS_VERSION = new PropertyDescriptor.Builder()
-        .name("socks-version")
-        .displayName("SOCKS version")
-        .description("SOCKS Protocol Version")
-        .allowableValues(SocksVersion.values())
-        .defaultValue(SocksVersion.SOCKS5.name())
-        .dependsOn(PROXY_TYPE, Proxy.Type.SOCKS.name())
-        .required(true)
-        .build();
+            .name("socks-version")
+            .displayName("SOCKS version")
+            .description("SOCKS Protocol Version")
+            .allowableValues(SocksVersion.values())
+            .defaultValue(SocksVersion.SOCKS5.name())
+            .dependsOn(PROXY_TYPE, Proxy.Type.SOCKS.name())
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor PROXY_SERVER_HOST = new PropertyDescriptor.Builder()
             .name("proxy-server-host")

@@ -39,13 +39,10 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
@@ -112,17 +109,17 @@ public class FetchAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            STORAGE_CREDENTIALS_SERVICE,
             CONTAINER,
             BLOB_NAME,
             RANGE_START,
-            RANGE_LENGTH
+            RANGE_LENGTH,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
-                .flatMap(Collection::stream)
-                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+        return PROPERTIES;
     }
 
     @Override

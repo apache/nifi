@@ -74,6 +74,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
 
+    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
+
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
             .name("conflict-resolution-strategy")
             .displayName("Conflict Resolution Strategy")
@@ -86,27 +88,6 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             CONFLICT_RESOLUTION
     ));
-
-    public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
-
-    static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
-        long chunkStart = 0;
-        long chunkSize;
-
-        while (chunkStart < length) {
-            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
-
-            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
-            // if there are more available bytes in the stream after reading the chunk
-            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
-
-            fileClient.append(boundedIn, chunkStart, chunkSize);
-
-            chunkStart += chunkSize;
-        }
-
-        fileClient.flush(length);
-    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -188,5 +169,24 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         } catch (Exception e) {
             getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
         }
+    }
+
+    static void uploadContent(DataLakeFileClient fileClient, InputStream in, long length) {
+        long chunkStart = 0;
+        long chunkSize;
+
+        while (chunkStart < length) {
+            chunkSize = Math.min(length - chunkStart, MAX_CHUNK_SIZE);
+
+            // com.azure.storage.common.Utility.convertStreamToByteBuffer() throws an exception
+            // if there are more available bytes in the stream after reading the chunk
+            BoundedInputStream boundedIn = new BoundedInputStream(in, chunkSize);
+
+            fileClient.append(boundedIn, chunkStart, chunkSize);
+
+            chunkStart += chunkSize;
+        }
+
+        fileClient.flush(length);
     }
 }

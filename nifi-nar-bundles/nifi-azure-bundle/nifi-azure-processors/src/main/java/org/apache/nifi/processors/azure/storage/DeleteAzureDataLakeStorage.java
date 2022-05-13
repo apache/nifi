@@ -84,13 +84,6 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
     ));
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
-                .flatMap(Collection::stream)
-                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
-    }
-
-    @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
@@ -122,5 +115,12 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
+                .flatMap(Collection::stream)
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
     }
 }

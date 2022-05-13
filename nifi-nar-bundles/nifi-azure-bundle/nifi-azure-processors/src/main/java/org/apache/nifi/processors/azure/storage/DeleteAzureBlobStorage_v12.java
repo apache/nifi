@@ -36,12 +36,9 @@ import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Tags({"azure", "microsoft", "cloud", "storage", "blob"})
 @SeeAlso({ListAzureBlobStorage_v12.class, FetchAzureBlobStorage_v12.class, PutAzureBlobStorage_v12.class})
@@ -69,14 +66,13 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
             BLOB_NAME,
-            DELETE_SNAPSHOTS_OPTION
+            DELETE_SNAPSHOTS_OPTION,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
-                .flatMap(Collection::stream)
-                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+        return PROPERTIES;
     }
 
     @Override

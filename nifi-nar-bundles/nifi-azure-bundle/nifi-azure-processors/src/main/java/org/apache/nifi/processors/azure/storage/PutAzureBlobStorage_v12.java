@@ -39,13 +39,10 @@ import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
@@ -95,16 +92,16 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            STORAGE_CREDENTIALS_SERVICE,
             AzureStorageUtils.CONTAINER,
             CREATE_CONTAINER,
-            BLOB_NAME
+            BLOB_NAME,
+            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
     ));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Stream.of(super.getSupportedPropertyDescriptors(), PROPERTIES)
-                .flatMap(Collection::stream)
-                .collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList));
+        return PROPERTIES;
     }
 
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
