@@ -1019,7 +1019,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         @Override
         protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
-            flowController.getControllerServiceProvider().enableControllerServicesAsync(controllerServices);
+            flowController.getControllerServiceProvider().enableControllerServices(controllerServices);
         }
 
         protected void startNow(final ReportingTaskNode reportingTask) {

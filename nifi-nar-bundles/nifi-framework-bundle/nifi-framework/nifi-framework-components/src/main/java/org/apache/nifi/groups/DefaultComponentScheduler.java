@@ -62,7 +62,7 @@ public class DefaultComponentScheduler extends AbstractComponentScheduler {
 
     @Override
     protected void enableNow(final Collection<ControllerServiceNode> controllerServices) {
-        getControllerServiceProvider().enableControllerServicesAsync(controllerServices);
+        getControllerServiceProvider().enableControllerServices(controllerServices);
     }
 
     protected void startNow(final ReportingTaskNode reportingTask) {

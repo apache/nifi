@@ -41,6 +41,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -206,31 +207,37 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
-        for (final ControllerServiceNode controllerServiceNode : serviceNodes) {
+        boolean shouldStart = true;
+
+        Iterator<ControllerServiceNode> serviceIter = serviceNodes.iterator();
+        while (serviceIter.hasNext() && shouldStart) {
+            ControllerServiceNode controllerServiceNode = serviceIter.next();
             List<ControllerServiceNode> requiredServices = controllerServiceNode.getRequiredControllerServices();
             for (ControllerServiceNode requiredService : requiredServices) {
                 if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
-                    logger.debug("Enabling {} but it may not complete enabling because required service {} is not active and is not part of the collection of services to start",
-                        controllerServiceNode, requiredService);
+                    shouldStart = false;
+                    logger.debug("Will not start {} because required service {} is not active and is not part of the collection of things to start", serviceNodes, requiredService);
                 }
             }
         }
 
-        for (ControllerServiceNode controllerServiceNode : serviceNodes) {
-            try {
-                if (!controllerServiceNode.isActive()) {
-                    final Future<Void> future = enableControllerService(controllerServiceNode);
+        if (shouldStart) {
+            for (ControllerServiceNode controllerServiceNode : serviceNodes) {
+                try {
+                    if (!controllerServiceNode.isActive()) {
+                        final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
-                    future.get(30, TimeUnit.SECONDS);
-                    logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-                }
-            } catch (final ControllerServiceNotValidException csnve) {
-                logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
-            } catch (Exception e) {
-                logger.error("Failed to enable " + controllerServiceNode, e);
-                if (this.bulletinRepo != null) {
-                    this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
-                            Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                        future.get(30, TimeUnit.SECONDS);
+                        logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
+                    }
+                } catch (final ControllerServiceNotValidException csnve) {
+                    logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
+                } catch (Exception e) {
+                    logger.error("Failed to enable " + controllerServiceNode, e);
+                    if (this.bulletinRepo != null) {
+                        this.bulletinRepo.addBulletin(BulletinFactory.createBulletin("Controller Service",
+                                Severity.ERROR.name(), "Could not start " + controllerServiceNode + " due to " + e));
+                    }
                 }
             }
         }
@@ -305,7 +312,26 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             }
         }
 
-        logger.debug("All dependent services for {} have now begun enabling; will now start service itself", serviceNode);
+        if (logger.isDebugEnabled()) {
+            logger.debug("All dependent services for {} have now begun enabling. Will wait for them to complete", serviceNode);
+        }
+
+        for (final ControllerServiceNode dependentService : dependentServices) {
+            try {
+                final boolean enabled = dependentService.awaitEnabled(30, TimeUnit.SECONDS);
+
+                if (enabled) {
+                    logger.debug("Successfully enabled dependent service {}; service state = {}", dependentService, dependentService.getState());
+                } else {
+                    logger.debug("After 30 seconds, {} is still not enabled. Will continue attempting to enable additional Controller Services", dependentService);
+                }
+            } catch (final Exception e) {
+                logger.error("Failed to enable service {}, so may be unable to enable {}", dependentService, serviceNode, e);
+                // Nothing we can really do. Will attempt to enable this service anyway.
+            }
+        }
+
+        logger.debug("All dependent services have been enabled for {}; will now start service itself", serviceNode);
         return this.enableControllerService(serviceNode);
     }
 
@@ -444,11 +470,9 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             return (rootServiceNode == null) ? null : rootServiceNode.getProxiedControllerService();
         }
 
-        final Set<ControllerServiceNode> servicesForGroup = groupOfInterest.getControllerServices(true);
-        for (final ControllerServiceNode serviceNode : servicesForGroup) {
-            if (serviceIdentifier.equals(serviceNode.getIdentifier())) {
-                return serviceNode.getProxiedControllerService();
-            }
+        final ControllerServiceNode serviceNode = groupOfInterest.findControllerService(serviceIdentifier, false, true);
+        if (serviceNode != null) {
+            return serviceNode.getProxiedControllerService();
         }
 
         return null;

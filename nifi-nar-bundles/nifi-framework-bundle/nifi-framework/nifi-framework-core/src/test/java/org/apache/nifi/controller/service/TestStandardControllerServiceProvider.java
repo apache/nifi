@@ -491,7 +491,7 @@ public class TestStandardControllerServiceProvider {
         setProperty(E, ServiceA.OTHER_SERVICE_2.getName(), "F");
 
         final List<ControllerServiceNode> serviceNodes = Arrays.asList(A, B, C, D, E, F);
-        serviceNodes.forEach(ControllerServiceNode::performValidation);
+        serviceNodes.stream().forEach(ControllerServiceNode::performValidation);
         provider.enableControllerServices(serviceNodes);
 
         assertTrue(A.isActive());
@@ -549,8 +549,8 @@ public class TestStandardControllerServiceProvider {
         assertTrue(F.isActive());
     }
 
-    @Test(timeout = 30000)
-    public void validateEnableServicesWithDisabledMissingService() throws InterruptedException {
+    @Test
+    public void validateEnableServicesWithDisabledMissingService() {
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
 
         StandardProcessScheduler scheduler = createScheduler();
@@ -564,54 +564,48 @@ public class TestStandardControllerServiceProvider {
         ControllerServiceNode serviceNode2 = createControllerService(ServiceA.class.getName(), "2", systemBundle.getBundleDetails().getCoordinate(), provider);
         ControllerServiceNode serviceNode3 = createControllerService(ServiceA.class.getName(), "3", systemBundle.getBundleDetails().getCoordinate(), provider);
         ControllerServiceNode serviceNode4 = createControllerService(ServiceB.class.getName(), "4", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode5 = createControllerService(ServiceA.class.getName(), "5", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode6 = createControllerService(ServiceB.class.getName(), "6", systemBundle.getBundleDetails().getCoordinate(), provider);
+        ControllerServiceNode serviceNode7 = createControllerService(ServiceC.class.getName(), "7", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         procGroup.addControllerService(serviceNode1);
         procGroup.addControllerService(serviceNode2);
         procGroup.addControllerService(serviceNode3);
         procGroup.addControllerService(serviceNode4);
+        procGroup.addControllerService(serviceNode5);
+        procGroup.addControllerService(serviceNode6);
+        procGroup.addControllerService(serviceNode7);
 
-        // Service 1 depends on Service 2
-        // Service 2 depends on Service 3
-        // Service 3 depends on both Service 2 and Service 4
-        // Service 4 is of type ServiceB, so it doesn't have any dependencies.
         setProperty(serviceNode1, ServiceA.OTHER_SERVICE.getName(), "2");
-        setProperty(serviceNode2, ServiceA.OTHER_SERVICE.getName(), "3");
-        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "4");
+        setProperty(serviceNode2, ServiceA.OTHER_SERVICE.getName(), "4");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE.getName(), "2");
+        setProperty(serviceNode3, ServiceA.OTHER_SERVICE_2.getName(), "4");
+        setProperty(serviceNode5, ServiceA.OTHER_SERVICE.getName(), "6");
+        setProperty(serviceNode7, ServiceC.REQ_SERVICE_1.getName(), "2");
+        setProperty(serviceNode7, ServiceC.REQ_SERVICE_2.getName(), "3");
 
-        // Enable services 1-3 but not service 4.
-        final List<ControllerServiceNode> allBut4 = Arrays.asList(serviceNode1, serviceNode2, serviceNode3);
-        allBut4.forEach(ControllerServiceNode::performValidation);
-        provider.enableControllerServices(allBut4);
+        final List<ControllerServiceNode> allBut6 = Arrays.asList(serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5, serviceNode7);
+        allBut6.stream().forEach(ControllerServiceNode::performValidation);
 
-        // Services 1-3 should be active but not service 4, since it wasn't enabled.
+        provider.enableControllerServices(allBut6);
+        assertFalse(serviceNode1.isActive());
+        assertFalse(serviceNode2.isActive());
+        assertFalse(serviceNode3.isActive());
+        assertFalse(serviceNode4.isActive());
+        assertFalse(serviceNode5.isActive());
+        assertFalse(serviceNode6.isActive());
+
+        serviceNode6.performValidation();
+        provider.enableControllerService(serviceNode6);
+
+        provider.enableControllerServices(Arrays.asList(
+                serviceNode1, serviceNode2, serviceNode3, serviceNode4, serviceNode5));
+
         assertTrue(serviceNode1.isActive());
         assertTrue(serviceNode2.isActive());
         assertTrue(serviceNode3.isActive());
-        assertFalse(serviceNode4.isActive());
-
-        // All services 1-3 should have a state of ENABLING because they have a dependency (directly or indirectly) on Service 4, but Service 4
-        // has not yet been enabled.
-        for (final ControllerServiceNode serviceNode : allBut4) {
-            assertEquals(ControllerServiceState.ENABLING, serviceNode.getState());
-        }
-
-        // Validate & enable service 6
-        serviceNode4.performValidation();
-        provider.enableControllerService(serviceNode4);
-
-        // Now that service 6 is enabled, all services should change to ENABLED. But this happens in the background so we may have to to wait
-        // a couple of seconds for this transition to occur
-        boolean allEnabled = false;
-        while (!allEnabled) {
-            allEnabled = allBut4.stream()
-                    .allMatch(service -> service.getState() == ControllerServiceState.ENABLED);
-
-            if (!allEnabled) {
-                Thread.sleep(100L);
-            }
-        }
-
-        // Ensure that Service 6 is also fully enabled.
-        assertEquals(ControllerServiceState.ENABLED, serviceNode4.getState());
+        assertTrue(serviceNode4.isActive());
+        assertTrue(serviceNode5.isActive());
+        assertTrue(serviceNode6.isActive());
     }
 }

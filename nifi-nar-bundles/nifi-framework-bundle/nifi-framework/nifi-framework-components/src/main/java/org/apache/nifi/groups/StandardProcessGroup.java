@@ -135,6 +135,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -186,7 +187,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, RemoteProcessGroup> remoteGroups = new HashMap<>();
     private final Map<String, ProcessorNode> processors = new HashMap<>();
     private final Map<String, Funnel> funnels = new HashMap<>();
-    private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
+    private final Map<String, ControllerServiceNode> controllerServices = new ConcurrentHashMap<>();
     private final Map<String, Template> templates = new HashMap<>();
     private final PropertyEncryptor encryptor;
     private final MutableVariableRegistry variableRegistry;
@@ -2313,24 +2314,12 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public ControllerServiceNode getControllerService(final String id) {
-        readLock.lock();
-        try {
-            return controllerServices.get(requireNonNull(id));
-        } finally {
-            readLock.unlock();
-        }
+        return controllerServices.get(requireNonNull(id));
     }
 
     @Override
     public Set<ControllerServiceNode> getControllerServices(final boolean recursive) {
-        final Set<ControllerServiceNode> services = new HashSet<>();
-
-        readLock.lock();
-        try {
-            services.addAll(controllerServices.values());
-        } finally {
-            readLock.unlock();
-        }
+        final Set<ControllerServiceNode> services = new HashSet<>(controllerServices.values());
 
         if (recursive) {
             final ProcessGroup parentGroup = parent.get();
