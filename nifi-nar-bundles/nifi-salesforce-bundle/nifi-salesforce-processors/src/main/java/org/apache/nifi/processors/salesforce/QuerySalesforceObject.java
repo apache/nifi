@@ -171,8 +171,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     static final PropertyDescriptor AGE_FIELD = new PropertyDescriptor.Builder()
             .name("age-field")
             .displayName("Age Field")
-            .description("The name of a TIMESTAMP field that will be used to time-window records."
-                    + "Only those records will be queried whose timestamp field is newer than the previous run time."
+            .description("The name of a TIMESTAMP field that will be used to filter records using a bounded time window."
+                    + "The processor will return only those records with a timestamp value newer than the timestamp recorded after the last processor run."
             )
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -182,8 +182,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     static final PropertyDescriptor AGE_DELAY = new PropertyDescriptor.Builder()
             .name("age-delay")
             .displayName("Age Delay")
-            .description("A time window is always between the previous run time of the processor and the current run time. " +
-                    "When 'Age Field' is set, the time window's right edge will be adjusted left by this amount.")
+            .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
+                    " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -192,9 +192,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     static final PropertyDescriptor INITIAL_AGE_FILTER = new PropertyDescriptor.Builder()
             .name("initial-age-filter")
-            .displayName("Initial Age Filter")
-            .description("Unless this parameter is specified as an initial start time, the time window's left edge is open" +
-                    " on the first run, and all records are fetched until the current runtime.")
+            .displayName("Initial Age Start Time")
+            .description("This property specifies the start time that the processor applies when running the first query.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
