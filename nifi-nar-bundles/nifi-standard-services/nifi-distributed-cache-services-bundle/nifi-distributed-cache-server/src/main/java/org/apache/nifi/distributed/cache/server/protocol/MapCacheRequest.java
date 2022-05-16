@@ -48,7 +48,7 @@ public class MapCacheRequest {
             final CacheOperation cacheOperation,
             final byte[] key
     ) {
-        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
+        this(cacheOperation);
         this.key = Objects.requireNonNull(key, "Key required");
     }
 
@@ -57,8 +57,7 @@ public class MapCacheRequest {
             final byte[] key,
             final byte[] value
     ) {
-        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
-        this.key = Objects.requireNonNull(key, "Key required");
+        this(cacheOperation, key);
         this.value = Objects.requireNonNull(value, "Value required");
     }
 
@@ -68,17 +67,15 @@ public class MapCacheRequest {
             final long revision,
             final byte[] value
     ) {
-        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
-        this.key = Objects.requireNonNull(key, "Key required");
+        this(cacheOperation, key, value);
         this.revision = revision;
-        this.value = Objects.requireNonNull(value, "Value required");
     }
 
     public MapCacheRequest(
             final CacheOperation cacheOperation,
             final String pattern
     ) {
-        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
+        this(cacheOperation);
         this.pattern = Objects.requireNonNull(pattern, "Pattern required");
     }
 
@@ -86,7 +83,7 @@ public class MapCacheRequest {
             final CacheOperation cacheOperation,
             final List<byte[]> keys
     ) {
-        this.cacheOperation = Objects.requireNonNull(cacheOperation, "Cache Operation required");
+        this(cacheOperation);
         this.keys = Objects.requireNonNull(keys, "Keys required");
     }
 

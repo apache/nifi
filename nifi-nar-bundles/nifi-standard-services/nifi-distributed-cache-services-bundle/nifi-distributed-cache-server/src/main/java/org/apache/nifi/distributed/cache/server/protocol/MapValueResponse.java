@@ -34,16 +34,21 @@ public class MapValueResponse {
         this.value = value;
     }
 
+    public MapValueResponse(
+            final int length,
+            final byte[] value,
+            final Long revision
+    ) {
+        this(length, value);
+        this.revision = revision;
+    }
+
     public int getLength() {
         return length;
     }
 
     public byte[] getValue() {
         return value;
-    }
-
-    public void setRevision(final Long revision) {
-        this.revision = revision;
     }
 
     public Long getRevision() {

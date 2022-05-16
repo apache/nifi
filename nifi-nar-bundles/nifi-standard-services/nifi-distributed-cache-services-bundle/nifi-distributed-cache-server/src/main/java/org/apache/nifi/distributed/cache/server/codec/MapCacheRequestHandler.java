@@ -171,8 +171,7 @@ public class MapCacheRequestHandler extends SimpleChannelInboundHandler<MapCache
         final long revision = mapCacheRecord == null ? REVISION_NOT_FOUND : mapCacheRecord.getRevision();
         final byte[] value = mapCacheRecord == null ? null : mapCacheRecord.getValue().array();
         final int length = value == null ? 0 : value.length;
-        final MapValueResponse mapValueResponse = new MapValueResponse(length, value);
-        mapValueResponse.setRevision(revision);
+        final MapValueResponse mapValueResponse = new MapValueResponse(length, value, revision);
         log.debug("Map Cache Operation [{}] Length [{}]", cacheOperation, length);
         channelHandlerContext.writeAndFlush(mapValueResponse);
     }
