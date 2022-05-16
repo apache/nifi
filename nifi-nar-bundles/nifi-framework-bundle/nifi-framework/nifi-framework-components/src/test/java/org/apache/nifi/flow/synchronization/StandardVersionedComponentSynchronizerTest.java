@@ -39,6 +39,7 @@ import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedParameter;
@@ -191,6 +192,7 @@ public class StandardVersionedComponentSynchronizerTest {
 
         synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(componentIdGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
             .build();
 
@@ -202,6 +204,7 @@ public class StandardVersionedComponentSynchronizerTest {
     private FlowSynchronizationOptions createQuickFailSynchronizationOptions(final FlowSynchronizationOptions.ComponentStopTimeoutAction timeoutAction) {
         return new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(componentIdGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(componentScheduler)
             .componentStopTimeout(Duration.ofMillis(10))
             .componentStopTimeoutAction(timeoutAction)

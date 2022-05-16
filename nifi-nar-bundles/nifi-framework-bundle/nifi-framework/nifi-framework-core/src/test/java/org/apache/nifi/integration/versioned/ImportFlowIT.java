@@ -28,6 +28,7 @@ import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -738,7 +739,8 @@ public class ImportFlowIT extends FrameworkIntegrationTest {
         final ComparableDataFlow registryFlow = new StandardComparableDataFlow("Versioned Flow", registryGroup);
 
         final Set<String> ancestorServiceIds = processGroup.getAncestorServiceIds();
-        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(), Function.identity());
+        final FlowComparator flowComparator = new StandardFlowComparator(registryFlow, localFlow, ancestorServiceIds, new ConciseEvolvingDifferenceDescriptor(), Function.identity(),
+            VersionedComponent::getIdentifier);
         final FlowComparison flowComparison = flowComparator.compare();
         final Set<FlowDifference> differences = flowComparison.getDifferences().stream()
             .filter(FlowDifferenceFilters.FILTER_ADDED_REMOVED_REMOTE_PORTS)
