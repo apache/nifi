@@ -24,6 +24,9 @@ import org.apache.nifi.logging.ComponentLog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 /**
  * Cache Request Decoder processes bytes and decodes cache version and operation requests
@@ -76,19 +79,19 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
     }
 
     private MapCacheRequest readKeyRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
-        final byte[] key = readBytes(byteBuf);
-        return key == null ? null : new MapCacheRequest(cacheOperation, key);
+        final Optional<byte[]> key = readBytes(byteBuf);
+        return key.map(bytes -> new MapCacheRequest(cacheOperation, bytes)).orElse(null);
     }
 
     private MapCacheRequest readKeyValueRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
         final MapCacheRequest mapCacheRequest;
 
-        final byte[] key = readBytes(byteBuf);
-        if (key == null) {
-            mapCacheRequest = null;
+        final Optional<byte[]> key = readBytes(byteBuf);
+        if (key.isPresent()) {
+            final Optional<byte[]> value = readBytes(byteBuf);
+            mapCacheRequest = value.map(valueBytes -> new MapCacheRequest(cacheOperation, key.get(), valueBytes)).orElse(null);
         } else {
-            final byte[] value = readBytes(byteBuf);
-            mapCacheRequest = value == null ? null : new MapCacheRequest(cacheOperation, key, value);
+            mapCacheRequest = null;
         }
 
         return mapCacheRequest;
@@ -97,35 +100,54 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
     private MapCacheRequest readKeyRevisionValueRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
         final MapCacheRequest mapCacheRequest;
 
-        final byte[] key = readBytes(byteBuf);
-        if (key == null) {
-            mapCacheRequest = null;
+        final Optional<byte[]> key = readBytes(byteBuf);
+        if (key.isPresent()) {
+            final OptionalLong revision = readLong(byteBuf);
+            if (revision.isPresent()) {
+                final Optional<byte[]> value = readBytes(byteBuf);
+                mapCacheRequest = value.map(valueBytes -> new MapCacheRequest(cacheOperation, key.get(), revision.getAsLong(), valueBytes)).orElse(null);
+            } else {
+                mapCacheRequest = null;
+            }
         } else {
-            final long revision = byteBuf.readLong();
-            final byte[] value = readBytes(byteBuf);
-            mapCacheRequest = value == null ? null : new MapCacheRequest(cacheOperation, key, revision, value);
+            mapCacheRequest = null;
         }
 
         return mapCacheRequest;
     }
 
     private MapCacheRequest readPatternRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
-        final String pattern = readUnicodeString(byteBuf);
-        return new MapCacheRequest(cacheOperation, pattern);
+        final Optional<String> pattern = readUnicodeString(byteBuf);
+        final Optional<MapCacheRequest> request = pattern.map(requestedPattern -> new MapCacheRequest(cacheOperation, requestedPattern));
+        return request.orElse(null);
     }
 
     private MapCacheRequest readSubMapRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
-        final int keys = readInt(byteBuf);
+        final MapCacheRequest mapCacheRequest;
 
-        final List<byte[]> subMapKeys = new ArrayList<>();
-        for (int i = 0; i < keys; i++) {
-            final byte[] key = readBytes(byteBuf);
-            if (key == null) {
-                break;
+        final OptionalInt keys = readInt(byteBuf);
+        if (keys.isPresent()) {
+            // Mark Reader Index before reading keys
+            byteBuf.markReaderIndex();
+            final List<byte[]> subMapKeys = new ArrayList<>();
+            for (int i = 0; i < keys.getAsInt(); i++) {
+                final Optional<byte[]> key = readBytes(byteBuf);
+                if (key.isPresent()) {
+                    subMapKeys.add(key.get());
+                } else {
+                    // Reset Reader Index to attempt reading keys once subsequent invocations
+                    byteBuf.resetReaderIndex();
+                    subMapKeys.clear();
+                    break;
+                }
+
             }
-            subMapKeys.add(key);
+
+            mapCacheRequest = subMapKeys.isEmpty() ? null : new MapCacheRequest(cacheOperation, subMapKeys);
+        } else {
+            mapCacheRequest = null;
         }
 
-        return new MapCacheRequest(cacheOperation, subMapKeys);
+        return mapCacheRequest;
     }
 }
