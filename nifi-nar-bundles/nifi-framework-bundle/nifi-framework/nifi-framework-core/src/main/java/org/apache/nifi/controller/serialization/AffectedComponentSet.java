@@ -459,9 +459,10 @@ public class AffectedComponentSet {
 
     private boolean isActive(final ProcessorNode processor) {
         // We consider component active if it's starting, running, or has active threads. The call to ProcessorNode.isRunning() will only return true if it has active threads or a scheduled
-        // state of RUNNING but not if it has a scheduled state of STARTING.
+        // state of RUNNING but not if it has a scheduled state of STARTING. We also consider if the processor is to be started once the flow controller has been fully initialized, as
+        // the state of the processor may not yet have been set
         final ScheduledState scheduledState = processor.getPhysicalScheduledState();
-        return scheduledState == ScheduledState.STARTING || scheduledState == ScheduledState.RUNNING || processor.isRunning();
+        return scheduledState == ScheduledState.STARTING || scheduledState == ScheduledState.RUNNING || processor.isRunning() || flowController.isStartAfterInitialization(processor);
     }
 
     private boolean isStopped(final ProcessorNode processor) {

@@ -184,12 +184,6 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             if (FlowDifferenceFilters.isScheduledStateNew(diff)) {
                 continue;
             }
-            // If the difference type is a Scheduled State Change, we want to ignore it, because we are just trying to
-            // find components that need to be stopped in order to be updated. We don't need to stop a component in order
-            // to change its Scheduled State.
-            if (diff.getDifferenceType() == DifferenceType.SCHEDULED_STATE_CHANGED) {
-                continue;
-            }
 
             // If this update adds a new Controller Service, then we need to check if the service already exists at a higher level
             // and if so compare our VersionedControllerService to the existing service.
