@@ -76,6 +76,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
@@ -95,6 +96,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -261,7 +263,10 @@ public class NiFiRegistryFlowMapperTest {
         final ProcessGroup processGroup = mock(ProcessGroup.class);
 
         if (includeParameterContext) {
-            final ParameterContext parameterContext = mock(ParameterContext.class);
+            final ParameterContext parameterContext = mock(ParameterContext.class, Answers.RETURNS_DEEP_STUBS);
+            when(parameterContext
+                .getParameterReferenceManager()
+                .getReferencedControllerServiceData(any(ParameterContext.class), anyString())).thenReturn(Collections.emptyList());
             when(processGroup.getParameterContext()).thenReturn(parameterContext);
             when(parameterContext.getName()).thenReturn("context" + (counter++));
             final Map<ParameterDescriptor, Parameter> parametersMap = new LinkedHashMap<>();

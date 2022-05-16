@@ -348,11 +348,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     }
                 }
             }
-
-            if (descriptor.getControllerServiceDefinition() != null && !referenceList.isEmpty()) {
-                throw new IllegalArgumentException("The property '" + descriptor.getDisplayName() + "' cannot reference a Parameter because the property is a Controller Service reference. " +
-                    "Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. As a result, this is not allowed.");
-            }
         }
     }
 
@@ -460,18 +455,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // If it previously referenced a Controller Service, we need to also remove that reference.
         // It is okay if the new & old values are the same - we just unregister the component/descriptor and re-register it.
         if (descriptor.getControllerServiceDefinition() != null) {
-            if (oldConfiguration != null) {
-                final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
-                final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
-                if (oldNode != null) {
-                    oldNode.removeReference(this, descriptor);
-                }
-            }
+            Optional.ofNullable(oldConfiguration)
+                .map(_oldConfiguration -> _oldConfiguration.getEffectiveValue(getParameterContext()))
+                .map(oldEffectiveValue -> serviceProvider.getControllerServiceNode(oldEffectiveValue))
+                .ifPresent(oldNode -> oldNode.removeReference(this, descriptor));
 
-            final ControllerServiceNode newNode = serviceProvider.getControllerServiceNode(effectiveValue);
-            if (newNode != null) {
-                newNode.addReference(this, descriptor);
-            }
+            Optional.ofNullable(effectiveValue)
+                .map(serviceProvider::getControllerServiceNode)
+                .ifPresent(newNode -> newNode.addReference(this, descriptor));
         }
 
         // In the case of a component "reload", we want to call onPropertyModified when the value is changed from the descriptor's default.

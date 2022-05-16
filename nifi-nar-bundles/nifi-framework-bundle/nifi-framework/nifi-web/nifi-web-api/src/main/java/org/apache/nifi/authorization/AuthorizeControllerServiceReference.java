@@ -20,6 +20,8 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
@@ -27,6 +29,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Authorizes references to Controller Services. Utilizes when Processors, Controller Services, and Reporting Tasks are created and updated.
@@ -88,8 +91,13 @@ public final class AuthorizeControllerServiceReference {
 
                 // if this descriptor identifies a controller service
                 if (propertyDescriptor.getControllerServiceDefinition() != null) {
-                    final String currentValue = authorizable.getValue(propertyDescriptor);
                     final String proposedValue = entry.getValue();
+
+                    String proposedEffectiveValue = new PropertyConfigurationMapper()
+                        .mapRawPropertyValuesToPropertyConfiguration(propertyDescriptor, proposedValue)
+                        .getEffectiveValue(authorizable.getParameterContext());
+
+                    final String currentValue = authorizable.getValue(propertyDescriptor);
 
                     // if the value is changing
                     if (!Objects.equals(currentValue, proposedValue)) {
@@ -109,17 +117,52 @@ public final class AuthorizeControllerServiceReference {
                             final ParameterTokenList tokenList = parser.parseTokens(proposedValue);
                             final boolean referencesParameter = !tokenList.toReferenceList().isEmpty();
                             if (referencesParameter) {
-                                throw new IllegalArgumentException("The property '" + propertyDescriptor.getDisplayName() + "' cannot reference a Parameter because the property is a " +
-                                    "Controller Service reference. Allowing Controller Service references to make use of Parameters could result in security issues and a poor user experience. " +
-                                    "As a result, this is not allowed.");
+                                authorizeControllerServiceReference(authorizable, authorizer, lookup, user, propertyDescriptor, proposedEffectiveValue);
+                            } else {
+                                final Authorizable newServiceAuthorizable = lookup.getControllerService(proposedValue).getAuthorizable();
+                                newServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
                             }
-
-                            final Authorizable newServiceAuthorizable = lookup.getControllerService(proposedValue).getAuthorizable();
-                            newServiceAuthorizable.authorize(authorizer, RequestAction.READ, user);
                         }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Authorizes a proposed new controller service reference.
+     *
+     * @param authorizable authorizable that may reference a controller service
+     * @param authorizer authorizer
+     * @param lookup lookup
+     * @param user user
+     * @param propertyDescriptor the propertyDescriptor referencing a controller service
+     * @param proposedEffectiveValue the new proposed value (id of the controller service) to use as a reference
+     */
+    public static void authorizeControllerServiceReference(
+        ComponentAuthorizable authorizable,
+        Authorizer authorizer,
+        AuthorizableLookup lookup,
+        NiFiUser user,
+        PropertyDescriptor propertyDescriptor,
+        String proposedEffectiveValue
+    ) {
+        final String currentValue = authorizable.getValue(propertyDescriptor);
+
+        if (authorizable.getAuthorizable() instanceof ComponentNode) {
+            authorize(authorizer, lookup, user, currentValue);
+            authorize(authorizer, lookup, user, proposedEffectiveValue);
+        } else {
+            throw new IllegalArgumentException(authorizable.getAuthorizable().getResource().getSafeDescription() + " cannot reference Controller Services through Parameters.");
+        }
+    }
+
+    private static void authorize(Authorizer authorizer, AuthorizableLookup lookup, NiFiUser user, String serviceId) {
+        Optional.ofNullable(serviceId).map(lookup::getControllerService).ifPresent(service -> {
+            Authorizable serviceAuthorizable = service.getAuthorizable();
+
+            serviceAuthorizable.authorize(authorizer, RequestAction.READ, user);
+            serviceAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
+        });
     }
 }

@@ -44,6 +44,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.remote.PortAuthorizationResult;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.util.BundleUtils;
@@ -273,7 +274,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     }
 
     @Override
-    public Authorizable getParameterContext(final String id) {
+    public ParameterContext getParameterContext(final String id) {
         return parameterContextDAO.getParameterContext(id);
     }
 
@@ -838,7 +839,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContext() {
+        public ParameterContext getParameterContext() {
             return null;
         }
     }
@@ -871,7 +872,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContext() {
+        public ParameterContext getParameterContext() {
             return processorNode.getProcessGroup().getParameterContext();
         }
 
@@ -929,7 +930,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContext() {
+        public ParameterContext getParameterContext() {
             final ProcessGroup processGroup = controllerServiceNode.getProcessGroup();
             return processGroup == null ? null : processGroup.getParameterContext(); // will be null if Controller-level Controller Service.
         }
@@ -988,7 +989,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
 
         @Override
-        public Authorizable getParameterContext() {
+        public ParameterContext getParameterContext() {
             return null;
         }
 

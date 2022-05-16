@@ -65,6 +65,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
@@ -760,11 +761,7 @@ public class NiFiRegistryFlowMapper {
     }
 
     public VersionedParameterContext mapParameterContext(final ParameterContext parameterContext) {
-        final Set<VersionedParameter> versionedParameters = new HashSet<>();
-        for (final Parameter parameter : parameterContext.getParameters().values()) {
-            final VersionedParameter versionedParameter = mapParameter(parameter);
-            versionedParameters.add(versionedParameter);
-        }
+        final Set<VersionedParameter> versionedParameters = mapParameters(parameterContext);
 
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setDescription(parameterContext.getDescription());
@@ -807,9 +804,7 @@ public class NiFiRegistryFlowMapper {
 
     private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts) {
         // map this process group's parameter context and add to the collection
-        final Set<VersionedParameter> parameters = parameterContext.getParameters().values().stream()
-                .map(this::mapParameter)
-                .collect(Collectors.toSet());
+        final Set<VersionedParameter> parameters = mapParameters(parameterContext);
 
         final VersionedParameterContext versionedContext = new VersionedParameterContext();
         versionedContext.setName(parameterContext.getName());
@@ -822,7 +817,45 @@ public class NiFiRegistryFlowMapper {
         parameterContexts.put(versionedContext.getName(), versionedContext);
     }
 
+    private Set<VersionedParameter> mapParameters(ParameterContext parameterContext) {
+        final Set<VersionedParameter> parameters = parameterContext.getParameters().entrySet().stream()
+                .map(descriptorAndParameter -> mapParameter(
+                    parameterContext,
+                    descriptorAndParameter.getKey(),
+                    descriptorAndParameter.getValue())
+                )
+                .collect(Collectors.toSet());
+        return parameters;
+    }
+
+    private VersionedParameter mapParameter(ParameterContext parameterContext, ParameterDescriptor parameterDescriptor, Parameter parameter) {
+        VersionedParameter versionedParameter;
+
+        if (this.flowMappingOptions.isMapControllerServiceReferencesToVersionedId()) {
+            List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
+                .getParameterReferenceManager()
+                .getReferencedControllerServiceData(parameterContext, parameterDescriptor.getName());
+
+            if (referencedControllerServiceData.isEmpty()) {
+                versionedParameter = mapParameter(parameter);
+            } else {
+                versionedParameter = mapParameter(
+                    parameter,
+                    getId(Optional.ofNullable(referencedControllerServiceData.get(0).getVersionedServiceId()), parameter.getValue())
+                );
+            }
+        } else {
+            versionedParameter = mapParameter(parameter);
+        }
+
+        return versionedParameter;
+    }
+
     private VersionedParameter mapParameter(final Parameter parameter) {
+        return mapParameter(parameter, parameter.getValue());
+    }
+
+    private VersionedParameter mapParameter(final Parameter parameter, final String value) {
         if (parameter == null) {
             return null;
         }
@@ -838,9 +871,9 @@ public class NiFiRegistryFlowMapper {
         final String parameterValue;
         if (mapParameterValue) {
             if (descriptor.isSensitive()) {
-                parameterValue = encrypt(parameter.getValue());
+                parameterValue = encrypt(value);
             } else {
-                parameterValue = parameter.getValue();
+                parameterValue = value;
             }
         } else {
             parameterValue = null;

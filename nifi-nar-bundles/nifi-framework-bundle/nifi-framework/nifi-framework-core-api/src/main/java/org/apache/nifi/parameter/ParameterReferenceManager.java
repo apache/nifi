@@ -21,6 +21,7 @@ import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -47,6 +48,15 @@ public interface ParameterReferenceManager {
     Set<ControllerServiceNode> getControllerServicesReferencing(ParameterContext parameterContext, String parameterName);
 
     /**
+     * Collects controller service reference data for a given parameter.
+     *
+     * @param  parameterContext the Parameter Context that the parameter belongs to
+     * @param parameterName the name of the parameter
+     * @return controller service reference data for the given parameter
+     */
+    List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(ParameterContext parameterContext, String parameterName);
+
+    /**
      * Returns the set of all Process Groups that are bound to the given Parameter Context
      * @param parameterContext the Parameter Context
      * @return the set of all Process Groups that are bound to the given Parameter Context
@@ -62,6 +72,11 @@ public interface ParameterReferenceManager {
         @Override
         public Set<ControllerServiceNode> getControllerServicesReferencing(final ParameterContext parameterContext, final String parameterName) {
             return Collections.emptySet();
+        }
+
+        @Override
+        public List<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(ParameterContext parameterContext, String parameterName) {
+            return Collections.emptyList();
         }
 
         @Override

@@ -78,6 +78,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.ParameterReferencedControllerServiceData;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -277,6 +278,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             }
         }
 
+        boolean proposedParameterContextExistsBeforeSynchronize = getParameterContextByName(proposed.getParameterContextName()) != null;
+
         // Ensure that we create all Parameter Contexts before updating them. This is necessary in case the proposed incoming dataflow has
         // parameter contexts that inherit from one another and neither the inheriting nor inherited parameter context exists.
         if (versionedParameterContexts != null) {
@@ -410,6 +413,36 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             // Make sure that we reset the connections
             restoreConnectionDestinations(group, proposed, connectionsByVersionedId, connectionsWithTempDestination);
             removeTemporaryFunnel(group);
+        }
+
+        Map<String, Parameter> newParameters = new HashMap<>();
+        if (!proposedParameterContextExistsBeforeSynchronize && this.context.getFlowMappingOptions().isMapControllerServiceReferencesToVersionedId()) {
+            Map<String, String> controllerServiceVersionedIdToId = group.getControllerServices(false)
+                .stream()
+                .filter(controllerServiceNode -> controllerServiceNode.getVersionedComponentId().isPresent())
+                .collect(Collectors.toMap(
+                    controllerServiceNode -> controllerServiceNode.getVersionedComponentId().get(),
+                    ComponentNode::getIdentifier
+                ));
+
+            ParameterContext parameterContext = group.getParameterContext();
+
+            if (parameterContext != null) {
+                parameterContext.getParameters().forEach((descriptor, parameter) -> {
+                    List<ParameterReferencedControllerServiceData> referencedControllerServiceData = parameterContext
+                        .getParameterReferenceManager()
+                        .getReferencedControllerServiceData(parameterContext, descriptor.getName());
+
+                    if (referencedControllerServiceData.isEmpty()) {
+                        newParameters.put(descriptor.getName(), parameter);
+                    } else {
+                        final Parameter adjustedParameter = new Parameter(parameter.getDescriptor(), controllerServiceVersionedIdToId.get(parameter.getValue()));
+                        newParameters.put(descriptor.getName(), adjustedParameter);
+                    }
+                });
+
+                parameterContext.setParameters(newParameters);
+            }
         }
 
         // We can now add in any necessary connections, since all connectable components have now been created.

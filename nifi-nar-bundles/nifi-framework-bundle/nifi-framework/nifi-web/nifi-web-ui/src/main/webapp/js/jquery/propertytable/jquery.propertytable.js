@@ -476,7 +476,7 @@
             };
             var CREATE_CONTROLLER_SERVICE_OPTION = {
                 text: 'Create new service...',
-                value: undefined,
+                value: 'createControllerService',
                 optionClass: 'unset'
             };
 
@@ -544,7 +544,7 @@
                 }
 
                 // if this does not represent an identify a controller service
-                if (parametersSupported && !nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                if (parametersSupported) {
                     allowableValueOptions.push(PARAMETER_REFERENCE_OPTION);
                 }
 
@@ -1320,23 +1320,19 @@
                     if (value === '') {
                         valueMarkup = '<span class="table-cell blank">Empty string set</span>';
                     } else {
-                        if (!resolvedAllowableValue && nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
-                            valueMarkup = '<span class="table-cell blank">Incompatible Controller Service Configured</div>';
+                        valueWidthOffset = 10;
+
+                        // check for multi-line
+                        if (nfCommon.isMultiLine(value)) {
+                            valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
                         } else {
-                            valueWidthOffset = 10;
+                            valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
+                        }
 
-                            // check for multi-line
-                            if (nfCommon.isMultiLine(value)) {
-                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre multi-line-clamp-ellipsis">' + nfCommon.escapeHtml(value) + '</div></div>';
-                            } else {
-                                valueMarkup = '<div class="table-cell value"><div class="ellipsis-white-space-pre">' + nfCommon.escapeHtml(value) + '</div></div>';
-                            }
-
-                            // check for leading or trailing whitespace
-                            if (nfCommon.hasLeadTrailWhitespace(value)) {
-                                valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
-                                valueWidthOffset = 20;
-                            }
+                        // check for leading or trailing whitespace
+                        if (nfCommon.hasLeadTrailWhitespace(value)) {
+                            valueMarkup += '<div class="fa fa-info" alt="Info" style="float: right;"></div>';
+                            valueWidthOffset = 20;
                         }
                     }
                 }
@@ -1417,7 +1413,7 @@
             }
 
             if (options.readOnly !== true) {
-                if (canConvertPropertyToParam && !referencesParam && !identifiesControllerService) {
+                if (canConvertPropertyToParam && !referencesParam) {
                     markup += '<div title="Convert to parameter" class="convert-to-parameter pointer fa fa-level-up"></div>';
                 }
 
