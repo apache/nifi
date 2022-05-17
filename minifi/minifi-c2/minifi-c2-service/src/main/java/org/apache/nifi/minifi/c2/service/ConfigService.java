@@ -119,7 +119,7 @@ public class ConfigService {
             cacheBuilder.refreshAfterWrite(cacheTtlMillis, TimeUnit.MILLISECONDS);
         }
         this.configurationCache = cacheBuilder
-                .build(new CacheLoader<>() {
+                .build(new CacheLoader<ConfigurationProviderKey, ConfigurationProviderValue>() {
                     @Override
                     public ConfigurationProviderValue load(ConfigurationProviderKey key) throws Exception {
                         return initConfigurationProviderValue(key);
