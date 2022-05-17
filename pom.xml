@@ -122,7 +122,7 @@
         <surefire.version>3.0.0-M5</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.3.0</hadoop.version>
+        <hadoop.version>3.3.2</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
