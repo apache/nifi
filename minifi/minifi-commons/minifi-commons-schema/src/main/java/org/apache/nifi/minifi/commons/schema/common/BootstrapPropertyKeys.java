@@ -17,9 +17,11 @@
 
 package org.apache.nifi.minifi.commons.schema.common;
 
-import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
-import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
-import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
+import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
+import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,17 +29,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import static org.apache.nifi.minifi.commons.schema.RemoteProcessGroupSchema.TIMEOUT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.COMMENT_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_PERIOD_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.SCHEDULING_STRATEGY_KEY;
-import static org.apache.nifi.minifi.commons.schema.common.CommonPropertyKeys.USE_COMPRESSION_KEY;
+import org.apache.nifi.minifi.commons.schema.ProvenanceReportingSchema;
+import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
+import org.apache.nifi.minifi.commons.schema.SensitivePropsSchema;
 
 public class BootstrapPropertyKeys {
-
-    public static final String NOTIFIER_PROPERTY_PREFIX = "nifi.minifi.notifier";
-    public static final String NOTIFIER_COMPONENTS_KEY = NOTIFIER_PROPERTY_PREFIX + ".components";
 
     public static final String STATUS_REPORTER_PROPERTY_PREFIX = "nifi.minifi.status.reporter";
     public static final String STATUS_REPORTER_COMPONENTS_KEY = STATUS_REPORTER_PROPERTY_PREFIX + ".components";

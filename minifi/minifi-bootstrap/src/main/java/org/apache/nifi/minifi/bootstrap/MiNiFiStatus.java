@@ -16,21 +16,40 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+public class MiNiFiStatus {
 
-public class WindowsService {
+    private final Integer port;
+    private final String pid;
+    private final boolean respondingToPing;
+    private final boolean processRunning;
 
-    private static RunMiNiFi bootstrap;
-
-    public static void start(String[] args) throws IOException {
-        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(RunMiNiFiCommand.START, new String[0]);
+    public MiNiFiStatus() {
+        this.port = null;
+        this.pid = null;
+        this.respondingToPing = false;
+        this.processRunning = false;
     }
 
-    public static void stop(String[] args) {
-        bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(RunMiNiFiCommand.STOP, new String[0]);
+    public MiNiFiStatus(Integer port, String pid, boolean respondingToPing, boolean processRunning) {
+        this.port = port;
+        this.pid = pid;
+        this.respondingToPing = respondingToPing;
+        this.processRunning = processRunning;
     }
 
+    public String getPid() {
+        return pid;
+    }
+
+    public Integer getPort() {
+        return port;
+    }
+
+    public boolean isRespondingToPing() {
+        return respondingToPing;
+    }
+
+    public boolean isProcessRunning() {
+        return processRunning;
+    }
 }

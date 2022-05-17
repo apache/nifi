@@ -14,23 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+package org.apache.nifi.minifi.bootstrap.command;
 
-public class WindowsService {
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
 
-    private static RunMiNiFi bootstrap;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
-    public static void start(String[] args) throws IOException {
-        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(RunMiNiFiCommand.START, new String[0]);
+public class CompositeService implements CommandService {
+    final List<CommandService> services;
+
+    public CompositeService(List<CommandService> services) {
+        this.services = Optional.ofNullable(services).map(Collections::unmodifiableList).orElse(Collections.emptyList());
     }
 
-    public static void stop(String[] args) {
-        bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(RunMiNiFiCommand.STOP, new String[0]);
+    @Override
+    public int runCommand(String[] args) {
+        return services.stream()
+            .map(service -> service.runCommand(args))
+            .filter(code -> code != OK_STATUS_CODE)
+            .findFirst()
+            .orElse(OK_STATUS_CODE);
     }
-
 }

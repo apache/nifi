@@ -320,16 +320,10 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status|flowStatus|dump|env)
+    start|stop|restart|run|status|flowStatus|dump|env)
         main "$@"
         exit $EXIT_STATUS
         ;;
-    restart)
-        init
-        run "stop"
-        run "start"
-        exit $EXIT_STATUS
-    ;;
     *)
         echo "Usage minifi {start|stop|run|restart|status|flowStatus|dump|install}"
         ;;

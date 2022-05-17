@@ -14,23 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap;
+package org.apache.nifi.minifi.bootstrap.exception;
 
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+public class StartupFailureException extends RuntimeException {
 
-public class WindowsService {
+    private static final long serialVersionUID = 1L;
 
-    private static RunMiNiFi bootstrap;
-
-    public static void start(String[] args) throws IOException {
-        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(RunMiNiFiCommand.START, new String[0]);
+    public StartupFailureException() {
     }
 
-    public static void stop(String[] args) {
-        bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(RunMiNiFiCommand.STOP, new String[0]);
+    public StartupFailureException(String message) {
+        super(message);
     }
 
+    public StartupFailureException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public StartupFailureException(Throwable cause) {
+        super(cause);
+    }
+
+    public StartupFailureException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
 }

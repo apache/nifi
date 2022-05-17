@@ -14,23 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+package org.apache.nifi.minifi.bootstrap.command;
 
-public class WindowsService {
-
-    private static RunMiNiFi bootstrap;
-
-    public static void start(String[] args) throws IOException {
-        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(RunMiNiFiCommand.START, new String[0]);
-    }
-
-    public static void stop(String[] args) {
-        bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(RunMiNiFiCommand.STOP, new String[0]);
-    }
-
+public interface CommandService {
+    int runCommand(String[] args);
 }

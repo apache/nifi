@@ -16,21 +16,12 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+import java.util.Optional;
 
-public class WindowsService {
+public enum RunMiNiFiCommand {
+    START, RUN, STOP, STATUS, DUMP, RESTART, ENV, FLOWSTATUS, UNKNOWN;
 
-    private static RunMiNiFi bootstrap;
-
-    public static void start(String[] args) throws IOException {
-        bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(RunMiNiFiCommand.START, new String[0]);
+    public static Optional<RunMiNiFiCommand> fromString(String val) {
+        return Optional.ofNullable(val).map(String::toUpperCase).map(RunMiNiFiCommand::valueOf).filter(command -> command != UNKNOWN);
     }
-
-    public static void stop(String[] args) {
-        bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(RunMiNiFiCommand.STOP, new String[0]);
-    }
-
 }

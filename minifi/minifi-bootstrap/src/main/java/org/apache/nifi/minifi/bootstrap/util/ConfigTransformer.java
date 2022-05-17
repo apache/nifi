@@ -17,8 +17,29 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
@@ -57,26 +78,6 @@ import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.SecureRandom;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
-
 public final class ConfigTransformer {
     // Underlying version of NIFI will be using
     public static final String ROOT_GROUP = "Root-Group";
@@ -88,6 +89,24 @@ public final class ConfigTransformer {
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
+    }
+
+    public static ByteBuffer generateConfigFiles(InputStream configIs, String configDestinationPath, Properties bootstrapProperties) throws ConfigurationChangeException, IOException {
+        try (java.io.ByteArrayOutputStream byteArrayOutputStream = new java.io.ByteArrayOutputStream();
+            TeeInputStream teeInputStream = new TeeInputStream(configIs, byteArrayOutputStream)) {
+
+            ConfigTransformer.transformConfigFile(
+                teeInputStream,
+                configDestinationPath,
+                bootstrapProperties
+            );
+
+            return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
+        } catch (ConfigurationChangeException e){
+            throw e;
+        } catch (Exception e) {
+            throw new IOException("Unable to successfully transform the provided configuration", e);
+        }
     }
 
     public static void transformConfigFile(InputStream sourceStream, String destPath, Properties bootstrapProperties) throws Exception {
@@ -714,8 +733,8 @@ public final class ConfigTransformer {
 
     protected static void addPosition(final Element parentElement) {
         final Element element = parentElement.getOwnerDocument().createElement("position");
-        element.setAttribute("x", String.valueOf("0"));
-        element.setAttribute("y", String.valueOf("0"));
+        element.setAttribute("x", "0");
+        element.setAttribute("y", "0");
         parentElement.appendChild(element);
     }
 
