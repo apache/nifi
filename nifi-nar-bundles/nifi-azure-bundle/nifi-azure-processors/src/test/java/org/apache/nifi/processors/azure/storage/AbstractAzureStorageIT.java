@@ -37,36 +37,39 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 public abstract class AbstractAzureStorageIT {
 
-    private static final Properties CONFIG;
+    private static final Properties CREDENTIALS_CONFIG;
     private static final Properties PROXY_CONFIG;
 
     private static final String CREDENTIALS_FILE = System.getProperty("user.home") + "/azure-credentials.PROPERTIES";
     private static final String PROXY_CONFIGURATION_FILE = System.getProperty("user.home") + "/proxy-configuration.PROPERTIES";
 
     static {
-        CONFIG = new Properties();
-        PROXY_CONFIG = new Properties();
-        assertDoesNotThrow(() -> {
-            final FileInputStream cFis = new FileInputStream(CREDENTIALS_FILE);
-            assertDoesNotThrow(() -> CONFIG.load(cFis));
-            FileUtils.closeQuietly(cFis);
+        CREDENTIALS_CONFIG = loadConfig(CREDENTIALS_FILE);
+        PROXY_CONFIG = loadConfig(PROXY_CONFIGURATION_FILE);
+    }
 
-            final FileInputStream pCFis = new FileInputStream(PROXY_CONFIGURATION_FILE);
-            assertDoesNotThrow(() -> PROXY_CONFIG.load(pCFis));
-            FileUtils.closeQuietly(pCFis);
+    private static Properties loadConfig(String configPath) {
+        Properties loadedProperties = new Properties();
+
+        assertDoesNotThrow(() -> {
+            final FileInputStream fIS = new FileInputStream(configPath);
+            assertDoesNotThrow(() -> loadedProperties.load(fIS));
+            FileUtils.closeQuietly(fIS);
         });
+
+        return loadedProperties;
     }
 
     protected String getAccountName() {
-        return CONFIG.getProperty("accountName");
+        return CREDENTIALS_CONFIG.getProperty("accountName");
     }
 
     protected String getAccountKey() {
-        return CONFIG.getProperty("accountKey");
+        return CREDENTIALS_CONFIG.getProperty("accountKey");
     }
 
     protected String getEndpointSuffix() {
-        String endpointSuffix = CONFIG.getProperty("endpointSuffix");
+        String endpointSuffix = CREDENTIALS_CONFIG.getProperty("endpointSuffix");
         return endpointSuffix != null ? endpointSuffix : getDefaultEndpointSuffix();
     }
 

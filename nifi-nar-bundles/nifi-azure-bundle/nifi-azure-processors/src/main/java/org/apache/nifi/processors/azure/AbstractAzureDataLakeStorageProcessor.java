@@ -40,7 +40,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import reactor.core.publisher.Mono;
@@ -48,11 +47,11 @@ import reactor.core.publisher.Mono;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.getProxyOptions;
 
 public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProcessor {
 
@@ -97,23 +96,10 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             "Files that could not be written to Azure storage for some reason are transferred to this relationship")
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            ADLS_CREDENTIALS_SERVICE,
-            FILESYSTEM,
-            DIRECTORY,
-            FILE,
-            AzureStorageUtils.PROXY_CONFIGURATION_SERVICE
-    ));
-
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             REL_SUCCESS,
             REL_FAILURE
     )));
-
-    @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return PROPERTIES;
-    }
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -168,7 +154,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         }
 
         final NettyAsyncHttpClientBuilder nettyClientBuilder = new NettyAsyncHttpClientBuilder();
-        AzureStorageUtils.configureProxy(nettyClientBuilder, context);
+        nettyClientBuilder.proxy(getProxyOptions(context));
 
         final HttpClient nettyClient = nettyClientBuilder.build();
         dataLakeServiceClientBuilder.httpClient(nettyClient);

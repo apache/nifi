@@ -51,7 +51,7 @@ public class ProxyConfiguration {
         description.append(specs.stream().map(ProxySpec::getDisplayName).collect(Collectors.joining(", ")));
 
         if (specs.contains(SOCKS)) {
-            description.append(" In case of SOCKS, it is not guaranteed that the selected SOCKS version will be used by the processor.");
+            description.append(" In case of SOCKS, it is not guaranteed that the selected SOCKS Version will be used by the processor.");
         }
 
         return new PropertyDescriptor.Builder()

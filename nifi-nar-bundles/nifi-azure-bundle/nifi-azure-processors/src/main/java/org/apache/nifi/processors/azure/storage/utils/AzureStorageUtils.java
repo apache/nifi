@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage.utils;
 
 import com.azure.core.http.ProxyOptions;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URI;
@@ -51,6 +50,7 @@ import org.apache.nifi.proxy.SocksVersion;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageEmulatorCredentialsDetails;
+import reactor.netty.http.client.HttpClient;
 
 public final class AzureStorageUtils {
     public static final String BLOCK = "Block";
@@ -317,7 +317,14 @@ public final class AzureStorageUtils {
         operationContext.setProxy(proxyConfig.createProxy());
     }
 
-    public static void configureProxy(final NettyAsyncHttpClientBuilder nettyClientBuilder, final PropertyContext propertyContext) {
+    /**
+     *
+     * Creates the {@link ProxyOptions proxy options} that {@link HttpClient} will use.
+     *
+     * @param propertyContext is sed to supply Proxy configurations
+     * @return {@link ProxyOptions proxy options}, null if Proxy is not set
+     */
+    public static ProxyOptions getProxyOptions(final PropertyContext propertyContext) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(propertyContext);
 
         if (proxyConfiguration != ProxyConfiguration.DIRECT_CONFIGURATION) {
@@ -332,8 +339,10 @@ public final class AzureStorageUtils {
                 proxyOptions.setCredentials(proxyUserName, proxyUserPassword);
             }
 
-            nettyClientBuilder.proxy(proxyOptions);
+            return proxyOptions;
         }
+
+         return null;
     }
 
     private static ProxyOptions.Type getProxyType(ProxyConfiguration proxyConfiguration) {
