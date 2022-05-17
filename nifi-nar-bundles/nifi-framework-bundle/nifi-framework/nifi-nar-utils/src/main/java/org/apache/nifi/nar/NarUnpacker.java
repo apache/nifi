@@ -122,6 +122,10 @@ public final class NarUnpacker {
                 final long startTime = System.nanoTime();
                 logger.info("Expanding " + narFiles.size() + " NAR files with all processors...");
                 for (File narFile : narFiles) {
+                    if (!narFile.canRead()) {
+                        throw new IllegalStateException("Unable to read NAR file: " + narFile.getAbsolutePath());
+                    }
+
                     logger.debug("Expanding NAR file: " + narFile.getAbsolutePath());
 
                     // get the manifest for this nar
