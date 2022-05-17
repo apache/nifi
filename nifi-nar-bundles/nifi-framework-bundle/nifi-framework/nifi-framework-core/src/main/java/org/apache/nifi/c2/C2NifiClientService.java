@@ -43,6 +43,7 @@ import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
 import org.apache.nifi.security.util.KeystoreType;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +65,8 @@ public class C2NifiClientService {
     private static final Integer TERMINATION_WAIT = 5000;
 
     private final C2ClientService c2ClientService;
+
+    private final FlowService flowService;
     private final FlowController flowController;
     private final String propertiesDir;
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
@@ -72,7 +75,7 @@ public class C2NifiClientService {
     private final RuntimeManifestService runtimeManifestService;
     private final long heartbeatPeriod;
 
-    public C2NifiClientService(final NiFiProperties niFiProperties, final FlowController flowController) {
+    public C2NifiClientService(final NiFiProperties niFiProperties, final FlowService flowService, final FlowController flowController) {
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
         this.propertiesDir = niFiProperties.getProperty(NiFiProperties.PROPERTIES_FILE_PATH, null);
         this.runtimeManifestService = new StandardRuntimeManifestService(
@@ -82,6 +85,7 @@ public class C2NifiClientService {
             clientConfig.getRuntimeType()
         );
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
+        this.flowService = flowService;
         this.flowController = flowController;
         this.c2ClientService = new C2ClientService(
             new C2HttpClient(clientConfig, new C2JacksonSerializer()),
