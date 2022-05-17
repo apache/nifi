@@ -42,8 +42,8 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
     }
 
     @Override
-    protected Object readRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
-        final Object request;
+    protected Optional<Object> readRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
+        final MapCacheRequest request;
 
         if (MapOperation.CONTAINS_KEY == cacheOperation) {
             request = readKeyRequest(cacheOperation, byteBuf);
@@ -75,7 +75,7 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
             request = new MapCacheRequest(cacheOperation);
         }
 
-        return request;
+        return Optional.ofNullable(request);
     }
 
     private MapCacheRequest readKeyRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
@@ -127,16 +127,13 @@ public class MapCacheRequestDecoder extends CacheRequestDecoder {
 
         final OptionalInt keys = readInt(byteBuf);
         if (keys.isPresent()) {
-            // Mark Reader Index before reading keys
-            byteBuf.markReaderIndex();
             final List<byte[]> subMapKeys = new ArrayList<>();
             for (int i = 0; i < keys.getAsInt(); i++) {
                 final Optional<byte[]> key = readBytes(byteBuf);
                 if (key.isPresent()) {
                     subMapKeys.add(key.get());
                 } else {
-                    // Reset Reader Index to attempt reading keys once subsequent invocations
-                    byteBuf.resetReaderIndex();
+                    // Clear Map to return null and retry on subsequent invocations
                     subMapKeys.clear();
                     break;
                 }

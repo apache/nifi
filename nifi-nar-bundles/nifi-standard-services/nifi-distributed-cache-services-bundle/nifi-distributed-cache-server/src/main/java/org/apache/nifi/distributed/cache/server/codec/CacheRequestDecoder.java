@@ -20,6 +20,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.nifi.distributed.cache.operations.CacheOperation;
+import org.apache.nifi.distributed.cache.operations.StandardCacheOperation;
 import org.apache.nifi.distributed.cache.server.protocol.CacheRequest;
 import org.apache.nifi.distributed.cache.server.protocol.CacheVersionRequest;
 import org.apache.nifi.logging.ComponentLog;
@@ -33,14 +34,11 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Cache Request Decoder processes bytes and decodes cache version and operation requests
  */
 public class CacheRequestDecoder extends ByteToMessageDecoder {
-    private static final int DEFAULT_LENGTH = 0;
-
     private static final int HEADER_LENGTH = 4;
 
     private static final int LONG_LENGTH = 8;
@@ -52,10 +50,6 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
     private final AtomicBoolean headerReceived = new AtomicBoolean();
 
     private final AtomicInteger protocolVersion = new AtomicInteger();
-
-    private final AtomicInteger valueLength = new AtomicInteger(DEFAULT_LENGTH);
-
-    private final AtomicReference<CacheOperation> currentOperation = new AtomicReference<>();
 
     private final ComponentLog log;
 
@@ -89,19 +83,31 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
         if (protocolVersion.get() == 0) {
             final OptionalInt clientVersion = readInt(byteBuf);
             if (clientVersion.isPresent()) {
-                log.debug("Protocol Version [{}] Received [{}]", clientVersion, channelHandlerContext.channel().remoteAddress());
-                final CacheVersionRequest cacheVersionRequest = new CacheVersionRequest(clientVersion.getAsInt());
+                final int clientVersionFound = clientVersion.getAsInt();
+                log.debug("Protocol Version [{}] Received [{}]", clientVersionFound, channelHandlerContext.channel().remoteAddress());
+                final CacheVersionRequest cacheVersionRequest = new CacheVersionRequest(clientVersionFound);
                 objects.add(cacheVersionRequest);
             }
         } else {
-            final CacheOperation cacheOperation = readOperation(byteBuf);
-            final Object cacheRequest = readRequest(cacheOperation, byteBuf);
-            if (cacheRequest == null) {
-                log.debug("Cache Operation [{}] request not processed", cacheOperation);
+            // Mark ByteBuf reader index to reset when sufficient bytes are not found
+            byteBuf.markReaderIndex();
+
+            final Optional<CacheOperation> cacheOperation = readOperation(byteBuf);
+            if (cacheOperation.isPresent()) {
+                final CacheOperation cacheOperationFound = cacheOperation.get();
+
+                final Optional<Object> cacheRequest = readRequest(cacheOperationFound, byteBuf);
+                if (cacheRequest.isPresent()) {
+                    final Object cacheRequestFound = cacheRequest.get();
+                    objects.add(cacheRequestFound);
+                } else if (StandardCacheOperation.CLOSE.value().contentEquals(cacheOperationFound.value())) {
+                    objects.add(new CacheRequest(cacheOperationFound, null));
+                } else {
+                    byteBuf.resetReaderIndex();
+                    log.debug("Cache Operation [{}] request not processed", cacheOperationFound);
+                }
             } else {
-                objects.add(cacheRequest);
-                // Reset Cache Operation after successful decoding
-                currentOperation.set(null);
+                byteBuf.resetReaderIndex();
             }
         }
     }
@@ -126,11 +132,11 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
      *
      * @param cacheOperation Cache Operation
      * @param byteBuf Byte Buffer
-     * @return Request Object or null when buffer does not contain sufficient bytes
+     * @return Request Object or empty when buffer does not contain sufficient bytes
      */
-    protected Object readRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
+    protected Optional<Object> readRequest(final CacheOperation cacheOperation, final ByteBuf byteBuf) {
         final Optional<byte[]> bytes = readBytes(byteBuf);
-        return bytes.map(value -> new CacheRequest(cacheOperation, value)).orElse(null);
+        return bytes.map(value -> new CacheRequest(cacheOperation, value));
     }
 
     /**
@@ -140,10 +146,22 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
      * @return Bytes read or null when buffer does not contain sufficient bytes
      */
     protected Optional<byte[]> readBytes(final ByteBuf byteBuf) {
-        final int length = readBytesLength(byteBuf);
-        final int readableBytes = byteBuf.readableBytes();
-        final boolean readableBytesFound = readableBytes >= length;
-        return readableBytesFound ? Optional.of(readBytes(byteBuf, length)) : Optional.empty();
+        final Optional<byte[]> bytesRead;
+
+        final OptionalInt length = readInt(byteBuf);
+        if (length.isPresent()) {
+            final int readableBytes = byteBuf.readableBytes();
+            final int lengthFound = length.getAsInt();
+            if (readableBytes >= lengthFound) {
+                bytesRead = Optional.of(readBytes(byteBuf, lengthFound));
+            } else {
+                bytesRead = Optional.empty();
+            }
+        } else {
+            bytesRead = Optional.empty();
+        }
+
+        return bytesRead;
     }
 
     /**
@@ -199,36 +217,20 @@ public class CacheRequestDecoder extends ByteToMessageDecoder {
         return readableBytes >= LONG_LENGTH ? OptionalLong.of(byteBuf.readLong()) : OptionalLong.empty();
     }
 
-    private int readBytesLength(final ByteBuf byteBuf) {
-        if (valueLength.get() == DEFAULT_LENGTH) {
-            final OptionalInt length = readInt(byteBuf);
-            length.ifPresent(valueLength::getAndSet);
-        }
-        return valueLength.get();
-    }
-
     private byte[] readBytes(final ByteBuf byteBuf, final int length) {
         final byte[] bytes = new byte[length];
         byteBuf.readBytes(bytes);
-        // Reset value length after reading bytes
-        valueLength.getAndSet(DEFAULT_LENGTH);
         return bytes;
     }
 
-    private CacheOperation readOperation(final ByteBuf byteBuf) {
-        if (currentOperation.get() == null) {
-            final Optional<String> clientOperation = readUnicodeString(byteBuf);
+    private Optional<CacheOperation> readOperation(final ByteBuf byteBuf) {
+        final Optional<String> clientOperation = readUnicodeString(byteBuf);
 
-            if (clientOperation.isPresent()) {
-                final String operation = clientOperation.get();
-                final CacheOperation cacheOperation = Arrays.stream(supportedOperations)
-                        .filter(supportedOperation -> supportedOperation.value().contentEquals(operation))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException(String.format("Cache Operation not supported [%d]", operation.length())));
-                currentOperation.getAndSet(cacheOperation);
-            }
-        }
-        return currentOperation.get();
+        return clientOperation.map(operation -> Arrays.stream(supportedOperations)
+                .filter(supportedOperation -> supportedOperation.value().contentEquals(operation))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(String.format("Cache Operation not supported [%d]", operation.length())))
+        );
     }
 
     private void readHeader(final ByteBuf byteBuf, final SocketAddress remoteAddress) {

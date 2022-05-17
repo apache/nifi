@@ -25,21 +25,27 @@ import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Timeout(5)
 @ExtendWith(MockitoExtension.class)
 class StandardMapCacheServerTest {
     private static final String IDENTIFIER = StandardMapCacheServer.class.getSimpleName();
@@ -58,9 +64,11 @@ class StandardMapCacheServerTest {
 
     private static final byte[] HEADER = new byte[]{'N', 'i', 'F', 'i'};
 
-    private static final String KEY = String.class.getSimpleName();
+    private static final byte[] KEY = String.class.getSimpleName().getBytes(StandardCharsets.UTF_8);
 
     private static final int KEY_NOT_FOUND = 0;
+
+    private static final int PUT_COMPLETED = 1;
 
     @Mock
     ComponentLog log;
@@ -94,23 +102,74 @@ class StandardMapCacheServerTest {
                 final Socket socket = new Socket(LOCALHOST, server.getPort());
                 final InputStream inputStream = socket.getInputStream();
                 final OutputStream outputStream = socket.getOutputStream();
-                final DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+                final DataOutputStream dataOutputStream = new DataOutputStream(outputStream)
                 ) {
-            outputStream.write(HEADER);
-            dataOutputStream.writeInt(ProtocolVersion.V3.value());
-
-            final int protocolResponse = inputStream.read();
-            assertEquals(ProtocolHandshake.RESOURCE_OK, protocolResponse);
+            sendHeaderVersion(dataOutputStream, inputStream);
 
             dataOutputStream.writeUTF(MapOperation.CONTAINS_KEY.value());
 
             // Delay writing key to simulate slow network connection
             TimeUnit.MILLISECONDS.sleep(200);
 
-            dataOutputStream.writeUTF(KEY);
+            dataOutputStream.writeInt(KEY.length);
+            dataOutputStream.write(KEY);
 
             final int read = inputStream.read();
             assertEquals(KEY_NOT_FOUND, read);
         }
+    }
+
+    @Test
+    void testSocketPutGetMaxLength() throws IOException {
+        try (
+                final Socket socket = new Socket(LOCALHOST, server.getPort());
+                final InputStream inputStream = socket.getInputStream();
+                final DataInputStream dataInputStream = new DataInputStream(inputStream);
+                final OutputStream outputStream = socket.getOutputStream();
+                final DataOutputStream dataOutputStream = new DataOutputStream(outputStream)
+        ) {
+            sendHeaderVersion(dataOutputStream, inputStream);
+
+            dataOutputStream.writeUTF(MapOperation.PUT.value());
+
+            dataOutputStream.writeInt(KEY.length);
+            dataOutputStream.write(KEY);
+
+            final byte[] value = getValue();
+            dataOutputStream.writeInt(value.length);
+            dataOutputStream.write(value);
+
+            final int putStatus = inputStream.read();
+            assertEquals(PUT_COMPLETED, putStatus);
+
+            dataOutputStream.writeUTF(MapOperation.GET.value());
+
+            dataOutputStream.writeInt(KEY.length);
+            dataOutputStream.write(KEY);
+
+            final int valueLength = dataInputStream.readInt();
+            assertEquals(MAX_READ_LENGTH, valueLength);
+
+            final byte[] cachedValue = new byte[valueLength];
+            final int cachedValueLength = dataInputStream.read(cachedValue);
+            assertEquals(MAX_READ_LENGTH, cachedValueLength);
+
+            assertArrayEquals(value, cachedValue);
+        }
+    }
+
+    private void sendHeaderVersion(final DataOutputStream dataOutputStream, final InputStream inputStream) throws IOException {
+        dataOutputStream.write(HEADER);
+        dataOutputStream.writeInt(ProtocolVersion.V3.value());
+
+        final int protocolResponse = inputStream.read();
+        assertEquals(ProtocolHandshake.RESOURCE_OK, protocolResponse);
+    }
+
+    private byte[] getValue() {
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] value = new byte[MAX_READ_LENGTH];
+        secureRandom.nextBytes(value);
+        return value;
     }
 }
