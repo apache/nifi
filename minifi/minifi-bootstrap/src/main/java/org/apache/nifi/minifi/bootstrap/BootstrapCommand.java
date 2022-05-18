@@ -18,10 +18,10 @@ package org.apache.nifi.minifi.bootstrap;
 
 import java.util.Optional;
 
-public enum RunMiNiFiCommand {
+public enum BootstrapCommand {
     START, RUN, STOP, STATUS, DUMP, RESTART, ENV, FLOWSTATUS, UNKNOWN;
 
-    public static Optional<RunMiNiFiCommand> fromString(String val) {
-        return Optional.ofNullable(val).map(String::toUpperCase).map(RunMiNiFiCommand::valueOf).filter(command -> command != UNKNOWN);
+    public static Optional<BootstrapCommand> fromString(String val) {
+        return Optional.ofNullable(val).map(String::toUpperCase).map(BootstrapCommand::valueOf).filter(command -> command != UNKNOWN);
     }
 }

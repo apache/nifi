@@ -21,10 +21,10 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.FAILURE_STATUS_CODE;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.MINIFI_CONFIG_FILE_KEY;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.STATUS_FILE_PID_KEY;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.generateConfigFiles;
 
 import java.io.File;
@@ -58,13 +58,13 @@ import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 import org.apache.nifi.util.Tuple;
 
-public class StartService implements CommandService {
+public class StartRunner implements CommandRunner {
     private static final String DEFAULT_JAVA_CMD = "java";
     private static final String DEFAULT_LOG_DIR = "./logs";
     private static final String DEFAULT_LIB_DIR = "./lib";
     private static final String DEFAULT_CONF_DIR = "./conf";
     private static final int STARTUP_WAIT_SECONDS = 60;
-    private static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
+    private static final String DEFAULT_CONFIG_FILE = DEFAULT_CONF_DIR + "/bootstrap.conf";
 
     private final CurrentPortProvider currentPortProvider;
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -77,7 +77,7 @@ public class StartService implements CommandService {
     private final RunMiNiFi runMiNiFi;
     private volatile ShutdownHook shutdownHook;
 
-    public StartService(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
+    public StartRunner(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
         PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler, MiNiFiParameters miNiFiParameters, File bootstrapConfigFile,
         RunMiNiFi runMiNiFi) {
         this.currentPortProvider = currentPortProvider;
@@ -89,15 +89,20 @@ public class StartService implements CommandService {
         this.runMiNiFi = runMiNiFi;
     }
 
+    /**
+     * Starts (and restarts) MiNiFi process during the whole lifecycle of the bootstrap process.
+     * @param args the input arguments
+     * @return status code
+     */
     @Override
     public int runCommand(String[] args) {
         try {
             start();
         } catch (Exception e) {
             CMD_LOGGER.error("Exception happened during MiNiFi startup", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
-        return OK_STATUS_CODE;
+        return OK.getStatusCode();
     }
 
     private void start() throws IOException, InterruptedException {

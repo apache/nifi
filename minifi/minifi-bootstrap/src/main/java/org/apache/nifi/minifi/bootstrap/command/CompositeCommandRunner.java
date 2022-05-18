@@ -17,25 +17,33 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class CompositeService implements CommandService {
-    final List<CommandService> services;
+/**
+ * Composite runner which can execute multiple commands in a sequential order.
+ */
+public class CompositeCommandRunner implements CommandRunner {
+    final List<CommandRunner> services;
 
-    public CompositeService(List<CommandService> services) {
+    public CompositeCommandRunner(List<CommandRunner> services) {
         this.services = Optional.ofNullable(services).map(Collections::unmodifiableList).orElse(Collections.emptyList());
     }
 
+    /**
+     * Executes the runners in sequential order. Stops on first failure.
+     * @param args the input arguments
+     * @return the first failed command status code or OK if there was no failure
+     */
     @Override
     public int runCommand(String[] args) {
         return services.stream()
             .map(service -> service.runCommand(args))
-            .filter(code -> code != OK_STATUS_CODE)
+            .filter(code -> code != OK.getStatusCode())
             .findFirst()
-            .orElse(OK_STATUS_CODE);
+            .orElse(OK.getStatusCode());
     }
 }

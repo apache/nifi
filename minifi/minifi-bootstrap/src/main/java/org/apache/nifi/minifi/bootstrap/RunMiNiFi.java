@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.command.CommandServiceFactory;
+import org.apache.nifi.minifi.bootstrap.command.CommandRunnerFactory;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
@@ -67,14 +67,12 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     public static final String MINIFI_CONFIG_FILE_KEY = "nifi.minifi.config";
     public static final String STATUS_FILE_PID_KEY = "pid";
     public static final int UNINITIALIZED = -1;
-    public static final int OK_STATUS_CODE = 0;
-    public static final int FAILURE_STATUS_CODE = 1;
     private static final String STATUS_FILE_PORT_KEY = "port";
     private static final String STATUS_FILE_SECRET_KEY = "secret.key";
 
     private final BootstrapFileProvider bootstrapFileProvider;
     private final ConfigurationChangeCoordinator configurationChangeCoordinator;
-    private final CommandServiceFactory commandServiceFactory;
+    private final CommandRunnerFactory commandRunnerFactory;
     private final AtomicReference<ByteBuffer> currentConfigFileReference = new AtomicReference<>();
     private final MiNiFiParameters miNiFiParameters;
     private final PeriodicStatusReporterManager periodicStatusReporterManager;
@@ -105,12 +103,12 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         CurrentPortProvider currentPortProvider = new CurrentPortProvider(miNiFiCommandSender, miNiFiParameters);
         GracefulShutdownParameterProvider gracefulShutdownParameterProvider = new GracefulShutdownParameterProvider(bootstrapFileProvider);
         reloadService = new ReloadService(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, this);
-        commandServiceFactory = new CommandServiceFactory(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager,
+        commandRunnerFactory = new CommandRunnerFactory(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager,
             bootstrapFileProvider, new MiNiFiStdLogHandler(), bootstrapConfigFile, this, gracefulShutdownParameterProvider);
     }
 
-    public int run(RunMiNiFiCommand command, String[] args) {
-        return commandServiceFactory.getService(command).runCommand(args);
+    public int run(BootstrapCommand command, String[] args) {
+        return commandRunnerFactory.getRunner(command).runCommand(args);
     }
 
     public static void main(String[] args) {
@@ -119,7 +117,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
             return;
         }
 
-        Optional<RunMiNiFiCommand> cmd = RunMiNiFiCommand.fromString(args[0]);
+        Optional<BootstrapCommand> cmd = BootstrapCommand.fromString(args[0]);
         if (!cmd.isPresent()) {
             printUsage();
             return;

@@ -17,6 +17,12 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-public interface CommandService {
+public interface CommandRunner {
+
+    /**
+     * Executes a command.
+     * @param args the input arguments
+     * @return status code
+     */
     int runCommand(String[] args);
 }

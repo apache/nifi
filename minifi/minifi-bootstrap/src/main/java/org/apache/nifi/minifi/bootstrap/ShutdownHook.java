@@ -41,6 +41,6 @@ public class ShutdownHook extends Thread {
         runner.shutdownChangeNotifier();
         runner.getPeriodicStatusReporterManager().shutdownPeriodicStatusReporters();
         runner.setAutoRestartNiFi(false);
-        runner.run(RunMiNiFiCommand.STOP, new String[0]);
+        runner.run(BootstrapCommand.STOP, new String[0]);
     }
 }

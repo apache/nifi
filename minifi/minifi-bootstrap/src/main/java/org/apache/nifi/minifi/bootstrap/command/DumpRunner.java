@@ -19,8 +19,9 @@ package org.apache.nifi.minifi.bootstrap.command;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.FAILURE_STATUS_CODE;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,13 +31,13 @@ import java.util.Optional;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 
-public class DumpService implements CommandService {
+public class DumpRunner implements CommandRunner {
     private static final String DUMP_CMD = "DUMP";
 
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final CurrentPortProvider currentPortProvider;
 
-    public DumpService(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider) {
+    public DumpRunner(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
     }
@@ -56,7 +57,7 @@ public class DumpService implements CommandService {
         Integer port = currentPortProvider.getCurrentPort();
         if (port == null) {
             CMD_LOGGER.error("Apache MiNiFi is not currently running");
-            return FAILURE_STATUS_CODE;
+            return MINIFI_NOT_RUNNING.getStatusCode();
         }
 
         Optional<String> dump;
@@ -65,14 +66,14 @@ public class DumpService implements CommandService {
         } catch (IOException e) {
             CMD_LOGGER.error("Failed to get DUMP response from MiNiFi");
             DEFAULT_LOGGER.error("Exception:", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
 
         return Optional.ofNullable(dumpFile)
             .map(dmp -> writeDumpToFile(dmp, dump))
             .orElseGet(() -> {
                 dump.ifPresent(CMD_LOGGER::info);
-                return OK_STATUS_CODE;
+                return OK.getStatusCode();
             });
     }
 
@@ -82,11 +83,11 @@ public class DumpService implements CommandService {
         } catch (IOException e) {
             CMD_LOGGER.error("Failed to write DUMP response to file");
             DEFAULT_LOGGER.error("Exception:", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
         // we want to log to the console (by default) that we wrote the thread dump to the specified file
         CMD_LOGGER.info("Successfully wrote thread dump to {}", dumpFile.getAbsolutePath());
-        return OK_STATUS_CODE;
+        return OK.getStatusCode();
     }
 
     private Optional<String> getArg(String[] args, int index) {

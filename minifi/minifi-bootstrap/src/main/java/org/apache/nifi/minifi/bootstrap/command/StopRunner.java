@@ -19,9 +19,10 @@ package org.apache.nifi.minifi.bootstrap.command;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.FAILURE_STATUS_CODE;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +34,7 @@ import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvide
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 
-public class StopService implements CommandService {
+public class StopRunner implements CommandRunner {
     private static final String SHUTDOWN_CMD = "SHUTDOWN";
 
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -42,7 +43,7 @@ public class StopService implements CommandService {
     private final CurrentPortProvider currentPortProvider;
     private final GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
 
-    public StopService(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters, MiNiFiCommandSender miNiFiCommandSender,
+    public StopRunner(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters, MiNiFiCommandSender miNiFiCommandSender,
         CurrentPortProvider currentPortProvider, GracefulShutdownParameterProvider gracefulShutdownParameterProvider) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.miNiFiParameters = miNiFiParameters;
@@ -51,13 +52,18 @@ public class StopService implements CommandService {
         this.gracefulShutdownParameterProvider = gracefulShutdownParameterProvider;
     }
 
+    /**
+     * Shutdown the MiNiFi and the managing bootstrap process as well.
+     * @param args the input arguments
+     * @return status code
+     */
     @Override
     public int runCommand(String[] args) {
         try {
             return stop();
         } catch (Exception e) {
             DEFAULT_LOGGER.error("Exception happened during stopping MiNiFi", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
     }
 
@@ -65,10 +71,10 @@ public class StopService implements CommandService {
         Integer currentPort = currentPortProvider.getCurrentPort();
         if (currentPort == null) {
             CMD_LOGGER.error("Apache MiNiFi is not currently running");
-            return FAILURE_STATUS_CODE;
+            return MINIFI_NOT_RUNNING.getStatusCode();
         }
 
-        int status = OK_STATUS_CODE;
+        int status = OK.getStatusCode();
         // indicate that a stop command is in progress
         File lockFile = bootstrapFileProvider.getLockFile();
         if (!lockFile.exists()) {
@@ -100,7 +106,7 @@ public class StopService implements CommandService {
                 }
             } else {
                 CMD_LOGGER.error("When sending SHUTDOWN command to MiNiFi, got unexpected response {}", commandResponse.orElse(null));
-                status = FAILURE_STATUS_CODE;
+                status = ERROR.getStatusCode();
             }
         } catch (IOException e) {
             if (minifiPid == UNINITIALIZED) {

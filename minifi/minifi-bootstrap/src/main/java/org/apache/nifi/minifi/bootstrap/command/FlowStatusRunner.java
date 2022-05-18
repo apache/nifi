@@ -18,26 +18,32 @@
 package org.apache.nifi.minifi.bootstrap.command;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.FAILURE_STATUS_CODE;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 
-public class FlowStatusService implements CommandService {
+public class FlowStatusRunner implements CommandRunner {
     private final PeriodicStatusReporterManager periodicStatusReporterManager;
 
-    public FlowStatusService(PeriodicStatusReporterManager periodicStatusReporterManager) {
+    public FlowStatusRunner(PeriodicStatusReporterManager periodicStatusReporterManager) {
         this.periodicStatusReporterManager = periodicStatusReporterManager;
     }
 
+    /**
+     * Receive and print detailed flow information from MiNiFi.
+     * Example query: processor:TailFile:health,stats,bulletins
+     * @param args the input arguments
+     * @return status code
+     */
     @Override
     public int runCommand(String[] args) {
         if(args.length == 2) {
             CMD_LOGGER.info(periodicStatusReporterManager.statusReport(args[1]).toString());
-            return OK_STATUS_CODE;
+            return OK.getStatusCode();
         } else {
             CMD_LOGGER.error("The 'flowStatus' command requires an input query. See the System Admin Guide 'FlowStatus Script Query' section for complete details.");
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
     }
 }

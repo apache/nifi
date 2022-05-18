@@ -71,7 +71,6 @@ public class RunMiNiFiTest {
 
     @Test
     public void buildSecurityPropertiesDefinedButInvalid() throws Exception {
-        //final RunMiNiFi testMiNiFi = new RunMiNiFi(null);
         final Properties bootstrapProperties = getTestBootstrapProperties("bootstrap-ssl-ctx/bootstrap.conf.configured.invalid");
         final Optional<SecurityPropertiesSchema> securityPropsOptional = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties);
         assertTrue(securityPropsOptional.isPresent());

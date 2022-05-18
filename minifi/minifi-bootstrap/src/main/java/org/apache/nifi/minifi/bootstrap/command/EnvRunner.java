@@ -19,8 +19,9 @@ package org.apache.nifi.minifi.bootstrap.command;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.FAILURE_STATUS_CODE;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import java.lang.reflect.Method;
 import java.util.Map.Entry;
@@ -29,15 +30,20 @@ import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 
-public class EnvService implements CommandService {
+public class EnvRunner implements CommandRunner {
     private final MiNiFiParameters miNiFiParameters;
     private final MiNiFiStatusProvider miNiFiStatusProvider;
 
-    public EnvService(MiNiFiParameters miNiFiParameters, MiNiFiStatusProvider miNiFiStatusProvider) {
+    public EnvRunner(MiNiFiParameters miNiFiParameters, MiNiFiStatusProvider miNiFiStatusProvider) {
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiStatusProvider = miNiFiStatusProvider;
     }
 
+    /**
+     * Returns information about the MiNiFi's virtual machine.
+     * @param args the input arguments
+     * @return status code
+     */
     @Override
     public int runCommand(String[] args) {
         return env();
@@ -47,7 +53,7 @@ public class EnvService implements CommandService {
         MiNiFiStatus status = miNiFiStatusProvider.getStatus(miNiFiParameters.getMiNiFiPort(), miNiFiParameters.getMinifiPid());
         if (status.getPid() == null) {
             CMD_LOGGER.error("Apache MiNiFi is not running");
-            return FAILURE_STATUS_CODE;
+            return MINIFI_NOT_RUNNING.getStatusCode();
         }
 
         Class<?> virtualMachineClass;
@@ -55,7 +61,7 @@ public class EnvService implements CommandService {
             virtualMachineClass = Class.forName("com.sun.tools.attach.VirtualMachine");
         } catch (ClassNotFoundException cnfe) {
             CMD_LOGGER.error("Seems tools.jar (Linux / Windows JDK) or classes.jar (Mac OS) is not available in classpath");
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
 
         Method attachMethod;
@@ -66,7 +72,7 @@ public class EnvService implements CommandService {
         } catch (Exception e) {
             CMD_LOGGER.error("Methods required for getting environment not available");
             DEFAULT_LOGGER.error("Exception:", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
 
         Object virtualMachine;
@@ -75,7 +81,7 @@ public class EnvService implements CommandService {
         } catch (Exception e) {
             CMD_LOGGER.error("Problem attaching to MiNiFi");
             DEFAULT_LOGGER.error("Exception:", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         }
 
         try {
@@ -88,7 +94,7 @@ public class EnvService implements CommandService {
         } catch (Exception e) {
             CMD_LOGGER.error("Exception happened during the systemproperties call");
             DEFAULT_LOGGER.error("Exception:", e);
-            return FAILURE_STATUS_CODE;
+            return ERROR.getStatusCode();
         } finally {
             try {
                 detachMethod.invoke(virtualMachine);
@@ -96,6 +102,6 @@ public class EnvService implements CommandService {
                 CMD_LOGGER.warn("Caught exception detaching from process", e);
             }
         }
-        return OK_STATUS_CODE;
+        return OK.getStatusCode();
     }
 }

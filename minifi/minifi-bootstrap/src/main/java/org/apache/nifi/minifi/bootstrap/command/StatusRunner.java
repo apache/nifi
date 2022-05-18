@@ -18,21 +18,28 @@
 package org.apache.nifi.minifi.bootstrap.command;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.OK_STATUS_CODE;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RESPONDING;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 
-public class StatusService implements CommandService{
+public class StatusRunner implements CommandRunner {
     private final MiNiFiParameters miNiFiParameters;
     private final MiNiFiStatusProvider miNiFiStatusProvider;
 
-    public StatusService(MiNiFiParameters miNiFiParameters, MiNiFiStatusProvider miNiFiStatusProvider) {
+    public StatusRunner(MiNiFiParameters miNiFiParameters, MiNiFiStatusProvider miNiFiStatusProvider) {
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiStatusProvider = miNiFiStatusProvider;
     }
 
+    /**
+     * Prints the current status of the MiNiFi process.
+     * @param args the input arguments
+     * @return status code
+     */
     @Override
     public int runCommand(String[] args) {
         return status();
@@ -43,17 +50,17 @@ public class StatusService implements CommandService{
         if (status.isRespondingToPing()) {
             CMD_LOGGER.info("Apache MiNiFi is currently running, listening to Bootstrap on port {}, PID={}",
                 status.getPort(), status.getPid() == null ? "unknown" : status.getPid());
-            return OK_STATUS_CODE;
+            return OK.getStatusCode();
         }
 
         if (status.isProcessRunning()) {
             CMD_LOGGER.info("Apache MiNiFi is running at PID {} but is not responding to ping requests", status.getPid());
-            return 4;
+            return MINIFI_NOT_RESPONDING.getStatusCode();
         }
 
         if (status.getPort() == null) {
             CMD_LOGGER.info("Apache MiNiFi is not running");
-            return 3;
+            return MINIFI_NOT_RUNNING.getStatusCode();
         }
 
         if (status.getPid() == null) {
@@ -61,6 +68,6 @@ public class StatusService implements CommandService{
         } else {
             CMD_LOGGER.info("Apache MiNiFi is not running");
         }
-        return 3;
+        return MINIFI_NOT_RUNNING.getStatusCode();
     }
 }
