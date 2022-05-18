@@ -66,12 +66,12 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Provides a Schema Registry Service that interacts with a Hortonworks Schema Registry, available at https://github.com/hortonworks/registry")
 public class HortonworksSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME,
-            SchemaField.SCHEMA_BRANCH_NAME,
-            SchemaField.SCHEMA_TEXT,
-            SchemaField.SCHEMA_TEXT_FORMAT,
-            SchemaField.SCHEMA_IDENTIFIER,
-            SchemaField.SCHEMA_VERSION,
-            SchemaField.SCHEMA_VERSION_ID);
+        SchemaField.SCHEMA_BRANCH_NAME,
+        SchemaField.SCHEMA_TEXT,
+        SchemaField.SCHEMA_TEXT_FORMAT,
+        SchemaField.SCHEMA_IDENTIFIER,
+        SchemaField.SCHEMA_VERSION,
+        SchemaField.SCHEMA_VERSION_ID);
 
     private static final String CLIENT_SSL_PROPERTY_PREFIX = "schema.registry.client.ssl";
 
@@ -127,23 +127,40 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .build();
 
     static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("kerberos-principal")
-            .displayName("Kerberos Principal")
-            .description("The kerberos principal to authenticate with when not using the kerberos credentials service")
-            .defaultValue(null)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
+        .name("kerberos-principal")
+        .displayName("Kerberos Principal")
+        .description("The kerberos principal to authenticate with when not using the kerberos credentials service")
+        .defaultValue(null)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
 
     static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
-            .name("kerberos-password")
-            .displayName("Kerberos Password")
-            .description("The password for the kerberos principal when not using the kerberos credentials service")
-            .defaultValue(null)
-            .required(false)
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("kerberos-password")
+        .displayName("Kerberos Password")
+        .description("The password for the kerberos principal when not using the kerberos credentials service")
+        .defaultValue(null)
+        .required(false)
+        .sensitive(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
+    static final PropertyDescriptor BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+        .name("basic-auth-username")
+        .displayName("Basic Authentication Username")
+        .description("The username to use for basic authentication when the Schema Registry is behind a proxy such as Apache Knox.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .dependsOn(SSL_CONTEXT_SERVICE)
+        .build();
+
+    static final PropertyDescriptor BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+        .name("basic-auth-password")
+        .displayName("Basic Authentication Password")
+        .description("The password to use for basic authentication when the Schema Registry is behind a proxy such as Apache Knox.")
+        .sensitive(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .dependsOn(SSL_CONTEXT_SERVICE)
+        .build();
 
     private volatile boolean usingKerberosWithPassword = false;
     private volatile SchemaRegistryClient schemaRegistryClient;
@@ -158,30 +175,39 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String kerberosPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
 
         final KerberosCredentialsService kerberosCredentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)
-                .asControllerService(KerberosCredentialsService.class);
+            .asControllerService(KerberosCredentialsService.class);
 
         if (kerberosCredentialsService != null && !StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
             results.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
-                    .build());
+                .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                .valid(false)
+                .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                .build());
         }
 
         if (!StringUtils.isBlank(kerberosPrincipal) && StringUtils.isBlank(kerberosPassword)) {
             results.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PASSWORD.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos password is required when specifying a kerberos principal")
-                    .build());
+                .subject(KERBEROS_PASSWORD.getDisplayName())
+                .valid(false)
+                .explanation("kerberos password is required when specifying a kerberos principal")
+                .build());
         }
 
         if (StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
             results.add(new ValidationResult.Builder()
-                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
-                    .valid(false)
-                    .explanation("kerberos principal is required when specifying a kerberos password")
-                    .build());
+                .subject(KERBEROS_PRINCIPAL.getDisplayName())
+                .valid(false)
+                .explanation("kerberos principal is required when specifying a kerberos password")
+                .build());
+        }
+
+        if ((validationContext.getProperty(BASIC_AUTH_USERNAME).isSet() || validationContext.getProperty(BASIC_AUTH_PASSWORD).isSet())
+            && !validationContext.getProperty(SSL_CONTEXT_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder()
+                .subject(BASIC_AUTH_USERNAME.getDisplayName())
+                .valid(false)
+                .explanation("SSL Context Service must be set when using basic authentication")
+                .build());
         }
 
         return results;
@@ -215,7 +241,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
 
         final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE)
-                .asControllerService(KerberosCredentialsService.class);
+            .asControllerService(KerberosCredentialsService.class);
 
         if (kerberosCredentialsService != null) {
             final String principal = kerberosCredentialsService.getPrincipal();
@@ -229,15 +255,23 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
             schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER, getLogger());
             usingKerberosWithPassword = true;
         }
+
+        if (context.getProperty(BASIC_AUTH_USERNAME).isSet()) {
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.AUTH_USERNAME.name(), context.getProperty(BASIC_AUTH_USERNAME).getValue());
+        }
+
+        if (context.getProperty(BASIC_AUTH_PASSWORD).isSet()) {
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.AUTH_PASSWORD.name(), context.getProperty(BASIC_AUTH_PASSWORD).getValue());
+        }
     }
 
     private String getKeytabJaasConfig(final String principal, final String keytab) {
         return "com.sun.security.auth.module.Krb5LoginModule required "
-                + "useTicketCache=false "
-                + "renewTicket=true "
-                + "useKeyTab=true "
-                + "keyTab=\"" + keytab + "\" "
-                + "principal=\"" + principal + "\";";
+            + "useTicketCache=false "
+            + "renewTicket=true "
+            + "useKeyTab=true "
+            + "keyTab=\"" + keytab + "\" "
+            + "principal=\"" + principal + "\";";
     }
 
     private Map<String, String> buildSslProperties(final ConfigurationContext context) {
@@ -283,6 +317,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(KERBEROS_CREDENTIALS_SERVICE);
         properties.add(KERBEROS_PRINCIPAL);
         properties.add(KERBEROS_PASSWORD);
+        properties.add(BASIC_AUTH_USERNAME);
+        properties.add(BASIC_AUTH_PASSWORD);
         return properties;
     }
 
@@ -301,7 +337,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
     }
 
     private SchemaVersionInfo getLatestSchemaVersionInfo(final SchemaRegistryClient client, final String schemaName, final String branchName)
-            throws org.apache.nifi.schema.access.SchemaNotFoundException {
+        throws org.apache.nifi.schema.access.SchemaNotFoundException {
         try {
             // Try to fetch the SchemaVersionInfo from the cache.
             final Tuple<String,String> nameAndBranch = new Tuple<>(schemaName, branchName);
@@ -424,12 +460,12 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String schemaText = versionInfo.getSchemaText();
 
         final SchemaIdentifier resultSchemaIdentifier = SchemaIdentifier.builder()
-                .id(schemaId)
-                .name(schemaName.get())
-                .branch(schemaBranchName.orElse(null))
-                .version(versionInfo.getVersion())
-                .schemaVersionId(versionInfo.getId())
-                .build();
+            .id(schemaId)
+            .name(schemaName.get())
+            .branch(schemaBranchName.orElse(null))
+            .version(versionInfo.getVersion())
+            .schemaVersionId(versionInfo.getId())
+            .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
         return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
@@ -476,11 +512,11 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String schemaText = versionInfo.getSchemaText();
 
         final SchemaIdentifier resultSchemaIdentifier = SchemaIdentifier.builder()
-                .name(schemaName)
-                .id(schemaId.getAsLong())
-                .version(version.getAsInt())
-                .schemaVersionId(versionInfo.getId())
-                .build();
+            .name(schemaName)
+            .id(schemaId.getAsLong())
+            .version(version.getAsInt())
+            .schemaVersionId(versionInfo.getId())
+            .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
         return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
@@ -520,11 +556,11 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String schemaText = versionInfo.getSchemaText();
 
         final SchemaIdentifier resultSchemaIdentifier = SchemaIdentifier.builder()
-                .name(schemaName)
-                .id(versionInfo.getSchemaMetadataId())
-                .version(versionInfo.getVersion())
-                .schemaVersionId(schemaVersionId.getAsLong())
-                .build();
+            .name(schemaName)
+            .id(versionInfo.getSchemaMetadataId())
+            .version(versionInfo.getVersion())
+            .schemaVersionId(schemaVersionId.getAsLong())
+            .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
         return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
@@ -535,9 +571,9 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     private String createErrorMessage(final String baseMessage, final Optional<String> schemaName, final Optional<String> branchName, final OptionalInt version) {
         final StringBuilder builder = new StringBuilder(baseMessage)
-                .append(" with name '")
-                .append(schemaName.orElse("null"))
-                .append("'");
+            .append(" with name '")
+            .append(schemaName.orElse("null"))
+            .append("'");
 
         if (branchName.isPresent()) {
             builder.append(" and branch '").append(branchName.get()).append("'");
