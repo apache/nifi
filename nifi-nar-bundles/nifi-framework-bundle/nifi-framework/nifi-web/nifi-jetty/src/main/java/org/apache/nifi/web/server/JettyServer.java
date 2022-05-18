@@ -51,6 +51,7 @@ import org.apache.nifi.nar.NarProvider;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardNarLoader;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.ui.extension.UiExtension;
@@ -784,13 +785,15 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
             DocGenerator.generate(props, extensionManager, extensionMapping);
 
             // Additionally loaded NARs and collected flow resources must be in place before starting the flows
+            final NarUnpackMode unpackMode = props.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
             final NarLoader narLoader = new StandardNarLoader(
                     props.getExtensionsWorkingDirectory(),
                     props.getComponentDocumentationWorkingDirectory(),
                     NarClassLoadersHolder.getInstance(),
                     extensionManager,
                     extensionMapping,
-                    this);
+                    this,
+                    unpackMode);
 
             narAutoLoader = new NarAutoLoader(props, narLoader);
             narAutoLoader.start();

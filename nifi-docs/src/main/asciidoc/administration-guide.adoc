@@ -3075,6 +3075,9 @@ For example, to provide two additional library locations, a user could also spec
 Providing three total locations, including  `nifi.nar.library.directory`.
 |`nifi.nar.working.directory`|The location of the nar working directory. The default value is `./work/nar` and probably should be left as is.
 |`nifi.documentation.working.directory`|The documentation working directory. The default value is `./work/docs/components` and probably should be left as is.
+|`nifi.nar.unpack.uber.jar`|If set to `true`, when a nar file is unpacked, the inner jar files will be unpacked into a single jar file instead of individual jar files. This can result in NiFi taking
+longer to startup for the first time (about 1-2 minutes, typically) but can result in far fewer open file handles, which can be helpful in certain environments. The default value is `false`. This
+feature is considered experimental. Changing the value of this property may not take effect unless the working directory is also deleted.
 |`nifi.processor.scheduling.timeout`|Time to wait for a Processor's life-cycle operation (`@OnScheduled` and `@OnUnscheduled`) to finish before other life-cycle operation (e.g., *stop*) could be invoked. The default value is `1 min`.
 |===
 

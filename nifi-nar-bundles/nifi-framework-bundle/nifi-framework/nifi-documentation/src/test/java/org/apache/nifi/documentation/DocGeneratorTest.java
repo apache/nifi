@@ -25,6 +25,7 @@ import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Test;
@@ -51,7 +52,7 @@ public class DocGeneratorTest {
                 temporaryFolder.getRoot().getAbsolutePath());
 
         final Bundle systemBundle = SystemBundle.create(properties);
-        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
+        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle, NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
 
         NarClassLoadersHolder.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 

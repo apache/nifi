@@ -51,6 +51,7 @@ public class StandardNarLoader implements NarLoader {
     private final ExtensionDiscoveringManager extensionManager;
     private final ExtensionMapping extensionMapping;
     private final ExtensionUiLoader extensionUiLoader;
+    private final NarUnpackMode narUnpackMode;
 
     private Set<BundleDetails> previouslySkippedBundles;
 
@@ -59,13 +60,15 @@ public class StandardNarLoader implements NarLoader {
                              final NarClassLoaders narClassLoaders,
                              final ExtensionDiscoveringManager extensionManager,
                              final ExtensionMapping extensionMapping,
-                             final ExtensionUiLoader extensionUiLoader) {
+                             final ExtensionUiLoader extensionUiLoader,
+                             final NarUnpackMode narUnpackMode) {
         this.extensionsWorkingDir = extensionsWorkingDir;
         this.docsWorkingDir = docsWorkingDir;
         this.narClassLoaders = narClassLoaders;
         this.extensionManager = extensionManager;
         this.extensionMapping = extensionMapping;
         this.extensionUiLoader = extensionUiLoader;
+        this.narUnpackMode = narUnpackMode;
     }
 
     @Override
@@ -161,7 +164,7 @@ public class StandardNarLoader implements NarLoader {
                 return null;
             }
 
-            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true);
+            final File unpackedExtension = NarUnpacker.unpackNar(narFile, extensionsWorkingDir, true, narUnpackMode);
             NarUnpacker.mapExtension(unpackedExtension, coordinate, docsWorkingDir, extensionMapping);
             return unpackedExtension;
 

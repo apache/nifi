@@ -17,6 +17,7 @@
 package org.apache.nifi;
 
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +70,7 @@ public class StatelessNiFi {
             logger.info("Unpacking {} NARs", narFiles.length);
             final long startUnpack = System.nanoTime();
             for (final File narFile : narFiles) {
-                NarUnpacker.unpackNar(narFile, narWorkingDirectory, false);
+                NarUnpacker.unpackNar(narFile, narWorkingDirectory, false, NarUnpackMode.UNPACK_TO_UBER_JAR);
             }
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startUnpack);

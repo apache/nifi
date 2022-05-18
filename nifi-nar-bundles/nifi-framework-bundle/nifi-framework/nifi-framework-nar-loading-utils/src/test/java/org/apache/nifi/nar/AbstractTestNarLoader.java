@@ -71,7 +71,7 @@ public abstract class AbstractTestNarLoader {
 
         // Unpack NARs
         systemBundle = SystemBundle.create(properties);
-        extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
+        extensionMapping = NarUnpacker.unpackNars(properties, systemBundle, NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
         assertEquals(0, extensionMapping.getAllExtensionNames().size());
 
         // Initialize NarClassLoaders
@@ -96,7 +96,8 @@ public abstract class AbstractTestNarLoader {
                 extensionManager,
                 extensionMapping,
                 (bundles) -> {
-                });
+                },
+                NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
     }
 
     private void deleteDir(String path) throws IOException {
