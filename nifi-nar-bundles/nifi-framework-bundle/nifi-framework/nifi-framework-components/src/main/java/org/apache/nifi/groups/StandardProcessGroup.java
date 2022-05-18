@@ -64,6 +64,7 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.synchronization.StandardVersionedComponentSynchronizer;
@@ -3780,6 +3781,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
+            .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(retainExistingStateScheduler)
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
@@ -3904,7 +3906,8 @@ public final class StandardProcessGroup implements ProcessGroup {
             final ComparableDataFlow currentFlow = new StandardComparableDataFlow("Local Flow", versionedGroup);
             final ComparableDataFlow snapshotFlow = new StandardComparableDataFlow("Versioned Flow", vci.getFlowSnapshot());
 
-            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(), new EvolvingDifferenceDescriptor(), encryptor::decrypt);
+            final FlowComparator flowComparator = new StandardFlowComparator(snapshotFlow, currentFlow, getAncestorServiceIds(),
+                new EvolvingDifferenceDescriptor(), encryptor::decrypt, VersionedComponent::getIdentifier);
             final FlowComparison comparison = flowComparator.compare();
             final Set<FlowDifference> differences = comparison.getDifferences().stream()
                 .filter(difference -> !FlowDifferenceFilters.isEnvironmentalChange(difference, versionedGroup, flowManager))

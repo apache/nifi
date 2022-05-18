@@ -17,10 +17,10 @@
 
 package org.apache.nifi.registry.flow.diff;
 
+import org.apache.nifi.flow.VersionedComponent;
+
 import java.util.Objects;
 import java.util.Optional;
-
-import org.apache.nifi.flow.VersionedComponent;
 
 public class StandardFlowDifference implements FlowDifference {
     private final DifferenceType type;
@@ -91,6 +91,8 @@ public class StandardFlowDifference implements FlowDifference {
     public int hashCode() {
         return 31 + 17 * (componentA == null ? 0 : componentA.getIdentifier().hashCode()) +
             17 * (componentB == null ? 0 : componentB.getIdentifier().hashCode()) +
+            15 * (componentA == null ? 0 : Objects.hash(componentA.getInstanceIdentifier())) +
+            15 * (componentB == null ? 0 : Objects.hash(componentB.getInstanceIdentifier())) +
             Objects.hash(description, type, valueA, valueB);
     }
 
@@ -111,6 +113,18 @@ public class StandardFlowDifference implements FlowDifference {
 
         final String componentBId = componentB == null ? null : componentB.getIdentifier();
         final String otherComponentBId = other.componentB == null ? null : other.componentB.getIdentifier();
+
+        // If both flows have a component A with an instance identifier, the instance ID's must be the same.
+        if (componentA != null && componentA.getInstanceIdentifier() != null && other.componentA != null && other.componentA.getInstanceIdentifier() != null
+            && !componentA.getInstanceIdentifier().equals(other.componentA.getInstanceIdentifier())) {
+            return false;
+        }
+
+        // If both flows have a component B with an instance identifier, the instance ID's must be the same.
+        if (componentB != null && componentB.getInstanceIdentifier() != null && other.componentB != null && other.componentB.getInstanceIdentifier() != null
+            && !componentB.getInstanceIdentifier().equals(other.componentB.getInstanceIdentifier())) {
+            return false;
+        }
 
         return Objects.equals(componentAId, otherComponentAId) && Objects.equals(componentBId, otherComponentBId)
             && Objects.equals(description, other.description) && Objects.equals(type, other.type)

@@ -51,6 +51,7 @@ import org.apache.nifi.encrypt.EncryptionException;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
@@ -334,6 +335,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 // Synchronize the root group
                 final FlowSynchronizationOptions syncOptions = new FlowSynchronizationOptions.Builder()
                     .componentIdGenerator(componentIdGenerator)
+                    .componentComparisonIdLookup(VersionedComponent::getInstanceIdentifier) // compare components by Instance ID because both versioned flows are derived from instantiated flows
                     .componentScheduler(componentScheduler)
                     .ignoreLocalModifications(true)
                     .updateGroupSettings(true)
@@ -379,7 +381,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow("Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()),
             toSet(clusterVersionedFlow.getReportingTasks()), toSet(clusterVersionedFlow.getParameterContexts()));
 
-        final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(), differenceDescriptor, encryptor::decrypt);
+        final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
+            differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier);
         final FlowComparison flowComparison = flowComparator.compare();
         return flowComparison;
     }
