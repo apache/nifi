@@ -72,6 +72,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String NAR_LIBRARY_DIRECTORY_PREFIX = "nifi.nar.library.directory.";
     public static final String NAR_LIBRARY_AUTOLOAD_DIRECTORY = "nifi.nar.library.autoload.directory";
     public static final String NAR_WORKING_DIRECTORY = "nifi.nar.working.directory";
+    public static final String UNPACK_NARS_TO_UBER_JAR = "nifi.nar.unpack.uber.jar";
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
     public static final String SENSITIVE_PROPS_ALGORITHM = "nifi.sensitive.props.algorithm";
@@ -344,6 +345,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final int DEFAULT_WEB_MAX_ACCESS_TOKEN_REQUESTS_PER_SECOND = 25;
     public static final String DEFAULT_WEB_REQUEST_TIMEOUT = "60 secs";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
+    public static final boolean DEFAULT_UNPACK_NARS_TO_UBER_JAR = false;
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
     public static final String DEFAULT_NAR_LIBRARY_DIR = "./lib";
     public static final String DEFAULT_NAR_LIBRARY_AUTOLOAD_DIR = "./extensions";
@@ -766,6 +768,14 @@ public class NiFiProperties extends ApplicationProperties {
 
     public File getNarWorkingDirectory() {
         return new File(getProperty(NAR_WORKING_DIRECTORY, DEFAULT_NAR_WORKING_DIR));
+    }
+
+    public boolean isUnpackNarsToUberJar() {
+        final String propertyValue = getProperty(UNPACK_NARS_TO_UBER_JAR);
+        if (propertyValue == null) {
+            return DEFAULT_UNPACK_NARS_TO_UBER_JAR;
+        }
+        return Boolean.parseBoolean(propertyValue);
     }
 
     public File getFrameworkWorkingDirectory() {

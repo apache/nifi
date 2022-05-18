@@ -24,6 +24,7 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarLoadResult;
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.slf4j.Logger;
@@ -153,7 +154,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
             try {
                 logger.info("Unpacking {}", downloadedFile);
                 final File extensionsWorkingDirectory = new File(workingDirectory, "extensions");
-                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, extensionsWorkingDirectory, false);
+                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, extensionsWorkingDirectory, false, NarUnpackMode.UNPACK_TO_UBER_JAR);
                 unpackedDirs.add(unpackedDir);
             } finally {
                 NarUnpackLock.unlock();

@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.integration.accesscontrol;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import javax.ws.rs.client.Client;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.integration.util.NiFiTestServer;
@@ -30,11 +26,17 @@ import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.util.WebUtils;
+
+import javax.ws.rs.client.Client;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Access control test for the dfm user.
@@ -74,7 +76,8 @@ public class OneWaySslAccessControlHelper {
         }
 
         final Bundle systemBundle = SystemBundle.create(props);
-        NarUnpacker.unpackNars(props, systemBundle);
+
+        NarUnpacker.unpackNars(props, systemBundle, NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
         NarClassLoadersHolder.getInstance().init(props.getFrameworkWorkingDirectory(), props.getExtensionsWorkingDirectory());
 
         // load extensions

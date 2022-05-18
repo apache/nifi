@@ -23,6 +23,7 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.DiagnosticUtils;
 import org.apache.nifi.util.FileUtils;
@@ -137,7 +138,8 @@ public class NiFi implements NiFiEntryPoint {
         final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
 
         // expand the nars
-        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
+        final NarUnpackMode unpackMode = properties.isUnpackNarsToUberJar() ? NarUnpackMode.UNPACK_TO_UBER_JAR : NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle, unpackMode);
 
         // load the extensions classloaders
         NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();

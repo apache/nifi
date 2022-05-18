@@ -79,6 +79,7 @@
         <nifi.nar.library.autoload.directory>./extensions</nifi.nar.library.autoload.directory>
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
+        <nifi.nar.unpack.uber.jar>false</nifi.nar.unpack.uber.jar>
 
         <nifi.sensitive.props.key.protected />
         <nifi.sensitive.props.algorithm>NIFI_PBKDF2_AES_GCM_256</nifi.sensitive.props.algorithm>
