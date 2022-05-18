@@ -87,8 +87,7 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
         + "Events include INSERT, UPDATE, and DELETE operations and are output as individual flow files ordered by the time at which the operation occurred. "
         + "This processor uses Replication Connection to stream data. By default, an existing Logical Replication Slot with the specified name will be used or, "
         + "if none exists, a new one will be created. In the case of an existing slot, make sure that pgoutput is the output plugin. "
-        + "This processor also uses SQL Connection to query system views. "
-        + "Furthermore, a Publication in PostgreSQL database should already exist.")
+        + "This processor also uses SQL Connection to query system views. In addition, a Publication in PostgreSQL database should already exist.")
 
 @Stateful(scopes = Scope.CLUSTER, description = "The last received Log Sequence Number (LSN) from Replication Slot is stored by this processor, "
         + "such that it can continue from the same location if restarted.")
