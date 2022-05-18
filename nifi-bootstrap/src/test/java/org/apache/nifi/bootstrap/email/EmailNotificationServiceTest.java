@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.bootstrap.email;
 
-import jakarta.mail.MessagingException;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationFailedException;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
@@ -32,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EmailNotificationServiceTest {
 
@@ -49,9 +47,7 @@ public class EmailNotificationServiceTest {
         final Map<PropertyDescriptor, PropertyValue> properties = getProperties();
         final EmailNotificationService service = getNotificationService(properties);
 
-        final NotificationFailedException exception = assertThrows(NotificationFailedException.class, () -> service.notify(getNotificationContext(), NotificationType.NIFI_STARTED, SUBJECT, MESSAGE));
-        final Throwable cause = exception.getCause();
-        assertTrue(cause instanceof MessagingException);
+        assertThrows(NotificationFailedException.class, () -> service.notify(getNotificationContext(), NotificationType.NIFI_STARTED, SUBJECT, MESSAGE));
     }
 
     private EmailNotificationService getNotificationService(final Map<PropertyDescriptor, PropertyValue> properties) {

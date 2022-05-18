@@ -78,6 +78,8 @@
             <includes>
                 <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
                 <include>org.glassfish.jaxb:jaxb-runtime</include>
+                <include>com.sun.activation:jakarta.activation</include>
+                <include>jakarta.activation:jakarta.activation-api</include>
             </includes>
         </dependencySet>
 
