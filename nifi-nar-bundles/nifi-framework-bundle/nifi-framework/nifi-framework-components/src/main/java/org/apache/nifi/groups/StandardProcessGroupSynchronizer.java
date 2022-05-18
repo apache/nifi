@@ -152,7 +152,8 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
         final ComparableDataFlow proposedFlow = new StandardComparableDataFlow("Proposed Flow", versionedExternalFlow.getFlowContents());
 
         final PropertyDecryptor decryptor = options.getPropertyDecryptor();
-        final FlowComparator flowComparator = new StandardFlowComparator(proposedFlow, localFlow, group.getAncestorServiceIds(), new StaticDifferenceDescriptor(), decryptor::decrypt);
+        final FlowComparator flowComparator = new StandardFlowComparator(proposedFlow, localFlow, group.getAncestorServiceIds(),
+            new StaticDifferenceDescriptor(), decryptor::decrypt, options.getComponentComparisonIdLookup());
         final FlowComparison flowComparison = flowComparator.compare();
 
         updatedVersionedComponentIds.clear();
@@ -163,12 +164,6 @@ public class StandardProcessGroupSynchronizer implements ProcessGroupSynchronize
                 continue;
             }
             if (FlowDifferenceFilters.isScheduledStateNew(diff)) {
-                continue;
-            }
-            // If the difference type is a Scheduled State Change, we want to ignore it, because we are just trying to
-            // find components that need to be stopped in order to be updated. We don't need to stop a component in order
-            // to change its Scheduled State.
-            if (diff.getDifferenceType() == DifferenceType.SCHEDULED_STATE_CHANGED) {
                 continue;
             }
 

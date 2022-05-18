@@ -17,8 +17,13 @@
 
 package org.apache.nifi.groups;
 
+import org.apache.nifi.flow.VersionedComponent;
+
+import java.util.function.Function;
+
 public class GroupSynchronizationOptions {
     private final ComponentIdGenerator componentIdGenerator;
+    private final Function<VersionedComponent, String> componentComparisonIdLookup;
     private final ComponentScheduler componentScheduler;
     private final PropertyDecryptor propertyDecryptor;
     private final boolean ignoreLocalModifications;
@@ -30,6 +35,7 @@ public class GroupSynchronizationOptions {
 
     private GroupSynchronizationOptions(final Builder builder) {
         this.componentIdGenerator = builder.componentIdGenerator;
+        this.componentComparisonIdLookup = builder.componentComparisonIdLookup;
         this.componentScheduler = builder.componentScheduler;
         this.propertyDecryptor = builder.propertyDecryptor;
         this.ignoreLocalModifications = builder.ignoreLocalModifications;
@@ -42,6 +48,10 @@ public class GroupSynchronizationOptions {
 
     public ComponentIdGenerator getComponentIdGenerator() {
         return componentIdGenerator;
+    }
+
+    public Function<VersionedComponent, String> getComponentComparisonIdLookup() {
+        return componentComparisonIdLookup;
     }
 
     public ComponentScheduler getComponentScheduler() {
@@ -79,6 +89,7 @@ public class GroupSynchronizationOptions {
 
     public static class Builder {
         private ComponentIdGenerator componentIdGenerator;
+        private Function<VersionedComponent, String> componentComparisonIdLookup;
         private ComponentScheduler componentScheduler;
         private boolean ignoreLocalModifications = false;
         private boolean updateSettings = true;
@@ -95,6 +106,17 @@ public class GroupSynchronizationOptions {
          */
         public Builder componentIdGenerator(final ComponentIdGenerator componentIdGenerator) {
             this.componentIdGenerator = componentIdGenerator;
+            return this;
+        }
+
+        /**
+         * When comparing two flows, the components in those two flows must be matched up by their ID's. This specifies how to determine the ID for a given
+         * Versioned Component
+         * @param idLookup the lookup that indicates the ID to use for components
+         * @return the builder
+         */
+        public Builder componentComparisonIdLookup(final Function<VersionedComponent, String> idLookup) {
+            this.componentComparisonIdLookup = idLookup;
             return this;
         }
 
@@ -195,6 +217,9 @@ public class GroupSynchronizationOptions {
             if (componentIdGenerator == null) {
                 throw new IllegalStateException("Must set Component ID Generator");
             }
+            if (componentComparisonIdLookup == null) {
+                throw new IllegalStateException("Must set the Component Comparison ID Lookup");
+            }
             if (componentScheduler == null) {
                 throw new IllegalStateException("Must set Component Scheduler");
             }
@@ -205,6 +230,7 @@ public class GroupSynchronizationOptions {
         public static Builder from(final GroupSynchronizationOptions options) {
             final Builder builder = new Builder();
             builder.componentIdGenerator = options.getComponentIdGenerator();
+            builder.componentComparisonIdLookup = options.getComponentComparisonIdLookup();
             builder.componentScheduler = options.getComponentScheduler();
             builder.ignoreLocalModifications = options.isIgnoreLocalModifications();
             builder.updateSettings = options.isUpdateSettings();

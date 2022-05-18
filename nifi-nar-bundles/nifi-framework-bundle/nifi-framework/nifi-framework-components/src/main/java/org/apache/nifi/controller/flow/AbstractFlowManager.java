@@ -281,6 +281,8 @@ public abstract class AbstractFlowManager implements FlowManager {
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             parameterContextManager.removeParameterContext(parameterContext.getIdentifier());
         }
+
+        LogRepositoryFactory.purge();
     }
 
     private void verifyCanPurge() {
