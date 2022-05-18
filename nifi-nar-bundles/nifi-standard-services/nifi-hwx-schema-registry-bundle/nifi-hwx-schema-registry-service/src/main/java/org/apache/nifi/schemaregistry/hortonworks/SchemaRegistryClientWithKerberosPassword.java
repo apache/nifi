@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.schemaregistry.hortonworks;
 
+import com.hortonworks.registries.auth.Login;
 import com.hortonworks.registries.schemaregistry.client.SchemaRegistryClient;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.security.krb.KerberosLoginException;
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+import java.lang.reflect.Field;
 import java.util.Map;
 
 /**
@@ -47,17 +49,17 @@ public class SchemaRegistryClientWithKerberosPassword extends SchemaRegistryClie
 
     @Override
     protected void initializeSecurityContext() {
-        final String principal = configuration.getValue(SCHEMA_REGISTRY_CLIENT_KERBEROS_PRINCIPAL);
+        final String principal = getConfiguration().getValue(SCHEMA_REGISTRY_CLIENT_KERBEROS_PRINCIPAL);
         if (principal == null) {
             throw new IllegalArgumentException("Failed to login because principal is null");
         }
 
-        final String password = configuration.getValue(SCHEMA_REGISTRY_CLIENT_KERBEROS_PASSWORD);
+        final String password = getConfiguration().getValue(SCHEMA_REGISTRY_CLIENT_KERBEROS_PASSWORD);
         if (password == null) {
             throw new IllegalArgumentException("Failed to login because password is null");
         }
 
-        final Object loggerObject = configuration.getValue(SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER);
+        final Object loggerObject = getConfiguration().getValue(SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER);
         if (loggerObject == null) {
             throw new IllegalArgumentException("Failed to login because component logger is required");
         }
@@ -67,12 +69,23 @@ public class SchemaRegistryClientWithKerberosPassword extends SchemaRegistryClie
         }
 
         kerberosUser = new KerberosPasswordUser(principal, password);
-        login = new KerberosUserLogin(kerberosUser, (ComponentLog) loggerObject);
+        Login login = new KerberosUserLogin(kerberosUser, (ComponentLog) loggerObject);
+        setLogin(login);
 
         try {
             login.login();
         } catch (final KerberosLoginException | LoginException e) {
             LOGGER.error("Failed to login as principal `{}`", new Object[]{principal}, e);
+        }
+    }
+
+    public void setLogin(Login login) {
+        try {
+            Field loginField = SchemaRegistryClient.class.getDeclaredField("login");
+            loginField.setAccessible(true);
+            loginField.set(this, login);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
