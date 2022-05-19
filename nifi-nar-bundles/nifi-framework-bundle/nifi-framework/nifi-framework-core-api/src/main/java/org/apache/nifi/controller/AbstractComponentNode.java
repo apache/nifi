@@ -66,6 +66,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -591,7 +592,10 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // use setProperty instead of setProperties so we can bypass the class loading logic.
         // Consider value changed if it is different than the PropertyDescriptor's default value because we need to call the #onPropertiesModified
         // method on the component if the current value is not the default value, since the component itself is being reloaded.
-        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : this.properties.entrySet()) {
+        // Also, create a copy of this.properties instead of iterating directly over this.properties since the call to setProperty can change the
+        // underlying map, and the behavior of modifying the map while iterating over its elements is undefined.
+        final Map<PropertyDescriptor, PropertyConfiguration> copyOfPropertiesMap = new HashMap<>(this.properties);
+        for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : copyOfPropertiesMap.entrySet()) {
             final PropertyDescriptor propertyDescriptor = entry.getKey();
             final PropertyConfiguration configuration = entry.getValue();
 
