@@ -73,6 +73,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     @BeforeEach
     public void setup(final TestInfo testInfo) throws IOException {
         this.testInfo = testInfo;
+        final String testClassName = testInfo.getTestClass().map(Class::getSimpleName).orElse("<Unknown Test Class>");
+        logger.info("Beginning Test {}:{}", testClassName, testInfo.getDisplayName());
 
         Thread.currentThread().setContextClassLoader(ClassLoader.getSystemClassLoader());
         setupClient();
@@ -115,6 +117,12 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             }
 
             if (isDestroyEnvironmentAfterEachTest()) {
+                cleanup();
+            } else if (destroyFlowFailure != null) {
+                // If unable to destroy the flow, we need to shutdown the instance and delete the flow and completely recreate the environment.
+                // Otherwise, we will be left in an unknown state for the next test, and that can cause cascading failures that are very difficult
+                // to understand and troubleshoot.
+                logger.info("Because there was a failure when destroying the flow, will completely tear down the environments and start with a clean environment for the next test.");
                 cleanup();
             }
 
