@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -122,20 +123,29 @@ public class NiFiPropertiesLoader {
         }
 
         logger.info("Loading Application Properties [{}]", file);
-        final Properties properties = new Properties();
+        final DuplicateDetectingProperties rawProperties = new DuplicateDetectingProperties();
+
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            properties.load(inputStream);
-
-            final Set<String> keys = properties.stringPropertyNames();
-            for (final String key : keys) {
-                final String property = properties.getProperty(key);
-                properties.setProperty(key, property.trim());
-            }
-
-            return new ProtectedNiFiProperties(properties);
+            rawProperties.load(inputStream);
         } catch (final Exception e) {
             throw new RuntimeException(String.format("Loading Application Properties [%s] failed", file), e);
         }
+
+        if (!rawProperties.redundantKeySet().isEmpty()) {
+            logger.warn("Duplicate property keys with the same value were detected in the properties file: {}", String.join(", ", rawProperties.redundantKeySet()));
+        }
+        if (!rawProperties.duplicateKeySet().isEmpty()) {
+            throw new IllegalArgumentException("Duplicate property keys with different values were detected in the properties file: " + String.join(", ", rawProperties.duplicateKeySet()));
+        }
+
+        final Properties properties = new Properties();
+        final Set<String> keys = rawProperties.stringPropertyNames();
+        for (final String key : keys) {
+            final String property = rawProperties.getProperty(key);
+            properties.setProperty(key, property.trim());
+        }
+
+        return new ProtectedNiFiProperties(properties);
     }
 
     /**
@@ -287,6 +297,37 @@ public class NiFiPropertiesLoader {
             } catch (final InvocationTargetException e) {
                 throw new SensitivePropertyProtectionException("Set Bootstrap Key on Provider Factory failed", e);
             }
+        }
+    }
+
+    private static class DuplicateDetectingProperties extends Properties {
+        // Only need to retain Properties key. This will help prevent possible inadvertent exposure of sensitive Properties value
+        private final Set<String> duplicateKeys = new HashSet<>();  // duplicate key with different values
+        private final Set<String> redundantKeys = new HashSet<>();  // duplicate key with same value
+        public DuplicateDetectingProperties() {
+            super();
+        }
+
+        public Set<String> duplicateKeySet() {
+            return duplicateKeys;
+        }
+
+        public Set<String> redundantKeySet() {
+            return redundantKeys;
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+            Object existingValue = super.put(key, value);
+            if (existingValue != null) {
+                if (existingValue.toString().equals(value.toString())) {
+                    redundantKeys.add(key.toString());
+                    return existingValue;
+                } else {
+                    duplicateKeys.add(key.toString());
+                }
+            }
+            return value;
         }
     }
 }

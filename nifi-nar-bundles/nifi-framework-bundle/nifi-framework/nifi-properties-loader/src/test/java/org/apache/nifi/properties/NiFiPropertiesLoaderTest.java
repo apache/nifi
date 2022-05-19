@@ -25,23 +25,43 @@ import java.net.URL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NiFiPropertiesLoaderTest {
     private static final String NULL_PATH = null;
 
     private static final String EMPTY_PATH = "/properties/conf/empty.nifi.properties";
-
     private static final String FLOW_PATH = "/properties/conf/flow.nifi.properties";
-
     private static final String PROTECTED_PATH = "/properties/conf/protected.nifi.properties";
+    private static final String DUPLICATE_PROPERTIES_PATH = "/properties/conf/duplicates.nifi.properties";
 
     private static final String HEXADECIMAL_KEY = "12345678123456788765432187654321";
-
     private static final String EXPECTED_PASSWORD = "propertyValue";
 
     @AfterEach
     void clearSystemProperty() {
         System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
+    }
+
+    @Test
+    void testDuplicateProperties() {
+        final URL resource = NiFiPropertiesLoaderTest.class.getResource(DUPLICATE_PROPERTIES_PATH);
+        assertNotNull(resource);
+
+        final String path = resource.getPath();
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, path);
+
+        final NiFiPropertiesLoader loader = NiFiPropertiesLoader.withKey(String.class.getSimpleName());
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            final NiFiProperties properties = loader.get();
+        });
+
+        String expectedMessage = "Duplicate property keys with different values were detected in the properties file: another.duplicate, nifi.flow.configuration.file";
+        String actualMessage = exception.getMessage();
+
+        assertTrue(actualMessage.contains(expectedMessage));
     }
 
     @Test
