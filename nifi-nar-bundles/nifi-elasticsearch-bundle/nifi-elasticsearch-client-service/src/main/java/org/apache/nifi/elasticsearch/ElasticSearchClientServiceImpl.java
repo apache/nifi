@@ -320,7 +320,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final HttpEntity entity = new NStringEntity(payload.toString(), ContentType.APPLICATION_JSON);
             final StopWatch watch = new StopWatch();
             watch.start();
-            final Response response = performRequest("POST", "_bulk", requestParameters, entity);
+            final Response response = performRequest("POST", "/_bulk", requestParameters, entity);
             watch.stop();
 
             final String rawResponse = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
@@ -360,7 +360,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
             final HttpEntity entity = new NStringEntity(sb.toString(), ContentType.APPLICATION_JSON);
             final StopWatch watch = new StopWatch();
             watch.start();
-            final Response response = performRequest("POST", "_bulk", requestParameters, entity);
+            final Response response = performRequest("POST", "/_bulk", requestParameters, entity);
             watch.stop();
 
             if (getLogger().isDebugEnabled()) {
@@ -406,7 +406,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
         try {
             final StringBuilder endpoint = new StringBuilder();
             if (StringUtils.isNotBlank(index) && !"/".equals(index)) {
-                endpoint.append(index);
+                endpoint.append("/").append(index);
             }
             endpoint.append("/_refresh");
             final Response response = performRequest("POST", endpoint.toString(), requestParameters, null);
@@ -421,7 +421,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
     public Map<String, Object> get(final String index, final String type, final String id, final Map<String, String> requestParameters) {
         try {
             final StringBuilder endpoint = new StringBuilder();
-            endpoint.append(index);
+            endpoint.append("/").append(index);
             if (StringUtils.isNotBlank(type)) {
                 endpoint.append("/").append(type);
             } else {
@@ -482,7 +482,7 @@ public class ElasticSearchClientServiceImpl extends AbstractControllerService im
                     put("keep_alive", keepAlive);
                 }
             }};
-            final Response response = performRequest("POST", index + "/_pit", params, null);
+            final Response response = performRequest("POST", "/" + index + "/_pit", params, null);
             final String body = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
             parseResponseWarningHeaders(response);
 
