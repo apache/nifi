@@ -24,8 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -36,9 +38,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class NiFiPropertiesLoader {
@@ -148,6 +156,7 @@ public class NiFiPropertiesLoader {
      * @return the NiFiProperties instance
      */
     public NiFiProperties load(final File file) {
+        checkForDuplicates(file);
         final ProtectedNiFiProperties protectedProperties = loadProtectedProperties(file);
         final NiFiProperties properties;
 
@@ -209,6 +218,45 @@ public class NiFiPropertiesLoader {
         }
 
         return instance;
+    }
+
+    private void checkForDuplicates(File file) {
+        Map<String, String> properties = new HashMap<>();
+        Map<String, Set<String>> duplicateProperties = new HashMap<>();
+        Pattern keyPattern = Pattern.compile("([^!#=][^=]*)=(.*)");
+
+        if (file == null) {
+            throw new IllegalArgumentException("NiFi properties file missing or unreadable");
+        }
+        // Scan the properties file for duplicate keys
+        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                Matcher matcher = keyPattern.matcher(line);
+
+                if (matcher.matches()) {
+                    String key = matcher.group(1);
+                    String value = matcher.group(2);
+
+                    String existingValue = properties.put(key, value);
+
+                    if (existingValue != null && !existingValue.equals(value)) {
+                        Set<String> dupes = duplicateProperties.computeIfAbsent(key, k -> new HashSet<>(Collections.singleton(existingValue)));
+                        dupes.add(value);
+                    }
+                }
+            }
+        } catch (IOException ioe) {
+            throw new IllegalArgumentException("Cannot load properties file [" + file.getAbsolutePath() + "] due to "
+                    + ioe.getLocalizedMessage(), ioe);
+        }
+
+        if (!duplicateProperties.isEmpty()) {
+            duplicateProperties.keySet().forEach(
+                    k -> logger.error("Duplicate values found for key '{}': {}", k, duplicateProperties.get(k))
+            );
+            throw new IllegalArgumentException("Duplicate keys were detected in the properties file. See previous errors.");
+        }
     }
 
     private NiFiProperties loadDefault() {
