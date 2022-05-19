@@ -756,7 +756,7 @@ public class NiFiClientUtil {
         while (true) {
             final ControllerServiceEntity controllerServiceEntity = nifiClient.getControllerServicesClient().getControllerService(controllerServiceId);
             final String currentValidationStatus = controllerServiceEntity.getStatus().getValidationStatus();
-            if (validationStatus.contentEquals(currentValidationStatus)) {
+            if (validationStatus.equals(currentValidationStatus)) {
                 logger.info("Controller Service ID [{}] Type [{}] Validation Status [{}] matched", controllerServiceId,
                         controllerServiceEntity.getComponent().getType(), validationStatus);
                 return;

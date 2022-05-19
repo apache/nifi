@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -197,7 +198,7 @@ public interface ComponentNode extends ComponentAuthorizable {
      * @return Support status for Sensitive Dynamic Properties
      */
     default boolean isSupportsSensitiveDynamicProperties() {
-        return false;
+        return getComponent().getClass().isAnnotationPresent(SupportsSensitiveDynamicProperties.class);
     }
 
     /**

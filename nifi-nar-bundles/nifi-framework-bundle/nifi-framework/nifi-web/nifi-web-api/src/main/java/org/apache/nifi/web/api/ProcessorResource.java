@@ -427,7 +427,12 @@ public class ProcessorResource extends ApplicationResource {
         });
 
         // get the property descriptor
-        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName, sensitive);
+        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName);
+
+        // Adjust sensitive status for dynamic properties based on requested status
+        if (descriptor.isDynamic()) {
+            descriptor.setSensitive(sensitive);
+        }
 
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();

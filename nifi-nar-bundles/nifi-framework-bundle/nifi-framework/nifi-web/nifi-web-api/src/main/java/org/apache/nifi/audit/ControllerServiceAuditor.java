@@ -149,6 +149,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
                 if (operation != null) {
                     // clear the value if this property is sensitive
                     final PropertyDescriptor propertyDescriptor = controllerService.getPropertyDescriptor(property);
+                    // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
                     if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
                         if (newValue != null) {
                             newValue = SENSITIVE_VALUE_PLACEHOLDER;

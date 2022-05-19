@@ -129,6 +129,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         writeTags(getTags(component));
         writeProperties(component.getPropertyDescriptors(), propertyServices);
         writeDynamicProperties(getDynamicProperties(component));
+        writeSupportsSensitiveDynamicProperties(component.getClass().getAnnotation(SupportsSensitiveDynamicProperties.class));
 
         if (component instanceof Processor) {
             final Processor processor = (Processor) component;
@@ -142,7 +143,6 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
             writeTriggerWhenEmpty(processor.getClass().getAnnotation(TriggerWhenEmpty.class));
             writeTriggerWhenAnyDestinationAvailable(processor.getClass().getAnnotation(TriggerWhenAnyDestinationAvailable.class));
             writeSupportsBatching(processor.getClass().getAnnotation(SupportsBatching.class));
-            writeSupportsSensitiveDynamicProperties(processor.getClass().getAnnotation(SupportsSensitiveDynamicProperties.class));
             writeEventDriven(processor.getClass().getAnnotation(EventDriven.class));
             writePrimaryNodeOnly(processor.getClass().getAnnotation(PrimaryNodeOnly.class));
             writeSideEffectFree(processor.getClass().getAnnotation(SideEffectFree.class));

@@ -17,7 +17,6 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.attribute.expression.language.VariableImpact;
@@ -146,11 +145,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public boolean isExtensionMissing() {
         return isExtensionMissing.get();
-    }
-
-    @Override
-    public boolean isSupportsSensitiveDynamicProperties() {
-        return getComponentClass().isAnnotationPresent(SupportsSensitiveDynamicProperties.class);
     }
 
     @Override

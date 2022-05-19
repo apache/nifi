@@ -616,10 +616,9 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
-     * @param sensitive Sensitive Status
      * @return descriptor
      */
-    PropertyDescriptorDTO getProcessorPropertyDescriptor(String id, String property, boolean sensitive);
+    PropertyDescriptorDTO getProcessorPropertyDescriptor(String id, String property);
 
     /**
      * Gets all the Processor transfer objects for this controller.
@@ -2047,10 +2046,9 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
-     * @param sensitive Requested Sensitive Status
      * @return property
      */
-    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property, boolean sensitive);
+    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property);
 
     /**
      * Gets the references for specified controller service.
@@ -2170,10 +2168,9 @@ public interface NiFiServiceFacade {
      *
      * @param id id
      * @param property property
-     * @param sensitive Requested sensitive status
      * @return descriptor
      */
-    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property, boolean sensitive);
+    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property);
 
     /**
      * Updates the specified reporting task.
