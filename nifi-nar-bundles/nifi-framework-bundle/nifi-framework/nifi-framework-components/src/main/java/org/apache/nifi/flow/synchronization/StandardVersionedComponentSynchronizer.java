@@ -59,6 +59,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -118,6 +119,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1195,7 +1197,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             service.setComments(proposed.getComments());
             service.setName(proposed.getName());
 
-            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), service.getProcessGroup());
             service.setProperties(properties, true, sensitiveDynamicPropertyNames);
 
@@ -1210,16 +1212,33 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         }
     }
 
-    private Set<String> getSensitiveDynamicPropertyNames(final ComponentNode componentNode, final Map<String, String> proposedProperties) {
+    private Set<String> getSensitiveDynamicPropertyNames(
+            final ComponentNode componentNode,
+            final Map<String, String> proposedProperties,
+            final Collection<VersionedPropertyDescriptor> proposedDescriptors
+    ) {
+        final Set<String> sensitiveDynamicPropertyNames = new LinkedHashSet<>();
+
+        // Find sensitive dynamic property names using proposed Versioned Property Descriptors
+        proposedDescriptors.stream()
+                .filter(VersionedPropertyDescriptor::isSensitive)
+                .map(VersionedPropertyDescriptor::getName)
+                .map(componentNode::getPropertyDescriptor)
+                .filter(PropertyDescriptor::isDynamic)
+                .map(PropertyDescriptor::getName)
+                .forEach(sensitiveDynamicPropertyNames::add);
+
         // Find Encrypted Property values and find associated dynamic Property Descriptor names
-        return proposedProperties.entrySet()
+        proposedProperties.entrySet()
                 .stream()
                 .filter(entry -> isValueEncrypted(entry.getValue()))
                 .map(Map.Entry::getKey)
                 .map(componentNode::getPropertyDescriptor)
                 .filter(PropertyDescriptor::isDynamic)
                 .map(PropertyDescriptor::getName)
-                .collect(Collectors.toSet());
+                .forEach(sensitiveDynamicPropertyNames::add);
+
+        return sensitiveDynamicPropertyNames;
     }
 
     private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties, final ProcessGroup group) {
@@ -2497,7 +2516,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             processor.setName(proposed.getName());
             processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
-            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processor, proposed.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processor, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), processor.getProcessGroup());
             processor.setProperties(properties, true, sensitiveDynamicPropertyNames);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
@@ -3186,7 +3205,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(proposed.getAnnotationData());
-            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(reportingTask, proposed.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(reportingTask, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             reportingTask.setProperties(proposed.getProperties(), false, sensitiveDynamicPropertyNames);
 
             // enable/disable/start according to the ScheduledState

@@ -4129,6 +4129,7 @@ public final class DtoFactory {
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
+        copy.setSensitiveDynamicPropertyNames(copy(original.getSensitiveDynamicPropertyNames()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
@@ -4235,6 +4236,7 @@ public final class DtoFactory {
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));
         copy.setProperties(copy(original.getProperties()));
+        copy.setSensitiveDynamicPropertyNames(copy(original.getSensitiveDynamicPropertyNames()));
         copy.setSchedulingPeriod(original.getSchedulingPeriod());
         copy.setPenaltyDuration(original.getPenaltyDuration());
         copy.setYieldDuration(original.getYieldDuration());
