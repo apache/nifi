@@ -21,9 +21,11 @@ on:
     - cron: "0 0 * * *"
   push:
     paths:
+      - '.github/workflows/system-tests.yml'
       - 'nifi-system-tests/**'
   pull_request:
     paths:
+      - '.github/workflows/system-tests.yml'
       - 'nifi-system-tests/**'
 
 env:
@@ -51,6 +53,46 @@ env:
     -pl nifi-system-tests/nifi-stateless-system-test-suite
 
 jobs:
+  ubuntu-17:
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    name: Ubuntu Java 17
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Set up Java 17
+        uses: actions/setup-java@v2
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: 'maven'
+      - name: Build Dependencies
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_BUILD_ARGUMENTS }}
+          ${{ env.MAVEN_PROJECTS }}
+      - name: Run Tests
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+        run: >
+          ${{ env.MAVEN_COMMAND }}
+          ${{ env.MAVEN_RUN_ARGUMENTS }}
+          ${{ env.MAVEN_PROJECTS }}
+      - name: Upload Troubleshooting Logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@v2
+        with:
+          name: ubuntu-17-troubleshooting-logs
+          path: |
+            nifi-system-tests/nifi-system-test-suite/target/failsafe-reports/**/*.txt
+            nifi-system-tests/nifi-system-test-suite/target/surefire-reports/**/*.txt
+            nifi-system-tests/nifi-system-test-suite/target/troubleshooting/**/*
+          retention-days: 7
+
   ubuntu:
     timeout-minutes: 120
     runs-on: ubuntu-latest
