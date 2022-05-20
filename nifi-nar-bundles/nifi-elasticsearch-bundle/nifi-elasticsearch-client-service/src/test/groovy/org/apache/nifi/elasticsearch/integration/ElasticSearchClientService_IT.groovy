@@ -34,13 +34,14 @@ import org.apache.nifi.util.StringUtils
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assumptions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 import static groovy.json.JsonOutput.prettyPrint
 import static groovy.json.JsonOutput.toJson
+import static org.junit.jupiter.api.Assertions.assertNotEquals
+import static org.junit.jupiter.api.Assertions.assertThrows
 import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 import static org.junit.jupiter.api.Assertions.assertEquals
@@ -83,7 +84,7 @@ class ElasticSearchClientService_IT {
 
     @BeforeAll
     static void beforeAll() throws Exception {
-        Assumptions.assumeTrue(isElasticsearchSetup(), "Elasticsearch integration-tests not setup")
+        assumeTrue(isElasticsearchSetup(), "Elasticsearch integration-tests not setup")
 
         System.out.println(
                 String.format("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nVERSION: %s%nFLAVOUR %s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
@@ -119,7 +120,7 @@ class ElasticSearchClientService_IT {
             throw ex
         }
 
-        service.refresh(null, null);
+        service.refresh(null, null)
     }
 
     @AfterEach
@@ -226,9 +227,9 @@ class ElasticSearchClientService_IT {
 
     @Test
     void testSearchWarnings() {
-        Assume.assumeTrue("Requires version <8.0 (no search API deprecations yet for 8.x)", VERSION < ES_8_0)
+        assumeTrue(VERSION < ES_8_0, "Requires version <8.0 (no search API deprecations yet for 8.x)")
 
-        String query
+        String query = null
         String type = TYPE
         if (VERSION.toString().startsWith("8.")) {
             // TODO: something that's deprecated when the 8.x branch progresses to include search-API deprecations
@@ -287,11 +288,11 @@ class ElasticSearchClientService_IT {
         assertNull(scrollResponse.searchAfter, "Unexpected Search_After")
         assertNull(scrollResponse.pitId, "Unexpected pitId")
 
-        assertNotEquals(scrollResponse.hits, response.hits, "Same results")
+        assertNotEquals(scrollResponse.hits, response.hits, () -> "Same results")
 
         // delete the scroll
         DeleteOperationResponse deleteResponse = service.deleteScroll(scrollResponse.scrollId)
-        assertNotNull("Delete Response was null", deleteResponse)
+        assertNotNull(deleteResponse, "Delete Response was null")
         assertTrue(deleteResponse.took > 0)
 
         // delete scroll again (should now be unknown but the 404 caught and ignored)
@@ -638,7 +639,7 @@ class ElasticSearchClientService_IT {
         doc.put("msg", "Buongiorno, mondo")
         service.add(new IndexOperationRequest(INDEX, TYPE, TEST_ID, doc, IndexOperationRequest.Operation.Index), [refresh: "true"])
         Map<String, Object> result = service.get(INDEX, TYPE, TEST_ID, null)
-        assertEquals("Not the same", doc, result)
+        assertEquals(doc, result, "Not the same")
 
         Map<String, Object> updates = new HashMap<>()
         updates.put("from", "john.smith")
@@ -684,7 +685,7 @@ class ElasticSearchClientService_IT {
         assert response.hasErrors()
         assert response.items.findAll {
             def key = it.keySet().stream().findFirst().get()
-            it[key].containsKey("error")
+            (it[key] as Map<String, Object>).containsKey("error")
         }.size() == 2
     }
 
