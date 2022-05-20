@@ -110,25 +110,26 @@ public final class ConfigTransformer {
     }
 
     public static void transformConfigFile(InputStream sourceStream, String destPath, Properties bootstrapProperties) throws Exception {
-        ConvertableSchema<ConfigSchema> convertableSchema = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(sourceStream));
-        ConfigSchema configSchema = throwIfInvalid(convertableSchema.convert());
+        ConvertableSchema<ConfigSchema> convertableSchemaNew = throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(sourceStream));
+        ConfigSchema configSchemaNew = throwIfInvalid(convertableSchemaNew.convert());
 
         SecurityPropertiesSchema securityProperties = BootstrapTransformer.buildSecurityPropertiesFromBootstrap(bootstrapProperties).orElse(null);
         ProvenanceReportingSchema provenanceReportingProperties = BootstrapTransformer.buildProvenanceReportingPropertiesFromBootstrap(bootstrapProperties).orElse(null);
 
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {
-            configSchema.setSecurityProperties(securityProperties);
+            configSchemaNew.setSecurityProperties(securityProperties);
             logger.info("Bootstrap flow override: Replaced security properties");
         }
+
         if (provenanceReportingProperties != null) {
-            configSchema.setProvenanceReportingProperties(provenanceReportingProperties);
+            configSchemaNew.setProvenanceReportingProperties(provenanceReportingProperties);
             logger.info("Bootstrap flow override: Replaced provenance reporting properties");
         }
 
         // Replace all processor SSL controller services with MiNiFi parent, if bootstrap boolean is set to true
         if (BootstrapTransformer.processorSSLOverride(bootstrapProperties)) {
-            for (ProcessorSchema processorConfig : configSchema.getProcessGroupSchema().getProcessors()) {
+            for (ProcessorSchema processorConfig : configSchemaNew.getProcessGroupSchema().getProcessors()) {
                 processorConfig.getProperties().replace("SSL Context Service", processorConfig.getProperties().get("SSL Context Service"), "SSL-Context-Service");
                 logger.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
             }
@@ -139,19 +140,19 @@ public final class ConfigTransformer {
             .orElse(Collections.emptySet())
             .stream()
             .filter(entry -> ((String) entry.getKey()).startsWith("c2"))
-            .forEach(entry -> configSchema.getNifiPropertiesOverrides().putIfAbsent((String) entry.getKey(), (String) entry.getValue()));
+            .forEach(entry -> configSchemaNew.getNifiPropertiesOverrides().putIfAbsent((String) entry.getKey(), (String) entry.getValue()));
 
         // Create nifi.properties and flow.xml.gz in memory
         ByteArrayOutputStream nifiPropertiesOutputStream = new ByteArrayOutputStream();
-        writeNiFiProperties(configSchema, nifiPropertiesOutputStream);
+        writeNiFiProperties(configSchemaNew, nifiPropertiesOutputStream);
 
-        writeFlowXmlFile(configSchema, destPath);
+        writeFlowXmlFile(configSchemaNew, destPath);
 
         // Write nifi.properties and flow.xml.gz
         writeNiFiPropertiesFile(nifiPropertiesOutputStream, destPath);
     }
 
-    private static <T extends Schema> T throwIfInvalid(T schema) throws InvalidConfigurationException {
+    public static <T extends Schema> T throwIfInvalid(T schema) throws InvalidConfigurationException {
         if (!schema.isValid()) {
             throw new InvalidConfigurationException("Failed to transform config file due to:["
                     + schema.getValidationIssues().stream().sorted().collect(Collectors.joining("], [")) + "]");

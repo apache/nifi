@@ -19,22 +19,30 @@ package org.apache.nifi.minifi.bootstrap.service;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.MINIFI_CONFIG_FILE_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.OVERRIDE_SECURITY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
 import static org.apache.nifi.minifi.bootstrap.util.ConfigTransformer.generateConfigFiles;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
+import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
+import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.slf4j.Logger;
 
 public class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
@@ -70,26 +78,23 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
                 bufferedConfigOs.write(copyArray, 0, available);
             }
 
-            // Create an input stream to use for writing a config file as well as feeding to the config transformer
-            try (ByteArrayInputStream newConfigBais = new ByteArrayInputStream(bufferedConfigOs.toByteArray())) {
+            File swapConfigFile = bootstrapFileProvider.getSwapFile();
+            logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
+
+            try (FileInputStream configFileInputStream = new FileInputStream(configFile)) {
+                Files.copy(configFileInputStream, swapConfigFile.toPath(), REPLACE_EXISTING);
+            }
+
+            persistBackNonFlowSectionsFromOriginalSchema(bufferedConfigOs.toByteArray(), bootstrapProperties, configFile);
+
+            // Create an input stream to feed to the config transformer
+            try (ByteArrayInputStream newConfigBais = new ByteArrayInputStream(IOUtils.toByteArray(new FileInputStream(configFile)))) {
                 newConfigBais.mark(-1);
 
-                File swapConfigFile = bootstrapFileProvider.getSwapFile();
-                logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
-
-                try (FileInputStream configFileInputStream = new FileInputStream(configFile)) {
-                    Files.copy(configFileInputStream, swapConfigFile.toPath(), REPLACE_EXISTING);
-                }
-
                 try {
-                    logger.info("Persisting changes to {}", configFile.getAbsolutePath());
-                    saveFile(newConfigBais, configFile);
                     String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
 
                     try {
-                        // Reset the input stream to provide to the transformer
-                        newConfigBais.reset();
-
                         logger.info("Performing transformation for input and saving outputs to {}", confDir);
                         ByteBuffer tempConfigFile = generateConfigFiles(newConfigBais, confDir, bootstrapFileProvider.getBootstrapProperties());
                         runner.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
@@ -143,25 +148,68 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
         return "MiNiFiConfigurationChangeListener";
     }
 
-    private void saveFile(InputStream configInputStream, File configFile) throws IOException {
-        try {
-            try (FileOutputStream configFileOutputStream = new FileOutputStream(configFile)) {
-                byte[] copyArray = new byte[1024];
-                int available;
-                while ((available = configInputStream.read(copyArray)) > 0) {
-                    configFileOutputStream.write(copyArray, 0, available);
-                }
-            }
-        } catch (IOException ioe) {
-            throw new IOException("Unable to save updated configuration to the configured config file location", ioe);
-        }
-    }
-
     private void restartInstance() throws IOException {
         try {
             runner.reload();
         } catch (IOException e) {
             throw new IOException("Unable to successfully restart MiNiFi instance after configuration change.", e);
         }
+    }
+
+    private void persistBackNonFlowSectionsFromOriginalSchema(byte[] newSchema, Properties bootstrapProperties, File configFile) {
+        try {
+            ConvertableSchema<ConfigSchema> schemaNew = ConfigTransformer
+                .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteArrayInputStream(newSchema)));
+            ConfigSchema configSchemaNew = ConfigTransformer.throwIfInvalid(schemaNew.convert());
+            ConvertableSchema<ConfigSchema> schemaOld = ConfigTransformer
+                .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(runner.getConfigFileReference().get().duplicate())));
+            ConfigSchema configSchemaOld = ConfigTransformer.throwIfInvalid(schemaOld.convert());
+
+            configSchemaNew.setNifiPropertiesOverrides(configSchemaOld.getNifiPropertiesOverrides());
+
+            if (!overrideCoreProperties(bootstrapProperties)) {
+                logger.debug("Preserving previous core properties...");
+                configSchemaNew.setCoreProperties(configSchemaOld.getCoreProperties());
+            }
+
+            if (!overrideSecurityProperties(bootstrapProperties)) {
+                logger.debug("Preserving previous security properties...");
+                configSchemaNew.setSecurityProperties(configSchemaOld.getSecurityProperties());
+            }
+
+            logger.debug("Persisting changes to {}", configFile.getAbsolutePath());
+            SchemaLoader.toYaml(configSchemaNew, new FileWriter(configFile));
+        } catch (Exception e) {
+            logger.error("Loading the old and the new schema for merging was not successful");
+        }
+    }
+
+    private static boolean overrideSecurityProperties(Properties properties) {
+        String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
+        boolean overrideSecurity;
+        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)) {
+            overrideSecurity = Boolean.parseBoolean(overrideSecurityProperties);
+        } else {
+            throw new IllegalArgumentException(
+                "Property, " + OVERRIDE_SECURITY + ", to specify whether to override security properties must either be a value boolean value (\"true\" or \"false\")" +
+                " or left to the default value of \"false\". It is set to \"" + overrideSecurityProperties + "\".");
+        }
+
+        return overrideSecurity;
+    }
+
+    private static boolean overrideCoreProperties(Properties properties) {
+        String overrideCorePropertiesKey = PULL_HTTP_BASE_KEY + ".override.core";
+        String overrideCoreProps = (String) properties.getOrDefault(overrideCorePropertiesKey, "false");
+        boolean overrideCoreProperties;
+        if ("true".equalsIgnoreCase(overrideCoreProps) || "false".equalsIgnoreCase(overrideCoreProps)) {
+            overrideCoreProperties = Boolean.parseBoolean(overrideCoreProps);
+        } else {
+            throw new IllegalArgumentException(
+                "Property, " + overrideCorePropertiesKey + ", to specify whether to override core properties must either be a value boolean value (\"true\" or \"false\")" +
+                " or left to the default value of \"false\". It is set to \"" + overrideCoreProps + "\".");
+        }
+
+        return overrideCoreProperties;
     }
 }
