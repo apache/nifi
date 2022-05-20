@@ -240,9 +240,13 @@ public class NiFiPropertiesLoader {
 
                     String existingValue = properties.put(key, value);
 
-                    if (existingValue != null && !existingValue.equals(value)) {
-                        Set<String> dupes = duplicateProperties.computeIfAbsent(key, k -> new HashSet<>(Collections.singleton(existingValue)));
-                        dupes.add(value);
+                    if (existingValue != null) {
+                        if (existingValue.equals(value)) {
+                            logger.warn("Duplicate keys found for key '{}', but values are the same.", key);
+                        } else {
+                            Set<String> dupes = duplicateProperties.computeIfAbsent(key, k -> new HashSet<>(Collections.singleton(existingValue)));
+                            dupes.add(value);
+                        }
                     }
                 }
             }
@@ -253,7 +257,7 @@ public class NiFiPropertiesLoader {
 
         if (!duplicateProperties.isEmpty()) {
             duplicateProperties.keySet().forEach(
-                    k -> logger.error("Duplicate values found for key '{}': {}", k, duplicateProperties.get(k))
+                    k -> logger.error("Duplicate entries found for key '{}'. Conflicting values are: {}", k, duplicateProperties.get(k))
             );
             throw new IllegalArgumentException("Duplicate keys were detected in the properties file. See previous errors.");
         }
