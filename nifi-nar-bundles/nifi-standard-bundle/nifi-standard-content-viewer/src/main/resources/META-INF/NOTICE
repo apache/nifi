@@ -35,3 +35,7 @@ The following binary components are provided under the Apache Software License v
       This library containd statically linked libstdc++. This inclusion is allowed by
       "GCC RUntime Library Exception"
       http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
+
+  (ASLv2) SnakeYAML
+      The following NOTICE information applies:
+        Copyright (c) 2008, https://www.snakeyaml.org
