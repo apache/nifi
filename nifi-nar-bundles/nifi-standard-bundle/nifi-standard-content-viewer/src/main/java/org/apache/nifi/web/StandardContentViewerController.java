@@ -30,6 +30,8 @@ import org.apache.nifi.xml.processing.transform.StandardTransformProvider;
 import org.joda.time.DateTime;
 import org.joda.time.LocalDate;
 import org.joda.time.LocalTime;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -57,6 +59,13 @@ public class StandardContentViewerController extends HttpServlet {
         supportedMimeTypes.add("application/avro-binary");
         supportedMimeTypes.add("avro/binary");
         supportedMimeTypes.add("application/avro+binary");
+        supportedMimeTypes.add("text/x-yaml");
+        supportedMimeTypes.add("text/yaml");
+        supportedMimeTypes.add("text/yml");
+        supportedMimeTypes.add("application/x-yaml");
+        supportedMimeTypes.add("application/x-yml");
+        supportedMimeTypes.add("application/yaml");
+        supportedMimeTypes.add("application/yml");
     }
 
     /**
@@ -150,6 +159,20 @@ public class StandardContentViewerController extends HttpServlet {
                     formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
 
                     contentType = "application/json";
+                } else if ("text/x-yaml".equals(contentType) || "text/yaml".equals(contentType) || "text/yml".equals(contentType)
+                        || "application/x-yaml".equals(contentType) || "application/x-yml".equals(contentType)
+                        || "application/yaml".equals(contentType) || "application/yml".equals(contentType)) {
+                    Yaml yaml = new Yaml();
+                    // Parse the YAML file
+                    final Object yamlObject = yaml.load(content.getContentStream());
+                    DumperOptions options = new DumperOptions();
+                    options.setIndent(2);
+                    options.setPrettyFlow(true);
+                    // Fix below - additional configuration
+                    options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+                    Yaml output = new Yaml(options);
+                    formatted = output.dump(yamlObject);
+
                 } else {
                     // leave plain text alone when formatting
                     formatted = content.getContent();
