@@ -22,6 +22,7 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -70,6 +71,7 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCES
  * Implementation of for Database Connection Pooling Service. Apache DBCP is used for connection pooling functionality.
  *
  */
+@SupportsSensitiveDynamicProperties
 @Tags({ "dbcp", "jdbc", "database", "connection", "pooling", "store" })
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 @DynamicProperties({

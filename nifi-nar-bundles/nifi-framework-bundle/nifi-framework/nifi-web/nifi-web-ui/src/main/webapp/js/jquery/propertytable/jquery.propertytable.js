@@ -105,6 +105,7 @@
                   _) {
 
     var groupId = null;
+    var supportsSensitiveDynamicProperties = false;
     var propertyVerificationCallback = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
@@ -1829,6 +1830,17 @@
         return properties;
     };
 
+    var getSensitiveDynamicPropertyNames = function (table) {
+        var sensitiveDynamicPropertyNames = [];
+        var descriptors = table.data('descriptors');
+        $.each(descriptors, function () {
+            if (nfCommon.isSensitiveProperty(this) === true && nfCommon.isDynamicProperty(this) === true) {
+                sensitiveDynamicPropertyNames.push(this.name);
+            }
+        });
+        return sensitiveDynamicPropertyNames;
+    };
+
     /**
      * Performs the filtering.
      *
@@ -2028,10 +2040,17 @@
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
                                 '<div class="dialog-content">' +
-                                    '<div>' +
-                                    '<div class="setting-name">Property name</div>' +
+                                    '<div class="setting">' +
+                                        '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
                                             '<input class="new-property-name" type="text"/>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="setting">' +
+                                        '<div class="setting-field new-property-sensitive-value-container">' +
+                                            '<div class="setting-name">Sensitive Value</div>' +
+                                            '<input id="value-sensitive-radio-button" type="radio" name="sensitive" value="sensitive" /> Yes' +
+                                            '<input id="value-not-sensitive-radio-button" type="radio" name="sensitive" value="plain" style="margin-left: 20px;"/> No' +
                                         '</div>' +
                                     '</div>' +
                                 '</div>' +
@@ -2039,6 +2058,8 @@
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);
                         var newPropertyNameField = newPropertyDialog.find('input.new-property-name');
+                        var valueSensitiveField = newPropertyDialog.find('#value-sensitive-radio-button');
+                        var valueNotSensitiveField = newPropertyDialog.find('#value-not-sensitive-radio-button');
 
                         newPropertyDialog.modal({
                             headerText: 'Add Property',
@@ -2089,14 +2110,20 @@
                                 });
 
                                 if (existingItem === null) {
+                                    var sensitive = valueSensitiveField.prop('checked');
+
                                     // load the descriptor and add the property
-                                    options.descriptorDeferred(propertyName).done(function (response) {
+                                    options.descriptorDeferred(propertyName, sensitive).done(function (response) {
                                         var descriptor = response.propertyDescriptor;
 
                                         // store the descriptor for use later
                                         var descriptors = table.data('descriptors');
                                         if (!nfCommon.isUndefined(descriptors)) {
                                             descriptors[descriptor.name] = descriptor;
+                                        } else {
+                                            descriptors = {};
+                                            descriptors[descriptor.name] = descriptor;
+                                            table.data('descriptors', descriptors);
                                         }
 
                                         // add a row for the new property
@@ -2184,6 +2211,15 @@
 
                             // set the initial focus
                             newPropertyNameField.focus();
+
+                            // Set initial Sensitive Value radio button status
+                            valueSensitiveField.prop('checked', false);
+                            valueNotSensitiveField.prop('checked', true);
+
+                            // Set disabled status based on component support indicated
+                            var sensitiveFieldDisabled = supportsSensitiveDynamicProperties !== true;
+                            valueSensitiveField.prop('disabled', sensitiveFieldDisabled);
+                            valueNotSensitiveField.prop('disabled', sensitiveFieldDisabled);
                         }).appendTo(addProperty);
 
                         // build the control to trigger verification
@@ -2334,12 +2370,37 @@
         },
 
         /**
+         * Get Sensitive Dynamic Property Names based on Property Descriptor status
+         */
+        getSensitiveDynamicPropertyNames: function () {
+            var sensitiveDynamicPropertyNames = [];
+
+            this.each(function () {
+                // get the property grid data
+                var table = $(this).find('div.property-table');
+                sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(table);
+                return false;
+            });
+
+            return sensitiveDynamicPropertyNames;
+        },
+
+        /**
          * Sets the current group id. This is used to indicate where inline Controller Services are created
          * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {
                 groupId = currentGroupId;
+            });
+        },
+
+        /**
+         * Set Support status for Sensitive Dynamic Properties
+         */
+        setSupportsSensitiveDynamicProperties: function (currentSupportsSensitiveDynamicProperties) {
+            return this.each(function () {
+                supportsSensitiveDynamicProperties = currentSupportsSensitiveDynamicProperties;
             });
         },
 
