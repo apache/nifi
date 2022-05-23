@@ -283,9 +283,9 @@ public class ControllerServiceResource extends ApplicationResource {
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
 
-        // Adjust sensitive status for dynamic properties based on requested status
-        if (descriptor.isDynamic()) {
-            descriptor.setSensitive(sensitive);
+        // Adjust sensitive status for dynamic properties when sensitive status enabled
+        if (descriptor.isDynamic() && sensitive) {
+            descriptor.setSensitive(true);
         }
 
         // generate the response entity
