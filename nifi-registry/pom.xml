@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry</artifactId>
-    <version>1.16.2</version>
+    <version>1.16.3-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Provides a central location for storage and management of shared resources across one or more instances
         of NiFi and/or MiNiFi.
@@ -110,69 +110,69 @@
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-utils</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-properties-loader</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-factory</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-protection-loader</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-property-utils</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-bootstrap</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-runtime</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-security-api</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-provider-api</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-ui</artifactId>
                 <type>war</type>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-web-api</artifactId>
                 <type>war</type>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.registry</groupId>
                 <artifactId>nifi-registry-resources</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>

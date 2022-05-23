@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hbase-bundle</artifactId>
@@ -35,7 +35,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hbase-processors</artifactId>
-                <version>1.16.2</version>
+                <version>1.16.3-SNAPSHOT</version>
             </dependency>
             <!-- Override commons-io:2.4 from hbase-client -->
             <dependency>
@@ -53,6 +53,6 @@
     </dependencyManagement>
 
   <scm>
-    <tag>nifi-1.16.2-RC3</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

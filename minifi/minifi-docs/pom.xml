@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>minifi-docs</artifactId>
@@ -70,6 +70,6 @@
     </build>
 
   <scm>
-    <tag>nifi-1.16.2-RC3</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

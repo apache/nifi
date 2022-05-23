@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-site-to-site-reporting-bundle</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-site-to-site-reporting-nar</artifactId>
@@ -34,12 +34,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.16.2</version>
+            <version>1.16.3-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.2-RC3</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

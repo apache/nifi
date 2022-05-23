@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-spring-bundle</artifactId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-spring-nar</artifactId>
     <packaging>nar</packaging>
@@ -34,6 +34,6 @@
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.2-RC3</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

@@ -18,7 +18,7 @@
     <parent>
         <artifactId>nifi</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.16.2</version>
+        <version>1.16.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-system-tests</artifactId>
