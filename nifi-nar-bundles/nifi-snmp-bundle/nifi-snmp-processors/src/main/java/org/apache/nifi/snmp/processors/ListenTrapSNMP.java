@@ -23,9 +23,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
@@ -37,19 +36,16 @@ import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.operations.SNMPTrapReceiverHandler;
-import org.apache.nifi.snmp.utils.UsmReader;
 import org.apache.nifi.snmp.processors.properties.BasicProperties;
 import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
 import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.apache.nifi.snmp.utils.UsmReader;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 /**
  * Receiving data from a configured SNMP agent which, upon each invocation of
@@ -65,6 +61,11 @@ import java.util.stream.Stream;
 @RequiresInstanceClassLoading
 public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
 
+    public static final AllowableValue USM_JSON_FILE = new AllowableValue("usm-json-file", "Json File Path", "The path of the JSON file containing the USM users");
+    public static final AllowableValue USM_JSON = new AllowableValue("usm-json", "Json File", "The JSON file containing the USM users");
+    public static final AllowableValue USM_SECURITY_NAMES = new AllowableValue("usm-security-names", "Security Names", "In case of noAuthNoPriv security level" +
+            " - the list of security names separated by commas");
+
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
             .name("snmp-manager-port")
             .displayName("SNMP Manager Port")
@@ -74,6 +75,16 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor SNMP_USM_USER_SOURCE = new PropertyDescriptor.Builder()
+            .name("snmp-usm-users-source")
+            .displayName("SNMP USM Users Source")
+            .description("The ways to provide USM User data")
+            .required(true)
+            .defaultValue(USM_JSON_FILE.getValue())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(USM_JSON, USM_JSON_FILE, USM_SECURITY_NAMES)
+            .build();
+
     public static final PropertyDescriptor SNMP_USM_USERS_JSON_FILE = new PropertyDescriptor.Builder()
             .name("snmp-usm-users-file-path")
             .displayName("SNMP Users JSON File")
@@ -81,6 +92,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
+            .dependsOn(SNMP_USM_USER_SOURCE, USM_JSON_FILE)
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USERS_JSON = new PropertyDescriptor.Builder()
@@ -89,6 +101,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
             .description("The JSON containing the user credentials for SNMPv3. Check Usage for more details.")
             .required(false)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
+            .dependsOn(SNMP_USM_USER_SOURCE, USM_JSON)
             .addValidator(JsonValidator.INSTANCE)
             .build();
 
@@ -99,6 +112,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
             .required(false)
             .dependsOn(BasicProperties.SNMP_VERSION, BasicProperties.SNMP_V3)
             .dependsOn(V3SecurityProperties.SNMP_SECURITY_LEVEL, V3SecurityProperties.NO_AUTH_NO_PRIV)
+            .dependsOn(SNMP_USM_USER_SOURCE, USM_SECURITY_NAMES)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
@@ -117,6 +131,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
             BasicProperties.SNMP_VERSION,
             BasicProperties.SNMP_COMMUNITY,
             V3SecurityProperties.SNMP_SECURITY_LEVEL,
+            SNMP_USM_USER_SOURCE,
             SNMP_USM_USERS_JSON_FILE,
             SNMP_USM_USERS_JSON,
             SNMP_USM_SECURITY_NAMES
@@ -128,38 +143,6 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
     )));
 
     private volatile SNMPTrapReceiverHandler snmpTrapReceiverHandler;
-
-    @Override
-    public Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-
-        final boolean snmpUsersJsonFileIsSet = validationContext.getProperty(SNMP_USM_USERS_JSON_FILE).isSet();
-        final boolean snmpUsersJsonIsSet = validationContext.getProperty(SNMP_USM_USERS_JSON).isSet();
-        final boolean snmpUsersSecurityNames = validationContext.getProperty(SNMP_USM_SECURITY_NAMES).isSet();
-
-        final boolean isOnlyOneIsSetFromThree = Stream.of(snmpUsersJsonFileIsSet, snmpUsersJsonIsSet, snmpUsersSecurityNames).filter(a -> a).count() == 1;
-        final boolean isBothSetOrNotSetFromTwo = snmpUsersJsonFileIsSet && snmpUsersJsonIsSet || !snmpUsersJsonFileIsSet && !snmpUsersJsonIsSet;
-        final boolean isSnmpv3 = validationContext.getProperty(BasicProperties.SNMP_VERSION).getValue().equals(BasicProperties.SNMP_V3.getValue());
-        final boolean isNoAuthNoPriv = validationContext.getProperty(V3SecurityProperties.SNMP_SECURITY_LEVEL).getValue().equals(V3SecurityProperties.NO_AUTH_NO_PRIV.getValue());
-
-        if (isSnmpv3 && isNoAuthNoPriv && isOnlyOneIsSetFromThree) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Provide snmpv3 USM Users JSON.")
-                    .valid(false)
-                    .explanation("Only one of '" + SNMP_USM_USERS_JSON_FILE.getDisplayName() + "' or '" +
-                            SNMP_USM_USERS_JSON.getDisplayName() + "' or '" + SNMP_USM_SECURITY_NAMES.getDisplayName() + "' should be set!")
-                    .build());
-        } else if (isSnmpv3 && isBothSetOrNotSetFromTwo) {
-            results.add(new ValidationResult.Builder()
-                    .subject("Provide snmpv3 USM Users JSON.")
-                    .valid(false)
-                    .explanation("Only one of '" + SNMP_USM_USERS_JSON_FILE.getDisplayName() + "' or '" +
-                            SNMP_USM_USERS_JSON.getDisplayName() + "' should be set!")
-                    .build());
-        }
-
-        return results;
-    }
 
     @OnScheduled
     public void initSnmpManager(ProcessContext context) {

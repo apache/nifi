@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.snmp4j.security.UsmUser;
+import org.snmp4j.smi.OID;
 import org.snmp4j.smi.OctetString;
 
 import java.io.File;
@@ -97,23 +98,48 @@ public interface UsmReader {
         public UsmUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
             JsonNode node = jp.getCodec().readTree(jp);
             String securityName = node.get("securityName").asText();
-            String authProtocol = getTextOrNull(node, "authProtocol");
-            String authPassphrase = getTextOrNull(node, "authPassphrase");
-            String privProtocol = getTextOrNull(node, "privProtocol");
-            String privPassphrase = getTextOrNull(node, "privPassphrase");
+
+            OID authProtocol = null;
+            final JsonNode authProtocolNode = node.get("authProtocol");
+            if (authProtocolNode != null) {
+                authProtocol = SNMPUtils.getAuth(authProtocolNode.asText());
+            }
+
+            OctetString authPassphrase = null;
+            final JsonNode authPassphraseNode = node.get("authPassphrase");
+            if (authPassphraseNode != null) {
+                authPassphrase = new OctetString(authPassphraseNode.asText());
+            }
+
+            if (authProtocol != null && authPassphrase == null) {
+                throw new IllegalArgumentException("Authentication passphrase must be set and at least 8 bytes long if" +
+                        "authentication protocol is specified.");
+            }
+
+            OID privProtocol = null;
+            final JsonNode privProtocolNode = node.get("privProtocol");
+            if (privProtocolNode != null) {
+                privProtocol = SNMPUtils.getPriv(privProtocolNode.asText());
+            }
+
+            OctetString privPassphrase = null;
+            final JsonNode privPassphraseNode = node.get("privPassphrase");
+            if (privPassphraseNode != null) {
+                privPassphrase = new OctetString(privPassphraseNode.asText());
+            }
+
+            if (privProtocol != null && privPassphrase == null) {
+                throw new IllegalArgumentException("Privacy passphrase must be set and at least 8 bytes long if" +
+                        "authentication protocol is specified.");
+            }
 
             return new UsmUser(
                     new OctetString(securityName),
-                    SNMPUtils.getAuth(authProtocol),
-                    new OctetString(authPassphrase),
-                    SNMPUtils.getPriv(privProtocol),
-                    new OctetString(privPassphrase)
+                    authProtocol,
+                    authPassphrase,
+                    privProtocol,
+                    privPassphrase
             );
         }
-
-        private String getTextOrNull(final JsonNode node, final String fieldName) {
-            return node.get(fieldName) == null ? null : node.get(fieldName).asText();
-        }
-
     }
 }
