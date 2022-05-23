@@ -59,6 +59,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
@@ -118,6 +119,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -1195,8 +1197,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             service.setComments(proposed.getComments());
             service.setName(proposed.getName());
 
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(service, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             final Map<String, String> properties = populatePropertiesMap(service, proposed.getProperties(), service.getProcessGroup());
-            service.setProperties(properties, true);
+            service.setProperties(properties, true, sensitiveDynamicPropertyNames);
 
             if (!isEqual(service.getBundleCoordinate(), proposed.getBundle())) {
                 final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
@@ -1207,6 +1210,35 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         } finally {
             service.resumeValidationTrigger();
         }
+    }
+
+    private Set<String> getSensitiveDynamicPropertyNames(
+            final ComponentNode componentNode,
+            final Map<String, String> proposedProperties,
+            final Collection<VersionedPropertyDescriptor> proposedDescriptors
+    ) {
+        final Set<String> sensitiveDynamicPropertyNames = new LinkedHashSet<>();
+
+        // Find sensitive dynamic property names using proposed Versioned Property Descriptors
+        proposedDescriptors.stream()
+                .filter(VersionedPropertyDescriptor::isSensitive)
+                .map(VersionedPropertyDescriptor::getName)
+                .map(componentNode::getPropertyDescriptor)
+                .filter(PropertyDescriptor::isDynamic)
+                .map(PropertyDescriptor::getName)
+                .forEach(sensitiveDynamicPropertyNames::add);
+
+        // Find Encrypted Property values and find associated dynamic Property Descriptor names
+        proposedProperties.entrySet()
+                .stream()
+                .filter(entry -> isValueEncrypted(entry.getValue()))
+                .map(Map.Entry::getKey)
+                .map(componentNode::getPropertyDescriptor)
+                .filter(PropertyDescriptor::isDynamic)
+                .map(PropertyDescriptor::getName)
+                .forEach(sensitiveDynamicPropertyNames::add);
+
+        return sensitiveDynamicPropertyNames;
     }
 
     private Map<String, String> populatePropertiesMap(final ComponentNode componentNode, final Map<String, String> proposedProperties, final ProcessGroup group) {
@@ -1237,16 +1269,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // of an existing service that is outside the current processor group, and if it is we want to leave
                     // the property set to that value
                     String existingExternalServiceId = null;
-                    final PropertyDescriptor componentDescriptor = componentNode.getPropertyDescriptor(propertyName);
-                    if (componentDescriptor != null) {
-                        final String componentDescriptorValue = componentNode.getEffectivePropertyValue(componentDescriptor);
-                        if (componentDescriptorValue != null) {
-                            final ProcessGroup parentGroup = group.getParent();
-                            if (parentGroup != null) {
-                                final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
-                                if (serviceNode != null) {
-                                    existingExternalServiceId = componentDescriptorValue;
-                                }
+                    final String componentDescriptorValue = componentNode.getEffectivePropertyValue(descriptor);
+                    if (componentDescriptorValue != null) {
+                        final ProcessGroup parentGroup = group.getParent();
+                        if (parentGroup != null) {
+                            final ControllerServiceNode serviceNode = parentGroup.findControllerService(componentDescriptorValue, false, true);
+                            if (serviceNode != null) {
+                                existingExternalServiceId = componentDescriptorValue;
                             }
                         }
                     }
@@ -1270,9 +1299,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // populated value. The exception to this rule is if the currently configured value is a Parameter Reference and the Versioned Flow is empty. In this case, it implies
                 // that the Versioned Flow has changed from a Parameter Reference to an explicit value. In this case, we do in fact want to change the value of the Sensitive Property from
                 // the current parameter reference to an unset value.
-                final boolean sensitive = componentNode.getPropertyDescriptor(propertyName).isSensitive();
-                if (sensitive && value == null) {
-                    final PropertyConfiguration propertyConfiguration = componentNode.getProperty(componentNode.getPropertyDescriptor(propertyName));
+                if (descriptor.isSensitive() && value == null) {
+                    final PropertyConfiguration propertyConfiguration = componentNode.getProperty(descriptor);
                     if (propertyConfiguration == null) {
                         continue;
                     }
@@ -1295,23 +1323,21 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private static String decrypt(final String value, final PropertyDecryptor decryptor) {
-        if (value == null) {
-            return null;
-        }
-        if (!value.startsWith(ENC_PREFIX)) {
+        if (isValueEncrypted(value)) {
+            try {
+                return decryptor.decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUFFIX.length()));
+            } catch (EncryptionException e) {
+                final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
+                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.xml.gz file";
+                throw new EncryptionException(moreDescriptiveMessage, e);
+            }
+        } else {
             return value;
         }
-        if (!value.endsWith(ENC_SUFFIX)) {
-            return value;
-        }
+    }
 
-        try {
-            return decryptor.decrypt(value.substring(ENC_PREFIX.length(), value.length() - ENC_SUFFIX.length()));
-        } catch (EncryptionException e) {
-            final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.xml.gz file";
-            throw new EncryptionException(moreDescriptiveMessage, e);
-        }
+    private static boolean isValueEncrypted(final String value) {
+        return value != null && value.startsWith(ENC_PREFIX) && value.endsWith(ENC_SUFFIX);
     }
 
     private void verifyCanSynchronize(final ParameterContext parameterContext, final VersionedParameterContext proposed) throws FlowSynchronizationException {
@@ -2490,8 +2516,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             processor.setName(proposed.getName());
             processor.setPenalizationPeriod(proposed.getPenaltyDuration());
 
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(processor, proposed.getProperties(), proposed.getPropertyDescriptors().values());
             final Map<String, String> properties = populatePropertiesMap(processor, proposed.getProperties(), processor.getProcessGroup());
-            processor.setProperties(properties, true);
+            processor.setProperties(properties, true, sensitiveDynamicPropertyNames);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
             processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
@@ -3178,7 +3205,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
 
             reportingTask.setAnnotationData(proposed.getAnnotationData());
-            reportingTask.setProperties(proposed.getProperties());
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(reportingTask, proposed.getProperties(), proposed.getPropertyDescriptors().values());
+            reportingTask.setProperties(proposed.getProperties(), false, sensitiveDynamicPropertyNames);
 
             // enable/disable/start according to the ScheduledState
             switch (proposed.getScheduledState()) {

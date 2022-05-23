@@ -217,8 +217,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties) {
-        super.setProperties(properties, allowRemovalOfRequiredProperties);
+    public void setProperties(final Map<String, String> properties, final boolean allowRemovalOfRequiredProperties, final Set<String> sensitiveDynamicPropertyNames) {
+        super.setProperties(properties, allowRemovalOfRequiredProperties, sensitiveDynamicPropertyNames);
 
         // It's possible that changing the properties of this Controller Service could alter the Classloader Isolation Key of a referencing
         // component so reload any referencing component as necessary.

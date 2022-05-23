@@ -74,7 +74,7 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     public Class<?> getComponentClass() {
-        return getReportingContext().getClass();
+        return getReportingTask().getClass();
     }
 
     @Override
@@ -84,7 +84,7 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
 
     @Override
     public ReportingContext getReportingContext() {
-        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getEffectivePropertyValues(), getReportingTask(), getVariableRegistry(), ParameterLookup.EMPTY);
+        return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getEffectivePropertyValues(), this, getVariableRegistry(), ParameterLookup.EMPTY);
     }
 
     @Override

@@ -403,7 +403,13 @@ public class ProcessorResource extends ApplicationResource {
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") final String propertyName) throws InterruptedException {
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) throws InterruptedException {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -422,6 +428,11 @@ public class ProcessorResource extends ApplicationResource {
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(id, propertyName);
+
+        // Adjust sensitive status for dynamic properties when sensitive status enabled
+        if (descriptor.isDynamic() && sensitive) {
+            descriptor.setSensitive(true);
+        }
 
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();

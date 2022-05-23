@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
 import java.io.IOException;
@@ -53,6 +54,8 @@ public interface ProcessorClient {
     VerifyConfigRequestEntity getConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
 
     VerifyConfigRequestEntity deleteConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    PropertyDescriptorEntity getPropertyDescriptor(String processorId, String propertyName, Boolean sensitive) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has acknowledged that the node is disconnected.

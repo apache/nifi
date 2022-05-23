@@ -1533,6 +1533,8 @@ public final class DtoFactory {
             return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
         }).collect(Collectors.toList());
 
+        final Class<? extends ReportingTask> reportingTaskClass = reportingTaskNode.getReportingTask().getClass();
+
         final ReportingTaskDTO dto = new ReportingTaskDTO();
         dto.setId(reportingTaskNode.getIdentifier());
         dto.setName(reportingTaskNode.getName());
@@ -1544,7 +1546,8 @@ public final class DtoFactory {
         dto.setActiveThreadCount(reportingTaskNode.getActiveThreadCount());
         dto.setAnnotationData(reportingTaskNode.getAnnotationData());
         dto.setComments(reportingTaskNode.getComments());
-        dto.setPersistsState(reportingTaskNode.getReportingTask().getClass().isAnnotationPresent(Stateful.class));
+        dto.setPersistsState(reportingTaskClass.isAnnotationPresent(Stateful.class));
+        dto.setSupportsSensitiveDynamicProperties(reportingTaskNode.isSupportsSensitiveDynamicProperties());
         dto.setRestricted(reportingTaskNode.isRestricted());
         dto.setDeprecated(reportingTaskNode.isDeprecated());
         dto.setExtensionMissing(reportingTaskNode.isExtensionMissing());
@@ -1620,17 +1623,20 @@ public final class DtoFactory {
             return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
         }).collect(Collectors.toList());
 
+        final Class<? extends ControllerService> controllerServiceClass = controllerServiceNode.getControllerServiceImplementation().getClass();
+
         final ControllerServiceDTO dto = new ControllerServiceDTO();
         dto.setId(controllerServiceNode.getIdentifier());
         dto.setParentGroupId(controllerServiceNode.getProcessGroup() == null ? null : controllerServiceNode.getProcessGroup().getIdentifier());
         dto.setName(controllerServiceNode.getName());
         dto.setType(controllerServiceNode.getCanonicalClassName());
         dto.setBundle(createBundleDto(bundleCoordinate));
-        dto.setControllerServiceApis(createControllerServiceApiDto(controllerServiceNode.getControllerServiceImplementation().getClass()));
+        dto.setControllerServiceApis(createControllerServiceApiDto(controllerServiceClass));
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
-        dto.setPersistsState(controllerServiceNode.getControllerServiceImplementation().getClass().isAnnotationPresent(Stateful.class));
+        dto.setPersistsState(controllerServiceClass.isAnnotationPresent(Stateful.class));
+        dto.setSupportsSensitiveDynamicProperties(controllerServiceNode.isSupportsSensitiveDynamicProperties());
         dto.setRestricted(controllerServiceNode.isRestricted());
         dto.setDeprecated(controllerServiceNode.isDeprecated());
         dto.setExtensionMissing(controllerServiceNode.isExtensionMissing());
@@ -3131,13 +3137,16 @@ public final class DtoFactory {
             }
         }
 
+        final Class<? extends Processor> processorClass = node.getProcessor().getClass();
+
         final ProcessorDTO dto = new ProcessorDTO();
         dto.setId(node.getIdentifier());
         dto.setPosition(createPositionDto(node.getPosition()));
         dto.setStyle(node.getStyle());
         dto.setParentGroupId(node.getProcessGroup().getIdentifier());
         dto.setInputRequirement(node.getInputRequirement().name());
-        dto.setPersistsState(node.getProcessor().getClass().isAnnotationPresent(Stateful.class));
+        dto.setPersistsState(processorClass.isAnnotationPresent(Stateful.class));
+        dto.setSupportsSensitiveDynamicProperties(node.isSupportsSensitiveDynamicProperties());
         dto.setRestricted(node.isRestricted());
         dto.setDeprecated(node.isDeprecated());
         dto.setExecutionNodeRestricted(node.isExecutionNodeRestricted());
@@ -4120,6 +4129,7 @@ public final class DtoFactory {
         copy.setParentGroupId(original.getParentGroupId());
         copy.setName(original.getName());
         copy.setProperties(copy(original.getProperties()));
+        copy.setSensitiveDynamicPropertyNames(copy(original.getSensitiveDynamicPropertyNames()));
         copy.setReferencingComponents(copy(original.getReferencingComponents()));
         copy.setState(original.getState());
         copy.setType(original.getType());
@@ -4203,6 +4213,7 @@ public final class DtoFactory {
         copy.setSupportsParallelProcessing(original.getSupportsParallelProcessing());
         copy.setSupportsEventDriven(original.getSupportsEventDriven());
         copy.setSupportsBatching(original.getSupportsBatching());
+        copy.setSupportsSensitiveDynamicProperties(original.getSupportsSensitiveDynamicProperties());
         copy.setPersistsState(original.getPersistsState());
         copy.setExecutionNodeRestricted(original.isExecutionNodeRestricted());
         copy.setExtensionMissing(original.getExtensionMissing());
@@ -4225,6 +4236,7 @@ public final class DtoFactory {
         copy.setCustomUiUrl(original.getCustomUiUrl());
         copy.setDescriptors(copy(original.getDescriptors()));
         copy.setProperties(copy(original.getProperties()));
+        copy.setSensitiveDynamicPropertyNames(copy(original.getSensitiveDynamicPropertyNames()));
         copy.setSchedulingPeriod(original.getSchedulingPeriod());
         copy.setPenaltyDuration(original.getPenaltyDuration());
         copy.setYieldDuration(original.getYieldDuration());

@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,6 +114,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
 
         // ensure the user was found
         if (user != null) {
+            final Set<String> sensitiveDynamicPropertyNames = reportingTaskDTO.getSensitiveDynamicPropertyNames() == null
+                    ? Collections.emptySet() : reportingTaskDTO.getSensitiveDynamicPropertyNames();
+
             // determine the updated values
             Map<String, String> updatedValues = extractConfiguredPropertyValues(reportingTask, reportingTaskDTO);
 
@@ -138,13 +142,14 @@ public class ReportingTaskAuditor extends NiFiAuditor {
                 // create a configuration action accordingly
                 if (operation != null) {
                     // clear the value if this property is sensitive
-                    final PropertyDescriptor propertyDescriptor = reportingTask.getReportingTask().getPropertyDescriptor(property);
-                    if (propertyDescriptor != null && propertyDescriptor.isSensitive()) {
+                    final PropertyDescriptor propertyDescriptor = reportingTask.getPropertyDescriptor(property);
+                    // Evaluate both Property Descriptor status and whether the client requested a new Sensitive Dynamic Property
+                    if (propertyDescriptor != null && (propertyDescriptor.isSensitive() || sensitiveDynamicPropertyNames.contains(property))) {
                         if (newValue != null) {
-                            newValue = "********";
+                            newValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                         if (oldValue != null) {
-                            oldValue = "********";
+                            oldValue = SENSITIVE_VALUE_PLACEHOLDER;
                         }
                     } else if (ANNOTATION_DATA.equals(property)) {
                         if (newValue != null) {

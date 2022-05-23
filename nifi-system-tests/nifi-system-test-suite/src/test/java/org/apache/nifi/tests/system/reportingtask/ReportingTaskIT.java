@@ -19,7 +19,10 @@ package org.apache.nifi.tests.system.reportingtask;
 
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.junit.jupiter.api.Test;
 
@@ -27,10 +30,24 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ReportingTaskIT extends NiFiSystemIT {
+
+    private static final String SENSITIVE_PROPERTY_NAME = "Credentials";
+
+    private static final String SENSITIVE_PROPERTY_VALUE = "Token";
+
+    private static final Set<String> SENSITIVE_DYNAMIC_PROPERTY_NAMES = Collections.singleton(SENSITIVE_PROPERTY_NAME);
+
 
     @Test
     public void testReportingTaskDependingOnControllerService() throws NiFiClientException, IOException, InterruptedException {
@@ -69,6 +86,60 @@ public class ReportingTaskIT extends NiFiSystemIT {
         // Upon restart, we should start counting again at 1,000,000.
         // Wait until the reporting task runs enough times to create the file again and write a value of at least 1,000,005.
         waitFor(() -> getCount(reportingTaskFile) >= 1_000_005);
+    }
+
+    @Test
+    public void testGetPropertyDescriptor() throws NiFiClientException, IOException {
+        final ReportingTaskEntity reportingTaskEntity = getClientUtil().createReportingTask("SensitiveDynamicPropertiesReportingTask");
+
+        final PropertyDescriptorEntity propertyDescriptorEntity = getNifiClient().getReportingTasksClient().getPropertyDescriptor(reportingTaskEntity.getId(), SENSITIVE_PROPERTY_NAME, null);
+        final PropertyDescriptorDTO propertyDescriptor = propertyDescriptorEntity.getPropertyDescriptor();
+        assertFalse(propertyDescriptor.isSensitive());
+        assertTrue(propertyDescriptor.isDynamic());
+
+        final PropertyDescriptorEntity sensitivePropertyDescriptorEntity = getNifiClient().getReportingTasksClient().getPropertyDescriptor(reportingTaskEntity.getId(), SENSITIVE_PROPERTY_NAME, true);
+        final PropertyDescriptorDTO sensitivePropertyDescriptor = sensitivePropertyDescriptorEntity.getPropertyDescriptor();
+        assertTrue(sensitivePropertyDescriptor.isSensitive());
+        assertTrue(sensitivePropertyDescriptor.isDynamic());
+    }
+
+    @Test
+    public void testSensitiveDynamicPropertiesNotSupported() throws NiFiClientException, IOException {
+        final ReportingTaskEntity reportingTaskEntity = getClientUtil().createReportingTask("WriteToFileReportingTask");
+        final ReportingTaskDTO component = reportingTaskEntity.getComponent();
+        assertFalse(component.getSupportsSensitiveDynamicProperties());
+
+        component.setSensitiveDynamicPropertyNames(SENSITIVE_DYNAMIC_PROPERTY_NAMES);
+
+        getNifiClient().getReportingTasksClient().updateReportingTask(reportingTaskEntity);
+
+        getClientUtil().waitForReportingTaskValidationStatus(reportingTaskEntity.getId(), ReportingTaskDTO.INVALID);
+    }
+
+    @Test
+    public void testSensitiveDynamicPropertiesSupportedConfigured() throws NiFiClientException, IOException {
+        final ReportingTaskEntity reportingTaskEntity = getClientUtil().createReportingTask("SensitiveDynamicPropertiesReportingTask");
+        final ReportingTaskDTO component = reportingTaskEntity.getComponent();
+        assertTrue(component.getSupportsSensitiveDynamicProperties());
+
+        component.setSensitiveDynamicPropertyNames(SENSITIVE_DYNAMIC_PROPERTY_NAMES);
+        component.setProperties(Collections.singletonMap(SENSITIVE_PROPERTY_NAME, SENSITIVE_PROPERTY_VALUE));
+
+        getNifiClient().getReportingTasksClient().updateReportingTask(reportingTaskEntity);
+
+        final ReportingTaskEntity updatedReportingTaskEntity = getNifiClient().getReportingTasksClient().getReportingTask(reportingTaskEntity.getId());
+        final ReportingTaskDTO updatedComponent = updatedReportingTaskEntity.getComponent();
+
+        final Map<String, String> properties = updatedComponent.getProperties();
+        assertNotSame(SENSITIVE_PROPERTY_VALUE, properties.get(SENSITIVE_PROPERTY_NAME));
+
+        final Map<String, PropertyDescriptorDTO> descriptors = updatedComponent.getDescriptors();
+        final PropertyDescriptorDTO descriptor = descriptors.get(SENSITIVE_PROPERTY_NAME);
+        assertNotNull(descriptor);
+        assertTrue(descriptor.isSensitive());
+        assertTrue(descriptor.isDynamic());
+
+        getClientUtil().waitForReportingTaskValid(reportingTaskEntity.getId());
     }
 
     private long getCount(final File file) throws IOException {

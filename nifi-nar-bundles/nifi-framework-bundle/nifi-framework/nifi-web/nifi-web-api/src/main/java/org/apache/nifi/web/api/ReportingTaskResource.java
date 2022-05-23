@@ -243,7 +243,13 @@ public class ReportingTaskResource extends ApplicationResource {
                     value = "The property name.",
                     required = true
             )
-            @QueryParam("propertyName") final String propertyName) {
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -262,6 +268,11 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getReportingTaskPropertyDescriptor(id, propertyName);
+
+        // Adjust sensitive status for dynamic properties when sensitive status enabled
+        if (descriptor.isDynamic() && sensitive) {
+            descriptor.setSensitive(true);
+        }
 
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();

@@ -257,7 +257,13 @@ public class ControllerServiceResource extends ApplicationResource {
                     value = "The property name to return the descriptor for.",
                     required = true
             )
-            @QueryParam("propertyName") final String propertyName) {
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
 
         // ensure the property name is specified
         if (propertyName == null) {
@@ -276,6 +282,11 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
+
+        // Adjust sensitive status for dynamic properties when sensitive status enabled
+        if (descriptor.isDynamic() && sensitive) {
+            descriptor.setSensitive(true);
+        }
 
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();

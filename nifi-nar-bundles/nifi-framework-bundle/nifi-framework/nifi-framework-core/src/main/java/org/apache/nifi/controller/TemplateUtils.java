@@ -257,6 +257,7 @@ public class TemplateUtils {
             processorDTO.setSupportsBatching(null);
             processorDTO.setSupportsEventDriven(null);
             processorDTO.setSupportsParallelProcessing(null);
+            processorDTO.setSupportsSensitiveDynamicProperties(null);
         }
     }
 

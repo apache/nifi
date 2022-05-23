@@ -29,6 +29,7 @@ import java.util.Collections;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ControllerServiceApiValidationIT extends NiFiSystemIT {
+
     @Test
     public void testMatchingControllerService() throws NiFiClientException, IOException {
         final ControllerServiceEntity fakeServiceEntity = getClientUtil().createControllerService("FakeControllerService1");

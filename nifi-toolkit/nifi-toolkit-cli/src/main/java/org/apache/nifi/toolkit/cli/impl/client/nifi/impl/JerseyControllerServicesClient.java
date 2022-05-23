@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.UpdateControllerServiceReferenceRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 
@@ -31,6 +32,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Jersey implementation of ControllerServicersClient.
@@ -238,6 +240,22 @@ public class JerseyControllerServicesClient extends AbstractJerseyClient impleme
                 .resolveTemplate("requestId", verificationRequestId);
 
             return getRequestBuilder(target).delete(VerifyConfigRequestEntity.class);
+        });
+    }
+
+    @Override
+    public PropertyDescriptorEntity getPropertyDescriptor(final String serviceId, final String propertyName, final Boolean sensitive) throws NiFiClientException, IOException {
+        Objects.requireNonNull(serviceId, "Service ID required");
+        Objects.requireNonNull(propertyName, "Property Name required");
+
+        return executeAction("Error retrieving Property Descriptor", () -> {
+            final WebTarget target = controllerServicesTarget
+                    .path("{id}/descriptors")
+                    .resolveTemplate("id", serviceId)
+                    .queryParam("propertyName", propertyName)
+                    .queryParam("sensitive", sensitive);
+
+            return getRequestBuilder(target).get(PropertyDescriptorEntity.class);
         });
     }
 }

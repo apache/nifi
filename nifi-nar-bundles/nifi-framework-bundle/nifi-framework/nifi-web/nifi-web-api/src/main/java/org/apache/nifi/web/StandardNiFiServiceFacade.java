@@ -4513,7 +4513,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public PropertyDescriptorDTO getControllerServicePropertyDescriptor(final String id, final String property) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
-        PropertyDescriptor descriptor = controllerService.getControllerServiceImplementation().getPropertyDescriptor(property);
+        PropertyDescriptor descriptor = controllerService.getPropertyDescriptor(property);
 
         // return an invalid descriptor if the controller service doesn't support this property
         if (descriptor == null) {
@@ -4557,7 +4557,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(final String id, final String property) {
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(id);
-        PropertyDescriptor descriptor = reportingTask.getReportingTask().getPropertyDescriptor(property);
+        PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property);
 
         // return an invalid descriptor if the reporting task doesn't support this property
         if (descriptor == null) {

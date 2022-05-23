@@ -533,24 +533,8 @@ public class NiFiClientUtil {
         }
     }
 
-    public void waitForReportingTaskValid(final String reportingTaskId) throws NiFiClientException, IOException, InterruptedException {
+    public void waitForReportingTaskValid(final String reportingTaskId) throws NiFiClientException, IOException {
         waitForReportingTaskValidationStatus(reportingTaskId, "Valid");
-    }
-
-    public void waitForReportingTaskValidationStatus(final String reportingTaskId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
-        while (true) {
-            final ReportingTaskEntity entity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
-            final String validationStatus = entity.getComponent().getValidationStatus();
-            if (expectedStatus.equalsIgnoreCase(validationStatus)) {
-                return;
-            }
-
-            if ("Invalid".equalsIgnoreCase(validationStatus)) {
-                logger.info("Reporting Task with ID {} is currently invalid due to: {}", reportingTaskId, entity.getComponent().getValidationErrors());
-            }
-
-            Thread.sleep(100L);
-        }
     }
 
     public ControllerServiceEntity updateControllerService(final ControllerServiceEntity currentEntity, final Map<String, String> properties) throws NiFiClientException, IOException {
@@ -759,6 +743,48 @@ public class NiFiClientUtil {
             final ControllerServiceEntity entity = nonDisabledServices.get(0);
             logger.info("Controller Service ID [{}] Type [{}] State [{}] waiting for State [{}]: sleeping for 500 ms before retrying", entity.getId(),
                     entity.getComponent().getType(), entity.getComponent().getState(), desiredState);
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void waitForControllerServiceValidationStatus(final String controllerServiceId, final String validationStatus) throws NiFiClientException, IOException {
+        while (true) {
+            final ControllerServiceEntity controllerServiceEntity = nifiClient.getControllerServicesClient().getControllerService(controllerServiceId);
+            final String currentValidationStatus = controllerServiceEntity.getStatus().getValidationStatus();
+            if (validationStatus.equals(currentValidationStatus)) {
+                logger.info("Controller Service ID [{}] Type [{}] Validation Status [{}] matched", controllerServiceId,
+                        controllerServiceEntity.getComponent().getType(), validationStatus);
+                return;
+            }
+
+            logger.info("Controller Service ID [{}] Type [{}] Validation Status [{}] waiting for [{}]: sleeping for 500 ms before retrying", controllerServiceId,
+                    controllerServiceEntity.getComponent().getType(), currentValidationStatus, validationStatus);
+
+            try {
+                Thread.sleep(500L);
+            } catch (final Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public void waitForReportingTaskValidationStatus(final String reportingTaskId, final String validationStatus) throws NiFiClientException, IOException {
+        while (true) {
+            final ReportingTaskEntity reportingTaskEntity = nifiClient.getReportingTasksClient().getReportingTask(reportingTaskId);
+            final String currentValidationStatus = reportingTaskEntity.getStatus().getValidationStatus();
+            if (validationStatus.equalsIgnoreCase(currentValidationStatus)) {
+                logger.info("Reporting Task ID [{}] Type [{}] Validation Status [{}] matched", reportingTaskId,
+                        reportingTaskEntity.getComponent().getType(), validationStatus);
+                return;
+            }
+
+            logger.info("Reporting Task ID [{}] Type [{}] Validation Status [{}] waiting for [{}]: sleeping for 500 ms before retrying", reportingTaskEntity,
+                    reportingTaskEntity.getComponent().getType(), currentValidationStatus, validationStatus);
 
             try {
                 Thread.sleep(500L);

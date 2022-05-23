@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
@@ -460,6 +461,14 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
             return;
         }
         writeBooleanElement("supportsBatching", true);
+    }
+
+    @Override
+    protected void writeSupportsSensitiveDynamicProperties(final SupportsSensitiveDynamicProperties supportsSensitiveDynamicProperties) throws IOException {
+        if (supportsSensitiveDynamicProperties == null) {
+            return;
+        }
+        writeBooleanElement("supportsSensitiveDynamicProperties", true);
     }
 
     @Override

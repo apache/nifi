@@ -61,6 +61,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -198,7 +199,8 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.setLossTolerant(config.isLossTolerant());
                 }
                 if (isNotNull(configProperties)) {
-                    processor.setProperties(configProperties);
+                    final Set<String> sensitiveDynamicPropertyNames = config.getSensitiveDynamicPropertyNames();
+                    processor.setProperties(configProperties, false,sensitiveDynamicPropertyNames == null ? Collections.emptySet() : sensitiveDynamicPropertyNames);
                 }
 
                 if (isNotNull(retryCount)) {

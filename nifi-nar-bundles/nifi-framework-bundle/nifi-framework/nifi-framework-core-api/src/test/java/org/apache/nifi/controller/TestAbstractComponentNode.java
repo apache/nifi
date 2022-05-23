@@ -64,6 +64,10 @@ import static org.junit.Assert.assertTrue;
 
 public class TestAbstractComponentNode {
 
+    private static final String PROPERTY_NAME = "abstract-property-name";
+
+    private static final String PROPERTY_VALUE = "abstract-property-value";
+
     @Test(timeout = 5000)
     public void testGetValidationStatusWithTimeout() {
         final ValidationControlledAbstractComponentNode node = new ValidationControlledAbstractComponentNode(5000, Mockito.mock(ValidationTrigger.class));
@@ -107,7 +111,7 @@ public class TestAbstractComponentNode {
 
         final Map<String, String> properties = new HashMap<>();
         properties.put("abc", "#{abc}");
-        node.setProperties(properties);
+        node.setProperties(properties, false, Collections.emptySet());
 
         assertEquals(1, propertyModifications.size());
         PropertyModification mod = propertyModifications.get(0);
@@ -150,7 +154,7 @@ public class TestAbstractComponentNode {
         final Map<String, String> properties = new HashMap<>();
         properties.put("abc", propertyValue);
         node.verifyCanUpdateProperties(properties);
-        node.setProperties(properties);
+        node.setProperties(properties, false, Collections.emptySet());
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         Mockito.when(validationContext.getProperties()).thenReturn(Collections.singletonMap(propertyDescriptor, propertyValue));
@@ -187,7 +191,7 @@ public class TestAbstractComponentNode {
 
         node.pauseValidationTrigger();
         for (int i = 0; i < 1000; i++) {
-            node.setProperties(Collections.emptyMap());
+            node.setProperties(Collections.emptyMap(), false, Collections.emptySet());
             assertEquals(0, validationCount.get());
         }
         node.resumeValidationTrigger();
@@ -222,6 +226,75 @@ public class TestAbstractComponentNode {
         assertTrue("Validation Result not found", firstResult.isPresent());
         final ValidationResult validationResult = firstResult.get();
         assertTrue("Enabling Service Validation Result not found", validationResult instanceof EnablingServiceValidationResult);
+    }
+
+    @Test
+    public void testSetProperties() {
+        final AbstractComponentNode node = new LocalComponentNode();
+
+        final PropertyDescriptor originalPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(originalPropertyDescriptor.isDynamic());
+        assertFalse(originalPropertyDescriptor.isSensitive());
+
+        final Map<String, String> properties = Collections.singletonMap(PROPERTY_NAME, PROPERTY_VALUE);
+        node.setProperties(properties);
+
+        final PropertyDescriptor updatedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(updatedPropertyDescriptor.isDynamic());
+        assertFalse(updatedPropertyDescriptor.isSensitive());
+    }
+
+    @Test
+    public void testSetPropertiesSensitiveDynamicPropertyNames() {
+        final AbstractComponentNode node = new LocalComponentNode();
+
+        final Map<String, String> properties = Collections.singletonMap(PROPERTY_NAME, PROPERTY_VALUE);
+        final Set<String> sensitiveDynamicPropertyNames = Collections.singleton(PROPERTY_NAME);
+        node.setProperties(properties, false, sensitiveDynamicPropertyNames);
+
+        final PropertyDescriptor updatedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(updatedPropertyDescriptor.isDynamic());
+        assertTrue(updatedPropertyDescriptor.isSensitive());
+
+        final Map<PropertyDescriptor, PropertyConfiguration> configuredProperties = node.getProperties();
+        final PropertyDescriptor configuredPropertyDescriptor = configuredProperties.keySet()
+                .stream()
+                .filter(descriptor -> descriptor.getName().equals(PROPERTY_NAME))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Property Name not found"));
+        assertTrue(configuredPropertyDescriptor.isDynamic());
+        assertTrue(configuredPropertyDescriptor.isSensitive());
+
+        final PropertyConfiguration propertyConfiguration = configuredProperties.get(configuredPropertyDescriptor);
+        assertEquals(PROPERTY_VALUE, propertyConfiguration.getRawValue());
+    }
+
+    @Test
+    public void testSetPropertiesSensitiveDynamicPropertyNamesAddedRemoved() {
+        final AbstractComponentNode node = new LocalComponentNode();
+
+        final Map<String, String> properties = Collections.singletonMap(PROPERTY_NAME, PROPERTY_VALUE);
+        final Set<String> sensitiveDynamicPropertyNames = Collections.singleton(PROPERTY_NAME);
+        node.setProperties(properties, false, sensitiveDynamicPropertyNames);
+
+        final PropertyDescriptor sensitivePropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(sensitivePropertyDescriptor.isDynamic());
+        assertTrue(sensitivePropertyDescriptor.isSensitive());
+
+        node.setProperties(properties, false, Collections.emptySet());
+
+        final PropertyDescriptor updatedPropertyDescriptor = node.getPropertyDescriptor(PROPERTY_NAME);
+        assertTrue(updatedPropertyDescriptor.isDynamic());
+        assertFalse(updatedPropertyDescriptor.isSensitive());
+
+        final Map<PropertyDescriptor, PropertyConfiguration> configuredProperties = node.getProperties();
+        final PropertyDescriptor configuredPropertyDescriptor = configuredProperties.keySet()
+                .stream()
+                .filter(descriptor -> descriptor.getName().equals(PROPERTY_NAME))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Property Name not found"));
+        assertTrue(configuredPropertyDescriptor.isDynamic());
+        assertFalse(configuredPropertyDescriptor.isSensitive());
     }
 
     private ValidationContext getServiceValidationContext(final ControllerServiceState serviceState, final ControllerServiceProvider serviceProvider) {

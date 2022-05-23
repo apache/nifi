@@ -17,6 +17,7 @@
  */
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskRunStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
@@ -42,4 +43,5 @@ public interface ReportingTasksClient {
 
     ReportingTaskEntity deleteReportingTask(ReportingTaskEntity reportingTask) throws NiFiClientException, IOException;
 
+    PropertyDescriptorEntity getPropertyDescriptor(String taskId, String propertyName, Boolean sensitive) throws NiFiClientException, IOException;
 }
