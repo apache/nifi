@@ -14,11 +14,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-h2</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
 
     <artifactId>nifi-h2-database</artifactId>
-    <version>1.16.2-SNAPSHOT</version>
+    <version>1.16.2</version>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -69,6 +69,6 @@
     </build>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

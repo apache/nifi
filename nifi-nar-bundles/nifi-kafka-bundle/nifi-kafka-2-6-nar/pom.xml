@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kafka-bundle</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>nifi-kafka-2-6-nar</artifactId>
     <packaging>nar</packaging>
@@ -34,12 +34,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

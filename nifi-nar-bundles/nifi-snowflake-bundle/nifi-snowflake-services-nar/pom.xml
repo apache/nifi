@@ -19,28 +19,28 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-snowflake-bundle</artifactId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
 
     <artifactId>nifi-snowflake-services-nar</artifactId>
-    <version>1.16.2-SNAPSHOT</version>
+    <version>1.16.2</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-snowflake-services</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

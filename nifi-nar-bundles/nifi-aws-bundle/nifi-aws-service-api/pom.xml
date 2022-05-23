@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-aws-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -40,6 +40,6 @@
 
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

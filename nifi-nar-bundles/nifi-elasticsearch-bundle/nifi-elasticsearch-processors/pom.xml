@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <artifactId>nifi-elasticsearch-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
 
     <artifactId>nifi-elasticsearch-processors</artifactId>
@@ -34,12 +34,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -61,25 +61,25 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -111,7 +111,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-record-utils</artifactId>
-            <version>1.16.2-SNAPSHOT</version>
+            <version>1.16.2</version>
         </dependency>
     </dependencies>
 
@@ -130,6 +130,6 @@ language governing permissions and limitations under the License. -->
     </build>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

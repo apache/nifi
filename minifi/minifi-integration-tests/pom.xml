@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>minifi-integration-tests</artifactId>
     <packaging>jar</packaging>
@@ -143,6 +143,6 @@ limitations under the License.
     </profiles>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>

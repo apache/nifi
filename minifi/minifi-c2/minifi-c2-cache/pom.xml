@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-c2</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.16.2-SNAPSHOT</version>
+        <version>1.16.2</version>
     </parent>
     <artifactId>minifi-c2-cache</artifactId>
     <packaging>pom</packaging>
@@ -31,6 +31,6 @@ limitations under the License.
     </modules>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.2-RC3</tag>
   </scm>
 </project>
