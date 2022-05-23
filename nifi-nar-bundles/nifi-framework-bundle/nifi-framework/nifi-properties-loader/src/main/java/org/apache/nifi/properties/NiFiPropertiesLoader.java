@@ -225,7 +225,7 @@ public class NiFiPropertiesLoader {
         Map<String, Set<String>> duplicateProperties = new HashMap<>();
         Pattern keyPattern = Pattern.compile("([^!#=][^=]*)=(.*)");
 
-        if (file == null) {
+        if (file == null || !file.exists() || !file.canRead()) {
             throw new IllegalArgumentException("NiFi properties file missing or unreadable");
         }
         // Scan the properties file for duplicate keys
@@ -257,7 +257,7 @@ public class NiFiPropertiesLoader {
 
         if (!duplicateProperties.isEmpty()) {
             duplicateProperties.keySet().forEach(
-                    k -> logger.error("Duplicate entries found for key '{}'. Conflicting values are: {}", k, duplicateProperties.get(k))
+                    k -> logger.error("Multiple entries with different values found for key '{}'.", k)
             );
             throw new IllegalArgumentException("Duplicate keys were detected in the properties file. See previous errors.");
         }
