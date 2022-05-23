@@ -31,7 +31,7 @@ public interface C2Client {
 
     Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat) throws IOException;
 
-    ByteBuffer retrieveUpdateContent(FlowUpdateInfo flowUpdateInfo);
+    ByteBuffer retrieveUpdateContent(String flowUpdateUrl);
 
     void acknowledgeOperation(C2OperationAck operationAck);
 }

@@ -27,6 +27,7 @@ import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
 import org.apache.nifi.c2.client.service.C2ClientService;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
+import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
@@ -77,6 +78,7 @@ public class C2NifiClientService {
 
     public C2NifiClientService(final NiFiProperties niFiProperties, final FlowService flowService, final FlowController flowController) {
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
+        FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
         this.propertiesDir = niFiProperties.getProperty(NiFiProperties.PROPERTIES_FILE_PATH, null);
         this.runtimeManifestService = new StandardRuntimeManifestService(
             ExtensionManagerHolder.getExtensionManager(),
@@ -89,7 +91,8 @@ public class C2NifiClientService {
         this.flowController = flowController;
         this.c2ClientService = new C2ClientService(
             new C2HttpClient(clientConfig, new C2JacksonSerializer()),
-            new C2HeartbeatFactory(clientConfig),
+            new C2HeartbeatFactory(clientConfig, flowIdHolder),
+            flowIdHolder,
             this::updateFlowContent
         );
     }

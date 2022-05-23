@@ -18,7 +18,19 @@ package org.apache.nifi.c2.client.http;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -29,25 +41,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.api.C2Serializer;
-import org.apache.nifi.c2.client.api.FlowUpdateInfo;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class C2HttpClient implements C2Client {
 
@@ -196,10 +194,10 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public ByteBuffer retrieveUpdateContent(FlowUpdateInfo flowUpdateInfo) {
+    public ByteBuffer retrieveUpdateContent(String flowUpdateUrl) {
         final Request.Builder requestBuilder = new Request.Builder()
                 .get()
-                .url(flowUpdateInfo.getFlowUpdateUrl());
+                .url(flowUpdateUrl);
         final Request request = requestBuilder.build();
 
         ResponseBody body;

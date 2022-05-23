@@ -20,10 +20,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.client.api.FlowUpdateInfo;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.client.service.operation.C2OperationService;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
@@ -42,10 +40,10 @@ public class C2ClientService {
     private final C2OperationService operationService;
     private final UpdateConfigurationOperationHandler updateConfigurationOperationHandler;
 
-    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, Function<ByteBuffer, Boolean> updateFlow) {
+    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, FlowIdHolder flowIdHolder, Function<ByteBuffer, Boolean> updateFlow) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
-        this.updateConfigurationOperationHandler = new UpdateConfigurationOperationHandler(client, updateFlow);
+        this.updateConfigurationOperationHandler = new UpdateConfigurationOperationHandler(client, flowIdHolder, updateFlow);
         this.operationService = new C2OperationService(Arrays.asList(updateConfigurationOperationHandler));
     }
 
@@ -53,14 +51,7 @@ public class C2ClientService {
         try {
             // TODO exception handling for all the C2 Client interactions (IOExceptions, logger.error vs logger.warn, etc.)
             C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
-            Optional.ofNullable(updateConfigurationOperationHandler.getCurrentFlowUpdateInfo())
-                .map(FlowUpdateInfo::getFlowId)
-                .ifPresent(flowId -> {
-                    logger.trace("Determined that current flow id is {}.", flowId);
-                    c2Heartbeat.getFlowInfo().setFlowId(flowId);
-                });
-            client.publishHeartbeat(c2Heartbeat)
-                .ifPresent(this::processResponse);
+            client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
         } catch (IOException ioe) {
             // TODO
             logger.error("C2 Error", ioe);

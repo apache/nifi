@@ -26,6 +26,7 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.nifi.c2.client.C2ClientConfig;
@@ -52,13 +53,15 @@ public class C2HeartbeatFactory {
     private static final String DEVICE_IDENTIFIER_FILENAME = "device-identifier";
 
     private final C2ClientConfig clientConfig;
+    private final FlowIdHolder flowIdHolder;
 
     private String agentId;
     private String deviceId;
     private File confDirectory;
 
-    public C2HeartbeatFactory(C2ClientConfig clientConfig) {
+    public C2HeartbeatFactory(C2ClientConfig clientConfig, FlowIdHolder flowIdHolder) {
         this.clientConfig = clientConfig;
+        this.flowIdHolder = flowIdHolder;
     }
 
     public C2Heartbeat create(RuntimeInfoWrapper runtimeInfoWrapper) {
@@ -78,9 +81,8 @@ public class C2HeartbeatFactory {
 
     private FlowInfo getFlowInfo(Map<String, FlowQueueStatus> queueStatus) {
         FlowInfo flowInfo = new FlowInfo();
-
         flowInfo.setQueues(queueStatus);
-
+        Optional.ofNullable(flowIdHolder.getFlowId()).ifPresent(flowInfo::setFlowId);
         return flowInfo;
     }
 
