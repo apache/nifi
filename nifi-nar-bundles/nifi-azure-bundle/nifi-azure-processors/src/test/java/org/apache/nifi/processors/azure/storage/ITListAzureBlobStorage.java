@@ -37,8 +37,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @BeforeEach
     public void setUp() throws Exception {
         uploadTestBlob();
-
-        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
+        waitForUpload();
     }
 
     @Test
@@ -82,7 +81,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testListWithMinSize() throws Exception {
         uploadTestBlob("nifi-test-blob2", "Test");
-        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
+        waitForUpload();
         assertListCount();
         runner.setProperty(ListAzureBlobStorage.MIN_SIZE, "5 B");
 
@@ -95,7 +94,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testListWithMaxSize() throws Exception {
         uploadTestBlob("nifi-test-blob2", "Test");
-        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
+        waitForUpload();
         assertListCount();
         runner.setProperty(ListAzureBlobStorage.MAX_SIZE, "5 B");
 
@@ -103,6 +102,10 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.run(1);
 
         assertResult("Test");
+    }
+
+    private void waitForUpload() throws InterruptedException {
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
     }
 
     private void assertResult() {
