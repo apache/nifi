@@ -276,6 +276,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         taskNode.verifyCanStop();
+
+        // Increment the Active Thread Count in order to ensure that we don't consider the Reporting Task completely stopped until we've run
+        // all lifecycle methods, such as @OnStopped
+        lifecycleState.incrementActiveThreadCount(null);
+
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
         final ReportingTask reportingTask = taskNode.getReportingTask();
         taskNode.setScheduledState(ScheduledState.STOPPED);
@@ -304,10 +309,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     agent.unschedule(taskNode, lifecycleState);
 
-                    if (lifecycleState.getActiveThreadCount() == 0 && lifecycleState.mustCallOnStoppedMethods()) {
+                    // If active thread count == 1, that indicates that all execution threads have completed. We use 1 here instead of 0 because
+                    // when the Reporting Task is unscheduled, we immediately increment the thread count to 1 as an indicator that we've not completely finished.
+                    if (lifecycleState.getActiveThreadCount() == 1 && lifecycleState.mustCallOnStoppedMethods()) {
                         ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
                         future.complete(null);
                     }
+
+                    lifecycleState.decrementActiveThreadCount();
                 }
             }
         };
