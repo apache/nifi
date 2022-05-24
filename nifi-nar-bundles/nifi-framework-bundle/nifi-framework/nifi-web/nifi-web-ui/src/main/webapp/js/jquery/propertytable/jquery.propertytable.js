@@ -1212,7 +1212,8 @@
                         contentType: 'application/json'
                     }).done(function (response) {
                         // load the descriptor and update the property
-                        configurationOptions.descriptorDeferred(item.property).done(function (descriptorResponse) {
+                        // Controller Service dynamic property descriptors will not be marked as sensitive
+                        configurationOptions.descriptorDeferred(item.property, false).done(function (descriptorResponse) {
                             var descriptor = descriptorResponse.propertyDescriptor;
 
                             // store the descriptor for use later
