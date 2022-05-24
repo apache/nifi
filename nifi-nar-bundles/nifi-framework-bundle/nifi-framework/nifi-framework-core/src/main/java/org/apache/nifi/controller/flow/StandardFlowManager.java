@@ -453,7 +453,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         }
 
         rootControllerServices.remove(service.getIdentifier());
-        flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier());
+
+        processScheduler.submitFrameworkTask(() -> flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier()));
 
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 

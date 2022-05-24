@@ -2378,7 +2378,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                     }
                 });
 
-            stateManagerProvider.onComponentRemoved(service.getIdentifier());
+            scheduler.submitFrameworkTask(() -> stateManagerProvider.onComponentRemoved(service.getIdentifier()));
 
             removed = true;
             LOG.info("{} removed from {}", service, this);
