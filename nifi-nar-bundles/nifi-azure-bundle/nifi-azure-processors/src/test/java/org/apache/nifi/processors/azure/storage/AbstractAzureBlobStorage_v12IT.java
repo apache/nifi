@@ -34,6 +34,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -43,7 +44,7 @@ import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLO
 public abstract class AbstractAzureBlobStorage_v12IT extends AbstractAzureStorageIT {
 
     protected static final String BLOB_NAME = "blob1";
-    protected static final byte[] BLOB_DATA = "0123456789".getBytes();
+    protected static final byte[] BLOB_DATA = "0123456789".getBytes(StandardCharsets.UTF_8);
 
     protected static final String EL_CONTAINER_NAME = "az.containername";
     protected static final String EL_BLOB_NAME = "az.blobname";

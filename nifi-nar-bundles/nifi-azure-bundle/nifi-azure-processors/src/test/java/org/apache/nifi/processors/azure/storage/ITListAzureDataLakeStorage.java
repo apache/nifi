@@ -24,6 +24,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -291,7 +292,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         flowFile.assertAttributeEquals(ATTR_NAME_FILE_PATH, testFile.getFilePath());
         flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, testFile.getDirectory());
         flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, testFile.getFilename());
-        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, String.valueOf(testFile.getFileContent().length()));
+        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, String.valueOf(testFile.getFileContent().getBytes(StandardCharsets.UTF_8).length));
 
         flowFile.assertAttributeExists(ATTR_NAME_LAST_MODIFIED);
         flowFile.assertAttributeExists(ATTR_NAME_ETAG);

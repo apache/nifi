@@ -21,7 +21,11 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.StreamSupport;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
 
@@ -78,6 +82,8 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testListWithMinSize() throws Exception {
         uploadTestBlob("nifi-test-blob2", "Test");
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
+        assertListCount();
         runner.setProperty(ListAzureBlobStorage.MIN_SIZE, "5 B");
 
         runner.assertValid();
@@ -89,6 +95,8 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testListWithMaxSize() throws Exception {
         uploadTestBlob("nifi-test-blob2", "Test");
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
+        assertListCount();
         runner.setProperty(ListAzureBlobStorage.MAX_SIZE, "5 B");
 
         runner.assertValid();
@@ -101,13 +109,18 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         assertResult(TEST_FILE_CONTENT);
     }
 
-    private void assertResult(final String contentLengthAsString) {
+    private void assertResult(final String content) {
         runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 
         for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
-            entry.assertAttributeEquals("azure.length", String.valueOf(contentLengthAsString.length()));
+            entry.assertAttributeEquals("azure.length", String.valueOf(content.getBytes(StandardCharsets.UTF_8).length));
             entry.assertAttributeEquals("mime.type", "application/octet-stream");
         }
+    }
+
+    private void assertListCount() {
+        final long listCount = StreamSupport.stream(container.listBlobs().spliterator(), false).count();
+        assertEquals(2, listCount, "There should be 2 uploaded files but found only " + listCount);
     }
 }

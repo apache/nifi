@@ -25,6 +25,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,7 +55,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
     @Test
     public void testPutBlob() throws Exception {
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -74,7 +75,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX, KEY_128B_VALUE);
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -86,7 +87,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX, KEY_192B_VALUE);
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -98,7 +99,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX, KEY_256B_VALUE);
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -110,7 +111,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX, KEY_384B_VALUE);
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -122,7 +123,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID, KEY_ID_VALUE);
         runner.setProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX, KEY_512B_VALUE);
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -133,7 +134,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         configureCredentialsService();
 
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         assertResult();
@@ -144,7 +145,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "invalid");
         runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "aW52YWxpZGludmFsaWQ=");
         runner.assertValid();
-        runner.enqueue(TEST_FILE_CONTENT.getBytes());
+        runner.enqueue(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
         runner.run();
 
         runner.assertTransferCount(PutAzureBlobStorage.REL_FAILURE, 1);
@@ -154,7 +155,7 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.assertAllFlowFilesTransferred(PutAzureBlobStorage.REL_SUCCESS, 1);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(PutAzureBlobStorage.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesForRelationship) {
-            flowFile.assertContentEquals(TEST_FILE_CONTENT.getBytes());
+            flowFile.assertContentEquals(TEST_FILE_CONTENT.getBytes(StandardCharsets.UTF_8));
             flowFile.assertAttributeEquals("azure.length", "10");
         }
 

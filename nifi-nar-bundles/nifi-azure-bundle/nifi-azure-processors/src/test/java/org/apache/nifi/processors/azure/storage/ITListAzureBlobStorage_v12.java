@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -145,7 +146,7 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     public void testListWithMinSize() throws Exception {
         uploadBlobs();
         runner.setProperty(ListAzureBlobStorage_v12.MIN_SIZE, "5 B");
-        uploadBlob("blob5", "Test".getBytes());
+        uploadBlob("blob5", "Test".getBytes(StandardCharsets.UTF_8));
 
         runProcessor();
 
@@ -156,7 +157,7 @@ public class ITListAzureBlobStorage_v12 extends AbstractAzureBlobStorage_v12IT {
     public void testListWithMaxSize() throws Exception {
         uploadBlobs();
         runner.setProperty(ListAzureBlobStorage_v12.MAX_SIZE, "5 B");
-        uploadBlob("blob5", "Test".getBytes());
+        uploadBlob("blob5", "Test".getBytes(StandardCharsets.UTF_8));
 
         runProcessor();
 
