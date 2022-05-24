@@ -1602,6 +1602,10 @@
                         hidden: true
                     }));
 
+                    // Delete property descriptor
+                    var descriptors = table.data('descriptors');
+                    delete descriptors[property.property];
+
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
                 } else if (target.hasClass('go-to-service')) {
@@ -2110,23 +2114,19 @@
                                     }
                                 });
 
-                                if (existingItem === null) {
-                                    var sensitive = valueSensitiveField.prop('checked');
+                                // load the descriptor with requested sensitive status
+                                var sensitive = valueSensitiveField.prop('checked');
+                                options.descriptorDeferred(propertyName, sensitive).done(function (response) {
+                                    var descriptor = response.propertyDescriptor;
 
-                                    // load the descriptor and add the property
-                                    options.descriptorDeferred(propertyName, sensitive).done(function (response) {
-                                        var descriptor = response.propertyDescriptor;
+                                    // store the descriptor for use later
+                                    var descriptors = table.data('descriptors');
+                                    if (!nfCommon.isUndefined(descriptors)) {
+                                        descriptors[descriptor.name] = descriptor;
+                                    }
 
-                                        // store the descriptor for use later
-                                        var descriptors = table.data('descriptors');
-                                        if (!nfCommon.isUndefined(descriptors)) {
-                                            descriptors[descriptor.name] = descriptor;
-                                        } else {
-                                            descriptors = {};
-                                            descriptors[descriptor.name] = descriptor;
-                                            table.data('descriptors', descriptors);
-                                        }
-
+                                    // add the property when existing item not found
+                                    if (existingItem === null) {
                                         // add a row for the new property
                                         var id = propertyData.getItems().length;
                                         propertyData.addItem({
@@ -2143,32 +2143,36 @@
                                         var row = propertyData.getRowById(id);
                                         propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
                                         propertyGrid.editActiveCell();
-                                    });
-                                } else {
-                                    // if this row is currently hidden, clear the value and show it
-                                    if (existingItem.hidden === true) {
-                                        propertyData.updateItem(existingItem.id, $.extend(existingItem, {
-                                            hidden: false,
-                                            previousValue: null,
-                                            value: null
-                                        }));
-
-                                        // select the new properties row
-                                        var row = propertyData.getRowById(existingItem.id);
-                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
-                                        propertyGrid.editActiveCell();
                                     } else {
-                                        nfDialog.showOkDialog({
-                                            headerText: 'Property Exists',
-                                            dialogContent: 'A property with this name already exists.'
-                                        });
+                                        // if this row is currently hidden, clear the value and show it
+                                        if (existingItem.hidden === true) {
+                                            propertyData.updateItem(existingItem.id, $.extend(existingItem, {
+                                                hidden: false,
+                                                previousValue: null,
+                                                value: null
+                                            }));
 
-                                        // select the existing properties row
-                                        var row = propertyData.getRowById(existingItem.id);
-                                        propertyGrid.setSelectedRows([row]);
-                                        propertyGrid.scrollRowIntoView(row);
+                                            // select the new properties row
+                                            var row = propertyData.getRowById(existingItem.id);
+                                            propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                            propertyGrid.editActiveCell();
+                                            propertyGrid.invalidateRow(row);
+                                            propertyGrid.render();
+                                        } else {
+                                            nfDialog.showOkDialog({
+                                                headerText: 'Property Exists',
+                                                dialogContent: 'A property with this name already exists.'
+                                            });
+
+                                            // select the existing properties row
+                                            var row = propertyData.getRowById(existingItem.id);
+                                            propertyGrid.setSelectedRows([row]);
+                                            propertyGrid.scrollRowIntoView(row);
+                                            propertyGrid.invalidateRow(row);
+                                            propertyGrid.render();
+                                        }
                                     }
-                                }
+                                });
                             } else {
                                 nfDialog.showOkDialog({
                                     headerText: 'Property Name',

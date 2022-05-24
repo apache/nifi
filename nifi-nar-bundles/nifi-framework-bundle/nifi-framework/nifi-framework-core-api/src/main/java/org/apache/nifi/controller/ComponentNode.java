@@ -261,6 +261,11 @@ public interface ComponentNode extends ComponentAuthorizable {
      */
     PropertyDescriptor getPropertyDescriptor(String name);
 
+    /**
+     * @param name Property Name
+     * @return Sensitive Dynamic Property status
+     */
+    boolean isSensitiveDynamicProperty(String name);
 
     @Override
     default AuthorizationResult checkAuthorization(Authorizer authorizer, RequestAction action, NiFiUser user, Map<String, String> resourceContext) {
