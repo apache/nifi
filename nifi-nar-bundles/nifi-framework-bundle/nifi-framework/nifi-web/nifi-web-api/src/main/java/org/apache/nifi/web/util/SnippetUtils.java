@@ -498,7 +498,12 @@ public final class SnippetUtils {
                             }
 
                             final String newServiceId = serviceIdMap.get(currentServiceId);
-                            properties.put(descriptor.getName(), newServiceId);
+
+                            // If there is no new Controller Service ID, leave it to set to whatever it was. This was either an invalid reference
+                            // to begin with, or was a reference to a higher-level Controller Service, in which case the id shouldn't change.
+                            if (newServiceId != null) {
+                                properties.put(descriptor.getName(), newServiceId);
+                            }
                         }
                     }
                 }
