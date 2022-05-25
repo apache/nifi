@@ -635,6 +635,7 @@ public class JdbcCommon {
                 case TIMESTAMP_WITH_TIMEZONE:
                 case -101: // Oracle's TIMESTAMP WITH TIME ZONE
                 case -102: // Oracle's TIMESTAMP WITH LOCAL TIME ZONE
+                case -155: // SQL Server's DATETIMEOFFSET
                     addNullableField(builder, columnName,
                             u -> options.useLogicalTypes
                                     ? u.type(LogicalTypes.timestampMillis().addToSchema(SchemaBuilder.builder().longType()))
