@@ -2044,7 +2044,7 @@
                         // build the new property dialog
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
-                                '<div class="dialog-content">' +
+                                '<div class="dialog-content dialog-content-overflow-disabled">' +
                                     '<div class="setting">' +
                                         '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
@@ -2054,11 +2054,11 @@
                                     '<div class="setting">' +
                                         '<div class="setting-field new-property-sensitive-value-container">' +
                                             '<div class="setting-name">Sensitive Value ' +
-                                                '<div class="fa fa-question-circle" alt="Info"' +
+                                                '<span class="fa fa-question-circle" alt="Info"' +
                                                     ' title="Components must declare support for Sensitive Dynamic Properties to enable selection of Sensitive Value status.' +
                                                     ' Components that flag dynamic properties as sensitive do not allow Sensitive Value status to be changed."' +
                                                 '>' +
-                                                '</div>' +
+                                                '</span>' +
                                             '</div>' +
                                             '<input id="value-sensitive-radio-button" type="radio" name="sensitive" value="sensitive" /> Yes' +
                                             '<input id="value-not-sensitive-radio-button" type="radio" name="sensitive" value="plain" style="margin-left: 20px;"/> No' +
@@ -2074,7 +2074,6 @@
 
                         newPropertyDialog.modal({
                             headerText: 'Add Property',
-                            scrollableContentStyle: 'scrollable',
                             buttons: [{
                                 buttonText: 'Ok',
                                 color: {
@@ -2120,38 +2119,38 @@
                                     }
                                 });
 
-                                // load the descriptor with requested sensitive status
-                                var sensitive = valueSensitiveField.prop('checked');
-                                options.descriptorDeferred(propertyName, sensitive).done(function (response) {
-                                    var descriptor = response.propertyDescriptor;
+                                if (existingItem === null || existingItem.hidden === true) {
+                                    // load the descriptor with requested sensitive status
+                                    var sensitive = valueSensitiveField.prop('checked');
+                                    options.descriptorDeferred(propertyName, sensitive).done(function (response) {
+                                        var descriptor = response.propertyDescriptor;
 
-                                    // store the descriptor for use later
-                                    var descriptors = table.data('descriptors');
-                                    if (!nfCommon.isUndefined(descriptors)) {
-                                        descriptors[descriptor.name] = descriptor;
-                                    }
+                                        // store the descriptor for use later
+                                        var descriptors = table.data('descriptors');
+                                        if (!nfCommon.isUndefined(descriptors)) {
+                                            descriptors[descriptor.name] = descriptor;
+                                        }
 
-                                    // add the property when existing item not found
-                                    if (existingItem === null) {
-                                        // add a row for the new property
-                                        var id = propertyData.getItems().length;
-                                        propertyData.addItem({
-                                            id: id,
-                                            hidden: false,
-                                            property: propertyName,
-                                            displayName: propertyName,
-                                            previousValue: null,
-                                            value: null,
-                                            type: 'userDefined'
-                                        });
+                                        // add the property when existing item not found
+                                        if (existingItem === null) {
+                                            // add a row for the new property
+                                            var id = propertyData.getItems().length;
+                                            propertyData.addItem({
+                                                id: id,
+                                                hidden: false,
+                                                property: propertyName,
+                                                displayName: propertyName,
+                                                previousValue: null,
+                                                value: null,
+                                                type: 'userDefined'
+                                            });
 
-                                        // select the new properties row
-                                        var row = propertyData.getRowById(id);
-                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
-                                        propertyGrid.editActiveCell();
-                                    } else {
-                                        // if this row is currently hidden, clear the value and show it
-                                        if (existingItem.hidden === true) {
+                                            // select the new properties row
+                                            var row = propertyData.getRowById(id);
+                                            propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                            propertyGrid.editActiveCell();
+                                        } else {
+                                            // if this row is currently hidden, clear the value and show it
                                             propertyData.updateItem(existingItem.id, $.extend(existingItem, {
                                                 hidden: false,
                                                 previousValue: null,
@@ -2164,21 +2163,18 @@
                                             propertyGrid.render();
                                             propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
                                             propertyGrid.editActiveCell();
-                                        } else {
-                                            nfDialog.showOkDialog({
-                                                headerText: 'Property Exists',
-                                                dialogContent: 'A property with this name already exists.'
-                                            });
-
-                                            // select the existing properties row
-                                            var row = propertyData.getRowById(existingItem.id);
-                                            propertyGrid.invalidateRow(row);
-                                            propertyGrid.render();
-                                            propertyGrid.setSelectedRows([row]);
-                                            propertyGrid.scrollRowIntoView(row);
                                         }
-                                    }
-                                });
+                                    });
+                                } else {
+                                    nfDialog.showOkDialog({
+                                        headerText: 'Property Exists',
+                                        dialogContent: 'A property with this name already exists.'
+                                    });
+                                    // select the existing properties row
+                                    var row = propertyData.getRowById(existingItem.id);
+                                    propertyGrid.setSelectedRows([row]);
+                                    propertyGrid.scrollRowIntoView(row);
+                                }
                             } else {
                                 nfDialog.showOkDialog({
                                     headerText: 'Property Name',
