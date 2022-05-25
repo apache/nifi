@@ -24,10 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -38,14 +36,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -221,44 +217,20 @@ public class NiFiPropertiesLoader {
     }
 
     private void checkForDuplicates(File file) {
-        Map<String, String> properties = new HashMap<>();
-        Map<String, Set<String>> duplicateProperties = new HashMap<>();
-        Pattern keyPattern = Pattern.compile("([^!#=][^=]*)=(.*)");
-
         if (file == null || !file.exists() || !file.canRead()) {
             throw new IllegalArgumentException("NiFi properties file missing or unreadable");
         }
-        // Scan the properties file for duplicate keys
-        try (BufferedReader bufferedReader = new BufferedReader(new FileReader(file))) {
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                Matcher matcher = keyPattern.matcher(line);
 
-                if (matcher.matches()) {
-                    String key = matcher.group(1);
-                    String value = matcher.group(2);
-
-                    String existingValue = properties.put(key, value);
-
-                    if (existingValue != null) {
-                        if (existingValue.equals(value)) {
-                            logger.warn("Duplicate keys found for key '{}', but values are the same.", key);
-                        } else {
-                            Set<String> dupes = duplicateProperties.computeIfAbsent(key, k -> new HashSet<>(Collections.singleton(existingValue)));
-                            dupes.add(value);
-                        }
-                    }
-                }
-            }
-        } catch (IOException ioe) {
-            throw new IllegalArgumentException("Cannot load properties file [" + file.getAbsolutePath() + "] due to "
-                    + ioe.getLocalizedMessage(), ioe);
+        Props properties = new Props();
+        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            properties.load(inputStream);
+        } catch (final Exception e) {
+            throw new RuntimeException(String.format("Loading Application Properties [%s] failed", file), e);
         }
 
-        if (!duplicateProperties.isEmpty()) {
-            duplicateProperties.keySet().forEach(
-                    k -> logger.error("Multiple entries with different values found for key '{}'.", k)
-            );
+        Set<String> duplicateKeys = properties.duplicateKeySet();
+        if (!duplicateKeys.isEmpty()) {
+            duplicateKeys.forEach(v -> logger.error("Multiple entries with different values found for key '{}'.", v));
             throw new IllegalArgumentException("Duplicate keys were detected in the properties file. See previous errors.");
         }
     }
@@ -339,6 +311,32 @@ public class NiFiPropertiesLoader {
             } catch (final InvocationTargetException e) {
                 throw new SensitivePropertyProtectionException("Set Bootstrap Key on Provider Factory failed", e);
             }
+        }
+    }
+
+    private static class Props extends Properties {
+        // Only need to retain Properties key. This will help prevent possible inadvertent exposure of sensitive Properties value
+        private final Set<String> duplicateKeys = new HashSet<>();
+        public Props() {
+            super();
+        }
+
+        public Set<String> duplicateKeySet() {
+            return duplicateKeys;
+        }
+
+        @Override
+        public Object put(Object key, Object value) {
+            Object existingValue = super.put(key, value);
+            if (existingValue != null) {
+                if (existingValue.toString().equals(value.toString())) {
+                    logger.warn("Duplicate keys found for key '{}', but values are the same.", key);
+                    return existingValue;
+                } else {
+                    duplicateKeys.add(key.toString());
+                }
+            }
+            return value;
         }
     }
 }
