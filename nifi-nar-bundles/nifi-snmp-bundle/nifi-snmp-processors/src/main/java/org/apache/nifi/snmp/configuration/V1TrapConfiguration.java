@@ -20,6 +20,14 @@ import org.apache.nifi.util.StringUtils;
 
 public class V1TrapConfiguration {
 
+    static final String ENTERPRISE_OID_MUST_BE_SPECIFIED = "Enterprise OID must be specified.";
+    static final String AGENT_ADDRESS_MUST_BE_SPECIFIED = "Agent address must be specified.";
+    public static final String GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6 = "Generic Trap Type must be between 0 and 6.";
+    public static final String GENERIC_TRAP_TYPE_IS_NOT_A_NUMBER = "Generic Trap Type is not a number.";
+    public static final String SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647 = "Specific Trap Type must be between 0 and 2147483647.";
+    public static final String GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED = "Generic Trap Type is [6 - Enterprise Specific]" +
+            " but Specific Trap Type is not provided or not a number.";
+
     private final String enterpriseOid;
     private final String agentAddress;
     private final String genericTrapType;
@@ -83,33 +91,31 @@ public class V1TrapConfiguration {
 
         public V1TrapConfiguration build() {
             if (StringUtils.isEmpty(enterpriseOid)) {
-                throw new IllegalArgumentException("Enterprise OID must be specified.");
+                throw new IllegalArgumentException(ENTERPRISE_OID_MUST_BE_SPECIFIED);
             }
             if (StringUtils.isEmpty(agentAddress)) {
-                throw new IllegalArgumentException("Agent address must be specified.");
+                throw new IllegalArgumentException(AGENT_ADDRESS_MUST_BE_SPECIFIED);
             }
 
             final int parsedGenericTrapType;
             try {
                 parsedGenericTrapType = Integer.parseInt(genericTrapType);
                 if (parsedGenericTrapType < 0 || parsedGenericTrapType > 6) {
-                    throw new IllegalArgumentException("Generic Trap Type must be between 0 and 6.");
+                    throw new IllegalArgumentException(GENERIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_6);
                 }
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("Generic Trap Type is not a number.");
+                throw new IllegalArgumentException(GENERIC_TRAP_TYPE_IS_NOT_A_NUMBER);
             }
 
             if (parsedGenericTrapType == 6) {
                 try {
                     final int parsedSpecificTrapType = Integer.parseInt(specificTrapType);
                     if (parsedSpecificTrapType < 0) {
-                        throw new IllegalArgumentException("Specific Trap Type must be between 0 and 2147483647.");
+                        throw new IllegalArgumentException(SPECIFIC_TRAP_TYPE_MUST_BE_BETWEEN_0_AND_2147483647);
                     }
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("Generic Trap Type is [6 - Enterprise Specific] but Specific Trap Type is not provided or not a number.");
+                    throw new IllegalArgumentException(GENERIC_TRAP_TYPE_IS_6_ENTERPRISE_SPECIFIC_BUT_SPECIFIC_TRAP_TYPE_IS_NOT_PROVIDED);
                 }
-            } else if (StringUtils.isNotEmpty(specificTrapType)) {
-                throw new IllegalArgumentException("Invalid argument: Generic Trap Type is not [6 - Enterprise Specific] but Specific Trap Type is provided.");
             }
             return new V1TrapConfiguration(this);
         }

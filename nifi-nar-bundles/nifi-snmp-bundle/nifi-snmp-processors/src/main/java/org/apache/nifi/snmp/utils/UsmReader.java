@@ -87,11 +87,7 @@ public interface UsmReader {
     class UsmUserDeserializer extends StdDeserializer<UsmUser> {
 
         public UsmUserDeserializer() {
-            this(null);
-        }
-
-        public UsmUserDeserializer(Class<?> vc) {
-            super(vc);
+            super((Class<?>) null);
         }
 
         @Override

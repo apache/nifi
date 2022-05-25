@@ -54,7 +54,7 @@ public class SNMPTrapReceiverHandlerTest {
         when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
         when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version1);
 
-        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null, null);
+        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
         trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
 
@@ -76,7 +76,7 @@ public class SNMPTrapReceiverHandlerTest {
         when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
         when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version1);
 
-        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null, null);
+        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, null);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
         trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
         trapReceiverHandler.close();
@@ -119,7 +119,7 @@ public class SNMPTrapReceiverHandlerTest {
         }).when(mockUsm).addUser(any(UsmUser.class));
         when(mockSnmpManager.getUSM()).thenReturn(mockUsm);
 
-        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, USERS_JSON, UsmReader.jsonFileUsmReader());
+        final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, usmUsers);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
         trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
 
