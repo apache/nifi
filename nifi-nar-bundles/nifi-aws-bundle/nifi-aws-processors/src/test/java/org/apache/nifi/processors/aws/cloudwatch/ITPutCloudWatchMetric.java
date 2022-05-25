@@ -24,7 +24,7 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.processors.aws.sns.PutSNS;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.Assumptions;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -39,7 +39,7 @@ public class ITPutCloudWatchMetric {
     public void ifCredentialsThenTestPublish() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
         File credsFile = new File(CREDENTIALS_FILE);
-        Assumptions.assumeTrue(credsFile.exists());
+        assumeTrue(credsFile.exists());
 
         runner.setProperty(PutCloudWatchMetric.NAMESPACE, "Test");
         runner.setProperty(PutCloudWatchMetric.METRIC_NAME, "Test");
@@ -56,7 +56,7 @@ public class ITPutCloudWatchMetric {
     public void ifCredentialsThenTestPublishWithCredentialsProviderService() throws Throwable {
         final TestRunner runner = TestRunners.newTestRunner(new PutCloudWatchMetric());
         File credsFile = new File(CREDENTIALS_FILE);
-        Assumptions.assumeTrue(credsFile.exists());
+        assumeTrue(credsFile.exists());
 
         final AWSCredentialsProviderControllerService serviceImpl = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentialsProvider", serviceImpl);
