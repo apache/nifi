@@ -2044,7 +2044,7 @@
                         // build the new property dialog
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
-                                '<div class="dialog-content dialog-content-overflow-disabled">' +
+                                '<div class="dialog-content">' +
                                     '<div class="setting">' +
                                         '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
@@ -2052,14 +2052,14 @@
                                         '</div>' +
                                     '</div>' +
                                     '<div class="setting">' +
-                                        '<div class="setting-field new-property-sensitive-value-container">' +
-                                            '<div class="setting-name">Sensitive Value ' +
-                                                '<span class="fa fa-question-circle" alt="Info"' +
-                                                    ' title="Components must declare support for Sensitive Dynamic Properties to enable selection of Sensitive Value status.' +
-                                                    ' Components that flag dynamic properties as sensitive do not allow Sensitive Value status to be changed."' +
-                                                '>' +
-                                                '</span>' +
-                                            '</div>' +
+                                        '<div class="setting-name">Sensitive Value ' +
+                                            '<span class="fa fa-question-circle" alt="Info"' +
+                                                ' title="Components must declare support for Sensitive Dynamic Properties to enable selection of Sensitive Value status.' +
+                                                ' Components that flag dynamic properties as sensitive do not allow Sensitive Value status to be changed."' +
+                                            '>' +
+                                            '</span>' +
+                                        '</div>' +
+                                        '<div class="setting-field">' +
                                             '<input id="value-sensitive-radio-button" type="radio" name="sensitive" value="sensitive" /> Yes' +
                                             '<input id="value-not-sensitive-radio-button" type="radio" name="sensitive" value="plain" style="margin-left: 20px;"/> No' +
                                         '</div>' +

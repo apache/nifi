@@ -103,10 +103,6 @@
     word-wrap: break-word;
 }
 
-.dialog-content-overflow-disabled {
-    overflow: hidden;
-}
-
 .dialog-buttons {
     position: absolute;
     bottom: 0;
