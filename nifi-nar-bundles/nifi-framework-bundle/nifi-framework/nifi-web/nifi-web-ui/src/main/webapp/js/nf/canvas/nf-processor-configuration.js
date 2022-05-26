@@ -387,6 +387,10 @@
             processorConfigDto['properties'] = properties;
         }
 
+        if (processor.supportsSensitiveDynamicProperties === true) {
+            processorConfigDto['sensitiveDynamicPropertyNames'] = $('#processor-properties').propertytable('getSensitiveDynamicPropertyNames');
+        }
+
         // create the processor dto
         var processorDto = {};
         processorDto['id'] = $('#processor-id').text();
@@ -697,14 +701,15 @@
                 readOnly: false,
                 supportsGoTo: true,
                 dialogContainer: '#new-processor-property-container',
-                descriptorDeferred: function (propertyName) {
+                descriptorDeferred: function (propertyName, sensitive) {
                     var processor = $('#processor-configuration').data('processorDetails');
                     var d = nfProcessor.get(processor.id);
                     return $.ajax({
                         type: 'GET',
                         url: d.uri + '/descriptors',
                         data: {
-                            propertyName: propertyName
+                            propertyName: propertyName,
+                            sensitive: sensitive
                         },
                         dataType: 'json'
                     }).fail(nfErrorHandler.handleAjaxError);
@@ -1094,6 +1099,7 @@
                     // load the property table
                     $('#processor-properties')
                         .propertytable('setGroupId', processor.parentGroupId)
+                        .propertytable('setSupportsSensitiveDynamicProperties', processor.supportsSensitiveDynamicProperties)
                         .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, processorHistory.propertyHistory)
                         .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                             nfVerify.verify(processor['id'], processorResponse['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#processor-properties-verification-results-listing'));

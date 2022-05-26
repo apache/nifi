@@ -168,6 +168,7 @@
         if ($.isEmptyObject(properties) === false) {
             reportingTaskDto['properties'] = properties;
         }
+        reportingTaskDto['sensitiveDynamicPropertyNames'] = $('#reporting-task-properties').propertytable('getSensitiveDynamicPropertyNames');
 
         // create the reporting task entity
         var reportingTaskEntity = {};
@@ -313,14 +314,16 @@
      * Gets a property descriptor for the controller service currently being configured.
      *
      * @param {type} propertyName
+     * @param {type} sensitive Requested sensitive status
      */
-    var getReportingTaskPropertyDescriptor = function (propertyName) {
+    var getReportingTaskPropertyDescriptor = function (propertyName, sensitive) {
         var details = $('#reporting-task-configuration').data('reportingTaskDetails');
         return $.ajax({
             type: 'GET',
             url: details.uri + '/descriptors',
             data: {
-                propertyName: propertyName
+                propertyName: propertyName,
+                sensitive: sensitive
             },
             dataType: 'json'
         }).fail(nfErrorHandler.handleAjaxError);
@@ -643,6 +646,7 @@
                 // load the property table
                 $('#reporting-task-properties')
                     .propertytable('setGroupId', null)
+                    .propertytable('setSupportsSensitiveDynamicProperties', reportingTask.supportsSensitiveDynamicProperties)
                     .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory)
                     .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                         nfVerify.verify(reportingTask['id'], reportingTaskEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#reporting-task-properties-verification-results-listing'));
@@ -767,6 +771,7 @@
                 // load the property table
                 $('#reporting-task-properties')
                     .propertytable('setGroupId', null)
+                    .propertytable('setSupportsSensitiveDynamicProperties', reportingTask.supportsSensitiveDynamicProperties)
                     .propertytable('loadProperties', reportingTask.properties, reportingTask.descriptors, reportingTaskHistory.propertyHistory);
 
                 // show the details

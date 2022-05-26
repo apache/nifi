@@ -3642,15 +3642,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getProcessorPropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getProcessorPropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ProcessorNode processor = processorDAO.getProcessor(id);
-        PropertyDescriptor descriptor = processor.getPropertyDescriptor(property);
-
-        // return an invalid descriptor if the processor doesn't support this property
-        if (descriptor == null) {
-            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
-        }
-
+        final PropertyDescriptor descriptor = getPropertyDescriptor(processor, property, sensitive);
         return dtoFactory.createPropertyDescriptorDto(descriptor, processor.getProcessGroup().getIdentifier());
     }
 
@@ -4511,15 +4505,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getControllerServicePropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getControllerServicePropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ControllerServiceNode controllerService = controllerServiceDAO.getControllerService(id);
-        PropertyDescriptor descriptor = controllerService.getPropertyDescriptor(property);
-
-        // return an invalid descriptor if the controller service doesn't support this property
-        if (descriptor == null) {
-            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
-        }
-
+        final PropertyDescriptor descriptor = getPropertyDescriptor(controllerService, property, sensitive);
         final String groupId = controllerService.getProcessGroup() == null ? null : controllerService.getProcessGroup().getIdentifier();
         return dtoFactory.createPropertyDescriptorDto(descriptor, groupId);
     }
@@ -4555,15 +4543,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(final String id, final String property) {
+    public PropertyDescriptorDTO getReportingTaskPropertyDescriptor(final String id, final String property, final boolean sensitive) {
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(id);
-        PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(property);
-
-        // return an invalid descriptor if the reporting task doesn't support this property
-        if (descriptor == null) {
-            descriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
-        }
-
+        final PropertyDescriptor descriptor = getPropertyDescriptor(reportingTask, property, sensitive);
         return dtoFactory.createPropertyDescriptorDto(descriptor, null);
     }
 
@@ -5885,6 +5867,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return entityFactory.createTenantEntity(dtoFactory.createTenantDTO(user), userRevision,
                     dtoFactory.createPermissionsDto(authorizableLookup.getTenant()));
         };
+    }
+
+    private PropertyDescriptor getPropertyDescriptor(final ComponentNode componentNode, final String property, final boolean sensitive) {
+        final PropertyDescriptor propertyDescriptor;
+
+        final PropertyDescriptor componentDescriptor = componentNode.getPropertyDescriptor(property);
+        if (componentDescriptor == null) {
+            propertyDescriptor = new PropertyDescriptor.Builder().name(property).addValidator(Validator.INVALID).dynamic(true).build();
+        } else if (
+                componentDescriptor.isDynamic() && (
+                        // Allow setting sensitive status for properties marked as sensitive in previous requests
+                        componentNode.isSensitiveDynamicProperty(property) || (
+                                // Allow setting sensitive status for properties not marked as sensitive in supporting components
+                                !componentDescriptor.isSensitive() && componentNode.isSupportsSensitiveDynamicProperties()
+                        )
+                )
+        ) {
+            propertyDescriptor = new PropertyDescriptor.Builder().fromPropertyDescriptor(componentDescriptor).sensitive(sensitive).build();
+        } else {
+            propertyDescriptor = componentDescriptor;
+        }
+
+        return propertyDescriptor;
     }
 
     @Override

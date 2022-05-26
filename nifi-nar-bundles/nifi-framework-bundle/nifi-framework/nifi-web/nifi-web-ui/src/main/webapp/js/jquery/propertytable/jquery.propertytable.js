@@ -105,6 +105,7 @@
                   _) {
 
     var groupId = null;
+    var supportsSensitiveDynamicProperties = false;
     var propertyVerificationCallback = null;
     var COMBO_MIN_WIDTH = 212;
     var EDITOR_MIN_WIDTH = 212;
@@ -1211,7 +1212,8 @@
                         contentType: 'application/json'
                     }).done(function (response) {
                         // load the descriptor and update the property
-                        configurationOptions.descriptorDeferred(item.property).done(function (descriptorResponse) {
+                        // Controller Service dynamic property descriptors will not be marked as sensitive
+                        configurationOptions.descriptorDeferred(item.property, false).done(function (descriptorResponse) {
                             var descriptor = descriptorResponse.propertyDescriptor;
 
                             // store the descriptor for use later
@@ -1600,6 +1602,10 @@
                         hidden: true
                     }));
 
+                    // Delete property descriptor
+                    var descriptors = table.data('descriptors');
+                    delete descriptors[property.property];
+
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
                 } else if (target.hasClass('go-to-service')) {
@@ -1829,6 +1835,17 @@
         return properties;
     };
 
+    var getSensitiveDynamicPropertyNames = function (table) {
+        var sensitiveDynamicPropertyNames = [];
+        var descriptors = table.data('descriptors');
+        $.each(descriptors, function () {
+            if (nfCommon.isSensitiveProperty(this) === true && nfCommon.isDynamicProperty(this) === true) {
+                sensitiveDynamicPropertyNames.push(this.name);
+            }
+        });
+        return sensitiveDynamicPropertyNames;
+    };
+
     /**
      * Performs the filtering.
      *
@@ -2028,10 +2045,23 @@
                         var newPropertyDialogMarkup =
                             '<div id="new-property-dialog" class="dialog cancellable small-dialog hidden">' +
                                 '<div class="dialog-content">' +
-                                    '<div>' +
-                                    '<div class="setting-name">Property name</div>' +
+                                    '<div class="setting">' +
+                                        '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
                                             '<input class="new-property-name" type="text"/>' +
+                                        '</div>' +
+                                    '</div>' +
+                                    '<div class="setting">' +
+                                        '<div class="setting-name">Sensitive Value ' +
+                                            '<span class="fa fa-question-circle" alt="Info"' +
+                                                ' title="Components must declare support for Sensitive Dynamic Properties to enable selection of Sensitive Value status.' +
+                                                ' Components that flag dynamic properties as sensitive do not allow Sensitive Value status to be changed."' +
+                                            '>' +
+                                            '</span>' +
+                                        '</div>' +
+                                        '<div class="setting-field">' +
+                                            '<input id="value-sensitive-radio-button" type="radio" name="sensitive" value="sensitive" /> Yes' +
+                                            '<input id="value-not-sensitive-radio-button" type="radio" name="sensitive" value="plain" style="margin-left: 20px;"/> No' +
                                         '</div>' +
                                     '</div>' +
                                 '</div>' +
@@ -2039,10 +2069,11 @@
 
                         var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);
                         var newPropertyNameField = newPropertyDialog.find('input.new-property-name');
+                        var valueSensitiveField = newPropertyDialog.find('#value-sensitive-radio-button');
+                        var valueNotSensitiveField = newPropertyDialog.find('#value-not-sensitive-radio-button');
 
                         newPropertyDialog.modal({
                             headerText: 'Add Property',
-                            scrollableContentStyle: 'scrollable',
                             buttons: [{
                                 buttonText: 'Ok',
                                 color: {
@@ -2088,9 +2119,10 @@
                                     }
                                 });
 
-                                if (existingItem === null) {
-                                    // load the descriptor and add the property
-                                    options.descriptorDeferred(propertyName).done(function (response) {
+                                if (existingItem === null || existingItem.hidden === true) {
+                                    // load the descriptor with requested sensitive status
+                                    var sensitive = valueSensitiveField.prop('checked');
+                                    options.descriptorDeferred(propertyName, sensitive).done(function (response) {
                                         var descriptor = response.propertyDescriptor;
 
                                         // store the descriptor for use later
@@ -2099,47 +2131,49 @@
                                             descriptors[descriptor.name] = descriptor;
                                         }
 
-                                        // add a row for the new property
-                                        var id = propertyData.getItems().length;
-                                        propertyData.addItem({
-                                            id: id,
-                                            hidden: false,
-                                            property: propertyName,
-                                            displayName: propertyName,
-                                            previousValue: null,
-                                            value: null,
-                                            type: 'userDefined'
-                                        });
+                                        // add the property when existing item not found
+                                        if (existingItem === null) {
+                                            // add a row for the new property
+                                            var id = propertyData.getItems().length;
+                                            propertyData.addItem({
+                                                id: id,
+                                                hidden: false,
+                                                property: propertyName,
+                                                displayName: propertyName,
+                                                previousValue: null,
+                                                value: null,
+                                                type: 'userDefined'
+                                            });
 
-                                        // select the new properties row
-                                        var row = propertyData.getRowById(id);
-                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
-                                        propertyGrid.editActiveCell();
+                                            // select the new properties row
+                                            var row = propertyData.getRowById(id);
+                                            propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                            propertyGrid.editActiveCell();
+                                        } else {
+                                            // if this row is currently hidden, clear the value and show it
+                                            propertyData.updateItem(existingItem.id, $.extend(existingItem, {
+                                                hidden: false,
+                                                previousValue: null,
+                                                value: null
+                                            }));
+
+                                            // select the new properties row
+                                            var row = propertyData.getRowById(existingItem.id);
+                                            propertyGrid.invalidateRow(row);
+                                            propertyGrid.render();
+                                            propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                            propertyGrid.editActiveCell();
+                                        }
                                     });
                                 } else {
-                                    // if this row is currently hidden, clear the value and show it
-                                    if (existingItem.hidden === true) {
-                                        propertyData.updateItem(existingItem.id, $.extend(existingItem, {
-                                            hidden: false,
-                                            previousValue: null,
-                                            value: null
-                                        }));
-
-                                        // select the new properties row
-                                        var row = propertyData.getRowById(existingItem.id);
-                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
-                                        propertyGrid.editActiveCell();
-                                    } else {
-                                        nfDialog.showOkDialog({
-                                            headerText: 'Property Exists',
-                                            dialogContent: 'A property with this name already exists.'
-                                        });
-
-                                        // select the existing properties row
-                                        var row = propertyData.getRowById(existingItem.id);
-                                        propertyGrid.setSelectedRows([row]);
-                                        propertyGrid.scrollRowIntoView(row);
-                                    }
+                                    nfDialog.showOkDialog({
+                                        headerText: 'Property Exists',
+                                        dialogContent: 'A property with this name already exists.'
+                                    });
+                                    // select the existing properties row
+                                    var row = propertyData.getRowById(existingItem.id);
+                                    propertyGrid.setSelectedRows([row]);
+                                    propertyGrid.scrollRowIntoView(row);
                                 }
                             } else {
                                 nfDialog.showOkDialog({
@@ -2184,6 +2218,15 @@
 
                             // set the initial focus
                             newPropertyNameField.focus();
+
+                            // Set initial Sensitive Value radio button status
+                            valueSensitiveField.prop('checked', false);
+                            valueNotSensitiveField.prop('checked', true);
+
+                            // Set disabled status based on component support indicated
+                            var sensitiveFieldDisabled = supportsSensitiveDynamicProperties !== true;
+                            valueSensitiveField.prop('disabled', sensitiveFieldDisabled);
+                            valueNotSensitiveField.prop('disabled', sensitiveFieldDisabled);
                         }).appendTo(addProperty);
 
                         // build the control to trigger verification
@@ -2334,12 +2377,37 @@
         },
 
         /**
+         * Get Sensitive Dynamic Property Names based on Property Descriptor status
+         */
+        getSensitiveDynamicPropertyNames: function () {
+            var sensitiveDynamicPropertyNames = [];
+
+            this.each(function () {
+                // get the property grid data
+                var table = $(this).find('div.property-table');
+                sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(table);
+                return false;
+            });
+
+            return sensitiveDynamicPropertyNames;
+        },
+
+        /**
          * Sets the current group id. This is used to indicate where inline Controller Services are created
          * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {
                 groupId = currentGroupId;
+            });
+        },
+
+        /**
+         * Set Support status for Sensitive Dynamic Properties
+         */
+        setSupportsSensitiveDynamicProperties: function (currentSupportsSensitiveDynamicProperties) {
+            return this.each(function () {
+                supportsSensitiveDynamicProperties = currentSupportsSensitiveDynamicProperties;
             });
         },
 

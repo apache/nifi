@@ -120,6 +120,7 @@
         if ($.isEmptyObject(properties) === false) {
             controllerServiceDto['properties'] = properties;
         }
+        controllerServiceDto['sensitiveDynamicPropertyNames'] = $('#controller-service-properties').propertytable('getSensitiveDynamicPropertyNames');
 
         // create the controller service entity
         var controllerServiceEntity = {};
@@ -1518,14 +1519,16 @@
      * Gets a property descriptor for the controller service currently being configured.
      *
      * @param {type} propertyName
+     * @param {type} sensitive Requested sensitive status
      */
-    var getControllerServicePropertyDescriptor = function (propertyName) {
+    var getControllerServicePropertyDescriptor = function (propertyName, sensitive) {
         var controllerServiceEntity = $('#controller-service-configuration').data('controllerServiceDetails');
         return $.ajax({
             type: 'GET',
             url: controllerServiceEntity.uri + '/descriptors',
             data: {
-                propertyName: propertyName
+                propertyName: propertyName,
+                sensitive: sensitive
             },
             dataType: 'json'
         }).fail(nfErrorHandler.handleAjaxError);
@@ -2113,6 +2116,7 @@
                 // load the property table
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
+                    .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
                     .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory)
                     .propertytable('setPropertyVerificationCallback', function (proposedProperties) {
                         nfVerify.verify(controllerService['id'], controllerServiceEntity['uri'], proposedProperties, referencedAttributes, handleVerificationResults, $('#controller-service-properties-verification-results-listing'));
@@ -2257,6 +2261,7 @@
                 // load the property table
                 $('#controller-service-properties')
                     .propertytable('setGroupId', controllerService.parentGroupId)
+                    .propertytable('setSupportsSensitiveDynamicProperties', controllerService.supportsSensitiveDynamicProperties)
                     .propertytable('loadProperties', controllerService.properties, controllerService.descriptors, controllerServiceHistory.propertyHistory);
 
                 // show the details

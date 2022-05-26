@@ -20,6 +20,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -54,6 +55,7 @@ import java.util.Map;
 /**
  * A Reporting task whose body is provided by a script (via supported JSR-223 script engines)
  */
+@SupportsSensitiveDynamicProperties
 @Tags({"reporting", "script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Provides reporting and status information to a script. ReportingContext, ComponentLog, and VirtualMachineMetrics objects are made available "
         + "as variables (context, log, and vmMetrics, respectively) to the script for further processing. The context makes various information available such "
