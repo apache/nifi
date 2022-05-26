@@ -539,7 +539,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         requireNonNull(serviceNode);
-        serviceCache.remove(serviceNode.getIdentifier());
 
         final ProcessGroup group = serviceNode.getProcessGroup();
         if (group == null) {
