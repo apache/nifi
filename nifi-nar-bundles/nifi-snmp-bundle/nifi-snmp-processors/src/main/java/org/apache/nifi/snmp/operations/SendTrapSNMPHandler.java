@@ -25,6 +25,8 @@ import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
+import org.snmp4j.event.ResponseEvent;
+import org.snmp4j.smi.TransportIpAddress;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -62,7 +64,13 @@ public class SendTrapSNMPHandler {
             logger.debug("No optional SNMP specific variables found in flowfile.");
         }
 
-        snmpManager.send(pdu, target);
+        final ResponseEvent response = snmpManager.send(pdu, target);
+        if (response == null) {
+            final int port = ((TransportIpAddress) target.getAddress()).getPort();
+            throw new IOException(String.format("The sent PDU has not been confirmed, the target port [%d] may be unavailable.", port));
+        } else if (response.getError() != null) {
+            throw new IOException("An error occurred while sending trap.", response.getError());
+        }
     }
 
     V1TrapPDUFactory createV1TrapPduFactory(final Instant startTime) {
