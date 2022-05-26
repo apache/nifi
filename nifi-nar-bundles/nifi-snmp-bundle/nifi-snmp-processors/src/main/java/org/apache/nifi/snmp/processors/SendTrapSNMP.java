@@ -73,7 +73,6 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             .displayName("SNMP Manager Port")
             .description("The port where the SNMP Manager listens to the incoming traps.")
             .required(true)
-            .defaultValue("0")
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -135,7 +134,12 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
 
                 final String enterpriseOid = context.getProperty(V1TrapProperties.ENTERPRISE_OID).evaluateAttributeExpressions(flowFile).getValue();
                 final String agentAddress = context.getProperty(V1TrapProperties.AGENT_ADDRESS).evaluateAttributeExpressions(flowFile).getValue();
-                final String genericTrapType = context.getProperty(V1TrapProperties.GENERIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+                String genericTrapType = context.getProperty(V1TrapProperties.GENERIC_TRAP_TYPE).getValue();
+
+                if (genericTrapType.equals(V1TrapProperties.WITH_FLOW_FILE_ATTRIBUTE.getValue()) && flowFile != null) {
+                    genericTrapType = flowFile.getAttribute(V1TrapProperties.GENERIC_TRAP_TYPE_FF_ATTRIBUTE);
+                }
+
                 final String specificTrapType = context.getProperty(V1TrapProperties.SPECIFIC_TRAP_TYPE).evaluateAttributeExpressions(flowFile).getValue();
                 V1TrapConfiguration v1TrapConfiguration = V1TrapConfiguration.builder()
                         .enterpriseOid(enterpriseOid)

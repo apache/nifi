@@ -42,6 +42,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class GetSNMPIT {
 
@@ -88,7 +89,8 @@ class GetSNMPIT {
 
             assertNotNull(successFF);
             assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             testAgent.stop();
             testAgent.unregister();
@@ -107,7 +109,8 @@ class GetSNMPIT {
 
             assertEquals(READ_ONLY_OID_VALUE_1, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_1 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
             assertEquals(READ_ONLY_OID_VALUE_2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + READ_ONLY_OID_2 + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             testAgent.stop();
             testAgent.unregister();
@@ -136,7 +139,8 @@ class GetSNMPIT {
                 assertEquals("noSuchObject", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + NOT_FOUND_OID + SNMPUtils.SNMP_PROP_DELIMITER + "128"));
                 assertEquals("Success", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             testAgent.stop();
             testAgent.unregister();

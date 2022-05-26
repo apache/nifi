@@ -40,6 +40,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class SetSNMPIT {
 
@@ -80,7 +81,8 @@ class SetSNMPIT {
 
             assertNotNull(successFF);
             assertEquals(TEST_OID_VALUE, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + TEST_OID + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             testAgent.stop();
             testAgent.unregister();

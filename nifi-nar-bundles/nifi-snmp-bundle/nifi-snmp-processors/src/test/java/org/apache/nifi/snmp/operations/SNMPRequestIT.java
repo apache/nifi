@@ -157,7 +157,8 @@ class SNMPRequestIT {
             final SNMPSingleResponse response = getSNMPHandler.get(READ_ONLY_OID_1);
             assertEquals(READ_ONLY_OID_VALUE_1, response.getVariableBindings().get(0).getVariable());
             assertEquals(SUCCESS, response.getErrorStatusText());
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -182,7 +183,8 @@ class SNMPRequestIT {
             } else {
                 fail("Response is not present.");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -201,7 +203,8 @@ class SNMPRequestIT {
             final SNMPTreeResponse response = getSNMPHandler.walk(WALK_OID);
 
             assertSubTreeContainsOids(response);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -220,7 +223,8 @@ class SNMPRequestIT {
             assertThrows(RequestTimeoutException.class, () ->
                     getSNMPHandler.get(READ_ONLY_OID_1)
             );
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -250,7 +254,8 @@ class SNMPRequestIT {
             } else {
                 fail("Response is not present.");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -274,7 +279,8 @@ class SNMPRequestIT {
             } else {
                 fail("Response is not present.");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -298,7 +304,8 @@ class SNMPRequestIT {
             } else {
                 fail("Response is not present.");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -317,7 +324,8 @@ class SNMPRequestIT {
             final SNMPSingleResponse response = getSNMPHandler.get(WRITE_ONLY_OID);
 
             assertEquals(cannotModifyOidStatusMessage, response.getErrorStatusText());
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -340,7 +348,8 @@ class SNMPRequestIT {
                 assertEquals(getInvalidOidStatusMessage, response.getVariableBindings().get(0).getVariable());
                 assertEquals(SUCCESS, response.getErrorStatusText());
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
@@ -364,7 +373,8 @@ class SNMPRequestIT {
             } else {
                 fail("Response is not present.");
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            fail(e);
         } finally {
             agent.stop();
             agent.unregister();
