@@ -1,0 +1,12 @@
+{
+  "rootInt": 100,
+  "rootString": "root_string",
+  "nestedLevel1Record": {
+    "nestedLevel1Int": 110,
+    "nestedLevel1String": "root.level1:string",
+    "nestedLevel2Record": {
+      "nestedLevel2Int": 111,
+      "nestedLevel2String": "root.level1.level2:string"
+    }
+  }
+}

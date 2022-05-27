@@ -1053,8 +1053,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accounts", SchemaApplicationStrategy.SELECTED_PART);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accounts");
     }
 
     @Test
@@ -1073,8 +1072,7 @@ class TestJsonTreeRowRecordReader {
                 }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD,
-                "account", SchemaApplicationStrategy.SELECTED_PART);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "account");
     }
 
     @Test
@@ -1097,16 +1095,14 @@ class TestJsonTreeRowRecordReader {
                     }})
         );
 
-        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD,
-                "accountIds", SchemaApplicationStrategy.SELECTED_PART);
+        testReadRecords(jsonPath, expected, StartingFieldStrategy.NESTED_FIELD, "accountIds");
     }
 
     @Test
     void testStartFromSimpleFieldReturnsEmptyJson() throws IOException, MalformedRecordException {
         String jsonPath = "src/test/resources/json/single-element-nested.json";
 
-        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD,
-                "name", SchemaApplicationStrategy.SELECTED_PART);
+        testReadRecords(jsonPath, Collections.emptyList(), StartingFieldStrategy.NESTED_FIELD, "name");
     }
 
     @Test
@@ -1211,11 +1207,11 @@ class TestJsonTreeRowRecordReader {
     }
 
     private void testReadRecords(String jsonPath, List<Object> expected, StartingFieldStrategy strategy,
-                                 String startingFieldName, SchemaApplicationStrategy schemaApplicationStrategy) throws IOException, MalformedRecordException {
+                                 String startingFieldName) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile))) {
             RecordSchema schema = inferSchema(jsonStream, strategy, startingFieldName);
-            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, schemaApplicationStrategy);
+            testReadRecords(jsonStream, schema, expected, strategy, startingFieldName, SchemaApplicationStrategy.SELECTED_PART);
         }
     }
 

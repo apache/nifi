@@ -39,8 +39,11 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Queue;
 import java.util.function.Supplier;
 
 public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
@@ -67,18 +70,32 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     private RecordSchema getSelectedSchema(final RecordSchema schema, final String startingFieldName) {
-        final RecordField startingRecordField = schema
-                .getField(startingFieldName)
-                .orElseThrow(() -> new RuntimeException(String.format("Selected schema field [%s] not found.", startingFieldName)));
-        final RecordSchema childSchema;
-        if (startingRecordField.getDataType() instanceof ArrayDataType) {
-            childSchema = ((RecordDataType) ((ArrayDataType) startingRecordField.getDataType()).getElementType()).getChildSchema();
-        } else if (startingRecordField.getDataType() instanceof RecordDataType) {
-            childSchema = ((RecordDataType) startingRecordField.getDataType()).getChildSchema();
-        } else
-            throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", startingFieldName));
+        final Queue<RecordSchema> schemas = new LinkedList<>();
+        schemas.add(schema);
+        while (!schemas.isEmpty()) {
+            final RecordSchema currentSchema = schemas.poll();
+            final Optional<RecordField> optionalRecordField = currentSchema.getField(startingFieldName);
+            if (optionalRecordField.isPresent()) {
+                return getChildSchemaFromField(optionalRecordField.get());
+            } else {
+                for (RecordField field : currentSchema.getFields()) {
+                    if (field.getDataType() instanceof  ArrayDataType || field.getDataType() instanceof RecordDataType) {
+                        schemas.add(getChildSchemaFromField(field));
+                    }
+                }
+            }
 
-        return childSchema;
+        }
+        throw new RuntimeException(String.format("Selected schema field [%s] not found.", startingFieldName));
+    }
+
+    private RecordSchema getChildSchemaFromField(final RecordField recordField) {
+        if (recordField.getDataType() instanceof ArrayDataType) {
+            return ((RecordDataType) ((ArrayDataType) recordField.getDataType()).getElementType()).getChildSchema();
+        } else if (recordField.getDataType() instanceof RecordDataType) {
+            return ((RecordDataType) recordField.getDataType()).getChildSchema();
+        } else
+            throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", recordField.getFieldName()));
     }
 
     @Override
