@@ -42,7 +42,7 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
             .description("The port for Syslog communication. Note that Expression language is not evaluated per FlowFile.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
