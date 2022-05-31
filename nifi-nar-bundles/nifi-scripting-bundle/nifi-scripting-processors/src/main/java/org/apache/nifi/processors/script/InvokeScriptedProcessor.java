@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -76,7 +77,8 @@ import java.util.concurrent.atomic.AtomicReference;
         + "public void onStopped(ProcessContext context) methods to be invoked when the parent InvokeScriptedProcessor is scheduled or stopped, respectively.  "
         + "NOTE: The script will be loaded when the processor is populated with property values, see the Restrictions section for more security implications.  "
         + "Experimental: Impact of sustained usage not yet verified.")
-@DynamicProperty(name = "A script engine property to update", value = "The value to set it to",
+@SupportsSensitiveDynamicProperties
+@DynamicProperty(name = "Script Engine Binding property", value = "Binding property value passed to Script Runner",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 @Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER},
@@ -301,7 +303,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // store the updated validation results
         validationResults.set(results);
 
-        // return whether there was any issues loading the configured script
+        // return whether there were any issues loading the configured script
         return results.isEmpty();
     }
 
@@ -332,7 +334,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // store the updated validation results
         validationResults.set(results);
 
-        // return whether there was any issues loading the configured script
+        // return whether there were any issues loading the configured script
         return results.isEmpty();
     }
 
@@ -360,7 +362,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
             }
 
             if (scriptRunner == null) {
-                throw new ProcessException("No script runner available!");
+                throw new ProcessException("No script runner available");
             }
             // get the engine and ensure its invocable
             ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
