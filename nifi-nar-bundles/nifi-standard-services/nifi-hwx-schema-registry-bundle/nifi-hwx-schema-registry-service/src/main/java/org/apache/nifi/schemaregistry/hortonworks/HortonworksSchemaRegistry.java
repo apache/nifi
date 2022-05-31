@@ -174,6 +174,8 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         final String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
         final String kerberosPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
 
+        final String basicAuthUsername = validationContext.getProperty(BASIC_AUTH_USERNAME).evaluateAttributeExpressions().getValue();
+
         final KerberosCredentialsService kerberosCredentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)
                 .asControllerService(KerberosCredentialsService.class);
 
@@ -207,6 +209,14 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                     .subject(BASIC_AUTH_USERNAME.getDisplayName())
                     .valid(false)
                     .explanation("SSL Context Service must be set when using basic authentication")
+                    .build());
+        }
+
+        if ((!StringUtils.isBlank(kerberosPrincipal) || kerberosCredentialsService != null ) && !StringUtils.isBlank(basicAuthUsername)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(BASIC_AUTH_USERNAME.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos- and basic authentication cannot be configured at the same time")
                     .build());
         }
 
