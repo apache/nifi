@@ -45,6 +45,7 @@ public class ConnectionStatus implements Cloneable {
     private long totalQueuedDuration;
     private long maxQueuedDuration;
     private FlowFileAvailability flowFileAvailability;
+    private LoadBalanceStatus loadBalanceStatus;
 
     public String getId() {
         return id;
@@ -60,6 +61,14 @@ public class ConnectionStatus implements Cloneable {
 
     public void setGroupId(final String groupId) {
         this.groupId = groupId;
+    }
+
+    public LoadBalanceStatus getLoadBalanceStatus() {
+        return loadBalanceStatus;
+    }
+
+    public void setLoadBalanceStatus(final LoadBalanceStatus loadBalanceStatus) {
+        this.loadBalanceStatus = loadBalanceStatus;
     }
 
     public int getQueuedCount() {
@@ -228,6 +237,7 @@ public class ConnectionStatus implements Cloneable {
         final ConnectionStatus clonedObj = new ConnectionStatus();
         clonedObj.groupId = groupId;
         clonedObj.id = id;
+        clonedObj.loadBalanceStatus = loadBalanceStatus;
         clonedObj.inputBytes = inputBytes;
         clonedObj.inputCount = inputCount;
         clonedObj.name = name;
@@ -297,6 +307,8 @@ public class ConnectionStatus implements Cloneable {
         builder.append(totalQueuedDuration);
         builder.append(", maxActiveQueuedDuration=");
         builder.append(maxQueuedDuration);
+        builder.append(", loadBalanceStatus=");
+        builder.append(loadBalanceStatus);
         builder.append("]");
         return builder.toString();
     }
