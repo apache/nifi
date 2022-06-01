@@ -25,6 +25,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.vault.client.RestTemplateFactory;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
+import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.SslConfiguration;
 
@@ -37,10 +38,14 @@ import java.util.concurrent.TimeUnit;
  * A Vault configuration that uses the NiFiVaultEnvironment.
  */
 public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
+    private static final int KV_V1 = 1;
+    private static final int KV_V2 = 2;
+
     public enum VaultConfigurationKey {
         AUTHENTICATION_PROPERTIES_FILE("vault.authentication.properties.file"),
         READ_TIMEOUT("vault.read.timeout"),
         CONNECTION_TIMEOUT("vault.connection.timeout"),
+        KV_VERSION("vault.kv.version"),
         URI("vault.uri");
 
         private final String key;
@@ -62,6 +67,7 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
     private final SslConfiguration sslConfiguration;
     private final ClientOptions clientOptions;
+    private final KeyValueBackend keyValueBackend;
 
     /**
      * Creates a HashiCorpVaultConfiguration from property sources
@@ -84,12 +90,32 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
             }
         }
 
+        KeyValueBackend keyValueBackend = KeyValueBackend.KV_1;
+        if (env.containsProperty(VaultConfigurationKey.KV_VERSION.key)) {
+            final String kvVersion = env.getProperty(VaultConfigurationKey.KV_VERSION.key);
+            try {
+                int kvVersionNumber = Integer.parseInt(kvVersion);
+                if (kvVersionNumber == KV_V2) {
+                    keyValueBackend = KeyValueBackend.KV_2;
+                } else if (kvVersionNumber != KV_V1) {
+                    throw new IllegalArgumentException("K/V v" + kvVersion + " is not recognized");
+                }
+            } catch (final IllegalArgumentException e) {
+                throw new HashiCorpVaultConfigurationException("Unrecognized " + VaultConfigurationKey.KV_VERSION.key + ": " + kvVersion, e);
+            }
+        }
+        this.keyValueBackend = keyValueBackend;
+
         this.setApplicationContext(new HashiCorpVaultApplicationContext(env));
 
         sslConfiguration = env.getProperty(VaultConfigurationKey.URI.key).contains(HTTPS)
                 ? super.sslConfiguration() : SslConfiguration.unconfigured();
 
         clientOptions = getClientOptions();
+    }
+
+    public KeyValueBackend getKeyValueBackend() {
+        return keyValueBackend;
     }
 
     /**
