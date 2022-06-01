@@ -25,6 +25,7 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.vault.authentication.SimpleSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultKeyValueOperations;
+import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.Ciphertext;
@@ -37,8 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend.KV_1;
-
 /**
  * Implements the VaultCommunicationService using Spring Vault
  */
@@ -46,6 +45,7 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
     private final VaultTemplate vaultTemplate;
     private final VaultTransitOperations transitOperations;
     private final Map<String, VaultKeyValueOperations> keyValueOperationsMap;
+    private final KeyValueBackend keyValueBackend;
 
     /**
      * Creates a VaultCommunicationService that uses Spring Vault.
@@ -60,6 +60,7 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
                 new SimpleSessionManager(vaultConfiguration.clientAuthentication()));
 
         transitOperations = vaultTemplate.opsForTransit();
+        keyValueBackend = vaultConfiguration.getKeyValueBackend();
         keyValueOperationsMap = new HashMap<>();
     }
 
@@ -94,7 +95,7 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
         Objects.requireNonNull(secretKey, "Secret secretKey must be specified");
         Objects.requireNonNull(value, "Secret value must be specified");
         final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, KV_1));
+                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, keyValueBackend));
         keyValueOperations.put(secretKey, new SecretData(value));
     }
 
@@ -109,7 +110,7 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
         Objects.requireNonNull(keyValuePath, "Vault K/V path must be specified");
         Objects.requireNonNull(secretKey, "Secret secretKey must be specified");
         final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, KV_1));
+                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, keyValueBackend));
         final VaultResponseSupport<SecretData> response = keyValueOperations.get(secretKey, SecretData.class);
         return response == null ? Optional.empty() : Optional.ofNullable(response.getRequiredData().getValue());
     }
@@ -123,14 +124,14 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
             return;
         }
         final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, KV_1));
+                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, keyValueBackend));
         keyValueOperations.put(secretKey, keyValues);
     }
 
     @Override
     public Map<String, String> readKeyValueSecretMap(final String keyValuePath, final String key) {
         final VaultKeyValueOperations keyValueOperations = keyValueOperationsMap
-                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, KV_1));
+                .computeIfAbsent(keyValuePath, path -> vaultTemplate.opsForKeyValue(path, keyValueBackend));
         final VaultResponseSupport<Map> response = keyValueOperations.get(key, Map.class);
         return response == null ? Collections.emptyMap() : (Map<String, String>) response.getRequiredData();
     }

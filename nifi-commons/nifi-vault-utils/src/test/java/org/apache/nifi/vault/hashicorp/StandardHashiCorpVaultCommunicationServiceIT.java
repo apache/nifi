@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * vault server -dev
  * vault secrets enable transit
  * vault secrets enable kv
+ * vault secrets enable kv-v2
  * vault write -f transit/keys/nifi
  *
  * Make note of the Root Token and create a properties file with the contents:
@@ -48,10 +49,13 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
 
     @BeforeEach
     public void init() {
-        vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
+        vcs = new StandardHashiCorpVaultCommunicationService(defaultServiceBuilder().build());
+    }
+
+    private HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder defaultServiceBuilder() {
+        return new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setAuthPropertiesFilename(System.getProperty("vault.auth.properties"))
-                .setUri("http://127.0.0.1:8200")
-                .build());
+                .setUri("http://127.0.0.1:8200");
     }
 
     @Test
@@ -80,6 +84,22 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
         vcs.writeKeyValueSecret("kv", key, value);
 
         final String resultValue = vcs.readKeyValueSecret("kv", key).orElseThrow(() -> new NullPointerException("Missing secret for kv/key"));
+        assertEquals(value, resultValue);
+    }
+
+    /**
+     * Run <code>vault kv get kv_v2/key</code> to see the secret
+     */
+    @Test
+    public void testReadWriteSecret_kv_v2() {
+        final String key = "key";
+        final String value = "value";
+
+        vcs = new StandardHashiCorpVaultCommunicationService(defaultServiceBuilder().setKvVersion(2).build());
+
+        vcs.writeKeyValueSecret("kv-v2", key, value);
+
+        final String resultValue = vcs.readKeyValueSecret("kv-v2", key).orElseThrow(() -> new NullPointerException("Missing secret for kv/key"));
         assertEquals(value, resultValue);
     }
 

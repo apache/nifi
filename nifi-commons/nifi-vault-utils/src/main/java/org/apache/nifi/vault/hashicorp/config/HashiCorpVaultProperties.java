@@ -38,26 +38,27 @@ public class HashiCorpVaultProperties {
     private final HashiCorpVaultSslProperties ssl;
     private final Optional<String> connectionTimeout;
     private final Optional<String> readTimeout;
+    private final int kvVersion;
 
-    private HashiCorpVaultProperties(final String uri, String keyStore, final String keyStoreType, final String keyStorePassword, final String trustStore,
-                                     final String trustStoreType, final String trustStorePassword, final String authPropertiesFilename,
-                                     final String enabledTlsCipherSuites, final String enabledTlsProtocols, final String connectionTimeout, final String readTimeout) {
-        Objects.requireNonNull(uri, "Vault URI is required");
-        Objects.requireNonNull(authPropertiesFilename, "Vault auth properties filename is required");
-        this.uri = uri;
-        this.authPropertiesFilename = authPropertiesFilename;
-        this.ssl = new HashiCorpVaultSslProperties(keyStore, keyStoreType, keyStorePassword, trustStore, trustStoreType, trustStorePassword,
-                enabledTlsCipherSuites, enabledTlsProtocols);
-        this.connectionTimeout = connectionTimeout == null ? Optional.empty() : Optional.of(connectionTimeout);
-        this.readTimeout = readTimeout == null ? Optional.empty() : Optional.of(readTimeout);
+    private HashiCorpVaultProperties(final HashiCorpVaultPropertiesBuilder builder) {
+        this.uri =  Objects.requireNonNull(builder.uri, "Vault URI is required");;
+        this.authPropertiesFilename = Objects.requireNonNull(builder.authPropertiesFilename, "Vault auth properties filename is required");
+        this.ssl = new HashiCorpVaultSslProperties(builder.keyStore, builder.keyStoreType, builder.keyStorePassword,
+                builder.trustStore, builder.trustStoreType, builder.trustStorePassword,builder.enabledTlsCipherSuites, builder.enabledTlsProtocols);
+        this.connectionTimeout = builder.connectionTimeout == null ? Optional.empty() : Optional.of(builder.connectionTimeout);
+        this.readTimeout = builder.readTimeout == null ? Optional.empty() : Optional.of(builder.readTimeout);
+        this.kvVersion = builder.kvVersion;
+        if (kvVersion != 1 && kvVersion != 2) {
+            throw new HashiCorpVaultConfigurationException("Key/Value version " + kvVersion + " is not supported");
+        }
 
         if (uri.startsWith(HTTPS)) {
-            Objects.requireNonNull(keyStore, "KeyStore is required with an https URI");
-            Objects.requireNonNull(keyStorePassword, "KeyStore password is required with an https URI");
-            Objects.requireNonNull(keyStoreType, "KeyStore type is required with an https URI");
-            Objects.requireNonNull(trustStore, "TrustStore is required with an https URI");
-            Objects.requireNonNull(trustStorePassword, "TrustStore password is required with an https URI");
-            Objects.requireNonNull(trustStoreType, "TrustStore type is required with an https URI");
+            Objects.requireNonNull(builder.keyStore, "KeyStore is required with an https URI");
+            Objects.requireNonNull(builder.keyStorePassword, "KeyStore password is required with an https URI");
+            Objects.requireNonNull(builder.keyStoreType, "KeyStore type is required with an https URI");
+            Objects.requireNonNull(builder.trustStore, "TrustStore is required with an https URI");
+            Objects.requireNonNull(builder.trustStorePassword, "TrustStore password is required with an https URI");
+            Objects.requireNonNull(builder.trustStoreType, "TrustStore type is required with an https URI");
         }
         validateAuthProperties();
     }
@@ -77,6 +78,11 @@ public class HashiCorpVaultProperties {
     @HashiCorpVaultProperty
     public HashiCorpVaultSslProperties getSsl() {
         return ssl;
+    }
+
+    @HashiCorpVaultProperty(key = "kv.version")
+    public int getKvVersion() {
+        return kvVersion;
     }
 
     @HashiCorpVaultProperty(key = "authentication.properties.file")
@@ -108,6 +114,7 @@ public class HashiCorpVaultProperties {
         private String enabledTlsProtocols;
         private String connectionTimeout;
         private String readTimeout;
+        private int kvVersion = 1;
 
         /**
          * Set the Vault URI (e.g., http://localhost:8200).  If using https protocol, the KeyStore and TrustStore
@@ -117,6 +124,16 @@ public class HashiCorpVaultProperties {
          */
         public HashiCorpVaultPropertiesBuilder setUri(String uri) {
             this.uri = uri;
+            return this;
+        }
+
+        /**
+         * Sets the Key/Value secrets engine version (1 or 2).
+         * @param kvVersion The Key/Value engine version
+         * @return Builder
+         */
+        public HashiCorpVaultPropertiesBuilder setKvVersion(int kvVersion) {
+            this.kvVersion = kvVersion;
             return this;
         }
 
@@ -240,8 +257,7 @@ public class HashiCorpVaultProperties {
          * @return Builder
          */
         public HashiCorpVaultProperties build() {
-            return new HashiCorpVaultProperties(uri, keyStore, keyStoreType, keyStorePassword, trustStore, trustStoreType,
-                    trustStorePassword, authPropertiesFilename, enabledTlsCipherSuites, enabledTlsProtocols, connectionTimeout, readTimeout);
+            return new HashiCorpVaultProperties(this);
         }
     }
 }

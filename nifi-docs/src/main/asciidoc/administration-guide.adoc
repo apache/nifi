@@ -1852,6 +1852,7 @@ Following are the configuration properties available inside the `bootstrap-hashi
 [options="header,footer"]
 |===
 |Property Name|Description|Default
+|`vault.kv.version`|The Key/Value Secrets Engine version: `1` for unversioned, and `2` for versioned.  This must match the versioned enabled in Vault.|`1`
 |`vault.connection.timeout`|The connection timeout of the Vault client|`5 secs`
 |`vault.read.timeout`|The read timeout of the Vault client|`15 secs`
 |`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_

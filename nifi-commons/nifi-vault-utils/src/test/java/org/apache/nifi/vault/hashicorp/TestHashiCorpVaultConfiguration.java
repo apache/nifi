@@ -25,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.vault.authentication.ClientAuthentication;
 import org.springframework.vault.client.VaultEndpoint;
+import org.springframework.vault.core.VaultKeyValueOperationsSupport;
 import org.springframework.vault.support.SslConfiguration;
 
 import java.io.File;
@@ -132,6 +133,29 @@ public class TestHashiCorpVaultConfiguration {
     @Test
     public void testBasicProperties() {
         this.runTest("http");
+    }
+
+    @Test
+    public void testKvVersion() {
+        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+        assertEquals(VaultKeyValueOperationsSupport.KeyValueBackend.KV_1, config.getKeyValueBackend());
+
+        propertiesBuilder.setKvVersion(2);
+        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+        assertEquals(VaultKeyValueOperationsSupport.KeyValueBackend.KV_2, config.getKeyValueBackend());
+
+        propertiesBuilder.setKvVersion(1);
+        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
+        assertEquals(VaultKeyValueOperationsSupport.KeyValueBackend.KV_1, config.getKeyValueBackend());
+    }
+
+    @Test
+    public void testKvVersionInvalid() {
+        propertiesBuilder.setKvVersion(0);
+        assertThrows(HashiCorpVaultConfigurationException.class, () -> new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build())));
+
+        propertiesBuilder.setKvVersion(3);
+        assertThrows(HashiCorpVaultConfigurationException.class, () -> new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build())));
     }
 
     @Test

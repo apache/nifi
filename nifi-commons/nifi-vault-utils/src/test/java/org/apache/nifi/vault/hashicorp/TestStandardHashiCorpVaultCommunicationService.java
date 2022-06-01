@@ -32,6 +32,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.mockito.Mockito.when;
+
 public class TestStandardHashiCorpVaultCommunicationService {
     public static final String URI_VALUE = "http://127.0.0.1:8200";
     public static final String CIPHER_SUITE_VALUE = "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
@@ -47,9 +49,10 @@ public class TestStandardHashiCorpVaultCommunicationService {
         properties = Mockito.mock(HashiCorpVaultProperties.class);
         sslProperties = Mockito.mock(HashiCorpVaultSslProperties.class);
 
-        Mockito.when(properties.getUri()).thenReturn(URI_VALUE);
-        Mockito.when(properties.getAuthPropertiesFilename()).thenReturn(authProps.getAbsolutePath());
-        Mockito.when(properties.getSsl()).thenReturn(sslProperties);
+        when(properties.getUri()).thenReturn(URI_VALUE);
+        when(properties.getAuthPropertiesFilename()).thenReturn(authProps.getAbsolutePath());
+        when(properties.getSsl()).thenReturn(sslProperties);
+        when(properties.getKvVersion()).thenReturn(1);
     }
 
     @AfterEach
@@ -88,8 +91,8 @@ public class TestStandardHashiCorpVaultCommunicationService {
 
     @Test
     public void testTimeouts() {
-        Mockito.when(properties.getConnectionTimeout()).thenReturn(Optional.of("20 secs"));
-        Mockito.when(properties.getReadTimeout()).thenReturn(Optional.of("40 secs"));
+        when(properties.getConnectionTimeout()).thenReturn(Optional.of("20 secs"));
+        when(properties.getReadTimeout()).thenReturn(Optional.of("40 secs"));
         this.configureService();
     }
 
@@ -97,17 +100,17 @@ public class TestStandardHashiCorpVaultCommunicationService {
     public void testTLS() {
         TlsConfiguration tlsConfiguration = new TemporaryKeyStoreBuilder().build();
 
-        Mockito.when(sslProperties.getKeyStore()).thenReturn(tlsConfiguration.getKeystorePath());
-        Mockito.when(sslProperties.getKeyStorePassword()).thenReturn(tlsConfiguration.getKeystorePassword());
-        Mockito.when(sslProperties.getKeyStoreType()).thenReturn(tlsConfiguration.getKeystoreType().getType());
-        Mockito.when(sslProperties.getTrustStore()).thenReturn(tlsConfiguration.getTruststorePath());
-        Mockito.when(sslProperties.getTrustStorePassword()).thenReturn(tlsConfiguration.getTruststorePassword());
-        Mockito.when(sslProperties.getTrustStoreType()).thenReturn(tlsConfiguration.getTruststoreType().getType());
-        Mockito.when(sslProperties.getEnabledProtocols()).thenReturn(Arrays.stream(tlsConfiguration.getEnabledProtocols())
+        when(sslProperties.getKeyStore()).thenReturn(tlsConfiguration.getKeystorePath());
+        when(sslProperties.getKeyStorePassword()).thenReturn(tlsConfiguration.getKeystorePassword());
+        when(sslProperties.getKeyStoreType()).thenReturn(tlsConfiguration.getKeystoreType().getType());
+        when(sslProperties.getTrustStore()).thenReturn(tlsConfiguration.getTruststorePath());
+        when(sslProperties.getTrustStorePassword()).thenReturn(tlsConfiguration.getTruststorePassword());
+        when(sslProperties.getTrustStoreType()).thenReturn(tlsConfiguration.getTruststoreType().getType());
+        when(sslProperties.getEnabledProtocols()).thenReturn(Arrays.stream(tlsConfiguration.getEnabledProtocols())
                 .collect(Collectors.joining(",")));
-        Mockito.when(sslProperties.getEnabledCipherSuites()).thenReturn(CIPHER_SUITE_VALUE);
+        when(sslProperties.getEnabledCipherSuites()).thenReturn(CIPHER_SUITE_VALUE);
 
-        Mockito.when(properties.getUri()).thenReturn(URI_VALUE.replace("http", "https"));
+        when(properties.getUri()).thenReturn(URI_VALUE.replace("http", "https"));
         this.configureService();
 
         this.ensureTlsPropertiesAccessed(1);

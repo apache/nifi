@@ -44,9 +44,14 @@ public class BeanPropertyLookup extends PropertyLookup {
                 .filter(pd -> pd.getReadMethod().getAnnotation(HashiCorpVaultProperty.class) != null)
                 .collect(Collectors.toMap(
                         pd -> getPropertyKey(prefix, pd),
-                        pd -> pd.getReadMethod().getReturnType().equals(String.class) ? new ValuePropertyLookup(pd)
+                        pd -> isValueProperty(pd) ? new ValuePropertyLookup(pd)
                                 : new BeanPropertyLookup(getPropertyKey(prefix, pd), pd.getReadMethod().getReturnType(), pd)
                 ));
+    }
+
+    private boolean isValueProperty(final PropertyDescriptor propertyDescriptor) {
+        final Class<?> returnType = propertyDescriptor.getReadMethod().getReturnType();
+        return returnType.equals(String.class) || returnType.isPrimitive();
     }
 
     private static String getPropertyKey(final String prefix, final PropertyDescriptor propertyDescriptor) {
