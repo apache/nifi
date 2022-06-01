@@ -229,7 +229,7 @@ public class PutSmbFile extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> set = Collections.emptySet();
+        Collection<ValidationResult> set = new ArrayList<>();
         if (validationContext.getProperty(USERNAME).isSet() && !validationContext.getProperty(PASSWORD).isSet()) {
             set.add(new ValidationResult.Builder().explanation("Password must be set if username is supplied.").build());
         }
