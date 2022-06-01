@@ -1196,6 +1196,43 @@ class TestJsonTreeRowRecordReader {
                 "accounts", SchemaApplicationStrategy.WHOLE_JSON);
     }
 
+    @Test
+    void testStartFromDeepNestedObject() throws IOException, MalformedRecordException {
+        String jsonPath = "src/test/resources/json/single-element-deep-nested.json";
+
+        RecordSchema recordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("rootInt", RecordFieldType.INT.getDataType()),
+                new RecordField("rootString", RecordFieldType.STRING.getDataType()),
+                new RecordField("nestedLevel1Record", RecordFieldType.RECORD.getRecordDataType(
+                        new SimpleRecordSchema(Arrays.asList(
+                                new RecordField("nestedLevel1Int", RecordFieldType.INT.getDataType()),
+                                new RecordField("nestedLevel1String", RecordFieldType.STRING.getDataType()),
+                                new RecordField("nestedLevel2Record", RecordFieldType.RECORD.getRecordDataType(
+                                        new SimpleRecordSchema(Arrays.asList(
+                                                new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
+                                                new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
+                                        ))
+                                ))
+                        ))
+                ))
+        ));
+
+        SimpleRecordSchema expectedRecordSchema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("nestedLevel2Int", RecordFieldType.INT.getDataType()),
+                new RecordField("nestedLevel2String", RecordFieldType.STRING.getDataType())
+        ));
+
+        List<Object> expected = Collections.singletonList(
+                new MapRecord(expectedRecordSchema, new HashMap<String, Object>() {{
+                    put("nestedLevel2Int", 111);
+                    put("nestedLevel2String", "root.level1.level2:string");
+                }})
+        );
+
+        testReadRecords(jsonPath, recordSchema, expected, StartingFieldStrategy.NESTED_FIELD,
+                "nestedLevel2Record", SchemaApplicationStrategy.WHOLE_JSON);
+    }
+
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
         final File jsonFile = new File(jsonPath);
         try (
