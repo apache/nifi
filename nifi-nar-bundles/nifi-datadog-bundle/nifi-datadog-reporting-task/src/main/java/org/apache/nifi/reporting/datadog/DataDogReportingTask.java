@@ -35,8 +35,6 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.datadog.metrics.MetricsService;
 import org.coursera.metrics.datadog.DynamicTagsCallback;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
@@ -69,6 +67,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
             .name("API key")
             .description("Datadog API key. If specified value is 'agent', local Datadog agent will be used.")
             .required(false)
+            .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -96,11 +95,9 @@ public class DataDogReportingTask extends AbstractReportingTask {
     private MetricRegistry metricRegistry;
     private String metricsPrefix;
     private String environment;
-    private String statusId;
     private ConcurrentHashMap<String, Double> metricsMap;
     private Map<String, String> defaultTags;
     private volatile JmxJvmMetrics virtualMachineMetrics;
-    private Logger logger = LoggerFactory.getLogger(getClass().getName());
 
     @OnScheduled
     public void setup(final ConfigurationContext context) {
@@ -130,15 +127,14 @@ public class DataDogReportingTask extends AbstractReportingTask {
 
         metricsPrefix = context.getProperty(METRICS_PREFIX).evaluateAttributeExpressions().getValue();
         environment = context.getProperty(ENVIRONMENT).evaluateAttributeExpressions().getValue();
-        statusId = status.getId();
         final Map<String, String> tags = new HashMap<>();
         tags.put("env", environment);
-        tags.put("dataflow_id", statusId);
+        tags.put("dataflow_id", status.getId());
         defaultTags = Collections.unmodifiableMap(tags);
         try {
             updateDataDogTransport(context);
         } catch (IOException e) {
-            logger.warn("Unable to update data dog transport", e);
+            getLogger().warn("Unable to update data dog transport", e);
         }
         updateAllMetricGroups(status);
         ddMetricRegistryBuilder.getDatadogReporter().report();
@@ -147,7 +143,7 @@ public class DataDogReportingTask extends AbstractReportingTask {
     protected void updateMetrics(Map<String, Double> metrics, Map<String, String> tags) {
         for (Map.Entry<String, Double> entry : metrics.entrySet()) {
             final String metricName = buildMetricName(entry.getKey());
-            logger.debug(metricName + ": " + entry.getValue());
+            getLogger().debug("Metric [{}] Value [{}]", metricName, entry.getValue());
             //if metric is not registered yet - register it
             if (!metricsMap.containsKey(metricName)) {
                 metricsMap.put(metricName, entry.getValue());
@@ -189,9 +185,9 @@ public class DataDogReportingTask extends AbstractReportingTask {
         updateMetrics(metricsService.getDataFlowMetrics(processGroupStatus), defaultTags);
     }
 
-    private class MetricGauge implements Gauge, DynamicTagsCallback {
-        private Map<String, String> tags;
-        private String metricName;
+    private class MetricGauge implements Gauge<Object>, DynamicTagsCallback {
+        private final Map<String, String> tags;
+        private final String metricName;
 
         public MetricGauge(String metricName, Map<String, String> tagsMap) {
             this.tags = tagsMap;
