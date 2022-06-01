@@ -97,6 +97,8 @@ public class ProcessorDocumentationWriterTest {
         // verify dynamic properties
         assertContains(results, "Routes FlowFiles to relationships based on XPath");
 
+        assertContains(results, "Supports Sensitive Dynamic Properties: <strong>No</strong>");
+
         // input requirement
         assertContains(results, "This component does not allow an incoming relationship.");
 
