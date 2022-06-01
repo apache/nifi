@@ -698,7 +698,7 @@ Add Property dialog.
 
 image:add-property-sensitive-value-dialog.png["Add Property with Sensitive Value status"]
 
-Selecting `Yes` in the Sensitive Value field instructs NiFi to handle the property value as
+Selecting `Yes` for the Sensitive Value setting instructs NiFi to handle the property value as
 sensitive for configuration persistence and framework operations. NiFi encrypts Sensitive Values when storing the flow
 configuration and does not include Sensitive Values in exported Flow Definitions.
 
