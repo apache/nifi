@@ -19,7 +19,7 @@ package org.apache.nifi.properties.scheme;
 /**
  * Property Protection Schemes supported as arguments for encryption commands should not have direct references
  */
-enum PropertyProtectionScheme implements ProtectionScheme {
+public enum PropertyProtectionScheme implements ProtectionScheme {
     AES_GCM("aes/gcm"),
 
     AWS_SECRETSMANAGER("aws/secretsmanager"),

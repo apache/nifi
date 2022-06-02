@@ -1,4 +1,4 @@
-package org.apache.nifi.encryptor;
+package org.apache.nifi.xml;
 
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
@@ -12,12 +12,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Map;
 import java.util.Objects;
-import java.util.jar.Attributes;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
@@ -34,17 +30,17 @@ import javax.xml.stream.events.XMLEvent;
 
 public class XmlEncryptor {
 
-//TODO:    private static final String XML_DECLARATION_REGEX = "/<\?xml version="1.0" encoding=\"UTF-8\"\?>/";
-    protected static final String ENCRYPTION_NONE = "none";
-    protected static final String ENCRYPTION_EMPTY = "";
     private static final Logger logger = LoggerFactory.getLogger(XmlEncryptor.class);
     protected final SensitivePropertyProvider decryptionProvider;
     protected final SensitivePropertyProvider encryptionProvider;
     protected final SensitivePropertyProviderFactory providerFactory;
 
+    protected static final String ENCRYPTION_NONE = "none";
     protected static final String PROPERTY_ELEMENT = "property";
-
+    protected static final String PARENT_IDENTIFIER = "identifier";
     protected static final String ENCRYPTION_ATTRIBUTE_NAME = "encryption";
+    protected static final boolean DECRYPT = true;
+    protected static final boolean ENCRYPT = false;
 
     public XmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider, final SensitivePropertyProviderFactory providerFactory) {
         this.decryptionProvider = decryptionProvider;
@@ -78,26 +74,36 @@ public class XmlEncryptor {
         }
     }
 
-    public void decrypt(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
+    // Does this method require boolean flag or can we just inverse operation based on the input XML?
+    private void cryptographicXmlOperation(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream, final boolean decrypt) {
         XMLOutputFactory factory = XMLOutputFactory.newInstance();
         factory.setProperty("com.ctc.wstx.outputValidateStructure", false);
 
         try {
             XMLEventReader eventReader = getXMLReader(encryptedXmlContent);
             XMLEventWriter xmlWriter = factory.createXMLEventWriter(decryptedOutputStream);
+            String groupIdentifier = "";
 
             while(eventReader.hasNext()) {
                 XMLEvent event = eventReader.nextEvent();
 
-                if (isEncryptedElement(event)) {
-                        System.out.println("Event: " + event.getLocation());
+                if (isGroupIdentifier(event)) {
+                    groupIdentifier = getGroupIdentifier(eventReader.nextEvent());
+                }
+
+                if (isSensitiveElement(event)) {
+                    if (decrypt) {
                         xmlWriter.add(convertToDecryptedElement(event));
-                        xmlWriter.add(decryptElementCharacters(eventReader.nextEvent()));
+                        xmlWriter.add(decryptElementCharacters(eventReader.nextEvent(), groupIdentifier));
+                    } else {
+                        xmlWriter.add(convertToEncryptedElement(event, encryptionProvider.getIdentifierKey()));
+                        xmlWriter.add(encryptElementCharacters(eventReader.nextEvent(), groupIdentifier));
+                    }
                 } else {
                     try {
                         xmlWriter.add(event);
                     } catch (Exception e) {
-                        throw new RuntimeException("Cannot decrypt XML content", e);
+                        throw new RuntimeException("Failed operation on XML content", e);
                     }
                 }
             }
@@ -107,20 +113,106 @@ public class XmlEncryptor {
             xmlWriter.close();
 
         } catch (Exception e) {
-            throw new RuntimeException("Cannot decrypt XML content", e);
+            throw new RuntimeException("Failed operation on XML content", e);
         }
     }
+
+    public void encrypt(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
+        cryptographicXmlOperation(encryptedXmlContent, decryptedOutputStream, false);
+    }
+
+    public void decrypt(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
+        cryptographicXmlOperation(encryptedXmlContent, decryptedOutputStream, true);
+    }
+
+//    public void encrypt(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
+//        XMLOutputFactory factory = XMLOutputFactory.newInstance();
+//        factory.setProperty("com.ctc.wstx.outputValidateStructure", false);
+//
+//        try {
+//            XMLEventReader eventReader = getXMLReader(encryptedXmlContent);
+//            XMLEventWriter xmlWriter = factory.createXMLEventWriter(decryptedOutputStream);
+//            String groupIdentifier = "";
+//
+//            while(eventReader.hasNext()) {
+//                XMLEvent event = eventReader.nextEvent();
+//
+//                if (isGroupIdentifier(event)) {
+//                    groupIdentifier = getGroupIdentifier(eventReader.nextEvent());
+//                }
+//
+//                if (isSensitiveElement(event)) {
+//                    if () {
+//                        xmlWriter.add(convertToDecryptedElement(event));
+//                        xmlWriter.add(decryptElementCharacters(eventReader.nextEvent(), groupIdentifier));
+//                    } else {
+//                        xmlWriter.add(convertToEncryptedElement(event, encryptionProvider.getIdentifierKey()));
+//                        xmlWriter.add(encryptElementCharacters(eventReader.nextEvent(), groupIdentifier));
+//                    }
+//                } else {
+//                    try {
+//                        xmlWriter.add(event);
+//                    } catch (Exception e) {
+//                        throw new RuntimeException("Cannot encrypt XML content", e);
+//                    }
+//                }
+//            }
+//
+//            eventReader.close();
+//            xmlWriter.flush();
+//            xmlWriter.close();
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("Cannot encrypt XML content", e);
+//        }
+//    }
+//
+//    public void decrypt(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {
+//        XMLOutputFactory factory = XMLOutputFactory.newInstance();
+//        factory.setProperty("com.ctc.wstx.outputValidateStructure", false);
+//
+//        try {
+//            XMLEventReader eventReader = getXMLReader(encryptedXmlContent);
+//            XMLEventWriter xmlWriter = factory.createXMLEventWriter(decryptedOutputStream);
+//            String groupIdentifier = "";
+//
+//            while(eventReader.hasNext()) {
+//                XMLEvent event = eventReader.nextEvent();
+//
+//                if (isGroupIdentifier(event)) {
+//                    groupIdentifier = getGroupIdentifier(eventReader.nextEvent());
+//                }
+//
+//                if (isSensitiveElement(event)) {
+//                    xmlWriter.add(convertToDecryptedElement(event));
+//                    xmlWriter.add(decryptElementCharacters(eventReader.nextEvent(), groupIdentifier));
+//                } else {
+//                    try {
+//                        xmlWriter.add(event);
+//                    } catch (Exception e) {
+//                        throw new RuntimeException("Cannot decrypt XML content", e);
+//                    }
+//                }
+//            }
+//
+//            eventReader.close();
+//            xmlWriter.flush();
+//            xmlWriter.close();
+//
+//        } catch (Exception e) {
+//            throw new RuntimeException("Cannot decrypt XML content", e);
+//        }
+//    }
 
     /**
      * Decrypt the XMLEvent element characters/value, which should contain an encrypted value
      * @param xmlEvent The encrypted Characters event to be decrypted
      * @return The decrypted Characters event
      */
-    private Characters decryptElementCharacters(final XMLEvent xmlEvent) {
-        assert(xmlEvent.isCharacters());
+    private Characters decryptElementCharacters(final XMLEvent xmlEvent, final String groupIdentifier) {
         final XMLEventFactory eventFactory = XMLEventFactory.newInstance();
         final String encryptedCharacters = xmlEvent.asCharacters().getData().trim();
-        String decryptedCharacters = decryptionProvider.unprotect(encryptedCharacters, providerFactory.getPropertyContext("rgg", "egg"));
+        String decryptedCharacters = decryptionProvider.unprotect(encryptedCharacters, providerFactory.getPropertyContext(groupIdentifier, getPropertyName(xmlEvent)));
         return eventFactory.createCharacters(decryptedCharacters);
     }
 
@@ -130,8 +222,25 @@ public class XmlEncryptor {
      * @return The updated element to be written to XML file
      */
     private StartElement convertToDecryptedElement(final XMLEvent xmlEvent) {
-        assert isEncryptedElement(xmlEvent);
-        return updateElementAttribute(xmlEvent, ENCRYPTION_ATTRIBUTE_NAME, "");
+        assert isSensitiveElement(xmlEvent);
+        return updateElementAttribute(xmlEvent, ENCRYPTION_ATTRIBUTE_NAME, ENCRYPTION_NONE);
+    }
+
+    /**
+     * Decrypt the XMLEvent element characters/value, which should contain an encrypted value
+     * @param xmlEvent The encrypted Characters event to be decrypted
+     * @return The decrypted Characters event
+     */
+    private Characters encryptElementCharacters(final XMLEvent xmlEvent, final String groupIdentifier) {
+        final XMLEventFactory eventFactory = XMLEventFactory.newInstance();
+        final String sensitiveCharacters = xmlEvent.asCharacters().getData().trim();
+        String encryptedCharacters = encryptionProvider.protect(sensitiveCharacters, providerFactory.getPropertyContext(groupIdentifier, getPropertyName(xmlEvent)));
+        return eventFactory.createCharacters(encryptedCharacters);
+    }
+
+    private StartElement convertToEncryptedElement(final XMLEvent xmlEvent, final String encryptionScheme) {
+        assert isSensitiveElement(xmlEvent);
+        return updateElementAttribute(xmlEvent, ENCRYPTION_ATTRIBUTE_NAME, encryptionScheme);
     }
 
     // TODO: Not sure if there's a more convenient way for doing this..
@@ -154,29 +263,28 @@ public class XmlEncryptor {
         return eventFactory.createStartElement(encryptedElement.getName(), updatedAttributes.iterator(), encryptedElement.getNamespaces());
     }
 
-    /**
-     *     private boolean isProperty(final StartElement startElement, final String propertyName) {
-     *         boolean found = false;
-     *
-     *         final Iterator<Attribute> attributes = startElement.getAttributes();
-     *         while (attributes.hasNext()) {
-     *             final Attribute attribute = attributes.next();
-     *             if (NAME_ATTRIBUTE.equals(attribute.getName().getLocalPart())) {
-     *                 if (propertyName.equals(attribute.getValue())) {
-     *                     found = true;
-     *                     break;
-     *                 }
-     *             }
-     *         }
-     *
-     *         return found;
-     *     }
-     */
-
-    public boolean isEncryptedElement(final XMLEvent xmlEvent) {
+    public boolean isSensitiveElement(final XMLEvent xmlEvent) {
         return xmlEvent.isStartElement() &&
                xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT) &&
                elementHasEncryptionAttribute(xmlEvent.asStartElement());
+    }
+
+    public boolean isGroupIdentifier(final XMLEvent xmlEvent) {
+        return xmlEvent.isStartElement() &&
+               xmlEvent.asStartElement().getName().toString().equals(PARENT_IDENTIFIER);
+    }
+
+    private String getGroupIdentifier(final XMLEvent xmlEvent) throws XMLStreamException {
+       if (xmlEvent.isCharacters()) {
+           return xmlEvent.asCharacters().getData();
+       } else {
+           return "";
+       }
+    }
+
+    private String getPropertyName(final XMLEvent xmlEvent) {
+        assert xmlEvent.isStartElement();
+        return xmlEvent.asStartElement().getName().toString();
     }
 
     private boolean elementHasEncryptionAttribute(final StartElement xmlEvent) {
@@ -187,44 +295,8 @@ public class XmlEncryptor {
         return !Objects.isNull(xmlEvent.getAttributeByName(new QName(attributeName)));
     }
 
-//    public String encrypt(final String plainXmlContent) {
-//        try {
-//            Object doc = new XmlSlurper().invokeMethod("parseText", new Object[]{plainXmlContent});
-//
-//            final GPathResult[] nodesToEncrypt = doc.invokeMethod("depthFirst", new Object[0]).invokeMethod("findAll", new Object[]{new Closure(this, this) {
-//                public Boolean doCall(GPathResult node) {
-//                    return node.invokeMethod("text", new Object[0]) && node.encryption.equals(ENCRYPTION_NONE);
-//                }
-//
-//            }});
-//
-//            logger.debug("Encrypting " + String.class.invokeMethod("valueOf", new Object[]{nodesToEncrypt.invokeMethod("size", new Object[0])}) + " element(s) of XML document");
-//
-//            if (nodesToEncrypt.invokeMethod("size", new Object[0]).equals(0)) {
-//                return plainXmlContent;
-//            }
-//
-//
-//            nodesToEncrypt.invokeMethod("each", new Object[]{new Closure(this, this) {
-//                public Object doCall(Object node) {
-//                    String groupIdentifier = (String) node.invokeMethod("parent", new Object[0]).identifier;
-//                    String propertyName = (String) node.name;
-//                    String encryptedValue = XmlEncryptor.this.encryptionProvider.protect(node.invokeMethod("text", new Object[0]).invokeMethod("trim", new Object[0]), providerFactory.getPropertyContext(groupIdentifier, propertyName));
-//                    node.encryption = XmlEncryptor.this.encryptionProvider.getIdentifierKey();
-//                    return node.invokeMethod("replaceBody", new Object[]{encryptedValue});
-//                }
-//
-//            }});
-//
-//            // Does not preserve whitespace formatting or comments
-//            final String updatedXml = XmlUtil.invokeMethod("serialize", new Object[]{doc});
-//            logger.debug("Updated XML content: " + updatedXml);
-//            return updatedXml;
-//        } catch (Exception e) {
-//            throw new RuntimeException("Cannot encrypt XML content", e);
-//        }
-//
-//    }
+
+
 ////
 //    public void writeXmlFile(OutputStream updatedXmlContent, final String outputXmlPath, String inputXmlPath) throws IOException {
 //        File outputXmlFile = new File(outputXmlPath);
@@ -260,8 +332,8 @@ public class XmlEncryptor {
 //            throw new IOException("File at " + xmlFilePath + " must exist and be readable by user running this tool.");
 //        }
 //    }
-//
-//
+
+
 //    public String serializeXmlContentAndPreserveFormatIfPossible(String updatedXmlContent, String inputXmlPath) {
 //        String finalXmlContent;
 //        File inputXmlFile = new File(inputXmlPath);
