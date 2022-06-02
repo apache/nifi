@@ -24,7 +24,6 @@
     <description>NiFi: Framework Bundle</description>
     <properties>
         <curator.version>5.2.1</curator.version>
-        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
@@ -534,6 +533,12 @@
                 <groupId>cglib</groupId>
                 <artifactId>cglib-nodep</artifactId>
                 <version>3.3.0</version>
+            </dependency>
+            <!-- metrics-core marked as provided in zookeeper -->
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-core</artifactId>
+                <version>4.1.12.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>

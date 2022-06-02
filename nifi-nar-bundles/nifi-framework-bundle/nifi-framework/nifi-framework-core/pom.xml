@@ -175,6 +175,16 @@
             <artifactId>nifi-flowfile-repo-serialization</artifactId>
             <version>1.17.0-SNAPSHOT</version>
         </dependency>
+        <!-- metrics-core required for ZooKeeper Server -->
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+        </dependency>
+        <!-- snappy-java required for ZooKeeper Server -->
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
