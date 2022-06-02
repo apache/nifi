@@ -326,21 +326,47 @@ instance of the `PropertyDescriptor.Builder` object,
 calling the appropriate methods on the builder, and finally calling
 the `build` method.
 
-While this method covers most of the use cases, it is sometimes
+===== Dynamic Processor Properties
+
+In addition to standard properties, it is sometimes
 desirable to allow users to configure
-additional properties whose name are not known. This can be achieved
-by overriding the
+additional properties whose names are not predefined.
+This can be achieved by overriding the
 `getSupportedDynamicPropertyDescriptor` method. This method takes a
 `String` as its only argument, which
 indicates the name of the property. The method returns a
 `PropertyDescriptor` object that can be used to validate
 both the name of the property, as well as the value. Any
 PropertyDescriptor that is returned from this method
-should be built setting the value of `isDynamic` to true in the
+should be built setting the value of `isDynamic` to `true` in the
 `PropertyDescriptor.Builder` class. The default
 behavior of AbstractProcessor is to not allow any dynamically created
 properties.
 
+===== Sensitive Dynamic Properties
+
+The default implementation for dynamic properties does not treat the
+property values as sensitive. This approach is sufficient when configuring
+features such as FlowFile attributes or custom expressions, but it does
+not provide protection for values such as passwords or keys.
+
+NiFi 1.17.0 introduced framework support for sensitive dynamic properties
+through a new behavior annotation named `SupportsSensitiveDynamicProperties`.
+The annotation can be applied to a Processor, Controller Service, or
+Reporting Task that supports dynamic properties through the
+`getSupportedDynamicPropertyDescriptor` method. The annotation indicates
+that the component allows individual dynamic properties to be marked as
+sensitive for the purpose of persistence and framework processing.
+
+The `getSupportedDynamicPropertyDescriptor` must return a `PropertyDescriptor`
+with the `sensitive` field set to `false` to allow customization of sensitive
+status. Setting the `sensitive` field to `true` in this method forces all
+dynamic properties to be handled as sensitive. This approach allows sensitive
+status to be upgraded in supported components, but not downgraded.
+
+Secure handling of sensitive property values is the responsibility of the
+annotated class. Components that support sensitive dynamic properties must
+not log property values or provide property values as FlowFile attributes.
 
 ==== Validating Processor Properties
 

@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -685,6 +686,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
         if (dynamicProperties != null && dynamicProperties.size() > 0) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Properties: ");
+
+            writeSupportsSensitiveDynamicProperties(configurableComponent, xmlStreamWriter);
+
             xmlStreamWriter.writeStartElement("p");
             xmlStreamWriter
                     .writeCharacters("Dynamic Properties allow the user to specify both the name and value of a property.");
@@ -734,6 +738,18 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
             xmlStreamWriter.writeEndElement();
         }
+    }
+
+    private void writeSupportsSensitiveDynamicProperties(final ConfigurableComponent configurableComponent, final XMLStreamWriter writer) throws XMLStreamException {
+        final boolean supportsSensitiveDynamicProperties = configurableComponent.getClass().isAnnotationPresent(SupportsSensitiveDynamicProperties.class);
+        final String sensitiveDynamicPropertiesLabel = supportsSensitiveDynamicProperties ? "Yes" : "No";
+
+        writer.writeStartElement("p");
+
+        writer.writeCharacters("Supports Sensitive Dynamic Properties: ");
+        writeSimpleElement(writer, "strong", sensitiveDynamicPropertiesLabel);
+
+        writer.writeEndElement();
     }
 
     private List<DynamicProperty> getDynamicProperties(ConfigurableComponent configurableComponent) {

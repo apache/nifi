@@ -690,8 +690,19 @@ image::edit-property-dropdown.png["Edit Property with Dropdown"]
 
 In the top-right corner of the tab is a button for adding a New Property. Clicking this button will provide the DFM with a dialog to
 enter the name and value of a new property. Not all Processors allow User-Defined properties. In processors that do not allow them,
-the Processor becomes invalid when User-Defined properties are applied. RouteOnAttribute, however, does allow User-Defined properties.
-In fact, this Processor will not be valid until the user has added a property.
+the Processor becomes invalid when User-Defined properties are applied.
+
+Selected Processors support configurable Sensitive Value status for User-Defined properties. Processors must indicate
+support for configurable Sensitive Value status, otherwise the Sensitive Value selection will be disabled in the
+Add Property dialog.
+
+image:add-property-sensitive-value-dialog.png["Add Property with Sensitive Value status"]
+
+Selecting `Yes` for the Sensitive Value setting instructs NiFi to handle the property value as
+sensitive for configuration persistence and framework operations. NiFi encrypts Sensitive Values when storing the flow
+configuration and does not include Sensitive Values in exported Flow Definitions.
+
+RouteOnAttribute allows User-Defined properties and will not be valid until the user has added a property.
 
 image:edit-property-textarea.png["Edit Property with Text Area"]
 
