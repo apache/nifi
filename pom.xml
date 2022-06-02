@@ -132,8 +132,8 @@
         <mockito.version>3.11.2</mockito.version>
         <netty.3.version>3.10.6.Final</netty.3.version>
         <netty.4.version>4.1.77.Final</netty.4.version>
-        <spring.version>5.3.19</spring.version>
-        <spring.security.version>5.6.3</spring.security.version>
+        <spring.version>5.3.20</spring.version>
+        <spring.security.version>5.7.1</spring.security.version>
         <h2.version>2.1.210</h2.version>
     </properties>
 
