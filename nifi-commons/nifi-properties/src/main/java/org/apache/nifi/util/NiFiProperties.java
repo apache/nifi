@@ -225,6 +225,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
     public static final String WEB_HTTPS_PORT_FORWARDING = "nifi.web.https.port.forwarding";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
+    public static final String WEB_HTTPS_APPLICATION_PROTOCOLS = "nifi.web.https.application.protocols";
     public static final String WEB_HTTPS_CIPHERSUITES_INCLUDE = "nifi.web.https.ciphersuites.include";
     public static final String WEB_HTTPS_CIPHERSUITES_EXCLUDE = "nifi.web.https.ciphersuites.exclude";
     public static final String WEB_HTTPS_NETWORK_INTERFACE_PREFIX = "nifi.web.https.network.interface.";
@@ -334,6 +335,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String DEFAULT_LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE = "conf/login-identity-providers.xml";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
     public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
+    private static final String DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS = "http/1.1";
     public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_MAX_HEADER_SIZE = "16 KB";
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
@@ -703,6 +705,16 @@ public class NiFiProperties extends ApplicationProperties {
         } else {
             throw new RuntimeException("The HTTP or HTTPS port must be configured");
         }
+    }
+
+    /**
+     * Get Web HTTPS Application Protocols defaults to HTTP/1.1
+     *
+     * @return Set of configured HTTPS Application Protocols
+     */
+    public Set<String> getWebHttpsApplicationProtocols() {
+        final String protocols = getProperty(WEB_HTTPS_APPLICATION_PROTOCOLS, DEFAULT_WEB_HTTPS_APPLICATION_PROTOCOLS);
+        return Arrays.stream(protocols.split("\\s+")).collect(Collectors.toSet());
     }
 
     public String getWebMaxHeaderSize() {

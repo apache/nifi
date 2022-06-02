@@ -162,7 +162,11 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
         this.applicationLayerProtocols = applicationLayerProtocols;
     }
 
-    private HttpConfiguration getHttpConfiguration() {
+    protected Server getServer() {
+        return server;
+    }
+
+    protected HttpConfiguration getHttpConfiguration() {
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
 
         if (sslContext != null) {
@@ -177,7 +181,7 @@ public class StandardServerConnectorFactory implements ServerConnectorFactory {
         return httpConfiguration;
     }
 
-    private SslContextFactory.Server getSslContextFactory() {
+    protected SslContextFactory.Server getSslContextFactory() {
         final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setSslContext(sslContext);
         sslContextFactory.setNeedClientAuth(needClientAuth);
