@@ -26,7 +26,6 @@
 
     <properties>
         <hbase.version>2.2.2</hbase.version>
-        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
 
     <modules>

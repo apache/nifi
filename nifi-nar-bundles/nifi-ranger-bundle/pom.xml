@@ -25,10 +25,6 @@
     <artifactId>nifi-ranger-bundle</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <zookeeper.version>3.5.9</zookeeper.version>
-    </properties>
-
     <modules>
         <module>nifi-ranger-plugin</module>
         <module>nifi-ranger-nar</module>

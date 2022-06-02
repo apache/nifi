@@ -22,9 +22,6 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-spark-receiver</artifactId>
-    <properties>
-        <zookeeper.version>3.5.9</zookeeper.version>
-    </properties>
     <dependencyManagement>
         <dependencies>
             <!-- Override commons-compress -->

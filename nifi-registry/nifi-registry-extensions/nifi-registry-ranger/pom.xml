@@ -24,10 +24,6 @@
     <artifactId>nifi-registry-ranger</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <zookeeper.version>3.5.9</zookeeper.version>
-    </properties>
-
     <modules>
         <module>nifi-registry-ranger-assembly</module>
         <module>nifi-registry-ranger-jersey-bundle</module>

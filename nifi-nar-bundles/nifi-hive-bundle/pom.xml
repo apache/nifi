@@ -109,7 +109,6 @@
         <hive.version>${hive3.version}</hive.version>
         <calcite.version>1.27.0</calcite.version>
         <calcite.avatica.version>1.6.0</calcite.avatica.version>
-        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
 
     <build>

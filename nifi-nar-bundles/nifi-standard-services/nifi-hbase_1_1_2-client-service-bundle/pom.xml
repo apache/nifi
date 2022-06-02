@@ -24,7 +24,6 @@
     <packaging>pom</packaging>
     <properties>
         <hadoop.version>2.7.3</hadoop.version>
-        <zookeeper.version>3.5.9</zookeeper.version>
     </properties>
     <modules>
         <module>nifi-hbase_1_1_2-client-service</module>

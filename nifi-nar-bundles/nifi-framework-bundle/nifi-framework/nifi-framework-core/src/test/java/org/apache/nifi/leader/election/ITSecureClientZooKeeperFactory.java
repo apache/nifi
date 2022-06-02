@@ -194,7 +194,7 @@ public class ITSecureClientZooKeeperFactory {
 
         ZooKeeperServer zkServer = new ZooKeeperServer(dataDir.toFile(), dataDir.toFile(), 2000);
         ServerCnxnFactory secureConnectionFactory = ServerCnxnFactory.createFactory(clientPort, -1);
-        secureConnectionFactory.configure(new InetSocketAddress(clientPort), -1, true);
+        secureConnectionFactory.configure(new InetSocketAddress(clientPort), -1, -1, true);
         secureConnectionFactory.startup(zkServer);
 
         return secureConnectionFactory;
