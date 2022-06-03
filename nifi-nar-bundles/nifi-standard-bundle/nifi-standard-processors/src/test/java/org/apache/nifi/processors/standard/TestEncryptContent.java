@@ -39,7 +39,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.KeyDerivationFunction;
-import org.apache.nifi.security.util.crypto.CipherUtility;
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -209,8 +208,8 @@ public class TestEncryptContent {
         final String AES_ALGORITHM = EncryptionMethod.MD5_256AES.getAlgorithm();
         final String DES_ALGORITHM = EncryptionMethod.MD5_DES.getAlgorithm();
 
-        final int AES_MAX_LENGTH = CipherUtility.isUnlimitedStrengthCryptoSupported() ? Integer.MAX_VALUE : 128;
-        final int DES_MAX_LENGTH = CipherUtility.isUnlimitedStrengthCryptoSupported() ? Integer.MAX_VALUE : 64;
+        final int AES_MAX_LENGTH = Integer.MAX_VALUE;
+        final int DES_MAX_LENGTH = Integer.MAX_VALUE;
 
         // Act
         int determinedAESMaxLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(AES_ALGORITHM);
@@ -224,8 +223,6 @@ public class TestEncryptContent {
     @Test
     public void testShouldDecryptOpenSSLRawSalted() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported());
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
 
@@ -258,8 +255,6 @@ public class TestEncryptContent {
     @Test
     public void testShouldDecryptOpenSSLRawUnsalted() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported());
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
 
@@ -484,18 +479,9 @@ public class TestEncryptContent {
         runner.setProperty(EncryptContent.PASSWORD, "ThisIsAPasswordThatIsLongerThanSixteenCharacters");
         pc = (MockProcessContext) runner.getProcessContext();
         results = pc.validate();
-        if (!CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            logger.info(results.toString());
-            Assert.assertEquals(1, results.size());
-            for (final ValidationResult vr : results) {
-                Assert.assertTrue(
-                        "Did not successfully catch validation error of a long password in a non-JCE Unlimited Strength environment",
-                        vr.toString().contains("Password length greater than " + CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod)
-                                + " characters is not supported by this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."));
-            }
-        } else {
-            Assert.assertEquals(results.toString(), 0, results.size());
-        }
+
+        Assert.assertEquals(results.toString(), 0, results.size());
+
         runner.removeProperty(EncryptContent.PASSWORD);
 
         runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.PGP.name());

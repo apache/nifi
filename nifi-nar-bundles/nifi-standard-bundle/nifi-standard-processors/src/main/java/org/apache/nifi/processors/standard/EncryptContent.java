@@ -437,8 +437,6 @@ public class EncryptContent extends AbstractProcessor {
     private List<ValidationResult> validatePassword(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String password, boolean allowWeakCrypto) {
         List<ValidationResult> validationResults = new ArrayList<>();
 
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported();
-
         // Password required (short circuits validation because other conditions depend on password presence)
         if (StringUtils.isEmpty(password)) {
             validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
@@ -456,40 +454,13 @@ public class EncryptContent extends AbstractProcessor {
             }
         }
 
-        // Multiple checks on machine with limited strength crypto
-        if (limitedStrengthCrypto) {
-            // Cannot use unlimited strength ciphers on machine that lacks policies
-            if (encryptionMethod.isUnlimitedStrength()) {
-                validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
-                        .explanation(encryptionMethod.name() + " (" + encryptionMethod.getAlgorithm() + ") is not supported by this JVM due to lacking JCE Unlimited " +
-                                "Strength Jurisdiction Policy files. See Admin Guide.").build());
-            }
-
-            // Check if the password exceeds the limit
-            final boolean passwordLongerThanLimit = !CipherUtility.passwordLengthIsValidForAlgorithmOnLimitedStrengthCrypto(passwordBytesLength, encryptionMethod);
-            if (passwordLongerThanLimit) {
-                int maxPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod);
-                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
-                        .explanation("Password length greater than " + maxPasswordLength + " characters is not supported by this JVM" +
-                                " due to lacking JCE Unlimited Strength Jurisdiction Policy files. See Admin Guide.").build());
-            }
-        }
-
         return validationResults;
     }
 
 
     private List<ValidationResult> validateKeyed(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String keyHex, String password, boolean allowWeakCrypto, boolean encrypt) {
         List<ValidationResult> validationResults = new ArrayList<>();
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported();
 
-        if (limitedStrengthCrypto) {
-            if (encryptionMethod.isUnlimitedStrength()) {
-                validationResults.add(new ValidationResult.Builder().subject(ENCRYPTION_ALGORITHM.getName())
-                        .explanation(encryptionMethod.name() + " (" + encryptionMethod.getAlgorithm() + ") is not supported by this JVM due to lacking JCE Unlimited " +
-                                "Strength Jurisdiction Policy files. See Admin Guide.").build());
-            }
-        }
         int allowedKeyLength = PasswordBasedEncryptor.getMaxAllowedKeyLength(ENCRYPTION_ALGORITHM.getName());
 
         // Scenario 1: RKH is present & KDF == NONE

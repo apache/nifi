@@ -20,7 +20,6 @@ import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
@@ -31,7 +30,6 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
-import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class PBKDF2CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(PBKDF2CipherProviderGroovyTest.class)
@@ -58,11 +56,7 @@ class PBKDF2CipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
     @Test

@@ -23,7 +23,6 @@ import org.apache.nifi.security.util.crypto.scrypt.Scrypt
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty
 import org.slf4j.Logger
@@ -38,7 +37,6 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.assertTrue
-import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class ScryptCipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(ScryptCipherProviderGroovyTest.class)
@@ -63,11 +61,7 @@ class ScryptCipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
     @BeforeEach
@@ -135,9 +129,6 @@ class ScryptCipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
-
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 

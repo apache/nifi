@@ -59,11 +59,7 @@ class BcryptCipherProviderGroovyTest {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
     @Test
@@ -129,9 +125,6 @@ class BcryptCipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
-
         RandomIVPBECipherProvider cipherProvider = new BcryptCipherProvider(4)
 
         final String PASSWORD = "shortPassword"

@@ -33,7 +33,6 @@ import java.security.Security
 
 import static groovy.test.GroovyAssert.shouldFail
 import static org.junit.Assert.fail
-import static org.junit.jupiter.api.Assumptions.assumeTrue
 
 class OpenSSLPKCS5CipherProviderGroovyTest {
     private static final Logger logger = LoggerFactory.getLogger(OpenSSLPKCS5CipherProviderGroovyTest.class)
@@ -107,9 +106,6 @@ class OpenSSLPKCS5CipherProviderGroovyTest {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
-
         OpenSSLPKCS5CipherProvider cipherProvider = new OpenSSLPKCS5CipherProvider()
 
         final String PASSWORD = "shortPassword"
