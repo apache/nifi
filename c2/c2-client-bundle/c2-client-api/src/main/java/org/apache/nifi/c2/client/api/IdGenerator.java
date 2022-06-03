@@ -16,7 +16,15 @@
  */
 package org.apache.nifi.c2.client.api;
 
+/**
+ * Id generator to be used in case user is not providing an optional id
+ */
 public interface IdGenerator {
 
+    /**
+     * Generate a random id
+     *
+     * @return the generated id
+     */
     String generate();
 }

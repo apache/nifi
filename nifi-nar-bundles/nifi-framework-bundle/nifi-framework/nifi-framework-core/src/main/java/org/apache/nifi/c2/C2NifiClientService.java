@@ -18,7 +18,6 @@ package org.apache.nifi.c2;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,8 +42,8 @@ import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParse
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +102,8 @@ public class C2NifiClientService {
                 .agentIdentifier(properties.getProperty(C2NiFiProperties.C2_AGENT_IDENTIFIER_KEY))
                 .heartbeatPeriod(Long.valueOf(properties.getProperty(C2NiFiProperties.C2_AGENT_HEARTBEAT_PERIOD_KEY,
                     String.valueOf(C2NiFiProperties.C2_AGENT_DEFAULT_HEARTBEAT_PERIOD))))
+                .callTimeout((long) FormatUtils.getPreciseTimeDuration(properties.getProperty(C2NiFiProperties.C2_CALL_TIMEOUT,
+                    C2NiFiProperties.C2_DEFAULT_CALL_TIMEOUT), TimeUnit.MILLISECONDS))
                 .c2Url(properties.getProperty(C2NiFiProperties.C2_REST_URL_KEY, ""))
                 .confDirectory(properties.getProperty(C2NiFiProperties.C2_CONFIG_DIRECTORY_KEY, DEFAULT_CONF_DIR))
                 .runtimeManifestIdentifier(properties.getProperty(C2NiFiProperties.C2_RUNTIME_MANIFEST_IDENTIFIER_KEY, ""))
@@ -110,10 +111,10 @@ public class C2NifiClientService {
                 .c2AckUrl(properties.getProperty(C2NiFiProperties.C2_REST_URL_ACK_KEY, ""))
                 .truststoreFilename(properties.getProperty(C2NiFiProperties.TRUSTSTORE_LOCATION_KEY, ""))
                 .truststorePassword(properties.getProperty(C2NiFiProperties.TRUSTSTORE_PASSWORD_KEY, ""))
-                .truststoreType(KeystoreType.valueOf(properties.getProperty(C2NiFiProperties.TRUSTSTORE_TYPE_KEY, "JKS")))
+                .truststoreType(properties.getProperty(C2NiFiProperties.TRUSTSTORE_TYPE_KEY, "JKS"))
                 .keystoreFilename(properties.getProperty(C2NiFiProperties.KEYSTORE_LOCATION_KEY, ""))
                 .keystorePassword(properties.getProperty(C2NiFiProperties.KEYSTORE_PASSWORD_KEY, ""))
-                .keystoreType(KeystoreType.valueOf(properties.getProperty(C2NiFiProperties.KEYSTORE_TYPE_KEY, "JKS")))
+                .keystoreType(properties.getProperty(C2NiFiProperties.KEYSTORE_TYPE_KEY, "JKS"))
                 .build();
     }
 
@@ -183,11 +184,11 @@ public class C2NifiClientService {
         return processGroupStatus;
     }
 
-    private boolean updateFlowContent(ByteBuffer updateContent) {
-        logger.info("Update content: \n{}", StandardCharsets.UTF_8.decode(updateContent));
+    private boolean updateFlowContent(byte[] updateContent) {
+        logger.debug("Update content: \n{}", new String(updateContent, StandardCharsets.UTF_8));
         Path path = getTargetConfigFile().toPath();
         try {
-            Files.write(getTargetConfigFile().toPath(), updateContent.array());
+            Files.write(getTargetConfigFile().toPath(), updateContent);
             logger.info("Updated configuration was written to: {}", path);
             return true;
         } catch (IOException e) {

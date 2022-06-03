@@ -21,7 +21,6 @@ import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
@@ -41,10 +40,10 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
     private static final String LOCATION = "location";
 
     private final C2Client client;
-    private final Function<ByteBuffer, Boolean> updateFlow;
+    private final Function<byte[], Boolean> updateFlow;
     private final FlowIdHolder flowIdHolder;
 
-    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, Function<ByteBuffer, Boolean> updateFlow) {
+    public UpdateConfigurationOperationHandler(C2Client client, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow) {
         this.client = client;
         this.updateFlow = updateFlow;
         this.flowIdHolder = flowIdHolder;
@@ -82,7 +81,7 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
         }
 
         flowIdHolder.setFlowId(newFlowId);
-        ByteBuffer updateContent = client.retrieveUpdateContent(updateLocation);
+        byte[] updateContent = client.retrieveUpdateContent(updateLocation);
         if (updateContent != null) {
             if (updateFlow.apply(updateContent)) {
                 state.setState(C2OperationState.OperationState.FULLY_APPLIED);
@@ -104,8 +103,11 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             URI flowUri = new URI(flowUpdateUrl);
             String flowUriPath = flowUri.getPath();
             String[] split = flowUriPath.split("/");
-            String flowId = split[4];
-            return flowId;
+            if (split.length > 4) {
+                return split[4];
+            } else {
+                throw new Exception();
+            }
         } catch (Exception e) {
             throw new IllegalStateException("Could not get flow id from the provided URL");
         }

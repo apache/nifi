@@ -18,9 +18,27 @@ package org.apache.nifi.c2.client.api;
 
 import java.util.Optional;
 
+/**
+ * Helper class to support central configuration and functionality for serialisation / deserialisation
+ */
 public interface C2Serializer {
 
+    /**
+     * Helper to serialise object
+     *
+     * @param content object to be serialised
+     * @param <T> the type of the object
+     * @return the serialised string representation of the parameter object if it was successful empty otherwise
+     */
     <T> Optional<String> serialize(T content);
 
+    /**
+     * Helper to deserialise an object
+     *
+     * @param content the string representation of the object to be deserialsed
+     * @param valueType the class of the target object
+     * @param <T> the type of the target object
+     * @return the deserialised object if successful empty otherwise
+     */
     <T> Optional<T> deserialize(String content, Class<T> valueType);
 }

@@ -14,7 +14,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.c2.client.service;
 
 import static java.util.Collections.singletonList;
@@ -23,7 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.c2.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,7 @@ public class FlowIdHolder {
             FileUtils.ensureDirectoryExistAndCanAccess(flowIdFile.getParentFile());
             saveFlowId(flowIdFile, flowId);
         } catch (IOException e) {
-            LOGGER.error("Failed to save flow information due to: {}", e.getMessage());
+            LOGGER.error("Persisting Flow [{}] failed", flowId, e);
         }
     }
 
@@ -62,7 +61,7 @@ public class FlowIdHolder {
         try {
             Files.write(flowUpdateInfoFile.toPath(), singletonList(flowId));
         } catch (IOException e) {
-            LOGGER.error("Failed to persist flow data", e);
+            LOGGER.error("Writing Flow [{}] failed", flowId, e);
         }
     }
 

@@ -33,6 +33,7 @@ public class C2NiFiProperties {
     public static final String C2_REST_URL_ACK_KEY = C2_PREFIX + "rest.url.ack";
     public static final String C2_ROOT_CLASSES_KEY = C2_PREFIX + "root.classes";
     public static final String C2_AGENT_HEARTBEAT_PERIOD_KEY = C2_PREFIX + "agent.heartbeat.period";
+    public static final String C2_CALL_TIMEOUT = C2_PREFIX + "rest.callTimeout";
     public static final String C2_AGENT_CLASS_KEY = C2_PREFIX + "agent.class";
     public static final String C2_AGENT_IDENTIFIER_KEY = C2_PREFIX + "agent.identifier";
 
@@ -59,4 +60,7 @@ public class C2NiFiProperties {
     // Defaults
     // Heartbeat period of 1 second
     public static final long C2_AGENT_DEFAULT_HEARTBEAT_PERIOD = TimeUnit.SECONDS.toMillis(1);
+
+    // Call timeout of 10 seconds
+    public static final String C2_DEFAULT_CALL_TIMEOUT = "10 sec";
 }

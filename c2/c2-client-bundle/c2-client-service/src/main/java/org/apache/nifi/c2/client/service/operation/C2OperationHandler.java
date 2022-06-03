@@ -21,11 +21,30 @@ import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 
+/**
+ * Handler interface for the different operation types
+ */
 public interface C2OperationHandler {
 
+    /**
+     * Returns the supported OperationType by the handler
+     *
+     * @return the type of the operation
+     */
     OperationType getOperationType();
 
+    /**
+     * Returns the supported OperandType by the handler
+     *
+     * @return the type of the operand
+     */
     OperandType getOperandType();
 
+    /**
+     * Handler logic for the specific C2Operation
+     *
+     * @param operation the C2Operation to be handled
+     * @return the result of the operation handling
+     */
     C2OperationAck handle(C2Operation operation);
 }

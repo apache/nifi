@@ -20,8 +20,27 @@ package org.apache.nifi.c2.client.api;
 import java.io.IOException;
 import java.util.Properties;
 
+/**
+ * Helper to support differentiating between config files to recognise changes
+ *
+ * @param <T> the type of the config files
+ */
 public interface Differentiator <T> {
+
+    /**
+     * Initialise the differentiator with the initial configuration
+     *
+     * @param properties the properties to be used
+     * @param configurationFileHolder holder for the config file
+     */
     void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
 
+    /**
+     * Determine whether the config file changed
+     *
+     * @param input the conetnt of the new config file
+     * @return true if changed and false if not
+     * @throws IOException when there is a config file reading related error
+     */
     boolean isNew(T input) throws IOException;
 }

@@ -21,17 +21,31 @@ import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 /**
  * Defines interface methods used to implement a C2 Client. The controller can be application-specific but is used for such tasks as updating the flow.
  */
 public interface C2Client {
 
-    Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat) throws IOException;
+    /**
+     * Responsible for sending the C2Heartbeat to the C2 Server
+     *
+     * @param heartbeat the heartbeat to be sent
+     * @return optional response from the C2 Server if the response arrived it will be populated
+     */
+    Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat);
 
-    ByteBuffer retrieveUpdateContent(String flowUpdateUrl);
+    /**
+     * Retrive the content of the new flow from the C2 Server
+     *
+     * @param flowUpdateUrl url where the content should be downloaded from
+     * @return the actual downloaded content. Will be null if no content can be downloaded
+     */
+    byte[] retrieveUpdateContent(String flowUpdateUrl);
 
+    /**
+     * After operation completed the acknowledge to be sent to the C2 Server
+     *
+     * @param operationAck the acknowledge details to be sent
+     */
     void acknowledgeOperation(C2OperationAck operationAck);
 }

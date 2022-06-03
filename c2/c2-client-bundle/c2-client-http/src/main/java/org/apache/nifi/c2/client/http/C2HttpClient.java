@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.c2.client.http;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -37,6 +35,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.api.C2Client;
@@ -62,15 +61,23 @@ public class C2HttpClient implements C2Client {
         this.serializer = serializer;
         final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
+        // Configure request and response logging
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
+        okHttpClientBuilder.addInterceptor(logging);
+
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(true);
+
+        // Timeout for calls made to the server
+        okHttpClientBuilder.callTimeout(clientConfig.getCallTimeout(), TimeUnit.MILLISECONDS);
 
         // check if the ssl path is set and add the factory if so
         if (StringUtils.isNotBlank(clientConfig.getKeystoreFilename())) {
             try {
                 setSslSocketFactory(okHttpClientBuilder);
             } catch (Exception e) {
-                throw new IllegalStateException(e);
+                throw new IllegalStateException("OkHttp TLS configuration failed", e);
             }
         }
 
@@ -91,11 +98,10 @@ public class C2HttpClient implements C2Client {
             .url(clientConfig.getC2Url())
             .build();
 
-        try {
-            Response heartbeatResponse = httpClientReference.get().newCall(request).execute();
+        try (Response heartbeatResponse = httpClientReference.get().newCall(request).execute()) {
             c2HeartbeatResponse = getResponseBody(heartbeatResponse).flatMap(response -> serializer.deserialize(response, C2HeartbeatResponse.class));
         } catch (IOException ce) {
-            logger.error("Error while sending heartbeat", ce);
+            logger.error("Send Heartbeat failed [{}]", clientConfig.getC2Url(), ce);
         }
 
         return c2HeartbeatResponse;
@@ -106,9 +112,9 @@ public class C2HttpClient implements C2Client {
 
         try {
             responseBody = response.body().string();
-            logger.debug("Received response (Status={}) {}", response.code(), responseBody);
+            logger.debug("Received response body {}", responseBody);
         } catch (IOException e) {
-            logger.error("Could not get response body: ", e);
+            logger.error("HTTP Request failed", e);
         }
 
         return Optional.ofNullable(responseBody);
@@ -116,7 +122,7 @@ public class C2HttpClient implements C2Client {
 
     private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder) throws Exception {
         final String keystoreLocation = clientConfig.getKeystoreFilename();
-        final String keystoreType = clientConfig.getKeystoreType().getType();
+        final String keystoreType = clientConfig.getKeystoreType();
         final String keystorePass = clientConfig.getKeystorePass();
 
         assertKeystorePropertiesSet(keystoreLocation, keystorePass, keystoreType);
@@ -134,7 +140,7 @@ public class C2HttpClient implements C2Client {
         // load truststore
         final String truststoreLocation = clientConfig.getTruststoreFilename();
         final String truststorePass = clientConfig.getTruststorePass();
-        final String truststoreType = clientConfig.getTruststoreType().getType();
+        final String truststoreType = clientConfig.getTruststoreType();
         assertTruststorePropertiesSet(truststoreLocation, truststorePass, truststoreType);
 
         KeyStore truststore = KeyStore.getInstance(truststoreType);
@@ -154,8 +160,7 @@ public class C2HttpClient implements C2Client {
         try {
             tempSslContext = SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException e) {
-            logger.warn("Unable to use 'TLS' for the PullHttpChangeIngestor due to NoSuchAlgorithmException. Will attempt to use the default algorithm.", e);
-            tempSslContext = SSLContext.getDefault();
+            throw new IllegalStateException("SSLContext creation failed", e);
         }
 
         final SSLContext sslContext = tempSslContext;
@@ -194,7 +199,7 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public ByteBuffer retrieveUpdateContent(String flowUpdateUrl) {
+    public byte[] retrieveUpdateContent(String flowUpdateUrl) {
         final Request.Builder requestBuilder = new Request.Builder()
                 .get()
                 .url(flowUpdateUrl);
@@ -206,7 +211,8 @@ public class C2HttpClient implements C2Client {
 
             int code = response.code();
             if (code >= 400) {
-                throw new IOException("Got response code " + code + " while trying to pull configuration: " + response.body().string());
+                final String message = String.format("Configuration retrieval failed: HTTP %d %s", code, response.body().string());
+                throw new IOException(message);
             }
 
             body = response.body();
@@ -216,11 +222,9 @@ public class C2HttpClient implements C2Client {
                 return null;
             }
 
-            final ByteBuffer bodyByteBuffer = ByteBuffer.wrap(body.bytes());
-            return bodyByteBuffer;
-
+            return body.bytes();
         } catch (Exception e) {
-            logger.warn("Hit an exception while trying to pull", e);
+            logger.warn("Configuration retrieval failed", e);
             return null;
         }
     }
@@ -228,22 +232,19 @@ public class C2HttpClient implements C2Client {
     @Override
     public void acknowledgeOperation(C2OperationAck operationAck) {
         logger.info("Performing acknowledgement request to {} for operation {}", clientConfig.getC2AckUrl(), operationAck.getOperationId());
-        final ObjectMapper jacksonObjectMapper = new ObjectMapper();
-        jacksonObjectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        try {
-            final String operationAckBody = jacksonObjectMapper.writeValueAsString(operationAck);
+        serializer.serialize(operationAck)
+            .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
+            .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
+            .ifPresent(this::sendAck);
+    }
 
-            final RequestBody requestBody = RequestBody.create(operationAckBody, MediaType.parse("application/json"));
-            final Request.Builder requestBuilder = new Request.Builder()
-                    .post(requestBody)
-                    .url(clientConfig.getC2AckUrl());
-            final Response heartbeatResponse = httpClientReference.get().newCall(requestBuilder.build()).execute();
+    private void sendAck(Request request) {
+        try(Response heartbeatResponse = httpClientReference.get().newCall(request).execute()) {
             if (!heartbeatResponse.isSuccessful()) {
-                logger.warn("Acknowledgement was not successful.");
+                logger.warn("Acknowledgement was not successful with c2 server [{}] with status code {}", clientConfig.getC2AckUrl(), heartbeatResponse.code());
             }
-            logger.trace("Status on acknowledgement was {}", heartbeatResponse.code());
-        } catch (Exception e) {
-            logger.error("Could not transmit ack to c2 server", e);
+        } catch (IOException e) {
+            logger.error("Could not transmit ack to c2 server [{}]", clientConfig.getC2AckUrl(), e);
         }
     }
 }

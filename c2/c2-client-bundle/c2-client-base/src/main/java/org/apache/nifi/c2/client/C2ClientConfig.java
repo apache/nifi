@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.c2.client;
 
-import org.apache.nifi.security.util.KeystoreType;
-
 import javax.net.ssl.HostnameVerifier;
 
 /**
@@ -33,13 +31,14 @@ public class C2ClientConfig {
     private final String runtimeManifestIdentifier;
     private final String runtimeType;
     private final Long heartbeatPeriod;
+    private final Long callTimeout;
     private final String keystoreFilename;
     private final String keystorePass;
     private final String keyPass;
-    private final KeystoreType keystoreType;
+    private final String keystoreType;
     private final String truststoreFilename;
     private final String truststorePass;
-    private final KeystoreType truststoreType;
+    private final String truststoreType;
     private final HostnameVerifier hostnameVerifier;
     private final Integer readTimeout;
     private final Integer connectTimeout;
@@ -54,6 +53,7 @@ public class C2ClientConfig {
         this.runtimeManifestIdentifier = builder.runtimeManifestIdentifier;
         this.runtimeType = builder.runtimeType;
         this.heartbeatPeriod = builder.heartbeatPeriod;
+        this.callTimeout = builder.callTimeout;
         this.keystoreFilename = builder.keystoreFilename;
         this.keystorePass = builder.keystorePass;
         this.keyPass = builder.keyPass;
@@ -98,6 +98,10 @@ public class C2ClientConfig {
         return heartbeatPeriod;
     }
 
+    public Long getCallTimeout() {
+        return callTimeout;
+    }
+
     public String getKeystoreFilename() {
         return keystoreFilename;
     }
@@ -110,7 +114,7 @@ public class C2ClientConfig {
         return keyPass;
     }
 
-    public KeystoreType getKeystoreType() {
+    public String getKeystoreType() {
         return keystoreType;
     }
 
@@ -122,7 +126,7 @@ public class C2ClientConfig {
         return truststorePass;
     }
 
-    public KeystoreType getTruststoreType() {
+    public String getTruststoreType() {
         return truststoreType;
     }
 
@@ -151,13 +155,14 @@ public class C2ClientConfig {
         private String runtimeManifestIdentifier;
         private String runtimeType;
         private Long heartbeatPeriod;
+        private Long callTimeout;
         private String keystoreFilename;
         private String keystorePass;
         private String keyPass;
-        private KeystoreType keystoreType;
+        private String keystoreType;
         private String truststoreFilename;
         private String truststorePass;
-        private KeystoreType truststoreType;
+        private String truststoreType;
         private HostnameVerifier hostnameVerifier;
         private Integer readTimeout;
         private Integer connectTimeout;
@@ -202,6 +207,11 @@ public class C2ClientConfig {
             return this;
         }
 
+        public Builder callTimeout(final Long callTimeout) {
+            this.callTimeout = callTimeout;
+            return this;
+        }
+
         public Builder keystoreFilename(final String keystoreFilename) {
             this.keystoreFilename = keystoreFilename;
             return this;
@@ -217,7 +227,7 @@ public class C2ClientConfig {
             return this;
         }
 
-        public Builder keystoreType(final KeystoreType keystoreType) {
+        public Builder keystoreType(final String keystoreType) {
             this.keystoreType = keystoreType;
             return this;
         }
@@ -232,7 +242,7 @@ public class C2ClientConfig {
             return this;
         }
 
-        public Builder truststoreType(final KeystoreType truststoreType) {
+        public Builder truststoreType(final String truststoreType) {
             this.truststoreType = truststoreType;
             return this;
         }

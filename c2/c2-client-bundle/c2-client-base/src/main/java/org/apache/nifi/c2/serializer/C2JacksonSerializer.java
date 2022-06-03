@@ -48,9 +48,8 @@ public class C2JacksonSerializer implements C2Serializer {
         String contentString = null;
         try {
             contentString = objectMapper.writeValueAsString(object);
-            logger.trace("Serialized C2 Object: {}", contentString);
         } catch (JsonProcessingException e) {
-            logger.error("Can't serialise C2 Object: ", e);
+            logger.error("Object serialization to JSON failed", e);
         }
 
         return Optional.ofNullable(contentString);
@@ -67,7 +66,7 @@ public class C2JacksonSerializer implements C2Serializer {
         try {
             responseObject = objectMapper.readValue(content, valueType);
         } catch (JsonProcessingException e) {
-            logger.error("Can't deserialize response object: ", e);
+            logger.error("Object deserialization from JSON failed", e);
         }
 
         return Optional.ofNullable(responseObject);

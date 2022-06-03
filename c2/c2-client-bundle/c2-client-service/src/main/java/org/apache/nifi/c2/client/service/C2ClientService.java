@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.c2.client.service;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -40,7 +38,7 @@ public class C2ClientService {
     private final C2OperationService operationService;
     private final UpdateConfigurationOperationHandler updateConfigurationOperationHandler;
 
-    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, FlowIdHolder flowIdHolder, Function<ByteBuffer, Boolean> updateFlow) {
+    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
         this.updateConfigurationOperationHandler = new UpdateConfigurationOperationHandler(client, flowIdHolder, updateFlow);
@@ -48,14 +46,8 @@ public class C2ClientService {
     }
 
     public void sendHeartbeat(RuntimeInfoWrapper runtimeInfoWrapper) {
-        try {
-            // TODO exception handling for all the C2 Client interactions (IOExceptions, logger.error vs logger.warn, etc.)
-            C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
-            client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
-        } catch (IOException ioe) {
-            // TODO
-            logger.error("C2 Error", ioe);
-        }
+        C2Heartbeat c2Heartbeat = c2HeartbeatFactory.create(runtimeInfoWrapper);
+        client.publishHeartbeat(c2Heartbeat).ifPresent(this::processResponse);
     }
 
     private void processResponse(C2HeartbeatResponse response) {

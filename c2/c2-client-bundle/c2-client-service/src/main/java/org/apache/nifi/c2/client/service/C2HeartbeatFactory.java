@@ -75,10 +75,6 @@ public class C2HeartbeatFactory {
         return heartbeat;
     }
 
-    //////
-    // FlowInfo
-    //////
-
     private FlowInfo getFlowInfo(Map<String, FlowQueueStatus> queueStatus) {
         FlowInfo flowInfo = new FlowInfo();
         flowInfo.setQueues(queueStatus);
@@ -86,18 +82,13 @@ public class C2HeartbeatFactory {
         return flowInfo;
     }
 
-    //////
-    // AgentInfo
-    //////
-
     private AgentInfo getAgentInfo(AgentRepositories repos, RuntimeManifest manifest) {
         AgentInfo agentInfo = new AgentInfo();
         agentInfo.setAgentClass(clientConfig.getAgentClass());
         agentInfo.setIdentifier(getAgentId());
 
         AgentStatus agentStatus = new AgentStatus();
-        // TODO: Look into this, it doesn't look right
-        agentStatus.setUptime(System.currentTimeMillis());
+        agentStatus.setUptime(ManagementFactory.getRuntimeMXBean().getUptime());
         agentStatus.setRepositories(repos);
 
         agentInfo.setStatus(agentStatus);
@@ -119,10 +110,6 @@ public class C2HeartbeatFactory {
 
         return agentId;
     }
-
-    //////
-    // DeviceInfo
-    //////
 
     private DeviceInfo generateDeviceInfo() {
         // Populate DeviceInfo
@@ -160,14 +147,6 @@ public class C2HeartbeatFactory {
                 }
 
                 NetworkInterface iface = operationIfaces.iterator().next();
-                final StringBuilder macSb = new StringBuilder();
-                byte[] hardwareAddress = iface.getHardwareAddress();
-                if (hardwareAddress != null) {
-                    for (int i = 0; i < hardwareAddress.length; i++) {
-                        macSb.append(String.format("%02X", hardwareAddress[i]));
-                    }
-                }
-                final String macString = macSb.toString();
                 Enumeration<InetAddress> inetAddresses = iface.getInetAddresses();
                 while (inetAddresses.hasMoreElements()) {
                     InetAddress inetAddress = inetAddresses.nextElement();
@@ -183,7 +162,7 @@ public class C2HeartbeatFactory {
             }
         } catch (
             Exception e) {
-            logger.error("Had exception determining network information", e);
+            logger.error("Network Interface processing failed", e);
         }
         return networkInfo;
     }

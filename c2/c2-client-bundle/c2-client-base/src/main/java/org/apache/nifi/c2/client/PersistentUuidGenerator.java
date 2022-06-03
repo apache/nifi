@@ -17,7 +17,7 @@
 package org.apache.nifi.c2.client;
 
 import org.apache.nifi.c2.client.api.IdGenerator;
-import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.c2.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,7 +67,7 @@ public class PersistentUuidGenerator implements IdGenerator {
             FileUtils.ensureDirectoryExistAndCanAccess(parentDirectory);
             final String uuid = UUID.randomUUID().toString();
             Files.write(persistenceLocation.toPath(), Arrays.asList(uuid));
-            logger.info("Created identifier {} at {}.", uuid, persistenceLocation);
+            logger.debug("Created identifier {} at {}", uuid, persistenceLocation);
             return uuid;
         } catch (IOException e) {
             throw new IllegalStateException(String.format("Could not create file %s as persistence file.", persistenceLocation), e);

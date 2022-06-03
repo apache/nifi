@@ -15,20 +15,24 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.client.api;
+package org.apache.nifi.c2.util;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicReference;
+import java.io.File;
+import java.io.IOException;
 
-/**
- * Should be implemented by the class which bootstraps the agent.
- */
-public interface ConfigurationFileHolder {
+public class FileUtils {
 
-    /**
-     * Retrieve the reference to the config file
-     *
-     * @return config file reference
-     */
-    AtomicReference<ByteBuffer> getConfigFileReference();
+    public static void ensureDirectoryExistAndCanAccess(final File dir) throws IOException {
+        if (dir.exists() && !dir.isDirectory()) {
+            throw new IOException(dir.getAbsolutePath() + " is not a directory");
+        } else if (!dir.exists()) {
+            final boolean made = dir.mkdirs();
+            if (!made) {
+                throw new IOException(dir.getAbsolutePath() + " could not be created");
+            }
+        }
+        if (!(dir.canRead() && dir.canWrite())) {
+            throw new IOException(dir.getAbsolutePath() + " directory does not have read/write privilege");
+        }
+    }
 }
