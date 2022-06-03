@@ -59,11 +59,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
 
-        if (CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            AES_KEY_LENGTHS = [128, 192, 256]
-        } else {
-            AES_KEY_LENGTHS = [128]
-        }
+        AES_KEY_LENGTHS = [128, 192, 256]
     }
 
     @BeforeEach
@@ -225,9 +221,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     @Test
     void testGetCipherWithUnlimitedStrengthShouldBeInternallyConsistent() throws Exception {
         // Arrange
-        Assumptions.assumeTrue(CipherUtility.isUnlimitedStrengthCryptoSupported(),
-                "Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.")
-
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 

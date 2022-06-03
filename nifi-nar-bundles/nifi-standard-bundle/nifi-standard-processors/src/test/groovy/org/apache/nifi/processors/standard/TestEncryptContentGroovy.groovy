@@ -35,7 +35,6 @@ import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Assert
-import org.junit.Assume
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -81,9 +80,6 @@ class TestEncryptContentGroovy {
     @Test
     void testShouldValidateMaxKeySizeForAlgorithmsOnUnlimitedStrengthJVM() throws IOException {
         // Arrange
-        Assume.assumeTrue("Test is being skipped due to this JVM lacking JCE Unlimited Strength Jurisdiction Policy file.",
-                CipherUtility.isUnlimitedStrengthCryptoSupported())
-
         final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
         Collection<ValidationResult> results
         MockProcessContext pc
@@ -114,50 +110,6 @@ class TestEncryptContentGroovy {
         String expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
         String message = "'" + vr.toString() + "' contains '" + expectedResult + "'"
         Assert.assertTrue(message, vr.toString().contains(expectedResult))
-    }
-
-    @Test
-    void testShouldValidateMaxKeySizeForAlgorithmsOnLimitedStrengthJVM() throws IOException {
-        // Arrange
-        Assume.assumeTrue("Test is being skipped because this JVM supports unlimited strength crypto.",
-                !CipherUtility.isUnlimitedStrengthCryptoSupported())
-
-        final TestRunner runner = TestRunners.newTestRunner(EncryptContent.class)
-        Collection<ValidationResult> results
-        MockProcessContext pc
-
-        EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
-
-        final int MAX_KEY_LENGTH = 128
-        final String TOO_LONG_KEY_HEX = "ab" * (MAX_KEY_LENGTH / 8 + 1)
-        logger.info("Using key ${TOO_LONG_KEY_HEX} (${TOO_LONG_KEY_HEX.length() * 4} bits)")
-
-        runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
-        runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
-        runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
-        runner.setProperty(EncryptContent.RAW_KEY_HEX, TOO_LONG_KEY_HEX)
-
-        runner.enqueue(new byte[0])
-        pc = (MockProcessContext) runner.getProcessContext()
-
-        // Act
-        results = pc.validate()
-
-        // Assert
-
-        // Two validation problems -- max key size and key length is invalid
-        Assert.assertEquals(2, results.size())
-        logger.expected(results)
-        ValidationResult maxKeyLengthVR = results.first()
-
-        String expectedResult = "'raw-key-hex' is invalid because Key length greater than ${MAX_KEY_LENGTH} bits is not supported"
-        String message = "'" + maxKeyLengthVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, maxKeyLengthVR.toString().contains(expectedResult))
-
-        expectedResult = "'raw-key-hex' is invalid because Key must be valid length [128, 192, 256]"
-        ValidationResult keyLengthInvalidVR = results.last()
-        message = "'" + keyLengthInvalidVR.toString() + "' contains '" + expectedResult + "'"
-        Assert.assertTrue(message, keyLengthInvalidVR.toString().contains(expectedResult))
     }
 
     @Test
@@ -379,10 +331,6 @@ class TestEncryptContentGroovy {
         final String PASSWORD = "short"
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
-        if (!CipherUtility.isUnlimitedStrengthCryptoSupported()) {
-            // Remove all unlimited strength algorithms
-            encryptionMethods.removeAll { it.unlimitedStrength }
-        }
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
         runner.setProperty(EncryptContent.PASSWORD, PASSWORD)
@@ -826,53 +774,6 @@ class TestEncryptContentGroovy {
     }
 
     @Test
-    void testShouldCheckMaximumLengthOfPasswordOnLimitedStrengthCryptoJVM() throws IOException {
-        // Arrange
-        Assume.assumeTrue("Only run on systems with limited strength crypto", !CipherUtility.isUnlimitedStrengthCryptoSupported())
-
-        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
-        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NIFI_LEGACY.name())
-        testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
-
-        Collection<ValidationResult> results
-        MockProcessContext pc
-
-        def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
-
-        // Use .find instead of .each to allow "breaks" using return false
-        encryptionMethods.find { EncryptionMethod encryptionMethod ->
-            def invalidPasswordLength = CipherUtility.getMaximumPasswordLengthForAlgorithmOnLimitedStrengthCrypto(encryptionMethod) + 1
-            String tooLongPassword = "x" * invalidPasswordLength
-            if (encryptionMethod.isUnlimitedStrength() || encryptionMethod.isKeyedCipher()) {
-                return false
-                // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
-            }
-
-            testRunner.setProperty(EncryptContent.PASSWORD, tooLongPassword)
-            logger.info("Attempting ${encryptionMethod.algorithm} with password of length ${invalidPasswordLength}")
-            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
-            testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
-
-            testRunner.clearTransferState()
-            testRunner.enqueue(new byte[0])
-            pc = (MockProcessContext) testRunner.getProcessContext()
-
-            // Act
-            results = pc.validate()
-
-            // Assert
-            logger.expected(results)
-            Assert.assertEquals(1, results.size())
-            ValidationResult passwordLengthVR = results.first()
-
-            String expectedResult = "'Password' is invalid because Password length greater than ${invalidPasswordLength - 1} characters is not supported by" +
-                    " this JVM due to lacking JCE Unlimited Strength Jurisdiction Policy files."
-            String message = "'" + passwordLengthVR.toString() + "' contains '" + expectedResult + "'"
-            Assert.assertTrue(message, passwordLengthVR.toString().contains(expectedResult))
-        }
-    }
-
-    @Test
     void testShouldCheckLengthOfPasswordWhenNotAllowed() throws IOException {
         // Arrange
         final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
@@ -883,7 +784,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
+        boolean limitedStrengthCrypto = false
         boolean allowWeakCrypto = false
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_NOT_ALLOWED)
 
@@ -933,7 +834,7 @@ class TestEncryptContentGroovy {
 
         def encryptionMethods = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") }
 
-        boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported()
+        boolean limitedStrengthCrypto = false
         boolean allowWeakCrypto = true
         testRunner.setProperty(EncryptContent.ALLOW_WEAK_CRYPTO, WEAK_CRYPTO_ALLOWED)
 
