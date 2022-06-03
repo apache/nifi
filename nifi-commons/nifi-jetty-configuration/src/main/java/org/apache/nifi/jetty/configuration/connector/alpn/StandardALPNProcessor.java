@@ -117,7 +117,7 @@ public class StandardALPNProcessor implements ALPNProcessor.Server, SslHandshake
          */
         @Override
         public void handshakeFailed(final Event event, final Throwable failure) {
-            logger.warn("Connection Remote Address [{}] Handshake Failed", serverConnection.getEndPoint().getRemoteAddress(), failure);
+            logger.debug("Connection Remote Address [{}] Handshake Failed", serverConnection.getEndPoint().getRemoteAddress(), failure);
         }
     }
 }
