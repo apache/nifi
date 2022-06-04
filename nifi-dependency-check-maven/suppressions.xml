@@ -29,4 +29,34 @@
         <packageUrl regex="true">^pkg:maven/org\.testcontainers/mysql@.*$</packageUrl>
         <cpe>cpe:/a:mysql:mysql</cpe>
     </suppress>
+    <suppress>
+        <notes>StumbleUpon Async is incorrectly identified as the JavaScript Async library</notes>
+        <packageUrl regex="true">^pkg:maven/com\.stumbleupon/async@.*$</packageUrl>
+        <cve>CVE-2021-43138</cve>
+    </suppress>
+    <suppress>
+        <notes>HBase Async is incorrectly identified as the JavaScript Async library</notes>
+        <packageUrl regex="true">^pkg:maven/org\.hbase/asynchbase@.*$</packageUrl>
+        <cve>CVE-2021-43138</cve>
+    </suppress>
+    <suppress>
+        <notes>Jetty SSLEngine is incorrectly identified with Jetty Server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/jetty\-sslengine@.*$</packageUrl>
+        <cpe regex="true">^cpe:.*$</cpe>
+    </suppress>
+    <suppress>
+        <notes>MySQL Binary Log Connector is incorrectly identified as MySQL server</notes>
+        <packageUrl regex="true">^pkg:maven/com\.github\.shyiko/mysql\-binlog\-connector\-java@.*$</packageUrl>
+        <cpe>cpe:/a:mysql:mysql</cpe>
+    </suppress>
+    <suppress>
+        <notes>Testcontainers MariaDB is incorrectly identified with MariaDB server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.testcontainers/mariadb@.*$</packageUrl>
+        <cpe>cpe:/a:mariadb:mariadb</cpe>
+    </suppress>
+    <suppress>
+        <notes>Twill ZooKeeper is incorrectly identified with ZooKeeper server</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.twill/twill\-zookeeper@.*$</packageUrl>
+        <cpe>cpe:/a:apache:zookeeper</cpe>
+    </suppress>
 </suppressions>
