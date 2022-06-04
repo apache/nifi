@@ -1237,12 +1237,9 @@
             </properties>
         </profile>
         <profile>
-            <!-- Run "mvn clean verify -P owasp" to generate dependency-check-report.html in the target directory -->
+            <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
             <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
-            <id>owasp</id>
-            <properties>
-                <skipTests>true</skipTests>
-            </properties>
+            <id>dependency-check</id>
             <build>
                 <plugins>
                     <plugin>
@@ -1252,6 +1249,7 @@
                         <executions>
                             <execution>
                                 <inherited>false</inherited>
+                                <phase>validate</phase>
                                 <goals>
                                     <goal>aggregate</goal>
                                 </goals>
