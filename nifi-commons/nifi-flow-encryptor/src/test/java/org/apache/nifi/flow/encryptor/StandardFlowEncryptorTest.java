@@ -93,7 +93,7 @@ public class StandardFlowEncryptorTest {
         flowEncryptor.processFlow(inputStream, outputStream, inputEncryptor, outputEncryptor);
 
         final String outputProperty = new String(outputStream.toByteArray());
-        assertEquals(removeXmlRootTag(property).trim(), removeXmlRootTag(outputProperty).trim());
+        assertEquals(removeXmlDeclaration(property).trim(), removeXmlDeclaration(outputProperty).trim());
     }
 
     @Test
@@ -126,7 +126,7 @@ public class StandardFlowEncryptorTest {
                 flowEncryptor.processFlow(inputStream, outputStream, inputEncryptor, outputEncryptor);
                 final String outputXml = new String(outputStream.toByteArray());
 
-                compareFlow(removeXmlRootTag(sampleFlowXml).trim(), removeXmlRootTag(outputXml).trim());
+                compareFlow(removeXmlDeclaration(sampleFlowXml).trim(), removeXmlDeclaration(outputXml).trim());
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -186,8 +186,7 @@ public class StandardFlowEncryptorTest {
         return outputStream.toString();
     }
 
-    private String removeXmlRootTag(final String xmlFlow) {
-        // this method assumes the first line of an xmlFlow string is the root tag
-        return xmlFlow.split(System.lineSeparator(), 2)[1];
+    private String removeXmlDeclaration(final String xmlFlow) {
+        return xmlFlow.replaceAll("<\\?xml.+\\?>", "");
     }
 }
