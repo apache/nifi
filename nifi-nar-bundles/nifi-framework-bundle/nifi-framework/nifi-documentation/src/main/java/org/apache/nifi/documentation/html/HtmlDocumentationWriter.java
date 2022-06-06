@@ -516,7 +516,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 }
 
                 xmlStreamWriter.writeEndElement();
-                writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue(), false, "default-value");
+                writeSimpleElement(xmlStreamWriter, "td", getDefaultValue(property), false, "default-value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeAttribute("id", "allowable-values");
                 writeValidValues(xmlStreamWriter, property);
@@ -672,6 +672,25 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         } else {
             writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
         }
+    }
+
+    private String getDefaultValue(final PropertyDescriptor propertyDescriptor) {
+        final String defaultValue;
+
+        final String descriptorDefaultValue = propertyDescriptor.getDefaultValue();
+
+        final List<AllowableValue> allowableValues = propertyDescriptor.getAllowableValues();
+        if (allowableValues != null) {
+            defaultValue = allowableValues.stream()
+                    .filter(allowableValue -> allowableValue.getValue().equals(descriptorDefaultValue))
+                    .findFirst()
+                    .map(AllowableValue::getDisplayName)
+                    .orElse(descriptorDefaultValue);
+        } else {
+            defaultValue = descriptorDefaultValue;
+        }
+
+        return defaultValue;
     }
 
     /**
