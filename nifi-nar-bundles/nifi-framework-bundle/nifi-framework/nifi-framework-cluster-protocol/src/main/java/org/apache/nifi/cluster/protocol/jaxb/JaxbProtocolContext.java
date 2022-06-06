@@ -46,7 +46,7 @@ import java.nio.ByteBuffer;
  * @param <T> The type of protocol message.
  *
  */
-public class JaxbProtocolContext<T> implements ProtocolContext {
+public class JaxbProtocolContext<T> implements ProtocolContext<T> {
 
     private static final int BUF_SIZE = (int) Math.pow(2, 10);  // 1k
 

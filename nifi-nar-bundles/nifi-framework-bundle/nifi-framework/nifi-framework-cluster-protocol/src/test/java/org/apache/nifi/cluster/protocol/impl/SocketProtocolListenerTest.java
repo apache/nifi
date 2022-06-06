@@ -19,7 +19,7 @@ package org.apache.nifi.cluster.protocol.impl;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
+
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
@@ -32,16 +32,17 @@ import org.apache.nifi.cluster.protocol.impl.testutils.ReflexiveProtocolHandler;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
-import org.junit.After;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/**
- */
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class SocketProtocolListenerTest {
+
+    private static final int SOCKET_TIMEOUT_MILLISECONDS = 5000;
+
+    private static final int LISTENER_THREADS = 1;
 
     private SocketProtocolListener listener;
 
@@ -51,28 +52,27 @@ public class SocketProtocolListenerTest {
 
     private ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
-
-        final ProtocolContext protocolContext = new JaxbProtocolContext(JaxbProtocolUtils.JAXB_CONTEXT);
+        final ProtocolContext<ProtocolMessage> protocolContext = new JaxbProtocolContext<>(JaxbProtocolUtils.JAXB_CONTEXT);
         marshaller = protocolContext.createMarshaller();
         unmarshaller = protocolContext.createUnmarshaller();
 
         ServerSocketConfiguration configuration = new ServerSocketConfiguration();
-        configuration.setSocketTimeout(1000);
+        configuration.setSocketTimeout(SOCKET_TIMEOUT_MILLISECONDS);
 
-        listener = new SocketProtocolListener(5, 0, configuration, protocolContext);
+        listener = new SocketProtocolListener(LISTENER_THREADS, 0, configuration, protocolContext);
         listener.start();
 
         int port = listener.getPort();
 
         SocketConfiguration config = new SocketConfiguration();
         config.setReuseAddress(true);
-        config.setSocketTimeout(1000);
+        config.setSocketTimeout(SOCKET_TIMEOUT_MILLISECONDS);
         socket = SocketUtils.createSocket(new InetSocketAddress("localhost", port), config);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws IOException {
         try {
             if (listener.isRunning()) {
@@ -93,7 +93,7 @@ public class SocketProtocolListenerTest {
     }
 
     @Test
-    public void testRequest() throws Exception {
+    public void testPing() throws Exception {
         ProtocolMessage msg = new PingMessage();
 
         ReflexiveProtocolHandler handler = new ReflexiveProtocolHandler();
@@ -109,26 +109,4 @@ public class SocketProtocolListenerTest {
         assertEquals(1, handler.getMessages().size());
         assertEquals(msg.getType(), handler.getMessages().get(0).getType());
     }
-
-    @Ignore("this test is unreliable on slow build environments")
-    @Test
-    public void testDelayedRequest() throws Exception {
-        ProtocolMessage msg = new PingMessage();
-
-        DelayedProtocolHandler handler = new DelayedProtocolHandler(2000);
-        listener.addHandler(handler);
-
-        // marshal message to output stream
-        marshaller.marshal(msg, socket.getOutputStream());
-
-        try {
-            socket.getInputStream().read();
-            fail("Socket timeout not received.");
-        } catch (SocketTimeoutException ste) {
-        }
-
-        assertEquals(1, handler.getMessages().size());
-        assertEquals(msg.getType(), handler.getMessages().get(0).getType());
-    }
-
 }
