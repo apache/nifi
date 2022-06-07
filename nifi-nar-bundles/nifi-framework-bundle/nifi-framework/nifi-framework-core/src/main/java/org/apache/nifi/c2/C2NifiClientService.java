@@ -196,8 +196,7 @@ public class C2NifiClientService {
             logger.info("Updated configuration was written to: {}", path);
             return true;
         } catch (IOException e) {
-            logger.error("Configuration update failed. File creation was not successful targeting: {}", path);
-            logger.error("Exception: ", e);
+            logger.error("Configuration update failed. File creation was not successful targeting: {}", path, e);
             return false;
         }
     }

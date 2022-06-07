@@ -307,7 +307,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     c2NifiClientService = new C2NifiClientService(nifiProperties, this, this.controller);
                     c2NifiClientService.start();
                 } else {
-                    logger.info("The '" + C2NiFiProperties.C2_ENABLE_KEY + "' property is missing/false, not creating a C2 client instance");
+                    logger.info("C2 Property [{}] missing or disabled: C2 client not created", C2NiFiProperties.C2_ENABLE_KEY);
                     c2NifiClientService = null;
                 }
             }
