@@ -28,14 +28,4 @@
         <module>nifi-ambari-reporting-task</module>
         <module>nifi-ambari-nar</module>
     </modules>
-    
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.glassfish.jersey.core</groupId>
-                <artifactId>jersey-client</artifactId>
-                <version>2.19</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 </project>

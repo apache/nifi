@@ -102,7 +102,6 @@
         <dependency>
             <groupId>org.glassfish.jersey.inject</groupId>
             <artifactId>jersey-hk2</artifactId>
-            <version>${jersey.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
