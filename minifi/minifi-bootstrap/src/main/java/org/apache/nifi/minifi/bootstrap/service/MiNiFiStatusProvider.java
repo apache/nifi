@@ -17,7 +17,7 @@
 package org.apache.nifi.minifi.bootstrap.service;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
-import static org.apache.nifi.minifi.bootstrap.util.ProcessUtils.isProcessRunning;
+import static org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils.isProcessRunning;
 
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 
@@ -39,12 +39,10 @@ public class MiNiFiStatusProvider {
             pingSuccess = miNiFiCommandSender.isPingSuccessful(port);
         }
 
-        String pidString = String.valueOf(pid);
-
         if (pingSuccess) {
-            return new MiNiFiStatus(port, pidString, true, true);
+            return new MiNiFiStatus(port, pid, true, true);
         }
 
-        return new MiNiFiStatus(port, pidString, false, isProcessRunning(pidString));
+        return new MiNiFiStatus(port, pid, false, isProcessRunning(pid));
     }
 }

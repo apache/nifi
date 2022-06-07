@@ -35,15 +35,14 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
@@ -52,19 +51,15 @@ import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeExcepti
 import org.apache.nifi.minifi.bootstrap.exception.StartupFailureException;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiExecCommandProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiListener;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
-import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
 import org.apache.nifi.util.Tuple;
 
 public class StartRunner implements CommandRunner {
-    private static final String DEFAULT_JAVA_CMD = "java";
-    private static final String DEFAULT_LOG_DIR = "./logs";
-    private static final String DEFAULT_LIB_DIR = "./lib";
-    private static final String DEFAULT_CONF_DIR = "./conf";
     private static final int STARTUP_WAIT_SECONDS = 60;
-    private static final String DEFAULT_CONFIG_FILE = DEFAULT_CONF_DIR + "/bootstrap.conf";
 
     private final CurrentPortProvider currentPortProvider;
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -76,10 +71,11 @@ public class StartRunner implements CommandRunner {
     private final Condition startupCondition = lock.newCondition();
     private final RunMiNiFi runMiNiFi;
     private volatile ShutdownHook shutdownHook;
+    private final MiNiFiExecCommandProvider miNiFiExecCommandProvider;
 
     public StartRunner(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
         PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler, MiNiFiParameters miNiFiParameters, File bootstrapConfigFile,
-        RunMiNiFi runMiNiFi) {
+        RunMiNiFi runMiNiFi, MiNiFiExecCommandProvider miNiFiExecCommandProvider) {
         this.currentPortProvider = currentPortProvider;
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.periodicStatusReporterManager = periodicStatusReporterManager;
@@ -87,6 +83,7 @@ public class StartRunner implements CommandRunner {
         this.miNiFiParameters = miNiFiParameters;
         this.bootstrapConfigFile = bootstrapConfigFile;
         this.runMiNiFi = runMiNiFi;
+        this.miNiFiExecCommandProvider = miNiFiExecCommandProvider;
     }
 
     /**
@@ -108,8 +105,7 @@ public class StartRunner implements CommandRunner {
     private void start() throws IOException, InterruptedException {
         Integer port = currentPortProvider.getCurrentPort();
         if (port != null) {
-            String alreadyRunningMessage = "Apache MiNiFi is already running";
-            CMD_LOGGER.info(alreadyRunningMessage + ", listening to Bootstrap on port {}", port);
+            CMD_LOGGER.info("Apache MiNiFi is already running, listening to Bootstrap on port {}", port);
             return;
         }
 
@@ -128,14 +124,14 @@ public class StartRunner implements CommandRunner {
 
         try {
             while (true) {
-                if (ProcessUtils.isAlive(process)) {
+                if (UnixProcessUtils.isAlive(process)) {
                     handleReload();
                 } else {
                     Runtime runtime = Runtime.getRuntime();
                     try {
                         runtime.removeShutdownHook(shutdownHook);
                     } catch (IllegalStateException ise) {
-                        // happens when already shutting down
+                        DEFAULT_LOGGER.trace("The virtual machine is already in the process of shutting down", ise);
                     }
 
                     if (runMiNiFi.isAutoRestartNiFi() && needRestart()) {
@@ -195,23 +191,13 @@ public class StartRunner implements CommandRunner {
         }
 
         miNiFiParameters.setSecretKey(null);
-        process = builder.start();
-        miNiFiStdLogHandler.initLogging(process);
 
-        Long pid = OSUtils.getProcessId(process, DEFAULT_LOGGER);
-        if (pid != null) {
-            miNiFiParameters.setMinifiPid(pid);
-            Properties minifiProps = new Properties();
-            minifiProps.setProperty(STATUS_FILE_PID_KEY, String.valueOf(pid));
-            bootstrapFileProvider.saveStatusProperties(minifiProps);
-        }
-
-        shutdownHook = new ShutdownHook(runMiNiFi, miNiFiStdLogHandler);
-        runtime.addShutdownHook(shutdownHook);
+        process = startMiNiFiProcess(builder);
 
         boolean started = waitForStart();
 
         if (started) {
+            Long pid = OSUtils.getProcessId(process, DEFAULT_LOGGER);
             DEFAULT_LOGGER.info("Successfully spawned the thread to start Apache MiNiFi{}", (pid == null ? "" : " with PID " + pid));
         } else {
             DEFAULT_LOGGER.error("Apache MiNiFi does not appear to have started");
@@ -274,111 +260,22 @@ public class StartRunner implements CommandRunner {
     private Tuple<ProcessBuilder, Process> startMiNiFi() throws IOException {
         ProcessBuilder builder = new ProcessBuilder();
 
-        Properties props = bootstrapFileProvider.getBootstrapProperties();
-        File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
-        File binDir = bootstrapConfigAbsoluteFile.getParentFile();
-
-        File workingDir = Optional.ofNullable(props.getProperty("working.dir"))
-            .map(File::new)
-            .orElse(binDir.getParentFile());
-
-        builder.directory(workingDir);
-
-        String minifiLogDir = System.getProperty("org.apache.nifi.minifi.bootstrap.config.log.dir", DEFAULT_LOG_DIR).trim();
-        File libDir = getFile(props.getProperty("lib.dir", DEFAULT_LIB_DIR).trim(), workingDir);
-        File confDir = getFile(props.getProperty(CONF_DIR_KEY, DEFAULT_CONF_DIR).trim(), workingDir);
-
-        String minifiPropsFilename = props.getProperty("props.file");
-        if (minifiPropsFilename == null) {
-            if (confDir.exists()) {
-                minifiPropsFilename = new File(confDir, "nifi.properties").getAbsolutePath();
-            } else {
-                minifiPropsFilename = DEFAULT_CONFIG_FILE;
-            }
-        }
-
-        minifiPropsFilename = minifiPropsFilename.trim();
-
-        List<String> javaAdditionalArgs = new ArrayList<>();
-        for (Entry<Object, Object> entry : props.entrySet()) {
-            String key = (String) entry.getKey();
-            String value = (String) entry.getValue();
-
-            if (key.startsWith("java.arg")) {
-                javaAdditionalArgs.add(value);
-            }
-        }
-
-        File[] libFiles = libDir.listFiles((dir, filename) -> filename.toLowerCase().endsWith(".jar"));
-
-        if (libFiles == null || libFiles.length == 0) {
-            throw new RuntimeException("Could not find lib directory at " + libDir.getAbsolutePath());
-        }
-
-        File[] confFiles = confDir.listFiles();
-        if (confFiles == null || confFiles.length == 0) {
-            throw new RuntimeException("Could not find conf directory at " + confDir.getAbsolutePath());
-        }
-
-        List<String> cpFiles = new ArrayList<>(confFiles.length + libFiles.length);
-        cpFiles.add(confDir.getAbsolutePath());
-        for (File file : libFiles) {
-            cpFiles.add(file.getAbsolutePath());
-        }
-
-        StringBuilder classPathBuilder = new StringBuilder();
-        for (int i = 0; i < cpFiles.size(); i++) {
-            String filename = cpFiles.get(i);
-            classPathBuilder.append(filename);
-            if (i < cpFiles.size() - 1) {
-                classPathBuilder.append(File.pathSeparatorChar);
-            }
-        }
-
-        String classPath = classPathBuilder.toString();
-        String javaCmd = props.getProperty("java");
-        if (javaCmd == null) {
-            javaCmd = DEFAULT_JAVA_CMD;
-        }
-        if (javaCmd.equals(DEFAULT_JAVA_CMD)) {
-            String javaHome = System.getenv("JAVA_HOME");
-            if (javaHome != null) {
-                String fileExtension = isWindows() ? ".exe" : "";
-                File javaFile = new File(javaHome + File.separatorChar + "bin"
-                    + File.separatorChar + "java" + fileExtension);
-                if (javaFile.exists() && javaFile.canExecute()) {
-                    javaCmd = javaFile.getAbsolutePath();
-                }
-            }
-        }
-
+        File workingDir = getWorkingDir();
         MiNiFiListener listener = new MiNiFiListener();
         int listenPort = listener.start(runMiNiFi);
-
-        List<String> cmd = new ArrayList<>();
-
-        cmd.add(javaCmd);
-        cmd.add("-classpath");
-        cmd.add(classPath);
-        cmd.addAll(javaAdditionalArgs);
-        cmd.add("-Dnifi.properties.file.path=" + minifiPropsFilename);
-        cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
-        cmd.add("-Dapp=MiNiFi");
-        cmd.add("-Dorg.apache.nifi.minifi.bootstrap.config.log.dir="+minifiLogDir);
-        cmd.add("org.apache.nifi.minifi.MiNiFi");
+        List<String> cmd = miNiFiExecCommandProvider.getMiNiFiExecCommand(listenPort, workingDir);
 
         builder.command(cmd);
-
-        StringBuilder cmdBuilder = new StringBuilder();
-        for (String s : cmd) {
-            cmdBuilder.append(s).append(" ");
-        }
+        builder.directory(workingDir);
 
         CMD_LOGGER.info("Starting Apache MiNiFi...");
         CMD_LOGGER.info("Working Directory: {}", workingDir.getAbsolutePath());
-        CMD_LOGGER.info("Command: {}", cmdBuilder);
+        CMD_LOGGER.info("Command: {}", cmd.stream().collect(Collectors.joining(" ")));
 
+        return new Tuple<>(builder, startMiNiFiProcess(builder));
+    }
 
+    private Process startMiNiFiProcess(ProcessBuilder builder) throws IOException {
         Process process = builder.start();
         miNiFiStdLogHandler.initLogging(process);
         Long pid = OSUtils.getProcessId(process, CMD_LOGGER);
@@ -391,13 +288,18 @@ public class StartRunner implements CommandRunner {
 
         shutdownHook = new ShutdownHook(runMiNiFi, miNiFiStdLogHandler);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
-
-        return new Tuple<>(builder, process);
+        return process;
     }
 
-    private boolean isWindows() {
-        String osName = System.getProperty("os.name");
-        return osName != null && osName.toLowerCase().contains("win");
+    private File getWorkingDir() throws IOException {
+        Properties props = bootstrapFileProvider.getBootstrapProperties();
+        File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
+        File binDir = bootstrapConfigAbsoluteFile.getParentFile();
+
+        File workingDir = Optional.ofNullable(props.getProperty("working.dir"))
+            .map(File::new)
+            .orElse(binDir.getParentFile());
+        return workingDir;
     }
 
     private boolean waitForStart() {
@@ -422,14 +324,6 @@ public class StartRunner implements CommandRunner {
             lock.unlock();
         }
         return true;
-    }
-
-    private File getFile(String filename, File workingDir) {
-        File file = new File(filename);
-        if (!file.isAbsolute()) {
-            file = new File(workingDir, filename);
-        }
-        return file;
     }
 
 }

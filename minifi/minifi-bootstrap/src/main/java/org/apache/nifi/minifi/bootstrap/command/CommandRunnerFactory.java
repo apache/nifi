@@ -27,6 +27,7 @@ import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiExecCommandProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
@@ -43,11 +44,12 @@ public class CommandRunnerFactory {
     private final File bootstrapConfigFile;
     private final RunMiNiFi runMiNiFi;
     private final GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
+    private final MiNiFiExecCommandProvider miNiFiExecCommandProvider;
 
     public CommandRunnerFactory(MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider, MiNiFiParameters miNiFiParameters,
         MiNiFiStatusProvider miNiFiStatusProvider, PeriodicStatusReporterManager periodicStatusReporterManager,
         BootstrapFileProvider bootstrapFileProvider, MiNiFiStdLogHandler miNiFiStdLogHandler, File bootstrapConfigFile, RunMiNiFi runMiNiFi,
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider) {
+        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, MiNiFiExecCommandProvider miNiFiExecCommandProvider) {
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
         this.miNiFiParameters = miNiFiParameters;
@@ -58,6 +60,7 @@ public class CommandRunnerFactory {
         this.bootstrapConfigFile = bootstrapConfigFile;
         this.runMiNiFi = runMiNiFi;
         this.gracefulShutdownParameterProvider = gracefulShutdownParameterProvider;
+        this.miNiFiExecCommandProvider = miNiFiExecCommandProvider;
     }
 
     /**
@@ -71,7 +74,7 @@ public class CommandRunnerFactory {
             case START:
             case RUN:
                 commandRunner = new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
-                    bootstrapConfigFile, runMiNiFi);
+                    bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider);
                 break;
             case STOP:
                 commandRunner = new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider);
@@ -101,7 +104,7 @@ public class CommandRunnerFactory {
         List<CommandRunner> compositeList = new LinkedList<>();
         compositeList.add(new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider));
         compositeList.add(new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
-            bootstrapConfigFile, runMiNiFi));
+            bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider));
         return compositeList;
     }
 }

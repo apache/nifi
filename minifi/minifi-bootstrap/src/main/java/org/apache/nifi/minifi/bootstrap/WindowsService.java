@@ -25,12 +25,12 @@ public class WindowsService {
 
     public static void start(String[] args) throws IOException {
         bootstrap = new RunMiNiFi(BootstrapFileProvider.getBootstrapConfFile());
-        bootstrap.run(BootstrapCommand.START, new String[0]);
+        bootstrap.run(BootstrapCommand.START);
     }
 
     public static void stop(String[] args) {
         bootstrap.setAutoRestartNiFi(false);
-        bootstrap.run(BootstrapCommand.STOP, new String[0]);
+        bootstrap.run(BootstrapCommand.STOP);
     }
 
 }

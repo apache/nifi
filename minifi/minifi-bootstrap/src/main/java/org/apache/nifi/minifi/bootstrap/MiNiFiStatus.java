@@ -19,7 +19,7 @@ package org.apache.nifi.minifi.bootstrap;
 public class MiNiFiStatus {
 
     private final Integer port;
-    private final String pid;
+    private final Long pid;
     private final boolean respondingToPing;
     private final boolean processRunning;
 
@@ -30,14 +30,14 @@ public class MiNiFiStatus {
         this.processRunning = false;
     }
 
-    public MiNiFiStatus(Integer port, String pid, boolean respondingToPing, boolean processRunning) {
+    public MiNiFiStatus(Integer port, Long pid, boolean respondingToPing, boolean processRunning) {
         this.port = port;
         this.pid = pid;
         this.respondingToPing = respondingToPing;
         this.processRunning = processRunning;
     }
 
-    public String getPid() {
+    public Long getPid() {
         return pid;
     }
 

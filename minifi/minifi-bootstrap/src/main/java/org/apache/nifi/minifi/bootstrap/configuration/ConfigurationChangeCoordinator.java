@@ -117,8 +117,7 @@ public class ConfigurationChangeCoordinator implements Closeable, ConfigurationC
                     changeIngestors.add(changeIngestor);
                     LOGGER.info("Initialized ingestor: {}", ingestorClassname);
                 } catch (Exception e) {
-                    LOGGER.error("Issue instantiating {} ingestor", ingestorClassname);
-                    LOGGER.error("Exception", e);
+                    LOGGER.error("Instantiating [{}] ingestor failed", ingestorClassname, e);
                 }
             }
         }

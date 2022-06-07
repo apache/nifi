@@ -117,7 +117,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
     private FlowStatusReport getFlowStatusReport(String statusRequest, int port) {
         FlowStatusReport flowStatusReport;
         try {
-            flowStatusReport = miNiFiCommandSender.sendCommandForObject(FLOW_STATUS_REPORT_CMD, port, statusRequest);
+            flowStatusReport = miNiFiCommandSender.sendCommandForObject(FLOW_STATUS_REPORT_CMD, port, FlowStatusReport.class, statusRequest);
         } catch (Exception e) {
             flowStatusReport = new FlowStatusReport();
             String message = "Failed to get status report from MiNiFi due to:" + e.getMessage();

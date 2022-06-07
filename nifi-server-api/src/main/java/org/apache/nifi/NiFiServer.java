@@ -32,7 +32,7 @@ public interface NiFiServer {
 
     void start();
 
-    void initialize(final NiFiProperties properties, final Bundle systemBundle, final Set<Bundle> bundles, final ExtensionMapping extensionMapping);
+    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
 
     void stop();
 

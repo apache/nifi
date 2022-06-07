@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
 
 public class BootstrapCodec {
 
-    private static final String TRUE = "true";
-    private static final String FALSE = "false";
+    private static final String TRUE = Boolean.TRUE.toString();
+    private static final String FALSE = Boolean.FALSE.toString();
 
     private final RunMiNiFi runner;
     private final BufferedReader reader;
@@ -64,7 +64,7 @@ public class BootstrapCodec {
         try {
             processRequest(cmd, args);
         } catch (InvalidCommandException exception) {
-            throw new IOException("Received invalid command from MiNiFi: " + line + " : " + (exception.getMessage() == null ? "" : "Details: " + exception));
+            throw new IOException("Received invalid command from MiNiFi: " + line, exception);
         }
     }
 
@@ -105,7 +105,7 @@ public class BootstrapCodec {
             throw new InvalidCommandException("STARTED command must contain a status argument");
         }
 
-        if (!TRUE.equals(args[0]) && !FALSE.equals(args[0])) {
+        if (!TRUE.equalsIgnoreCase(args[0]) && !FALSE.equalsIgnoreCase(args[0])) {
             throw new InvalidCommandException("Invalid status for STARTED command; should be true or false, but was '" + args[0] + "'");
         }
 

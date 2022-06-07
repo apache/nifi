@@ -21,7 +21,7 @@ import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
 
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
-import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
 
 public class CurrentPortProvider {
     private final MiNiFiCommandSender miNiFiCommandSender;
@@ -50,7 +50,7 @@ public class CurrentPortProvider {
         long minifiPid = miNiFiParameters.getMinifiPid();
         DEFAULT_LOGGER.debug("Current PID {}", minifiPid);
 
-        boolean procRunning = ProcessUtils.isProcessRunning(String.valueOf(minifiPid));
+        boolean procRunning = UnixProcessUtils.isProcessRunning(minifiPid);
         if (procRunning) {
             return miNiFiPort;
         } else {

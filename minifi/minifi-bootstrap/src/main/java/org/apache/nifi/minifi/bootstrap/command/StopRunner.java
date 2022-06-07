@@ -32,7 +32,7 @@ import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
-import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
 
 public class StopRunner implements CommandRunner {
     private static final String SHUTDOWN_CMD = "SHUTDOWN";
@@ -91,7 +91,7 @@ public class StopRunner implements CommandRunner {
                 CMD_LOGGER.info("Apache MiNiFi has accepted the Shutdown Command and is shutting down now");
 
                 if (minifiPid != UNINITIALIZED) {
-                    ProcessUtils.gracefulShutDownMiNiFiProcess(String.valueOf(minifiPid), "MiNiFi has not finished shutting down after {} seconds. Killing process.",
+                    UnixProcessUtils.gracefulShutDownMiNiFiProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds. Killing process.",
                         gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
 
                     if (statusFile.exists() && !statusFile.delete()) {
@@ -113,7 +113,7 @@ public class StopRunner implements CommandRunner {
                 DEFAULT_LOGGER.error("No PID found for the MiNiFi process, so unable to kill process; The process should be killed manually.");
             } else {
                 DEFAULT_LOGGER.error("Will kill the MiNiFi Process with PID {}", minifiPid);
-                ProcessUtils.killProcessTree(String.valueOf(minifiPid));
+                UnixProcessUtils.killProcessTree(minifiPid);
             }
         } finally {
             if (lockFile.exists() && !lockFile.delete()) {

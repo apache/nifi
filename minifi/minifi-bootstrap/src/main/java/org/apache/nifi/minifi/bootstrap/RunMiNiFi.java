@@ -18,6 +18,9 @@ package org.apache.nifi.minifi.bootstrap;
 
 import static java.util.Collections.singleton;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,6 +38,7 @@ import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiConfigurationChangeListener;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiExecCommandProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
@@ -93,7 +97,8 @@ public class RunMiNiFi implements ConfigurationFileHolder {
             Optional.ofNullable(properties.getProperty(STATUS_FILE_PID_KEY)).map(Integer::parseInt).orElse(UNINITIALIZED),
             properties.getProperty(STATUS_FILE_SECRET_KEY)
         );
-        MiNiFiCommandSender miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters);
+
+        MiNiFiCommandSender miNiFiCommandSender = new MiNiFiCommandSender(miNiFiParameters, getObjectMapper());
         MiNiFiStatusProvider miNiFiStatusProvider = new MiNiFiStatusProvider(miNiFiCommandSender);
         periodicStatusReporterManager =
             new PeriodicStatusReporterManager(bootstrapFileProvider.getBootstrapProperties(), miNiFiStatusProvider, miNiFiCommandSender, miNiFiParameters);
@@ -104,10 +109,11 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         GracefulShutdownParameterProvider gracefulShutdownParameterProvider = new GracefulShutdownParameterProvider(bootstrapFileProvider);
         reloadService = new ReloadService(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, this);
         commandRunnerFactory = new CommandRunnerFactory(miNiFiCommandSender, currentPortProvider, miNiFiParameters, miNiFiStatusProvider, periodicStatusReporterManager,
-            bootstrapFileProvider, new MiNiFiStdLogHandler(), bootstrapConfigFile, this, gracefulShutdownParameterProvider);
+            bootstrapFileProvider, new MiNiFiStdLogHandler(), bootstrapConfigFile, this, gracefulShutdownParameterProvider,
+            new MiNiFiExecCommandProvider(bootstrapFileProvider));
     }
 
-    public int run(BootstrapCommand command, String[] args) {
+    public int run(BootstrapCommand command, String... args) {
         return commandRunnerFactory.getRunner(command).runCommand(args);
     }
 
@@ -171,7 +177,7 @@ public class RunMiNiFi implements ConfigurationFileHolder {
         try {
             bootstrapFileProvider.saveStatusProperties(minifiProps);
         } catch (IOException ioe) {
-            DEFAULT_LOGGER.warn("Apache MiNiFi has started but failed to persist MiNiFi Port information to {} due to {}", statusFile.getAbsolutePath(), ioe);
+            DEFAULT_LOGGER.warn("Apache MiNiFi has started but failed to persist MiNiFi Port information to {}", statusFile.getAbsolutePath(), ioe);
         }
 
         CMD_LOGGER.info("The thread to run Apache MiNiFi is now running and listening for Bootstrap requests on port {}", port);
@@ -230,5 +236,13 @@ public class RunMiNiFi implements ConfigurationFileHolder {
     @Override
     public AtomicReference<ByteBuffer> getConfigFileReference() {
         return currentConfigFileReference;
+    }
+
+    private ObjectMapper getObjectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+        return objectMapper;
     }
 }

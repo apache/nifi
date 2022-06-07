@@ -71,16 +71,16 @@ public class EnvRunner implements CommandRunner {
             detachMethod = virtualMachineClass.getDeclaredMethod("detach");
         } catch (Exception e) {
             CMD_LOGGER.error("Methods required for getting environment not available");
-            DEFAULT_LOGGER.error("Exception:", e);
+            DEFAULT_LOGGER.error("Virtual Machine method lookup failed:", e);
             return ERROR.getStatusCode();
         }
 
         Object virtualMachine;
         try {
-            virtualMachine = attachMethod.invoke(null, status.getPid());
+            virtualMachine = attachMethod.invoke(null, String.valueOf(status.getPid()));
         } catch (Exception e) {
             CMD_LOGGER.error("Problem attaching to MiNiFi");
-            DEFAULT_LOGGER.error("Exception:", e);
+            DEFAULT_LOGGER.error("Virtual Machine attachment failed:", e);
             return ERROR.getStatusCode();
         }
 
@@ -93,13 +93,13 @@ public class EnvRunner implements CommandRunner {
             }
         } catch (Exception e) {
             CMD_LOGGER.error("Exception happened during the systemproperties call");
-            DEFAULT_LOGGER.error("Exception:", e);
+            DEFAULT_LOGGER.error("Exception happened during the systemproperties call:", e);
             return ERROR.getStatusCode();
         } finally {
             try {
                 detachMethod.invoke(virtualMachine);
-            } catch (final Exception e) {
-                CMD_LOGGER.warn("Caught exception detaching from process", e);
+            } catch (Exception e) {
+                CMD_LOGGER.warn("Virtual Machine detachment failed", e);
             }
         }
         return OK.getStatusCode();

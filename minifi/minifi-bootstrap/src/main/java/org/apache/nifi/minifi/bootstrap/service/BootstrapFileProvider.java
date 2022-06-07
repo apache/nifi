@@ -17,6 +17,7 @@
 package org.apache.nifi.minifi.bootstrap.service;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.STATUS_FILE_PID_KEY;
+import static org.apache.nifi.minifi.bootstrap.SensitiveProperty.SENSITIVE_PROPERTIES;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -226,7 +227,7 @@ public class BootstrapFileProvider {
                 .stream()
                 .filter(e -> {
                     String key = ((String) e.getKey()).toLowerCase();
-                    return !"secret.key".equals(key) && !key.contains("password") && !key.contains("passwd");
+                    return !SENSITIVE_PROPERTIES.contains(key);
                 })
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
         }
