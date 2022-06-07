@@ -24,10 +24,6 @@
     <artifactId>nifi-stateless</artifactId>
     <packaging>pom</packaging>
 
-    <properties>
-        <jersey.version>2.33</jersey.version>
-    </properties>
-
     <modules>
         <module>nifi-stateless-api</module>
         <module>nifi-stateless-bootstrap</module>
@@ -35,5 +31,4 @@
         <module>nifi-stateless-resources</module>
         <module>nifi-stateless-assembly</module>
     </modules>
-
 </project>
