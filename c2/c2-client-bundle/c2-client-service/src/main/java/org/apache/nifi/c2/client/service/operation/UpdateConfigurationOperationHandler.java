@@ -81,9 +81,9 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
         }
 
         flowIdHolder.setFlowId(newFlowId);
-        byte[] updateContent = client.retrieveUpdateContent(updateLocation);
-        if (updateContent != null) {
-            if (updateFlow.apply(updateContent)) {
+        Optional<byte[]> updateContent = client.retrieveUpdateContent(updateLocation);
+        if (updateContent.isPresent()) {
+            if (updateFlow.apply(updateContent.get())) {
                 state.setState(C2OperationState.OperationState.FULLY_APPLIED);
                 logger.debug("Update configuration applied for operation #{}.", opIdentifier);
             } else {
@@ -106,10 +106,10 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
             if (split.length > 4) {
                 return split[4];
             } else {
-                throw new Exception();
+                throw new IllegalArgumentException(String.format("Flow Update URL format unexpected [%s]", flowUpdateUrl));
             }
         } catch (Exception e) {
-            throw new IllegalStateException("Could not get flow id from the provided URL");
+            throw new IllegalStateException("Could not get flow id from the provided URL", e);
         }
     }
 }

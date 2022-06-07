@@ -30,8 +30,7 @@ public class C2ClientConfig {
     private final String confDirectory;
     private final String runtimeManifestIdentifier;
     private final String runtimeType;
-    private final Long heartbeatPeriod;
-    private final Long callTimeout;
+    private final long heartbeatPeriod;
     private final String keystoreFilename;
     private final String keystorePass;
     private final String keyPass;
@@ -40,8 +39,9 @@ public class C2ClientConfig {
     private final String truststorePass;
     private final String truststoreType;
     private final HostnameVerifier hostnameVerifier;
-    private final Integer readTimeout;
-    private final Integer connectTimeout;
+    private final long callTimeout;
+    private final long readTimeout;
+    private final long connectTimeout;
 
 
     private C2ClientConfig(final Builder builder) {
@@ -94,11 +94,11 @@ public class C2ClientConfig {
         return runtimeType;
     }
 
-    public Long getHeartbeatPeriod() {
+    public long getHeartbeatPeriod() {
         return heartbeatPeriod;
     }
 
-    public Long getCallTimeout() {
+    public long getCallTimeout() {
         return callTimeout;
     }
 
@@ -134,11 +134,11 @@ public class C2ClientConfig {
         return hostnameVerifier;
     }
 
-    public Integer getReadTimeout() {
+    public long getReadTimeout() {
         return readTimeout;
     }
 
-    public Integer getConnectTimeout() {
+    public long getConnectTimeout() {
         return connectTimeout;
     }
 
@@ -154,8 +154,8 @@ public class C2ClientConfig {
         private String confDirectory;
         private String runtimeManifestIdentifier;
         private String runtimeType;
-        private Long heartbeatPeriod;
-        private Long callTimeout;
+        private long heartbeatPeriod;
+        private long callTimeout;
         private String keystoreFilename;
         private String keystorePass;
         private String keyPass;
@@ -164,8 +164,8 @@ public class C2ClientConfig {
         private String truststorePass;
         private String truststoreType;
         private HostnameVerifier hostnameVerifier;
-        private Integer readTimeout;
-        private Integer connectTimeout;
+        private long readTimeout;
+        private long connectTimeout;
 
         public Builder c2Url(final String c2Url) {
             this.c2Url = c2Url;
@@ -202,12 +202,12 @@ public class C2ClientConfig {
             return this;
         }
 
-        public Builder heartbeatPeriod(final Long heartbeatPeriod) {
+        public Builder heartbeatPeriod(final long heartbeatPeriod) {
             this.heartbeatPeriod = heartbeatPeriod;
             return this;
         }
 
-        public Builder callTimeout(final Long callTimeout) {
+        public Builder callTimeout(final long callTimeout) {
             this.callTimeout = callTimeout;
             return this;
         }
@@ -252,12 +252,12 @@ public class C2ClientConfig {
             return this;
         }
 
-        public Builder readTimeout(final Integer readTimeout) {
+        public Builder readTimeout(final long readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }
 
-        public Builder connectTimeout(final Integer connectTimeout) {
+        public Builder connectTimeout(final long connectTimeout) {
             this.connectTimeout = connectTimeout;
             return this;
         }

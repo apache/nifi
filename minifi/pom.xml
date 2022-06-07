@@ -44,7 +44,6 @@ limitations under the License.
         <system.rules.version>1.16.1</system.rules.version>
         <aws.sdk.version>1.11.172</aws.sdk.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
-        <okhttp.version>4.9.3</okhttp.version>
     </properties>
 
     <dependencyManagement>
@@ -462,11 +461,6 @@ limitations under the License.
                 <version>1.17.0-SNAPSHOT</version>
             </dependency>
 
-            <dependency>
-                <groupId>com.squareup.okhttp3</groupId>
-                <artifactId>okhttp</artifactId>
-                <version>${okhttp.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>

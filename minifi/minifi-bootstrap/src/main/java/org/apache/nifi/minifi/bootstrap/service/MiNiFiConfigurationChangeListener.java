@@ -88,15 +88,14 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             persistBackNonFlowSectionsFromOriginalSchema(bufferedConfigOs.toByteArray(), bootstrapProperties, configFile);
 
             // Create an input stream to feed to the config transformer
-            try (ByteArrayInputStream newConfigBais = new ByteArrayInputStream(IOUtils.toByteArray(new FileInputStream(configFile)))) {
-                newConfigBais.mark(-1);
+            try (FileInputStream newConfigIs = new FileInputStream(configFile)) {
 
                 try {
                     String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
 
                     try {
                         logger.info("Performing transformation for input and saving outputs to {}", confDir);
-                        ByteBuffer tempConfigFile = generateConfigFiles(newConfigBais, confDir, bootstrapFileProvider.getBootstrapProperties());
+                        ByteBuffer tempConfigFile = generateConfigFiles(newConfigIs, confDir, bootstrapFileProvider.getBootstrapProperties());
                         runner.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
 
                         try {
@@ -132,13 +131,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             logger.error("Unable to carry out reloading of configuration on receipt of notification event", ioe);
             throw new ConfigurationChangeException("Unable to perform reload of received configuration change", ioe);
         } finally {
-            try {
-                if (configInputStream != null) {
-                    configInputStream.close() ;
-                }
-            } catch (IOException e) {
-                // Quietly close
-            }
+            IOUtils.closeQuietly(configInputStream);
             handlingLock.unlock();
         }
     }

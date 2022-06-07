@@ -33,9 +33,4 @@ limitations under the License.
         <module>c2-client-http</module>
         <module>c2-client-service</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-        </dependencies>
-    </dependencyManagement>
 </project>

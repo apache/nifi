@@ -69,7 +69,9 @@ public class C2HttpClient implements C2Client {
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(true);
 
-        // Timeout for calls made to the server
+        // Timeouts
+        okHttpClientBuilder.connectTimeout(clientConfig.getConnectTimeout(), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.readTimeout(clientConfig.getReadTimeout(), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.callTimeout(clientConfig.getCallTimeout(), TimeUnit.MILLISECONDS);
 
         // check if the ssl path is set and add the factory if so
@@ -199,7 +201,7 @@ public class C2HttpClient implements C2Client {
     }
 
     @Override
-    public byte[] retrieveUpdateContent(String flowUpdateUrl) {
+    public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
         final Request.Builder requestBuilder = new Request.Builder()
                 .get()
                 .url(flowUpdateUrl);
@@ -207,8 +209,6 @@ public class C2HttpClient implements C2Client {
 
         ResponseBody body;
         try (final Response response = httpClientReference.get().newCall(request).execute()) {
-            logger.debug("Response received: {}", response);
-
             int code = response.code();
             if (code >= 400) {
                 final String message = String.format("Configuration retrieval failed: HTTP %d %s", code, response.body().string());
@@ -219,13 +219,13 @@ public class C2HttpClient implements C2Client {
 
             if (body == null) {
                 logger.warn("No body returned when pulling a new configuration");
-                return null;
+                return Optional.empty();
             }
 
-            return body.bytes();
+            return Optional.of(body.bytes());
         } catch (Exception e) {
             logger.warn("Configuration retrieval failed", e);
-            return null;
+            return Optional.empty();
         }
     }
 
