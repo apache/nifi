@@ -69,13 +69,21 @@ public class TestUpdateDatabaseTable {
     @AfterAll
     public static void restoreDefaults() {
         System.setProperty("derby.stream.error.file", derbyErrorFile);
+        final File dbDir = new File(tempDir, "db");
+        dbDir.deleteOnExit();
+        try {
+            DriverManager.getConnection("jdbc:derby:" + dbDir + ";shutdown=true");
+        } catch (SQLException sqle) {
+            // Ignore, most likely the DB has already been shutdown
+        }
     }
 
     @BeforeEach
     public void setup() {
         processor = new UpdateDatabaseTable();
-        try {
-            service.getConnection().createStatement().execute("DROP TABLE \"persons\"");
+
+        try (Statement s = service.getConnection().createStatement()) {
+            s.execute("DROP TABLE \"persons\"");
         } catch (SQLException se) {
             // Ignore, table probably doesn't exist
         }
@@ -114,32 +122,33 @@ public class TestUpdateDatabaseTable {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
         flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "newTable");
         // Verify the table has been created with the expected fields
-        Statement s = service.getConnection().createStatement();
-        // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
-        ResultSet rs = s.executeQuery("select * from sys.syscolumns where referenceid = (select tableid from sys.systables where tablename = 'NEWTABLE') order by columnnumber");
-        assertTrue(rs.next());
-        // Columns 2,3,4 are Column Name, Column Index, and Column Type
-        assertEquals("id", rs.getString(2));
-        assertEquals(1, rs.getInt(3));
-        assertEquals("INTEGER NOT NULL", rs.getString(4));
+        try (Statement s = service.getConnection().createStatement()) {
+            // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
+            ResultSet rs = s.executeQuery("select * from sys.syscolumns where referenceid = (select tableid from sys.systables where tablename = 'NEWTABLE') order by columnnumber");
+            assertTrue(rs.next());
+            // Columns 2,3,4 are Column Name, Column Index, and Column Type
+            assertEquals("id", rs.getString(2));
+            assertEquals(1, rs.getInt(3));
+            assertEquals("INTEGER NOT NULL", rs.getString(4));
 
-        assertTrue(rs.next());
-        assertEquals("name", rs.getString(2));
-        assertEquals(2, rs.getInt(3));
-        assertEquals("VARCHAR(100)", rs.getString(4));
+            assertTrue(rs.next());
+            assertEquals("name", rs.getString(2));
+            assertEquals(2, rs.getInt(3));
+            assertEquals("VARCHAR(100)", rs.getString(4));
 
-        assertTrue(rs.next());
-        assertEquals("code", rs.getString(2));
-        assertEquals(3, rs.getInt(3));
-        assertEquals("INTEGER", rs.getString(4));
+            assertTrue(rs.next());
+            assertEquals("code", rs.getString(2));
+            assertEquals(3, rs.getInt(3));
+            assertEquals("INTEGER", rs.getString(4));
 
-        assertTrue(rs.next());
-        assertEquals("newField", rs.getString(2));
-        assertEquals(4, rs.getInt(3));
-        assertEquals("VARCHAR(100)", rs.getString(4));
+            assertTrue(rs.next());
+            assertEquals("newField", rs.getString(2));
+            assertEquals(4, rs.getInt(3));
+            assertEquals("VARCHAR(100)", rs.getString(4));
 
-        // No more rows
-        assertFalse(rs.next());
+            // No more rows
+            assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -180,33 +189,34 @@ public class TestUpdateDatabaseTable {
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
-            Statement s = conn.createStatement();
-            // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
-            ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
-            assertTrue(rs.next());
-            // Columns 2,3,4 are Column Name, Column Index, and Column Type
-            assertEquals("id", rs.getString(2));
-            assertEquals(1, rs.getInt(3));
-            // Primary key cannot be null, Derby stores that in this column
-            assertEquals("INTEGER NOT NULL", rs.getString(4));
+            try (Statement s = conn.createStatement()) {
+                // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
+                ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
+                assertTrue(rs.next());
+                // Columns 2,3,4 are Column Name, Column Index, and Column Type
+                assertEquals("id", rs.getString(2));
+                assertEquals(1, rs.getInt(3));
+                // Primary key cannot be null, Derby stores that in this column
+                assertEquals("INTEGER NOT NULL", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("name", rs.getString(2));
-            assertEquals(2, rs.getInt(3));
-            assertEquals("VARCHAR(100)", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("name", rs.getString(2));
+                assertEquals(2, rs.getInt(3));
+                assertEquals("VARCHAR(100)", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("code", rs.getString(2));
-            assertEquals(3, rs.getInt(3));
-            assertEquals("INTEGER", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("code", rs.getString(2));
+                assertEquals(3, rs.getInt(3));
+                assertEquals("INTEGER", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("NEWFIELD", rs.getString(2));
-            assertEquals(4, rs.getInt(3));
-            assertEquals("VARCHAR(100)", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("NEWFIELD", rs.getString(2));
+                assertEquals(4, rs.getInt(3));
+                assertEquals("VARCHAR(100)", rs.getString(4));
 
-            // No more rows
-            assertFalse(rs.next());
+                // No more rows
+                assertFalse(rs.next());
+            }
         }
     }
 
@@ -248,28 +258,29 @@ public class TestUpdateDatabaseTable {
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
-            Statement s = conn.createStatement();
-            // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
-            ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
-            assertTrue(rs.next());
-            // Columns 2,3,4 are Column Name, Column Index, and Column Type
-            assertEquals("id", rs.getString(2));
-            assertEquals(1, rs.getInt(3));
-            // Primary key cannot be null, Derby stores that in this column
-            assertEquals("INTEGER NOT NULL", rs.getString(4));
+            try (Statement s = conn.createStatement()) {
+                // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
+                ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
+                assertTrue(rs.next());
+                // Columns 2,3,4 are Column Name, Column Index, and Column Type
+                assertEquals("id", rs.getString(2));
+                assertEquals(1, rs.getInt(3));
+                // Primary key cannot be null, Derby stores that in this column
+                assertEquals("INTEGER NOT NULL", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("name", rs.getString(2));
-            assertEquals(2, rs.getInt(3));
-            assertEquals("VARCHAR(100)", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("name", rs.getString(2));
+                assertEquals(2, rs.getInt(3));
+                assertEquals("VARCHAR(100)", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("code", rs.getString(2));
-            assertEquals(3, rs.getInt(3));
-            assertEquals("INTEGER", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("code", rs.getString(2));
+                assertEquals(3, rs.getInt(3));
+                assertEquals("INTEGER", rs.getString(4));
 
-            // No more rows
-            assertFalse(rs.next());
+                // No more rows
+                assertFalse(rs.next());
+            }
         }
     }
 
@@ -312,38 +323,39 @@ public class TestUpdateDatabaseTable {
             final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
-            Statement s = conn.createStatement();
-            // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
-            ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
-            assertTrue(rs.next());
-            // Columns 2,3,4 are Column Name, Column Index, and Column Type
-            assertEquals("id", rs.getString(2));
-            assertEquals(1, rs.getInt(3));
-            // Primary key cannot be null, Derby stores that in this column
-            assertEquals("INTEGER NOT NULL", rs.getString(4));
+            try (Statement s = conn.createStatement()) {
+                // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
+                ResultSet rs = s.executeQuery("SELECT * FROM SYS.SYSCOLUMNS WHERE referenceid = (SELECT tableid FROM SYS.SYSTABLES WHERE tablename = 'persons') ORDER BY columnnumber");
+                assertTrue(rs.next());
+                // Columns 2,3,4 are Column Name, Column Index, and Column Type
+                assertEquals("id", rs.getString(2));
+                assertEquals(1, rs.getInt(3));
+                // Primary key cannot be null, Derby stores that in this column
+                assertEquals("INTEGER NOT NULL", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("name", rs.getString(2));
-            assertEquals(2, rs.getInt(3));
-            assertEquals("VARCHAR(100)", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("name", rs.getString(2));
+                assertEquals(2, rs.getInt(3));
+                assertEquals("VARCHAR(100)", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("code", rs.getString(2));
-            assertEquals(3, rs.getInt(3));
-            assertEquals("INTEGER", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("code", rs.getString(2));
+                assertEquals(3, rs.getInt(3));
+                assertEquals("INTEGER", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("ID", rs.getString(2));
-            assertEquals(4, rs.getInt(3));
-            assertEquals("INTEGER", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("ID", rs.getString(2));
+                assertEquals(4, rs.getInt(3));
+                assertEquals("INTEGER", rs.getString(4));
 
-            assertTrue(rs.next());
-            assertEquals("NAME", rs.getString(2));
-            assertEquals(5, rs.getInt(3));
-            assertEquals("VARCHAR(100)", rs.getString(4));
+                assertTrue(rs.next());
+                assertEquals("NAME", rs.getString(2));
+                assertEquals(5, rs.getInt(3));
+                assertEquals("VARCHAR(100)", rs.getString(4));
 
-            // No more rows
-            assertFalse(rs.next());
+                // No more rows
+                assertFalse(rs.next());
+            }
         }
     }
 
@@ -368,7 +380,6 @@ public class TestUpdateDatabaseTable {
                 Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
                 return DriverManager.getConnection("jdbc:derby:" + dbLocation + ";create=true");
             } catch (final Exception e) {
-                e.printStackTrace();
                 throw new ProcessException("getConnection failed: " + e);
             }
         }
