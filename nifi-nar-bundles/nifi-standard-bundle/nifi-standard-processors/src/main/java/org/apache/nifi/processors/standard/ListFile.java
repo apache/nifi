@@ -692,21 +692,16 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
                 return false;
             }
 
-            final Path relativePath = basePath.relativize(path).getParent();
-            final String relativeDir = relativePath == null ? "" : relativePath.toString();
+            final Path relativePath = basePath.relativize(path);
+            final Path relativePathParent = relativePath.getParent();
+            final String relativeDir = relativePathParent == null ? "" : relativePathParent.toString();
             final String filename = path.getFileName().toString();
             final TimingInfo timingInfo = performanceTracker.getTimingInfo(relativeDir, filename);
 
             final File file = path.toFile();
 
-            if (pathPattern != null) {
-                if (relativePath == null || relativePath.toString().isEmpty()) {
-                    return false;
-                }
-
-                if (!pathPattern.matcher(relativePath.toString()).matches()) {
-                    return false;
-                }
+            if ((pathPattern != null) && (!pathPattern.matcher(relativeDir).matches())) {
+                return false;
             }
 
             final boolean matchesFilter = filePattern.matcher(filename).matches();

@@ -695,6 +695,40 @@ public class TestListFile {
     }
 
     @Test
+    public void testFilterPathPatternNegative() throws Exception {
+        final long now = getTestModifiedTime();
+
+        final File subdirA = new File(TESTDIR + "/AAA");
+        assertTrue(subdirA.mkdirs());
+
+        final File subdirL = new File(TESTDIR + "/LOG");
+        assertTrue(subdirL.mkdirs());
+
+        final File file1 = new File(TESTDIR + "/file1.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setLastModified(now));
+
+        final File file2 = new File(TESTDIR + "/AAA/file2.txt");
+        assertTrue(file2.createNewFile());
+        assertTrue(file2.setLastModified(now));
+
+        final File file3 = new File(TESTDIR + "/LOG/file3.txt");
+        assertTrue(file3.createNewFile());
+        assertTrue(file3.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ListFile.FILE_FILTER.getDefaultValue());
+        runner.setProperty(ListFile.PATH_FILTER, "^((?!LOG).)*$");
+        runner.setProperty(ListFile.RECURSE, "true");
+        assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 3 objects.  Of those, 2 match the filter.");
+        runNext();
+
+        runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(2, successFiles1.size());
+    }
+
+    @Test
     public void testRecurse() throws Exception {
         final long now = getTestModifiedTime();
 
