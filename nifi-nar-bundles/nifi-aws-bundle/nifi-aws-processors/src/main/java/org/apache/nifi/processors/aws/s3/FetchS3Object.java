@@ -49,6 +49,8 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -216,7 +218,7 @@ public class FetchS3Object extends AbstractS3Processor {
 
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
             if (metadata.getContentDisposition() != null) {
-                final String contentDisposition = metadata.getContentDisposition();
+                final String contentDisposition = URLDecoder.decode(metadata.getContentDisposition(), StandardCharsets.UTF_8.name());
 
                 if (contentDisposition.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || contentDisposition.startsWith("attachment; filename=")) {
                     setFilePathAttributes(attributes, key);
