@@ -569,6 +569,19 @@ public class TestLookupRecord {
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
     }
 
+
+    @Test
+    public void testLiteralCoordinate() {
+        lookupService.addValue("lookupKey", "lookupValue");
+
+        runner.setProperty("lookup", "toString('lookupKey', 'UTF-8')");
+
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
+    }
+
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
         protected final Map<String, String> values = new HashMap<>();
         private Map<String, Object> expectedContext;
