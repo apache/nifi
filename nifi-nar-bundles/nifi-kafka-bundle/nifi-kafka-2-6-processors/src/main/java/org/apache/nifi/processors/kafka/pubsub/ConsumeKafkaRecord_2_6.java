@@ -60,11 +60,11 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.BYTE_ARRAY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.DO_NOT_ADD_KEY_AS_ATTRIBUTE;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.HEX_ENCODING;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.RECORD;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.STRING;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KEY_AS_BYTE_ARRAY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KEY_AS_RECORD;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KEY_AS_STRING;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.USE_WRAPPER;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.UTF8_ENCODING;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.WRITE_VALUE_ONLY;
@@ -217,10 +217,10 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .defaultValue("UTF-8")
         .required(false)
         .build();
-    static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("output-strategy")
-            .displayName("Output Strategy")
-            .description("This is a PropertyDescriptor description.")
+    static final PropertyDescriptor CONSUME_STRATEGY = new PropertyDescriptor.Builder()
+            .name("consume-strategy")
+            .displayName("Consume Strategy")
+            .description("The format used to consume the Kafka record into a FlowFile record.")
             .required(true)
             .defaultValue(WRITE_VALUE_ONLY.getValue())
             .allowableValues(WRITE_VALUE_ONLY, USE_WRAPPER)
@@ -228,11 +228,11 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
     static final PropertyDescriptor KEY_FORMAT = new PropertyDescriptor.Builder()
             .name("key-format")
             .displayName("Key Format")
-            .description("This is a PropertyDescriptor description.")
+            .description("The format used to consume the Kafka record key into the incoming FlowFile record.")
             .required(true)
-            .defaultValue(BYTE_ARRAY.getValue())
-            .allowableValues(STRING, BYTE_ARRAY, RECORD)
-            .dependsOn(OUTPUT_STRATEGY, USE_WRAPPER)
+            .defaultValue(KEY_AS_BYTE_ARRAY.getValue())
+            .allowableValues(KEY_AS_STRING, KEY_AS_BYTE_ARRAY, KEY_AS_RECORD)
+            .dependsOn(CONSUME_STRATEGY, USE_WRAPPER)
             .build();
     static final PropertyDescriptor KEY_RECORD_READER = new PropertyDescriptor.Builder()
             .name("key-record-reader")
@@ -240,7 +240,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             .description("The Key Record Reader to use for incoming FlowFiles")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(KEY_FORMAT, RECORD)
+            .dependsOn(KEY_FORMAT, KEY_AS_RECORD)
             .build();
     static final PropertyDescriptor HEADER_NAME_REGEX = new Builder()
         .name("header-name-regex")
@@ -254,7 +254,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(false)
-        .dependsOn(OUTPUT_STRATEGY, WRITE_VALUE_ONLY)
+        .dependsOn(CONSUME_STRATEGY, WRITE_VALUE_ONLY)
         .build();
 
     static final PropertyDescriptor SEPARATE_BY_KEY = new Builder()
@@ -273,7 +273,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .required(true)
         .defaultValue(UTF8_ENCODING.getValue())
         .allowableValues(UTF8_ENCODING, HEX_ENCODING, DO_NOT_ADD_KEY_AS_ATTRIBUTE)
-        .dependsOn(OUTPUT_STRATEGY, WRITE_VALUE_ONLY)
+        .dependsOn(CONSUME_STRATEGY, WRITE_VALUE_ONLY)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -300,6 +300,11 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         descriptors.add(RECORD_READER);
         descriptors.add(RECORD_WRITER);
         descriptors.add(GROUP_ID);
+        descriptors.add(CONSUME_STRATEGY);
+        descriptors.add(HEADER_NAME_REGEX);
+        descriptors.add(KEY_ATTRIBUTE_ENCODING);
+        descriptors.add(KEY_FORMAT);
+        descriptors.add(KEY_RECORD_READER);
         descriptors.add(COMMIT_OFFSETS);
         descriptors.add(MAX_UNCOMMITTED_TIME);
         descriptors.add(HONOR_TRANSACTIONS);
@@ -314,11 +319,6 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         descriptors.add(KafkaProcessorUtils.TOKEN_AUTH);
         descriptors.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         descriptors.add(SEPARATE_BY_KEY);
-        descriptors.add(OUTPUT_STRATEGY);
-        descriptors.add(HEADER_NAME_REGEX);
-        descriptors.add(KEY_ATTRIBUTE_ENCODING);
-        descriptors.add(KEY_FORMAT);
-        descriptors.add(KEY_RECORD_READER);
         descriptors.add(AUTO_OFFSET_RESET);
         descriptors.add(MESSAGE_HEADER_ENCODING);
         descriptors.add(MAX_POLL_RECORDS);
@@ -439,15 +439,16 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
 
+        final String consumeStrategy = context.getProperty(CONSUME_STRATEGY).getValue();
+        final String keyFormat = context.getProperty(KEY_FORMAT).getValue();
+        final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
+
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
-        final Pattern headerNamePattern = headerNameRegex == null ? null : Pattern.compile(headerNameRegex);
+        final boolean isActiveHeaderNamePattern = ((WRITE_VALUE_ONLY.getValue().equals(consumeStrategy)) && (headerNameRegex != null));
+        final Pattern headerNamePattern = isActiveHeaderNamePattern ? Pattern.compile(headerNameRegex) : null;
 
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();
         final String keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).getValue();
-
-        final String outputStrategy = context.getProperty(OUTPUT_STRATEGY).getValue();
-        final String keyFormat = context.getProperty(KEY_FORMAT).getValue();
-        final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final int[] partitionsToConsume;
         try {
@@ -466,12 +467,12 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
 
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topics, maxUncommittedTime, securityProtocol,
                     bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
-                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
+                    commitOffsets, consumeStrategy, keyFormat, keyReaderFactory);
         } else if (topicType.equals(TOPIC_PATTERN.getValue())) {
             final Pattern topicPattern = Pattern.compile(topicListing.trim());
             return new ConsumerPool(maxLeases, readerFactory, writerFactory, props, topicPattern, maxUncommittedTime, securityProtocol,
                     bootstrapServers, log, honorTransactions, charset, headerNamePattern, separateByKey, keyEncoding, partitionsToConsume,
-                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
+                    commitOffsets, consumeStrategy, keyFormat, keyReaderFactory);
         } else {
             getLogger().error("Subscription type has an unknown value {}", new Object[] {topicType});
             return null;

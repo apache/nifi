@@ -200,17 +200,18 @@ public class PublisherLease implements Closeable {
                 final byte[] messageContent = baos.toByteArray();
 
                 final byte[] messageKey;
-                if (recordKeyWriterFactory == null) {
+                if ((recordKeyWriterFactory == null) || (messageKeyField == null)) {
                     messageKey = Optional.ofNullable(record.getAsString(messageKeyField))
                             .map(s -> s.getBytes(StandardCharsets.UTF_8)).orElse(null);
                 } else {
-                    final ByteArrayOutputStream os = new ByteArrayOutputStream(1024);
-                    final MapRecord keyRecord = (MapRecord) record.getValue(messageKeyField);
-                    try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
-                        writerKey.write(keyRecord);
-                        writerKey.flush();
+                    try (final ByteArrayOutputStream os = new ByteArrayOutputStream(1024)) {
+                        final Record keyRecord = (Record) record.getValue(messageKeyField);
+                        try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
+                            writerKey.write(keyRecord);
+                            writerKey.flush();
+                        }
+                        messageKey = os.toByteArray();
                     }
-                    messageKey = os.toByteArray();
                 }
 
                 final Integer partition = partitioner == null ? null : partitioner.apply(record);
