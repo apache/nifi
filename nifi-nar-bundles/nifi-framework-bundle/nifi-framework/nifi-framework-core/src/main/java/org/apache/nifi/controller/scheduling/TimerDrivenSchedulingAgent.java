@@ -71,6 +71,9 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
         final ConnectableTask connectableTask = new ConnectableTask(this, connectable, flowController, contextFactory, scheduleState, encryptor);
 
+        final long schedulingPeriodNanos = FormatUtils.getTimeDuration(connectable.evaluateSchedulingPeriodFromParameter(connectable.getSchedulingPeriod()),
+                TimeUnit.NANOSECONDS);
+
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
             // Determine the task to run and create it.
             final AtomicReference<ScheduledFuture<?>> futureRef = new AtomicReference<>();
@@ -79,7 +82,7 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
 
             // Schedule the task to run
             final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(trigger, 0L,
-                connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                Math.max(1, schedulingPeriodNanos), TimeUnit.NANOSECONDS);
 
             // now that we have the future, set the atomic reference so that if the component is yielded we
             // are able to then cancel this future.

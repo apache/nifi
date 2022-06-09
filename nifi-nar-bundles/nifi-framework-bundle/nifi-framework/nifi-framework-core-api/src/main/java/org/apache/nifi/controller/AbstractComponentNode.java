@@ -754,6 +754,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
+            invalidParameterResults.addAll(validateConfig());
+
             if (!invalidParameterResults.isEmpty()) {
                 // At this point, we are not able to properly resolve all property values, so we will not attempt to perform
                 // any further validation. Doing so would result in values being reported as invalid and containing confusing explanations.
@@ -792,6 +794,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
             .explanation("Failed to perform validation due to " + failureCause)
             .build());
     }
+
+    protected abstract List<ValidationResult> validateConfig();
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();

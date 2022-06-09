@@ -200,7 +200,7 @@ public class StandardProcessGroupIT extends FrameworkIntegrationTest {
         final Set<ComponentNode> rootAffected = getRootGroup().getComponentsAffectedByVariable("number");
         assertTrue(rootAffected.isEmpty());
 
-        processor.setScheduldingPeriod("1 hour");
+        processor.setSchedulingPeriod("1 hour");
         child.startProcessor(processor, false);
 
         getRootGroup().setVariables(Collections.singletonMap("number", "2"));

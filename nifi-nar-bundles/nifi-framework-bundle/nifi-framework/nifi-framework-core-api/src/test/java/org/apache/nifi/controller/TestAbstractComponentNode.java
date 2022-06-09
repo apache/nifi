@@ -404,6 +404,11 @@ public class TestAbstractComponentNode {
         }
 
         @Override
+        protected List<ValidationResult> validateConfig() {
+            return Collections.EMPTY_LIST;
+        }
+
+        @Override
         public void verifyModifiable() throws IllegalStateException {
         }
 
