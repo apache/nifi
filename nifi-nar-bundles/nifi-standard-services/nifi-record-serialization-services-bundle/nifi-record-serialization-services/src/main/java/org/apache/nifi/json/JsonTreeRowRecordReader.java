@@ -37,7 +37,7 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +92,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
     private Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final String fieldNamePrefix,
             final boolean coerceTypes, final boolean dropUnknown) throws IOException, MalformedRecordException {
 
-        final Map<String, Object> values = new HashMap<>(schema.getFieldCount() * 2);
+        final Map<String, Object> values = new LinkedHashMap<>(schema.getFieldCount() * 2);
 
         if (dropUnknown) {
             for (final RecordField recordField : schema.getFields()) {
@@ -167,7 +167,7 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             case MAP: {
                 final DataType valueType = ((MapDataType) desiredType).getValueType();
 
-                final Map<String, Object> map = new HashMap<>();
+                final Map<String, Object> map = new LinkedHashMap<>();
                 final Iterator<String> fieldNameItr = fieldNode.fieldNames();
                 while (fieldNameItr.hasNext()) {
                     final String childName = fieldNameItr.next();

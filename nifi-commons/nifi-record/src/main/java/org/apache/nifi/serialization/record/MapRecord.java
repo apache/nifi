@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -346,7 +346,7 @@ public class MapRecord implements Record {
 
     public Map<String, Object> toMap(boolean convertSubRecords) {
         if (convertSubRecords) {
-            Map<String, Object> newMap = new HashMap<>();
+            Map<String, Object> newMap = new LinkedHashMap<>();
             values.forEach((key, value) -> {
                 Object valueToAdd;
 
@@ -362,7 +362,7 @@ public class MapRecord implements Record {
                     }
                     valueToAdd = maps;
                 } else if (value instanceof List) {
-                    List valueList = (List) value;
+                    List<?> valueList = (List<?>) value;
                     if (!valueList.isEmpty() && valueList.get(0) instanceof MapRecord) {
                         List<Map<String, Object>> newRecords = new ArrayList<>();
                         for (Object o : valueList) {
@@ -495,7 +495,7 @@ public class MapRecord implements Record {
 
         Object mapObject = values.get(recordField.getFieldName());
         if (mapObject == null) {
-            mapObject = new HashMap<String, Object>();
+            mapObject = new LinkedHashMap<String, Object>();
         }
         if (!(mapObject instanceof Map)) {
             return;
