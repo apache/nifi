@@ -24,14 +24,17 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Properties;
 
 public class MiNiFiExecCommandProvider {
+
     private static final String DEFAULT_JAVA_CMD = "java";
     private static final String DEFAULT_LOG_DIR = "./logs";
     private static final String DEFAULT_LIB_DIR = "./lib";
     private static final String DEFAULT_CONF_DIR = "./conf";
     private static final String DEFAULT_CONFIG_FILE = DEFAULT_CONF_DIR + "/bootstrap.conf";
+    private static final String WINDOWS_FILE_EXTENSION = ".exe";
 
     private final BootstrapFileProvider bootstrapFileProvider;
 
@@ -73,17 +76,20 @@ public class MiNiFiExecCommandProvider {
             javaCmd = DEFAULT_JAVA_CMD;
         }
         if (javaCmd.equals(DEFAULT_JAVA_CMD)) {
-            String javaHome = System.getenv("JAVA_HOME");
-            if (javaHome != null) {
-                String fileExtension = isWindows() ? ".exe" : "";
-                File javaFile = new File(javaHome + File.separatorChar + "bin"
-                    + File.separatorChar + "java" + fileExtension);
-                if (javaFile.exists() && javaFile.canExecute()) {
-                    javaCmd = javaFile.getAbsolutePath();
-                }
-            }
+            Optional.ofNullable(System.getenv("JAVA_HOME"))
+                .map(javaHome -> getJavaCommandBasedOnExtension(javaHome, WINDOWS_FILE_EXTENSION)
+                    .orElseGet(() -> getJavaCommandBasedOnExtension(javaHome, "").orElse(DEFAULT_JAVA_CMD)));
         }
         return javaCmd;
+    }
+
+    private Optional<String> getJavaCommandBasedOnExtension(String javaHome, String extension) {
+        String javaCmd = null;
+        File javaFile = new File(javaHome + File.separatorChar + "bin" + File.separatorChar + "java" + extension);
+        if (javaFile.exists() && javaFile.canExecute()) {
+            javaCmd = javaFile.getAbsolutePath();
+        }
+        return Optional.ofNullable(javaCmd);
     }
 
     private String buildClassPath(Properties props, File confDir, File libDir) {
@@ -140,11 +146,6 @@ public class MiNiFiExecCommandProvider {
         }
 
         return minifiPropsFilename.trim();
-    }
-
-    private boolean isWindows() {
-        String osName = System.getProperty("os.name");
-        return osName != null && osName.toLowerCase().contains("win");
     }
 
     private File getFile(String filename, File workingDir) {

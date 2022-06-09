@@ -216,6 +216,10 @@ public class BootstrapListener {
                                     String flowStatusRequestString = request.getArgs()[0];
                                     writeStatusReport(flowStatusRequestString, socket.getOutputStream());
                                     break;
+                                case ENV:
+                                    logger.info("Received ENV request from Bootstrap");
+                                    writeEnv(socket.getOutputStream());
+                                    break;
                             }
                         } catch (final Throwable t) {
                             logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
@@ -237,6 +241,20 @@ public class BootstrapListener {
     private void writeStatusReport(String flowStatusRequestString, final OutputStream out) throws IOException, StatusRequestException {
         FlowStatusReport flowStatusReport = minifi.getMinifiServer().getStatusReport(flowStatusRequestString);
         objectMapper.writeValue(out, flowStatusReport);
+    }
+
+    private static void writeEnv(OutputStream out) throws IOException {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out))) {
+            StringBuilder sb = new StringBuilder();
+
+            System.getProperties()
+                .entrySet()
+                .stream()
+                .forEach(entry -> sb.append(entry.getKey()).append("=").append(entry.getValue()).append("\n"));
+
+            writer.write(sb.toString());
+            writer.flush();
+        }
     }
 
     private static void writeDump(final OutputStream out) throws IOException {
@@ -396,7 +414,8 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             PING,
-            FLOW_STATUS_REPORT
+            FLOW_STATUS_REPORT,
+            ENV
         }
 
         private final RequestType requestType;

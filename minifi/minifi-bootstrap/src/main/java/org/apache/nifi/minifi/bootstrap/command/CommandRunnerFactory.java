@@ -89,7 +89,7 @@ public class CommandRunnerFactory {
                 commandRunner = new DumpRunner(miNiFiCommandSender, currentPortProvider);
                 break;
             case ENV:
-                commandRunner = new EnvRunner(miNiFiParameters, miNiFiStatusProvider);
+                commandRunner = new EnvRunner(miNiFiCommandSender, currentPortProvider);
                 break;
             case FLOWSTATUS:
                 commandRunner = new FlowStatusRunner(periodicStatusReporterManager);
