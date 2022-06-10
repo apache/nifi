@@ -125,7 +125,6 @@ public class TestJASN1RecordReader implements JASN1ReadRecordTester {
     @Test
     public void testMultiRecord() throws Exception {
         try (final InputStream input = TestJASN1RecordReader.class.getResourceAsStream("/examples/multi-record.dat")) {
-
             final JASN1RecordReader reader = new JASN1RecordReader("org.apache.nifi.jasn1.example.BasicTypes", null,
                     new RecordSchemaProvider(), Thread.currentThread().getContextClassLoader(), null,
                     input, new MockComponentLog("id", new JASN1Reader()));
