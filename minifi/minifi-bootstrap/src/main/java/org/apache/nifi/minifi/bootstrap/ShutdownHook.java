@@ -35,7 +35,7 @@ public class ShutdownHook extends Thread {
 
     @Override
     public void run() {
-        LOGGER.debug("ShutdownHook called");
+        LOGGER.info("Initiating Shutdown of MiNiFi...");
 
         miNiFiStdLogHandler.shutdown();
         runner.shutdownChangeNotifier();
