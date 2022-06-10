@@ -121,23 +121,18 @@ import java.util.zip.GZIPInputStream;
 
 public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(VersionedFlowSynchronizer.class);
-    private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
-    private static final String ENCRYPTED_VALUE_SUFFIX = "}";
 
-    private final PropertyEncryptor encryptor;
     private final ExtensionManager extensionManager;
     private final File flowStorageFile;
     private final FlowConfigurationArchiveManager archiveManager;
 
-    public VersionedFlowSynchronizer(final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final File flowStorageFile, final FlowConfigurationArchiveManager archiveManager) {
-        this.encryptor = encryptor;
+    public VersionedFlowSynchronizer(final ExtensionManager extensionManager, final File flowStorageFile, final FlowConfigurationArchiveManager archiveManager) {
         this.extensionManager = extensionManager;
         this.flowStorageFile = flowStorageFile;
         this.archiveManager = archiveManager;
     }
 
-
-    public synchronized void sync(final FlowController controller, final DataFlow proposedFlow, final PropertyEncryptor encryptor, final FlowService flowService,
+    public synchronized void sync(final FlowController controller, final DataFlow proposedFlow, final FlowService flowService,
                                   final BundleUpdateStrategy bundleUpdateStrategy)
                     throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException, MissingBundleException {
 
@@ -168,7 +163,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final DataFlow existingDataFlow = getExistingDataFlow(controller);
         checkFlowInheritability(existingDataFlow, proposedFlow, controller, bundleUpdateStrategy);
 
-        final FlowComparison flowComparison = compareFlows(existingDataFlow, proposedFlow, encryptor);
+        final FlowComparison flowComparison = compareFlows(existingDataFlow, proposedFlow, controller.getEncryptor());
         final Set<FlowDifference> flowDifferences = flowComparison.getDifferences();
         if (flowDifferences.isEmpty()) {
             logger.debug("No differences between current flow and proposed flow. Will not create backup of existing flow.");
@@ -297,6 +292,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // attempt to sync controller with proposed flow
         try {
             final VersionedDataflow versionedFlow = proposedFlow.getVersionedDataflow();
+
+            final PropertyEncryptor encryptor = controller.getEncryptor();
 
             if (versionedFlow != null) {
                 controller.setMaxTimerDrivenThreadCount(versionedFlow.getMaxTimerDrivenThreadCount());
@@ -504,7 +501,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         taskNode.setAnnotationData(reportingTask.getAnnotationData());
 
         final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(taskNode, reportingTask);
-        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties());
+        final Map<String, String> decryptedProperties = decryptProperties(reportingTask.getProperties(), controller.getEncryptor());
         taskNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
 
         // enable/disable/start according to the ScheduledState
@@ -543,7 +540,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                             Collectors.toMap(VersionedParameterContext::getName, Function.identity())
                     );
             for (final VersionedParameterContext versionedParameterContext : parameterContexts) {
-                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts);
+                inheritParameterContext(versionedParameterContext, controller.getFlowManager(), namedParameterContexts, controller.getEncryptor());
             }
         });
     }
@@ -551,23 +548,25 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private void inheritParameterContext(
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
-            final Map<String, VersionedParameterContext> namedParameterContexts
+            final Map<String, VersionedParameterContext> namedParameterContexts,
+            final PropertyEncryptor encryptor
     ) {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final ParameterContext existingContext = contextManager.getParameterContextNameMapping().get(versionedParameterContext.getName());
         if (existingContext == null) {
-            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts);
+            addParameterContext(versionedParameterContext, flowManager, namedParameterContexts, encryptor);
         } else {
-            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts);
+            updateParameterContext(versionedParameterContext, existingContext, flowManager, namedParameterContexts, encryptor);
         }
     }
 
     private void addParameterContext(
             final VersionedParameterContext versionedParameterContext,
             final FlowManager flowManager,
-            final Map<String, VersionedParameterContext> namedParameterContexts
+            final Map<String, VersionedParameterContext> namedParameterContexts,
+            final PropertyEncryptor encryptor
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext);
+        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext, encryptor);
 
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> referenceIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
@@ -606,22 +605,22 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return referenceIds;
     }
 
-    private Map<String, Parameter> createParameterMap(final VersionedParameterContext versionedParameterContext) {
+    private Map<String, Parameter> createParameterMap(final VersionedParameterContext versionedParameterContext,
+                                                      final PropertyEncryptor encryptor) {
         final Map<String, Parameter> parameters = new HashMap<>();
         for (final VersionedParameter versioned : versionedParameterContext.getParameters()) {
             final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                .description(versioned.getDescription())
-                .name(versioned.getName())
-                .sensitive(versioned.isSensitive())
-                .build();
+                    .description(versioned.getDescription())
+                    .name(versioned.getName())
+                    .sensitive(versioned.isSensitive())
+                    .build();
 
             final String parameterValue;
             final String rawValue = versioned.getValue();
             if (rawValue == null) {
                 parameterValue = null;
-            } else if (versioned.isSensitive() && rawValue.startsWith(ENCRYPTED_VALUE_PREFIX) && rawValue.endsWith(ENCRYPTED_VALUE_SUFFIX)) {
-                final String extractedValue = rawValue.substring(ENCRYPTED_VALUE_PREFIX.length(), rawValue.length() - ENCRYPTED_VALUE_SUFFIX.length());
-                parameterValue = encryptor.decrypt(extractedValue);
+            } else if (versioned.isSensitive()) {
+                parameterValue = decrypt(rawValue, encryptor);
             } else {
                 parameterValue = rawValue;
             }
@@ -637,16 +636,17 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedParameterContext versionedParameterContext,
             final ParameterContext parameterContext,
             final FlowManager flowManager,
-            final Map<String, VersionedParameterContext> namedParameterContexts
+            final Map<String, VersionedParameterContext> namedParameterContexts,
+            final PropertyEncryptor encryptor
     ) {
-        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext);
+        final Map<String, Parameter> parameters = createParameterMap(versionedParameterContext, encryptor);
 
         final Map<String, String> currentValues = new HashMap<>();
         parameterContext.getParameters().values().forEach(param -> currentValues.put(param.getDescriptor().getName(), param.getValue()));
 
         if (logger.isDebugEnabled()) {
             final Map<String, String> proposedValues = parameters.entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getValue()));
+                    .collect(Collectors.toMap(Entry::getKey, entry -> entry.getValue().getValue()));
             logger.debug("For Parameter Context {}, current parameters = {}, proposed = {}", parameterContext.getName(), currentValues, proposedValues);
         }
 
@@ -681,8 +681,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         final ParameterContextManager contextManager = flowManager.getParameterContextManager();
         final List<String> inheritedContextIds = findReferencedParameterContextIds(versionedParameterContext, contextManager, namedParameterContexts);
         final List<ParameterContext> referencedContexts = inheritedContextIds.stream()
-            .map(contextManager::getParameterContext)
-            .collect(Collectors.toList());
+                .map(contextManager::getParameterContext)
+                .collect(Collectors.toList());
         parameterContext.setInheritedParameterContexts(referencedContexts);
     }
 
@@ -711,7 +711,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServicesAdded.contains(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
-                updateRootControllerService(serviceNode, versionedControllerService);
+                updateRootControllerService(serviceNode, versionedControllerService, controller.getEncryptor());
             }
         }
 
@@ -745,7 +745,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return serviceNode;
     }
 
-    private void updateRootControllerService(final ControllerServiceNode serviceNode, final VersionedControllerService versionedControllerService) {
+    private void updateRootControllerService(final ControllerServiceNode serviceNode, final VersionedControllerService versionedControllerService,
+                                             final PropertyEncryptor encryptor) {
         serviceNode.pauseValidationTrigger();
         try {
             serviceNode.setName(versionedControllerService.getName());
@@ -753,7 +754,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             serviceNode.setComments(versionedControllerService.getComments());
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(serviceNode, versionedControllerService);
-            final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties());
+            final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), encryptor);
             serviceNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
         } finally {
             serviceNode.resumeValidationTrigger();
@@ -787,19 +788,19 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 .collect(Collectors.toSet());
     }
 
-    private Map<String, String> decryptProperties(final Map<String, String> encrypted) {
+    private Map<String, String> decryptProperties(final Map<String, String> encrypted, final PropertyEncryptor encryptor) {
         final Map<String, String> decrypted = new HashMap<>(encrypted.size());
-        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value)));
+        encrypted.forEach((key, value) -> decrypted.put(key, decrypt(value, encryptor)));
         return decrypted;
     }
 
-    private String decrypt(final String value) {
+    private String decrypt(final String value, final PropertyEncryptor encryptor) {
         if (isValueSensitive(value)) {
             try {
                 return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));
             } catch (EncryptionException e) {
                 final String moreDescriptiveMessage = "There was a problem decrypting a sensitive flow configuration value. " +
-                    "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
+                        "Check that the nifi.sensitive.props.key value in nifi.properties matches the value used to encrypt the flow.json.gz file";
                 logger.error(moreDescriptiveMessage, e);
                 throw new EncryptionException(moreDescriptiveMessage, e);
             }
@@ -1003,7 +1004,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
     private byte[] toBytes(final FlowController flowController) throws FlowSerializationException {
         final ByteArrayOutputStream result = new ByteArrayOutputStream();
-        final FlowSerializer<VersionedDataflow> flowSerializer = new VersionedFlowSerializer(encryptor, extensionManager);
+        final FlowSerializer<VersionedDataflow> flowSerializer = new VersionedFlowSerializer(extensionManager);
         flowController.serialize(flowSerializer, result);
         return result.toByteArray();
     }

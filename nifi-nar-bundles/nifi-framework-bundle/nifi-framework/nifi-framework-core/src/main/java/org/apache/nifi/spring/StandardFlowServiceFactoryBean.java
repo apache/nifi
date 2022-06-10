@@ -57,14 +57,12 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
                     properties,
                     nodeProtocolSenderListener,
                     clusterCoordinator,
-                    encryptor,
                     revisionManager,
                     authorizer);
             } else {
                 flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     properties,
-                    encryptor,
                     revisionManager,
                     authorizer,
                     FlowSerializationStrategy.WRITE_XML_AND_JSON);

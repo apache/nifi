@@ -154,7 +154,6 @@ public class HeadlessNiFiServer implements NiFiServer {
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,
                     props,
-                    encryptor,
                     null, // revision manager
                     authorizer,
                     FlowSerializationStrategy.WRITE_XML_ONLY);

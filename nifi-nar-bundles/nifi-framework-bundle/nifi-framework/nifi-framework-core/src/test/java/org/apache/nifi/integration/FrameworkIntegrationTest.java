@@ -285,10 +285,10 @@ public class FrameworkIntegrationTest {
                 VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, flowRegistryClient, extensionManager, statusHistoryRepository);
         }
 
-        processScheduler = new StandardProcessScheduler(flowEngine, flowController, encryptor, flowController.getStateManagerProvider(), nifiProperties);
+        processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties);
 
         final RepositoryContextFactory repositoryContextFactory = flowController.getRepositoryContextFactory();
-        final SchedulingAgent timerDrivenSchedulingAgent = new TimerDrivenSchedulingAgent(flowController, flowEngine, repositoryContextFactory, encryptor, nifiProperties);
+        final SchedulingAgent timerDrivenSchedulingAgent = new TimerDrivenSchedulingAgent(flowController, flowEngine, repositoryContextFactory, nifiProperties);
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, timerDrivenSchedulingAgent);
 
         flowFileSwapManager = flowController.createSwapManager();
@@ -335,7 +335,7 @@ public class FrameworkIntegrationTest {
         logger.info("Shutting down for restart....");
 
         // Save Flow to a byte array
-        final FlowConfigurationDAO flowDao = new StandardFlowConfigurationDAO(flowController.getEncryptor(), nifiProperties, getExtensionManager(), FlowSerializationStrategy.WRITE_XML_AND_JSON);
+        final FlowConfigurationDAO flowDao = new StandardFlowConfigurationDAO(nifiProperties, getExtensionManager(), FlowSerializationStrategy.WRITE_XML_AND_JSON);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         flowDao.save(flowController, baos);
         final byte[] flowBytes = baos.toByteArray();
@@ -354,7 +354,7 @@ public class FrameworkIntegrationTest {
         initialize();
 
         // Reload the flow
-        final FlowSynchronizer flowSynchronizer = new XmlFlowSynchronizer(flowController.getEncryptor(), nifiProperties, extensionManager);
+        final FlowSynchronizer flowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
         flowController.synchronize(flowSynchronizer, new StandardDataFlow(flowBytes, null, null, Collections.emptySet()), Mockito.mock(FlowService.class),
             BundleUpdateStrategy.USE_SPECIFIED_OR_COMPATIBLE_OR_GHOST);
 

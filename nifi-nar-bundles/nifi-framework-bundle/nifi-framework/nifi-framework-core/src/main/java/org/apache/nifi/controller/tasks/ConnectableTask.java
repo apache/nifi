@@ -69,16 +69,16 @@ public class ConnectableTask {
     private final FlowController flowController;
     private final int numRelationships;
 
-
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
-            final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState,
-            final PropertyEncryptor encryptor) {
+                           final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
         this.scheduleState = scheduleState;
         this.numRelationships = connectable.getRelationships().size();
         this.flowController = flowController;
+
+        final PropertyEncryptor encryptor = flowController.getEncryptor();
 
         final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
         if (connectable instanceof ProcessorNode) {

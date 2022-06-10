@@ -292,7 +292,7 @@ public class StandardProcessorNodeIT {
 
         final StateManagerProvider stateManagerProvider = mock(StateManagerProvider.class);
 
-        final ProcessScheduler processScheduler = new StandardProcessScheduler(null, flowController, null,
+        final ProcessScheduler processScheduler = new StandardProcessScheduler(null, flowController,
                 stateManagerProvider, nifiProperties);
 
         final LoggableComponent<Processor> loggableComponent = new LoggableComponent<>(processor, narBundle.getBundleDetails().getCoordinate(), componentLog);
