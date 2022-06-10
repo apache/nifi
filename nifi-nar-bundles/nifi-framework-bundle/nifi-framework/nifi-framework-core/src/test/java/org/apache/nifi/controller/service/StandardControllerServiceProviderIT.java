@@ -101,7 +101,7 @@ public class StandardControllerServiceProviderIT {
     @Test(timeout = 120000)
     public void testConcurrencyWithEnablingReferencingServicesGraph() throws InterruptedException, ExecutionException {
         final StandardProcessScheduler scheduler = new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
-            null, stateManagerProvider, niFiProperties);
+                stateManagerProvider, niFiProperties);
 
         for (int i = 0; i < 5000; i++) {
             testEnableReferencingServicesGraph(scheduler);

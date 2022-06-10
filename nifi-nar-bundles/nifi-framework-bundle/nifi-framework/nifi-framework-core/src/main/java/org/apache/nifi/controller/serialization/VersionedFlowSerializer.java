@@ -33,7 +33,6 @@ import java.io.OutputStream;
 
 public class VersionedFlowSerializer implements FlowSerializer<VersionedDataflow> {
     private static final ObjectMapper JSON_CODEC = new ObjectMapper();
-    private final PropertyEncryptor propertyEncryptor;
     private final ExtensionManager extensionManager;
 
     static {
@@ -43,14 +42,14 @@ public class VersionedFlowSerializer implements FlowSerializer<VersionedDataflow
         JSON_CODEC.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
-    public VersionedFlowSerializer(final PropertyEncryptor propertyEncryptor, final ExtensionManager extensionManager) {
-        this.propertyEncryptor = propertyEncryptor;
+    public VersionedFlowSerializer(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
     }
 
     @Override
     public VersionedDataflow transform(final FlowController controller, final ScheduledStateLookup stateLookup) throws FlowSerializationException {
-        final VersionedDataflowMapper dataflowMapper = new VersionedDataflowMapper(controller, extensionManager, propertyEncryptor::encrypt, stateLookup);
+        final PropertyEncryptor encryptor = controller.getEncryptor();
+        final VersionedDataflowMapper dataflowMapper = new VersionedDataflowMapper(controller, extensionManager, encryptor::encrypt, stateLookup);
         final VersionedDataflow dataflow = dataflowMapper.createMapping();
         return dataflow;
     }

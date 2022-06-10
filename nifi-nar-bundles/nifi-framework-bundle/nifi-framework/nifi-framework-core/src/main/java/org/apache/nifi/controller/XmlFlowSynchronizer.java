@@ -141,21 +141,18 @@ import java.util.zip.GZIPInputStream;
 public class XmlFlowSynchronizer implements FlowSynchronizer {
 
     private static final Logger logger = LoggerFactory.getLogger(XmlFlowSynchronizer.class);
-    private final PropertyEncryptor encryptor;
     private final boolean autoResumeState;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
 
-    public XmlFlowSynchronizer(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
-        this.encryptor = encryptor;
+    public XmlFlowSynchronizer(final NiFiProperties nifiProperties, final ExtensionManager extensionManager) {
         this.autoResumeState = nifiProperties.getAutoResumeState();
         this.nifiProperties = nifiProperties;
         this.extensionManager = extensionManager;
     }
 
-
     @Override
-    public void sync(final FlowController controller, final DataFlow proposedFlow, final PropertyEncryptor encryptor, final FlowService flowService, final BundleUpdateStrategy bundleUpdateStrategy)
+    public void sync(final FlowController controller, final DataFlow proposedFlow, final FlowService flowService, final BundleUpdateStrategy bundleUpdateStrategy)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException {
 
         final FlowManager flowManager = controller.getFlowManager();
@@ -378,6 +375,8 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         final FlowManager flowManager = controller.getFlowManager();
 
+        final PropertyEncryptor encryptor = controller.getEncryptor();
+
         // get the root element
         final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
         final FlowEncodingVersion encodingVersion = FlowEncodingVersion.parse(rootElement);
@@ -424,10 +423,10 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
             });
 
             logger.trace("Adding root process group");
-            rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
+            rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encodingVersion);
         } else {
             logger.trace("Updating root process group");
-            rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
+            rootGroup = updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encodingVersion);
         }
 
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
@@ -825,10 +824,12 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-            final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+                                            final FlowEncodingVersion encodingVersion) {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
+
+        final PropertyEncryptor encryptor = controller.getEncryptor();
 
         // get the process group
         final ProcessGroupDTO processGroupDto = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
@@ -1071,7 +1072,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
         // update nested process groups (recursively)
         final List<Element> nestedProcessGroupNodeList = getChildrenByTagName(processGroupElement, "processGroup");
         for (final Element nestedProcessGroupElement : nestedProcessGroupNodeList) {
-            updateProcessGroup(controller, processGroup, nestedProcessGroupElement, encryptor, encodingVersion);
+            updateProcessGroup(controller, processGroup, nestedProcessGroupElement, encodingVersion);
         }
 
         // update connections
@@ -1295,11 +1296,12 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     }
 
     private ProcessGroup addProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement,
-            final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+                                         final FlowEncodingVersion encodingVersion) {
 
         // get the parent group ID
         final String parentId = (parentGroup == null) ? null : parentGroup.getIdentifier();
         final FlowManager flowManager = controller.getFlowManager();
+        final PropertyEncryptor encryptor = controller.getEncryptor();
 
         // add the process group
         final ProcessGroupDTO processGroupDTO = FlowFromDOMFactory.getProcessGroup(parentId, processGroupElement, encryptor, encodingVersion);
@@ -1358,7 +1360,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
     private void addNestedProcessGroups(final Element processGroupElement, final ProcessGroup processGroup, final FlowController flowController, final FlowEncodingVersion encodingVersion) {
         final List<Element> nestedProcessGroupNodeList = getChildrenByTagName(processGroupElement, "processGroup");
         for (final Element nestedProcessGroupElement : nestedProcessGroupNodeList) {
-            addProcessGroup(flowController, processGroup, nestedProcessGroupElement, encryptor, encodingVersion);
+            addProcessGroup(flowController, processGroup, nestedProcessGroupElement, encodingVersion);
         }
     }
 
@@ -1397,6 +1399,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
     private void addControllerServices(final Element processGroupElement, final ProcessGroup processGroup, final FlowController flowController, final FlowEncodingVersion encodingVersion) {
         final List<Element> serviceNodeList = getChildrenByTagName(processGroupElement, "controllerService");
+        final PropertyEncryptor encryptor = flowController.getEncryptor();
         if (!serviceNodeList.isEmpty()) {
             final Map<ControllerServiceNode, Element> controllerServices = ControllerServiceLoader.loadControllerServices(serviceNodeList, flowController, processGroup, encryptor, encodingVersion);
             ControllerServiceLoader.enableControllerServices(controllerServices, flowController, encryptor, autoResumeState, encodingVersion);
@@ -1405,6 +1408,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
     private void addProcessors(final Element processGroupElement, final ProcessGroup processGroup, final FlowController flowController, final FlowEncodingVersion encodingVersion) {
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
+        final PropertyEncryptor encryptor = flowController.getEncryptor();
         for (final Element processorElement : processorNodeList) {
             final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor, encodingVersion);
 
@@ -1557,6 +1561,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
     private void addRemoteProcessGroups(final Element processGroupElement, final ProcessGroup processGroup, final FlowController controller) {
         final List<Element> remoteProcessGroupNodeList = getChildrenByTagName(processGroupElement, "remoteProcessGroup");
+        final PropertyEncryptor encryptor = controller.getEncryptor();
         for (final Element remoteProcessGroupElement : remoteProcessGroupNodeList) {
             final RemoteProcessGroupDTO remoteGroupDto = FlowFromDOMFactory.getRemoteProcessGroup(remoteProcessGroupElement, encryptor);
             final RemoteProcessGroup remoteGroup = controller.getFlowManager().createRemoteProcessGroup(remoteGroupDto.getId(), remoteGroupDto.getTargetUris());
@@ -1740,7 +1745,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
     private byte[] toBytes(final FlowController flowController) throws FlowSerializationException {
         final ByteArrayOutputStream result = new ByteArrayOutputStream();
-        final StandardFlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
+        final StandardFlowSerializer flowSerializer = new StandardFlowSerializer();
         flowController.serialize(flowSerializer, result);
         return result.toByteArray();
     }

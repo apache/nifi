@@ -154,7 +154,7 @@ public class TestStandardControllerServiceProvider {
 
     private StandardProcessScheduler createScheduler() {
         return new StandardProcessScheduler(new FlowEngine(1, "Unit Test", true), Mockito.mock(FlowController.class),
-            null, stateManagerProvider, niFiProperties);
+                stateManagerProvider, niFiProperties);
     }
 
     private void setProperty(ControllerServiceNode serviceNode, String propName, String propValue) {

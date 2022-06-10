@@ -174,7 +174,7 @@ public class Node {
             flowController.getStateManagerProvider().getStateManager("Cluster Node Configuration").setState(Collections.singletonMap("Node UUID", nodeId.getId()), Scope.LOCAL);
 
             flowService = StandardFlowService.createClusteredInstance(flowController, nodeProperties, senderListener, clusterCoordinator,
-                PropertyEncryptorFactory.getPropertyEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
+                    revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
 

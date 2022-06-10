@@ -77,15 +77,13 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
     private static final String MAX_ENCODING_VERSION = "1.4";
 
-    private final PropertyEncryptor encryptor;
-
-    public StandardFlowSerializer(final PropertyEncryptor encryptor) {
-        this.encryptor = encryptor;
+    public StandardFlowSerializer() {
     }
 
 
     @Override
     public Document transform(final FlowController controller, final ScheduledStateLookup scheduledStateLookup) throws FlowSerializationException {
+        final PropertyEncryptor encryptor = controller.getEncryptor();
         try {
             // create a new, empty document
             final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
@@ -105,15 +103,15 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
 
             final Element parameterContextsElement = doc.createElement("parameterContexts");
             rootNode.appendChild(parameterContextsElement);
-            addParameterContexts(parameterContextsElement, controller.getFlowManager().getParameterContextManager());
+            addParameterContexts(parameterContextsElement, controller.getFlowManager().getParameterContextManager(), encryptor);
 
-            addProcessGroup(rootNode, controller.getFlowManager().getRootGroup(), "rootGroup", scheduledStateLookup);
+            addProcessGroup(rootNode, controller.getFlowManager().getRootGroup(), "rootGroup", scheduledStateLookup, encryptor);
 
             // Add root-level controller services
             final Element controllerServicesNode = doc.createElement("controllerServices");
             rootNode.appendChild(controllerServicesNode);
             for (final ControllerServiceNode serviceNode : controller.getFlowManager().getRootControllerServices()) {
-                addControllerService(controllerServicesNode, serviceNode);
+                addControllerService(controllerServicesNode, serviceNode, encryptor);
             }
 
             final Element reportingTasksNode = doc.createElement("reportingTasks");
@@ -146,7 +144,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
     }
 
-    private void addParameterContexts(final Element parentElement, final ParameterContextManager parameterContextManager) {
+    private void addParameterContexts(final Element parentElement, final ParameterContextManager parameterContextManager,
+                                      final PropertyEncryptor encryptor) {
         for (final ParameterContext parameterContext : parameterContextManager.getParameterContexts()) {
             final Element parameterContextElement = parentElement.getOwnerDocument().createElement("parameterContext");
             parentElement.appendChild(parameterContextElement);
@@ -160,12 +159,12 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             }
 
             for (final Parameter parameter : parameterContext.getParameters().values()) {
-                addParameter(parameterContextElement, parameter);
+                addParameter(parameterContextElement, parameter, encryptor);
             }
         }
     }
 
-    private void addParameter(final Element parentElement, final Parameter parameter) {
+    private void addParameter(final Element parentElement, final Parameter parameter, final PropertyEncryptor encryptor) {
         final Element parameterElement = parentElement.getOwnerDocument().createElement("parameter");
         parentElement.appendChild(parameterElement);
 
@@ -222,7 +221,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         parentElement.appendChild(element);
     }
 
-    private void addProcessGroup(final Element parentElement, final ProcessGroup group, final String elementName, final ScheduledStateLookup scheduledStateLookup) {
+    private void addProcessGroup(final Element parentElement, final ProcessGroup group, final String elementName, final ScheduledStateLookup scheduledStateLookup,
+                                 final PropertyEncryptor encryptor) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement(elementName);
         parentElement.appendChild(element);
@@ -251,7 +251,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
 
         for (final ProcessorNode processor : group.getProcessors()) {
-            addProcessor(element, processor, scheduledStateLookup);
+            addProcessor(element, processor, scheduledStateLookup, encryptor);
         }
 
         for (final Port port : group.getInputPorts()) {
@@ -279,11 +279,11 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
-            addProcessGroup(element, childGroup, "processGroup", scheduledStateLookup);
+            addProcessGroup(element, childGroup, "processGroup", scheduledStateLookup, encryptor);
         }
 
         for (final RemoteProcessGroup remoteRef : group.getRemoteProcessGroups()) {
-            addRemoteProcessGroup(element, remoteRef, scheduledStateLookup);
+            addRemoteProcessGroup(element, remoteRef, scheduledStateLookup, encryptor);
         }
 
         for (final Connection connection : group.getConnections()) {
@@ -291,7 +291,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         }
 
         for (final ControllerServiceNode service : group.getControllerServices(false)) {
-            addControllerService(element, service);
+            addControllerService(element, service, encryptor);
         }
 
         for (final Template template : group.getTemplates()) {
@@ -376,7 +376,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addPosition(element, funnel.getPosition());
     }
 
-    private void addRemoteProcessGroup(final Element parentElement, final RemoteProcessGroup remoteRef, final ScheduledStateLookup scheduledStateLookup) {
+    private void addRemoteProcessGroup(final Element parentElement, final RemoteProcessGroup remoteRef, final ScheduledStateLookup scheduledStateLookup,
+                                       final PropertyEncryptor encryptor) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement("remoteProcessGroup");
         parentElement.appendChild(element);
@@ -484,7 +485,8 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         parentElement.appendChild(element);
     }
 
-    private void addProcessor(final Element parentElement, final ProcessorNode processor, final ScheduledStateLookup scheduledStateLookup) {
+    private void addProcessor(final Element parentElement, final ProcessorNode processor, final ScheduledStateLookup scheduledStateLookup,
+                              final PropertyEncryptor encryptor) {
         final Document doc = parentElement.getOwnerDocument();
         final Element element = doc.createElement("processor");
         parentElement.appendChild(element);
@@ -616,7 +618,7 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         parentElement.appendChild(element);
     }
 
-    public void addControllerService(final Element element, final ControllerServiceNode serviceNode) {
+    public void addControllerService(final Element element, final ControllerServiceNode serviceNode, final PropertyEncryptor encryptor) {
         final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
         addTextElement(serviceElement, "id", serviceNode.getIdentifier());
         addTextElement(serviceElement, "versionedComponentId", serviceNode.getVersionedComponentId());

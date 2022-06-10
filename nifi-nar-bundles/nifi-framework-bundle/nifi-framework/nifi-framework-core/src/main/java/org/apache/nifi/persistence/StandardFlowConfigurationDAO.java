@@ -30,7 +30,6 @@ import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.controller.serialization.StandardFlowSynchronizer;
 import org.apache.nifi.controller.serialization.VersionedFlowSerializer;
 import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
-import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.services.FlowService;
@@ -56,7 +55,6 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
 
     private final File xmlFile;
     private final File jsonFile;
-    private final PropertyEncryptor encryptor;
     private final FlowConfigurationArchiveManager archiveManager;
     private final NiFiProperties nifiProperties;
     private final ExtensionManager extensionManager;
@@ -65,8 +63,8 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
     private final String clusterFlowSerializationFormat;
     private final FlowSerializationStrategy serializationStrategy;
 
-    public StandardFlowConfigurationDAO(final PropertyEncryptor encryptor, final NiFiProperties nifiProperties,
-                                        final ExtensionManager extensionManager, final FlowSerializationStrategy serializationStrategy) throws IOException {
+    public StandardFlowConfigurationDAO(final NiFiProperties nifiProperties, final ExtensionManager extensionManager,
+                                        final FlowSerializationStrategy serializationStrategy) throws IOException {
         this.nifiProperties = nifiProperties;
         this.clusterFlowSerializationFormat = nifiProperties.getProperty(CLUSTER_FLOW_SERIALIZATION_FORMAT);
         this.serializationStrategy = serializationStrategy;
@@ -85,7 +83,6 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             throw new IOException(jsonFile + " exists but you have insufficient read/write privileges");
         }
 
-        this.encryptor = encryptor;
         this.extensionManager = extensionManager;
 
         this.archiveManager = new FlowConfigurationArchiveManager(nifiProperties);
@@ -100,8 +97,8 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
     public synchronized void load(final FlowController controller, final DataFlow dataFlow, final FlowService flowService, final BundleUpdateStrategy bundleUpdateStrategy)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
-        final VersionedFlowSynchronizer versionedFlowSynchronizer = new VersionedFlowSynchronizer(encryptor, extensionManager, nifiProperties.getFlowConfigurationJsonFile(), archiveManager);
-        final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+        final VersionedFlowSynchronizer versionedFlowSynchronizer = new VersionedFlowSynchronizer(extensionManager, nifiProperties.getFlowConfigurationJsonFile(), archiveManager);
+        final XmlFlowSynchronizer xmlFlowSynchronizer = new XmlFlowSynchronizer(nifiProperties, extensionManager);
         final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(xmlFlowSynchronizer, versionedFlowSynchronizer);
 
         controller.synchronize(standardFlowSynchronizer, dataFlow, flowService, bundleUpdateStrategy);
@@ -170,9 +167,9 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
             // Serialize based on the serialization format configured for cluster communications. If not configured, use JSON.
             final FlowSerializer<?> serializer;
             if (FLOW_SERIALIZATION_FORMAT_XML.equalsIgnoreCase(clusterFlowSerializationFormat)) {
-                serializer = new StandardFlowSerializer(encryptor);
+                serializer = new StandardFlowSerializer();
             } else {
-                serializer = new VersionedFlowSerializer(encryptor, extensionManager);
+                serializer = new VersionedFlowSerializer(extensionManager);
             }
 
             controller.serialize(serializer, os);
@@ -196,13 +193,13 @@ public final class StandardFlowConfigurationDAO implements FlowConfigurationDAO 
     }
 
     private void saveJson(final FlowController controller, final boolean archive) throws IOException {
-        final FlowSerializer<?> serializer = new VersionedFlowSerializer(controller.getEncryptor(), controller.getExtensionManager());
+        final FlowSerializer<?> serializer = new VersionedFlowSerializer(controller.getExtensionManager());
         saveFlow(controller, serializer, jsonFile, archive);
         jsonFileExists = true;
     }
 
     private void saveXml(final FlowController controller, final boolean archive) throws IOException {
-        final FlowSerializer<?> serializer = new StandardFlowSerializer(controller.getEncryptor());
+        final FlowSerializer<?> serializer = new StandardFlowSerializer();
         saveFlow(controller, serializer, xmlFile, archive);
     }
 

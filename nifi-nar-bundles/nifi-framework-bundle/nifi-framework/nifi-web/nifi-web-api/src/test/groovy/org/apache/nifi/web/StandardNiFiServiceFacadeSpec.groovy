@@ -47,7 +47,6 @@ import org.apache.nifi.controller.status.ProcessGroupStatus
 import org.apache.nifi.controller.status.RunStatus
 import org.apache.nifi.diagnostics.StorageUsage
 import org.apache.nifi.diagnostics.SystemDiagnostics
-import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.groups.ProcessGroup
 import org.apache.nifi.groups.StandardProcessGroup
 import org.apache.nifi.nar.ExtensionManager

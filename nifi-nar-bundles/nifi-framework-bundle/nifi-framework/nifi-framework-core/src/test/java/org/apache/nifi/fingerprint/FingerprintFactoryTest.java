@@ -209,12 +209,12 @@ public class FingerprintFactoryTest {
         final DocumentProvider documentProvider = new StandardDocumentProvider();
         final Document doc = documentProvider.newDocument();
 
-        final FlowSerializer flowSerializer = new StandardFlowSerializer(encryptor);
+        final FlowSerializer flowSerializer = new StandardFlowSerializer();
         final Method serializeMethod = StandardFlowSerializer.class.getDeclaredMethod(serializerMethodName,
-                Element.class, componentClass, ScheduledStateLookup.class);
+                Element.class, componentClass, ScheduledStateLookup.class, PropertyEncryptor.class);
         serializeMethod.setAccessible(true);
         final Element rootElement = doc.createElement("root");
-        serializeMethod.invoke(flowSerializer, rootElement, component, scheduledStateLookup);
+        serializeMethod.invoke(flowSerializer, rootElement, component, scheduledStateLookup, encryptor);
         return rootElement;
     }
 
