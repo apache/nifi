@@ -61,7 +61,7 @@ public class MiNiFiStdLogHandler {
 
         Set<Future<?>> futures = new HashSet<>();
         futures.add(getFuture(process.getInputStream(), STDOUT));
-        futures.add(getFuture(process.getInputStream(), ERROR));
+        futures.add(getFuture(process.getErrorStream(), ERROR));
         loggingFutures = futures;
     }
 
