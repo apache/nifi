@@ -68,7 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
-@Timeout(value = 5)
+@Timeout(value = 60)
 public class TestLuceneEventIndex {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
