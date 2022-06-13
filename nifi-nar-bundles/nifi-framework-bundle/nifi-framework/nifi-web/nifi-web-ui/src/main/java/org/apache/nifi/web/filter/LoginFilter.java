@@ -23,6 +23,8 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
@@ -50,8 +52,12 @@ public class LoginFilter implements Filter {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/request").forward(request, response);
         } else if (supportsSAML) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            apiContext.getRequestDispatcher("/access/saml/login/request").forward(request, response);
+            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+            final String requestUri = httpServletRequest.getRequestURI();
+            // Redirect to request consumer URL defined in Spring Security OpenSamlAuthenticationRequestResolver.requestMatcher
+            final String samlAuthenticateConsumer = requestUri.replace("/nifi/login", "/nifi-api/saml2/authenticate/consumer");
+            final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+            httpServletResponse.sendRedirect(samlAuthenticateConsumer);
         } else {
             filterChain.doFilter(request, response);
         }

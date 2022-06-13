@@ -43,17 +43,6 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
     // idp tables
     // ----------
 
-    private static final String IDP_CREDENTIAL_TABLE_NAME = "IDENTITY_PROVIDER_CREDENTIAL";
-
-    private static final String CREATE_IDP_CREDENTIAL_TABLE = "CREATE TABLE " + IDP_CREDENTIAL_TABLE_NAME + " ("
-            + "ID INT NOT NULL PRIMARY KEY AUTO_INCREMENT, "
-            + "IDENTITY VARCHAR2(4096) NOT NULL, "
-            + "IDP_TYPE VARCHAR2(200) NOT NULL, "
-            + "CREDENTIAL BLOB NOT NULL, "
-            + "CREATED TIMESTAMP NOT NULL, "
-            + "CONSTRAINT UK__IDENTITY UNIQUE (IDENTITY)"
-            + ")";
-
     private static final String IDP_USER_GROUP_TABLE_NAME = "IDENTITY_PROVIDER_USER_GROUP";
 
     private static final String CREATE_IDP_USER_GROUP_TABLE = "CREATE TABLE " + IDP_USER_GROUP_TABLE_NAME + " ("
@@ -108,9 +97,8 @@ public class IdpDataSourceFactoryBean implements FactoryBean<JdbcConnectionPool>
                 statement = connection.createStatement();
 
                 // determine if the idp tables need to be created
-                rs = connection.getMetaData().getTables(null, null, IDP_CREDENTIAL_TABLE_NAME, null);
+                rs = connection.getMetaData().getTables(null, null, IDP_USER_GROUP_TABLE_NAME, null);
                 if (!rs.next()) {
-                    statement.execute(CREATE_IDP_CREDENTIAL_TABLE);
                     statement.execute(CREATE_IDP_USER_GROUP_TABLE);
                 }
 

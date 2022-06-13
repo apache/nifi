@@ -21,19 +21,23 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
 import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
+import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.jwt.resolver.StandardBearerTokenResolver;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.log.AuthenticationUserFilter;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
-import org.apache.nifi.web.security.saml.SAMLEndpoints;
+import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LocalLogoutFilter;
+import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleLogoutFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -44,6 +48,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationFilter;
+import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationRequestFilter;
+import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -71,6 +80,17 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter;
     private NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider;
 
+    private BearerTokenProvider bearerTokenProvider;
+
+    private Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter;
+    private Saml2WebSsoAuthenticationRequestFilter saml2WebSsoAuthenticationRequestFilter;
+    private Saml2MetadataFilter saml2MetadataFilter;
+    private Saml2LogoutRequestFilter saml2LogoutRequestFilter;
+    private Saml2LogoutResponseFilter saml2LogoutResponseFilter;
+    private Saml2SingleLogoutFilter saml2SingleLogoutFilter;
+    private Saml2LocalLogoutFilter saml2LocalLogoutFilter;
+    private AuthenticationProvider openSamlAuthenticationProvider;
+
     public NiFiWebApiSecurityConfiguration() {
         super(true); // disable defaults
     }
@@ -95,15 +115,6 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                             OIDCEndpoints.LOGOUT_CALLBACK,
                             "/access/knox/callback",
                             "/access/knox/request",
-                            SAMLEndpoints.SERVICE_PROVIDER_METADATA,
-                            SAMLEndpoints.LOGIN_REQUEST,
-                            SAMLEndpoints.LOGIN_CONSUMER,
-                            SAMLEndpoints.LOGIN_EXCHANGE,
-                            // the logout sequence will be protected by a request identifier set in a Cookie so these
-                            // paths need to be listed here in order to pass through our normal authentication filters
-                            SAMLEndpoints.SINGLE_LOGOUT_REQUEST,
-                            SAMLEndpoints.SINGLE_LOGOUT_CONSUMER,
-                            SAMLEndpoints.LOCAL_LOGOUT,
                             "/access/logout/complete");
     }
 
@@ -116,6 +127,21 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .csrf().requireCsrfProtectionMatcher(
                         new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher()))
                         .csrfTokenRepository(new StandardCookieCsrfTokenRepository(properties.getAllowedContextPathsAsList()));
+
+        if (properties.isSamlEnabled()) {
+            http.addFilterBefore(saml2WebSsoAuthenticationFilter, AnonymousAuthenticationFilter.class);
+            http.addFilterBefore(saml2WebSsoAuthenticationRequestFilter, AnonymousAuthenticationFilter.class);
+
+            // Metadata and Logout Filters must be invoked prior to CSRF or other security filtering
+            http.addFilterBefore(saml2MetadataFilter, CsrfFilter.class);
+            http.addFilterBefore(saml2LocalLogoutFilter, CsrfFilter.class);
+
+            if (properties.isSamlSingleLogoutEnabled()) {
+                http.addFilterBefore(saml2SingleLogoutFilter, CsrfFilter.class);
+                http.addFilterBefore(saml2LogoutRequestFilter, CsrfFilter.class);
+                http.addFilterBefore(saml2LogoutResponseFilter, CsrfFilter.class);
+            }
+        }
 
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
         http.addFilterBefore(bearerTokenAuthenticationFilter(), AnonymousAuthenticationFilter.class);
@@ -141,6 +167,10 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .authenticationProvider(jwtAuthenticationProvider)
                 .authenticationProvider(knoxAuthenticationProvider)
                 .authenticationProvider(anonymousAuthenticationProvider);
+
+        if (properties.isSamlEnabled()) {
+            auth.authenticationProvider(openSamlAuthenticationProvider);
+        }
     }
 
     @Bean
@@ -220,5 +250,51 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setPrincipalExtractor(X509PrincipalExtractor principalExtractor) {
         this.principalExtractor = principalExtractor;
+    }
+
+    @Autowired
+    public void setBearerTokenProvider(final BearerTokenProvider bearerTokenProvider) {
+        this.bearerTokenProvider = bearerTokenProvider;
+    }
+
+    @Autowired
+    public void setSaml2WebSsoAuthenticationFilter(final Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter) {
+        this.saml2WebSsoAuthenticationFilter = saml2WebSsoAuthenticationFilter;
+    }
+
+    @Autowired
+    public void setSaml2WebSsoAuthenticationRequestFilter(final Saml2WebSsoAuthenticationRequestFilter saml2WebSsoAuthenticationRequestFilter) {
+        this.saml2WebSsoAuthenticationRequestFilter = saml2WebSsoAuthenticationRequestFilter;
+    }
+
+    @Autowired
+    public void setSaml2MetadataFilter(final Saml2MetadataFilter saml2MetadataFilter) {
+        this.saml2MetadataFilter = saml2MetadataFilter;
+    }
+
+    @Autowired
+    public void setSaml2LogoutRequestFilter(final Saml2LogoutRequestFilter saml2LogoutRequestFilter) {
+        this.saml2LogoutRequestFilter = saml2LogoutRequestFilter;
+    }
+
+    @Autowired
+    public void setSaml2LogoutResponseFilter(final Saml2LogoutResponseFilter saml2LogoutResponseFilter) {
+        this.saml2LogoutResponseFilter = saml2LogoutResponseFilter;
+    }
+
+    @Autowired
+    public void setSaml2SingleLogoutFilter(final Saml2SingleLogoutFilter saml2SingleLogoutFilter) {
+        this.saml2SingleLogoutFilter = saml2SingleLogoutFilter;
+    }
+
+    @Autowired
+    public void setSaml2LocalLogoutFilter(final Saml2LocalLogoutFilter saml2LocalLogoutFilter) {
+        this.saml2LocalLogoutFilter = saml2LocalLogoutFilter;
+    }
+
+    @Qualifier("openSamlAuthenticationProvider")
+    @Autowired
+    public void setOpenSamlAuthenticationProvider(final AuthenticationProvider openSamlAuthenticationProvider) {
+        this.openSamlAuthenticationProvider = openSamlAuthenticationProvider;
     }
 }

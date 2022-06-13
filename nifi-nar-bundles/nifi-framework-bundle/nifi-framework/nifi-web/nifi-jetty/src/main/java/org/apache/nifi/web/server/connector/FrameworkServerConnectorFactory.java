@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.server.connector;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.nifi.jetty.configuration.connector.ApplicationLayerProtocol;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;

@@ -23,8 +23,6 @@ public interface DAOFactory {
 
     ActionDAO getActionDAO();
 
-    IdpCredentialDAO getIdpCredentialDAO();
-
     IdpUserGroupDAO getIdpUserGroupDAO();
 
 }

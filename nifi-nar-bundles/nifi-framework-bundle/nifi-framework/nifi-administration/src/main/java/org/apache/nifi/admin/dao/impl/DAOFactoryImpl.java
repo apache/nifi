@@ -18,7 +18,6 @@ package org.apache.nifi.admin.dao.impl;
 
 import org.apache.nifi.admin.dao.ActionDAO;
 import org.apache.nifi.admin.dao.DAOFactory;
-import org.apache.nifi.admin.dao.IdpCredentialDAO;
 import org.apache.nifi.admin.dao.IdpUserGroupDAO;
 
 import java.sql.Connection;
@@ -37,11 +36,6 @@ public class DAOFactoryImpl implements DAOFactory {
     @Override
     public ActionDAO getActionDAO() {
         return new StandardActionDAO(connection);
-    }
-
-    @Override
-    public IdpCredentialDAO getIdpCredentialDAO() {
-        return new StandardIdpCredentialDAO(connection);
     }
 
     @Override

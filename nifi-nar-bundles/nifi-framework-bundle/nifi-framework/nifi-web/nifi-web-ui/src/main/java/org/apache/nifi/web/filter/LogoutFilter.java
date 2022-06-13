@@ -23,6 +23,8 @@ import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 /**
@@ -58,12 +60,13 @@ public class LogoutFilter implements Filter {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/logout").forward(request, response);
         } else if (supportsSaml) {
-            final ServletContext apiContext = servletContext.getContext("/nifi-api");
-            if (supportsSamlSingleLogout) {
-                apiContext.getRequestDispatcher("/access/saml/single-logout/request").forward(request, response);
-            } else {
-                apiContext.getRequestDispatcher("/access/saml/local-logout").forward(request, response);
-            }
+            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+            final String requestUri = httpServletRequest.getRequestURI();
+            // Redirect to request URL defined in nifi-web-api security filter configuration
+            final String replacementUrl = supportsSamlSingleLogout ? "/nifi-api/access/saml/single-logout/request" : "/nifi-api/access/saml/local-logout/request";
+            final String targetUrl = requestUri.replace("/nifi/logout", replacementUrl);
+            final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
+            httpServletResponse.sendRedirect(targetUrl);
         } else {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);

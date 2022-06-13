@@ -71,6 +71,11 @@ language governing permissions and limitations under the License. -->
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
                 </exclusion>
+                <!-- Exclude SAML 2 unnecessary dependency -->
+                <exclusion>
+                    <groupId>org.springframework.security</groupId>
+                    <artifactId>spring-security-saml2-service-provider</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>

@@ -594,18 +594,12 @@
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
     </bean>
-    <bean id="samlResource" class="org.apache.nifi.web.api.SAMLAccessResource" scope="singleton">
-        <property name="logoutRequestManager" ref="logoutRequestManager" />
-        <property name="samlService" ref="samlService" />
-        <property name="samlStateManager" ref="samlStateManager"/>
-        <property name="samlCredentialStore" ref="samlCredentialStore"/>
-        <property name="idpUserGroupService" ref="idpUserGroupService" />
-        <property name="properties" ref="nifiProperties"/>
-    </bean>
     <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
         <property name="oidcService" ref="oidcService"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
+    </bean>
+    <bean id="saml2AccessResource" class="org.apache.nifi.web.api.Saml2AccessResource" scope="singleton">
     </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>

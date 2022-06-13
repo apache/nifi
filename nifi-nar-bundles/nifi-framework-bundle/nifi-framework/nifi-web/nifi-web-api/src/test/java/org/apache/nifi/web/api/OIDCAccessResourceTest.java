@@ -36,7 +36,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 
-import static org.apache.nifi.web.api.cookie.ApplicationCookieName.OIDC_REQUEST_IDENTIFIER;
+import static org.apache.nifi.web.security.cookie.ApplicationCookieName.OIDC_REQUEST_IDENTIFIER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 

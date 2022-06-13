@@ -43,11 +43,6 @@
         <property name="transactionBuilder" ref="auditTransactionBuilder"/>
     </bean>
 
-    <!-- idp credential service -->
-    <bean id="idpCredentialService" class="org.apache.nifi.admin.service.impl.StandardIdpCredentialService">
-        <property name="transactionBuilder" ref="idpTransactionBuilder"/>
-    </bean>
-
     <!-- idp user group service -->
     <bean id="idpUserGroupService" class="org.apache.nifi.admin.service.impl.StandardIdpUserGroupService">
         <property name="transactionBuilder" ref="idpTransactionBuilder"/>
