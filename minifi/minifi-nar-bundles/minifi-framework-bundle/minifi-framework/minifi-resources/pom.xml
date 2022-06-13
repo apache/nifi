@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-framework</artifactId>
-        <version>1.16.3</version>
+        <version>1.16.4-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -51,6 +51,6 @@ limitations under the License.
     </build>
 
   <scm>
-    <tag>nifi-1.16.3-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>

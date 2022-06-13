@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.16.3</version>
+        <version>1.16.4-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-nar-loading-utils</artifactId>
     <packaging>jar</packaging>
@@ -58,6 +58,6 @@
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.3-RC1</tag>
+    <tag>nifi-1.16.0-RC3</tag>
   </scm>
 </project>
