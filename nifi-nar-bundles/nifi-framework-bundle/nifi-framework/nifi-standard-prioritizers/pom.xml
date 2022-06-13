@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-standard-prioritizers</artifactId>
@@ -39,6 +39,6 @@
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

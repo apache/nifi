@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-media-bundle</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
 
     <artifactId>nifi-media-processors</artifactId>
@@ -37,12 +37,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -92,6 +92,6 @@
     </build>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

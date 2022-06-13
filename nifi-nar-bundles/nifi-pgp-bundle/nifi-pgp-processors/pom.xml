@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-pgp-bundle</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
 
     <artifactId>nifi-pgp-processors</artifactId>
@@ -34,13 +34,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-service-api</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -59,12 +59,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-test-utils</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

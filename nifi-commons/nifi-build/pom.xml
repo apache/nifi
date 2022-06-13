@@ -18,7 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
     <artifactId>nifi-build</artifactId>
+
+  <scm>
+    <tag>nifi-1.16.3-RC1</tag>
+  </scm>
 </project>

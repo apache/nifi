@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-registry-extensions</artifactId>
         <groupId>org.apache.nifi.registry</groupId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -47,6 +47,6 @@
 
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

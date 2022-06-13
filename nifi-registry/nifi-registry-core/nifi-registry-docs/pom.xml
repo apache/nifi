@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-registry-docs</artifactId>
@@ -27,7 +27,7 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-web-api</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
             <type>war</type>
         </dependency>
     </dependencies>
@@ -214,6 +214,6 @@
     </build>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

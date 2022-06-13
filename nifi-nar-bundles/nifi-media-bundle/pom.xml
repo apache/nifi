@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
 
     <artifactId>nifi-media-bundle</artifactId>
-    <version>1.16.3-SNAPSHOT</version>
+    <version>1.16.3</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -69,6 +69,6 @@
     </dependencyManagement>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>

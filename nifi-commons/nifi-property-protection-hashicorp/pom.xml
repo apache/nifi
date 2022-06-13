@@ -18,19 +18,19 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.16.3-SNAPSHOT</version>
+        <version>1.16.3</version>
     </parent>
     <artifactId>nifi-property-protection-hashicorp</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-protection-api</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-vault-utils</artifactId>
-            <version>1.16.3-SNAPSHOT</version>
+            <version>1.16.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -43,6 +43,6 @@
     </dependencies>
 
   <scm>
-    <tag>nifi-1.16.0-RC3</tag>
+    <tag>nifi-1.16.3-RC1</tag>
   </scm>
 </project>
