@@ -101,7 +101,7 @@ public class ShellUserGroupProviderIT {
         try {
             // NB: this command is a bit perplexing: it works without prompt from the shell, but hangs
             // here without the pipe from `yes`:
-            shellRunner.runShell("yes | ssh-keygen -C '' -N '' -t rsa -f " + sshPrivKeyFile);
+            shellRunner.runShell("yes | ssh-keygen -C '' -N '' -t rsa -f " + sshPrivKeyFile, "Setup");
         } catch (final IOException ioexc) {
             systemCheckFailed = true;
             logger.error("setupOnce() exception: " + ioexc + "; tests cannot run on this system.");

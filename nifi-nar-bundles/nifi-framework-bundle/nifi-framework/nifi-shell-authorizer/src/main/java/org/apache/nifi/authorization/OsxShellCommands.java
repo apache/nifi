@@ -48,32 +48,6 @@ class OsxShellCommands implements ShellCommandsProvider {
     }
 
     /**
-     * @param userId name of user.
-     * @return Shell command string that will read a single user.
-     */
-    @Override
-    public String getUserById(String userId) {
-        return String.format("id -P %s | cut -f 1,3,4 -d ':'", userId);
-    }
-
-    /**
-     * @param userName name of user.
-     * @return Shell command string that will read a single user.
-     */
-    public String getUserByName(String userName) {
-        return getUserById(userName); // 'id' command works for both uid/username
-    }
-
-    /**
-     * @param groupId name of group.
-     * @return Shell command string that will read a single group.
-     */
-    public String getGroupById(String groupId) {
-        return String.format(" dscl . -read /Groups/`dscl . -search /Groups gid %s | head -n 1 | cut -f 1` RecordName PrimaryGroupID | awk 'BEGIN { OFS = \":\"; ORS=\"\\n\"; i=0;} " +
-                             "/RecordName: / {name = $2;i = 1;}/PrimaryGroupID: / {gid = $2;}; {if (i==1) {print name,gid,\"\"}}'", groupId);
-    }
-
-    /**
      * @return Shell command string that will exit normally (0) on a suitable system.
      */
     public String getSystemCheck() {
