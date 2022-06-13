@@ -32,10 +32,10 @@ import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -205,7 +205,9 @@ public class PublisherLease implements Closeable {
                             .map(s -> s.getBytes(StandardCharsets.UTF_8)).orElse(null);
                 } else {
                     try (final ByteArrayOutputStream os = new ByteArrayOutputStream(1024)) {
-                        final Record keyRecord = (Record) record.getValue(messageKeyField);
+                        final Record keyRecord = Optional.ofNullable(record.getValue(messageKeyField))
+                                .filter(Record.class::isInstance).map(Record.class::cast)
+                                .orElseThrow(() ->  new IOException("The property 'Record Key Writer' is defined, but the record key is not a record"));
                         try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
                             writerKey.write(keyRecord);
                             writerKey.flush();
