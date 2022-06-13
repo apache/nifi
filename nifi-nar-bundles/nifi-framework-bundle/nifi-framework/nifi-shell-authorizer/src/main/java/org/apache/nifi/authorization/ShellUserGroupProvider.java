@@ -134,11 +134,6 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         }
 
         if (user == null) {
-            refreshOneUser(selectedShellCommands.getUserByName(identity), "Get Single User by Name");
-            user = usersByName.get(identity);
-        }
-
-        if (user == null) {
             logger.debug("getUser (by name) user not found: " + identity);
         } else {
             logger.debug("getUser (by name) found user: " + user.getIdentity() + " for name: " + identity);
@@ -172,11 +167,6 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         Group group;
 
         synchronized (groupsById) {
-            group = groupsById.get(identifier);
-        }
-
-        if (group == null) {
-            refreshOneGroup(selectedShellCommands.getGroupById(identifier), "Get Single Group by Id");
             group = groupsById.get(identifier);
         }
 
@@ -279,7 +269,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         // Our next init step is to run the system check from that command set to determine if the other commands
         // will work on this host or not.
         try {
-            shellRunner.runShell(commands.getSystemCheck());
+            shellRunner.runShell(commands.getSystemCheck(), "Supported System Check");
         } catch (final Exception e) {
             logger.error("initialize exception: " + e + " system check command: " + commands.getSystemCheck());
             throw new AuthorizerCreationException(SYS_CHECK_ERROR, e);
@@ -410,73 +400,6 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
     public void setCommandsProvider(ShellCommandsProvider commandsProvider) {
         selectedShellCommands = commandsProvider;
-    }
-
-    /**
-     * Refresh a single user.
-     *
-     * @param command     Shell command to read a single user.  Pre-formatted by caller.
-     * @param description Shell command description.
-     */
-    private void refreshOneUser(String command, String description) {
-        if (command != null) {
-            Map<String, User> idToUser = new HashMap<>();
-            Map<String, User> usernameToUser = new HashMap<>();
-            Map<String, User> gidToUser = new HashMap<>();
-            List<String> userLines;
-
-            try {
-                userLines = shellRunner.runShell(command, description);
-                rebuildUsers(userLines, idToUser, usernameToUser, gidToUser);
-            } catch (final IOException ioexc) {
-                logger.error("refreshOneUser shell exception: " + ioexc);
-            }
-
-            if (idToUser.size() > 0) {
-                synchronized (usersById) {
-                    usersById.putAll(idToUser);
-                }
-            }
-
-            if (usernameToUser.size() > 0) {
-                synchronized (usersByName) {
-                    usersByName.putAll(usernameToUser);
-                }
-            }
-        } else {
-            logger.info("Get Single User not supported on this system.");
-        }
-    }
-
-    /**
-     * Refresh a single group.
-     *
-     * @param command     Shell command to read a single group.  Pre-formatted by caller.
-     * @param description Shell command description.
-     */
-    private void refreshOneGroup(String command, String description) {
-        if (command != null) {
-            Map<String, Group> gidToGroup = new HashMap<>();
-            List<String> groupLines;
-
-            try {
-                groupLines = shellRunner.runShell(command, description);
-                rebuildGroups(groupLines, gidToGroup);
-            } catch (final IOException ioexc) {
-                logger.error("refreshOneGroup shell exception: " + ioexc);
-            }
-
-            if (gidToGroup.size() > 0) {
-                synchronized (groupsById) {
-                    groupsById.putAll(gidToGroup);
-                }
-                synchronized (groupsByName) {
-                    gidToGroup.values().forEach(g -> groupsByName.put(g.getName(), g));
-                }
-            }
-        } else {
-            logger.info("Get Single Group not supported on this system.");
-        }
     }
 
     /**
@@ -614,7 +537,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
                 try {
                     String groupMembersCommand = selectedShellCommands.getGroupMembers(groupName);
-                    List<String> memberLines = shellRunner.runShell(groupMembersCommand);
+                    List<String> memberLines = shellRunner.runShell(groupMembersCommand, "Get Group Members");
                     // Use the first line only, and log if the line count isn't exactly one:
                     if (!memberLines.isEmpty()) {
                         String memberLine = memberLines.get(0);
