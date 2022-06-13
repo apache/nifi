@@ -42,7 +42,7 @@ import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.api.cookie.ApplicationCookieName;
+import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.oidc.OidcService;

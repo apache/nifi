@@ -34,7 +34,9 @@ import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.web.api.cookie.ApplicationCookieName;
+import org.apache.nifi.web.api.dto.AccessTokenExpirationDTO;
+import org.apache.nifi.web.api.entity.AccessTokenExpirationEntity;
+import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.api.dto.AccessConfigurationDTO;
 import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
@@ -58,6 +60,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.BearerTokenAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
@@ -78,6 +82,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -102,6 +107,7 @@ public class AccessResource extends ApplicationResource {
     private LoginIdentityProvider loginIdentityProvider;
     private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtLogoutListener jwtLogoutListener;
+    private JwtDecoder jwtDecoder;
     private BearerTokenProvider bearerTokenProvider;
     private BearerTokenResolver bearerTokenResolver;
     private KnoxService knoxService;
@@ -432,6 +438,36 @@ public class AccessResource extends ApplicationResource {
         return generateCreatedResponse(uri, bearerToken).build();
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/token/expiration")
+    @ApiOperation(
+            value = "Get expiration for current Access Token",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = AccessTokenExpirationEntity.class
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "Access Token Expiration found"),
+                    @ApiResponse(code = 401, message = "Access Token not authorized"),
+                    @ApiResponse(code = 409, message = "Access Token not resolved"),
+            }
+    )
+    public Response getAccessTokenExpiration() {
+        final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
+        if (bearerToken == null) {
+            throw new IllegalStateException("Access Token not found");
+        } else {
+            final Jwt jwt = jwtDecoder.decode(bearerToken);
+            final Instant expiration = jwt.getExpiresAt();
+            final AccessTokenExpirationDTO accessTokenExpiration = new AccessTokenExpirationDTO();
+            accessTokenExpiration.setExpiration(expiration);
+            final AccessTokenExpirationEntity accessTokenExpirationEntity = new AccessTokenExpirationEntity();
+            accessTokenExpirationEntity.setAccessTokenExpiration(accessTokenExpiration);
+            return Response.ok(accessTokenExpirationEntity).build();
+        }
+    }
+
     @DELETE
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.WILDCARD)
@@ -459,15 +495,15 @@ public class AccessResource extends ApplicationResource {
         }
 
         try {
-            logger.info("Logout Started [{}]", mappedUserIdentity);
-            logger.debug("Removing Authorization Cookie [{}]", mappedUserIdentity);
+            final String requestIdentifier = UUID.randomUUID().toString();
+            logger.info("Logout Request [{}] Identity [{}] started", requestIdentifier, mappedUserIdentity);
             applicationCookieService.removeCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.AUTHORIZATION_BEARER);
 
             final String bearerToken = bearerTokenResolver.resolve(httpServletRequest);
             jwtLogoutListener.logout(bearerToken);
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
-            final LogoutRequest logoutRequest = new LogoutRequest(UUID.randomUUID().toString(), mappedUserIdentity);
+            final LogoutRequest logoutRequest = new LogoutRequest(requestIdentifier, mappedUserIdentity);
             logoutRequestManager.start(logoutRequest);
 
             applicationCookieService.addCookie(getCookieResourceUri(), httpServletResponse, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
@@ -558,6 +594,10 @@ public class AccessResource extends ApplicationResource {
 
     public void setJwtAuthenticationProvider(JwtAuthenticationProvider jwtAuthenticationProvider) {
         this.jwtAuthenticationProvider = jwtAuthenticationProvider;
+    }
+
+    public void setJwtDecoder(final JwtDecoder jwtDecoder) {
+        this.jwtDecoder = jwtDecoder;
     }
 
     public void setJwtLogoutListener(final JwtLogoutListener jwtLogoutListener) {

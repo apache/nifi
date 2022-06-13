@@ -137,6 +137,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static final String CONTAINER_INCLUDE_PATTERN_KEY = "org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern";
     private static final String CONTAINER_INCLUDE_PATTERN_VALUE = ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\\\.jar$|.*/[^/]*taglibs.*\\.jar$";
 
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
+
     private static final String CONTEXT_PATH_ALL = "/*";
     private static final String CONTEXT_PATH_ROOT = "/";
     private static final String CONTEXT_PATH_NIFI = "/nifi";
@@ -296,7 +298,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webUiContext.getInitParams().put("knox-supported", String.valueOf(props.isKnoxSsoEnabled()));
         webUiContext.getInitParams().put("saml-supported", String.valueOf(props.isSamlEnabled()));
         webUiContext.getInitParams().put("saml-single-logout-supported", String.valueOf(props.isSamlSingleLogoutEnabled()));
-        webUiContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webUiContext);
 
         // load the web api app
@@ -318,7 +319,6 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
         // load the web error app
         final WebAppContext webErrorContext = loadWar(webErrorWar, CONTEXT_PATH_ROOT, frameworkClassLoader);
-        webErrorContext.getInitParams().put("allowedContextPaths", props.getAllowedContextPaths());
         webAppContextHandlers.addHandler(webErrorContext);
 
         // deploy the web apps
@@ -586,6 +586,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     private WebAppContext loadWar(final File warFile, final String contextPath, final ClassLoader parentClassLoader) {
         final WebAppContext webappContext = new WebAppContext(warFile.getPath(), contextPath);
+        webappContext.getInitParams().put(ALLOWED_CONTEXT_PATHS_PARAMETER, props.getAllowedContextPaths());
         webappContext.setContextPath(contextPath);
         webappContext.setDisplayName(contextPath);
 

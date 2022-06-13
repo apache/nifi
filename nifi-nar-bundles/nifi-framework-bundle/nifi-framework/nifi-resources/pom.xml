@@ -184,12 +184,9 @@
         <nifi.security.user.saml.sp.entity.id />
         <nifi.security.user.saml.identity.attribute.name />
         <nifi.security.user.saml.group.attribute.name />
-        <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
         <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
         <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
         <nifi.security.user.saml.signature.algorithm>http://www.w3.org/2001/04/xmldsig-more#rsa-sha256</nifi.security.user.saml.signature.algorithm>
-        <nifi.security.user.saml.signature.digest.algorithm>http://www.w3.org/2001/04/xmlenc#sha256</nifi.security.user.saml.signature.digest.algorithm>
-        <nifi.security.user.saml.message.logging.enabled>false</nifi.security.user.saml.message.logging.enabled>
         <nifi.security.user.saml.authentication.expiration>12 hours</nifi.security.user.saml.authentication.expiration>
         <nifi.security.user.saml.single.logout.enabled>false</nifi.security.user.saml.single.logout.enabled>
         <nifi.security.user.saml.http.client.truststore.strategy>JDK</nifi.security.user.saml.http.client.truststore.strategy>

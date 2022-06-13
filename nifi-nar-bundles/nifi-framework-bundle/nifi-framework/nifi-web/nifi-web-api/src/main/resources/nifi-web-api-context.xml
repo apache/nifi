@@ -585,6 +585,7 @@
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>
         <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
+        <property name="jwtDecoder" ref="jwtDecoder" />
         <property name="jwtLogoutListener" ref="jwtLogoutListener"/>
         <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
         <property name="bearerTokenResolver" ref="bearerTokenResolver"/>
@@ -593,14 +594,6 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
-    </bean>
-    <bean id="samlResource" class="org.apache.nifi.web.api.SAMLAccessResource" scope="singleton">
-        <property name="logoutRequestManager" ref="logoutRequestManager" />
-        <property name="samlService" ref="samlService" />
-        <property name="samlStateManager" ref="samlStateManager"/>
-        <property name="samlCredentialStore" ref="samlCredentialStore"/>
-        <property name="idpUserGroupService" ref="idpUserGroupService" />
-        <property name="properties" ref="nifiProperties"/>
     </bean>
     <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
         <property name="oidcService" ref="oidcService"/>

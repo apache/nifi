@@ -468,6 +468,9 @@ JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the di
 
 To enable authentication via SAML the following properties must be configured in _nifi.properties_.
 
+Configuring a Metadata URL and an Entity Identifier enables Apache NiFi to act as a SAML 2.0 Relying Party, allowing users
+to authenticate using an account managed through a SAML 2.0 Asserting Party.
+
 [options="header"]
 |==================================================================================================================================================
 | Property Name | Description
@@ -475,18 +478,29 @@ To enable authentication via SAML the following properties must be configured in
 |`nifi.security.user.saml.sp.entity.id`| The entity id of the service provider (i.e. NiFi). This value will be used as the `Issuer` for SAML authentication requests and should be a valid URI. In some cases the service provider entity id must be registered ahead of time with the identity provider.
 |`nifi.security.user.saml.identity.attribute.name`| The name of a SAML assertion attribute containing the user'sidentity. This property is optional and if not specified, or if the attribute is not found, then the NameID of the Subject will be used.
 |`nifi.security.user.saml.group.attribute.name`| The name of a SAML assertion attribute containing group names the user belongs to. This property is optional, but if populated the groups will be passed along to the authorization process.
-|`nifi.security.user.saml.metadata.signing.enabled`| Enables signing of the generated service provider metadata. The default value is `false`.
 |`nifi.security.user.saml.request.signing.enabled`| Controls the value of `AuthnRequestsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indicates that the service provider (i.e. NiFi) should not sign authentication requests sent to the identity provider, but the requests may still need to be signed if the identity provider indicates `WantAuthnRequestSigned=true`. The default value is `false`.
 |`nifi.security.user.saml.want.assertions.signed`| Controls the value of `WantAssertionsSigned` in the generated service provider metadata from `nifi-api/access/saml/metadata`. This indicates that the identity provider should sign assertions, but some identity providers may provide their own configuration for controlling whether assertions are signed. The default value is `true`.
 |`nifi.security.user.saml.signature.algorithm`| The algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used. The default value is `http://www.w3.org/2001/04/xmldsig-more#rsa-sha256`.
-|`nifi.security.user.saml.signature.digest.algorithm`| The digest algorithm to use when signing SAML messages. Reference the link:https://git.shibboleth.net/view/?p=java-xmltooling.git;a=blob;f=src/main/java/org/opensaml/xml/signature/SignatureConstants.java[Open SAML Signature Constants] for a list of valid values. If not specified, a default of SHA-256 will be used. The default value is `http://www.w3.org/2001/04/xmlenc#sha256`.
-|`nifi.security.user.saml.message.logging.enabled`| Enables logging of SAML messages for debugging purposes. The default value is `false`.
 |`nifi.security.user.saml.authentication.expiration`| The expiration of the NiFi JWT that will be produced from a successful SAML authentication response. The default value is `12 hours`.
 |`nifi.security.user.saml.single.logout.enabled`| Enables SAML SingleLogout which causes a logout from NiFi to logout of the identity provider. By default, a logout of NiFi will only remove the NiFi JWT. The default value is `false`.
-|`nifi.security.user.saml.http.client.truststore.strategy`| The truststore strategy when the IDP metadata URL begins with https. A value of `JDK` indicates to use the JDK's default truststore. A value of`NIFI`indicates to use the truststore specified by `nifi.security.truststore`.
+|`nifi.security.user.saml.http.client.truststore.strategy`| The truststore strategy when the IDP metadata URL begins with https. A value of `JDK` indicates to use the JDK's default truststore. A value of `NIFI` indicates to use the truststore specified by `nifi.security.truststore`.
 |`nifi.security.user.saml.http.client.connect.timeout`| The connection timeout when communicating with the SAML IDP. The default value is `30 secs`.
 |`nifi.security.user.saml.http.client.read.timeout`| The read timeout when communicating with the SAML IDP. The default value is `30 secs`.
 |==================================================================================================================================================
+
+==== SAML REST Resources
+
+SAML authentication enables the following REST API resources for integration with a SAML 2.0 Asserting Party:
+
+[options="header"]
+|======================================
+| Resource Path                                | Description
+| /nifi-api/access/saml/local-logout/request   | Complete SAML 2.0 Logout processing without communicating with the Asserting Party
+| /nifi-api/access/saml/login/consumer         | Process SAML 2.0 Login Requests assertions using HTTP-POST or HTTP-REDIRECT binding
+| /nifi-api/access/saml/metadata               | Retrieve SAML 2.0 entity descriptor metadata as XML
+| /nifi-api/access/saml/single-logout/consumer | Process SAML 2.0 Single Logout Request assertions using HTTP-POST or HTTP-REDIRECT binding. Requires Single Logout to be enabled.
+| /nifi-api/access/saml/single-logout/request  | Complete SAML 2.0 Single Logout processing initiating a request to the Asserting Party. Requires Single Logout to be enabled.
+|======================================
 
 [[apache_knox]]
 === Apache Knox
