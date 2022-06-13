@@ -344,7 +344,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flume-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -452,7 +452,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ignite-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -500,7 +500,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-couchbase-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -590,7 +590,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-beats-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -836,13 +836,13 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-controller-service-api-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-livy-nar</artifactId>
-            <version>1.16.0</version>
+            <version>1.16.2</version>
             <type>nar</type>
         </dependency>
         <dependency>
