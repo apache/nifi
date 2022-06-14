@@ -58,7 +58,7 @@ class NiFiPropertiesLoaderTest {
             final NiFiProperties properties = loader.get();
         });
 
-        String expectedMessage = "Duplicate keys were detected in the properties file. See previous errors.";
+        String expectedMessage = "Duplicate property keys with different values were detected in the properties file: another.duplicate, nifi.flow.configuration.file";
         String actualMessage = exception.getMessage();
 
         assertTrue(actualMessage.contains(expectedMessage));

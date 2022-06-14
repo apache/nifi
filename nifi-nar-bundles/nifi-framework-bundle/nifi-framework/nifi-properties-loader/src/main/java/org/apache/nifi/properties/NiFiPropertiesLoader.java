@@ -123,20 +123,29 @@ public class NiFiPropertiesLoader {
         }
 
         logger.info("Loading Application Properties [{}]", file);
-        final Properties properties = new Properties();
+        final DuplicateDetectingProperties rawProperties = new DuplicateDetectingProperties();
+
         try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            properties.load(inputStream);
-
-            final Set<String> keys = properties.stringPropertyNames();
-            for (final String key : keys) {
-                final String property = properties.getProperty(key);
-                properties.setProperty(key, property.trim());
-            }
-
-            return new ProtectedNiFiProperties(properties);
+            rawProperties.load(inputStream);
         } catch (final Exception e) {
             throw new RuntimeException(String.format("Loading Application Properties [%s] failed", file), e);
         }
+
+        if (!rawProperties.redundantKeySet().isEmpty()) {
+            logger.warn("Duplicate property keys with the same value were detected in the properties file: {}", String.join(", ", rawProperties.redundantKeySet()));
+        }
+        if (!rawProperties.duplicateKeySet().isEmpty()) {
+            throw new IllegalArgumentException("Duplicate property keys with different values were detected in the properties file: " + String.join(", ", rawProperties.duplicateKeySet()));
+        }
+
+        final Properties properties = new Properties();
+        final Set<String> keys = rawProperties.stringPropertyNames();
+        for (final String key : keys) {
+            final String property = rawProperties.getProperty(key);
+            properties.setProperty(key, property.trim());
+        }
+
+        return new ProtectedNiFiProperties(properties);
     }
 
     /**
@@ -149,7 +158,6 @@ public class NiFiPropertiesLoader {
      * @return the NiFiProperties instance
      */
     public NiFiProperties load(final File file) {
-        checkForDuplicates(file);
         final ProtectedNiFiProperties protectedProperties = loadProtectedProperties(file);
         final NiFiProperties properties;
 
@@ -211,25 +219,6 @@ public class NiFiPropertiesLoader {
         }
 
         return instance;
-    }
-
-    private void checkForDuplicates(File file) {
-        if (file == null || !file.exists() || !file.canRead()) {
-            throw new IllegalArgumentException("NiFi properties file missing or unreadable");
-        }
-
-        Props properties = new Props();
-        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            properties.load(inputStream);
-        } catch (final Exception e) {
-            throw new RuntimeException(String.format("Loading Application Properties [%s] failed", file), e);
-        }
-
-        Set<String> duplicateKeys = properties.duplicateKeySet();
-        if (!duplicateKeys.isEmpty()) {
-            duplicateKeys.forEach(v -> logger.error("Multiple entries with different values found for key '{}'.", v));
-            throw new IllegalArgumentException("Duplicate keys were detected in the properties file. See previous errors.");
-        }
     }
 
     private NiFiProperties loadDefault() {
@@ -311,10 +300,11 @@ public class NiFiPropertiesLoader {
         }
     }
 
-    private static class Props extends Properties {
+    private static class DuplicateDetectingProperties extends Properties {
         // Only need to retain Properties key. This will help prevent possible inadvertent exposure of sensitive Properties value
-        private final Set<String> duplicateKeys = new HashSet<>();
-        public Props() {
+        private final Set<String> duplicateKeys = new HashSet<>();  // duplicate key with different values
+        private final Set<String> redundantKeys = new HashSet<>();  // duplicate key with same value
+        public DuplicateDetectingProperties() {
             super();
         }
 
@@ -322,12 +312,16 @@ public class NiFiPropertiesLoader {
             return duplicateKeys;
         }
 
+        public Set<String> redundantKeySet() {
+            return redundantKeys;
+        }
+
         @Override
         public Object put(Object key, Object value) {
             Object existingValue = super.put(key, value);
             if (existingValue != null) {
                 if (existingValue.toString().equals(value.toString())) {
-                    logger.warn("Duplicate keys found for key '{}', but values are the same.", key);
+                    redundantKeys.add(key.toString());
                     return existingValue;
                 } else {
                     duplicateKeys.add(key.toString());
