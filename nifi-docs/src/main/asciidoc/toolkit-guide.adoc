@@ -110,6 +110,7 @@ The following are available commands:
  nifi get-reporting-task
  nifi get-reporting-tasks
  nifi create-reporting-task
+ nifi delete-reporting-task
  nifi set-param
  nifi delete-param
  nifi list-param-contexts
@@ -293,7 +294,7 @@ Typing "nifi " and then a tab will show the sub-commands for NiFi:
  delete-param            get-service             pg-get-param-context    update-reg-client
  delete-param-context    get-services            pg-get-services         update-user-group
  disable-services        import-param-context    pg-get-vars             upload-template
- disconnect-node         list-param-contexts     pg-get-version
+ disconnect-node         list-param-contexts     pg-get-version          delete-reporting-task
  download-template       list-reg-clients        pg-import
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:

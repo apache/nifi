@@ -74,6 +74,7 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClie
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.GetRegistryClientId;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.ListRegistryClients;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.UpdateRegistryClient;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.reporting.DeleteReportingTask;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.templates.DownloadTemplate;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.templates.ListTemplates;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.templates.UploadTemplate;
@@ -140,6 +141,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new GetReportingTasks());
         commands.add(new GetReportingTask());
         commands.add(new CreateReportingTask());
+        commands.add(new DeleteReportingTask());
         commands.add(new StartReportingTasks());
         commands.add(new StopReportingTasks());
         commands.add(new ListUsers());
