@@ -17,7 +17,6 @@
 package org.apache.nifi.security.krb;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,7 +25,6 @@ import org.mockito.Mockito;
 import javax.security.auth.Subject;
 import javax.security.auth.kerberos.KerberosPrincipal;
 import javax.security.auth.kerberos.KerberosTicket;
-import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.nio.file.Path;
 import java.security.AccessControlContext;
@@ -38,9 +36,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class KerberosUserIT {
@@ -77,23 +75,23 @@ public class KerberosUserIT {
     }
 
     @Test
-    public void testKeytabUserSuccessfulLoginAndLogout() throws LoginException {
+    public void testKeytabUserSuccessfulLoginAndLogout() {
         // perform login for user1
-        final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
+        final KerberosKeytabUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
         user1.login();
 
         // perform login for user2
-        final KerberosUser user2 = new KerberosKeytabUser(principal2.getName(), principal2KeytabFile.getAbsolutePath());
+        final KerberosKeytabUser user2 = new KerberosKeytabUser(principal2.getName(), principal2KeytabFile.getAbsolutePath());
         user2.login();
 
         // verify user1 Subject only has user1 principal
-        final Subject user1Subject = ((KerberosKeytabUser) user1).getSubject();
+        final Subject user1Subject = user1.getSubject();
         final Set<Principal> user1SubjectPrincipals = user1Subject.getPrincipals();
         assertEquals(1, user1SubjectPrincipals.size());
         assertEquals(principal1.getName(), user1SubjectPrincipals.iterator().next().getName());
 
         // verify user2 Subject only has user2 principal
-        final Subject user2Subject = ((KerberosKeytabUser) user2).getSubject();
+        final Subject user2Subject = user2.getSubject();
         final Set<Principal> user2SubjectPrincipals = user2Subject.getPrincipals();
         assertEquals(1, user2SubjectPrincipals.size());
         assertEquals(principal2.getName(), user2SubjectPrincipals.iterator().next().getName());
@@ -115,17 +113,17 @@ public class KerberosUserIT {
     public void testKeytabLoginWithUnknownPrincipal() {
         final String unknownPrincipal = "doesnotexist@" + kdc.getRealm();
         final KerberosUser user1 = new KerberosKeytabUser(unknownPrincipal, principal1KeytabFile.getAbsolutePath());
-        assertThrows(Exception.class, () -> user1.login());
+        assertThrows(Exception.class, user1::login);
     }
 
     @Test
-    public void testPasswordUserSuccessfulLoginAndLogout() throws LoginException {
+    public void testPasswordUserSuccessfulLoginAndLogout() {
         // perform login for user
-        final KerberosUser user = new KerberosPasswordUser(principal3.getName(), principal3Password);
+        final KerberosPasswordUser user = new KerberosPasswordUser(principal3.getName(), principal3Password);
         user.login();
 
         // verify user Subject only has user principal
-        final Subject userSubject = ((KerberosPasswordUser) user).getSubject();
+        final Subject userSubject = user.getSubject();
         final Set<Principal> userSubjectPrincipals = userSubject.getPrincipals();
         assertEquals(1, userSubjectPrincipals.size());
         assertEquals(principal3.getName(), userSubjectPrincipals.iterator().next().getName());
@@ -144,11 +142,11 @@ public class KerberosUserIT {
     public void testPasswordUserLoginWithInvalidPassword() {
         // perform login for user
         final KerberosUser user = new KerberosPasswordUser("user3", "NOT THE PASSWORD");
-        assertThrows(LoginException.class, () -> user.login());
+        assertThrows(KerberosLoginException.class, user::login);
     }
 
     @Test
-    public void testCheckTGTAndRelogin() throws LoginException, InterruptedException {
+    public void testCheckTGTAndRelogin() throws InterruptedException {
         final KerberosUser user1 = new KerberosKeytabUser(principal1.getName(), principal1KeytabFile.getAbsolutePath());
         user1.login();
 
@@ -165,7 +163,7 @@ public class KerberosUserIT {
                 break;
             }
         }
-        assertEquals(true, performedRelogin);
+        assertTrue(performedRelogin);
 
         Subject subject = user1.doAs((PrivilegedAction<Subject>) () -> {
             AccessControlContext context = AccessController.getContext();
@@ -196,11 +194,10 @@ public class KerberosUserIT {
             return null;
         };
 
-        final ProcessContext context = Mockito.mock(ProcessContext.class);
         final ComponentLog logger = Mockito.mock(ComponentLog.class);
 
         // create the action to test and execute it
-        final KerberosAction kerberosAction = new KerberosAction<>(user1, privilegedAction, logger);
+        final KerberosAction<Void> kerberosAction = new KerberosAction<>(user1, privilegedAction, logger);
         kerberosAction.execute();
 
         // if the result holder has the string success then we know the action executed
