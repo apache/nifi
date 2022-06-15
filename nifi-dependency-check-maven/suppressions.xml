@@ -94,4 +94,9 @@
         <packageUrl regex="true">^pkg:maven/org\.mortbay\.jetty/servlet\-api@.*$</packageUrl>
         <cpe regex="true">^cpe:.*$</cpe>
     </suppress>
+    <suppress>
+        <notes>Spark 2.13 used in nifi-spark-receiver is not impacted by Spark Server vulnerabilities</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.spark/spark\-.+?_2\.13@.*$</packageUrl>
+        <cpe>cpe:/a:apache:spark</cpe>
+    </suppress>
 </suppressions>
