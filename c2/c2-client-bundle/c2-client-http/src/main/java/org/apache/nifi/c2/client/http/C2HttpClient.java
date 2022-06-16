@@ -62,7 +62,7 @@ public class C2HttpClient implements C2Client {
         final OkHttpClient.Builder okHttpClientBuilder = new OkHttpClient.Builder();
 
         // Configure request and response logging
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
+        HttpLoggingInterceptor logging = new HttpLoggingInterceptor(logger::debug);
         logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
         okHttpClientBuilder.addInterceptor(logging);
 
@@ -92,8 +92,6 @@ public class C2HttpClient implements C2Client {
     }
 
     private Optional<C2HeartbeatResponse> sendHeartbeat(String heartbeat) {
-        logger.debug("Sending heartbeat to {}", clientConfig.getC2Url());
-
         Optional<C2HeartbeatResponse> c2HeartbeatResponse = Optional.empty();
         Request request = new Request.Builder()
             .post(RequestBody.create(heartbeat, MEDIA_TYPE_APPLICATION_JSON))

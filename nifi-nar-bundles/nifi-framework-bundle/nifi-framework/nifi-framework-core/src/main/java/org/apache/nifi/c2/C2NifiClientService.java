@@ -61,7 +61,7 @@ public class C2NifiClientService {
     private static final String DEFAULT_CONF_DIR = "./conf";
     private static final String TARGET_CONFIG_FILE = "/config-new.yml";
     private static final String ROOT_GROUP_ID = "root";
-    private static final Long INITIAL_DELAY = 0L;
+    private static final Long INITIAL_DELAY = 10000L;
     private static final Integer TERMINATION_WAIT = 5000;
 
     private final C2ClientService c2ClientService;
