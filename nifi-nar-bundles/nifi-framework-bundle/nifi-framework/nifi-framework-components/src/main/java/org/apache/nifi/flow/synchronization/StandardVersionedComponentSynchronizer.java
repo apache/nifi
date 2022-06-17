@@ -2749,15 +2749,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             if (proposedPort != null) {
                 if (proposedPort.getBatchSize() != null) {
                     final BatchSize batchSize = proposedPort.getBatchSize();
-                    if (batchSize.getSize() != null) {
-                        port.setBatchSize(batchSize.getSize());
-                    }
-                    if (batchSize.getCount() != null) {
-                        port.setBatchCount(batchSize.getCount());
-                    }
-                    if (batchSize.getDuration() != null) {
-                        port.setBatchDuration(batchSize.getDuration());
-                    }
+                    port.setBatchSize(batchSize.getSize());
+                    port.setBatchCount(batchSize.getCount());
+                    port.setBatchDuration(batchSize.getDuration());
                 }
                 if (proposedPort.isUseCompression() != null) {
                     port.setUseCompression(proposedPort.isUseCompression());
