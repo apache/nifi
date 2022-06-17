@@ -2704,6 +2704,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         rpg.setInputPorts(proposed.getInputPorts() == null ? Collections.emptySet() : proposed.getInputPorts().stream()
             .map(port -> createPortDescriptor(port, componentIdGenerator, rpg.getIdentifier()))
             .collect(Collectors.toSet()), false);
+
+        synchronizeRemoteGroupPorts(rpg.getInputPorts(), proposed.getInputPorts());
+        synchronizeRemoteGroupPorts(rpg.getOutputPorts(), proposed.getOutputPorts());
         rpg.setName(proposed.getName());
         rpg.setNetworkInterface(proposed.getLocalNetworkInterface());
         rpg.setOutputPorts(proposed.getOutputPorts() == null ? Collections.emptySet() : proposed.getOutputPorts().stream()
@@ -2737,6 +2740,35 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 }
             }
         }
+    }
+
+    private void synchronizeRemoteGroupPorts(final Set<RemoteGroupPort> remoteGroupPorts, final Set<VersionedRemoteGroupPort> proposedPorts) {
+        final Map<String, VersionedRemoteGroupPort> inputPortsByTargetId = mapRemoteGroupPortsByTargetId(proposedPorts);
+        remoteGroupPorts.forEach(port -> {
+            final VersionedRemoteGroupPort proposedPort = inputPortsByTargetId.get(port.getTargetIdentifier());
+            if (proposedPort != null) {
+                if (proposedPort.getBatchSize() != null) {
+                    final BatchSize batchSize = proposedPort.getBatchSize();
+                    port.setBatchSize(batchSize.getSize());
+                    port.setBatchCount(batchSize.getCount());
+                    port.setBatchDuration(batchSize.getDuration());
+                }
+                if (proposedPort.isUseCompression() != null) {
+                    port.setUseCompression(proposedPort.isUseCompression());
+                }
+                if (proposedPort.getConcurrentlySchedulableTaskCount() != null) {
+                    port.setMaxConcurrentTasks(proposedPort.getConcurrentlySchedulableTaskCount());
+                }
+            }
+        });
+    }
+
+    private Map<String, VersionedRemoteGroupPort> mapRemoteGroupPortsByTargetId(final Set<VersionedRemoteGroupPort> remoteGroupPorts) {
+        return remoteGroupPorts == null ? Collections.emptyMap() : remoteGroupPorts.stream()
+                .collect(Collectors.toMap(
+                        VersionedRemoteGroupPort::getTargetId,
+                        Function.identity()
+                ));
     }
 
     private RemoteGroupPort getRpgInputPort(final VersionedRemoteGroupPort port, final RemoteProcessGroup rpg, final ComponentIdGenerator componentIdGenerator) {
@@ -3003,7 +3035,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         final Connectable source = getConnectable(destinationGroup, proposed.getSource());
         if (source == null) {
-            throw new IllegalArgumentException("Connection has a source with identifier " + proposed.getIdentifier()
+            throw new IllegalArgumentException("Connection has a source with identifier " + proposed.getSource().getId()
                 + " but no component could be found in the Process Group with a corresponding identifier");
         }
 
