@@ -72,11 +72,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             Properties bootstrapProperties = bootstrapFileProvider.getBootstrapProperties();
             File configFile = new File(bootstrapProperties.getProperty(MINIFI_CONFIG_FILE_KEY));
 
-            byte[] copyArray = new byte[1024];
-            int available;
-            while ((available = configInputStream.read(copyArray)) > 0) {
-                bufferedConfigOs.write(copyArray, 0, available);
-            }
+            IOUtils.copy(configInputStream, bufferedConfigOs);
 
             File swapConfigFile = bootstrapFileProvider.getSwapFile();
             logger.info("Persisting old configuration to {}", swapConfigFile.getAbsolutePath());
@@ -92,30 +88,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
 
                 try {
                     String confDir = bootstrapProperties.getProperty(CONF_DIR_KEY);
-
-                    try {
-                        logger.info("Performing transformation for input and saving outputs to {}", confDir);
-                        ByteBuffer tempConfigFile = generateConfigFiles(newConfigIs, confDir, bootstrapFileProvider.getBootstrapProperties());
-                        runner.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
-
-                        try {
-                            logger.info("Reloading instance with new configuration");
-                            restartInstance();
-                        } catch (Exception e) {
-                            logger.debug("Transformation of new config file failed after transformation into Flow.xml and nifi.properties, reverting.");
-                            try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
-                                ByteBuffer resetConfigFile = generateConfigFiles(swapConfigFileStream, confDir, bootstrapFileProvider.getBootstrapProperties());
-                                runner.getConfigFileReference().set(resetConfigFile.asReadOnlyBuffer());
-                            }
-                            throw e;
-                        }
-                    } catch (Exception e) {
-                        logger.debug("Transformation of new config file failed after replacing original with the swap file, reverting.");
-                        try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
-                            Files.copy(swapConfigFileStream, configFile.toPath(), REPLACE_EXISTING);
-                        }
-                        throw e;
-                    }
+                    transformConfigurationFiles(confDir, newConfigIs, configFile, swapConfigFile);
                 } catch (Exception e) {
                     logger.debug("Transformation of new config file failed after swap file was created, deleting it.");
                     if (!swapConfigFile.delete()) {
@@ -124,12 +97,8 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
                     throw e;
                 }
             }
-        } catch (ConfigurationChangeException e){
-            logger.error("Unable to carry out reloading of configuration on receipt of notification event", e);
-            throw e;
-        } catch (IOException ioe) {
-            logger.error("Unable to carry out reloading of configuration on receipt of notification event", ioe);
-            throw new ConfigurationChangeException("Unable to perform reload of received configuration change", ioe);
+        } catch (Exception e) {
+            throw new ConfigurationChangeException("Unable to perform reload of received configuration change", e);
         } finally {
             IOUtils.closeQuietly(configInputStream);
             handlingLock.unlock();
@@ -139,6 +108,35 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
     @Override
     public String getDescriptor() {
         return "MiNiFiConfigurationChangeListener";
+    }
+
+    private void transformConfigurationFiles(String confDir, FileInputStream newConfigIs, File configFile, File swapConfigFile) throws Exception {
+        try {
+            logger.info("Performing transformation for input and saving outputs to {}", confDir);
+            ByteBuffer tempConfigFile = generateConfigFiles(newConfigIs, confDir, bootstrapFileProvider.getBootstrapProperties());
+            runner.getConfigFileReference().set(tempConfigFile.asReadOnlyBuffer());
+            reloadNewConfiguration(swapConfigFile, confDir);
+        } catch (Exception e) {
+            logger.debug("Transformation of new config file failed after replacing original with the swap file, reverting.");
+            try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
+                Files.copy(swapConfigFileStream, configFile.toPath(), REPLACE_EXISTING);
+            }
+            throw e;
+        }
+    }
+
+    private void reloadNewConfiguration(File swapConfigFile, String confDir) throws Exception {
+        try {
+            logger.info("Reloading instance with new configuration");
+            restartInstance();
+        } catch (Exception e) {
+            logger.debug("Transformation of new config file failed after transformation into Flow.xml and nifi.properties, reverting.");
+            try (FileInputStream swapConfigFileStream = new FileInputStream(swapConfigFile)) {
+                ByteBuffer resetConfigFile = generateConfigFiles(swapConfigFileStream, confDir, bootstrapFileProvider.getBootstrapProperties());
+                runner.getConfigFileReference().set(resetConfigFile.asReadOnlyBuffer());
+            }
+            throw e;
+        }
     }
 
     private void restartInstance() throws IOException {
@@ -173,7 +171,7 @@ public class MiNiFiConfigurationChangeListener implements ConfigurationChangeLis
             logger.debug("Persisting changes to {}", configFile.getAbsolutePath());
             SchemaLoader.toYaml(configSchemaNew, new FileWriter(configFile));
         } catch (Exception e) {
-            logger.error("Loading the old and the new schema for merging was not successful");
+            logger.error("Loading the old and the new schema for merging was not successful", e);
         }
     }
 

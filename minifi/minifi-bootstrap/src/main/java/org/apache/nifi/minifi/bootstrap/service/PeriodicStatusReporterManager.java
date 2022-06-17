@@ -122,7 +122,7 @@ public class PeriodicStatusReporterManager implements QueryableStatusAggregator 
             flowStatusReport = new FlowStatusReport();
             String message = "Failed to get status report from MiNiFi due to:" + e.getMessage();
             flowStatusReport.setErrorsGeneratingReport(Collections.singletonList(message));
-            LOGGER.error(message);
+            LOGGER.error(message, e);
         }
         return flowStatusReport;
     }

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.c2.client;
 
-import javax.net.ssl.HostnameVerifier;
-
 /**
  * Configuration for a C2 Client.
  */
@@ -38,7 +36,6 @@ public class C2ClientConfig {
     private final String truststoreFilename;
     private final String truststorePass;
     private final String truststoreType;
-    private final HostnameVerifier hostnameVerifier;
     private final long callTimeout;
     private final long readTimeout;
     private final long connectTimeout;
@@ -61,7 +58,6 @@ public class C2ClientConfig {
         this.truststoreFilename = builder.truststoreFilename;
         this.truststorePass = builder.truststorePass;
         this.truststoreType = builder.truststoreType;
-        this.hostnameVerifier = builder.hostnameVerifier;
         this.readTimeout = builder.readTimeout;
         this.connectTimeout = builder.connectTimeout;
     }
@@ -130,10 +126,6 @@ public class C2ClientConfig {
         return truststoreType;
     }
 
-    public HostnameVerifier getHostnameVerifier() {
-        return hostnameVerifier;
-    }
-
     public long getReadTimeout() {
         return readTimeout;
     }
@@ -163,7 +155,6 @@ public class C2ClientConfig {
         private String truststoreFilename;
         private String truststorePass;
         private String truststoreType;
-        private HostnameVerifier hostnameVerifier;
         private long readTimeout;
         private long connectTimeout;
 
@@ -244,11 +235,6 @@ public class C2ClientConfig {
 
         public Builder truststoreType(final String truststoreType) {
             this.truststoreType = truststoreType;
-            return this;
-        }
-
-        public Builder hostnameVerifier(final HostnameVerifier hostnameVerifier) {
-            this.hostnameVerifier = hostnameVerifier;
             return this;
         }
 

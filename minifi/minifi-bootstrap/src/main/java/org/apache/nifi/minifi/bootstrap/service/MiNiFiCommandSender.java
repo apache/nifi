@@ -116,7 +116,7 @@ public class MiNiFiCommandSender {
         } catch (JsonProcessingException e) {
             String message = "Failed to deserialize " + cmd + " response";
             LOGGER.error(message);
-            throw new RuntimeException(message);
+            throw new RuntimeException(message, e);
         }
         return response;
     }
