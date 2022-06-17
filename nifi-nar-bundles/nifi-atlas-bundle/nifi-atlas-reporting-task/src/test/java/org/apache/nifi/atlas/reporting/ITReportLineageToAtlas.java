@@ -43,7 +43,7 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockPropertyValue;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -522,7 +522,7 @@ public class ITReportLineageToAtlas {
     private Lineage getLineage() throws Exception {
         final URL url = new URL("http://localhost:21000/api/atlas/v2/debug/lineage/");
         try (InputStream in = url.openStream()) {
-            Lineage lineage = new ObjectMapper().reader().withType(Lineage.class).readValue(in);
+            Lineage lineage = new ObjectMapper().readValue(in, Lineage.class);
             return lineage;
         }
     }
