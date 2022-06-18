@@ -510,6 +510,9 @@ public abstract class AbstractEventAccess implements EventAccess {
         final RemoteProcessGroupStatus status = new RemoteProcessGroupStatus();
         status.setGroupId(remoteGroup.getProcessGroup().getIdentifier());
         status.setName(isRemoteProcessGroupAuthorized ? remoteGroup.getName() : remoteGroup.getIdentifier());
+        status.setComments(isRemoteProcessGroupAuthorized ? remoteGroup.getComments() : null);
+        status.setAuthorizationIssue(remoteGroup.getAuthorizationIssue());
+        status.setLastRefreshTime(remoteGroup.getLastRefreshTime());
         status.setTargetUri(isRemoteProcessGroupAuthorized ? remoteGroup.getTargetUri() : null);
 
         long lineageMillis = 0L;

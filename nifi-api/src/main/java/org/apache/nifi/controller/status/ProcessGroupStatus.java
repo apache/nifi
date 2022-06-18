@@ -20,6 +20,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -586,6 +587,13 @@ public class ProcessGroupStatus implements Cloneable {
             merged.setSentContentSize(merged.getSentContentSize() + statusToMerge.getSentContentSize());
             merged.setSentCount(merged.getSentCount() + statusToMerge.getSentCount());
             merged.setActiveThreadCount(merged.getActiveThreadCount() + statusToMerge.getActiveThreadCount());
+
+            // Take the earliest last refresh time
+            final Date mergedLastRefreshTime = merged.getLastRefreshTime();
+            final Date toMergeLastRefreshTime = statusToMerge.getLastRefreshTime();
+            if (mergedLastRefreshTime == null || (toMergeLastRefreshTime != null && toMergeLastRefreshTime.before(mergedLastRefreshTime))) {
+                merged.setLastRefreshTime(toMergeLastRefreshTime);
+            }
         }
 
         target.setRemoteProcessGroupStatus(mergedRemoteGroupMap.values());
