@@ -14,16 +14,16 @@
   limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-smb-bundle</artifactId>
         <version>1.18.0-SNAPSHOT</version>
     </parent>
+    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>nifi-smb-nar</artifactId>
+    <artifactId>nifi-smb-client-api-nar</artifactId>
     <packaging>nar</packaging>
+
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
@@ -32,14 +32,14 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smb-processors</artifactId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
             <version>1.18.0-SNAPSHOT</version>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smb-client-api-nar</artifactId>
+            <artifactId>nifi-smb-client-api</artifactId>
             <version>1.18.0-SNAPSHOT</version>
-            <type>nar</type>
         </dependency>
     </dependencies>
 </project>
