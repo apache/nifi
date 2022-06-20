@@ -40,7 +40,6 @@
         <flyway.version>8.4.2</flyway.version>
         <flyway.tests.version>7.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <testcontainers.version>1.17.3</testcontainers.version>
         <groovy.eclipse.compiler.version>3.4.0-01</groovy.eclipse.compiler.version>
         <jaxb.version>2.3.2</jaxb.version>
         <jgit.version>5.13.0.202109080827-r</jgit.version>

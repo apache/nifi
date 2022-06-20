@@ -543,6 +543,10 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         return System.currentTimeMillis();
     }
 
+    protected long getCurrentNanoTime() {
+        return System.nanoTime();
+    }
+
     public void listByNoTracking(final ProcessContext context, final ProcessSession session) {
         final List<T> entityList;
 
@@ -655,6 +659,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                             .computeIfAbsent(entity.getTimestamp(), __ -> new ArrayList<>())
                             .add(entity)
                     );
+
             if (getLogger().isTraceEnabled()) {
                 getLogger().trace("orderedEntries: " +
                         orderedEntries.values().stream()
@@ -744,8 +749,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
         }
 
         final List<T> entityList;
-        final long currentRunTimeNanos = System.nanoTime();
-        final long currentRunTimeMillis = System.currentTimeMillis();
+        final long currentRunTimeNanos = getCurrentNanoTime();
+        final long currentRunTimeMillis = getCurrentTime();
         try {
             // track of when this last executed for consideration of the lag nanos
             entityList = performListing(context, minTimestampToListMillis, ListingMode.EXECUTION);
@@ -1100,7 +1105,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
     }
 
     protected ListedEntityTracker<T> createListedEntityTracker() {
-        return new ListedEntityTracker<>(getIdentifier(), getLogger(), getRecordSchema());
+        return new ListedEntityTracker<>(getIdentifier(), getLogger(), this::getCurrentTime, getRecordSchema());
     }
 
     private void listByTrackingEntities(ProcessContext context, ProcessSession session) throws ProcessException {
