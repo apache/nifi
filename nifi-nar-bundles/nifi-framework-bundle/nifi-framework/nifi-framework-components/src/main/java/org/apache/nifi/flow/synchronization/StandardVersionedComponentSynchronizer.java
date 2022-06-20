@@ -1433,6 +1433,14 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 } else {
                     final Map<String, Parameter> updatedParameters = createParameterMap(proposed.getParameters());
 
+                    // If any parameters are removed, need to add a null value to the map in order to make sure that the parameter is removed.
+                    for (final ParameterDescriptor existingParameterDescriptor : parameterContext.getParameters().keySet()) {
+                        final String name = existingParameterDescriptor.getName();
+                        if (!updatedParameters.containsKey(name)) {
+                            updatedParameters.put(name, null);
+                        }
+                    }
+
                     final Map<String, ParameterContext> contextsByName = contextManager.getParameterContextNameMapping();
                     final List<ParameterContext> inheritedContexts = new ArrayList<>();
                     final List<String> inheritedContextNames = proposed.getInheritedParameterContexts();
