@@ -19,8 +19,12 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -28,6 +32,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -88,6 +93,34 @@ public class TestMergeRecord {
         final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
+                ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
+    }
+
+    @Test
+    public void testMergeSimpleDifferentWriteSchema() throws InitializationException {
+        // Exclude Age field
+        List<RecordField> writeFields = Collections.singletonList(
+          new RecordField("Name", RecordFieldType.STRING.getDataType())
+        );
+        RecordSchema writeSchema = new SimpleRecordSchema(writeFields);
+        writerService = new MockRecordWriter("header", false, -1, true, writeSchema);
+        runner.addControllerService("differentWriter", writerService);
+        runner.enableControllerService(writerService);
+
+        runner.setProperty(MergeRecord.RECORD_READER, "reader");
+        runner.setProperty(MergeRecord.RECORD_WRITER, "differentWriter");
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+
+        runner.run(2);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "2");
+        mff.assertContentEquals("header\nJohn\nJane\n");
 
         runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
                 ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));

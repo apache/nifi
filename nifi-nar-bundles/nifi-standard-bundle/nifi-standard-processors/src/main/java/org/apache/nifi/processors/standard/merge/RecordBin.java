@@ -28,6 +28,7 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 
 import java.io.IOException;
@@ -130,7 +131,8 @@ public class RecordBin {
 
                 this.out = new ByteCountingOutputStream(rawOut);
 
-                recordWriter = writerFactory.createWriter(logger, recordReader.getSchema(), out, flowFile);
+                RecordSchema outputSchema = writerFactory.getSchema(flowFile.getAttributes(), recordReader.getSchema());
+                recordWriter = writerFactory.createWriter(logger, outputSchema, out, flowFile);
                 recordWriter.beginRecordSet();
             }
 
