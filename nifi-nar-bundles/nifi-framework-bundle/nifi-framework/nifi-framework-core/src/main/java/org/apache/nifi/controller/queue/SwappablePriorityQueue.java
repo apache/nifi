@@ -497,7 +497,7 @@ public class SwappablePriorityQueue {
 
     public void acknowledge(final FlowFileRecord flowFile) {
         logger.trace("{} Acknowledging {}", this, flowFile);
-        incrementUnacknowledgedQueueSize(-1, -flowFile.getSize());
+        directlyIncrementUnacknowledgedQueueSize(-1, -flowFile.getSize());
     }
 
     public void acknowledge(final Collection<FlowFileRecord> flowFiles) {
@@ -508,7 +508,7 @@ public class SwappablePriorityQueue {
         }
 
         final long totalSize = flowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
-        incrementUnacknowledgedQueueSize(-flowFiles.size(), -totalSize);
+        directlyIncrementUnacknowledgedQueueSize(-flowFiles.size(), -totalSize);
     }
 
 
@@ -570,7 +570,7 @@ public class SwappablePriorityQueue {
 
             if (flowFile != null) {
                 logger.trace("{} poll() returning {}", this, flowFile);
-                incrementUnacknowledgedQueueSize(1, flowFile.getSize());
+                unacknowledge(1, flowFile.getSize());
             }
 
             return flowFile;
@@ -603,10 +603,6 @@ public class SwappablePriorityQueue {
                 this.activeQueue.add(flowFile);
                 flowFile = null;
                 break;
-            }
-
-            if (flowFile != null) {
-                incrementActiveQueueSize(-1, -flowFile.getSize());
             }
         } while (isExpired);
 
@@ -648,6 +644,8 @@ public class SwappablePriorityQueue {
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         long bytesPulled = 0L;
         int flowFilesPulled = 0;
+        long bytesExpired = 0L;
+        int flowFilesExpired = 0;
 
         writeLock.lock();
         try {
@@ -665,8 +663,8 @@ public class SwappablePriorityQueue {
                 final boolean isExpired = isExpired(flowFile, expirationMillis);
                 if (isExpired) {
                     expiredRecords.add(flowFile);
-                    bytesPulled += flowFile.getSize();
-                    flowFilesPulled++;
+                    bytesExpired += flowFile.getSize();
+                    flowFilesExpired++;
 
                     if (expiredRecords.size() >= MAX_EXPIRED_RECORDS_PER_ITERATION) {
                         break;
@@ -683,7 +681,6 @@ public class SwappablePriorityQueue {
                     bytesPulled += flowFile.getSize();
                     flowFilesPulled++;
 
-                    incrementUnacknowledgedQueueSize(1, flowFile.getSize());
                     selectedFlowFiles.add(flowFile);
                 } else {
                     unselected.add(flowFile);
@@ -695,7 +692,11 @@ public class SwappablePriorityQueue {
             }
 
             this.activeQueue.addAll(unselected);
-            incrementActiveQueueSize(-flowFilesPulled, -bytesPulled);
+            unacknowledge(flowFilesPulled, bytesPulled);
+
+            if (flowFilesExpired > 0) {
+                incrementActiveQueueSize(-flowFilesExpired, -bytesExpired);
+            }
 
             if (!selectedFlowFiles.isEmpty() && logger.isTraceEnabled()) {
                 for (final FlowFileRecord flowFile : selectedFlowFiles) {
@@ -719,8 +720,10 @@ public class SwappablePriorityQueue {
             expiredBytes += record.getSize();
         }
 
-        incrementActiveQueueSize(-(expiredRecords.size() + records.size()), -bytesDrained);
-        incrementUnacknowledgedQueueSize(records.size(), bytesDrained - expiredBytes);
+        unacknowledge(records.size(), bytesDrained);
+        if (!expiredRecords.isEmpty()) {
+            incrementActiveQueueSize(-expiredRecords.size(), -expiredBytes);
+        }
     }
 
 
@@ -1095,7 +1098,32 @@ public class SwappablePriorityQueue {
         }
     }
 
-    private void incrementUnacknowledgedQueueSize(final int count, final long bytes) {
+    /**
+     * Increments the unacknowledged queue size and decrements the active queue size by the given values.
+     * This logic is extracted into a separate method because it is critical that we always increment the unacknowledged queue size
+     * before decrementing the active queue size. Failure to do so could result in the queue temporarily reporting a size of 0/empty
+     * when the queue is not empty (because we could decrement active queue size to 0 before incrementing unacknowledged queue size to 1).
+     * To help ensure that we don't break that ordering, we encapsulate the logic into a single method that is responsible for performing
+     * these steps, and we also used the name 'directlyIncrementUnacknowledgedQueueSize' for the method that updates the unacknowledged queue size, rather than simply
+     * 'incrementUnacknowledgedQueueSize' to give a hint to any callers that caution must be taken when calling the method.
+     *
+     * @param count the number of FlowFiles to increase the unacknowledged count by and decrement active count by
+     * @param bytes the bytes to increase the unacknowledged count by and decrement the active count by
+     */
+    private void unacknowledge(final int count, final long bytes) {
+        directlyIncrementUnacknowledgedQueueSize(count, bytes);
+        incrementActiveQueueSize(-count, -bytes);
+    }
+
+    /**
+     * Increments the Unacknowledged Queue Size by the given arguments. Note that when data is polled, we need to both increment the unacknowledged size
+     * AND decrement the active size. But it is crucial that we perform these actions in the proper order. The Unacknowledged size must be incremented before
+     * the active queue size is decremented. For this purpose, use {@link #unacknowledge(int, long)} instead of using this method directly.
+     *
+     * @param count the number of FlowFiles to increase the unacknowledged count by and decrement active count by
+     * @param bytes the bytes to increase the unacknowledged count by and decrement the active count by
+     */
+    private void directlyIncrementUnacknowledgedQueueSize(final int count, final long bytes) {
         boolean updated = false;
         while (!updated) {
             final FlowFileQueueSize original = size.get();
