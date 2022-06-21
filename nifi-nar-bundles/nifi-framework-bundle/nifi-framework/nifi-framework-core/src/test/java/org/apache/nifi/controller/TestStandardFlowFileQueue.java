@@ -32,6 +32,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -189,13 +190,7 @@ public class TestStandardFlowFileQueue {
 
         Thread.sleep(100L);
 
-
-        final FlowFileFilter filter = new FlowFileFilter() {
-            @Override
-            public FlowFileFilterResult filter(final FlowFile flowFile) {
-                return FlowFileFilterResult.REJECT_AND_CONTINUE;
-            }
-        };
+        final FlowFileFilter filter = flowFile -> FlowFileFilterResult.REJECT_AND_CONTINUE;
 
         final Set<FlowFileRecord> expiredRecords = new HashSet<>();
         final List<FlowFileRecord> polled = queue.poll(filter, expiredRecords);

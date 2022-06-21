@@ -644,6 +644,8 @@ public class SwappablePriorityQueue {
     public List<FlowFileRecord> poll(final FlowFileFilter filter, final Set<FlowFileRecord> expiredRecords, final long expirationMillis, final PollStrategy pollStrategy) {
         long bytesPulled = 0L;
         int flowFilesPulled = 0;
+        long bytesExpired = 0L;
+        int flowFilesExpired = 0;
 
         writeLock.lock();
         try {
@@ -661,8 +663,8 @@ public class SwappablePriorityQueue {
                 final boolean isExpired = isExpired(flowFile, expirationMillis);
                 if (isExpired) {
                     expiredRecords.add(flowFile);
-                    bytesPulled += flowFile.getSize();
-                    flowFilesPulled++;
+                    bytesExpired += flowFile.getSize();
+                    flowFilesExpired++;
 
                     if (expiredRecords.size() >= MAX_EXPIRED_RECORDS_PER_ITERATION) {
                         break;
@@ -691,6 +693,10 @@ public class SwappablePriorityQueue {
 
             this.activeQueue.addAll(unselected);
             unacknowledge(flowFilesPulled, bytesPulled);
+
+            if (flowFilesExpired > 0) {
+                incrementActiveQueueSize(-flowFilesExpired, -bytesExpired);
+            }
 
             if (!selectedFlowFiles.isEmpty() && logger.isTraceEnabled()) {
                 for (final FlowFileRecord flowFile : selectedFlowFiles) {
