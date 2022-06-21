@@ -128,6 +128,11 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+        final List<MockFlowFile> flowFilesOriginal = runner.getFlowFilesForRelationship(QueryRecord.REL_ORIGINAL);
+        flowFilesOriginal.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, QueryRecord.REL_ORIGINAL.getName());
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
@@ -182,6 +187,9 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(50, written.size());
 
@@ -222,6 +230,9 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
@@ -256,6 +267,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
@@ -294,6 +308,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
@@ -334,6 +351,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
@@ -378,6 +398,9 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
@@ -416,6 +439,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(2, written.size());
@@ -457,6 +483,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(3, written.size());
@@ -518,6 +547,9 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
@@ -553,6 +585,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
@@ -590,6 +625,9 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
 
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
+
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
 
@@ -626,6 +664,9 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         final List<Record> written = writer.getRecordsWritten();
         assertEquals(1, written.size());
@@ -871,6 +912,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
     }
@@ -906,6 +948,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n\"Alice\",\n,\"36\"\n");
     }
@@ -939,6 +982,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
     }
@@ -967,6 +1011,7 @@ public class TestQueryRecord {
         runner.run();
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"age\"\n");
     }
@@ -1002,6 +1047,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        out.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
 
         out.assertContentEquals("\"NAME\",\"POINTS\"\n\"100\",\"90.75\"\n");
     }
@@ -1035,6 +1081,8 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(QueryRecord.REL_FAILURE, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(QueryRecord.REL_FAILURE);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, QueryRecord.REL_FAILURE.getName());
     }
 
     @Test
@@ -1063,6 +1111,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         flowFileOut.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"100\"\n\"Jerry\",\"2\"\n");
     }
 
@@ -1095,9 +1144,11 @@ public class TestQueryRecord {
         runner.assertTransferCount(REL_NAME, 1);
         runner.assertTransferCount("count", 1);
         final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         flowFileOut.assertContentEquals("1\n\n\n3\n");
 
         final MockFlowFile countFlowFile = runner.getFlowFilesForRelationship("count").get(0);
+        countFlowFile.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, "count");
         countFlowFile.assertContentEquals("2\n");
     }
 
@@ -1132,6 +1183,8 @@ public class TestQueryRecord {
         runner.run();
 
         runner.assertTransferCount(REL_NAME, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_NAME);
+        flowFiles.get(0).assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
     }
 
     @Test
@@ -1156,6 +1209,7 @@ public class TestQueryRecord {
 
         runner.assertTransferCount(REL_NAME, 1);
         final MockFlowFile flowFileOut = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        flowFileOut.assertAttributeEquals(QueryRecord.ROUTE_ATTRIBUTE_KEY, REL_NAME);
         flowFileOut.assertContentEquals("[]");
     }
 

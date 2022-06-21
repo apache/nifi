@@ -116,9 +116,13 @@ import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
                          + "that is selected being routed to the relationship whose name is the property name")
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
-    @WritesAttribute(attribute = "record.count", description = "The number of records selected by the query")
+    @WritesAttribute(attribute = "record.count", description = "The number of records selected by the query"),
+    @WritesAttribute(attribute = QueryRecord.ROUTE_ATTRIBUTE_KEY, description = "The relation to which the FlowFile was routed")
 })
 public class QueryRecord extends AbstractProcessor {
+
+    public static final String ROUTE_ATTRIBUTE_KEY = "QueryRecord.Route";
+
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
         .name("record-reader")
         .displayName("Record Reader")
@@ -258,7 +262,7 @@ public class QueryRecord extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final FlowFile original = session.get();
+        FlowFile original = session.get();
         if (original == null) {
             return;
         }
@@ -284,6 +288,7 @@ public class QueryRecord extends AbstractProcessor {
             writerSchema = recordSetWriterFactory.getSchema(originalAttributes, readerSchema);
         } catch (final Exception e) {
             getLogger().error("Failed to determine Record Schema from {}; routing to failure", new Object[] {original, e});
+            original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.transfer(original, REL_FAILURE);
             return;
         }
@@ -312,6 +317,7 @@ public class QueryRecord extends AbstractProcessor {
                     final QueryResult queryResult = query(session, original, readerSchema, sql, recordReaderFactory);
 
                     final AtomicReference<String> mimeTypeRef = new AtomicReference<>();
+                    final FlowFile originalFlowFile = original;
                     try {
                         final ResultSet rs = queryResult.getResultSet();
                         transformed = session.write(transformed, new OutputStreamCallback() {
@@ -328,7 +334,7 @@ public class QueryRecord extends AbstractProcessor {
                                     throw new ProcessException(e);
                                 }
 
-                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out, original)) {
+                                try (final RecordSetWriter resultSetWriter = recordSetWriterFactory.createWriter(getLogger(), writeSchema, out, originalFlowFile)) {
                                     writeResultRef.set(resultSetWriter.write(recordSet));
                                     mimeTypeRef.set(resultSetWriter.getMimeType());
                                 } catch (final Exception e) {
@@ -355,6 +361,7 @@ public class QueryRecord extends AbstractProcessor {
 
                         attributesToAdd.put(CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
                         attributesToAdd.put("record.count", String.valueOf(result.getRecordCount()));
+                        attributesToAdd.put(ROUTE_ATTRIBUTE_KEY, relationship.getName());
                         transformed = session.putAllAttributes(transformed, attributesToAdd);
                         transformedFlowFiles.put(transformed, relationship);
 
@@ -382,13 +389,16 @@ public class QueryRecord extends AbstractProcessor {
             }
 
             getLogger().info("Successfully queried {} in {} millis", new Object[] {original, elapsedMillis});
+            original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_ORIGINAL.getName());
             session.transfer(original, REL_ORIGINAL);
         } catch (final SQLException e) {
             getLogger().error("Unable to query {} due to {}", new Object[] {original, e.getCause() == null ? e : e.getCause()});
+            original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         } catch (final Exception e) {
             getLogger().error("Unable to query {} due to {}", new Object[] {original, e});
+            original = session.putAttribute(original, ROUTE_ATTRIBUTE_KEY, REL_FAILURE.getName());
             session.remove(createdFlowFiles);
             session.transfer(original, REL_FAILURE);
         }
