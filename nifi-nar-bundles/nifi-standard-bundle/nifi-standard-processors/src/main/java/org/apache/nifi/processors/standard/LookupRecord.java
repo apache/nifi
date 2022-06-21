@@ -682,7 +682,18 @@ public class LookupRecord extends AbstractProcessor {
                 }
 
                 final FieldValue fieldValue = lookupFieldValues.get(0);
-                final Object coordinateValue = DataTypeUtils.convertType(fieldValue.getValue(), fieldValue.getField().getDataType(), null, null, null, fieldValue.getField().getFieldName());
+                final Object coordinateValue = DataTypeUtils.convertType(
+                        fieldValue.getValue(),
+                        Optional.ofNullable(fieldValue.getField())
+                                .map(RecordField::getDataType)
+                                .orElse(DataTypeUtils.inferDataType(fieldValue.getValue(), RecordFieldType.STRING.getDataType())),
+                        null,
+                        null,
+                        null,
+                        Optional.ofNullable(fieldValue.getField())
+                                .map(RecordField::getFieldName)
+                                .orElse(coordinateKey)
+                );
                 lookupCoordinates.put(coordinateKey, coordinateValue);
             }
 
