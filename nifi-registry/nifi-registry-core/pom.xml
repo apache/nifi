@@ -79,7 +79,7 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jsp</artifactId>
-                <version>${jetty.version}</version>
+                <version>11.0.9</version>
             </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
