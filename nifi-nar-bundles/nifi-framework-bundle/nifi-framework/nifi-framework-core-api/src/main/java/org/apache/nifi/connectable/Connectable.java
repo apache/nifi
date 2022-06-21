@@ -311,5 +311,5 @@ public interface Connectable extends Triggerable, ComponentAuthorizable, Positio
 
     void setMaxBackoffPeriod(String maxBackoffPeriod);
 
-    String evaluateSchedulingPeriodFromParameter(String schedulingPeriod);
+    String evaluateParameter(String parameter);
 }

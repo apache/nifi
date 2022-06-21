@@ -620,8 +620,8 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public String evaluateSchedulingPeriodFromParameter(String schedulingPeriod) {
-        return getSchedulingPeriod();
+    public String evaluateParameter(String parameter) {
+        return parameter;
     }
 
     @Override

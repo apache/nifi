@@ -128,6 +128,14 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
             }
         }
 
+        if (componentNode instanceof ProcessorNode) {
+            for (final ParameterReference parameterReference : ((ProcessorNode) componentNode).getConfigurationParameterReferences()) {
+                if (parameterName.equals(parameterReference.getParameterName())) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 

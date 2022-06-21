@@ -703,8 +703,8 @@ public abstract class AbstractPort implements Port {
     }
 
     @Override
-    public String evaluateSchedulingPeriodFromParameter(String schedulingPeriod) {
-        return getSchedulingPeriod();
+    public String evaluateParameter(String parameter) {
+        return parameter;
     }
 
 

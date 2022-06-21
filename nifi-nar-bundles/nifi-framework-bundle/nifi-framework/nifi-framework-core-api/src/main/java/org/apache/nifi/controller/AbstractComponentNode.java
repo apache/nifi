@@ -795,6 +795,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
             .build());
     }
 
+    /**
+     * Validates the current configuration, returning ValidationResults for any
+     * invalid configuration parameter.
+     *
+     * @return Collection of validation result objects for any invalid findings
+     *         only. If the collection is empty then the component is valid. Should guarantee
+     *         non-null
+     */
     protected abstract List<ValidationResult> validateConfig();
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
@@ -1084,11 +1092,28 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         // If this component is affected by the Parameter change, we need to re-validate
+        componentAffected |= isConfigurationParameterModified(updatedParameters);
         if (componentAffected) {
             logger.debug("Configuration of {} changed due to an update to Parameter Context. Resetting validation state", this);
             resetValidationState();
         }
     }
+
+    protected void increaseReferenceCounts(final String parameterName) {
+        parameterReferenceCounts.merge(parameterName, 1, (a, b) -> a == -1 ? null : a + b);
+    }
+
+    protected void decreaseReferenceCounts(final String parameterName) {
+        parameterReferenceCounts.merge(parameterName, -1, (a, b) -> a == 1 ? null : a + b);
+    }
+
+    /**
+     * Verifies whether any referenced configuration parameter has been updated and its effective value has changed.
+     * If yes, the component needs to be re-validated.
+     * @param updatedParameters updated parameters
+     * @return true if the component requires re-validation
+     **/
+    public abstract boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters);
 
     private ParameterLookup createParameterLookupForPreviousValues(final Map<String, ParameterUpdate> updatedParameters) {
         final ParameterContext currentContext = getParameterContext();

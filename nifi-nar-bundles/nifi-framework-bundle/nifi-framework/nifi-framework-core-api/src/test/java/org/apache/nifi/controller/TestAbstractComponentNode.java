@@ -405,7 +405,12 @@ public class TestAbstractComponentNode {
 
         @Override
         protected List<ValidationResult> validateConfig() {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
+        }
+
+        @Override
+        public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
+            return false;
         }
 
         @Override

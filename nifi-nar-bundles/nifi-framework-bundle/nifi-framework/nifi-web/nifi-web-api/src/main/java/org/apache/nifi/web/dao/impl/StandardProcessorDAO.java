@@ -308,20 +308,21 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
 
         // validate the scheduling period based on the scheduling strategy
-        if (isNotNull(config.getSchedulingPeriod())) {
-            final String schedulingPeriod = processorNode.evaluateSchedulingPeriodFromParameter(config.getSchedulingPeriod());
+        final String schedulingPeriod = config.getSchedulingPeriod();
+        final String evaluatedSchedulingPeriod = processorNode.evaluateParameter(schedulingPeriod);
 
+        if (isNotNull(schedulingPeriod) && isNotNull(evaluatedSchedulingPeriod)) {
             switch (schedulingStrategy) {
                 case TIMER_DRIVEN:
                 case PRIMARY_NODE_ONLY:
-                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(schedulingPeriod);
+                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(evaluatedSchedulingPeriod);
                     if (!schedulingMatcher.matches()) {
                         validationErrors.add("Scheduling period is not a valid time duration (ie 30 sec, 5 min)");
                     }
                     break;
                 case CRON_DRIVEN:
                     try {
-                        new CronExpression(schedulingPeriod);
+                        new CronExpression(evaluatedSchedulingPeriod);
                     } catch (final ParseException pe) {
                         throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, pe.getMessage()));
                     } catch (final Exception e) {
