@@ -218,7 +218,7 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
 
             endTask.apply(generator);
         } catch (final Exception e) {
-            logger.error("Failed to write {} with schema {} as a JSON Object due to {}", new Object[] {record, record.getSchema(), e.toString(), e});
+            logger.error("Failed to write {} with schema {} as a JSON Object due to {}", record, writeSchema, e.toString(), e);
             throw e;
         }
     }
