@@ -31,6 +31,10 @@
 	    <module>nifi-ranger-resources</module>
     </modules>
 
+    <properties>
+        <ranger.hadoop.version>3.3.3</ranger.hadoop.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <!-- Override zookeeper -->
@@ -56,6 +60,12 @@
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
                 <version>1.9.4</version>
+            </dependency>
+            <!-- Override Hadoop -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>${ranger.hadoop.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

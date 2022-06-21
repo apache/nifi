@@ -25,7 +25,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <ranger.hadoop.version>3.3.2</ranger.hadoop.version>
+        <ranger.hadoop.version>3.3.3</ranger.hadoop.version>
         <ranger.ozone.version>1.2.1</ranger.ozone.version>
         <ranger.gcs.version>2.1.5</ranger.gcs.version>
     </properties>
@@ -149,6 +149,10 @@
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
                 <exclusion>
@@ -221,6 +225,10 @@
                 </exclusion>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
                 <exclusion>
@@ -238,6 +246,10 @@
             <artifactId>hadoop-auth</artifactId>
             <version>${ranger.hadoop.version}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
                     <artifactId>slf4j-log4j12</artifactId>
