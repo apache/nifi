@@ -21,11 +21,16 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
-import org.junit.jupiter.api.AfterEach;
+import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.Timeout;
@@ -35,8 +40,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -51,6 +58,10 @@ import java.util.regex.Pattern;
 public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private static final Logger logger = LoggerFactory.getLogger(NiFiSystemIT.class);
     private final ConcurrentMap<String, Long> lastLogTimestamps = new ConcurrentHashMap<>();
+
+    private static final String QUEUE_SIZE_LOGGING_KEY = "Queue Sizes";
+    //                                                   Group ID  | Source Name | Dest Name | Conn Name  | Queue Size |
+    private static final String QUEUE_SIZES_FORMAT = "| %1$-36.36s | %2$-30.30s | %3$-30.30s | %4$-30.30s | %5$-30.30s |";
 
     public static final int CLIENT_API_PORT = 5671;
     public static final int CLIENT_API_BASE_PORT = 5670;
@@ -357,9 +368,87 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
             final String sourceName = statusEntity.getConnectionStatus().getSourceName();
             final String destinationName = statusEntity.getConnectionStatus().getDestinationName();
             logEverySecond("Current Queue Size for Connection from {} to {} = {}, Waiting for {}", sourceName, destinationName, currentSize, queueSizeDescription);
+            logQueueSizesEveryMinute();
 
-            return test.test(currentSize);
+            final boolean matched = test.test(currentSize);
+            if (matched) {
+                resetQueueSizeLogging();
+            }
+
+            return matched;
         });
+    }
+
+    private void resetQueueSizeLogging() {
+        lastLogTimestamps.remove(QUEUE_SIZE_LOGGING_KEY);
+    }
+
+    private void logQueueSizesEveryMinute() {
+        // If we haven't yet logged queue sizes, add entry
+        final Long lastLogTime = lastLogTimestamps.get(QUEUE_SIZE_LOGGING_KEY);
+        if (lastLogTime == null) {
+            lastLogTimestamps.put(QUEUE_SIZE_LOGGING_KEY, System.currentTimeMillis());
+            return;
+        }
+
+        // If it's not been at least 10 seconds, don't log again
+        if (System.currentTimeMillis() < lastLogTime + TimeUnit.SECONDS.toMillis(10)) {
+            return;
+        }
+
+        // Record the current time and log
+        lastLogTimestamps.put(QUEUE_SIZE_LOGGING_KEY, System.currentTimeMillis());
+
+        try {
+            logQueueSizes();
+        } catch (final Exception e) {
+            logger.warn("Attempted to obtain queue sizes for logging purposes but failed to obtain queue sizes", e);
+        }
+    }
+
+    private void logQueueSizes() throws NiFiClientException, IOException {
+        final ProcessGroupStatusEntity groupStatusEntity = getNifiClient().getFlowClient().getProcessGroupStatus("root", true);
+        final ProcessGroupStatusSnapshotDTO groupStatusDto = groupStatusEntity.getProcessGroupStatus().getAggregateSnapshot();
+
+        final List<ConnectionStatusSnapshotEntity> connectionStatuses = new ArrayList<>();
+        gatherConnectionStatuses(groupStatusDto, connectionStatuses);
+
+        logger.info("Dump of Queue Sizes:");
+        final String headerLine = String.format(QUEUE_SIZES_FORMAT,
+            "Group ID",
+            "Source Name",
+            "Destination Name",
+            "Connection Name",
+            "Queued");
+        logger.info(headerLine);
+
+        for (final ConnectionStatusSnapshotEntity connectionStatus : connectionStatuses) {
+            final ConnectionStatusSnapshotDTO statusSnapshotDto = connectionStatus.getConnectionStatusSnapshot();
+            if (statusSnapshotDto == null) {
+                continue;
+            }
+
+            final String formatted = String.format(QUEUE_SIZES_FORMAT,
+                statusSnapshotDto.getGroupId(),
+                statusSnapshotDto.getSourceName(),
+                statusSnapshotDto.getDestinationName(),
+                statusSnapshotDto.getName(),
+                statusSnapshotDto.getQueued());
+            logger.info(formatted);
+        }
+
+    }
+
+    private void gatherConnectionStatuses(final ProcessGroupStatusSnapshotDTO groupStatusSnapshotDto, final List<ConnectionStatusSnapshotEntity> connectionStatuses) {
+        if (groupStatusSnapshotDto == null) {
+            return;
+        }
+
+        connectionStatuses.addAll(groupStatusSnapshotDto.getConnectionStatusSnapshots());
+
+        for (final ProcessGroupStatusSnapshotEntity childStatusEntity : groupStatusSnapshotDto.getProcessGroupStatusSnapshots()) {
+            gatherConnectionStatuses(childStatusEntity.getProcessGroupStatusSnapshot(), connectionStatuses);
+        }
     }
 
     private void logEverySecond(final String message, final Object... args) {

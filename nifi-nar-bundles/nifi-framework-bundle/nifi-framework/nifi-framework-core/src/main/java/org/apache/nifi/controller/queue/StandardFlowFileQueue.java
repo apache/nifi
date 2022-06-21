@@ -175,7 +175,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
     @Override
     public boolean isEmpty() {
-        return queue.getFlowFileQueueSize().isEmpty();
+        return queue.isEmpty();
     }
 
     @Override
