@@ -528,7 +528,7 @@
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>apache-jsp</artifactId>
-                <version>${jetty.version}</version>
+                <version>11.0.9</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
