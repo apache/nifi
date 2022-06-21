@@ -124,7 +124,7 @@
         <surefire.version>3.0.0-M7</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
-        <hadoop.version>3.3.2</hadoop.version>
+        <hadoop.version>3.3.3</hadoop.version>
         <ozone.version>1.2.1</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
@@ -895,6 +895,7 @@
                                         <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
                                         <!-- SLF4J routing to Log4j 1.2 is a runtime implementation that conflicts with Logback -->
                                         <exclude>org.slf4j:slf4j-log4j12</exclude>
+                                        <exclude>org.slf4j:slf4j-reload4j</exclude>
                                         <!-- Log4J excluded in favor of log4j-over-slf4j and logback -->
                                         <exclude>log4j:log4j:*</exclude>
                                         <!-- Log4j 2 log4j-core excluded in favor of log4j-to-slf4j routing to logback -->

@@ -41,6 +41,29 @@
                 <artifactId>nifi-accumulo-processors</artifactId>
                 <version>1.17.0-SNAPSHOT</version>
             </dependency>
+            <!-- Override Hadoop from accumulo-core -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-api</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client-runtime</artifactId>
+                <version>${hadoop.version}</version>
+            </dependency>
+            <!-- Override Guava from accumulo-core -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>31.1-jre</version>
+            </dependency>
+            <!-- Override ZooKeeper from accumulo-core -->
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>${zookeeper.version}</version>
+            </dependency>
             <!-- Override commons-configuration2:2.5 from accumulo-core -->
             <dependency>
                 <groupId>org.apache.commons</groupId>
