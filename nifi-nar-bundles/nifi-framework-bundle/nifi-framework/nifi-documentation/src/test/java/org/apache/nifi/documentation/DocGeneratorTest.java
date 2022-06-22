@@ -19,101 +19,87 @@ package org.apache.nifi.documentation;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.documentation.example.ProcessorWithLogger;
+import org.apache.nifi.nar.ExtensionDefinition;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoadersHolder;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.nar.NarUnpackMode;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Properties;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
 public class DocGeneratorTest {
+    private static final Class<ProcessorWithLogger> PROCESSOR_CLASS = ProcessorWithLogger.class;
+
+    private static final String[] HTML_EXTENSIONS = new String[]{"html"};
+
+    private static final boolean RECURSIVE_ENABLED = true;
+
+    @Mock
+    ExtensionManager extensionManager;
 
     @Test
-    public void testProcessorLoadsNarResources() throws IOException, ClassNotFoundException {
-        TemporaryFolder temporaryFolder = new TemporaryFolder();
-        temporaryFolder.create();
+    void testGenerateExtensionsNotFound(@TempDir final File workingDirectory) {
+        final NiFiProperties properties = getProperties(workingDirectory);
+        final ExtensionMapping extensionMapping = new ExtensionMapping();
 
-        NiFiProperties properties = loadSpecifiedProperties("/conf/nifi.properties",
-                NiFiProperties.COMPONENT_DOCS_DIRECTORY,
-                temporaryFolder.getRoot().getAbsolutePath());
+        DocGenerator.generate(properties, extensionManager, extensionMapping);
 
-        final Bundle systemBundle = SystemBundle.create(properties);
-        final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle, NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
-
-        NarClassLoadersHolder.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
-
-        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
-        extensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
-
-        DocGenerator.generate(properties, extensionManager, mapping);
-
-        final String extensionClassName = "org.apache.nifi.processors.WriteResourceToStream";
-        final BundleCoordinate coordinate = mapping.getProcessorNames().get(extensionClassName).stream().findFirst().get();
-        final String path = coordinate.getGroup() + "/" + coordinate.getId() + "/" + coordinate.getVersion() + "/" + extensionClassName;
-        File processorDirectory = new File(temporaryFolder.getRoot(), path);
-        File indexHtml = new File(processorDirectory, "index.html");
-        Assert.assertTrue(indexHtml + " should have been generated", indexHtml.exists());
-        String generatedHtml = FileUtils.readFileToString(indexHtml, Charset.defaultCharset());
-        Assert.assertNotNull(generatedHtml);
-        Assert.assertTrue(generatedHtml.contains("This example processor loads a resource from the nar and writes it to the FlowFile content"));
-        Assert.assertTrue(generatedHtml.contains("files that were successfully processed"));
-        Assert.assertTrue(generatedHtml.contains("files that were not successfully processed"));
-        Assert.assertTrue(generatedHtml.contains("resources"));
+        final Collection<File> files = FileUtils.listFiles(workingDirectory, HTML_EXTENSIONS, RECURSIVE_ENABLED);
+        assertTrue(files.isEmpty());
     }
 
-    private NiFiProperties loadSpecifiedProperties(final String propertiesFile, final String key, final String value) {
-        String file = DocGeneratorTest.class.getResource(propertiesFile).getFile();
+    @Test
+    void testGenerateProcessor(@TempDir final File workingDirectory) throws IOException {
+        final NiFiProperties properties = getProperties(workingDirectory);
+        final ExtensionMapping extensionMapping = new ExtensionMapping();
 
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
+        final BundleCoordinate bundleCoordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+        final BundleDetails bundleDetails = new BundleDetails.Builder().workingDir(workingDirectory).coordinate(bundleCoordinate).build();
+        final Bundle bundle = new Bundle(bundleDetails, getClass().getClassLoader());
+        final ExtensionDefinition definition = new ExtensionDefinition(PROCESSOR_CLASS.getName(), bundle, Processor.class);
+        final Set<ExtensionDefinition> extensions = Collections.singleton(definition);
+        when(extensionManager.getExtensions(eq(Processor.class))).thenReturn(extensions);
+        doReturn(PROCESSOR_CLASS).when(extensionManager).getClass(eq(definition));
 
-        final Properties props = new Properties();
-        InputStream inStream = null;
-        try {
-            inStream = new BufferedInputStream(new FileInputStream(file));
-            props.load(inStream);
-        } catch (final Exception ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex);
-        } finally {
-            if (null != inStream) {
-                try {
-                    inStream.close();
-                } catch (final Exception ex) {
-                    /**
-                     * do nothing *
-                     */
-                }
-            }
-        }
+        final Processor processor = new ProcessorWithLogger();
+        when(extensionManager.getTempComponent(eq(PROCESSOR_CLASS.getName()), eq(bundleCoordinate))).thenReturn(processor);
 
-        if (key != null && value != null) {
-            props.setProperty(key, value);
-        }
+        DocGenerator.generate(properties, extensionManager, extensionMapping);
 
-        return new NiFiProperties() {
-            @Override
-            public String getProperty(String key) {
-                return props.getProperty(key);
-            }
+        final Collection<File> files = FileUtils.listFiles(workingDirectory, HTML_EXTENSIONS, RECURSIVE_ENABLED);
+        assertFalse(files.isEmpty());
 
-            @Override
-            public Set<String> getPropertyKeys() {
-                return props.stringPropertyNames();
-            }
-        };
+        final File file = files.iterator().next();
+        final byte[] bytes = Files.readAllBytes(file.toPath());
+        final String html = new String(bytes, StandardCharsets.UTF_8);
+
+        assertTrue(html.contains(PROCESSOR_CLASS.getSimpleName()));
+    }
+
+    private NiFiProperties getProperties(final File workingDirectory) {
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, workingDirectory.getAbsolutePath());
+        return NiFiProperties.createBasicNiFiProperties(null, properties);
     }
 }
