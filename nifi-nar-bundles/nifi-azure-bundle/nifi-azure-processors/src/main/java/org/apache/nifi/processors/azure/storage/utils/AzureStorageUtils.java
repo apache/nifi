@@ -321,7 +321,7 @@ public final class AzureStorageUtils {
      *
      * Creates the {@link ProxyOptions proxy options} that {@link HttpClient} will use.
      *
-     * @param propertyContext is sed to supply Proxy configurations
+     * @param propertyContext to supply Proxy configurations
      * @return {@link ProxyOptions proxy options}, null if Proxy is not set
      */
     public static ProxyOptions getProxyOptions(final PropertyContext propertyContext) {
@@ -342,7 +342,7 @@ public final class AzureStorageUtils {
             return proxyOptions;
         }
 
-         return null;
+        return null;
     }
 
     private static ProxyOptions.Type getProxyType(ProxyConfiguration proxyConfiguration) {

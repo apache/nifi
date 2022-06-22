@@ -98,7 +98,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootRecursive() throws Exception {
+    public void testListRootRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
 
         runProcessor();
@@ -131,7 +131,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootNonRecursive() throws Exception {
+    public void testListRootNonRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
 
@@ -152,7 +152,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryRecursive() throws Exception {
+    public void testListSubdirectoryRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
 
         runProcessor();
@@ -173,7 +173,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryNonRecursive() throws Exception {
+    public void testListSubdirectoryNonRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
 
@@ -194,7 +194,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilter() throws Exception {
+    public void testListWithFileFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file1.*$");
 
@@ -218,7 +218,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilterWithEL() throws Exception {
+    public void testListWithFileFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*file${suffix}$");
         runner.setVariable("suffix", "1.*");
@@ -244,7 +244,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithPathFilter() throws Exception {
+    public void testListRootWithPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
 
@@ -267,7 +267,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithPathFilterWithEL() throws Exception {
+    public void testListRootWithPathFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
         runner.setVariable("prefix", "^dir");
@@ -294,7 +294,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryWithPathFilter() throws Exception {
+    public void testListSubdirectoryWithPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
 
@@ -315,7 +315,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithFileAndPathFilter() throws Exception {
+    public void testListRootWithFileAndPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*11");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
@@ -339,7 +339,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListEmptyDirectory() throws Exception {
+    public void testListEmptyDirectory() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir3");
 
         runProcessor();
@@ -401,7 +401,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithMinAge() throws Exception {
+    public void testListWithMinAge() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MIN_AGE, "1 hour");
 
@@ -422,7 +422,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithMaxAge() throws Exception {
+    public void testListWithMaxAge() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MAX_AGE, "1 hour");
 
@@ -447,7 +447,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithMinSize() throws Exception {
+    public void testListWithMinSize() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MIN_SIZE, "5 B");
 
@@ -471,7 +471,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithMaxSize() throws Exception {
+    public void testListWithMaxSize() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.MAX_SIZE, "5 B");
 
@@ -496,7 +496,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.run();
     }
 
-    private void assertSuccess(String... testFilePaths) throws Exception {
+    private void assertSuccess(String... testFilePaths) {
         runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, testFilePaths.length);
 
         Map<String, TestFile> expectedFiles = new HashMap<>(testFiles);
