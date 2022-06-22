@@ -43,7 +43,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
+import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -66,7 +69,6 @@ import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProce
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.TEMP_FILE_DIRECTORY;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.evaluateFileSystemProperty;
-import static org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor.getStorageClient;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_ETAG;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
@@ -170,6 +172,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
 
+    private StorageClientFactory storageClientFactory;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -179,12 +183,14 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     public void onScheduled(final ProcessContext context) {
         filePattern = getPattern(context, FILE_FILTER);
         pathPattern = getPattern(context, PATH_FILTER);
+        storageClientFactory = new StorageClientFactory();
     }
 
     @OnStopped
     public void onStopped() {
         filePattern = null;
         pathPattern = null;
+        storageClientFactory = null;
     }
 
     @Override
@@ -254,6 +260,10 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
         return attributes;
     }
 
+    public StorageClientFactory getStorageClientFactory() {
+        return storageClientFactory;
+    }
+
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
                                               final boolean applyFilters) throws IOException {
         try {
@@ -264,7 +274,11 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             final Pattern filePattern = listingMode == ListingMode.EXECUTION ? this.filePattern : getPattern(context, FILE_FILTER);
             final Pattern pathPattern = listingMode == ListingMode.EXECUTION ? this.pathPattern : getPattern(context, PATH_FILTER);
 
-            final DataLakeServiceClient storageClient = getStorageClient(context, null);
+            final ADLSCredentialsService credentialsService = context.getProperty(ADLS_CREDENTIALS_SERVICE).asControllerService(ADLSCredentialsService.class);
+
+            final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
+
+            final DataLakeServiceClient storageClient = storageClientFactory.getStorageClient(AzureStorageUtils.getProxyOptions(context), credentialsDetails);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
             final ListPathsOptions options = new ListPathsOptions();

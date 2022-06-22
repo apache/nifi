@@ -26,6 +26,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockComponentLog;
@@ -47,6 +48,8 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -296,6 +299,33 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         assertThrows(DataLakeStorageException.class, () -> processor.renameFile(FILE_NAME, "", fileClient, false));
         verify(fileClient).delete();
+    }
+
+    @Test
+    public void testStorageClientCreatedOnce() {
+        // override property from this@BeforeEach
+        runner.setProperty(PutAzureDataLakeStorage.FILE, "${filename}");
+
+        assertNull(((PutAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory());
+
+        runner.assertValid();
+        runner.enqueue(FILE_DATA, Collections.emptyMap());
+        runner.enqueue(FILE_DATA, Collections.emptyMap());
+        runner.enqueue(FILE_DATA, Collections.emptyMap());
+        runner.run(3, false);
+
+        runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 3);
+
+        StorageClientFactory storageClientFactory = ((PutAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
+
+        assertNotNull(storageClientFactory);
+
+        storageClientFactory.getCache().cleanUp();
+        assertEquals(1, storageClientFactory.getCache().estimatedSize());
+
+        runner.stop();
+
+        assertNull(((PutAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory());
     }
 
     private Map<String, String> createAttributesMap() {
