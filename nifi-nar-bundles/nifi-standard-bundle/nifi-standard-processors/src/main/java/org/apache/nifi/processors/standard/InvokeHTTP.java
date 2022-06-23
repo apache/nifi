@@ -73,6 +73,9 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.BufferedSink;
+import okio.GzipSink;
+import okio.Okio;
+import okio.Source;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
@@ -103,6 +106,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
@@ -186,6 +190,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
     private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
+    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
 
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
@@ -327,6 +332,15 @@ public class InvokeHTTP extends AbstractProcessor {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor PROP_CONTENT_ENCODING = new PropertyDescriptor.Builder()
+            .name("Content-Encoding")
+            .displayName("Content-Encoding")
+            .description("HTTP Content-Encoding applied to request body during transmission. The receiving server must support the selected encoding to avoid request failures.")
+            .required(true)
+            .defaultValue(ContentEncodingStrategy.DISABLED.getValue())
+            .allowableValues(ContentEncodingStrategy.class)
             .build();
 
     public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
@@ -564,6 +578,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_DIGEST_AUTH,
             PROP_OUTPUT_RESPONSE_REGARDLESS,
             PROP_ADD_HEADERS_TO_REQUEST,
+            PROP_CONTENT_ENCODING,
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
@@ -1112,6 +1127,12 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
+        final String contentEncoding = context.getProperty(PROP_CONTENT_ENCODING).getValue();
+        final ContentEncodingStrategy contentEncodingStrategy = ContentEncodingStrategy.valueOf(contentEncoding);
+        if (ContentEncodingStrategy.GZIP == contentEncodingStrategy) {
+            requestBuilder.addHeader(CONTENT_ENCODING_HEADER, ContentEncodingStrategy.GZIP.getValue().toLowerCase());
+        }
+
         // set the request method
         String method = trimToEmpty(context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile).getValue()).toUpperCase();
         switch (method) {
@@ -1119,15 +1140,15 @@ public class InvokeHTTP extends AbstractProcessor {
                 requestBuilder.get();
                 break;
             case POST_METHOD:
-                RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile);
+                RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
                 requestBuilder.post(requestBody);
                 break;
             case PUT_METHOD:
-                requestBody = getRequestBodyToSend(session, context, requestFlowFile);
+                requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
                 requestBuilder.put(requestBody);
                 break;
             case PATCH_METHOD:
-                requestBody = getRequestBodyToSend(session, context, requestFlowFile);
+                requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
                 requestBuilder.patch(requestBody);
                 break;
             case HEAD_METHOD:
@@ -1149,8 +1170,9 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context,
-                                             final FlowFile requestFlowFile) {
-
+                                             final FlowFile requestFlowFile,
+                                             final ContentEncodingStrategy contentEncodingStrategy
+    ) {
         boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
 
         String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
@@ -1168,6 +1190,7 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
+        final boolean contentLengthUnknown = useChunked || ContentEncodingStrategy.GZIP == contentEncodingStrategy;
         RequestBody requestBody = new RequestBody() {
             @Nullable
             @Override
@@ -1176,13 +1199,25 @@ public class InvokeHTTP extends AbstractProcessor {
             }
 
             @Override
-            public void writeTo(BufferedSink sink) {
-                session.exportTo(requestFlowFile, sink.outputStream());
+            public void writeTo(final BufferedSink sink) throws IOException {
+                final BufferedSink outputSink = (ContentEncodingStrategy.GZIP == contentEncodingStrategy)
+                        ? Okio.buffer(new GzipSink(sink))
+                        : sink;
+
+                session.read(requestFlowFile, inputStream -> {
+                    final Source source = Okio.source(inputStream);
+                    outputSink.writeAll(source);
+                });
+
+                // Close Output Sink for gzip to write trailing bytes
+                if (ContentEncodingStrategy.GZIP == contentEncodingStrategy) {
+                    outputSink.close();
+                }
             }
 
             @Override
             public long contentLength() {
-                return useChunked ? -1 : requestFlowFile.getSize();
+                return contentLengthUnknown ? -1 : requestFlowFile.getSize();
             }
         };
 

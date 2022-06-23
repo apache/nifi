@@ -101,6 +101,7 @@ public class ListenHTTPServlet extends HttpServlet {
     public static final String GZIPPED_HEADER = "flowfile-gzipped";
     public static final String PROTOCOL_VERSION_HEADER = "x-nifi-transfer-protocol-version";
     public static final String PROTOCOL_VERSION = "3";
+    protected static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
 
     private final AtomicLong filesReceived = new AtomicLong(0L);
     private final AtomicBoolean spaceAvailable = new AtomicBoolean(true);
@@ -193,7 +194,10 @@ public class ListenHTTPServlet extends HttpServlet {
             }
             response.setHeader("Content-Type", MediaType.TEXT_PLAIN);
 
-            final boolean contentGzipped = Boolean.parseBoolean(request.getHeader(GZIPPED_HEADER));
+            final boolean flowFileGzipped = Boolean.parseBoolean(request.getHeader(GZIPPED_HEADER));
+            final String contentEncoding = request.getHeader(CONTENT_ENCODING_HEADER);
+            final boolean contentEncodingGzip = ACCEPT_ENCODING_VALUE.equals(contentEncoding);
+            final boolean contentGzipped = flowFileGzipped || contentEncodingGzip;
 
             final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
             foundSubject = DEFAULT_FOUND_SUBJECT;
