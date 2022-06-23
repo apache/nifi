@@ -39,7 +39,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.client.api.C2Serializer;
+import org.apache.nifi.c2.serializer.C2Serializer;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;

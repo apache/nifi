@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.c2.client.api;
+package org.apache.nifi.c2.serializer;
 
 import java.util.Optional;
 
