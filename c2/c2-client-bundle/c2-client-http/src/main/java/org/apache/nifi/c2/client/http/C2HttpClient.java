@@ -50,6 +50,7 @@ public class C2HttpClient implements C2Client {
 
     private static final Logger logger = LoggerFactory.getLogger(C2HttpClient.class);
     private static final MediaType MEDIA_TYPE_APPLICATION_JSON = MediaType.parse("application/json");
+    static final int HTTP_STATUS_BAD_REQUEST = 400;
 
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();
     private final C2ClientConfig clientConfig;
@@ -89,6 +90,45 @@ public class C2HttpClient implements C2Client {
     @Override
     public Optional<C2HeartbeatResponse> publishHeartbeat(C2Heartbeat heartbeat) {
         return serializer.serialize(heartbeat).flatMap(this::sendHeartbeat);
+    }
+
+    @Override
+    public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
+        final Request.Builder requestBuilder = new Request.Builder()
+            .get()
+            .url(flowUpdateUrl);
+        final Request request = requestBuilder.build();
+
+        Optional<ResponseBody> body;
+        try (Response response = httpClientReference.get().newCall(request).execute()) {
+            int code = response.code();
+            body = Optional.ofNullable(response.body());
+
+            if (code >= HTTP_STATUS_BAD_REQUEST) {
+                StringBuilder messageBuilder = new StringBuilder(String.format("Configuration retrieval failed: HTTP %d", code));
+                body.map(Object::toString).ifPresent(messageBuilder::append);
+                throw new C2ServerException(messageBuilder.toString());
+            }
+
+            if (!body.isPresent()) {
+                logger.warn("No body returned when pulling a new configuration");
+                return Optional.empty();
+            }
+
+            return Optional.of(body.get().bytes());
+        } catch (Exception e) {
+            logger.warn("Configuration retrieval failed", e);
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void acknowledgeOperation(C2OperationAck operationAck) {
+        logger.info("Performing acknowledgement request to {} for operation {}", clientConfig.getC2AckUrl(), operationAck.getOperationId());
+        serializer.serialize(operationAck)
+            .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
+            .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
+            .ifPresent(this::sendAck);
     }
 
     private Optional<C2HeartbeatResponse> sendHeartbeat(String heartbeat) {
@@ -196,44 +236,6 @@ public class C2HttpClient implements C2Client {
         if (type == null || type.isEmpty()) {
             throw new IllegalArgumentException("The client's truststore filename is set but its type is not (or is empty). If the location is set, the type must also be.");
         }
-    }
-
-    @Override
-    public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
-        final Request.Builder requestBuilder = new Request.Builder()
-                .get()
-                .url(flowUpdateUrl);
-        final Request request = requestBuilder.build();
-
-        ResponseBody body;
-        try (final Response response = httpClientReference.get().newCall(request).execute()) {
-            int code = response.code();
-            if (code >= 400) {
-                final String message = String.format("Configuration retrieval failed: HTTP %d %s", code, response.body().string());
-                throw new IOException(message);
-            }
-
-            body = response.body();
-
-            if (body == null) {
-                logger.warn("No body returned when pulling a new configuration");
-                return Optional.empty();
-            }
-
-            return Optional.of(body.bytes());
-        } catch (Exception e) {
-            logger.warn("Configuration retrieval failed", e);
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public void acknowledgeOperation(C2OperationAck operationAck) {
-        logger.info("Performing acknowledgement request to {} for operation {}", clientConfig.getC2AckUrl(), operationAck.getOperationId());
-        serializer.serialize(operationAck)
-            .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
-            .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
-            .ifPresent(this::sendAck);
     }
 
     private void sendAck(Request request) {
