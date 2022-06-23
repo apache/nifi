@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.c2.client;
 
-import org.apache.nifi.c2.client.api.IdGenerator;
 import org.apache.nifi.c2.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

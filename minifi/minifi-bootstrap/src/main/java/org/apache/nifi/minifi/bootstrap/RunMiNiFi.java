@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.command.CommandRunnerFactory;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;

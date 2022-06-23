@@ -14,21 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.apache.nifi.c2.client.api;
-
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicReference;
+package org.apache.nifi.c2.client;
 
 /**
- * Should be implemented by the class which bootstraps the agent.
+ * Id generator to be used in case user is not providing an optional id
  */
-public interface ConfigurationFileHolder {
+public interface IdGenerator {
 
     /**
-     * Retrieve the reference to the config file
+     * Generate a random id
      *
-     * @return config file reference
+     * @return the generated id
      */
-    AtomicReference<ByteBuffer> getConfigFileReference();
+    String generate();
 }

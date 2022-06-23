@@ -17,8 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.differentiators;
 
-import org.apache.nifi.c2.client.api.ConfigurationFileHolder;
-import org.apache.nifi.c2.client.api.Differentiator;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

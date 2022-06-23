@@ -15,32 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.c2.client.api;
+package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
-import java.util.Properties;
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Helper to support differentiating between config files to recognise changes
- *
- * @param <T> the type of the config files
+ * Should be implemented by the class which bootstraps the agent.
  */
-public interface Differentiator <T> {
+public interface ConfigurationFileHolder {
 
     /**
-     * Initialise the differentiator with the initial configuration
+     * Retrieve the reference to the config file
      *
-     * @param properties the properties to be used
-     * @param configurationFileHolder holder for the config file
+     * @return config file reference
      */
-    void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder);
-
-    /**
-     * Determine whether the config file changed
-     *
-     * @param input the conetnt of the new config file
-     * @return true if changed and false if not
-     * @throws IOException when there is a config file reading related error
-     */
-    boolean isNew(T input) throws IOException;
+    AtomicReference<ByteBuffer> getConfigFileReference();
 }

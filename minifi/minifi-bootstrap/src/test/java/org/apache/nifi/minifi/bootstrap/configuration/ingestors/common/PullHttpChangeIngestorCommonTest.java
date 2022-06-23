@@ -17,7 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.common;
 
-import org.apache.nifi.c2.client.api.Differentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
