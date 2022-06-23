@@ -19,10 +19,13 @@ package org.apache.nifi.processors.standard;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import okio.Buffer;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
 import org.apache.nifi.reporting.InitializationException;
@@ -44,6 +47,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -55,6 +59,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.zip.GZIPInputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -100,6 +105,8 @@ public class InvokeHTTPTest {
     private static final String AUTHORIZATION_HEADER = "Authorization";
 
     private static final String CONTENT_LENGTH_HEADER = "Content-Length";
+
+    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
 
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
 
@@ -521,7 +528,7 @@ public class InvokeHTTPTest {
         final String authorization = request.getHeader(AUTHORIZATION_HEADER);
         assertNotNull(authorization, "Authorization Header not found");
 
-        final Pattern basicAuthPattern = Pattern.compile("^Basic [^\\s]+$");
+        final Pattern basicAuthPattern = Pattern.compile("^Basic \\S+$");
         assertTrue(basicAuthPattern.matcher(authorization).matches(), "Basic Authentication not matched");
     }
 
@@ -721,6 +728,31 @@ public class InvokeHTTPTest {
     public void testRunPostHttp200Success() throws InterruptedException {
         runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
         assertRequestMethodSuccess(POST_METHOD);
+    }
+
+    @Test
+    public void testRunPostHttp200SuccessContentEncodingGzip() throws InterruptedException, IOException {
+        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
+        runner.setProperty(InvokeHTTP.PROP_CONTENT_ENCODING, ContentEncodingStrategy.GZIP.getValue());
+        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, Boolean.TRUE.toString());
+
+        enqueueResponseCodeAndRun(HTTP_OK);
+
+        assertResponseSuccessRelationships();
+        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+
+        final RecordedRequest request = takeRequestCompleted();
+        final String contentLength = request.getHeader(CONTENT_LENGTH_HEADER);
+        assertNull(contentLength, "Content-Length Request Header found");
+
+        final String contentEncoding = request.getHeader(CONTENT_ENCODING_HEADER);
+        assertEquals(ContentEncodingStrategy.GZIP.getValue().toLowerCase(), contentEncoding);
+
+        final Buffer body = request.getBody();
+        try (final GZIPInputStream gzipInputStream = new GZIPInputStream(body.inputStream())) {
+            final String decompressed = IOUtils.toString(gzipInputStream, StandardCharsets.UTF_8);
+            assertEquals(FLOW_FILE_CONTENT, decompressed);
+        }
     }
 
     @Test
