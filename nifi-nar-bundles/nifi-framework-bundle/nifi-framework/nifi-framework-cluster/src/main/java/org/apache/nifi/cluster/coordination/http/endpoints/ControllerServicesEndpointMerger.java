@@ -54,13 +54,7 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
             final Set<ControllerServiceEntity> nodeControllerServiceEntities = nodeResponseEntity.getControllerServices();
 
             for (final ControllerServiceEntity nodeControllerServiceEntity : nodeControllerServiceEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ControllerServiceEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeControllerServiceEntity.getId(), innerMap);
-                }
-
+                Map<NodeIdentifier, ControllerServiceEntity> innerMap = entityMap.computeIfAbsent(nodeControllerServiceEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeControllerServiceEntity);
             }
         }

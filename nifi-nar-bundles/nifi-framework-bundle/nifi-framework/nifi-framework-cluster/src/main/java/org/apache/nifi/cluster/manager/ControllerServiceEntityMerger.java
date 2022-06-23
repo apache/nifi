@@ -36,6 +36,17 @@ import java.util.stream.Collectors;
 
 public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
+    @Override
+    public void merge(ControllerServiceEntity clientEntity, Map<NodeIdentifier, ControllerServiceEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        for (Map.Entry<NodeIdentifier, ControllerServiceEntity> entry : entityMap.entrySet()) {
+            final ControllerServiceEntity entityStatus = entry.getValue();
+            if (clientEntity != entityStatus) {
+                StatusMerger.merge(clientEntity.getStatus(), entry.getValue().getStatus());
+            }
+        }
+    }
+
     /**
      * Merges the ControllerServiceEntity responses.
      *

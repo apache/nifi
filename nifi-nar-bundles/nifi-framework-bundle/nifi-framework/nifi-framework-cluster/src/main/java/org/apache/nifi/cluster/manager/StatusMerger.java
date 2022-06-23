@@ -17,6 +17,8 @@
 
 package org.apache.nifi.cluster.manager;
 
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.RunStatus;
@@ -41,6 +43,7 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusPredictionsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.NodePortStatusSnapshotDTO;
@@ -55,6 +58,7 @@ import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ReportingTaskStatusDTO;
 import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.PortStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
@@ -1015,4 +1019,36 @@ public class StatusMerger {
         return formatCount(count) + " (" + formatDataSize(bytes) + ")";
     }
 
+    public static void merge(final ControllerServiceStatusDTO target, final ControllerServiceStatusDTO toMerge) {
+        if (target == null || toMerge == null) {
+            return;
+        }
+
+        // RunStatus for ControllerServiceStatusDTO can be one of [ENABLED, ENABLING, DISABLED, DISABLING]
+        if (ControllerServiceState.DISABLING.name().equalsIgnoreCase(toMerge.getRunStatus())) {
+            target.setRunStatus(ControllerServiceState.DISABLING.name());
+        } else if (ControllerServiceState.ENABLING.name().equalsIgnoreCase(toMerge.getRunStatus())) {
+            target.setRunStatus(ControllerServiceState.ENABLING.name());
+        }
+
+        if (ValidationStatus.VALIDATING.name().equalsIgnoreCase(toMerge.getValidationStatus())) {
+            target.setValidationStatus(ValidationStatus.VALIDATING.name());
+        } else if (ValidationStatus.INVALID.name().equalsIgnoreCase(toMerge.getRunStatus())) {
+            target.setValidationStatus(ValidationStatus.INVALID.name());
+        }
+    }
+
+    public static void merge(final ReportingTaskStatusDTO target, final ReportingTaskStatusDTO toMerge) {
+        if (target == null || toMerge == null) {
+            return;
+        }
+
+        target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+
+        if (ValidationStatus.VALIDATING.name().equalsIgnoreCase(toMerge.getValidationStatus())) {
+            target.setValidationStatus(ValidationStatus.VALIDATING.name());
+        } else if (ValidationStatus.INVALID.name().equalsIgnoreCase(toMerge.getRunStatus())) {
+            target.setValidationStatus(ValidationStatus.INVALID.name());
+        }
+    }
 }

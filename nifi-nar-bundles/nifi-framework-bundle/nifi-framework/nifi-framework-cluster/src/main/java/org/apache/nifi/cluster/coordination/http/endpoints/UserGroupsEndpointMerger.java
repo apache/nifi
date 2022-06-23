@@ -57,13 +57,7 @@ public class UserGroupsEndpointMerger implements EndpointResponseMerger {
             userGroupEntities.retainAll(nodeUserGroupEntities);
 
             for (final UserGroupEntity nodeUserGroupEntity : nodeUserGroupEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, UserGroupEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeUserGroupEntity.getId(), innerMap);
-                }
-
+                Map<NodeIdentifier, UserGroupEntity> innerMap = entityMap.computeIfAbsent(nodeUserGroupEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeUserGroupEntity);
             }
         }

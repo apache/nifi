@@ -29,6 +29,17 @@ import java.util.stream.Collectors;
 
 public class ReportingTaskEntityMerger implements ComponentEntityMerger<ReportingTaskEntity> {
 
+    @Override
+    public void merge(ReportingTaskEntity clientEntity, Map<NodeIdentifier, ReportingTaskEntity> entityMap) {
+        ComponentEntityMerger.super.merge(clientEntity, entityMap);
+        for (Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
+            final ReportingTaskEntity entityStatus = entry.getValue();
+            if (clientEntity != entityStatus) {
+                StatusMerger.merge(clientEntity.getStatus(), entityStatus.getStatus());
+            }
+        }
+    }
+
     /**
      * Merges the ReportingTaskEntity responses.
      *

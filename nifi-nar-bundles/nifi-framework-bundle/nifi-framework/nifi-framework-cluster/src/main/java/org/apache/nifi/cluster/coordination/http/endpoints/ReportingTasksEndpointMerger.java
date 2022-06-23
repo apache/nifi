@@ -52,13 +52,7 @@ public class ReportingTasksEndpointMerger  implements EndpointResponseMerger {
             final Set<ReportingTaskEntity> nodeReportingTaskEntities = nodeResponseEntity.getReportingTasks();
 
             for (final ReportingTaskEntity nodeReportingTaskEntity : nodeReportingTaskEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ReportingTaskEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeReportingTaskEntity.getId(), innerMap);
-                }
-
+                Map<NodeIdentifier, ReportingTaskEntity> innerMap = entityMap.computeIfAbsent(nodeReportingTaskEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeReportingTaskEntity);
             }
         }
