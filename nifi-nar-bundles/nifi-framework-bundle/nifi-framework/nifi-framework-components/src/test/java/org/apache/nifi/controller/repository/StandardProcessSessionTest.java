@@ -59,7 +59,7 @@ class StandardProcessSessionTest {
 
     private static final long BYTES_READ = CONTENT.length;
 
-    private static final long BYTES_WRITTEN = BYTES_READ * 2;
+    private static final long BYTES_WRITTEN = CONTENT.length;
 
     @Mock
     RepositoryContext repositoryContext;
@@ -118,7 +118,7 @@ class StandardProcessSessionTest {
         session.remove(flowFile);
         session.commit();
 
-        assertFlowFileEventMatched(EXPECTED_BYTES, EXPECTED_BYTES);
+        assertFlowFileEventMatched(EXPECTED_BYTES, 0);
     }
 
     @Test
