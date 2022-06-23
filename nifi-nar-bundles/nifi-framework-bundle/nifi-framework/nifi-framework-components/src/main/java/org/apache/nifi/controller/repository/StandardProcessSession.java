@@ -3644,6 +3644,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     throw cnfe;
                 } finally {
                     decrementReadCount(source);
+                    final long streamBytesRead = countingStream.getBytesRead();
+                    bytesRead += streamBytesRead;
+                    // Increment bytes written to destination based on bytes read
+                    bytesWritten += streamBytesRead;
 
                     // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
                     if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
