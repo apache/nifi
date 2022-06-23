@@ -3611,7 +3611,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             claimCache.flush(record.getCurrentClaim());
             final long copyCount = context.getContentRepository().exportTo(record.getCurrentClaim(), destination, append, record.getCurrentClaimOffset(), source.getSize());
             bytesRead += copyCount;
-            bytesWritten += copyCount;
         } catch (final ContentNotFoundException nfe) {
             handleContentNotFound(nfe, record);
         } catch (final Throwable t) {
@@ -3657,6 +3656,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     throw cnfe;
                 } finally {
                     decrementReadCount(source);
+                    final long streamBytesRead = countingStream.getBytesRead();
+                    bytesRead += streamBytesRead;
 
                     // if cnfeThrown is true, we don't need to re-throw the Exception; it will propagate.
                     if (!cnfeThrown && ffais.getContentNotFoundException() != null) {
