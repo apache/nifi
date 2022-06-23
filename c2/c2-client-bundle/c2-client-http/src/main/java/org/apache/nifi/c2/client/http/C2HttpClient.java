@@ -91,6 +91,44 @@ public class C2HttpClient implements C2Client {
         return serializer.serialize(heartbeat).flatMap(this::sendHeartbeat);
     }
 
+    @Override
+    public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
+        Optional<byte[]> updateContent = Optional.empty();
+        final Request.Builder requestBuilder = new Request.Builder()
+            .get()
+            .url(flowUpdateUrl);
+        final Request request = requestBuilder.build();
+
+        try (Response response = httpClientReference.get().newCall(request).execute()) {
+            Optional<ResponseBody> body = Optional.ofNullable(response.body());
+
+            if (!response.isSuccessful()) {
+                StringBuilder messageBuilder = new StringBuilder(String.format("Configuration retrieval failed: HTTP %d", response.code()));
+                body.map(Object::toString).ifPresent(messageBuilder::append);
+                throw new C2ServerException(messageBuilder.toString());
+            }
+
+            if (body.isPresent()) {
+                updateContent = Optional.of(body.get().bytes());
+            } else {
+                logger.warn("No body returned when pulling a new configuration");
+            }
+        } catch (Exception e) {
+            logger.warn("Configuration retrieval failed", e);
+        }
+
+        return updateContent;
+    }
+
+    @Override
+    public void acknowledgeOperation(C2OperationAck operationAck) {
+        logger.info("Acknowledging Operation [{}] C2 URL [{}]", operationAck.getOperationId(), clientConfig.getC2AckUrl());
+        serializer.serialize(operationAck)
+            .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
+            .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
+            .ifPresent(this::sendAck);
+    }
+
     private Optional<C2HeartbeatResponse> sendHeartbeat(String heartbeat) {
         Optional<C2HeartbeatResponse> c2HeartbeatResponse = Optional.empty();
         Request request = new Request.Builder()
@@ -196,44 +234,6 @@ public class C2HttpClient implements C2Client {
         if (type == null || type.isEmpty()) {
             throw new IllegalArgumentException("The client's truststore filename is set but its type is not (or is empty). If the location is set, the type must also be.");
         }
-    }
-
-    @Override
-    public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
-        final Request.Builder requestBuilder = new Request.Builder()
-                .get()
-                .url(flowUpdateUrl);
-        final Request request = requestBuilder.build();
-
-        ResponseBody body;
-        try (final Response response = httpClientReference.get().newCall(request).execute()) {
-            int code = response.code();
-            if (code >= 400) {
-                final String message = String.format("Configuration retrieval failed: HTTP %d %s", code, response.body().string());
-                throw new IOException(message);
-            }
-
-            body = response.body();
-
-            if (body == null) {
-                logger.warn("No body returned when pulling a new configuration");
-                return Optional.empty();
-            }
-
-            return Optional.of(body.bytes());
-        } catch (Exception e) {
-            logger.warn("Configuration retrieval failed", e);
-            return Optional.empty();
-        }
-    }
-
-    @Override
-    public void acknowledgeOperation(C2OperationAck operationAck) {
-        logger.info("Performing acknowledgement request to {} for operation {}", clientConfig.getC2AckUrl(), operationAck.getOperationId());
-        serializer.serialize(operationAck)
-            .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
-            .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())
-            .ifPresent(this::sendAck);
     }
 
     private void sendAck(Request request) {

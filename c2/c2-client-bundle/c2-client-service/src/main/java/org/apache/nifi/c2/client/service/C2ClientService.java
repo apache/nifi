@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.c2.client.service;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.client.service.operation.C2OperationService;
-import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -36,13 +33,11 @@ public class C2ClientService {
     private final C2Client client;
     private final C2HeartbeatFactory c2HeartbeatFactory;
     private final C2OperationService operationService;
-    private final UpdateConfigurationOperationHandler updateConfigurationOperationHandler;
 
-    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, FlowIdHolder flowIdHolder, Function<byte[], Boolean> updateFlow) {
+    public C2ClientService(C2Client client, C2HeartbeatFactory c2HeartbeatFactory, C2OperationService operationService) {
         this.client = client;
         this.c2HeartbeatFactory = c2HeartbeatFactory;
-        this.updateConfigurationOperationHandler = new UpdateConfigurationOperationHandler(client, flowIdHolder, updateFlow);
-        this.operationService = new C2OperationService(Arrays.asList(updateConfigurationOperationHandler));
+        this.operationService = operationService;
     }
 
     public void sendHeartbeat(RuntimeInfoWrapper runtimeInfoWrapper) {

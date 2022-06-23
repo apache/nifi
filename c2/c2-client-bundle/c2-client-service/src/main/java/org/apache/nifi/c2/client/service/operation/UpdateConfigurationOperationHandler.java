@@ -23,6 +23,8 @@ import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 import java.net.URI;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -36,8 +38,9 @@ import org.slf4j.LoggerFactory;
 public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UpdateConfigurationOperationHandler.class);
+    private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/[^/]+?/[^/]+?/[^/]+?/([^/]+)?/?.*");
 
-    private static final String LOCATION = "location";
+    static final String LOCATION = "location";
 
     private final C2Client client;
     private final Function<byte[], Boolean> updateFlow;
@@ -101,10 +104,10 @@ public class UpdateConfigurationOperationHandler implements C2OperationHandler {
     private String parseFlowId(String flowUpdateUrl) {
         try {
             URI flowUri = new URI(flowUpdateUrl);
-            String flowUriPath = flowUri.getPath();
-            String[] split = flowUriPath.split("/");
-            if (split.length > 4) {
-                return split[4];
+            Matcher matcher = FLOW_ID_PATTERN.matcher(flowUri.getPath());
+
+            if (matcher.matches()) {
+                return matcher.group(1);
             } else {
                 throw new IllegalArgumentException(String.format("Flow Update URL format unexpected [%s]", flowUpdateUrl));
             }

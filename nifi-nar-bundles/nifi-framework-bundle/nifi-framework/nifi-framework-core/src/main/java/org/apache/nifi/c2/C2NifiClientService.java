@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Optional;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.http.C2HttpClient;
@@ -28,6 +29,8 @@ import org.apache.nifi.c2.client.service.C2ClientService;
 import org.apache.nifi.c2.client.service.C2HeartbeatFactory;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
+import org.apache.nifi.c2.client.service.operation.C2OperationService;
+import org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.AgentRepositoryStatus;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
@@ -42,7 +45,6 @@ import org.apache.nifi.extension.manifest.parser.jaxb.JAXBExtensionManifestParse
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.nar.ExtensionManagerHolder;
-import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -66,7 +68,6 @@ public class C2NifiClientService {
 
     private final C2ClientService c2ClientService;
 
-    private final FlowService flowService;
     private final FlowController flowController;
     private final String propertiesDir;
     private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
@@ -75,7 +76,7 @@ public class C2NifiClientService {
     private final RuntimeManifestService runtimeManifestService;
     private final long heartbeatPeriod;
 
-    public C2NifiClientService(final NiFiProperties niFiProperties, final FlowService flowService, final FlowController flowController) {
+    public C2NifiClientService(final NiFiProperties niFiProperties, final FlowController flowController) {
         C2ClientConfig clientConfig = generateClientConfig(niFiProperties);
         FlowIdHolder flowIdHolder = new FlowIdHolder(clientConfig.getConfDirectory());
         this.propertiesDir = niFiProperties.getProperty(NiFiProperties.PROPERTIES_FILE_PATH, null);
@@ -86,13 +87,12 @@ public class C2NifiClientService {
             clientConfig.getRuntimeType()
         );
         this.heartbeatPeriod = clientConfig.getHeartbeatPeriod();
-        this.flowService = flowService;
         this.flowController = flowController;
+        C2HttpClient client = new C2HttpClient(clientConfig, new C2JacksonSerializer());
         this.c2ClientService = new C2ClientService(
-            new C2HttpClient(clientConfig, new C2JacksonSerializer()),
+            client,
             new C2HeartbeatFactory(clientConfig, flowIdHolder),
-            flowIdHolder,
-            this::updateFlowContent
+            new C2OperationService(Arrays.asList(new UpdateConfigurationOperationHandler(client, flowIdHolder, this::updateFlowContent)))
         );
     }
 
