@@ -30,7 +30,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.when;
 
-public class HortonworksSchemaRegistryIT {
+public class HortonworksSchemaRegistryTest {
     private HortonworksSchemaRegistry testSubject;
 
     private TestRunner runner;
