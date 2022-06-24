@@ -17,13 +17,22 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.ByteBuffer;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.PullHttpChangeIngestorCommonTest;
+import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
+import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.eclipse.jetty.server.ServerConnector;
 import org.junit.jupiter.api.BeforeAll;
 import org.mockito.Mockito;
-
-import java.util.Properties;
 
 public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest {
 
@@ -50,14 +59,22 @@ public class PullHttpChangeIngestorTest extends PullHttpChangeIngestorCommonTest
 
 
     @Override
-    public void pullHttpChangeIngestorInit(Properties properties) {
+    public void pullHttpChangeIngestorInit(Properties properties) throws IOException, SchemaLoaderException {
         port = ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
         properties.put(PullHttpChangeIngestor.PORT_KEY, String.valueOf(port));
         properties.put(PullHttpChangeIngestor.HOST_KEY, "localhost");
         properties.put(PullHttpChangeIngestor.PULL_HTTP_POLLING_PERIOD_KEY, "30000");
+        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
+        ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
+
+        ConfigSchema configSchema =
+            SchemaLoader.loadConfigSchemaFromYaml(PullHttpChangeIngestorTest.class.getClassLoader().getResourceAsStream("config.yml"));
+        StringWriter writer = new StringWriter();
+        SchemaLoader.toYaml(configSchema, writer);
+        when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(writer.toString().getBytes())));
 
         pullHttpChangeIngestor = new PullHttpChangeIngestor();
-        pullHttpChangeIngestor.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), testNotifier);
+        pullHttpChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);
         pullHttpChangeIngestor.setDifferentiator(mockDifferentiator);
     }
 }

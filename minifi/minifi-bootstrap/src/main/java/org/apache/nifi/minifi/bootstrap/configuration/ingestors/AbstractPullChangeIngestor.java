@@ -17,17 +17,16 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.util.Properties;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.slf4j.Logger;
 
 public abstract class AbstractPullChangeIngestor implements Runnable, ChangeIngestor {
 
@@ -38,12 +37,14 @@ public abstract class AbstractPullChangeIngestor implements Runnable, ChangeInge
     protected final AtomicInteger pollingPeriodMS = new AtomicInteger();
     private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(1);
     protected volatile ConfigurationChangeNotifier configurationChangeNotifier;
+    protected volatile ConfigurationFileHolder configurationFileHolder;
     protected final AtomicReference<Properties> properties = new AtomicReference<>();
 
     @Override
     public void initialize(Properties properties, ConfigurationFileHolder configurationFileHolder, ConfigurationChangeNotifier configurationChangeNotifier) {
         this.configurationChangeNotifier = configurationChangeNotifier;
         this.properties.set(properties);
+        this.configurationFileHolder = configurationFileHolder;
     }
 
     @Override

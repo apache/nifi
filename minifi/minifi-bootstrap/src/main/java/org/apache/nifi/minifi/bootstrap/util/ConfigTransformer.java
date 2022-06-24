@@ -17,10 +17,15 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.OVERRIDE_SECURITY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+
+import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -79,13 +84,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public final class ConfigTransformer {
-    // Underlying version of NIFI will be using
-    public static final String ROOT_GROUP = "Root-Group";
-
+    private static final String OVERRIDE_CORE_PROPERTIES_KEY = PULL_HTTP_BASE_KEY + ".override.core";
     private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigTransformer.class);
 
-    public static final Logger logger = LoggerFactory.getLogger(ConfigTransformer.class);
+    // Underlying version of NIFI will be using
+    public static final String ROOT_GROUP = "Root-Group";
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
@@ -119,19 +124,19 @@ public final class ConfigTransformer {
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {
             configSchemaNew.setSecurityProperties(securityProperties);
-            logger.info("Bootstrap flow override: Replaced security properties");
+            LOGGER.info("Bootstrap flow override: Replaced security properties");
         }
 
         if (provenanceReportingProperties != null) {
             configSchemaNew.setProvenanceReportingProperties(provenanceReportingProperties);
-            logger.info("Bootstrap flow override: Replaced provenance reporting properties");
+            LOGGER.info("Bootstrap flow override: Replaced provenance reporting properties");
         }
 
         // Replace all processor SSL controller services with MiNiFi parent, if bootstrap boolean is set to true
         if (BootstrapTransformer.processorSSLOverride(bootstrapProperties)) {
             for (ProcessorSchema processorConfig : configSchemaNew.getProcessGroupSchema().getProcessors()) {
                 processorConfig.getProperties().replace("SSL Context Service", processorConfig.getProperties().get("SSL Context Service"), "SSL-Context-Service");
-                logger.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
+                LOGGER.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
             }
         }
 
@@ -286,7 +291,7 @@ public final class ConfigTransformer {
             final String notnullSensitivePropertiesKey;
             // Auto-generate the sensitive properties key if not provided, NiFi security libraries require it
             if (StringUtil.isNullOrEmpty(sensitivePropertiesKey)) {
-                logger.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
+                LOGGER.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
                 final SecureRandom secureRandom = new SecureRandom();
                 final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
                 secureRandom.nextBytes(sensitivePropertiesKeyBinary);
@@ -748,6 +753,52 @@ public final class ConfigTransformer {
         final Element toAdd = doc.createElement(name);
         toAdd.setTextContent(value);
         element.appendChild(toAdd);
+    }
+
+    public static ByteBuffer overrideNonFlowSectionsFromOriginalSchema(byte[] newSchema, ByteBuffer currentConfigScheme, Properties bootstrapProperties)
+        throws InvalidConfigurationException {
+        try {
+            boolean overrideCoreProperties = ConfigTransformer.overrideCoreProperties(bootstrapProperties);
+            boolean overrideSecurityProperties = ConfigTransformer.overrideSecurityProperties(bootstrapProperties);
+            if (overrideCoreProperties && overrideSecurityProperties) {
+                return ByteBuffer.wrap(newSchema);
+            } else {
+                ConvertableSchema<ConfigSchema> schemaNew = ConfigTransformer
+                    .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteArrayInputStream(newSchema)));
+                ConfigSchema configSchemaNew = ConfigTransformer.throwIfInvalid(schemaNew.convert());
+                ConvertableSchema<ConfigSchema> schemaOld = ConfigTransformer
+                    .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(currentConfigScheme)));
+                ConfigSchema configSchemaOld = ConfigTransformer.throwIfInvalid(schemaOld.convert());
+
+                configSchemaNew.setNifiPropertiesOverrides(configSchemaOld.getNifiPropertiesOverrides());
+
+                if (!overrideCoreProperties) {
+                    LOGGER.debug("Preserving previous core properties...");
+                    configSchemaNew.setCoreProperties(configSchemaOld.getCoreProperties());
+                }
+
+                if (!overrideSecurityProperties) {
+                    LOGGER.debug("Preserving previous security properties...");
+                    configSchemaNew.setSecurityProperties(configSchemaOld.getSecurityProperties());
+                }
+
+                StringWriter writer = new StringWriter();
+                SchemaLoader.toYaml(configSchemaNew, writer);
+                return ByteBuffer.wrap(writer.toString().getBytes()).asReadOnlyBuffer();
+            }
+        } catch (Exception e) {
+            throw new InvalidConfigurationException("Loading the old and the new schema for merging was not successful", e);
+        }
+    }
+
+    private static boolean overrideSecurityProperties(Properties properties) {
+        String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
+        return Boolean.parseBoolean(overrideSecurityProperties);
+    }
+
+    private static boolean overrideCoreProperties(Properties properties) {
+        String overrideCoreProps = (String) properties.getOrDefault(OVERRIDE_CORE_PROPERTIES_KEY, "false");
+        return Boolean.parseBoolean(overrideCoreProps);
     }
 
     public static final String PROPERTIES_FILE_APACHE_2_0_LICENSE =

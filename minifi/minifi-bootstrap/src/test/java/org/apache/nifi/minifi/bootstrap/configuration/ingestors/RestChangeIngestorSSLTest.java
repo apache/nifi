@@ -17,6 +17,8 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
@@ -44,6 +46,7 @@ import java.security.cert.CertificateException;
 import java.util.Collections;
 import java.util.Properties;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
 import static org.mockito.Mockito.when;
 
 public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
@@ -58,6 +61,8 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
         properties.setProperty(RestChangeIngestor.KEYSTORE_PASSWORD_KEY, "localtest");
         properties.setProperty(RestChangeIngestor.KEYSTORE_TYPE_KEY, "JKS");
         properties.setProperty(RestChangeIngestor.NEED_CLIENT_AUTH_KEY, "false");
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
 
         restChangeIngestor = new RestChangeIngestor();
 
@@ -66,7 +71,10 @@ public class RestChangeIngestorSSLTest extends RestChangeIngestorCommonTest {
         when(testListener.getDescriptor()).thenReturn("MockChangeListener");
         when(testNotifier.notifyListeners(Mockito.any())).thenReturn(Collections.singleton(new ListenerHandleResult(testListener)));
 
-        restChangeIngestor.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), testNotifier);
+        ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
+        when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
+
+        restChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);
         restChangeIngestor.setDifferentiator(mockDifferentiator);
         restChangeIngestor.start();
 

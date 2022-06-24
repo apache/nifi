@@ -42,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Collectors;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
@@ -55,7 +54,7 @@ import org.apache.nifi.minifi.bootstrap.service.MiNiFiExecCommandProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiListener;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
-import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
+import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 import org.apache.nifi.util.Tuple;
 
 public class StartRunner implements CommandRunner {
@@ -72,10 +71,11 @@ public class StartRunner implements CommandRunner {
     private final RunMiNiFi runMiNiFi;
     private volatile ShutdownHook shutdownHook;
     private final MiNiFiExecCommandProvider miNiFiExecCommandProvider;
+    private final ProcessUtils processUtils;
 
     public StartRunner(CurrentPortProvider currentPortProvider, BootstrapFileProvider bootstrapFileProvider,
         PeriodicStatusReporterManager periodicStatusReporterManager, MiNiFiStdLogHandler miNiFiStdLogHandler, MiNiFiParameters miNiFiParameters, File bootstrapConfigFile,
-        RunMiNiFi runMiNiFi, MiNiFiExecCommandProvider miNiFiExecCommandProvider) {
+        RunMiNiFi runMiNiFi, MiNiFiExecCommandProvider miNiFiExecCommandProvider, ProcessUtils processUtils) {
         this.currentPortProvider = currentPortProvider;
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.periodicStatusReporterManager = periodicStatusReporterManager;
@@ -84,6 +84,7 @@ public class StartRunner implements CommandRunner {
         this.bootstrapConfigFile = bootstrapConfigFile;
         this.runMiNiFi = runMiNiFi;
         this.miNiFiExecCommandProvider = miNiFiExecCommandProvider;
+        this.processUtils = processUtils;
     }
 
     /**
@@ -124,7 +125,7 @@ public class StartRunner implements CommandRunner {
 
         try {
             while (true) {
-                if (UnixProcessUtils.isAlive(process)) {
+                if (process.isAlive()) {
                     handleReload();
                 } else {
                     Runtime runtime = Runtime.getRuntime();
@@ -142,7 +143,7 @@ public class StartRunner implements CommandRunner {
                             continue;
                         }
 
-                        process = restartNifi(bootstrapProperties, confDir, builder, runtime);
+                        process = restartNifi(bootstrapProperties, confDir, builder);
                         // failed to start process
                         if (process == null) {
                             return;
@@ -159,7 +160,7 @@ public class StartRunner implements CommandRunner {
         }
     }
 
-    private Process restartNifi(Properties bootstrapProperties, String confDir, ProcessBuilder builder, Runtime runtime) throws IOException {
+    private Process restartNifi(Properties bootstrapProperties, String confDir, ProcessBuilder builder) throws IOException {
         Process process;
         boolean previouslyStarted = runMiNiFi.isNiFiStarted();
         if (!previouslyStarted) {
@@ -238,6 +239,7 @@ public class StartRunner implements CommandRunner {
                 runMiNiFi.setReloading(false);
             }
         } catch (InterruptedException ie) {
+            DEFAULT_LOGGER.warn("Thread interrupted while handling reload");
         }
     }
 
@@ -270,7 +272,7 @@ public class StartRunner implements CommandRunner {
 
         CMD_LOGGER.info("Starting Apache MiNiFi...");
         CMD_LOGGER.info("Working Directory: {}", workingDir.getAbsolutePath());
-        CMD_LOGGER.info("Command: {}", cmd.stream().collect(Collectors.joining(" ")));
+        CMD_LOGGER.info("Command: {}", String.join(" ", cmd));
 
         return new Tuple<>(builder, startMiNiFiProcess(builder));
     }
@@ -296,10 +298,9 @@ public class StartRunner implements CommandRunner {
         File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
         File binDir = bootstrapConfigAbsoluteFile.getParentFile();
 
-        File workingDir = Optional.ofNullable(props.getProperty("working.dir"))
+        return Optional.ofNullable(props.getProperty("working.dir"))
             .map(File::new)
             .orElse(binDir.getParentFile());
-        return workingDir;
     }
 
     private boolean waitForStart() {

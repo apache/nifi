@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.Optional;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils;
+import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 
 public class ReloadService {
     private final BootstrapFileProvider bootstrapFileProvider;
@@ -35,16 +35,18 @@ public class ReloadService {
     private final CurrentPortProvider currentPortProvider;
     private final GracefulShutdownParameterProvider gracefulShutdownParameterProvider;
     private final RunMiNiFi runMiNiFi;
+    private final ProcessUtils processUtils;
 
     public ReloadService(BootstrapFileProvider bootstrapFileProvider, MiNiFiParameters miNiFiParameters,
         MiNiFiCommandSender miNiFiCommandSender, CurrentPortProvider currentPortProvider,
-        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, RunMiNiFi runMiNiFi) {
+        GracefulShutdownParameterProvider gracefulShutdownParameterProvider, RunMiNiFi runMiNiFi, ProcessUtils processUtils) {
         this.bootstrapFileProvider = bootstrapFileProvider;
         this.miNiFiParameters = miNiFiParameters;
         this.miNiFiCommandSender = miNiFiCommandSender;
         this.currentPortProvider = currentPortProvider;
         this.gracefulShutdownParameterProvider = gracefulShutdownParameterProvider;
         this.runMiNiFi = runMiNiFi;
+        this.processUtils = processUtils;
     }
 
     public void reload() throws IOException {
@@ -60,7 +62,7 @@ public class ReloadService {
             if (commandResponse.filter(RELOAD_CMD::equals).isPresent()) {
                 DEFAULT_LOGGER.info("Apache MiNiFi has accepted the Reload Command and is reloading");
                 if (minifiPid != UNINITIALIZED) {
-                    UnixProcessUtils.gracefulShutDownMiNiFiProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds as part of configuration reload. Killing process.",
+                    processUtils.shutdownProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds as part of configuration reload. Killing process.",
                         gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
                     runMiNiFi.setReloading(true);
                     DEFAULT_LOGGER.info("MiNiFi has finished shutting down and will be reloaded.");
@@ -73,7 +75,7 @@ public class ReloadService {
                 DEFAULT_LOGGER.error("No PID found for the MiNiFi process, so unable to kill process; The process should be killed manually.");
             } else {
                 DEFAULT_LOGGER.error("Will kill the MiNiFi Process with PID {}", minifiPid);
-                UnixProcessUtils.killProcessTree(minifiPid);
+                processUtils.killProcessTree(minifiPid);
             }
         } finally {
             if (reloadLockFile.exists() && !reloadLockFile.delete()) {

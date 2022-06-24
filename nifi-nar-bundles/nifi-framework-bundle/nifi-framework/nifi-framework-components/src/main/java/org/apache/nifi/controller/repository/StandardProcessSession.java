@@ -599,7 +599,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             final long flowFileRepoUpdateFinishNanos = System.nanoTime();
             final long flowFileRepoUpdateNanos = flowFileRepoUpdateFinishNanos - flowFileRepoUpdateStart;
 
-            if (LOG.isInfoEnabled()) {
+            if (LOG.isDebugEnabled()) {
                 for (final RepositoryRecord record : checkpoint.records.values()) {
                     if (record.isMarkedForAbort()) {
                         final FlowFileRecord flowFile = record.getCurrent();
@@ -651,7 +651,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
             checkpoint.deleteOnCommit.clear();
 
-            if (LOG.isInfoEnabled()) {
+            if (LOG.isDebugEnabled()) {
                 final String sessionSummary = summarizeEvents(checkpoint);
                 if (!sessionSummary.isEmpty()) {
                     LOG.debug("{} for {}, committed the following events: {}", this, connectableDescription, sessionSummary);

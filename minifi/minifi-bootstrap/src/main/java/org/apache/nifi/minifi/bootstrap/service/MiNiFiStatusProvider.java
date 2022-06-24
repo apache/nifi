@@ -17,16 +17,18 @@
 package org.apache.nifi.minifi.bootstrap.service;
 
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
-import static org.apache.nifi.minifi.bootstrap.util.UnixProcessUtils.isProcessRunning;
 
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
+import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 
 public class MiNiFiStatusProvider {
 
     private final MiNiFiCommandSender miNiFiCommandSender;
+    private final ProcessUtils processUtils;
 
-    public MiNiFiStatusProvider(MiNiFiCommandSender miNiFiCommandSender) {
+    public MiNiFiStatusProvider(MiNiFiCommandSender miNiFiCommandSender, ProcessUtils processUtils) {
         this.miNiFiCommandSender = miNiFiCommandSender;
+        this.processUtils = processUtils;
     }
 
     public MiNiFiStatus getStatus(int port, long pid) {
@@ -43,6 +45,6 @@ public class MiNiFiStatusProvider {
             return new MiNiFiStatus(port, pid, true, true);
         }
 
-        return new MiNiFiStatus(port, pid, false, isProcessRunning(pid));
+        return new MiNiFiStatus(port, pid, false, processUtils.isProcessRunning(pid));
     }
 }

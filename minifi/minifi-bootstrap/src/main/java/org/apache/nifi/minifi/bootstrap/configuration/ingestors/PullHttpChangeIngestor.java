@@ -17,33 +17,9 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import okhttp3.Credentials;
-import okhttp3.HttpUrl;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
-import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
-import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
-import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
-import org.apache.nifi.minifi.commons.schema.ConfigSchema;
-import org.apache.nifi.minifi.commons.schema.SecurityPropertiesSchema;
-import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
-import org.apache.nifi.minifi.commons.schema.common.StringUtil;
-import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
-import org.slf4j.LoggerFactory;
-import org.yaml.snakeyaml.Yaml;
+import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -58,9 +34,25 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-
-import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
-import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import okhttp3.Credentials;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differentiator;
+import org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator;
+import org.apache.nifi.minifi.bootstrap.util.ConfigTransformer;
+import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.slf4j.LoggerFactory;
 
 
 public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
@@ -109,7 +101,6 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
     private volatile String connectionScheme;
     private volatile String lastEtag = "";
     private volatile boolean useEtag = false;
-    private volatile boolean overrideSecurity = false;
 
     public PullHttpChangeIngestor() {
         logger = LoggerFactory.getLogger(PullHttpChangeIngestor.class);
@@ -151,14 +142,6 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
         } else {
             throw new IllegalArgumentException("Property, " + USE_ETAG_KEY + ", to specify whether to use the ETag header, must either be a value boolean value (\"true\" or \"false\") or left to " +
                     "the default value of \"false\". It is set to \"" + useEtagString + "\".");
-        }
-
-        final String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
-        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)) {
-            overrideSecurity = Boolean.parseBoolean(overrideSecurityProperties);
-        } else {
-            throw new IllegalArgumentException("Property, " + OVERRIDE_SECURITY + ", to specify whether to override security properties must either be a value boolean value (\"true\" or \"false\")" +
-                    " or left to the default value of \"false\". It is set to \"" + overrideSecurityProperties + "\".");
         }
 
         httpClientReference.set(null);
@@ -234,8 +217,8 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
                 .build();
 
         final Request.Builder requestBuilder = new Request.Builder()
-                .get()
-                .url(url);
+            .get()
+            .url(url);
 
         if (useEtag) {
             requestBuilder.addHeader("If-None-Match", lastEtag);
@@ -264,29 +247,9 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
                 return;
             }
 
-            final ByteBuffer bodyByteBuffer = ByteBuffer.wrap(body.bytes());
-            ByteBuffer readOnlyNewConfig = null;
-
             // checking if some parts of the configuration must be preserved
-            if (overrideSecurity) {
-                readOnlyNewConfig = bodyByteBuffer.asReadOnlyBuffer();
-            } else {
-                logger.debug("Preserving previous security properties...");
-
-                // get the current security properties from the current configuration file
-                final File configFile = new File(properties.get().getProperty(RunMiNiFi.MINIFI_CONFIG_FILE_KEY));
-                ConvertableSchema<ConfigSchema> configSchema = SchemaLoader.loadConvertableSchemaFromYaml(new FileInputStream(configFile));
-                ConfigSchema currentSchema = configSchema.convert();
-                SecurityPropertiesSchema secProps = currentSchema.getSecurityProperties();
-
-                // override the security properties in the pulled configuration with the previous properties
-                configSchema = SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(bodyByteBuffer.duplicate()));
-                ConfigSchema newSchema = configSchema.convert();
-                newSchema.setSecurityProperties(secProps);
-
-                // return the updated configuration preserving the previous security configuration
-                readOnlyNewConfig = ByteBuffer.wrap(new Yaml().dump(newSchema.toMap()).getBytes()).asReadOnlyBuffer();
-            }
+            ByteBuffer readOnlyNewConfig =
+                ConfigTransformer.overrideNonFlowSectionsFromOriginalSchema(body.bytes(), configurationFileHolder.getConfigFileReference().get().duplicate(), properties.get());
 
             if (differentiator.isNew(readOnlyNewConfig)) {
                 logger.debug("New change received, notifying listener");

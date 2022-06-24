@@ -32,7 +32,7 @@ import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 
 public class DumpRunner implements CommandRunner {
-    private static final String DUMP_CMD = "DUMP";
+    protected static final String DUMP_CMD = "DUMP";
 
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final CurrentPortProvider currentPortProvider;

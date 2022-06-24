@@ -28,7 +28,7 @@ import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 
 public class EnvRunner implements CommandRunner {
-    private static final String ENV_CMD = "ENV";
+    protected static final String ENV_CMD = "ENV";
 
     private final MiNiFiCommandSender miNiFiCommandSender;
     private final CurrentPortProvider currentPortProvider;

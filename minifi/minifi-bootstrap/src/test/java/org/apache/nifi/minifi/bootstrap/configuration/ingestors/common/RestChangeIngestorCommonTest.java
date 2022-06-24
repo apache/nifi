@@ -17,6 +17,13 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors.common;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collections;
 import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -32,15 +39,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 public abstract class RestChangeIngestorCommonTest {
 
     private static final String testString = "This is a test string.";
@@ -50,7 +48,7 @@ public abstract class RestChangeIngestorCommonTest {
     public static final MediaType MEDIA_TYPE_MARKDOWN  = MediaType.parse("text/x-markdown; charset=utf-8");
     public static String url;
     public static ConfigurationChangeNotifier testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
-    public static Differentiator<InputStream> mockDifferentiator = Mockito.mock(Differentiator.class);
+    public static Differentiator<ByteBuffer> mockDifferentiator = Mockito.mock(Differentiator.class);
 
     @BeforeEach
     public void setListener() {
@@ -81,7 +79,7 @@ public abstract class RestChangeIngestorCommonTest {
 
     @Test
     public void testFileUploadNewConfig() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(true);
+        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(true);
 
         Request request = new Request.Builder()
                 .url(url)
@@ -105,7 +103,7 @@ public abstract class RestChangeIngestorCommonTest {
 
     @Test
     public void testFileUploadSameConfig() throws Exception {
-        when(mockDifferentiator.isNew(Mockito.any(InputStream.class))).thenReturn(false);
+        when(mockDifferentiator.isNew(Mockito.any(ByteBuffer.class))).thenReturn(false);
 
         Request request = new Request.Builder()
                 .url(url)

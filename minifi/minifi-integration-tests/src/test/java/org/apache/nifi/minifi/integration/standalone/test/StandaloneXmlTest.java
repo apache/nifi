@@ -28,7 +28,6 @@ import java.nio.file.Paths;
 
 public class StandaloneXmlTest extends StandaloneYamlTest {
     public void setDocker(String version, String name) throws Exception {
-        super.setDocker(version, name);
         ConfigSchema configSchema;
         try (InputStream inputStream = StandaloneXmlTest.class.getClassLoader().getResourceAsStream("./standalone/" + version + "/" + name + "/xml/" + name + ".xml")) {
             configSchema = ConfigMain.transformTemplateToSchema(inputStream);
@@ -37,6 +36,7 @@ public class StandaloneXmlTest extends StandaloneYamlTest {
                 .getParent().toAbsolutePath().resolve(getConfigYml(version, name)))) {
             SchemaSaver.saveConfigSchema(configSchema, outputStream);
         }
+        super.setDocker(version, name);
     }
 
     @Override

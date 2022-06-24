@@ -17,6 +17,8 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,10 +34,11 @@ import org.slf4j.LoggerFactory;
  * Utility class for providing information about the running MiNiFi process.
  * The methods which are using the PID are working only on unix systems, and should be used only as a fallback in case the PING command fails.
  * */
-public class UnixProcessUtils {
+public class UnixProcessUtils implements ProcessUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(UnixProcessUtils.class);
 
-    public static boolean isProcessRunning(Long pid) {
+    @Override
+    public boolean isProcessRunning(Long pid) {
         if (pid == null) {
             LOGGER.error("Unable to get process status due to missing process id");
             return false;
@@ -72,17 +75,18 @@ public class UnixProcessUtils {
         }
     }
 
-    public static void gracefulShutDownMiNiFiProcess(Long pid, String s, int gracefulShutdownSeconds) {
+    @Override
+    public void shutdownProcess(Long pid, String s, int gracefulShutdownSeconds) {
         long startWait = System.nanoTime();
-        while (UnixProcessUtils.isProcessRunning(pid)) {
+        while (isProcessRunning(pid)) {
             LOGGER.info("Waiting for Apache MiNiFi to finish shutting down...");
             long waitNanos = System.nanoTime() - startWait;
             long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
             if (waitSeconds >= gracefulShutdownSeconds || gracefulShutdownSeconds == 0) {
-                if (UnixProcessUtils.isProcessRunning(pid)) {
+                if (isProcessRunning(pid)) {
                     LOGGER.warn(s, gracefulShutdownSeconds);
                     try {
-                        UnixProcessUtils.killProcessTree(pid);
+                        killProcessTree(pid);
                     } catch (IOException ioe) {
                         LOGGER.error("Failed to kill Process with PID {}", pid);
                     }
@@ -92,12 +96,14 @@ public class UnixProcessUtils {
                 try {
                     Thread.sleep(2000L);
                 } catch (InterruptedException ie) {
+                    DEFAULT_LOGGER.warn("Thread interrupted while shutting down MiNiFi");
                 }
             }
         }
     }
 
-    public static void killProcessTree(Long pid) throws IOException {
+    @Override
+    public void killProcessTree(Long pid) throws IOException {
         LOGGER.debug("Killing Process Tree for PID {}", pid);
 
         List<Long> children = getChildProcesses(pid);
@@ -110,22 +116,7 @@ public class UnixProcessUtils {
         Runtime.getRuntime().exec(new String[]{"kill", "-9", String.valueOf(pid)});
     }
 
-    /**
-     * Checks the status of the given process.
-     *
-     * @param process the process object what we want to check
-     * @return true if the process is Alive
-     */
-    public static boolean isAlive(Process process) {
-        try {
-            process.exitValue();
-            return false;
-        } catch (IllegalStateException | IllegalThreadStateException itse) {
-            return true;
-        }
-    }
-
-    private static List<Long> getChildProcesses(Long ppid) throws IOException {
+    private List<Long> getChildProcesses(Long ppid) throws IOException {
         Process proc = Runtime.getRuntime().exec(new String[]{"ps", "-o", "pid", "--no-headers", "--ppid", String.valueOf(ppid)});
         List<Long> childPids = new ArrayList<>();
         try (InputStream in = proc.getInputStream();
