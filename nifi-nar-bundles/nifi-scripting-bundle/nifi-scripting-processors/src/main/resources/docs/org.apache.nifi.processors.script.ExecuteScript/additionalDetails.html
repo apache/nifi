@@ -35,7 +35,7 @@ td {text-align: left}
     The ExecuteScript Processor provides the ability to use a scripting language in order to leverage the NiFi API to perform tasks such as the following:
 </p>
 <ul>
-    <li>Read content and/or attributes from an incoming Flowfile</li>
+    <li>Read content and/or attributes from an incoming FlowFile</li>
     <li>Create a new FlowFile (with or without a parent)</li>
     <li>Write content and/or attributes to an outgoing FlowFile</li>
     <li>Interact with the ProcessSession to transfer FlowFiles to relationships</li>
@@ -47,7 +47,7 @@ td {text-align: left}
 <ul>
     <li>The engine listed as "python" in the list of available script engines is actually Jython, not Python. When using Jython, you cannot import pure (CPython) modules such as pandas</li>
     <li>Lua does not allow for referencing static members of a class, so the REL_SUCCESS and REL_FAILURE relationships are made available via script bindings (aka variables), see the Variable Bindings section for more details</li>
-    <li>ExecuteScript uses the JSR-223 Script Engine API to evaluate scripts, so the use of idiomatic language structure is sometimes limited. For example, in the case of Groovy, there is a separate ExecuteGroovyScript processor that allows you to do many more idiomatic Groovy tasks. For example it's easier to interact with Controller Services via ExecuteGroovyScript vs. ExecuteScript (see the ExecuteGroovyScript documentation for more details)</li>
+    <li>ExecuteScript uses the JSR-223 Script Engine API to evaluate scripts, so the use of idiomatic language structure is sometimes limited. For example, in the case of Groovy, there is a separate ExecuteGroovyScript processor that allows you to do many more idiomatic Groovy tasks. For example, it's easier to interact with Controller Services via ExecuteGroovyScript vs. ExecuteScript (see the ExecuteGroovyScript documentation for more details)</li>
     <li>JavaScript is provided by the Nashorn engine, which is not available in later Java versions, so it may not show up in the Script Engines list depending on the JRE used</li>
 </ul>
 </p>
@@ -68,7 +68,7 @@ td {text-align: left}
     </tr>
     <tr>
         <td><b>context</b></td>
-        <td>This is a reference to the ProcessContext for the processor. It can be used to retrieve processor properties, relationships, Controller Services, and the StateManager.</td>
+        <td>This is a reference to the ProcessContext for the processor. It can be used to retrieve processor properties, relationships, Controller Services, and the State Manager.</td>
         <td><a href="https://www.javadoc.io/doc/org.apache.nifi/nifi-api/latest/org/apache/nifi/processor/ProcessContext.html">ProcessContext</a></td>
     </tr>
     <tr>
@@ -88,8 +88,8 @@ td {text-align: left}
     </tr>
     <tr>
         <td><i>Dynamic Properties</i></td>
-        <td>Any dynamic (user-defined) properties defined in ExecuteScript are passed to the script engine as variables set to the PropertyValue object corresponding to the dynamic property. This allows you to get the String value of the property, but also to evaluate the property with respect to NiFi Expression Language, cast the value as an appropriate data type (such as Boolean, e.g.), etc. Because the dynamic property name becomes the variable name for the script, you must be aware of the variable naming properties for the chosen script engine. For example, Groovy does not allow periods (.) in variable names, so an error will occur if "my.property" was a dynamic property name.
-            Interaction with these variables is done via the NiFi Java API, the 'Dynamic Properties' section below will discuss the relevant API calls as they are introduced. </td>
+        <td>Any dynamic (user-defined) properties defined in ExecuteScript are passed to the script engine as variables set to the PropertyValue object corresponding to the dynamic property. This allows you to get the String value of the property, but also to evaluate the property with respect to NiFi Expression Language, cast the value as an appropriate data type (e.g., Boolean), etc. Because the dynamic property name becomes the variable name for the script, you must be aware of the variable naming properties for the chosen script engine. For example, Groovy does not allow periods (.) in variable names, so an error will occur if "my.property" was a dynamic property name.
+            Interaction with these variables is done via the NiFi Java API. The 'Dynamic Properties' section below will discuss the relevant API calls as they are introduced. </td>
         <td><a href="https://www.javadoc.io/doc/org.apache.nifi/nifi-api/latest/org/apache/nifi/components/PropertyValue.html">PropertyValue</a></td>
     </tr>
 </table>
@@ -98,7 +98,7 @@ td {text-align: left}
 
 <p><strong>Get an incoming FlowFile from the session</strong></p>
 <p><strong>Use Case</strong>: You have incoming connection(s) to ExecuteScript and want to retrieve one FlowFile from the queue(s) for processing.</p>
-<p><strong>Approach</strong>: Use the get() method from the session object. This method returns the FlowFile that is next highest priority FlowFile to process. If there is no FlowFile to process, the method will return null. Note that it is possible to have null returned even if there is a steady flow of FlowFiles into the processor. This can happen if there are multiple concurrent tasks for the processor, and the other task(s) have already retrieved the FlowFiles. If the script requires a FlowFile to continue processing, then it should immediately return if null is returned from session.get()</p>
+<p><strong>Approach</strong>: Use the get() method from the session object. This method returns the FlowFile that is next highest priority FlowFile to process. If there is no FlowFile to process, the method will return null. NOTE: It is possible to have null returned even if there is a steady flow of FlowFiles into the processor. This can happen if there are multiple concurrent tasks for the processor, and the other task(s) have already retrieved the FlowFiles. If the script requires a FlowFile to continue processing, then it should immediately return if null is returned from session.get()</p>
 <p><em> Groovy</em></p>
 <pre>flowFile = session.get()
 if(!flowFile) return
@@ -160,7 +160,7 @@ end
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Create a new FlowFile</strong></p>
-<p><strong>Use Case</strong>: You want to generate a new FlowFile to send to the next processor</p>
+<p><strong>Use Case</strong>: You want to generate a new FlowFile to send to the next processor.</p>
 <p><strong>Approach</strong>: Use the create() method from the session object. This method returns a new FlowFile object, which you can perform further processing on</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
@@ -182,7 +182,7 @@ end
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p><strong>Create a new FlowFile from a parent FlowFile</strong></p>
-<p><strong>Use Case</strong>: You want to generate new FlowFile(s) based on an incoming FlowFile</p>
+<p><strong>Use Case</strong>: You want to generate new FlowFile(s) based on an incoming FlowFile.</p>
 <p><strong>Approach</strong>: Use the create(<em>parentFlowFile</em>) method from the session object. This method takes a parent FlowFile reference and returns a new child FlowFile object. The newly created FlowFile will inherit all of the parent's attributes except for the UUID. This method will automatically generate a Provenance FORK event or a Provenance JOIN event, depending on whether or not other FlowFiles are generated from the same parent before the ProcessSession is committed.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
@@ -216,7 +216,7 @@ end
 <p><strong>Add an attribute to a FlowFile</strong></p>
 <p><strong>Use Case</strong>: You have a FlowFile to which you'd like to add a custom attribute.</p>
 <p><strong>Approach</strong>: Use the putAttribute(<em>flowFile</em>, <em>attributeKey</em>, <em>attributeValue</em>) method from the session object. This method updates the given FlowFile's attributes with the given key/value pair. NOTE: The "uuid" attribute is fixed for a FlowFile and cannot be modified; if the key is named "uuid", it will be ignored.</p>
-<p>Also this is a good point to mention that FlowFile objects are immutable; this means that if you update a FlowFile's attributes (or otherwise alter it) via the API, you will get a new reference to the new version of the FlowFile. This is very important when it comes to transferring FlowFiles to relationships. You must keep a reference to the latest version of a FlowFile, and you <u>must</u> transfer or remove the latest version of all FlowFiles retrieved from or created by the session, otherwise you will get an error when executing. Most often, the variable used to store a FlowFile reference will be overwritten with the latest version returned from a method that alters the FlowFile (intermediate FlowFile references will be automatically discarded). In these examples you will see this technique of reusing a flowFile reference when adding attributes. Note that the current reference to the FlowFile is passed into the putAttribute() method. The resulting FlowFile has an attribute named 'myAttr' with a value of 'myValue'. Also note that the method takes a String for the value; if you have an Object you will have to serialize it to a String. Finally, please note that if you are adding multiple attributes, it is better to create a Map and use putAllAttributes() instead (see next recipe for details).</p>
+<p>Also this is a good point to mention that FlowFile objects are immutable; this means that if you update a FlowFile's attributes (or otherwise alter it) via the API, you will get a new reference to the new version of the FlowFile. This is very important when it comes to transferring FlowFiles to relationships. You must keep a reference to the latest version of a FlowFile, and you <u>must</u> transfer or remove the latest version of all FlowFiles retrieved from or created by the session, otherwise you will get an error when executing. Most often, the variable used to store a FlowFile reference will be overwritten with the latest version returned from a method that alters the FlowFile (intermediate FlowFile references will be automatically discarded). In these examples you will see this technique of reusing a FlowFile reference when adding attributes. Note that the current reference to the FlowFile is passed into the putAttribute() method. The resulting FlowFile has an attribute named 'myAttr' with a value of 'myValue'. Also note that the method takes a String for the value; if you have an Object you will have to serialize it to a String. Finally, please note that if you are adding multiple attributes, it is better to create a Map and use putAllAttributes() instead (see next recipe for details).</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>flowFile = session.get()
@@ -419,9 +419,9 @@ log.info('Found these things: {} {} {}', objArray)
 <pre>log.info('Found these things: {} {} {}', ['Hello',1,true].to_java)
 </pre>
 <p>&nbsp;</p>
-<p><strong>Read the contents of an incoming flow file using a callback</strong></p>
-<p><strong>Use Case</strong>: You have incoming connection(s) to ExecuteScript and want to retrieve the contents of a flow file from the queue(s) for processing.</p>
-<p><strong>Approach</strong>: Use the read(<em>flowFile</em>, <em>inputStreamCallback</em>) method from the session object. An InputStreamCallback object is needed to pass into the read() method. Note that because InputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the read() method, use a more globally-scoped variable. The examples will store the full contents of the incoming flow file into a String (using Apache Commons' IOUtils class). NOTE: For large flow files, this is not the best technique; rather you should read in only as much data as you need, and process that as appropriate. For something like SplitText, you could read in a line at a time and process it within the InputStreamCallback, or use the session.read(flowFile) approach mentioned earlier to get an InputStream reference to use outside of a callback.</p>
+<p><strong>Read the contents of an incoming FlowFile using a callback</strong></p>
+<p><strong>Use Case</strong>: You have incoming connection(s) to ExecuteScript and want to retrieve the contents of a FlowFile from the queue(s) for processing.</p>
+<p><strong>Approach</strong>: Use the read(<em>flowFile</em>, <em>inputStreamCallback</em>) method from the session object. An InputStreamCallback object is needed to pass into the read() method. Note that because InputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the read() method, use a more globally-scoped variable. The examples will store the full contents of the incoming FlowFile into a String (using Apache Commons' IOUtils class). NOTE: For large FlowFiles, this is not the best technique; rather you should read in only as much data as you need, and process that as appropriate. For something like SplitText, you could read in a line at a time and process it within the InputStreamCallback, or use the session.read(flowFile) approach mentioned earlier to get an InputStream reference to use outside of a callback.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 <pre>import org.apache.commons.io.IOUtils
@@ -487,9 +487,9 @@ if flowFile != nil
   session.read(flowFile, jrubyInputStreamCallback)
 end</pre>
 <p>&nbsp;</p>
-<p><strong>Write content to an outgoing flow file using a callback</strong></p>
-<p><strong>Use Case</strong>: You want to generate content for an outgoing flow file.</p>
-<p><strong>Approach</strong>: Use the write(<em>flowFile</em>, <em>outputStreamCallback</em>) method from the session object. An OutputStreamCallback object is needed to pass into the write() method. Note that because OutputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the write() method, use a more globally-scoped variable. The examples will write a sample String to a flowFile.</p>
+<p><strong>Write content to an outgoing FlowFile using a callback</strong></p>
+<p><strong>Use Case</strong>: You want to generate content for an outgoing FlowFile.</p>
+<p><strong>Approach</strong>: Use the write(<em>flowFile</em>, <em>outputStreamCallback</em>) method from the session object. An OutputStreamCallback object is needed to pass into the write() method. Note that because OutputStreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the write() method, use a more globally-scoped variable. The examples will write a sample String to a FlowFile.</p>
 <p><strong>Examples</strong>:</p>
 <p><em>Groovy</em></p>
 
@@ -555,9 +555,9 @@ if flowFile != nil
   flowFile = session.write(flowFile, jrubyOutputStreamCallback)
 end</pre>
 <p>&nbsp;</p>
-<p><strong>Overwrite an incoming flow file with updated content using a callback</strong></p>
-<p><strong>Use Case</strong>: You want to reuse the incoming flow file but want to modify its content for the outgoing flow file.</p>
-<p><strong>Approach</strong>: Use the write(<em>flowFile</em>, <em>streamCallback</em>) method from the session object. An StreamCallback object is needed to pass into the write() method. StreamCallback provides both an InputStream (from the incoming flow file) and an outputStream (for the next version of that flow file), so you can use the InputStream to get the current contents of the flow file, then modify them and write them back out to the flow file. This overwrites the contents of the flow file, so for append you'd have to handle that by appending to the read-in contents, or use a different approach (with session.append() rather than session.write() ). Note that because StreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the write() method, use a more globally-scoped variable. The examples will reverse the contents of the incoming flowFile (assumed to be a String) and write out the reversed string to a new version of the flowFile.</p>
+<p><strong>Overwrite an incoming FlowFile with updated content using a callback</strong></p>
+<p><strong>Use Case</strong>: You want to reuse the incoming FlowFile but want to modify its content for the outgoing FlowFile.</p>
+<p><strong>Approach</strong>: Use the write(<em>flowFile</em>, <em>streamCallback</em>) method from the session object. An StreamCallback object is needed to pass into the write() method. StreamCallback provides both an InputStream (from the incoming FlowFile) and an outputStream (for the next version of that FlowFile), so you can use the InputStream to get the current contents of the FlowFile, then modify them and write them back out to the FlowFile. This overwrites the contents of the FlowFile, so for append you'd have to handle that by appending to the read-in contents, or use a different approach (with session.append() rather than session.write() ). Note that because StreamCallback is an object, the contents are only visible to that object by default. If you need to use the data outside the write() method, use a more globally-scoped variable. The examples will reverse the contents of the incoming flowFile (assumed to be a String) and write out the reversed string to a new version of the FlowFile.</p>
 
 <p><strong>Examples</strong>:</p>
 
@@ -633,7 +633,7 @@ end</pre>
 <p>&nbsp;</p>
 <p><strong>Handle errors during script processing</strong></p>
 <p><strong>Use Case</strong>: An error occurs in the script (either by data validation or a thrown exception), and you want the script to handle it gracefully.</p>
-<p><strong>Approach</strong>: For exceptions, use the exception-handling mechanism for the scripting language (often they are try/catch block(s)). For data validation, you can use a similar approach, but define a boolean variable like "valid" and an if/else clause rather than a try/catch clause. ExecuteScript defines "success" and "failure" relationships; often your processing will transfer "good" flow files to success and "bad" flow files to failure (logging an error in the latter case). It is possible</p>
+<p><strong>Approach</strong>: For exceptions, use the exception-handling mechanism for the scripting language (often they are try/catch block(s)). For data validation, you can use a similar approach, but define a boolean variable like "valid" and an if/else clause rather than a try/catch clause. ExecuteScript defines "success" and "failure" relationships; often your processing will transfer "good" FlowFiles to success and "bad" FlowFiles to failure (logging an error in the latter case).</p>
 <p><strong>Examples</strong>:</p>
 
 <p><em>Groovy</em></p>
