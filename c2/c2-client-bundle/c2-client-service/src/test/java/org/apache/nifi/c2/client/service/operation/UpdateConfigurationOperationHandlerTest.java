@@ -21,7 +21,7 @@ import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOpe
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.Map;
@@ -54,82 +54,66 @@ public class UpdateConfigurationOperationHandlerTest {
     private FlowIdHolder flowIdHolder;
 
     @Test
-    void shouldReturnOperationAndOperandType() {
-        // given
+    void testUpdateConfigurationOperationHandlerCreateSuccess() {
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
 
-        // when + then
         assertEquals(OperationType.UPDATE, handler.getOperationType());
         assertEquals(OperandType.CONFIGURATION, handler.getOperandType());
     }
 
     @Test
-    void shouldFailWithIncorrectUpdateUrl() {
-        // given
+    void testHandleThrowsExceptionForIncorrectArg() {
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(null, null, null);
         C2Operation operation = new C2Operation();
         operation.setArgs(INCORRECT_LOCATION_MAP);
 
-        // when
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> handler.handle(operation));
 
-        // then
         assertEquals("Could not get flow id from the provided URL", exception.getMessage());
     }
 
     @Test
-    void shouldReturnNotAppliedWithNoContent() {
-        // given
-        given(flowIdHolder.getFlowId()).willReturn("dummy");
-        given(client.retrieveUpdateContent(any())).willReturn(Optional.empty());
+    void testHandleReturnsNotAppliedWithNoContent() {
+        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(client.retrieveUpdateContent(any())).thenReturn(Optional.empty());
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null);
         C2Operation operation = new C2Operation();
         operation.setArgs(CORRECT_LOCATION_MAP);
 
-        // when
         C2OperationAck response = handler.handle(operation);
 
-        // then
         assertEquals(EMPTY, response.getOperationId());
         assertEquals(C2OperationState.OperationState.NOT_APPLIED, response.getOperationState().getState());
     }
 
     @Test
-    void shouldReturnNotAppliedWithContentApplyIssues() {
-        // given
+    void testHandleReturnsNotAppliedWithContentApplyIssues() {
         Function<byte[], Boolean> failedToUpdate = x -> false;
-        given(flowIdHolder.getFlowId()).willReturn("dummy");
-        given(client.retrieveUpdateContent(any())).willReturn(Optional.of("content".getBytes()));
-
+        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);
 
-        // when
         C2OperationAck response = handler.handle(operation);
 
-        // then
         assertEquals(OPERATION_ID, response.getOperationId());
         assertEquals(C2OperationState.OperationState.NOT_APPLIED, response.getOperationState().getState());
     }
 
     @Test
-    void shouldReturnFullyApplied() {
-        // given
+    void testHandleReturnsFullyApplied() {
         Function<byte[], Boolean> successUpdate = x -> true;
-        given(flowIdHolder.getFlowId()).willReturn("dummy");
-        given(client.retrieveUpdateContent(any())).willReturn(Optional.of("content".getBytes()));
-
+        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate);
         C2Operation operation = new C2Operation();
         operation.setIdentifier(OPERATION_ID);
         operation.setArgs(CORRECT_LOCATION_MAP);
 
-        // when
         C2OperationAck response = handler.handle(operation);
 
-        // then
         assertEquals(OPERATION_ID, response.getOperationId());
         assertEquals(C2OperationState.OperationState.FULLY_APPLIED, response.getOperationState().getState());
     }

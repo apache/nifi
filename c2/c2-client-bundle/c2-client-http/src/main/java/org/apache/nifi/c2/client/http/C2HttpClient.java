@@ -50,7 +50,6 @@ public class C2HttpClient implements C2Client {
 
     private static final Logger logger = LoggerFactory.getLogger(C2HttpClient.class);
     private static final MediaType MEDIA_TYPE_APPLICATION_JSON = MediaType.parse("application/json");
-    static final int HTTP_STATUS_BAD_REQUEST = 400;
 
     private final AtomicReference<OkHttpClient> httpClientReference = new AtomicReference<>();
     private final C2ClientConfig clientConfig;
@@ -94,37 +93,36 @@ public class C2HttpClient implements C2Client {
 
     @Override
     public Optional<byte[]> retrieveUpdateContent(String flowUpdateUrl) {
+        Optional<byte[]> updateContent = Optional.empty();
         final Request.Builder requestBuilder = new Request.Builder()
             .get()
             .url(flowUpdateUrl);
         final Request request = requestBuilder.build();
 
-        Optional<ResponseBody> body;
         try (Response response = httpClientReference.get().newCall(request).execute()) {
-            int code = response.code();
-            body = Optional.ofNullable(response.body());
+            Optional<ResponseBody> body = Optional.ofNullable(response.body());
 
-            if (code >= HTTP_STATUS_BAD_REQUEST) {
-                StringBuilder messageBuilder = new StringBuilder(String.format("Configuration retrieval failed: HTTP %d", code));
+            if (!response.isSuccessful()) {
+                StringBuilder messageBuilder = new StringBuilder(String.format("Configuration retrieval failed: HTTP %d", response.code()));
                 body.map(Object::toString).ifPresent(messageBuilder::append);
                 throw new C2ServerException(messageBuilder.toString());
             }
 
-            if (!body.isPresent()) {
+            if (body.isPresent()) {
+                updateContent = Optional.of(body.get().bytes());
+            } else {
                 logger.warn("No body returned when pulling a new configuration");
-                return Optional.empty();
             }
-
-            return Optional.of(body.get().bytes());
         } catch (Exception e) {
             logger.warn("Configuration retrieval failed", e);
-            return Optional.empty();
         }
+
+        return updateContent;
     }
 
     @Override
     public void acknowledgeOperation(C2OperationAck operationAck) {
-        logger.info("Performing acknowledgement request to {} for operation {}", clientConfig.getC2AckUrl(), operationAck.getOperationId());
+        logger.info("Acknowledging Operation [{}] C2 URL [{}]", operationAck.getOperationId(), clientConfig.getC2AckUrl());
         serializer.serialize(operationAck)
             .map(operationAckBody -> RequestBody.create(operationAckBody, MEDIA_TYPE_APPLICATION_JSON))
             .map(requestBody -> new Request.Builder().post(requestBody).url(clientConfig.getC2AckUrl()).build())

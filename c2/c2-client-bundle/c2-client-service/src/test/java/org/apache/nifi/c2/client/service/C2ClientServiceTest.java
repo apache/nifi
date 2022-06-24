@@ -17,10 +17,10 @@
 package org.apache.nifi.c2.client.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
@@ -55,21 +55,16 @@ public class C2ClientServiceTest {
     private C2ClientService c2ClientService;
 
     @Test
-    public void shouldSendHeartbeatAndAckWhenOperationPresent() {
-        // given
+    void testSendHeartbeatAndAckWhenOperationPresent() {
         C2Heartbeat heartbeat = mock(C2Heartbeat.class);
-        given(c2HeartbeatFactory.create(any())).willReturn(heartbeat);
-
+        when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
         hbResponse.setRequestedOperations(generateOperation(1));
-        given(client.publishHeartbeat(heartbeat)).willReturn(Optional.of(hbResponse));
+        when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
+        when(operationService.handleOperation(any())).thenReturn(Optional.of(new C2OperationAck()));
 
-        given(operationService.handleOperation(any())).willReturn(Optional.of(new C2OperationAck()));
-
-        // when
         c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
 
-        // then
         verify(c2HeartbeatFactory, times(1)).create(any());
         verify(client, times(1)).publishHeartbeat(heartbeat);
         verify(operationService, times(1)).handleOperation(any());
@@ -77,22 +72,17 @@ public class C2ClientServiceTest {
     }
 
     @Test
-    public void shouldSendHeartbeatAndAckForMultipleOperationPresent() {
-        // given
-        C2Heartbeat heartbeat = mock(C2Heartbeat.class);
-        given(c2HeartbeatFactory.create(any())).willReturn(heartbeat);
-
-        C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
+    void testSendHeartbeatAndAckForMultipleOperationPresent() {
         int operationNum = 5;
+        C2Heartbeat heartbeat = mock(C2Heartbeat.class);
+        when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
+        C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
         hbResponse.setRequestedOperations(generateOperation(operationNum));
-        given(client.publishHeartbeat(heartbeat)).willReturn(Optional.of(hbResponse));
+        when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
+        when(operationService.handleOperation(any())).thenReturn(Optional.of(new C2OperationAck()));
 
-        given(operationService.handleOperation(any())).willReturn(Optional.of(new C2OperationAck()));
-
-        // when
         c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
 
-        // then
         verify(c2HeartbeatFactory, times(1)).create(any());
         verify(client, times(1)).publishHeartbeat(heartbeat);
         verify(operationService, times(operationNum)).handleOperation(any());
@@ -100,16 +90,13 @@ public class C2ClientServiceTest {
     }
 
     @Test
-    public void shouldHandleNoHeartbeatResponse() {
-        // given
+    void testSendHeartbeatHandlesNoHeartbeatResponse() {
         C2Heartbeat heartbeat = mock(C2Heartbeat.class);
-        given(c2HeartbeatFactory.create(any())).willReturn(heartbeat);
-        given(client.publishHeartbeat(heartbeat)).willReturn(Optional.empty());
+        when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
+        when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.empty());
 
-        // when
         c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
 
-        // then
         verify(c2HeartbeatFactory, times(1)).create(any());
         verify(client, times(1)).publishHeartbeat(heartbeat);
         verify(operationService, times(0)).handleOperation(any());
@@ -117,18 +104,14 @@ public class C2ClientServiceTest {
     }
 
     @Test
-    public void shouldNotHandleWhenThereAreNoOperationsSent() {
-        // given
+    void testSendHeartbeatNotHandledWhenThereAreNoOperationsSent() {
         C2Heartbeat heartbeat = mock(C2Heartbeat.class);
-        given(c2HeartbeatFactory.create(any())).willReturn(heartbeat);
-
+        when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
-        given(client.publishHeartbeat(heartbeat)).willReturn(Optional.of(hbResponse));
+        when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
 
-        // when
         c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
 
-        // then
         verify(c2HeartbeatFactory, times(1)).create(any());
         verify(client, times(1)).publishHeartbeat(heartbeat);
         verify(operationService, times(0)).handleOperation(any());
@@ -136,21 +119,16 @@ public class C2ClientServiceTest {
     }
 
     @Test
-    public void shouldNotAckWhenOperationAckMissing() {
-        // given
+    void testSendHeartbeatNotAckWhenOperationAckMissing() {
         C2Heartbeat heartbeat = mock(C2Heartbeat.class);
-        given(c2HeartbeatFactory.create(any())).willReturn(heartbeat);
-
+        when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
         hbResponse.setRequestedOperations(generateOperation(1));
-        given(client.publishHeartbeat(heartbeat)).willReturn(Optional.of(hbResponse));
+        when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
+        when(operationService.handleOperation(any())).thenReturn(Optional.empty());
 
-        given(operationService.handleOperation(any())).willReturn(Optional.empty());
-
-        // when
         c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
 
-        // then
         verify(c2HeartbeatFactory, times(1)).create(any());
         verify(client, times(1)).publishHeartbeat(heartbeat);
         verify(operationService, times(1)).handleOperation(any());

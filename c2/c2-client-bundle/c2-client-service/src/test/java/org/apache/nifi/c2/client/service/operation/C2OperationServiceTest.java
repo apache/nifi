@@ -40,48 +40,39 @@ public class C2OperationServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyForUnrecognisedOperationType() {
-        // given
+    void testHandleOperationReturnsEmptyForUnrecognisedOperationType() {
         C2OperationService service = new C2OperationService(Collections.emptyList());
 
-        // when
         C2Operation operation = new C2Operation();
         operation.setOperation(OperationType.UPDATE);
         operation.setOperand(OperandType.CONFIGURATION);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
-        // then
         assertFalse(ack.isPresent());
     }
 
     @Test
-    void shouldHandleOperation() {
-        // given
+    void testHandleOperation() {
         C2OperationService service = new C2OperationService(Collections.singletonList(new TestDescribeOperationHandler()));
 
-        // when
         C2Operation operation = new C2Operation();
         operation.setOperation(OperationType.DESCRIBE);
         operation.setOperand(OperandType.MANIFEST);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
-        // then
         assertTrue(ack.isPresent());
         assertEquals(operationAck, ack.get());
     }
 
     @Test
-    void shouldReturnEmptyForOperandMismatch() {
-        // given
+    void testHandleOperationReturnsEmptyForOperandMismatch() {
         C2OperationService service = new C2OperationService(Collections.singletonList(new TestInvalidOperationHandler()));
 
-        // when
         C2Operation operation = new C2Operation();
         operation.setOperation(OperationType.DESCRIBE);
         operation.setOperand(OperandType.MANIFEST);
         Optional<C2OperationAck> ack = service.handleOperation(operation);
 
-        // then
         assertFalse(ack.isPresent());
     }
 

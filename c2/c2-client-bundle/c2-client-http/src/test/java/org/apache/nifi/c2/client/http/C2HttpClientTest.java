@@ -16,46 +16,41 @@
  */
 package org.apache.nifi.c2.client.http;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.containing;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
-import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.verify;
-import static org.apache.nifi.c2.client.http.C2HttpClient.HTTP_STATUS_BAD_REQUEST;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
-import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
-import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.nifi.c2.client.C2ClientConfig;
 import org.apache.nifi.c2.client.api.C2Serializer;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-@WireMockTest
 @ExtendWith(MockitoExtension.class)
 public class C2HttpClientTest {
 
-    private static final String HEARTBEAT_PATH = "/c2/heartbeat";
-    private static final String UPDATE_PATH = "/c2/update";
-    private static final String ACK_PATH = "/c2/acknowledge";
+    private static final String HEARTBEAT_PATH = "c2/heartbeat";
+    private static final String UPDATE_PATH = "c2/update";
+    private static final String ACK_PATH = "c2/acknowledge";
     private static final int HTTP_STATUS_OK = 200;
+    private static final int HTTP_STATUS_BAD_REQUEST = 400;
 
     @Mock
     private C2ClientConfig c2ClientConfig;
@@ -66,93 +61,96 @@ public class C2HttpClientTest {
     @InjectMocks
     private C2HttpClient c2HttpClient;
 
+    private MockWebServer mockWebServer;
+
+    private String baseUrl;
+
+    @BeforeEach
+    public void startServer() {
+        mockWebServer = new MockWebServer();
+        baseUrl = mockWebServer.url("/").newBuilder().host("localhost").build().toString();
+    }
+
+    @AfterEach
+    public void shutdownServer() throws IOException {
+        mockWebServer.shutdown();
+    }
+
     @Test
-    void shouldReturnC2HeartbeatResponse(WireMockRuntimeInfo wmRuntimeInfo) {
-        // given
+    void testPublishHeartbeatSuccess() throws InterruptedException {
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
-        stubFor(WireMock.post(HEARTBEAT_PATH)
-            .willReturn(aResponse().withBody("dummyResponseBody")));
+        mockWebServer.enqueue(new MockResponse().setBody("dummyResponseBody"));
 
-        given(serializer.serialize(any(C2Heartbeat.class))).willReturn(Optional.of("Heartbeat"));
-        given(serializer.deserialize(any(), any())).willReturn(Optional.of(hbResponse));
-        given(c2ClientConfig.getC2Url()).willReturn(wmRuntimeInfo.getHttpBaseUrl() + HEARTBEAT_PATH);
+        when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
+        when(serializer.deserialize(any(), any())).thenReturn(Optional.of(hbResponse));
+        when(c2ClientConfig.getC2Url()).thenReturn(baseUrl + HEARTBEAT_PATH);
 
-        // when
         Optional<C2HeartbeatResponse> response = c2HttpClient.publishHeartbeat(new C2Heartbeat());
 
-        // then
         assertTrue(response.isPresent());
         assertEquals(response.get(), hbResponse);
+
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertEquals("/" + HEARTBEAT_PATH, request.getPath());
     }
 
     @Test
-    void shouldReturnEmptyInCaseOfCommunicationIssue() {
-        // given
-        given(serializer.serialize(any(C2Heartbeat.class))).willReturn(Optional.of("Heartbeat"));
-        given(c2ClientConfig.getC2Url()).willReturn("http://localhost/incorrectPath");
+    void testPublishHeartbeatReturnEmptyInCaseOfCommunicationIssue() {
+        when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
+        when(c2ClientConfig.getC2Url()).thenReturn("http://localhost/incorrectPath");
 
-        // when
         Optional<C2HeartbeatResponse> response = c2HttpClient.publishHeartbeat(new C2Heartbeat());
 
-        // then
         assertFalse(response.isPresent());
     }
 
     @Test
-    void shouldThrowExceptionForInvalidKeystoreFilenameAtInitialization() {
-        // given
-        given(c2ClientConfig.getKeystoreFilename()).willReturn("incorrectKeystoreFilename");
+    void testConstructorThrowsExceptionForInvalidKeystoreFilenameAtInitialization() {
+        when(c2ClientConfig.getKeystoreFilename()).thenReturn("incorrectKeystoreFilename");
 
-        // when
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> new C2HttpClient(c2ClientConfig, serializer));
 
-        // then
-        assertEquals("OkHttp TLS configuration failed", exception.getMessage());
+        assertTrue(exception.getMessage().contains("TLS"));
     }
 
     @Test
-    void shouldReturnEmptyWhenServerErrorResponse(WireMockRuntimeInfo wmRuntimeInfo) {
-        // given
-        stubFor(WireMock.get(UPDATE_PATH)
-            .willReturn(aResponse().withStatus(HTTP_STATUS_BAD_REQUEST).withBody("updateContent")));
+    void testRetrieveUpdateContentReturnsEmptyWhenServerErrorResponse() throws InterruptedException {
+        mockWebServer.enqueue(new MockResponse().setBody("updateContent").setResponseCode(HTTP_STATUS_BAD_REQUEST));
 
-        // when
-        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(wmRuntimeInfo.getHttpBaseUrl() + UPDATE_PATH);
+        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
 
-        // then
         assertFalse(response.isPresent());
+
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertEquals("/" + UPDATE_PATH, request.getPath());
     }
 
     @Test
-    void shouldReturnResponseWithBody(WireMockRuntimeInfo wmRuntimeInfo) {
-        // given
+    void testRetrieveUpdateContentReturnsResponseWithBody() throws InterruptedException {
         String content = "updateContent";
-        stubFor(WireMock.get(UPDATE_PATH)
-            .willReturn(aResponse().withStatus(HTTP_STATUS_OK).withBody(content)));
+        mockWebServer.enqueue(new MockResponse().setBody(content).setResponseCode(HTTP_STATUS_OK));
 
-        // when
-        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(wmRuntimeInfo.getHttpBaseUrl() + UPDATE_PATH);
+        Optional<byte[]> response = c2HttpClient.retrieveUpdateContent(baseUrl + UPDATE_PATH);
 
-        // then
         assertTrue(response.isPresent());
         assertArrayEquals(content.getBytes(StandardCharsets.UTF_8), response.get());
+
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertEquals("/" + UPDATE_PATH, request.getPath());
     }
 
     @Test
-    void shouldSendAck(WireMockRuntimeInfo wmRuntimeInfo) {
-        // given
+    void testAcknowledgeOperation() throws InterruptedException {
         String ackContent = "ack";
-        given(c2ClientConfig.getC2AckUrl()).willReturn(wmRuntimeInfo.getHttpBaseUrl() + ACK_PATH);
-        given(serializer.serialize(any(C2OperationAck.class))).willReturn(Optional.of(ackContent));
-        stubFor(WireMock.post(ACK_PATH)
-            .willReturn(aResponse().withStatus(HTTP_STATUS_OK)));
+        when(c2ClientConfig.getC2AckUrl()).thenReturn(baseUrl + ACK_PATH);
+        when(serializer.serialize(any(C2OperationAck.class))).thenReturn(Optional.of(ackContent));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_STATUS_OK));
 
-        // when
-       c2HttpClient.acknowledgeOperation(new C2OperationAck());
+        c2HttpClient.acknowledgeOperation(new C2OperationAck());
 
-        // then
-        verify(postRequestedFor(urlEqualTo(ACK_PATH))
-            .withHeader("Content-Type", containing("application/json"))
-            .withRequestBody(matching(ackContent)));
+        RecordedRequest request = mockWebServer.takeRequest();
+        assertEquals("/" + ACK_PATH, request.getPath());
+        assertTrue(request.getHeader("Content-Type").contains("application/json"));
+        assertArrayEquals(ackContent.getBytes(StandardCharsets.UTF_8), request.getBody().readByteArray());
     }
 }

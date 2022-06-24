@@ -18,6 +18,9 @@ package org.apache.nifi.c2.client.http;
 
 import java.io.IOException;
 
+/**
+ * Exception to differentiate C2 specific issues from standard IOExceptions
+ */
 public class C2ServerException extends IOException {
 
     public C2ServerException(String message) {
