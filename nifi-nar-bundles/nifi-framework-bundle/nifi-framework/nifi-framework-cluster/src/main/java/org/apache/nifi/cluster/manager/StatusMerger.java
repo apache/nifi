@@ -1025,8 +1025,8 @@ public class StatusMerger {
         }
 
         // RunStatus for ControllerServiceStatusDTO can be one of [ENABLED, ENABLING, DISABLED, DISABLING]
-        if (ControllerServiceState.DISABLING.toString().equalsIgnoreCase(toMerge.getRunStatus()) &&
-            ControllerServiceState.DISABLED.toString().equalsIgnoreCase(target.getRunStatus())) {
+        if (ControllerServiceState.DISABLING.toString().equalsIgnoreCase(toMerge.getRunStatus())
+            && ControllerServiceState.DISABLED.toString().equalsIgnoreCase(target.getRunStatus())) {
             target.setRunStatus(ControllerServiceState.DISABLING.toString());
         }
 
