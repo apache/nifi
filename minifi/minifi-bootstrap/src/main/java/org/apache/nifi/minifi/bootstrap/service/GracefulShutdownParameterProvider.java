@@ -24,10 +24,10 @@ import org.slf4j.LoggerFactory;
 
 public class GracefulShutdownParameterProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(GracefulShutdownParameterProvider.class);
-    private static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
-    private static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
     private static final String INVALID_GRACEFUL_SHUTDOWN_SECONDS_MESSAGE =
         "The {} property in Bootstrap Config File has an invalid value. Must be a non-negative integer, Falling back to the default {} value";
+    protected static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
+    protected static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
 
     private final BootstrapFileProvider bootstrapFileProvider;
 

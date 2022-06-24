@@ -17,10 +17,15 @@
 
 package org.apache.nifi.minifi.bootstrap.util;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.OVERRIDE_SECURITY;
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+
+import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,6 +72,7 @@ import org.apache.nifi.minifi.commons.schema.SwapSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.xml.processing.ProcessingException;
@@ -748,6 +754,72 @@ public final class ConfigTransformer {
         final Element toAdd = doc.createElement(name);
         toAdd.setTextContent(value);
         element.appendChild(toAdd);
+    }
+
+    public static ByteBuffer overrideNonFlowSectionsFromOriginalSchema(byte[] newSchema, ByteBuffer currentConfigScheme, Properties bootstrapProperties)
+        throws IOException, InvalidConfigurationException, SchemaLoaderException {
+        try {
+            boolean overrideCoreProperties = ConfigTransformer.overrideCoreProperties(bootstrapProperties);
+            boolean overrideSecurityProperties = ConfigTransformer.overrideSecurityProperties(bootstrapProperties);
+            if (overrideCoreProperties && overrideSecurityProperties) {
+                return ByteBuffer.wrap(newSchema);
+            } else {
+                ConvertableSchema<ConfigSchema> schemaNew = ConfigTransformer
+                    .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteArrayInputStream(newSchema)));
+                ConfigSchema configSchemaNew = ConfigTransformer.throwIfInvalid(schemaNew.convert());
+                ConvertableSchema<ConfigSchema> schemaOld = ConfigTransformer
+                    .throwIfInvalid(SchemaLoader.loadConvertableSchemaFromYaml(new ByteBufferInputStream(currentConfigScheme)));
+                ConfigSchema configSchemaOld = ConfigTransformer.throwIfInvalid(schemaOld.convert());
+
+                configSchemaNew.setNifiPropertiesOverrides(configSchemaOld.getNifiPropertiesOverrides());
+
+                if (!overrideCoreProperties) {
+                    logger.debug("Preserving previous core properties...");
+                    configSchemaNew.setCoreProperties(configSchemaOld.getCoreProperties());
+                }
+
+                if (!overrideSecurityProperties) {
+                    logger.debug("Preserving previous security properties...");
+                    configSchemaNew.setSecurityProperties(configSchemaOld.getSecurityProperties());
+                }
+
+                StringWriter writer = new StringWriter();
+                SchemaLoader.toYaml(configSchemaNew, writer);
+                return ByteBuffer.wrap(writer.toString().getBytes()).asReadOnlyBuffer();
+            }
+        } catch (Exception e) {
+            logger.error("Loading the old and the new schema for merging was not successful", e);
+            throw e;
+        }
+    }
+
+    private static boolean overrideSecurityProperties(Properties properties) {
+        String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
+        boolean overrideSecurity;
+        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)) {
+            overrideSecurity = Boolean.parseBoolean(overrideSecurityProperties);
+        } else {
+            throw new IllegalArgumentException(
+                "Property, " + OVERRIDE_SECURITY + ", to specify whether to override security properties must either be a value boolean value (\"true\" or \"false\")" +
+                    " or left to the default value of \"false\". It is set to \"" + overrideSecurityProperties + "\".");
+        }
+
+        return overrideSecurity;
+    }
+
+    private static boolean overrideCoreProperties(Properties properties) {
+        String overrideCorePropertiesKey = PULL_HTTP_BASE_KEY + ".override.core";
+        String overrideCoreProps = (String) properties.getOrDefault(overrideCorePropertiesKey, "false");
+        boolean overrideCoreProperties;
+        if ("true".equalsIgnoreCase(overrideCoreProps) || "false".equalsIgnoreCase(overrideCoreProps)) {
+            overrideCoreProperties = Boolean.parseBoolean(overrideCoreProps);
+        } else {
+            throw new IllegalArgumentException(
+                "Property, " + overrideCorePropertiesKey + ", to specify whether to override core properties must either be a value boolean value (\"true\" or \"false\")" +
+                    " or left to the default value of \"false\". It is set to \"" + overrideCoreProps + "\".");
+        }
+
+        return overrideCoreProperties;
     }
 
     public static final String PROPERTIES_FILE_APACHE_2_0_LICENSE =

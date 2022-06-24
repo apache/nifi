@@ -97,8 +97,8 @@ public class HierarchicalC2IntegrationTest {
                 certificatesDirectory.resolve("c2-authoritative").resolve("truststore.jks").toFile().getAbsolutePath(),
                 "badTrustPass",
                 KeystoreType.JKS);
-        healthCheckSocketFactory = trustSslContext.getSocketFactory();
         trustSslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        healthCheckSocketFactory = trustSslContext.getSocketFactory();
 
         docker.before();
     }

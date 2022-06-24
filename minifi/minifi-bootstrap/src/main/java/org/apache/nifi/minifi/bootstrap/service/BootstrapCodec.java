@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
+import java.util.Optional;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.exception.InvalidCommandException;
 import org.slf4j.Logger;
@@ -48,7 +49,7 @@ public class BootstrapCodec {
 
     public void communicate() throws IOException {
         String line = reader.readLine();
-        String[] splits = line.split(" ");
+        String[] splits = Optional.ofNullable(line).map(l -> l.split(" ")).orElse(new String[0]);
         if (splits.length == 0) {
             throw new IOException("Received invalid command from MiNiFi: " + line);
         }

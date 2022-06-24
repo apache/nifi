@@ -58,7 +58,7 @@
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.apache.nifi.processors" level="WARN"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
-    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="INFO" />
+    <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="DEBUG" />
     <logger name="org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor" level="DEBUG" />
     <logger name="org.apache.nifi.minifi.c2.cache.filesystem.FileSystemConfigurationCache" level="DEBUG" />
 
@@ -88,7 +88,7 @@
     <logger name="org.apache.nifi.minifi.StdOut" level="INFO" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
-    
+
     <!-- Everything written to MiNiFi's Standard Error will be logged with the logger org.apache.nifi.minifi.StdErr at ERROR level -->
 	<logger name="org.apache.nifi.minifi.StdErr" level="ERROR" additivity="false">
     	<appender-ref ref="BOOTSTRAP_FILE" />

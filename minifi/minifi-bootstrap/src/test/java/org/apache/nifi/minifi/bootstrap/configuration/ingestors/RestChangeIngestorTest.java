@@ -17,6 +17,11 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
+import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
+import static org.mockito.Mockito.when;
+
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.OkHttpClient;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
@@ -33,11 +38,16 @@ public class RestChangeIngestorTest extends RestChangeIngestorCommonTest {
     @BeforeAll
     public static void setUp() throws InterruptedException, MalformedURLException {
         Properties properties = new Properties();
+        properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
+        properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
         restChangeIngestor = new RestChangeIngestor();
 
         testNotifier = Mockito.mock(ConfigurationChangeNotifier.class);
 
-        restChangeIngestor.initialize(properties, Mockito.mock(ConfigurationFileHolder.class), testNotifier);
+        ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
+        when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(new byte[0])));
+
+        restChangeIngestor.initialize(properties, configurationFileHolder, testNotifier);
         restChangeIngestor.setDifferentiator(mockDifferentiator);
         restChangeIngestor.start();
 
