@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.rocksdb;
+package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.StringUtils;
@@ -63,7 +63,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * Like when a metronome ticks.
  */
 
-public class RocksDBMetronome implements Closeable {
+class RocksDBMetronome implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(RocksDBMetronome.class);
 
@@ -742,10 +742,10 @@ public class RocksDBMetronome implements Closeable {
                 case WARN_LEVEL:
                     logger.warn(logMsg);
                     break;
+                case INFO_LEVEL:
                 case DEBUG_LEVEL:
                     logger.debug(logMsg);
                     break;
-                case INFO_LEVEL:
                 case HEADER_LEVEL:
                 default:
                     logger.info(logMsg);

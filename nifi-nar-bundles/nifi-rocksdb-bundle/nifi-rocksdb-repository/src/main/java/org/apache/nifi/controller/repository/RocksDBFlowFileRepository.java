@@ -22,7 +22,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.rocksdb.RocksDBMetronome;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.rocksdb.RocksDBException;
@@ -75,6 +74,7 @@ import java.util.stream.Collectors;
  * Implements FlowFile Repository using RocksDB as the backing store.
  * </p>
  */
+@Deprecated
 public class RocksDBFlowFileRepository implements FlowFileRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(RocksDBFlowFileRepository.class);
@@ -286,6 +286,8 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     public RocksDBFlowFileRepository(final NiFiProperties niFiProperties) {
+        logger.warn("*** " + RocksDBFlowFileRepository.class.getSimpleName() + " is deprecated and will be removed in future versions of Apache NiFi. ***");
+
         deserializationThreads = RocksDbProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties);
         deserializationBufferSize = RocksDbProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties);
 

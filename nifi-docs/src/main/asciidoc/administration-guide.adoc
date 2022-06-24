@@ -3213,6 +3213,8 @@ This implementation stores FlowFiles in memory instead of on disk.  It *will* re
 
 === RocksDB FlowFile Repository
 
+WARNING: The `RocksDBFlowFileRepository` is deprecated in favor of the `WriteAheadFlowFileRepository`. It will be removed in future major versions of Apache NiFi. To use it in NiFi 1.x, you must download nifi-rocksdb-nar from the Apache Nexus Repository and place it in your NiFi lib directory.
+
 This implementation makes use of the RocksDB key-value store.  It uses periodic synchronization to ensure that no created or received data is lost (as long as `nifi.flowfile.repository.rocksdb.accept.data.loss` is set `false`).  In the event of a failure (e.g. power loss), _work_ done on FlowFiles through the system (i.e. routing and transformation) may still be lost.  Specifically, the record of these actions may be lost, reverting the affected FlowFiles to a previous, valid state.  From there, they will resume their path through the flow as normal.  This guarantee comes at the expense of a delay on operations that add new data to the system.  This delay is configurable (as `nifi.flowfile.repository.rocksdb.sync.period`), and can be tuned to the individual system.
 
 The configuration parameters for this repository fall in to two categories, "NiFi-centric" and "RocksDB-centric".  The NiFi-centric settings have to do with the operations of the FlowFile Repository and its interaction with NiFi.  The RocksDB-centric settings directly correlate to settings on the underlying RocksDB repo.  More information on these settings can be found in the RocksDB documentation: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics.
