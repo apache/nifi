@@ -309,7 +309,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
 
         // validate the scheduling period based on the scheduling strategy
         final String schedulingPeriod = config.getSchedulingPeriod();
-        final String evaluatedSchedulingPeriod = processorNode.evaluateParameter(schedulingPeriod);
+        final String evaluatedSchedulingPeriod = processorNode.evaluateParameters(schedulingPeriod);
 
         if (isNotNull(schedulingPeriod) && isNotNull(evaluatedSchedulingPeriod)) {
             switch (schedulingStrategy) {

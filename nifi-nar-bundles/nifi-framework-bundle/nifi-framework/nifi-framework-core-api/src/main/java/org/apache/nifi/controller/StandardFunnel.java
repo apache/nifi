@@ -620,8 +620,8 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public String evaluateParameter(String parameter) {
-        return parameter;
+    public String evaluateParameters(String value) {
+        return value;
     }
 
     @Override

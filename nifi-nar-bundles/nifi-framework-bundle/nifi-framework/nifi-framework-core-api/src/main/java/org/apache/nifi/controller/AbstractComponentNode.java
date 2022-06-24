@@ -1052,6 +1052,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // For any Property that references an updated Parameter, we need to call onPropertyModified().
         // Additionally, we need to trigger validation to run if this component is affected by the parameter update.
         boolean componentAffected = false;
+
+        //Determine if the component is affected by the Parameter Update
+        for (final String updatedParameterName : updatedParameters.keySet()) {
+            if (isReferencingParameter(updatedParameterName)) {
+                componentAffected = true;
+                break;
+            }
+        }
+
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
             final PropertyDescriptor propertyDescriptor = entry.getKey();
             final PropertyConfiguration configuration = entry.getValue();
@@ -1063,7 +1072,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 final String referencedParamName = reference.getParameterName();
                 if (updatedParameters.containsKey(referencedParamName)) {
                     propertyAffected = true;
-                    componentAffected = true;
                     break;
                 }
             }
@@ -1092,28 +1100,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         // If this component is affected by the Parameter change, we need to re-validate
-        componentAffected |= isConfigurationParameterModified(updatedParameters);
         if (componentAffected) {
             logger.debug("Configuration of {} changed due to an update to Parameter Context. Resetting validation state", this);
             resetValidationState();
         }
     }
 
-    protected void increaseReferenceCounts(final String parameterName) {
+    protected void incrementReferenceCounts(final String parameterName) {
         parameterReferenceCounts.merge(parameterName, 1, (a, b) -> a == -1 ? null : a + b);
     }
 
-    protected void decreaseReferenceCounts(final String parameterName) {
+    protected void decrementReferenceCounts(final String parameterName) {
         parameterReferenceCounts.merge(parameterName, -1, (a, b) -> a == 1 ? null : a + b);
     }
-
-    /**
-     * Verifies whether any referenced configuration parameter has been updated and its effective value has changed.
-     * If yes, the component needs to be re-validated.
-     * @param updatedParameters updated parameters
-     * @return true if the component requires re-validation
-     **/
-    public abstract boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters);
 
     private ParameterLookup createParameterLookupForPreviousValues(final Map<String, ParameterUpdate> updatedParameters) {
         final ParameterContext currentContext = getParameterContext();
@@ -1379,4 +1378,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected abstract ParameterContext getParameterContext();
+
+    @Override
+    public boolean isReferencingParameter(final String parameterName) {
+        return parameterReferenceCounts.containsKey(parameterName);
+    }
 }

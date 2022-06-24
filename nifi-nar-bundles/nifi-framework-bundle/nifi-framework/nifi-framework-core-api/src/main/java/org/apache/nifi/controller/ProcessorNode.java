@@ -28,7 +28,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -301,12 +300,4 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * @param context The ProcessContext associated with the Processor configuration
      */
     public abstract void onConfigurationRestored(ProcessContext context);
-
-    /**
-     * Returns those parameter references which configures the Processor through Parameters. This is for Processor configuration only,
-     * Processor Property Parameter references stored and handled separately.
-     *
-     * @return the configuration Parameter references for this Processor
-     */
-    public abstract List<ParameterReference> getConfigurationParameterReferences();
 }

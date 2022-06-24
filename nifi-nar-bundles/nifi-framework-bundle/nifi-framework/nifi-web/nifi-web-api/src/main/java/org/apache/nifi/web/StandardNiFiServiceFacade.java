@@ -122,7 +122,6 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextLookup;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -1418,19 +1417,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         for (final ProcessGroup group : groupsReferencingParameterContext) {
             for (final ProcessorNode processor : group.getProcessors()) {
                 if (includeInactive || processor.isRunning()) {
-                    final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(processor, revisionManager);
+                    final Set<String> referencedParams = processor.getReferencedParameterNames();
+                    final boolean referencesUpdatedParam = referencedParams.stream().anyMatch(updatedParameterNames::contains);
 
-                    //Processor configuration related Parameters
-                    final Set<String> referencedConfigurationParameters = processor.getConfigurationParameterReferences()
-                            .stream()
-                            .map(ParameterReference::getParameterName)
-                            .collect(Collectors.toSet());
-                    getAffectedComponentsByParameterUpdate(parameterContextDto, updatedParameterNames, affectedComponents, processor, affectedComponentEntity, referencedConfigurationParameters);
+                    if (referencesUpdatedParam) {
+                        affectedComponents.add(processor);
 
-                    //Processor property related Parameters
-                    final Set<String> referencedPropertyParameters = processor.getReferencedParameterNames();
-                    getAffectedComponentsByParameterUpdate(parameterContextDto, updatedParameterNames, affectedComponents, processor, affectedComponentEntity, referencedPropertyParameters);
+                        final AffectedComponentEntity affectedComponentEntity = dtoFactory.createAffectedComponentEntity(processor, revisionManager);
 
+                        for (final String referencedParam : referencedParams) {
+                            for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
+                                final ParameterDTO paramDto = paramEntity.getParameter();
+                                if (referencedParam.equals(paramDto.getName())) {
+                                    paramDto.getReferencingComponents().add(affectedComponentEntity);
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -1457,25 +1460,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return dtoFactory.createAffectedComponentEntities(affectedComponents, revisionManager);
-    }
-
-    private void getAffectedComponentsByParameterUpdate(final ParameterContextDTO parameterContextDto, final Set<String> updatedParameterNames, final Set<ComponentNode> affectedComponents,
-                                                        final ProcessorNode processor, final AffectedComponentEntity affectedComponentEntity, final Set<String> referencedParameters) {
-
-        final boolean referenceUpdatedParameter = referencedParameters.stream().anyMatch(updatedParameterNames::contains);
-
-        if (referenceUpdatedParameter) {
-            affectedComponents.add(processor);
-
-            for (String paramRef: referencedParameters) {
-                for (final ParameterEntity paramEntity : parameterContextDto.getParameters()) {
-                    final ParameterDTO paramDto = paramEntity.getParameter();
-                    if (paramRef.equals(paramDto.getName())) {
-                        paramDto.getReferencingComponents().add(affectedComponentEntity);
-                    }
-                }
-            }
-        }
     }
 
     private void setEffectiveParameterUpdates(final ParameterContextDTO parameterContextDto) {

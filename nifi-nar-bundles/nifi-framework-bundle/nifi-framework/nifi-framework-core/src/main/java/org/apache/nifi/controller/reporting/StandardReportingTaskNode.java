@@ -33,14 +33,12 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class StandardReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
 
@@ -96,11 +94,6 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     @Override
     protected List<ValidationResult> validateConfig() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
-        return false;
     }
 
     @Override

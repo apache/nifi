@@ -29,7 +29,6 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
@@ -37,7 +36,6 @@ import org.apache.nifi.stateless.engine.StatelessEngine;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 public class StatelessReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
     private final FlowManager flowManager;
@@ -55,11 +53,6 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
     @Override
     protected List<ValidationResult> validateConfig() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
-        return false;
     }
 
     @Override

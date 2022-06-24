@@ -53,7 +53,6 @@ import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
@@ -509,11 +508,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     protected List<ValidationResult> validateConfig() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
-        return false;
     }
 
     /**

@@ -73,7 +73,18 @@ public interface ComponentNode extends ComponentAuthorizable {
      */
     Set<String> getReferencedParameterNames();
 
+    /**
+     * Determines whether the component is referencing any parameter
+     * @return true if there is any parameter reference
+     **/
     boolean isReferencingParameter();
+
+    /**
+     * Determines whether the component is referencing the given parameter
+     * @param parameterName Parameter Name
+     * @return true if parameter is referenced
+     **/
+    boolean isReferencingParameter(final String parameterName);
 
     /**
      * Notifies the Component that the value of a parameter has changed

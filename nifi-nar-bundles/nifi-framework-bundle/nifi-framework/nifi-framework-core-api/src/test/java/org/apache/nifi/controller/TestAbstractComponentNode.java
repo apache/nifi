@@ -409,11 +409,6 @@ public class TestAbstractComponentNode {
         }
 
         @Override
-        public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
-            return false;
-        }
-
-        @Override
         public void verifyModifiable() throws IllegalStateException {
         }
 

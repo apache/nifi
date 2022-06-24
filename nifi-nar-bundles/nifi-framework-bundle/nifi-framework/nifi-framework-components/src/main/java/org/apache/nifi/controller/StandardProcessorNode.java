@@ -69,7 +69,6 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -159,7 +158,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private volatile long yieldNanos;
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
     private volatile LogLevel bulletinLevel = LogLevel.WARN;
-    private volatile List<ParameterReference> configurationParameterReferences = Collections.emptyList();
+    private volatile List<ParameterReference> parameterReferences = Collections.emptyList();
 
     private SchedulingStrategy schedulingStrategy; // guarded by synchronized keyword
     private ExecutionNode executionNode;
@@ -514,22 +513,20 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public synchronized void setSchedulingPeriod(final String schedulingPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
 
         //Before setting the new Configuration references, we need to remove the current ones from reference counts.
-        configurationParameterReferences.forEach(parameterReference -> decreaseReferenceCounts(parameterReference.getParameterName()));
+        parameterReferences.forEach(parameterReference -> decrementReferenceCounts(parameterReference.getParameterName()));
 
         //Setting the new Configuration references.
         final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
         final ParameterTokenList parameterTokenList = parameterParser.parseTokens(schedulingPeriod);
 
-        configurationParameterReferences = new ArrayList<>(parameterTokenList.toReferenceList());
-
-        configurationParameterReferences.forEach(parameterReference -> increaseReferenceCounts(parameterReference.getParameterName()));
+        parameterReferences = new ArrayList<>(parameterTokenList.toReferenceList());
+        parameterReferences.forEach(parameterReference -> incrementReferenceCounts(parameterReference.getParameterName()));
 
         this.schedulingPeriod.set(schedulingPeriod);
     }
@@ -1194,12 +1191,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public List<ValidationResult> validateConfig() {
 
         final List<ValidationResult> results = new ArrayList<>();
         final ParameterContext parameterContext = getParameterContext();
 
-        if (parameterContext == null && !this.configurationParameterReferences.isEmpty()) {
+        if (parameterContext == null && !this.parameterReferences.isEmpty()) {
             results.add(new ValidationResult.Builder()
                     .subject(RUN_SCHEDULE)
                     .input("Parameter Context")
@@ -1207,7 +1205,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     .explanation("Processor configuration references one or more Parameters but no Parameter Context is currently set on the Process Group.")
                     .build());
         } else {
-            for (final ParameterReference paramRef : configurationParameterReferences) {
+            for (final ParameterReference paramRef : parameterReferences) {
                 final Optional<Parameter> parameterRef = parameterContext.getParameter(paramRef.getParameterName());
                 if (!parameterRef.isPresent() ) {
                     results.add(new ValidationResult.Builder()
@@ -1231,7 +1229,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
 
             final String schedulingPeriod = getSchedulingPeriod();
-            final String evaluatedSchedulingPeriod = evaluateParameter(schedulingPeriod);
+            final String evaluatedSchedulingPeriod = evaluateParameters(schedulingPeriod);
 
             if (evaluatedSchedulingPeriod != null) {
                 switch (schedulingStrategy) {
@@ -1282,22 +1280,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
         }
         return results;
-    }
-
-    @Override
-    public boolean isConfigurationParameterModified(final Map<String, ParameterUpdate> updatedParameters) {
-        for (ParameterReference parameterreference : configurationParameterReferences) {
-            final String parameterName = parameterreference.getParameterName();
-
-            if (updatedParameters.containsKey(parameterName)) {
-                final String previousValue = evaluateParameter(updatedParameters.get(parameterName).getPreviousValue());
-                final String updatedValue = evaluateParameter(updatedParameters.get(parameterName).getUpdatedValue());
-                if (!Objects.equals(previousValue, updatedValue)) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     @Override
@@ -2033,10 +2015,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public String evaluateParameter(final String parameter) {
+    public String evaluateParameters(final String value) {
         final ParameterContext parameterContext = getParameterContext();
         final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
-        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(parameter);
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
 
         return parameterTokenList.substitute(parameterContext);
     }
@@ -2097,11 +2079,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getProcessor().getClass(), getProcessor().getIdentifier())) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, getProcessor(), context);
         }
-    }
-
-    @Override
-    public List<ParameterReference> getConfigurationParameterReferences() {
-        return Collections.unmodifiableList(configurationParameterReferences);
     }
 
 }
