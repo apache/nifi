@@ -22,8 +22,7 @@ import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
-import org.apache.nifi.web.security.util.ResourceUriResolver;
-import org.apache.nifi.web.security.util.StandardResourceUriResolver;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -41,8 +40,6 @@ import java.util.Optional;
  */
 public class Saml2LogoutSuccessHandler implements LogoutSuccessHandler {
     private static final String LOGOUT_COMPLETE_PATH = "/nifi/logout-complete";
-
-    private static final ResourceUriResolver logoutCompleteUriResolver = new StandardResourceUriResolver(LOGOUT_COMPLETE_PATH);
 
     private static final Logger logger = LoggerFactory.getLogger(Saml2LogoutSuccessHandler.class);
 
@@ -84,7 +81,7 @@ public class Saml2LogoutSuccessHandler implements LogoutSuccessHandler {
                 logger.info("Logout Request [{}] Identity [{}] completed", requestIdentifier, mappedUserIdentity);
             }
 
-            final URI logoutCompleteUri = logoutCompleteUriResolver.getResourceUri(request);
+            final URI logoutCompleteUri = RequestUriBuilder.fromHttpServletRequest(request).path(LOGOUT_COMPLETE_PATH).build();
             final String targetUrl = logoutCompleteUri.toString();
             response.sendRedirect(targetUrl);
         }

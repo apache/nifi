@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.filter;
 
+import org.apache.nifi.web.util.RequestUriBuilder;
+
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -26,11 +28,13 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 
 /**
  * Filter for determining appropriate login location.
  */
 public class LoginFilter implements Filter {
+    private static final String SAML2_AUTHENTICATE_FILTER_PATH = "/nifi-api/saml2/authenticate/consumer";
 
     private ServletContext servletContext;
 
@@ -53,11 +57,10 @@ public class LoginFilter implements Filter {
             apiContext.getRequestDispatcher("/access/knox/request").forward(request, response);
         } else if (supportsSAML) {
             final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            final String requestUri = httpServletRequest.getRequestURI();
+            final URI authenticateUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(SAML2_AUTHENTICATE_FILTER_PATH).build();
             // Redirect to request consumer URL defined in Spring Security OpenSamlAuthenticationRequestResolver.requestMatcher
-            final String samlAuthenticateConsumer = requestUri.replace("/nifi/login", "/nifi-api/saml2/authenticate/consumer");
             final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-            httpServletResponse.sendRedirect(samlAuthenticateConsumer);
+            httpServletResponse.sendRedirect(authenticateUri.toString());
         } else {
             filterChain.doFilter(request, response);
         }

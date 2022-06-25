@@ -46,7 +46,9 @@ class Saml2LogoutSuccessHandlerTest {
 
     private static final String REQUEST_URI = "/nifi-api";
 
-    private static final String REDIRECTED_URL = "http://localhost/nifi/logout-complete";
+    private static final int SERVER_PORT = 8080;
+
+    private static final String REDIRECTED_URL = "http://localhost:8080/nifi/logout-complete";
 
     @Mock
     IdpUserGroupService idpUserGroupService;
@@ -67,6 +69,7 @@ class Saml2LogoutSuccessHandlerTest {
         logoutRequestManager = new LogoutRequestManager();
         handler = new Saml2LogoutSuccessHandler(logoutRequestManager, idpUserGroupService);
         httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setServerPort(SERVER_PORT);
         httpServletResponse = new MockHttpServletResponse();
     }
 

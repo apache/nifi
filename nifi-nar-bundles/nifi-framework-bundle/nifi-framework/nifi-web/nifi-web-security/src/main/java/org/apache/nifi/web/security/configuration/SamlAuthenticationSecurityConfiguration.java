@@ -59,6 +59,7 @@ import org.springframework.security.saml2.provider.service.servlet.filter.Saml2W
 import org.springframework.security.saml2.provider.service.servlet.filter.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationRequestRepository;
+import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml3AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2AuthenticationRequestResolver;
@@ -139,7 +140,8 @@ public class SamlAuthenticationSecurityConfiguration {
      */
     @Bean
     public Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter(final AuthenticationManager authenticationManager) {
-        final Saml2WebSsoAuthenticationFilter filter = new Saml2WebSsoAuthenticationFilter(relyingPartyRegistrationRepository(), SamlUrlPath.LOGIN_RESPONSE_REGISTRATION_ID.getPath());
+        final Saml2AuthenticationTokenConverter authenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver());
+        final Saml2WebSsoAuthenticationFilter filter = new Saml2WebSsoAuthenticationFilter(authenticationTokenConverter, SamlUrlPath.LOGIN_RESPONSE_REGISTRATION_ID.getPath());
         filter.setAuthenticationManager(authenticationManager);
         filter.setAuthenticationSuccessHandler(getAuthenticationSuccessHandler());
         filter.setAuthenticationRequestRepository(saml2AuthenticationRequestRepository());

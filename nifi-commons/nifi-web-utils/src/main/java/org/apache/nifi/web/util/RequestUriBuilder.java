@@ -18,15 +18,22 @@ package org.apache.nifi.web.util;
 
 import org.apache.commons.lang3.StringUtils;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Request URI Builder encapsulates URI construction handling supported HTTP proxy request headers
  */
 public class RequestUriBuilder {
+    private static final String ALLOWED_CONTEXT_PATHS_PARAMETER = "allowedContextPaths";
+
+    private static final String COMMA_SEPARATOR = ",";
+
     private final String scheme;
 
     private final String host;
@@ -42,6 +49,17 @@ public class RequestUriBuilder {
         this.host = host;
         this.port = port;
         this.contextPath = contextPath;
+    }
+
+    /**
+     * Return Builder from HTTP Servlet Request using Scheme, Host, Port, and Context Path reading from headers
+     *
+     * @param httpServletRequest HTTP Servlet Request
+     * @return Request URI Builder
+     */
+    public static RequestUriBuilder fromHttpServletRequest(final HttpServletRequest httpServletRequest) {
+        final List<String> allowedContextPaths = getAllowedContextPathsConfigured(httpServletRequest);
+        return fromHttpServletRequest(httpServletRequest, allowedContextPaths);
     }
 
     /**
@@ -84,5 +102,12 @@ public class RequestUriBuilder {
         } catch (final URISyntaxException e) {
             throw new IllegalArgumentException("Build URI Failed", e);
         }
+    }
+
+    private static List<String> getAllowedContextPathsConfigured(final HttpServletRequest httpServletRequest) {
+        final ServletContext servletContext = httpServletRequest.getServletContext();
+        final String allowedContextPathsParameter = servletContext.getInitParameter(ALLOWED_CONTEXT_PATHS_PARAMETER);
+        final String[] allowedContextPathsParsed = StringUtils.split(allowedContextPathsParameter, COMMA_SEPARATOR);
+        return allowedContextPathsParsed == null ? Collections.emptyList() : Arrays.asList(allowedContextPathsParsed);
     }
 }

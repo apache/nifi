@@ -19,8 +19,7 @@ package org.apache.nifi.web.security.saml2.web.authentication.logout;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
-import org.apache.nifi.web.security.util.ResourceUriResolver;
-import org.apache.nifi.web.security.util.StandardResourceUriResolver;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -41,8 +40,6 @@ public class StandardSaml2LogoutRequestRepository implements Saml2LogoutRequestR
     private static final Logger logger = LoggerFactory.getLogger(StandardSaml2LogoutRequestRepository.class);
 
     private static final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
-
-    private static final ResourceUriResolver resourceUriResolver = new StandardResourceUriResolver();
 
     private final Cache cache;
 
@@ -97,7 +94,7 @@ public class StandardSaml2LogoutRequestRepository implements Saml2LogoutRequestR
             final String identifier = requestIdentifier.orElse(UUID.randomUUID().toString());
             cache.put(identifier, logoutRequest);
 
-            final URI resourceUri = resourceUriResolver.getResourceUri(request);
+            final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
             applicationCookieService.addCookie(resourceUri, response, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER, identifier);
             logger.debug("SAML Logout Request [{}] saved", identifier);
         }
@@ -118,7 +115,7 @@ public class StandardSaml2LogoutRequestRepository implements Saml2LogoutRequestR
         if (logoutRequest == null) {
             logger.warn("SAML Logout Request not found");
         } else {
-            final URI resourceUri = resourceUriResolver.getResourceUri(request);
+            final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
             applicationCookieService.removeCookie(resourceUri, response, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);
 
             final Optional<String> requestIdentifier = applicationCookieService.getCookieValue(request, ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER);

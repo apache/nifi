@@ -19,8 +19,7 @@ package org.apache.nifi.web.security.saml2.service.web;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
-import org.apache.nifi.web.security.util.ResourceUriResolver;
-import org.apache.nifi.web.security.util.StandardResourceUriResolver;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.Cache;
@@ -39,8 +38,6 @@ import java.util.UUID;
  */
 public class StandardSaml2AuthenticationRequestRepository implements Saml2AuthenticationRequestRepository<AbstractSaml2AuthenticationRequest> {
     private static final Logger logger = LoggerFactory.getLogger(StandardSaml2AuthenticationRequestRepository.class);
-
-    private static final ResourceUriResolver resourceUriResolver = new StandardResourceUriResolver();
 
     private static final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
 
@@ -94,7 +91,7 @@ public class StandardSaml2AuthenticationRequestRepository implements Saml2Authen
             final String identifier = UUID.randomUUID().toString();
             cache.put(identifier, authenticationRequest);
 
-            final URI resourceUri = resourceUriResolver.getResourceUri(request);
+            final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
             applicationCookieService.addCookie(resourceUri, response, ApplicationCookieName.SAML_REQUEST_IDENTIFIER, identifier);
             logger.debug("SAML Authentication Request [{}] saved", identifier);
         }
@@ -113,7 +110,7 @@ public class StandardSaml2AuthenticationRequestRepository implements Saml2Authen
         if (authenticationRequest == null) {
             logger.warn("SAML Authentication Request not found");
         } else {
-            final URI resourceUri = resourceUriResolver.getResourceUri(request);
+            final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
             applicationCookieService.removeCookie(resourceUri, response, ApplicationCookieName.SAML_REQUEST_IDENTIFIER);
 
             final Optional<String> requestIdentifier = applicationCookieService.getCookieValue(request, ApplicationCookieName.SAML_REQUEST_IDENTIFIER);

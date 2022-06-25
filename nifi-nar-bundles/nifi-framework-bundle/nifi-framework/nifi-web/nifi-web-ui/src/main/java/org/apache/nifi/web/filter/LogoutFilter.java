@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.filter;
 
+import org.apache.nifi.web.util.RequestUriBuilder;
+
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -26,6 +28,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URI;
 
 /**
  * Filter for determining appropriate logout location.
@@ -60,13 +63,13 @@ public class LogoutFilter implements Filter {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/knox/logout").forward(request, response);
         } else if (supportsSaml) {
-            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
-            final String requestUri = httpServletRequest.getRequestURI();
             // Redirect to request URL defined in nifi-web-api security filter configuration
-            final String replacementUrl = supportsSamlSingleLogout ? "/nifi-api/access/saml/single-logout/request" : "/nifi-api/access/saml/local-logout/request";
-            final String targetUrl = requestUri.replace("/nifi/logout", replacementUrl);
+            final String logoutUrl = supportsSamlSingleLogout ? "/nifi-api/access/saml/single-logout/request" : "/nifi-api/access/saml/local-logout/request";
+
+            final HttpServletRequest httpServletRequest = (HttpServletRequest) request;
+            final URI targetUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(logoutUrl).build();
             final HttpServletResponse httpServletResponse = (HttpServletResponse) response;
-            httpServletResponse.sendRedirect(targetUrl);
+            httpServletResponse.sendRedirect(targetUri.toString());
         } else {
             final ServletContext apiContext = servletContext.getContext("/nifi-api");
             apiContext.getRequestDispatcher("/access/logout/complete").forward(request, response);

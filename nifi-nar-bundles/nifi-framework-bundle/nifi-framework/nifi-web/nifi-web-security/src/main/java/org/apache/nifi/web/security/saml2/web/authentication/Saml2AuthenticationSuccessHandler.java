@@ -25,8 +25,7 @@ import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
-import org.apache.nifi.web.security.util.ResourceUriResolver;
-import org.apache.nifi.web.security.util.StandardResourceUriResolver;
+import org.apache.nifi.web.util.RequestUriBuilder;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,11 +45,7 @@ import java.util.stream.Collectors;
  * SAML 2 Authentication Success Handler redirects to the user interface and sets a Session Cookie with a Bearer Token
  */
 public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
-    private static final String UI_PATH = "/nifi";
-
-    private static final ResourceUriResolver uiResourceUriResolver = new StandardResourceUriResolver(UI_PATH);
-
-    private static final ResourceUriResolver resourceUriResolver = new StandardResourceUriResolver();
+    private static final String UI_PATH = "/nifi/";
 
     private final ApplicationCookieService applicationCookieService = new StandardApplicationCookieService();
 
@@ -113,10 +108,10 @@ public class Saml2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSu
      */
     @Override
     public String determineTargetUrl(final HttpServletRequest request, final HttpServletResponse response, final Authentication authentication) {
-        final URI resourceUri = resourceUriResolver.getResourceUri(request);
+        final URI resourceUri = RequestUriBuilder.fromHttpServletRequest(request).build();
         processAuthentication(response, authentication, resourceUri);
 
-        final URI targetUri = uiResourceUriResolver.getResourceUri(request);
+        final URI targetUri = RequestUriBuilder.fromHttpServletRequest(request).path(UI_PATH).build();
         return targetUri.toString();
     }
 

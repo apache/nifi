@@ -58,7 +58,9 @@ class Saml2AuthenticationSuccessHandlerTest {
 
     private static final String REQUEST_URI = "/nifi-api";
 
-    private static final String TARGET_URL = "http://localhost/nifi";
+    private static final int SERVER_PORT = 8080;
+
+    private static final String TARGET_URL = "http://localhost:8080/nifi/";
 
     private static final String FIRST_GROUP = "$1";
 
@@ -101,6 +103,7 @@ class Saml2AuthenticationSuccessHandlerTest {
                 ISSUER
         );
         httpServletRequest = new MockHttpServletRequest();
+        httpServletRequest.setServerPort(SERVER_PORT);
         httpServletResponse = new MockHttpServletResponse();
     }
 
