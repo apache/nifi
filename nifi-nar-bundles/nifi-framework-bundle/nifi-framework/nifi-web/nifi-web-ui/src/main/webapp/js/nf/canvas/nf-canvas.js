@@ -109,11 +109,11 @@
         urls: {
             api: '../nifi-api',
             accessConfig: '../nifi-api/access/config',
+            accessTokenExpiration: '../nifi-api/access/token/expiration',
             currentUser: '../nifi-api/flow/current-user',
             controllerBulletins: '../nifi-api/flow/controller/bulletins',
             kerberos: '../nifi-api/access/kerberos',
             oidc: '../nifi-api/access/oidc/exchange',
-            saml: '../nifi-api/access/saml/login/exchange',
             revision: '../nifi-api/flow/revision',
             banners: '../nifi-api/flow/banners'
         }
@@ -911,11 +911,17 @@
                             successfulAuthentication(jwt)
                         }).fail(function () {
                             $.ajax({
-                                type: 'POST',
-                                url: config.urls.saml,
-                                dataType: 'text'
-                            }).done(function (jwt) {
-                                successfulAuthentication(jwt)
+                                type: 'GET',
+                                url: config.urls.accessTokenExpiration,
+                                dataType: 'json'
+                            }).done(function (accessTokenExpirationEntity) {
+                                var accessTokenExpiration = accessTokenExpirationEntity.accessTokenExpiration;
+                                // Convert ISO 8601 string to session expiration in seconds
+                                var expiration = Date.parse(accessTokenExpiration.expiration);
+                                var expirationSeconds = expiration / 1000;
+                                var sessionExpiration = Math.round(expirationSeconds);
+                                nfAuthorizationStorage.setToken(sessionExpiration);
+                                deferred.resolve();
                             }).fail(function () {
                                 deferred.reject();
                             });
