@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestJoinEnrichment {
     private static final File EXAMPLES_DIR = new File("src/test/resources/TestJoinEnrichment");
@@ -149,7 +150,7 @@ public class TestJoinEnrichment {
 
     // Tests that the Insert Enrichment Record Fields example in the Additional Details produces expected output
     @Test
-    public void testInsertEnrichmentFields() throws InitializationException, IOException, SchemaNotFoundException, MalformedRecordException {
+    public void testInsertEnrichmentFields() throws InitializationException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(new JoinEnrichment());
 
         final ArrayListRecordWriter writer = setupJsonServices(runner);
@@ -182,6 +183,48 @@ public class TestJoinEnrichment {
         assertEquals(48202, customerDetails.getValue("id"));
         assertEquals("555-555-5555", customerDetails.getValue("phone"));
         assertEquals("john.doe@nifi.apache.org", customerDetails.getValue("email"));
+
+        final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        assertEquals(1, secondCustomerDetailsList.size());
+        final Record secondCustomerDetails = (Record) secondCustomerDetailsList.get(0);
+        assertEquals(5512, secondCustomerDetails.getValue("id"));
+        assertEquals("555-555-5511", secondCustomerDetails.getValue("phone"));
+        assertEquals("jane.doe@nifi.apache.org", secondCustomerDetails.getValue("email"));
+    }
+
+    // Tests that when the first enrichment record has a null value, that we still properly apply subsequent enrichments.
+    @Test
+    public void testFirstEnrichmentRecordNull() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new JoinEnrichment());
+
+        final ArrayListRecordWriter writer = setupJsonServices(runner);
+        runner.setProperty(JoinEnrichment.JOIN_STRATEGY, JoinEnrichment.JOIN_INSERT_ENRICHMENT_FIELDS);
+        runner.setProperty(JoinEnrichment.INSERTION_RECORD_PATH, "/purchase/customer");
+
+        final Map<String, String> originalAttributes = new HashMap<>();
+        originalAttributes.put("enrichment.group.id", "abc");
+        originalAttributes.put("enrichment.role", "ORIGINAL");
+        runner.enqueue(new File(EXAMPLES_DIR, "insert-original.json").toPath(), originalAttributes);
+
+        final Map<String, String> enrichmentAttributes = new HashMap<>();
+        enrichmentAttributes.put("enrichment.group.id", "abc");
+        enrichmentAttributes.put("enrichment.role", "ENRICHMENT");
+        runner.enqueue(new File(EXAMPLES_DIR, "insert-enrichment-first-value-null.json").toPath(), enrichmentAttributes);
+
+        runner.run();
+
+        runner.assertTransferCount(JoinEnrichment.REL_JOINED, 1);
+        runner.assertTransferCount(JoinEnrichment.REL_ORIGINAL, 2);
+
+        final List<Record> written = writer.getRecordsWritten();
+        assertEquals(2, written.size());
+
+        final RecordPath recordPath = RecordPath.compile("/purchase/customer/customerDetails");
+
+        final List<Object> firstCustomerDetailsList = recordPath.evaluate(written.get(0)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
+        assertEquals(1, firstCustomerDetailsList.size());
+        final Record customerDetails = (Record) firstCustomerDetailsList.get(0);
+        assertNull(customerDetails);
 
         final List<Object> secondCustomerDetailsList = recordPath.evaluate(written.get(1)).getSelectedFields().map(FieldValue::getValue).collect(Collectors.toList());
         assertEquals(1, secondCustomerDetailsList.size());

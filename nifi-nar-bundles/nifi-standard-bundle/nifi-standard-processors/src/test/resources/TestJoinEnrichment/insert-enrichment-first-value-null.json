@@ -1,0 +1,10 @@
+[
+  {
+    "customerDetails": null
+  }, {
+  "customerDetails": {
+    "id": 5512,
+    "phone": "555-555-5511",
+    "email": "jane.doe@nifi.apache.org"
+  }
+}]
