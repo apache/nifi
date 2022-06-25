@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UpdateConfigurationOperationHandler.class);
-    private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/.*/.*/.*/(.*)/?.*");
+    private static final Pattern FLOW_ID_PATTERN = Pattern.compile("/[^/]+?/[^/]+?/[^/]+?/([^/]+)?/?.*");
 
     static final String LOCATION = "location";
 

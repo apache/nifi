@@ -51,6 +51,9 @@ public class C2ClientServiceTest {
     @Mock
     private C2OperationService operationService;
 
+    @Mock
+    private RuntimeInfoWrapper runtimeInfoWrapper;
+
     @InjectMocks
     private C2ClientService c2ClientService;
 
@@ -63,12 +66,12 @@ public class C2ClientServiceTest {
         when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
         when(operationService.handleOperation(any())).thenReturn(Optional.of(new C2OperationAck()));
 
-        c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
+        c2ClientService.sendHeartbeat(runtimeInfoWrapper);
 
-        verify(c2HeartbeatFactory, times(1)).create(any());
-        verify(client, times(1)).publishHeartbeat(heartbeat);
-        verify(operationService, times(1)).handleOperation(any());
-        verify(client, times(1)).acknowledgeOperation(any());
+        verify(c2HeartbeatFactory).create(any());
+        verify(client).publishHeartbeat(heartbeat);
+        verify(operationService).handleOperation(any());
+        verify(client).acknowledgeOperation(any());
     }
 
     @Test
@@ -81,10 +84,10 @@ public class C2ClientServiceTest {
         when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
         when(operationService.handleOperation(any())).thenReturn(Optional.of(new C2OperationAck()));
 
-        c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
+        c2ClientService.sendHeartbeat(runtimeInfoWrapper);
 
-        verify(c2HeartbeatFactory, times(1)).create(any());
-        verify(client, times(1)).publishHeartbeat(heartbeat);
+        verify(c2HeartbeatFactory).create(any());
+        verify(client).publishHeartbeat(heartbeat);
         verify(operationService, times(operationNum)).handleOperation(any());
         verify(client, times(operationNum)).acknowledgeOperation(any());
     }
@@ -95,10 +98,10 @@ public class C2ClientServiceTest {
         when(c2HeartbeatFactory.create(any())).thenReturn(heartbeat);
         when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.empty());
 
-        c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
+        c2ClientService.sendHeartbeat(runtimeInfoWrapper);
 
-        verify(c2HeartbeatFactory, times(1)).create(any());
-        verify(client, times(1)).publishHeartbeat(heartbeat);
+        verify(c2HeartbeatFactory).create(any());
+        verify(client).publishHeartbeat(heartbeat);
         verify(operationService, times(0)).handleOperation(any());
         verify(client, times(0)).acknowledgeOperation(any());
     }
@@ -110,10 +113,10 @@ public class C2ClientServiceTest {
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
         when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
 
-        c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
+        c2ClientService.sendHeartbeat(runtimeInfoWrapper);
 
-        verify(c2HeartbeatFactory, times(1)).create(any());
-        verify(client, times(1)).publishHeartbeat(heartbeat);
+        verify(c2HeartbeatFactory).create(any());
+        verify(client).publishHeartbeat(heartbeat);
         verify(operationService, times(0)).handleOperation(any());
         verify(client, times(0)).acknowledgeOperation(any());
     }
@@ -127,11 +130,11 @@ public class C2ClientServiceTest {
         when(client.publishHeartbeat(heartbeat)).thenReturn(Optional.of(hbResponse));
         when(operationService.handleOperation(any())).thenReturn(Optional.empty());
 
-        c2ClientService.sendHeartbeat(mock(RuntimeInfoWrapper.class));
+        c2ClientService.sendHeartbeat(runtimeInfoWrapper);
 
-        verify(c2HeartbeatFactory, times(1)).create(any());
-        verify(client, times(1)).publishHeartbeat(heartbeat);
-        verify(operationService, times(1)).handleOperation(any());
+        verify(c2HeartbeatFactory).create(any());
+        verify(client).publishHeartbeat(heartbeat);
+        verify(operationService).handleOperation(any());
         verify(client, times(0)).acknowledgeOperation(any());
     }
 

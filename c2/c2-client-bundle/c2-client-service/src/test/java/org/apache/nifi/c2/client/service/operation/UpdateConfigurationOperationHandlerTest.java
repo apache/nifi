@@ -68,13 +68,11 @@ public class UpdateConfigurationOperationHandlerTest {
         operation.setArgs(INCORRECT_LOCATION_MAP);
 
         IllegalStateException exception = assertThrows(IllegalStateException.class, () -> handler.handle(operation));
-
-        assertEquals("Could not get flow id from the provided URL", exception.getMessage());
     }
 
     @Test
     void testHandleReturnsNotAppliedWithNoContent() {
-        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.empty());
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, null);
         C2Operation operation = new C2Operation();
@@ -89,7 +87,7 @@ public class UpdateConfigurationOperationHandlerTest {
     @Test
     void testHandleReturnsNotAppliedWithContentApplyIssues() {
         Function<byte[], Boolean> failedToUpdate = x -> false;
-        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, failedToUpdate);
         C2Operation operation = new C2Operation();
@@ -105,7 +103,7 @@ public class UpdateConfigurationOperationHandlerTest {
     @Test
     void testHandleReturnsFullyApplied() {
         Function<byte[], Boolean> successUpdate = x -> true;
-        when(flowIdHolder.getFlowId()).thenReturn("dummy");
+        when(flowIdHolder.getFlowId()).thenReturn(FLOW_ID);
         when(client.retrieveUpdateContent(any())).thenReturn(Optional.of("content".getBytes()));
         UpdateConfigurationOperationHandler handler = new UpdateConfigurationOperationHandler(client, flowIdHolder, successUpdate);
         C2Operation operation = new C2Operation();

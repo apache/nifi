@@ -96,7 +96,7 @@ public class C2HeartbeatFactoryTest {
 
     @Test
     void testCreateThrowsExceptionWhenConfDirNotSet() {
-        when(clientConfig.getConfDirectory()).thenReturn("dummy");
+        when(clientConfig.getConfDirectory()).thenReturn(String.class.getSimpleName());
 
         assertThrows(IllegalStateException.class, () -> c2HeartbeatFactory.create(mock(RuntimeInfoWrapper.class)));
     }

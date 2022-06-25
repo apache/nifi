@@ -79,7 +79,7 @@ public class C2HttpClientTest {
     @Test
     void testPublishHeartbeatSuccess() throws InterruptedException {
         C2HeartbeatResponse hbResponse = new C2HeartbeatResponse();
-        mockWebServer.enqueue(new MockResponse().setBody("dummyResponseBody"));
+        mockWebServer.enqueue(new MockResponse().setBody("responseBody"));
 
         when(serializer.serialize(any(C2Heartbeat.class))).thenReturn(Optional.of("Heartbeat"));
         when(serializer.deserialize(any(), any())).thenReturn(Optional.of(hbResponse));
