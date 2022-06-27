@@ -33,6 +33,7 @@ import javax.net.SocketFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
@@ -152,10 +153,10 @@ public class StandardFTPClientProvider implements FTPClientProvider {
         client.setRemoteVerificationEnabled(false);
 
         final boolean unicodeEnabled = context.getProperty(UTF8_ENCODING).isSet() ? context.getProperty(UTF8_ENCODING).asBoolean() : false;
-        if (unicodeEnabled) {
-            client.setControlEncoding(StandardCharsets.UTF_8.name());
-            client.setAutodetectUTF8(true);
-        }
+        final Charset charset = unicodeEnabled ? StandardCharsets.UTF_8 : Charset.defaultCharset();
+        client.setCharset(charset);
+        client.setControlEncoding(charset.name());
+        client.setAutodetectUTF8(unicodeEnabled);
     }
 
     private void disconnectClient(final FTPClient client) {
