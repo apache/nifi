@@ -47,7 +47,7 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor INFLUX_DB_URL = new PropertyDescriptor.Builder()
             .name("influxdb-url")
-            .displayName("InfluxDB connection URL")
+            .displayName("InfluxDB Connection URL")
             .description("InfluxDB URL to connect to. Eg: http://influxdb:8086")
             .defaultValue("http://localhost:8086")
             .required(true)
@@ -56,8 +56,8 @@ public abstract class AbstractInfluxDBProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INFLUX_DB_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("InfluxDB Max Connection Time Out (seconds)")
-            .displayName("InfluxDB Max Connection Time Out (seconds)")
+            .name("InfluxDB Max Connection Time Out")
+            .displayName("InfluxDB Max Connection Time Out")
             .description("The maximum time for establishing connection to the InfluxDB")
             .defaultValue("0 seconds")
             .required(true)

@@ -55,15 +55,19 @@ public class AbstractITInfluxDB {
 
     protected void cleanUpDatabase() throws InterruptedException {
         if ( influxDB.databaseExists(dbName) ) {
-            QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP measurement testm", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP measurement chunkedQueryTest", dbName));
-            checkError(result);
-            result = influxDB.query(new Query("DROP database " + dbName, dbName));
+            dropMeasurements();
+            influxDB.query(new Query("DROP database " + dbName, dbName));
             Thread.sleep(1000);
         }
+    }
+
+    protected void dropMeasurements() {
+        QueryResult result = influxDB.query(new Query("DROP measurement water", dbName));
+        checkError(result);
+        result = influxDB.query(new Query("DROP measurement testm", dbName));
+        checkError(result);
+        result = influxDB.query(new Query("DROP measurement chunkedQueryTest", dbName));
+        checkError(result);
     }
 
     protected void checkError(QueryResult result) {
@@ -88,5 +92,9 @@ public class AbstractITInfluxDB {
         runner.setProperty(ExecuteInfluxDBQuery.INFLUX_DB_URL, dbUrl);
         runner.setProperty(ExecuteInfluxDBQuery.CHARSET, "UTF-8");
         runner.assertValid();
+    }
+
+    protected String parseErrorMessage(String errorText) {
+        return errorText.replaceAll("\\{\"error\":\"(.*)\"\\}", "$1");
     }
 }

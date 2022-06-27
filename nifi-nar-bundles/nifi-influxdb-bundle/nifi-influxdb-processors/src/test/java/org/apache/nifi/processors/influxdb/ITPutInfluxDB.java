@@ -21,6 +21,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.influxdb.dto.Query;
 import org.influxdb.dto.QueryResult;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +43,11 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
         runner.setProperty(PutInfluxDB.MAX_RECORDS_SIZE, "1 KB");
         runner.assertValid();
         initInfluxDB();
+    }
+
+    @AfterEach
+    public void tearDown()  {
+        dropMeasurements();
     }
 
     @Test
@@ -151,8 +157,9 @@ public class ITPutInfluxDB extends AbstractITInfluxDB {
         runner.assertAllFlowFilesTransferred(PutInfluxDB.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutInfluxDB.REL_FAILURE);
         assertEquals(1, flowFiles.size(), "Value should be equal");
-        assertEquals("{\"error\":\"partial write: unable to parse 'water,country=US,city=nyc,rain=2,humidity=0.7': missing fields dropped=0\"}\n",
-            flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE), "Value should be equal");
+        String errorMessage = parseErrorMessage(flowFiles.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE).trim());
+        assertEquals("partial write: unable to parse 'water,country=US,city=nyc,rain=2,humidity=0.7': missing fields dropped=0",
+            errorMessage, "Value should be equal");
         QueryResult result = influxDB.query(new Query("select * from water", dbName));
         assertEquals(1, result.getResults().iterator().next().getSeries().size(), "size should be same");
         List<List<Object>> values = result.getResults().iterator().next().getSeries().iterator().next().getValues();

@@ -24,6 +24,7 @@ import org.influxdb.InfluxDB;
 import org.influxdb.dto.QueryResult;
 import org.influxdb.dto.QueryResult.Series;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +56,11 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
         initializeRunner();
         runner.setVariable("influxDBUrl", "http://localhost:8086");
         runner.setProperty(PutInfluxDB.INFLUX_DB_URL, "${influxDBUrl}");
+    }
+
+    @AfterEach
+    public void tearDown()  {
+        dropMeasurements();
     }
 
     @Test
@@ -268,13 +274,14 @@ public class ITExecuteInfluxDBQuery extends AbstractITInfluxDB {
        assertEquals(0, flowFilesSuccess.size(), "Value should be equal");
        List<MockFlowFile> flowFilesFailure = runner.getFlowFilesForRelationship(ExecuteInfluxDBQuery.REL_FAILURE);
        assertEquals(1, flowFilesFailure.size(), "Value should be equal");
-       assertEquals("{\"error\":\"error parsing query: found EOF, expected identifier at line 1, char 15\"}",
-           flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_ERROR_MESSAGE).trim(), "Value should be equal");
+       String errorMessage = parseErrorMessage(flowFilesFailure.get(0).getAttribute(PutInfluxDB.INFLUX_DB_ERROR_MESSAGE).trim());
+       assertEquals("error parsing query: found EOF, expected identifier at line 1, char 15",
+           errorMessage, "Value should be equal");
        assertEquals(query, flowFilesFailure.get(0).getAttribute(ExecuteInfluxDBQuery.INFLUX_DB_EXECUTED_QUERY), "Value should be equal");
     }
 
     @Test
-    public void testQueryResultHasError() throws Throwable {
+    public void testQueryResultHasError() {
         ExecuteInfluxDBQuery mockExecuteInfluxDBQuery = new ExecuteInfluxDBQuery() {
             @Override
             protected List<QueryResult> executeQuery(ProcessContext context, String database, String query, TimeUnit timeunit, int chunkSize) throws InterruptedException{
