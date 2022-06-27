@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -93,6 +94,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -109,6 +111,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
+import org.apache.nifi.processors.standard.http.HttpHeader;
+import org.apache.nifi.processors.standard.http.HttpMethod;
 import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -166,367 +170,355 @@ public class InvokeHTTP extends AbstractProcessor {
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
-    public static final String FORM_BASE = "post:form";
-
-    // Set of flowfile attributes which we generally always ignore during
-    // processing, including when converting http headers, copying attributes, etc.
-    // This set includes our strings defined above as well as some standard flowfile
-    // attributes.
-    public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, RESPONSE_URL, TRANSACTION_ID, REMOTE_DN,
-            EXCEPTION_CLASS, EXCEPTION_MESSAGE,
-            "uuid", "filename", "path")));
-
-    public static final String HTTP = "http";
-    public static final String HTTPS = "https";
-
-    public static final String GET_METHOD = "GET";
-    public static final String POST_METHOD = "POST";
-    public static final String PUT_METHOD = "PUT";
-    public static final String PATCH_METHOD = "PATCH";
-    public static final String DELETE_METHOD = "DELETE";
-    public static final String HEAD_METHOD = "HEAD";
-    public static final String OPTIONS_METHOD = "OPTIONS";
-
-    private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
+    protected static final String FORM_DATA_NAME_BASE = "post:form";
+    private static final Pattern FORM_DATA_NAME_PARAMETER_PATTERN = Pattern.compile("post:form:(?<formDataName>.*)$");
     private static final String FORM_DATA_NAME_GROUP = "formDataName";
-    private static final String CONTENT_ENCODING_HEADER = "Content-Encoding";
 
-    // properties
-    public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
+    private static final Set<String> IGNORED_REQUEST_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            STATUS_CODE,
+            STATUS_MESSAGE,
+            RESPONSE_BODY,
+            REQUEST_URL,
+            RESPONSE_URL,
+            TRANSACTION_ID,
+            REMOTE_DN,
+            EXCEPTION_CLASS,
+            EXCEPTION_MESSAGE,
+            CoreAttributes.UUID.key(),
+            CoreAttributes.FILENAME.key(),
+            CoreAttributes.PATH.key()
+    )));
+
+    public static final PropertyDescriptor HTTP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
             .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
                     + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
-            .defaultValue(GET_METHOD)
+            .defaultValue(HttpMethod.GET.name())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
-    public static final PropertyDescriptor PROP_URL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor HTTP_URL = new PropertyDescriptor.Builder()
             .name("Remote URL")
-            .description("Remote URL which will be connected to, including scheme, host, port, path.")
+            .displayName("HTTP URL")
+            .description("HTTP remote URL including a scheme of http or https, as well as a hostname or IP address with optional port and path elements.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Connection Timeout")
-            .description("Max wait time for connection to remote service.")
-            .required(true)
-            .defaultValue("5 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Read Timeout")
-            .description("Max wait time for response from remote service.")
-            .required(true)
-            .defaultValue("15 secs")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("idle-timeout")
-            .displayName("Idle Timeout")
-            .description("Max idle time before closing connection to the remote service.")
-            .required(true)
-            .defaultValue("5 mins")
-            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
-            .build();
-
-    public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("max-idle-connections")
-            .displayName("Max Idle Connections")
-            .description("Max number of idle connections to keep open.")
-            .required(true)
-            .defaultValue("5")
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
-            .name("Include Date Header")
-            .description("Include an RFC-2616 Date header in the request.")
-            .required(true)
-            .defaultValue("True")
-            .allowableValues("True", "False")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_FOLLOW_REDIRECTS = new PropertyDescriptor.Builder()
-            .name("Follow Redirects")
-            .description("Follow HTTP redirects issued by remote server.")
-            .required(true)
-            .defaultValue("True")
-            .allowableValues("True", "False")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
-            .name("Attributes to Send")
-            .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
-                    + "If not defined, no attributes are sent as headers. Also any dynamic properties set will be sent as headers. "
-                    + "The dynamic property key will be the header key and the dynamic property value will be interpreted as expression "
-                    + "language will be the header value.")
-            .required(false)
-            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_USERAGENT = new PropertyDescriptor.Builder()
-            .name("Useragent")
-            .displayName("Useragent")
-            .description("The Useragent identifier sent along with each request")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections."
-                    + " It is also used to connect to HTTPS Proxy.")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
-
-    public static final PropertyDescriptor PROP_PROXY_TYPE = new PropertyDescriptor.Builder()
-            .name("Proxy Type")
-            .displayName("Proxy Type")
-            .description("The type of the proxy we are connecting to. Must be either " + HTTP + " or " + HTTPS)
-            .defaultValue(HTTP)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor PROP_PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor PROP_PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .required(false)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor PROP_PROXY_USER = new PropertyDescriptor.Builder()
-            .name("invokehttp-proxy-user")
-            .displayName("Proxy Username")
-            .description("Username to set when authenticating against proxy")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor PROP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("invokehttp-proxy-password")
-            .displayName("Proxy Password")
-            .description("Password to set when authenticating against proxy")
-            .required(false)
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    public static final PropertyDescriptor PROP_CONTENT_ENCODING = new PropertyDescriptor.Builder()
-            .name("Content-Encoding")
-            .displayName("Content-Encoding")
-            .description("HTTP Content-Encoding applied to request body during transmission. The receiving server must support the selected encoding to avoid request failures.")
-            .required(true)
-            .defaultValue(ContentEncodingStrategy.DISABLED.getValue())
-            .allowableValues(ContentEncodingStrategy.class)
-            .build();
-
-    public static final PropertyDescriptor PROP_CONTENT_TYPE = new PropertyDescriptor.Builder()
-            .name("Content-Type")
-            .description("The Content-Type to specify for when content is being transmitted through a PUT, POST or PATCH. "
-                    + "In the case of an empty value after evaluating an expression language expression, Content-Type defaults to " + DEFAULT_CONTENT_TYPE)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .build();
-
-    public static final PropertyDescriptor PROP_SEND_BODY = new PropertyDescriptor.Builder()
-            .name("send-message-body")
-            .displayName("Send Message Body")
-            .description("If true, sends the HTTP message body on POST/PUT/PATCH requests (default).  If false, suppresses the message body and content-type header for these requests.")
-            .defaultValue("true")
-            .allowableValues("true", "false")
-            .required(false)
-            .build();
-
-    public static final PropertyDescriptor PROP_FORM_BODY_FORM_NAME = new PropertyDescriptor.Builder()
-            .name("form-body-form-name")
-            .displayName("FlowFile Form Data Name")
-            .description("When Send Message Body is true, and FlowFile Form Data Name is set, "
-                    + " the FlowFile will be sent as the message body in multipart/form format with this value "
-                    + "as the form data name.")
-            .required(false)
-            .addValidator(
-                    StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor PROP_SET_FORM_FILE_NAME = new PropertyDescriptor.Builder()
-            .name("set-form-filename")
-            .displayName("Set FlowFile Form Data File Name")
-            .description(
-                    "When Send Message Body is true, FlowFile Form Data Name is set, "
-                            + "and Set FlowFile Form Data File Name is true, the FlowFile's fileName value "
-                            + "will be set as the filename property of the form data.")
-            .required(false)
-            .defaultValue("true")
-            .allowableValues("true", "false")
-            .build();
-
-    // Per RFC 7235, 2617, and 2616.
-    // basic-credentials = base64-user-pass
-    // base64-user-pass = userid ":" password
-    // userid = *<TEXT excluding ":">
-    // password = *TEXT
-    //
-    // OCTET = <any 8-bit sequence of data>
-    // CTL = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
-    // LWS = [CRLF] 1*( SP | HT )
-    // TEXT = <any OCTET except CTLs but including LWS>
-    //
-    // Per RFC 7230, username & password in URL are now disallowed in HTTP and HTTPS URIs.
-    public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
-            .name("Basic Authentication Username")
-            .displayName("Basic Authentication Username")
-            .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
-            .required(false)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
-            .build();
-
-    public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Basic Authentication Password")
-            .displayName("Basic Authentication Password")
-            .description("The password to be used by the client to authenticate against the Remote URL.")
-            .required(false)
-            .sensitive(true)
-            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
-            .build();
-
-    public static final PropertyDescriptor PROP_PUT_OUTPUT_IN_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("Put Response Body In Attribute")
-            .description("If set, the response body received back will be put into an attribute of the original FlowFile instead of a separate "
-                    + "FlowFile. The attribute key to put to is determined by evaluating value of this property. ")
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor PROP_PUT_ATTRIBUTE_MAX_LENGTH = new PropertyDescriptor.Builder()
-            .name("Max Length To Put In Attribute")
-            .description("If routing the response body to an attribute of the original (by setting the \"Put response body in attribute\" "
-                    + "property or by receiving an error status code), the number of characters put to the attribute value will be at "
-                    + "most this amount. This is important because attributes are held in memory and large attributes will quickly "
-                    + "cause out of memory issues. If the output goes longer than this value, it will be truncated to fit. "
-                    + "Consider making this smaller if able.")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("256")
-            .build();
-
-    public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
-            .name("Digest Authentication")
-            .displayName("Use Digest Authentication")
-            .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
-                    + "for authentication.")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_OUTPUT_RESPONSE_REGARDLESS = new PropertyDescriptor.Builder()
-            .name("Always Output Response")
-            .description("Will force a response FlowFile to be generated and routed to the 'Response' relationship regardless of what the server status code received is "
-                    + "or if the processor is configured to put the server response body in the request attribute. In the later configuration a request FlowFile with the "
-                    + "response body in the attribute and a typical response FlowFile will be emitted to their respective relationships.")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
-            .name("Add Response Headers to Request")
-            .description("Enabling this property saves all the response headers to the original request. This may be when the response headers are needed "
-                    + "but a response is not generated due to the status code received.")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_USE_CHUNKED_ENCODING = new PropertyDescriptor.Builder()
-            .name("Use Chunked Encoding")
-            .description("When POST'ing, PUT'ing or PATCH'ing content set this property to true in order to not pass the 'Content-length' header and instead send 'Transfer-Encoding' with "
-                    + "a value of 'chunked'. This will enable the data transfer mechanism which was introduced in HTTP 1.1 to pass data of unknown lengths in chunks.")
-            .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_PENALIZE_NO_RETRY = new PropertyDescriptor.Builder()
-            .name("Penalize on \"No Retry\"")
-            .description("Enabling this property will penalize FlowFiles that are routed to the \"No Retry\" relationship.")
-            .required(false)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_USE_ETAG = new PropertyDescriptor.Builder()
-            .name("use-etag")
-            .description("Enable HTTP entity tag (ETag) support for HTTP requests.")
-            .displayName("Use HTTP ETag")
-            .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor PROP_ETAG_MAX_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("etag-max-cache-size")
-            .description("The maximum size that the ETag cache should be allowed to grow to. The default size is 10MB.")
-            .displayName("Maximum ETag Cache Size")
-            .required(true)
-            .defaultValue("10MB")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .build();
-
-    public static final PropertyDescriptor IGNORE_RESPONSE_CONTENT = new PropertyDescriptor.Builder()
-            .name("ignore-response-content")
-            .description("If true, the processor will not write the response's content into the flow file.")
-            .displayName("Ignore response's content")
-            .required(true)
-            .defaultValue("false")
-            .allowableValues("true", "false")
-            .build();
-
-    public static final PropertyDescriptor DISABLE_HTTP2_PROTOCOL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor HTTP2_DISABLED = new PropertyDescriptor.Builder()
             .name("disable-http2")
-            .description("Determines whether or not to disable use of the HTTP/2 protocol version. If disabled, only HTTP/1.1 is supported.")
-            .displayName("Disable HTTP/2")
+            .displayName("HTTP/2 Disabled")
+            .description("Disable negotiation of HTTP/2 protocol. HTTP/2 requires TLS. HTTP/1.1 protocol supported is required when HTTP/2 is disabled.")
             .required(true)
             .defaultValue("False")
             .allowableValues("True", "False")
             .build();
 
-    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("SSL Context Service provides trusted certificates and client certificates for TLS communication.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
+
+    public static final PropertyDescriptor SOCKET_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Connection Timeout")
+            .displayName("Socket Connect Timeout")
+            .description("Maximum time to wait for initial socket connection to the HTTP URL.")
+            .required(true)
+            .defaultValue("5 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SOCKET_READ_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Read Timeout")
+            .displayName("Socket Read Timeout")
+            .description("Maximum time to wait for receiving responses from a socket connection to the HTTP URL.")
+            .required(true)
+            .defaultValue("15 secs")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor SOCKET_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("idle-timeout")
+            .displayName("Socket Idle Timeout")
+            .description("Maximum time to wait before closing idle connections to the HTTP URL.")
+            .required(true)
+            .defaultValue("5 mins")
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .build();
+
+    public static final PropertyDescriptor SOCKET_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
+            .name("max-idle-connections")
+            .displayName("Socket Idle Connections")
+            .description("Maximum number of idle connections to the HTTP URL.")
+            .required(true)
+            .defaultValue("5")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
+    @Deprecated
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("Proxy Host and dependent properties are deprecated in favor of Proxy Configuration Service. Proxy Host can be configured using an IP address or DNS address.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    @Deprecated
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Port")
+            .description("Proxy Port and dependent properties are deprecated in favor of Proxy Configuration Service. Port number for the configured Proxy Host address.")
+            .required(false)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .dependsOn(PROXY_HOST)
+            .build();
+
+    @Deprecated
+    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
+            .name("Proxy Type")
+            .displayName("Proxy Type")
+            .description("Proxy Type and dependent properties are deprecated in favor of Proxy Configuration Service. Proxy protocol type is not used")
+            .defaultValue("http")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .dependsOn(PROXY_HOST)
+            .build();
+
+    @Deprecated
+    public static final PropertyDescriptor PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("invokehttp-proxy-user")
+            .displayName("Proxy Username")
+            .description("Proxy Username and dependent properties are deprecated in favor of Proxy Configuration Service. Username to set when authenticating with a Proxy server.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .dependsOn(PROXY_HOST)
+            .build();
+
+    @Deprecated
+    public static final PropertyDescriptor PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("invokehttp-proxy-password")
+            .displayName("Proxy Password")
+            .description("Proxy Password and dependent properties are deprecated in favor of Proxy Configuration Service. Password to set when authenticating with a Proxy server.")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .dependsOn(PROXY_HOST)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
             .name("oauth2-access-token-provider")
-            .displayName("OAuth2 Access Token provider")
+            .displayName("Request OAuth2 Access Token Provider")
+            .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(false)
             .build();
 
-    public static final PropertyDescriptor FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor REQUEST_USERNAME = new PropertyDescriptor.Builder()
+            .name("Basic Authentication Username")
+            .displayName("Request Username")
+            .description("The username provided for authentication of HTTP requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+            .build();
+
+    public static final PropertyDescriptor REQUEST_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Basic Authentication Password")
+            .displayName("Request Password")
+            .description("The password provided for authentication of HTTP requests. Encoded using Base64 for HTTP Basic Authentication as described in RFC 7617.")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+            .build();
+
+    public static final PropertyDescriptor REQUEST_DIGEST_AUTHENTICATION_ENABLED = new PropertyDescriptor.Builder()
+            .name("Digest Authentication")
+            .displayName("Request Digest Authentication Enabled")
+            .description("Enable Digest Authentication on HTTP requests with Username and Password credentials as described in RFC 7616.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .dependsOn(REQUEST_USERNAME)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_FAILURE_PENALIZATION_ENABLED = new PropertyDescriptor.Builder()
+            .name("Penalize on \"No Retry\"")
+            .displayName("Request Failure Penalization Enabled")
+            .description("Enable penalization of request FlowFiles when receiving HTTP response with a status code between 400 and 499.")
+            .required(false)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_BODY_ENABLED = new PropertyDescriptor.Builder()
+            .name("send-message-body")
+            .displayName("Request Body Enabled")
+            .description("Enable sending HTTP request body for PATCH, POST, or PUT methods.")
+            .defaultValue(Boolean.TRUE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .required(false)
+            .dependsOn(HTTP_METHOD, HttpMethod.PATCH.name(), HttpMethod.POST.name(), HttpMethod.PUT.name())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_FORM_DATA_NAME = new PropertyDescriptor.Builder()
+            .name("form-body-form-name")
+            .displayName("Request Multipart Form-Data Name")
+            .description("Enable sending HTTP request body formatted using multipart/form-data and using the form name configured.")
+            .required(false)
+            .addValidator(
+                    StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true)
+            )
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dependsOn(REQUEST_BODY_ENABLED, Boolean.TRUE.toString())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_FORM_DATA_FILENAME_ENABLED = new PropertyDescriptor.Builder()
+            .name("set-form-filename")
+            .displayName("Request Multipart Form-Data Filename Enabled")
+            .description("Enable sending the FlowFile filename attribute as the filename parameter in the Content-Disposition Header for multipart/form-data HTTP requests.")
+            .required(false)
+            .defaultValue(Boolean.TRUE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .dependsOn(REQUEST_FORM_DATA_NAME)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED = new PropertyDescriptor.Builder()
+            .name("Use Chunked Encoding")
+            .displayName("Request Chunked Transfer-Encoding Enabled")
+            .description("Enable sending HTTP requests with the Transfer-Encoding Header set to chunked, and disable sending the Content-Length Header. " +
+                    "Transfer-Encoding applies to the body in HTTP/1.1 requests as described in RFC 7230 Section 3.3.1")
+            .required(true)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .dependsOn(HTTP_METHOD, HttpMethod.PATCH.name(), HttpMethod.POST.name(), HttpMethod.PUT.name())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_CONTENT_ENCODING = new PropertyDescriptor.Builder()
+            .name("Content-Encoding")
+            .displayName("Request Content-Encoding")
+            .description("HTTP Content-Encoding applied to request body during transmission. The receiving server must support the selected encoding to avoid request failures.")
+            .required(true)
+            .defaultValue(ContentEncodingStrategy.DISABLED.getValue())
+            .allowableValues(ContentEncodingStrategy.class)
+            .dependsOn(HTTP_METHOD, HttpMethod.PATCH.name(), HttpMethod.POST.name(), HttpMethod.PUT.name())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_CONTENT_TYPE = new PropertyDescriptor.Builder()
+            .name("Content-Type")
+            .displayName("Request Content-Type")
+            .description("HTTP Content-Type Header applied to when sending an HTTP request body for PATCH, POST, or PUT methods. " +
+                    String.format("The Content-Type defaults to %s when not configured.", DEFAULT_CONTENT_TYPE))
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("${" + CoreAttributes.MIME_TYPE.key() + "}")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .dependsOn(HTTP_METHOD, HttpMethod.PATCH.name(), HttpMethod.POST.name(), HttpMethod.PUT.name())
+            .build();
+
+    public static final PropertyDescriptor REQUEST_DATE_HEADER_ENABLED = new PropertyDescriptor.Builder()
+            .name("Include Date Header")
+            .displayName("Request Date Header Enabled")
+            .description("Enable sending HTTP Date Header on HTTP requests as described in RFC 7231 Section 7.1.1.2.")
+            .required(true)
+            .defaultValue("True")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_HEADER_ATTRIBUTES_PATTERN = new PropertyDescriptor.Builder()
+            .name("Attributes to Send")
+            .displayName("Request Header Attributes Pattern")
+            .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
+                    + "If not defined, no attributes are sent as headers. Dynamic properties will be sent as headers. "
+                    + "The dynamic property name will be the header key and the dynamic property value will be interpreted as expression "
+                    + "language will be the header value.")
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor REQUEST_USER_AGENT = new PropertyDescriptor.Builder()
+            .name("Useragent")
+            .displayName("Request User-Agent")
+            .description("HTTP User-Agent Header applied to requests. RFC 7231 Section 5.5.3 describes recommend formatting.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+            .name("Put Response Body In Attribute")
+            .displayName("Response Body Attribute Name")
+            .description("FlowFile attribute name used to write an HTTP response body for FlowFiles transferred to the Original relationship.")
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_BODY_ATTRIBUTE_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Length To Put In Attribute")
+            .displayName("Response Body Attribute Size")
+            .description("Maximum size in bytes applied when writing an HTTP response body to a FlowFile attribute. Attributes exceeding the maximum will be truncated.")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("256")
+            .dependsOn(RESPONSE_BODY_ATTRIBUTE_NAME)
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_BODY_IGNORED = new PropertyDescriptor.Builder()
+            .name("ignore-response-content")
+            .displayName("Response Body Ignored")
+            .description("Disable writing HTTP response FlowFiles to Response relationship")
+            .required(true)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_CACHE_ENABLED = new PropertyDescriptor.Builder()
+            .name("use-etag")
+            .displayName("Response Cache Enabled")
+            .description("Enable HTTP response caching described in RFC 7234. Caching responses considers ETag and other headers.")
+            .required(true)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("etag-max-cache-size")
+            .displayName("Response Cache Size")
+            .description("Maximum size of HTTP response cache in bytes. Caching responses considers ETag and other headers.")
+            .required(true)
+            .defaultValue("10MB")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .dependsOn(RESPONSE_CACHE_ENABLED, Boolean.TRUE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_COOKIE_STRATEGY = new PropertyDescriptor.Builder()
+            .name("cookie-strategy")
+            .description("Strategy for accepting and persisting HTTP cookies. Accepting cookies enables persistence across multiple requests.")
+            .displayName("Response Cookie Strategy")
+            .required(true)
+            .defaultValue(CookieStrategy.DISABLED.name())
+            .allowableValues(CookieStrategy.values())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_GENERATION_REQUIRED = new PropertyDescriptor.Builder()
+            .name("Always Output Response")
+            .displayName("Response Generation Required")
+            .description("Enable generation and transfer of a FlowFile to the Response relationship regardless of HTTP response received.")
+            .required(false)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
             .name("flow-file-naming-strategy")
-            .description("Determines the strategy used for setting the filename attribute of the FlowFile.")
-            .displayName("FlowFile Naming Strategy")
+            .description("Determines the strategy used for setting the filename attribute of FlowFiles transferred to the Response relationship.")
+            .displayName("Response FlowFile Naming Strategy")
             .required(true)
             .defaultValue(FlowFileNamingStrategy.RANDOM.name())
             .allowableValues(
@@ -536,105 +528,113 @@ public class InvokeHTTP extends AbstractProcessor {
             )
             .build();
 
-    public static final PropertyDescriptor PROP_COOKIE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("cookie-strategy")
-            .description("Strategy for accepting and persisting HTTP cookies. Accepting cookies enables persistence across multiple requests.")
-            .displayName("Cookie Strategy")
+    public static final PropertyDescriptor RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED = new PropertyDescriptor.Builder()
+            .name("Add Response Headers to Request")
+            .displayName("Response Header Request Attributes Enabled")
+            .description("Enable adding HTTP response headers as attributes to FlowFiles transferred to the Original relationship.")
+            .required(false)
+            .defaultValue(Boolean.FALSE.toString())
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
+            .build();
+
+    public static final PropertyDescriptor RESPONSE_REDIRECTS_ENABLED = new PropertyDescriptor.Builder()
+            .name("Follow Redirects")
+            .displayName("Response Redirects Enabled")
+            .description("Enable following HTTP redirects sent with HTTP 300 series responses as described in RFC 7231 Section 6.4.")
             .required(true)
-            .defaultValue(CookieStrategy.DISABLED.name())
-            .allowableValues(CookieStrategy.values())
+            .defaultValue("True")
+            .allowableValues("True", "False")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
-    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
-            = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
+
+    private static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
     public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-            PROP_METHOD,
-            PROP_URL,
-            PROP_SSL_CONTEXT_SERVICE,
-            PROP_CONNECT_TIMEOUT,
-            PROP_READ_TIMEOUT,
-            PROP_IDLE_TIMEOUT,
-            PROP_MAX_IDLE_CONNECTIONS,
-            PROP_DATE_HEADER,
-            PROP_FOLLOW_REDIRECTS,
-            PROP_COOKIE_STRATEGY,
-            DISABLE_HTTP2_PROTOCOL,
-            FLOW_FILE_NAMING_STRATEGY,
-            PROP_ATTRIBUTES_TO_SEND,
-            PROP_USERAGENT,
-            PROP_BASIC_AUTH_USERNAME,
-            PROP_BASIC_AUTH_PASSWORD,
-            OAUTH2_ACCESS_TOKEN_PROVIDER,
+            HTTP_METHOD,
+            HTTP_URL,
+            HTTP2_DISABLED,
+            SSL_CONTEXT_SERVICE,
+            SOCKET_CONNECT_TIMEOUT,
+            SOCKET_READ_TIMEOUT,
+            SOCKET_IDLE_TIMEOUT,
+            SOCKET_IDLE_CONNECTIONS,
             PROXY_CONFIGURATION_SERVICE,
-            PROP_PROXY_HOST,
-            PROP_PROXY_PORT,
-            PROP_PROXY_TYPE,
-            PROP_PROXY_USER,
-            PROP_PROXY_PASSWORD,
-            PROP_PUT_OUTPUT_IN_ATTRIBUTE,
-            PROP_PUT_ATTRIBUTE_MAX_LENGTH,
-            PROP_DIGEST_AUTH,
-            PROP_OUTPUT_RESPONSE_REGARDLESS,
-            PROP_ADD_HEADERS_TO_REQUEST,
-            PROP_CONTENT_ENCODING,
-            PROP_CONTENT_TYPE,
-            PROP_SEND_BODY,
-            PROP_USE_CHUNKED_ENCODING,
-            PROP_PENALIZE_NO_RETRY,
-            PROP_USE_ETAG,
-            PROP_ETAG_MAX_CACHE_SIZE,
-            IGNORE_RESPONSE_CONTENT,
-            PROP_FORM_BODY_FORM_NAME,
-            PROP_SET_FORM_FILE_NAME));
+            PROXY_HOST,
+            PROXY_PORT,
+            PROXY_TYPE,
+            PROXY_USERNAME,
+            PROXY_PASSWORD,
+            REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER,
+            REQUEST_USERNAME,
+            REQUEST_PASSWORD,
+            REQUEST_DIGEST_AUTHENTICATION_ENABLED,
+            REQUEST_FAILURE_PENALIZATION_ENABLED,
+            REQUEST_BODY_ENABLED,
+            REQUEST_FORM_DATA_NAME,
+            REQUEST_FORM_DATA_FILENAME_ENABLED,
+            REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED,
+            REQUEST_CONTENT_ENCODING,
+            REQUEST_CONTENT_TYPE,
+            REQUEST_DATE_HEADER_ENABLED,
+            REQUEST_HEADER_ATTRIBUTES_PATTERN,
+            REQUEST_USER_AGENT,
+            RESPONSE_BODY_ATTRIBUTE_NAME,
+            RESPONSE_BODY_ATTRIBUTE_SIZE,
+            RESPONSE_BODY_IGNORED,
+            RESPONSE_CACHE_ENABLED,
+            RESPONSE_CACHE_SIZE,
+            RESPONSE_COOKIE_STRATEGY,
+            RESPONSE_GENERATION_REQUIRED,
+            RESPONSE_FLOW_FILE_NAMING_STRATEGY,
+            RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED,
+            RESPONSE_REDIRECTS_ENABLED
+    ));
 
-    // relationships
-    public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
+    public static final Relationship ORIGINAL = new Relationship.Builder()
             .name("Original")
-            .description("The original FlowFile will be routed upon success (2xx status codes). It will have new attributes detailing the "
-                    + "success of the request.")
+            .description("Request FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
             .build();
 
-    public static final Relationship REL_RESPONSE = new Relationship.Builder()
+    public static final Relationship RESPONSE = new Relationship.Builder()
             .name("Response")
-            .description("A Response FlowFile will be routed upon success (2xx status codes). If the 'Output Response Regardless' property "
-                    + "is true then the response will be sent to this relationship regardless of the status code received.")
+            .description("Response FlowFiles transferred when receiving HTTP responses with a status code between 200 and 299.")
             .build();
 
-    public static final Relationship REL_RETRY = new Relationship.Builder()
+    public static final Relationship RETRY = new Relationship.Builder()
             .name("Retry")
-            .description("The original FlowFile will be routed on any status code that can be retried (5xx status codes). It will have new "
-                    + "attributes detailing the request.")
+            .description("Request FlowFiles transferred when receiving HTTP responses with a status code between 500 and 599.")
             .build();
 
-    public static final Relationship REL_NO_RETRY = new Relationship.Builder()
+    public static final Relationship NO_RETRY = new Relationship.Builder()
             .name("No Retry")
-            .description("The original FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).  "
-                    + "It will have new attributes detailing the request.")
+            .description("Request FlowFiles transferred when receiving HTTP responses with a status code between 400 an 499.")
             .build();
 
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
+    public static final Relationship FAILURE = new Relationship.Builder()
             .name("Failure")
-            .description("The original FlowFile will be routed on any type of connection failure, timeout or general exception. "
-                    + "It will have new attributes detailing the request.")
+            .description("Request FlowFiles transferred when receiving socket communication errors.")
             .build();
 
     public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            REL_SUCCESS_REQ, REL_RESPONSE, REL_RETRY, REL_NO_RETRY, REL_FAILURE)));
+            ORIGINAL,
+            RESPONSE,
+            RETRY,
+            NO_RETRY,
+            FAILURE
+    )));
 
-    // RFC 2616 Date Time Formatter with hard-coded GMT Zone
-    // https://tools.ietf.org/html/rfc2616#section-3.3 - date format header should not be localized
+    // RFC 2616 Date Time Formatter with hard-coded GMT Zone and US Locale. RFC 2616 Section 3.3 indicates the header should not be localized
     private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
 
-    // Multiple Header Delimiter
     private static final String MULTIPLE_HEADER_DELIMITER = ", ";
 
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
-    private volatile Pattern regexAttributesToSend = null;
+    private volatile Pattern requestHeaderAttributesPattern = null;
 
-    private volatile boolean useChunked = false;
+    private volatile boolean chunkedTransferEncoding = false;
 
     private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
 
@@ -647,9 +647,9 @@ public class InvokeHTTP extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (propertyDescriptorName.startsWith(FORM_BASE)) {
+        if (propertyDescriptorName.startsWith(FORM_DATA_NAME_BASE)) {
 
-            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(propertyDescriptorName);
+            Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(propertyDescriptorName);
             if (matcher.matches()) {
                 return new PropertyDescriptor.Builder()
                         .required(false)
@@ -689,12 +689,12 @@ public class InvokeHTTP extends AbstractProcessor {
             this.dynamicPropertyNames = Collections.unmodifiableSet(newDynamicPropertyNames);
         } else {
             // compile the attributes-to-send filter pattern
-            if (PROP_ATTRIBUTES_TO_SEND.getName().equalsIgnoreCase(descriptor.getName())) {
+            if (REQUEST_HEADER_ATTRIBUTES_PATTERN.getName().equalsIgnoreCase(descriptor.getName())) {
                 if (newValue == null || newValue.isEmpty()) {
-                    regexAttributesToSend = null;
+                    requestHeaderAttributesPattern = null;
                 } else {
                     final String trimmedValue = StringUtils.trimToEmpty(newValue);
-                    regexAttributesToSend = Pattern.compile(trimmedValue);
+                    requestHeaderAttributesPattern = Pattern.compile(trimmedValue);
                 }
             }
         }
@@ -703,15 +703,15 @@ public class InvokeHTTP extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(3);
-        final boolean proxyHostSet = validationContext.getProperty(PROP_PROXY_HOST).isSet();
-        final boolean proxyPortSet = validationContext.getProperty(PROP_PROXY_PORT).isSet();
+        final boolean proxyHostSet = validationContext.getProperty(PROXY_HOST).isSet();
+        final boolean proxyPortSet = validationContext.getProperty(PROXY_PORT).isSet();
 
         if ((proxyHostSet && !proxyPortSet) || (!proxyHostSet && proxyPortSet)) {
             results.add(new ValidationResult.Builder().subject("Proxy Host and Port").valid(false).explanation("If Proxy Host or Proxy Port is set, both must be set").build());
         }
 
-        final boolean proxyUserSet = validationContext.getProperty(PROP_PROXY_USER).isSet();
-        final boolean proxyPwdSet = validationContext.getProperty(PROP_PROXY_PASSWORD).isSet();
+        final boolean proxyUserSet = validationContext.getProperty(PROXY_USERNAME).isSet();
+        final boolean proxyPwdSet = validationContext.getProperty(PROXY_PASSWORD).isSet();
 
         if ((proxyUserSet && !proxyPwdSet) || (!proxyUserSet && proxyPwdSet)) {
             results.add(new ValidationResult.Builder().subject("Proxy User and Password").valid(false).explanation("If Proxy Username or Proxy Password is set, both must be set").build());
@@ -720,25 +720,13 @@ public class InvokeHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject("Proxy").valid(false).explanation("If Proxy username is set, proxy host must be set").build());
         }
 
-        final String proxyType = validationContext.getProperty(PROP_PROXY_TYPE).evaluateAttributeExpressions().getValue();
-
-        if (!HTTP.equals(proxyType) && !HTTPS.equals(proxyType)) {
-            results.add(new ValidationResult.Builder().subject(PROP_PROXY_TYPE.getDisplayName()).valid(false)
-                    .explanation(PROP_PROXY_TYPE.getDisplayName() + " must be either " + HTTP + " or " + HTTPS).build());
-        }
-
-        if (HTTPS.equals(proxyType)
-                && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
-            results.add(new ValidationResult.Builder().subject("SSL Context Service").valid(false).explanation("If Proxy Type is HTTPS, SSL Context Service must be set").build());
-        }
-
         ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
         // Check for dynamic properties for form components.
         // Even if the flowfile is not sent, we may still send form parameters.
         boolean hasFormData = false;
         for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
-            final Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(descriptor.getName());
+            final Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(descriptor.getName());
             if (matcher.matches()) {
                 hasFormData = true;
                 break;
@@ -746,35 +734,35 @@ public class InvokeHTTP extends AbstractProcessor {
         }
 
         // if form data exists, and send body is true, Flowfile Form Data Name must be set.
-        final boolean sendBody = validationContext.getProperty(PROP_SEND_BODY).asBoolean();
-        final boolean contentNameSet = validationContext.getProperty(PROP_FORM_BODY_FORM_NAME).isSet();
+        final boolean requestBodyEnabled = validationContext.getProperty(REQUEST_BODY_ENABLED).asBoolean();
+        final boolean contentNameSet = validationContext.getProperty(REQUEST_FORM_DATA_NAME).isSet();
         if (hasFormData) {
-            if (sendBody && !contentNameSet) {
+            if (requestBodyEnabled && !contentNameSet) {
                 final String explanation = String.format("[%s] is required when Form Data properties are configured and [%s] is enabled",
-                        PROP_FORM_BODY_FORM_NAME.getDisplayName(),
-                        PROP_SEND_BODY.getDisplayName());
+                        REQUEST_FORM_DATA_NAME.getDisplayName(),
+                        REQUEST_BODY_ENABLED.getDisplayName());
                 results.add(new ValidationResult.Builder()
-                        .subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                        .subject(REQUEST_FORM_DATA_NAME.getDisplayName())
                         .valid(false)
                         .explanation(explanation)
                         .build());
             }
         }
-        if (!sendBody && contentNameSet) {
+        if (!requestBodyEnabled && contentNameSet) {
             final String explanation = String.format("[%s] must be [true] when Form Data properties are configured and [%s] is configured",
-                    PROP_SEND_BODY.getDisplayName(),
-                    PROP_FORM_BODY_FORM_NAME.getDisplayName());
+                    REQUEST_BODY_ENABLED.getDisplayName(),
+                    REQUEST_FORM_DATA_NAME.getDisplayName());
             results.add(new ValidationResult.Builder()
-                    .subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                    .subject(REQUEST_FORM_DATA_NAME.getDisplayName())
                     .valid(false)
                     .explanation(explanation)
                     .build());
         }
 
-        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
-            || validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
+        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(REQUEST_USERNAME).isSet()
+            || validationContext.getProperty(REQUEST_PASSWORD).isSet();
 
-        boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+        boolean usingOAuth2Authorization = validationContext.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
 
         if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
             results.add(new ValidationResult.Builder()
@@ -795,14 +783,14 @@ public class InvokeHTTP extends AbstractProcessor {
 
         final ProxyConfiguration proxyConfig = ProxyConfiguration.getConfiguration(context, () -> {
             final ProxyConfiguration componentProxyConfig = new ProxyConfiguration();
-            final String proxyHost = context.getProperty(PROP_PROXY_HOST).evaluateAttributeExpressions().getValue();
-            final Integer proxyPort = context.getProperty(PROP_PROXY_PORT).evaluateAttributeExpressions().asInteger();
+            final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
+            final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
             if (proxyHost != null && proxyPort != null) {
                 componentProxyConfig.setProxyType(Type.HTTP);
                 componentProxyConfig.setProxyServerHost(proxyHost);
                 componentProxyConfig.setProxyServerPort(proxyPort);
-                final String proxyUsername = trimToEmpty(context.getProperty(PROP_PROXY_USER).evaluateAttributeExpressions().getValue());
-                final String proxyPassword = context.getProperty(PROP_PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
+                final String proxyUsername = trimToEmpty(context.getProperty(PROXY_USERNAME).evaluateAttributeExpressions().getValue());
+                final String proxyPassword = context.getProperty(PROXY_PASSWORD).evaluateAttributeExpressions().getValue();
                 componentProxyConfig.setProxyUserName(proxyUsername);
                 componentProxyConfig.setProxyUserPassword(proxyPassword);
             }
@@ -818,45 +806,38 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         }
 
-        // configure ETag cache if enabled
-        final boolean etagEnabled = context.getProperty(PROP_USE_ETAG).asBoolean();
-        if (etagEnabled) {
-            final int maxCacheSizeBytes = context.getProperty(PROP_ETAG_MAX_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
-            okHttpClientBuilder.cache(new Cache(getETagCacheDir(), maxCacheSizeBytes));
+        // Configure caching
+        final boolean cachingEnabled = context.getProperty(RESPONSE_CACHE_ENABLED).asBoolean();
+        if (cachingEnabled) {
+            final int maxCacheSizeBytes = context.getProperty(RESPONSE_CACHE_SIZE).asDataSize(DataUnit.B).intValue();
+            okHttpClientBuilder.cache(new Cache(getResponseCacheDirectory(), maxCacheSizeBytes));
         }
 
-        // Configure whether HTTP/2 protocol should be disabled
-        if (context.getProperty(DISABLE_HTTP2_PROTOCOL).asBoolean()) {
+        if (context.getProperty(HTTP2_DISABLED).asBoolean()) {
             okHttpClientBuilder.protocols(Collections.singletonList(Protocol.HTTP_1_1));
         }
 
-        // Set timeouts
-        okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
-        okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
-
-        // Set connectionpool limits
+        okHttpClientBuilder.followRedirects(context.getProperty(RESPONSE_REDIRECTS_ENABLED).asBoolean());
+        okHttpClientBuilder.connectTimeout((context.getProperty(SOCKET_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        okHttpClientBuilder.readTimeout(context.getProperty(SOCKET_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.connectionPool(
                 new ConnectionPool(
-                        context.getProperty(PROP_MAX_IDLE_CONNECTIONS).asInteger(),
-                        context.getProperty(PROP_IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS
+                        context.getProperty(SOCKET_IDLE_CONNECTIONS).asInteger(),
+                        context.getProperty(SOCKET_IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS
                 )
         );
 
-        // Set whether to follow redirects
-        okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
-
-        // Apply the TLS configuration if present
-        final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslService != null) {
             final SSLContext sslContext = sslService.createContext();
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
             final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            final X509TrustManager trustManager = Objects.requireNonNull(SslContextFactory.getX509TrustManager(tlsConfiguration), "Trust Manager not found");
             okHttpClientBuilder.sslSocketFactory(socketFactory, trustManager);
         }
 
-        // Configure cookie strategy
-        switch(CookieStrategy.valueOf(context.getProperty(PROP_COOKIE_STRATEGY).getValue())) {
+        final CookieStrategy cookieStrategy = CookieStrategy.valueOf(context.getProperty(RESPONSE_COOKIE_STRATEGY).getValue());
+        switch (cookieStrategy) {
             case DISABLED:
                 break;
             case ACCEPT_ALL:
@@ -868,15 +849,15 @@ public class InvokeHTTP extends AbstractProcessor {
 
         setAuthenticator(okHttpClientBuilder, context);
 
-        useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
+        chunkedTransferEncoding = context.getProperty(REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
     }
 
     @OnScheduled
     public void initOauth2AccessTokenProvider(final ProcessContext context) {
-        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
-            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+        if (context.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
             oauth2AccessTokenProvider.getAccessDetails();
 
@@ -887,17 +868,12 @@ public class InvokeHTTP extends AbstractProcessor {
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(REQUEST_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        if (!authUser.isEmpty() && "true".equalsIgnoreCase(context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).getValue())) {
+            final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
-            /*
-             * OkHttp doesn't have built-in Digest Auth Support. A ticket for adding it is here[1] but they authors decided instead to rely on a 3rd party lib.
-             *
-             * [1] https://github.com/square/okhttp/issues/205#issuecomment-154047052
-             */
             final Map<String, CachingAuthenticator> authCache = new ConcurrentHashMap<>();
             com.burgstaller.okhttp.digest.Credentials credentials = new com.burgstaller.okhttp.digest.Credentials(authUser, authPass);
             final DigestAuthenticator digestAuthenticator = new DigestAuthenticator(credentials);
@@ -914,39 +890,34 @@ public class InvokeHTTP extends AbstractProcessor {
         FlowFile requestFlowFile = session.get();
 
         // Checking to see if the property to put the body of the response in an attribute was set
-        boolean putToAttribute = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).isSet();
+        boolean putToAttribute = context.getProperty(RESPONSE_BODY_ATTRIBUTE_NAME).isSet();
         if (requestFlowFile == null) {
             if (context.hasNonLoopConnection()) {
                 return;
             }
 
-            String request = context.getProperty(PROP_METHOD).evaluateAttributeExpressions().getValue().toUpperCase();
-            if (POST_METHOD.equals(request) || PUT_METHOD.equals(request) || PATCH_METHOD.equals(request)) {
+            final String method = getRequestMethod(context, null);
+            final Optional<HttpMethod> requestMethodFound = findRequestMethod(method);
+            final HttpMethod requestMethod = requestMethodFound.orElse(HttpMethod.GET);
+            if (requestMethod.isRequestBodySupported()) {
                 return;
             } else if (putToAttribute) {
                 requestFlowFile = session.create();
             }
         }
 
-        // Setting some initial variables
-        final int maxAttributeSize = context.getProperty(PROP_PUT_ATTRIBUTE_MAX_LENGTH).asInteger();
+        final int maxAttributeSize = context.getProperty(RESPONSE_BODY_ATTRIBUTE_SIZE).asInteger();
         final ComponentLog logger = getLogger();
-
-        // Every request/response cycle has a unique transaction id which will be stored as a flowfile attribute.
         final UUID txId = UUID.randomUUID();
 
         FlowFile responseFlowFile = null;
         try {
-            // read the url property from the context
-            final String urlProperty = trimToEmpty(context.getProperty(PROP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
+            final String urlProperty = trimToEmpty(context.getProperty(HTTP_URL).evaluateAttributeExpressions(requestFlowFile).getValue());
             final URL url = new URL(urlProperty);
 
             Request httpRequest = configureRequest(context, session, requestFlowFile, url);
-
-            // log request
             logRequest(logger, httpRequest);
 
-            // emit send provenance event if successfully sent to the server
             if (httpRequest.body() != null) {
                 session.getProvenanceReporter().send(requestFlowFile, url.toExternalForm(), true);
             }
@@ -954,7 +925,6 @@ public class InvokeHTTP extends AbstractProcessor {
             final long startNanos = System.nanoTime();
 
             try (Response responseHttp = okHttpClient.newCall(httpRequest).execute()) {
-                // output the raw response headers (DEBUG level only)
                 logResponse(logger, url, responseHttp);
 
                 // store the status code and message
@@ -975,16 +945,16 @@ public class InvokeHTTP extends AbstractProcessor {
                 }
 
                 // If the property to add the response headers to the request flowfile is true then add them
-                if (context.getProperty(PROP_ADD_HEADERS_TO_REQUEST).asBoolean() && requestFlowFile != null) {
+                if (context.getProperty(RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED).asBoolean() && requestFlowFile != null) {
                     // write the response headers as attributes
                     // this will overwrite any existing flowfile attributes
                     requestFlowFile = session.putAllAttributes(requestFlowFile, convertAttributesFromHeaders(responseHttp));
                 }
 
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
-                boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
+                boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
-                boolean bodyExists = responseBody != null && !context.getProperty(IGNORE_RESPONSE_CONTENT).asBoolean();
+                boolean bodyExists = responseBody != null && !context.getProperty(RESPONSE_BODY_IGNORED).asBoolean();
 
                 InputStream responseBodyStream = null;
                 SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
@@ -1017,7 +987,7 @@ public class InvokeHTTP extends AbstractProcessor {
                         responseFlowFile = session.putAllAttributes(responseFlowFile, convertAttributesFromHeaders(responseHttp));
 
                         // update FlowFile's filename attribute with an extracted value from the remote URL
-                        if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && GET_METHOD.equals(httpRequest.method())) {
+                        if (FlowFileNamingStrategy.URL_PATH.equals(getFlowFileNamingStrategy(context)) && HttpMethod.GET.name().equals(httpRequest.method())) {
                             String fileName = getFileNameFromUrl(url);
                             if (fileName != null) {
                                 responseFlowFile = session.putAttribute(responseFlowFile, CoreAttributes.FILENAME.key(), fileName);
@@ -1050,7 +1020,7 @@ public class InvokeHTTP extends AbstractProcessor {
 
                     // if not successful and request flowfile is not null, store the response body into a flowfile attribute
                     if (outputBodyToRequestAttribute && bodyExists) {
-                        String attributeKey = context.getProperty(PROP_PUT_OUTPUT_IN_ATTRIBUTE).evaluateAttributeExpressions(requestFlowFile).getValue();
+                        String attributeKey = context.getProperty(RESPONSE_BODY_ATTRIBUTE_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
                         if (attributeKey == null) {
                             attributeKey = RESPONSE_BODY;
                         }
@@ -1067,9 +1037,9 @@ public class InvokeHTTP extends AbstractProcessor {
                         String bodyString = new String(outputBuffer, 0, size, getCharsetFromMediaType(responseBody.contentType()));
                         requestFlowFile = session.putAttribute(requestFlowFile, attributeKey, bodyString);
 
-                        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                        session.getProvenanceReporter().modifyAttributes(requestFlowFile, "The " + attributeKey + " has been added. The value of which is the body of a http call to "
-                                + url.toExternalForm() + ". It took " + millis + "millis,");
+                        final long processingDuration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                        final String eventDetails = String.format("Response Body Attribute Added [%s] Processing Duration [%d ms]", attributeKey, processingDuration);
+                        session.getProvenanceReporter().modifyAttributes(requestFlowFile, eventDetails);
                     }
                 } finally {
                     if (outputStreamToRequestAttribute != null) {
@@ -1086,21 +1056,17 @@ public class InvokeHTTP extends AbstractProcessor {
 
             }
         } catch (final Exception e) {
-            // penalize or yield
-            if (requestFlowFile != null) {
-                logger.error("Routing to {} due to exception: {}", new Object[]{REL_FAILURE.getName(), e}, e);
+            if (requestFlowFile == null) {
+                logger.error("Request Processing failed", e);
+                context.yield();
+            } else {
+                logger.error("Request Processing failed: {}", requestFlowFile, e);
                 requestFlowFile = session.penalize(requestFlowFile);
                 requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_CLASS, e.getClass().getName());
                 requestFlowFile = session.putAttribute(requestFlowFile, EXCEPTION_MESSAGE, e.getMessage());
-                // transfer original to failure
-                session.transfer(requestFlowFile, REL_FAILURE);
-            } else {
-                logger.error("Yielding processor due to exception encountered as a source processor: {}", e);
-                context.yield();
+                session.transfer(requestFlowFile, FAILURE);
             }
 
-
-            // cleanup response flowfile, if applicable
             if (responseFlowFile != null) {
                 session.remove(responseFlowFile);
             }
@@ -1111,61 +1077,45 @@ public class InvokeHTTP extends AbstractProcessor {
         final Request.Builder requestBuilder = new Request.Builder();
 
         requestBuilder.url(url);
-        final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+        final String authUser = trimToEmpty(context.getProperty(REQUEST_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if ("false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
+        if ("false".equalsIgnoreCase(context.getProperty(REQUEST_DIGEST_AUTHENTICATION_ENABLED).getValue())) {
             if (!authUser.isEmpty()) {
-                final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+                final String authPass = trimToEmpty(context.getProperty(REQUEST_PASSWORD).getValue());
 
                 String credential = Credentials.basic(authUser, authPass);
-                requestBuilder.header("Authorization", credential);
+                requestBuilder.header(HttpHeader.AUTHORIZATION.getHeader(), credential);
             } else {
                 oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
-                    requestBuilder.addHeader("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
+                    requestBuilder.addHeader(HttpHeader.AUTHORIZATION.getHeader(), "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
                 );
             }
         }
 
-        final String contentEncoding = context.getProperty(PROP_CONTENT_ENCODING).getValue();
+        final String contentEncoding = context.getProperty(REQUEST_CONTENT_ENCODING).getValue();
         final ContentEncodingStrategy contentEncodingStrategy = ContentEncodingStrategy.valueOf(contentEncoding);
         if (ContentEncodingStrategy.GZIP == contentEncodingStrategy) {
-            requestBuilder.addHeader(CONTENT_ENCODING_HEADER, ContentEncodingStrategy.GZIP.getValue().toLowerCase());
+            requestBuilder.addHeader(HttpHeader.CONTENT_ENCODING.getHeader(), ContentEncodingStrategy.GZIP.getValue().toLowerCase());
         }
 
-        // set the request method
-        String method = trimToEmpty(context.getProperty(PROP_METHOD).evaluateAttributeExpressions(requestFlowFile).getValue()).toUpperCase();
-        switch (method) {
-            case GET_METHOD:
-                requestBuilder.get();
-                break;
-            case POST_METHOD:
-                RequestBody requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
-                requestBuilder.post(requestBody);
-                break;
-            case PUT_METHOD:
-                requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
-                requestBuilder.put(requestBody);
-                break;
-            case PATCH_METHOD:
-                requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
-                requestBuilder.patch(requestBody);
-                break;
-            case HEAD_METHOD:
-                requestBuilder.head();
-                break;
-            case DELETE_METHOD:
-                requestBuilder.delete();
-                break;
-            default:
-                requestBuilder.method(method, null);
-        }
+        final String method = getRequestMethod(context, requestFlowFile);
+        final Optional<HttpMethod> httpMethodFound = findRequestMethod(method);
 
-        String userAgent = trimToEmpty(context.getProperty(PROP_USERAGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
-        requestBuilder.addHeader("User-Agent", userAgent);
+        final RequestBody requestBody;
+        if (httpMethodFound.isPresent()) {
+            final HttpMethod httpMethod = httpMethodFound.get();
+            if (httpMethod.isRequestBodySupported()) {
+                requestBody = getRequestBodyToSend(session, context, requestFlowFile, contentEncodingStrategy);
+            } else {
+                requestBody = null;
+            }
+        } else {
+            requestBody = null;
+        }
+        requestBuilder.method(method, requestBody);
 
         setHeaderProperties(context, requestBuilder, requestFlowFile);
-
         return requestBuilder.build();
     }
 
@@ -1173,24 +1123,24 @@ public class InvokeHTTP extends AbstractProcessor {
                                              final FlowFile requestFlowFile,
                                              final ContentEncodingStrategy contentEncodingStrategy
     ) {
-        boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
+        boolean requestBodyEnabled = context.getProperty(REQUEST_BODY_ENABLED).asBoolean();
 
-        String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
+        String evalContentType = context.getProperty(REQUEST_CONTENT_TYPE)
                 .evaluateAttributeExpressions(requestFlowFile).getValue();
         final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
-        String contentKey = context.getProperty(PROP_FORM_BODY_FORM_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
+        String formDataName = context.getProperty(REQUEST_FORM_DATA_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
 
         // Check for dynamic properties for form components.
         // Even if the flowfile is not sent, we may still send form parameters.
         Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            Matcher matcher = FORM_DATA_NAME_PARAMETER_PATTERN.matcher(entry.getKey().getName());
             if (matcher.matches()) {
                 propertyDescriptors.put(matcher.group(FORM_DATA_NAME_GROUP), entry.getKey());
             }
         }
 
-        final boolean contentLengthUnknown = useChunked || ContentEncodingStrategy.GZIP == contentEncodingStrategy;
+        final boolean contentLengthUnknown = chunkedTransferEncoding || ContentEncodingStrategy.GZIP == contentEncodingStrategy;
         RequestBody requestBody = new RequestBody() {
             @Nullable
             @Override
@@ -1221,10 +1171,10 @@ public class InvokeHTTP extends AbstractProcessor {
             }
         };
 
-        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(contentKey)) {
+        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(formDataName)) {
             // we have form data
             MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
-            boolean useFileName = context.getProperty(PROP_SET_FORM_FILE_NAME).asBoolean();
+            boolean useFileName = context.getProperty(REQUEST_FORM_DATA_FILENAME_ENABLED).asBoolean();
             String contentFileName = null;
             if (useFileName) {
                 contentFileName = requestFlowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -1235,28 +1185,30 @@ public class InvokeHTTP extends AbstractProcessor {
                         .evaluateAttributeExpressions(requestFlowFile).getValue();
                 builder.addFormDataPart(entry.getKey(), propValue);
             }
-            if (sendBody) {
-                builder.addFormDataPart(contentKey, contentFileName, requestBody);
+            if (requestBodyEnabled) {
+                builder.addFormDataPart(formDataName, contentFileName, requestBody);
             }
             return builder.build();
-        } else if (sendBody) {
+        } else if (requestBodyEnabled) {
             return requestBody;
         }
         return RequestBody.create(new byte[0], null);
     }
 
     private void setHeaderProperties(final ProcessContext context, final Request.Builder requestBuilder, final FlowFile requestFlowFile) {
-        // check if we should send the a Date header with the request
-        if (context.getProperty(PROP_DATE_HEADER).asBoolean()) {
+        final String userAgent = trimToEmpty(context.getProperty(REQUEST_USER_AGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
+        requestBuilder.addHeader(HttpHeader.USER_AGENT.getHeader(), userAgent);
+
+        if (context.getProperty(REQUEST_DATE_HEADER_ENABLED).asBoolean()) {
             final ZonedDateTime universalCoordinatedTimeNow = ZonedDateTime.now(ZoneOffset.UTC);
-            requestBuilder.addHeader("Date", RFC_2616_DATE_TIME.format(universalCoordinatedTimeNow));
+            requestBuilder.addHeader(HttpHeader.DATE.getHeader(), RFC_2616_DATE_TIME.format(universalCoordinatedTimeNow));
         }
 
         for (String headerKey : dynamicPropertyNames) {
             String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
 
-            // don't include dynamic form data properties
-            if (DYNAMIC_FORM_PARAMETER_NAME.matcher(headerKey).matches()) {
+            // ignore form data name dynamic properties
+            if (FORM_DATA_NAME_PARAMETER_PATTERN.matcher(headerKey).matches()) {
                 continue;
             }
 
@@ -1266,14 +1218,12 @@ public class InvokeHTTP extends AbstractProcessor {
         // iterate through the flowfile attributes, adding any attribute that
         // matches the attributes-to-send pattern. if the pattern is not set
         // (it's an optional property), ignore that attribute entirely
-        if (regexAttributesToSend != null && requestFlowFile != null) {
+        if (requestHeaderAttributesPattern != null && requestFlowFile != null) {
             Map<String, String> attributes = requestFlowFile.getAttributes();
-            Matcher m = regexAttributesToSend.matcher("");
+            Matcher m = requestHeaderAttributesPattern.matcher("");
             for (Map.Entry<String, String> entry : attributes.entrySet()) {
                 String headerKey = trimToEmpty(entry.getKey());
-
-                // don't include any of the ignored attributes
-                if (IGNORED_ATTRIBUTES.contains(headerKey)) {
+                if (IGNORED_REQUEST_ATTRIBUTES.contains(headerKey)) {
                     continue;
                 }
 
@@ -1296,8 +1246,8 @@ public class InvokeHTTP extends AbstractProcessor {
 
         // If the property to output the response flowfile regardless of status code is set then transfer it
         boolean responseSent = false;
-        if (context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean()) {
-            session.transfer(response, REL_RESPONSE);
+        if (context.getProperty(RESPONSE_GENERATION_REQUIRED).asBoolean()) {
+            session.transfer(response, RESPONSE);
             responseSent = true;
         }
 
@@ -1306,26 +1256,26 @@ public class InvokeHTTP extends AbstractProcessor {
         if (isSuccess(statusCode)) {
             // we have two flowfiles to transfer
             if (request != null) {
-                session.transfer(request, REL_SUCCESS_REQ);
+                session.transfer(request, ORIGINAL);
             }
             if (response != null && !responseSent) {
-                session.transfer(response, REL_RESPONSE);
+                session.transfer(response, RESPONSE);
             }
 
             // 5xx -> RETRY
         } else if (statusCode / 100 == 5) {
             if (request != null) {
                 request = session.penalize(request);
-                session.transfer(request, REL_RETRY);
+                session.transfer(request, RETRY);
             }
 
             // 1xx, 3xx, 4xx -> NO RETRY
         } else {
             if (request != null) {
-                if (context.getProperty(PROP_PENALIZE_NO_RETRY).asBoolean()) {
+                if (context.getProperty(REQUEST_FAILURE_PENALIZATION_ENABLED).asBoolean()) {
                     request = session.penalize(request);
                 }
-                session.transfer(request, REL_NO_RETRY);
+                session.transfer(request, NO_RETRY);
             }
         }
 
@@ -1356,7 +1306,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 if (list.size() == 1) {
                     sb.append(list.get(0));
                 } else {
-                    sb.append(list.toString());
+                    sb.append(list);
                 }
                 sb.append("\n");
             }
@@ -1396,21 +1346,12 @@ public class InvokeHTTP extends AbstractProcessor {
         return contentType != null ? contentType.charset(StandardCharsets.UTF_8) : StandardCharsets.UTF_8;
     }
 
-    /**
-     * Retrieve the directory in which OkHttp should cache responses. This method opts
-     * to use a temp directory to write the cache, which means that the cache will be written
-     * to a new location each time this processor is scheduled.
-     * <p>
-     * Ref: https://github.com/square/okhttp/wiki/Recipes#response-caching
-     *
-     * @return the directory in which the ETag cache should be written
-     */
-    private static File getETagCacheDir() throws IOException {
+    private static File getResponseCacheDirectory() throws IOException {
         return Files.createTempDirectory(InvokeHTTP.class.getSimpleName()).toFile();
     }
 
     private FlowFileNamingStrategy getFlowFileNamingStrategy(final ProcessContext context) {
-        final String strategy = context.getProperty(FLOW_FILE_NAMING_STRATEGY).getValue();
+        final String strategy = context.getProperty(RESPONSE_FLOW_FILE_NAMING_STRATEGY).getValue();
         return FlowFileNamingStrategy.valueOf(strategy);
     }
 
@@ -1423,5 +1364,16 @@ public class InvokeHTTP extends AbstractProcessor {
         }
 
         return fileName;
+    }
+
+    private Optional<HttpMethod> findRequestMethod(String method) {
+        return Arrays.stream(HttpMethod.values())
+                .filter(httpMethod -> httpMethod.name().equals(method))
+                .findFirst();
+    }
+
+    private String getRequestMethod(final PropertyContext context, final FlowFile flowFile) {
+        final String method = context.getProperty(HTTP_METHOD).evaluateAttributeExpressions(flowFile).getValue().toUpperCase();
+        return trimToEmpty(method);
     }
 }
