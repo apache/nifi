@@ -16,12 +16,19 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.rest.Response;
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
+import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,9 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -255,15 +265,37 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
     @Test
     public void testPutFileButFailedToAppend() {
-        DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
-        InputStream stream = mock(InputStream.class);
-        doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
+        final PutAzureDataLakeStorage processor = new PutAzureDataLakeStorage();
+        final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = mock(FlowFile.class);
 
-        assertThrows(NullPointerException.class, () -> {
-            PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+        when(flowFile.getSize()).thenReturn(1L);
+        doThrow(IllegalArgumentException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
 
-            verify(fileClient).delete();
-        });
+        assertThrows(IllegalArgumentException.class, () -> processor.appendContent(flowFile, fileClient, session));
+        verify(fileClient).delete();
+    }
+
+    @Test
+    public void testPutFileButFailedToRename() {
+        final PutAzureDataLakeStorage processor = new PutAzureDataLakeStorage();
+        final ProcessorInitializationContext initContext = mock(ProcessorInitializationContext.class);
+        final String componentId = "componentId";
+        final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        final Response<DataLakeFileClient> response = mock(Response.class);
+        //Mock logger
+        when(initContext.getIdentifier()).thenReturn(componentId);
+        MockComponentLog componentLog = new MockComponentLog(componentId, processor);
+        when(initContext.getLogger()).thenReturn(componentLog);
+        processor.initialize(initContext);
+        //Mock renameWithResponse Azure method
+        when(fileClient.renameWithResponse(isNull(), anyString(), isNull(), any(DataLakeRequestConditions.class), isNull(), isNull())).thenReturn(response);
+        when(response.getValue()).thenThrow(DataLakeStorageException.class);
+        when(fileClient.getFileName()).thenReturn(FILE_NAME);
+
+        assertThrows(DataLakeStorageException.class, () -> processor.renameFile(FILE_NAME, "", fileClient, false));
+        verify(fileClient).delete();
     }
 
     private Map<String, String> createAttributesMap() {
