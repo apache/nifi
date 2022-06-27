@@ -28,27 +28,29 @@
 
 <h3>File uploading and cleanup process</h3>
 
-<h4>New file</h4>
+<h4>New file upload</h4>
 
 <ol>
-    <li>An empty file is created.</li>
-    <li>Content is appended to file.</li>
-    <li>In case append failure the file is deleted.</li>
-    <li>In case file deletion failure the empty file remains on the server.</li>
+    <li>A temporary file is created with random prefix under the given path in '_$azuretempdirectory$'.</li>
+    <li>Content is appended to temp file.</li>
+    <li>Temp file is renamed to its original name, the original file is overwritten.</li>
+    <li>In case of appending or renaming failure the temp file is deleted, the original file remains intact.</li>
+    <li>In case of temporary file deletion failure both temp file and original file remain on the server.</li>
 </ol>
 
-<h4>Existing file</h4>
+<h4>Existing file upload</h4>
 
 <ul>
     <li>Processors with "fail" conflict resolution strategy will be directed to "Failure" relationship.</li>
-     <li>Processors with "ignore" conflict resolution strategy will be directed to "Success" relationship.</li>
+    <li>Processors with "ignore" conflict resolution strategy will be directed to "Success" relationship.</li>
     <li>Processors with "replace" conflict resolution strategy:</li>
 
     <ol>
-        <li>An empty file overwrites the existing file, the original file is lost.</li>
-        <li>Content is appended to file.</li>
-        <li>In case append failure the file is deleted.</li>
-        <li>In case file deletion failure the empty file remains on the server.</li>
+        <li>A temporary file is created with random prefix under the given path in '_$azuretempdirectory$'.</li>
+        <li>Content is appended to temp file.</li>
+        <li>Temp file is renamed to its original name, the original file is overwritten.</li>
+        <li>In case of appending or renaming failure the temp file is deleted, the original file remains intact.</li>
+        <li>In case of temporary file deletion failure both temp file and original file remain on the server.</li>
     </ol>
 </ul>
 

@@ -129,6 +129,16 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor SHOW_TEMPORARY_FILES = new PropertyDescriptor.Builder()
+            .name("show-temporary-files")
+            .displayName("Show temporary files")
+            .description("Whether temporary files, created during nifi upload process should be shown." +
+                    "These files are incomplete and removed after a completed upload process.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
@@ -136,6 +146,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             RECURSE_SUBDIRECTORIES,
             FILE_FILTER,
             PATH_FILTER,
+            SHOW_TEMPORARY_FILES,
             RECORD_WRITER,
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
@@ -261,10 +272,12 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
             options.setRecursive(recurseSubdirectories);
 
             final Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
+            final boolean includeTempFiles = context.getProperty(SHOW_TEMPORARY_FILES).asBoolean();
             final long minimumTimestamp = minTimestamp == null ? 0 : minTimestamp;
 
             final List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
+                    .filter(pathItem -> includeTempFiles || !pathItem.getName().contains("_$azuretempdirectory$"))
                     .filter(pathItem -> isFileInfoMatchesWithAgeAndSize(context, minimumTimestamp, pathItem.getLastModified().toInstant().toEpochMilli(), pathItem.getContentLength()))
                     .map(pathItem -> new ADLSFileInfo.Builder()
                             .fileSystem(fileSystem)

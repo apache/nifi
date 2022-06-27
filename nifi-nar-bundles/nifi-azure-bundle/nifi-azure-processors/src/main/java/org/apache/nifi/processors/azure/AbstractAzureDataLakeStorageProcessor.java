@@ -101,6 +101,8 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
             REL_FAILURE
     )));
 
+    public static final String TEMP_FILE_DIRECTORY = "_$azuretempdirectory$";
+
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
