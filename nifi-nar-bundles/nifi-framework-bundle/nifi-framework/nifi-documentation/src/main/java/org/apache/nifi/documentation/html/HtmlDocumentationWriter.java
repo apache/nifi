@@ -608,7 +608,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                     for (final PropertyDependency dependency : dependencies) {
                         final Set<String> dependentValues = dependency.getDependentValues();
-                        final String prefix = (capitalizeThe ? "The" : "the") + " <" + dependency.getPropertyDisplayName() + "> Property ";
+                        final String prefix = (capitalizeThe ? "The" : "the") + " [" + dependency.getPropertyDisplayName() + "] Property ";
                         String suffix = "";
                         if (dependentValues == null) {
                             suffix = "has a value specified.";
@@ -638,10 +638,15 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                                 final StringBuilder sb = new StringBuilder("is set to one of the following values: ");
 
                                 for (final String dependentValue : dependentValues) {
-                                    for (AllowableValue av : dependencyProperty.getAllowableValues()) {
-                                        if (dependentValue.equals(av.getValue())) {
-                                            sb.append("\"").append(av.getDisplayName()).append("\", ");
-                                            break;
+                                    final List<AllowableValue> allowableValues = dependencyProperty.getAllowableValues();
+                                    if (allowableValues == null) {
+                                        sb.append("[").append(dependentValue).append("], ");
+                                    } else {
+                                        for (AllowableValue av : allowableValues) {
+                                            if (dependentValue.equals(av.getValue())) {
+                                                sb.append("[").append(av.getDisplayName()).append("], ");
+                                                break;
+                                            }
                                         }
                                     }
                                 }

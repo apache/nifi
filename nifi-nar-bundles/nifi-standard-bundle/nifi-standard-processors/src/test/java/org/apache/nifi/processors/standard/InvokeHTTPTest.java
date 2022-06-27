@@ -28,6 +28,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.http.ContentEncodingStrategy;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.processors.standard.http.CookieStrategy;
+import org.apache.nifi.processors.standard.http.HttpHeader;
+import org.apache.nifi.processors.standard.http.HttpMethod;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
@@ -74,13 +76,6 @@ import static java.net.HttpURLConnection.HTTP_MOVED_TEMP;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_UNAUTHORIZED;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
-import static org.apache.nifi.processors.standard.InvokeHTTP.GET_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.POST_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.PUT_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.PATCH_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.DELETE_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.HEAD_METHOD;
-import static org.apache.nifi.processors.standard.InvokeHTTP.OPTIONS_METHOD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -164,7 +159,7 @@ public class InvokeHTTPTest {
         mockWebServer = new MockWebServer();
         runner = TestRunners.newTestRunner(new InvokeHTTP());
         // Disable Connection Pooling
-        runner.setProperty(InvokeHTTP.PROP_MAX_IDLE_CONNECTIONS, Integer.toString(0));
+        runner.setProperty(InvokeHTTP.SOCKET_IDLE_CONNECTIONS, Integer.toString(0));
     }
 
     @AfterEach
@@ -177,61 +172,50 @@ public class InvokeHTTPTest {
         runner.assertNotValid();
     }
 
-    @Test
-    public void testNotValidWithProxyTypeInvalid() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_TYPE, String.class.getSimpleName());
-        runner.assertNotValid();
-    }
-
+    @SuppressWarnings("deprecation")
     @Test
     public void testNotValidWithProxyHostWithoutProxyPort() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
+        runner.setProperty(InvokeHTTP.PROXY_HOST, String.class.getSimpleName());
         runner.assertNotValid();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testNotValidWithProxyUserWithoutProxyPassword() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
+        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
         runner.assertNotValid();
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testNotValidWithProxyUserAndPasswordWithoutProxyHost() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, String.class.getSimpleName());
-        runner.assertNotValid();
-    }
-
-    @Test
-    public void testNotValidWithHttpsProxyTypeWithoutSslContextService() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_TYPE, InvokeHTTP.HTTPS);
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
+        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.PROXY_PASSWORD, String.class.getSimpleName());
         runner.assertNotValid();
     }
 
     @Test
     public void testNotValidWithPostFormPropertyWithoutFormBodyFormName() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
         runner.setProperty(POST_FORM_PARAMETER_KEY, String.class.getSimpleName());
         runner.assertNotValid();
     }
 
     @Test
-    public void testNotValidWithPostFormPropertyAndFormBodyFormNameWithoutSendBodyEnabled() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
+    public void testNotValidWithPostFormPropertyAndFormBodyFormNameWithoutRequestBodyEnabled() {
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
         runner.setProperty(POST_FORM_PARAMETER_KEY, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, Boolean.FALSE.toString());
+        runner.setProperty(InvokeHTTP.REQUEST_FORM_DATA_NAME, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.REQUEST_BODY_ENABLED, Boolean.FALSE.toString());
         runner.assertNotValid();
     }
 
     @Test
     public void testValidWithMinimumProperties() {
-        runner.setProperty(InvokeHTTP.PROP_URL, HTTP_LOCALHOST_URL);
+        runner.setProperty(InvokeHTTP.HTTP_URL, HTTP_LOCALHOST_URL);
         runner.assertValid();
     }
 
@@ -250,7 +234,7 @@ public class InvokeHTTPTest {
         runner.setIncomingConnection(false);
         runner.setNonLoopConnection(false);
         setUrlProperty();
-        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
 
         runner.run();
         runner.assertQueueEmpty();
@@ -261,7 +245,7 @@ public class InvokeHTTPTest {
         runner.setIncomingConnection(false);
         runner.setNonLoopConnection(false);
 
-        runner.setProperty(InvokeHTTP.PROP_URL, "${file.name}");
+        runner.setProperty(InvokeHTTP.HTTP_URL, "${file.name}");
 
         runner.run();
 
@@ -272,14 +256,14 @@ public class InvokeHTTPTest {
     @Test
     public void testRunGetMalformedUrlExceptionFailure() {
         final String urlAttributeKey = "request.url";
-        runner.setProperty(InvokeHTTP.PROP_URL, String.format("${%s}", urlAttributeKey));
+        runner.setProperty(InvokeHTTP.HTTP_URL, String.format("${%s}", urlAttributeKey));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(urlAttributeKey, String.class.getSimpleName());
         runner.enqueue(FLOW_FILE_CONTENT, attributes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(InvokeHTTP.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(InvokeHTTP.FAILURE);
         runner.assertPenalizeCount(1);
 
         final MockFlowFile flowFile = getFailureFlowFile();
@@ -291,14 +275,14 @@ public class InvokeHTTPTest {
     public void testRunGetMethodIllegalArgumentExceptionFailure() {
         setUrlProperty();
         final String methodAttributeKey = "request.method";
-        runner.setProperty(InvokeHTTP.PROP_METHOD, String.format("${%s}", methodAttributeKey));
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, String.format("${%s}", methodAttributeKey));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(methodAttributeKey, null);
         runner.enqueue(FLOW_FILE_CONTENT, attributes);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(InvokeHTTP.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(InvokeHTTP.FAILURE);
         runner.assertPenalizeCount(1);
 
         final MockFlowFile flowFile = getFailureFlowFile();
@@ -308,22 +292,22 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunGetHttp200Success() throws InterruptedException {
-        assertRequestMethodSuccess(GET_METHOD);
+        assertRequestMethodSuccess(HttpMethod.GET);
     }
 
     @Test
-    public void testRunGetHttp200SuccessIgnoreResponseContentEnabled() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.IGNORE_RESPONSE_CONTENT, Boolean.TRUE.toString());
-        assertRequestMethodSuccess(GET_METHOD);
+    public void testRunGetHttp200SuccessResponseBodyIgnoredEnabled() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.RESPONSE_BODY_IGNORED, Boolean.TRUE.toString());
+        assertRequestMethodSuccess(HttpMethod.GET);
 
         final MockFlowFile responseFlowFile = getResponseFlowFile();
         assertEquals(StringUtils.EMPTY, responseFlowFile.getContent());
     }
 
     @Test
-    public void testRunGetHttp200SuccessOutputBodyAttribute() {
+    public void testRunGetHttp200SuccessResponseBodyAttributeName() {
         final String outputAttributeKey = String.class.getSimpleName();
-        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE, outputAttributeKey);
+        runner.setProperty(InvokeHTTP.RESPONSE_BODY_ATTRIBUTE_NAME, outputAttributeKey);
         setUrlProperty();
 
         final String body = String.class.getName();
@@ -331,16 +315,16 @@ public class InvokeHTTPTest {
         runner.enqueue(FLOW_FILE_CONTENT);
         runner.run();
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_SUCCESS_REQ, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.ORIGINAL, HTTP_OK);
 
         final MockFlowFile flowFile = getRequestFlowFile();
         flowFile.assertAttributeEquals(outputAttributeKey, body);
     }
 
     @Test
-    public void testRunGetHttp200SuccessOutputBodyAttributeNoIncomingConnections() {
+    public void testRunGetHttp200SuccessResponseBodyAttributeNameNoIncomingConnections() {
         final String outputAttributeKey = String.class.getSimpleName();
-        runner.setProperty(InvokeHTTP.PROP_PUT_OUTPUT_IN_ATTRIBUTE, outputAttributeKey);
+        runner.setProperty(InvokeHTTP.RESPONSE_BODY_ATTRIBUTE_NAME, outputAttributeKey);
         setUrlProperty();
         runner.setIncomingConnection(false);
         runner.setNonLoopConnection(false);
@@ -349,9 +333,9 @@ public class InvokeHTTPTest {
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK).setBody(body));
         runner.run();
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_SUCCESS_REQ, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.ORIGINAL, HTTP_OK);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).iterator().next();
         flowFile.assertAttributeEquals(outputAttributeKey, body);
     }
 
@@ -364,50 +348,52 @@ public class InvokeHTTPTest {
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
         runner.run();
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testRunGetHttp200SuccessProxyHostPortConfigured() throws InterruptedException {
         final String mockWebServerUrl = getMockWebServerUrl();
         final URI uri = URI.create(mockWebServerUrl);
 
-        runner.setProperty(InvokeHTTP.PROP_URL, mockWebServerUrl);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, uri.getHost());
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, Integer.toString(uri.getPort()));
+        runner.setProperty(InvokeHTTP.HTTP_URL, mockWebServerUrl);
+        runner.setProperty(InvokeHTTP.PROXY_HOST, uri.getHost());
+        runner.setProperty(InvokeHTTP.PROXY_PORT, Integer.toString(uri.getPort()));
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
         runner.enqueue(FLOW_FILE_CONTENT);
         runner.run();
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
         final RecordedRequest request = takeRequestCompleted();
         final String requestLine = request.getRequestLine();
 
-        final String proxyRequestLine = String.format("%s %s HTTP/1.1", GET_METHOD, mockWebServerUrl);
+        final String proxyRequestLine = String.format("%s %s HTTP/1.1", HttpMethod.GET.name(), mockWebServerUrl);
         assertEquals(proxyRequestLine, requestLine);
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     public void testRunGetHttp200SuccessProxyHostPortUserPasswordConfigured() throws InterruptedException {
         final String mockWebServerUrl = getMockWebServerUrl();
         final URI uri = URI.create(mockWebServerUrl);
 
-        runner.setProperty(InvokeHTTP.PROP_URL, mockWebServerUrl);
-        runner.setProperty(InvokeHTTP.PROP_PROXY_HOST, uri.getHost());
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PORT, Integer.toString(uri.getPort()));
-        runner.setProperty(InvokeHTTP.PROP_PROXY_USER, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_PROXY_PASSWORD, String.class.getName());
+        runner.setProperty(InvokeHTTP.HTTP_URL, mockWebServerUrl);
+        runner.setProperty(InvokeHTTP.PROXY_HOST, uri.getHost());
+        runner.setProperty(InvokeHTTP.PROXY_PORT, Integer.toString(uri.getPort()));
+        runner.setProperty(InvokeHTTP.PROXY_USERNAME, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.PROXY_PASSWORD, String.class.getName());
 
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
         runner.enqueue(FLOW_FILE_CONTENT);
         runner.run();
 
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
         final RecordedRequest request = takeRequestCompleted();
         final String requestLine = request.getRequestLine();
 
-        final String proxyRequestLine = String.format("%s %s HTTP/1.1", GET_METHOD, mockWebServerUrl);
+        final String proxyRequestLine = String.format("%s %s HTTP/1.1", HttpMethod.GET.name(), mockWebServerUrl);
         assertEquals(proxyRequestLine, requestLine);
     }
 
@@ -421,7 +407,7 @@ public class InvokeHTTPTest {
         runner.run();
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final MockFlowFile responseFlowFile = getResponseFlowFile();
         responseFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), TEXT_PLAIN);
@@ -429,12 +415,12 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunGetHttp200SuccessRequestDateHeader() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_DATE_HEADER, StringUtils.capitalize(Boolean.TRUE.toString()));
+        runner.setProperty(InvokeHTTP.REQUEST_DATE_HEADER_ENABLED, StringUtils.capitalize(Boolean.TRUE.toString()));
 
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String dateHeader = request.getHeader(DATE_HEADER);
@@ -448,8 +434,8 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp200SuccessSendAttributesAndDynamicProperties() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND, String.format("^%s$", ACCEPT_HEADER));
+    public void testRunGetHttp200SuccessRequestHeaderAttributesAndDynamicProperties() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.REQUEST_HEADER_ATTRIBUTES_PATTERN, String.format("^%s$", ACCEPT_HEADER));
         final String defaultContentTypeHeader = "Default-Content-Type";
         runner.setProperty(defaultContentTypeHeader, InvokeHTTP.DEFAULT_CONTENT_TYPE);
         setUrlProperty();
@@ -461,7 +447,7 @@ public class InvokeHTTPTest {
         runner.run();
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String acceptHeader = request.getHeader(ACCEPT_HEADER);
@@ -470,7 +456,7 @@ public class InvokeHTTPTest {
         final String contentType = request.getHeader(defaultContentTypeHeader);
         assertEquals(InvokeHTTP.DEFAULT_CONTENT_TYPE, contentType);
 
-        runner.removeProperty(InvokeHTTP.PROP_ATTRIBUTES_TO_SEND);
+        runner.removeProperty(InvokeHTTP.REQUEST_HEADER_ATTRIBUTES_PATTERN);
         runner.removeProperty(defaultContentTypeHeader);
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_OK));
         runner.enqueue(FLOW_FILE_CONTENT, attributes);
@@ -482,9 +468,9 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp200SuccessResponseHeaderRequestFlowFileAttributes() {
+    public void testRunGetHttp200SuccessResponseHeaderRequestAttributes() {
         setUrlProperty();
-        runner.setProperty(InvokeHTTP.PROP_ADD_HEADERS_TO_REQUEST, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED, Boolean.TRUE.toString());
 
         final String firstHeader = String.class.getSimpleName();
         final String secondHeader = Integer.class.getSimpleName();
@@ -498,7 +484,7 @@ public class InvokeHTTPTest {
         runner.run();
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final MockFlowFile requestFlowFile = getRequestFlowFile();
         requestFlowFile.assertAttributeEquals(CONTENT_LENGTH_HEADER, Integer.toString(0));
@@ -508,21 +494,21 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp200SuccessCacheTagEnabled() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_USE_ETAG, Boolean.TRUE.toString());
+    public void testRunGetHttp200SuccessResponseCacheEnabled() throws InterruptedException {
+        runner.setProperty(InvokeHTTP.RESPONSE_CACHE_ENABLED, Boolean.TRUE.toString());
 
-        assertRequestMethodSuccess(GET_METHOD);
+        assertRequestMethodSuccess(HttpMethod.GET);
     }
 
     @Test
     public void testRunGetHttp200SuccessBasicAuthentication() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, String.class.getName());
+        runner.setProperty(InvokeHTTP.REQUEST_USERNAME, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.REQUEST_PASSWORD, String.class.getName());
 
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String authorization = request.getHeader(AUTHORIZATION_HEADER);
@@ -534,9 +520,9 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunGetHttp200SuccessDigestAuthentication() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, String.class.getSimpleName());
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, String.class.getName());
-        runner.setProperty(InvokeHTTP.PROP_DIGEST_AUTH, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.REQUEST_USERNAME, String.class.getSimpleName());
+        runner.setProperty(InvokeHTTP.REQUEST_PASSWORD, String.class.getName());
+        runner.setProperty(InvokeHTTP.REQUEST_DIGEST_AUTHENTICATION_ENABLED, Boolean.TRUE.toString());
 
         final String realm = UUID.randomUUID().toString();
         final String nonce = UUID.randomUUID().toString();
@@ -546,7 +532,7 @@ public class InvokeHTTPTest {
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         assertNull(request.getHeader(AUTHORIZATION_HEADER), "Authorization Header found");
@@ -570,7 +556,7 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunGetSslContextServiceMutualTrustedClientCertificateMissing() throws InitializationException, GeneralSecurityException {
-        runner.setProperty(InvokeHTTP.DISABLE_HTTP2_PROTOCOL, StringUtils.capitalize(Boolean.TRUE.toString()));
+        runner.setProperty(InvokeHTTP.HTTP2_DISABLED, StringUtils.capitalize(Boolean.TRUE.toString()));
         setSslContextConfiguration(generatedTlsConfiguration, truststoreTlsConfiguration);
         mockWebServer.requireClientAuth();
 
@@ -578,7 +564,7 @@ public class InvokeHTTPTest {
         runner.enqueue(FLOW_FILE_CONTENT);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(InvokeHTTP.REL_FAILURE);
+        runner.assertAllFlowFilesTransferred(InvokeHTTP.FAILURE);
         final MockFlowFile flowFile = getFailureFlowFile();
         flowFile.assertAttributeExists(InvokeHTTP.EXCEPTION_CLASS);
         flowFile.assertAttributeExists(InvokeHTTP.EXCEPTION_MESSAGE);
@@ -587,12 +573,12 @@ public class InvokeHTTPTest {
     @Test
     public void testRunGetHttp200SuccessUserAgentConfigured() throws InterruptedException {
         final String userAgent = UUID.randomUUID().toString();
-        runner.setProperty(InvokeHTTP.PROP_USERAGENT, userAgent);
+        runner.setProperty(InvokeHTTP.REQUEST_USER_AGENT, userAgent);
 
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String userAgentHeader = request.getHeader(USER_AGENT_HEADER);
@@ -600,28 +586,28 @@ public class InvokeHTTPTest {
     }
 
     @Test
-    public void testRunGetHttp302NoRetryFollowRedirectsDefaultEnabled() {
+    public void testRunGetHttp302NoRetryResponseRedirectsDefaultEnabled() {
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP).setHeader(LOCATION_HEADER, getMockWebServerUrl()));
         enqueueResponseCodeAndRun(HTTP_OK);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
     @Test
-    public void testRunGetHttp302NoRetryFollowRedirectsDisabled() {
-        runner.setProperty(InvokeHTTP.PROP_FOLLOW_REDIRECTS, StringUtils.capitalize(Boolean.FALSE.toString()));
+    public void testRunGetHttp302NoRetryResponseRedirectsDisabled() {
+        runner.setProperty(InvokeHTTP.RESPONSE_REDIRECTS_ENABLED, StringUtils.capitalize(Boolean.FALSE.toString()));
         enqueueResponseCodeAndRun(HTTP_MOVED_TEMP);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_NO_RETRY, HTTP_MOVED_TEMP);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.NO_RETRY, HTTP_MOVED_TEMP);
     }
 
     @Test
     public void testRunGetHttp302CookieStrategyAcceptAll() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_COOKIE_STRATEGY, CookieStrategy.ACCEPT_ALL.name());
+        runner.setProperty(InvokeHTTP.RESPONSE_COOKIE_STRATEGY, CookieStrategy.ACCEPT_ALL.name());
         mockWebServer.enqueue(new MockResponse().setResponseCode(HTTP_MOVED_TEMP)
             .addHeader(SET_COOKIE_HEADER, COOKIE_1)
             .addHeader(SET_COOKIE_HEADER, COOKIE_2)
@@ -635,9 +621,9 @@ public class InvokeHTTPTest {
         final String expectedHeader = String.format("%s; %s", COOKIE_1, COOKIE_2);
         assertEquals(expectedHeader, request2.getHeader(COOKIE_HEADER));
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
     @Test
@@ -654,92 +640,92 @@ public class InvokeHTTPTest {
         RecordedRequest request2 = mockWebServer.takeRequest();
         assertNull(request2.getHeader(COOKIE_HEADER));
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.NO_RETRY, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
     }
 
     @Test
     public void testRunGetHttp400NoRetryMinimumProperties() {
         enqueueResponseCodeAndRun(HTTP_BAD_REQUEST);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_NO_RETRY, HTTP_BAD_REQUEST);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.NO_RETRY, HTTP_BAD_REQUEST);
     }
 
     @Test
     public void testRunGetHttp400NoRetryPenalizeNoRetry() {
-        runner.setProperty(InvokeHTTP.PROP_PENALIZE_NO_RETRY, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.REQUEST_FAILURE_PENALIZATION_ENABLED, Boolean.TRUE.toString());
 
         enqueueResponseCodeAndRun(HTTP_BAD_REQUEST);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 0);
         runner.assertPenalizeCount(1);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_NO_RETRY, HTTP_BAD_REQUEST);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.NO_RETRY, HTTP_BAD_REQUEST);
     }
 
     @Test
     public void testRunGetHttp500RetryMinimumProperties() {
         enqueueResponseCodeAndRun(HTTP_INTERNAL_ERROR);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RETRY, HTTP_INTERNAL_ERROR);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RETRY, HTTP_INTERNAL_ERROR);
     }
 
     @Test
-    public void testRunGetHttp500RetryOutputResponseRegardless() {
-        runner.setProperty(InvokeHTTP.PROP_OUTPUT_RESPONSE_REGARDLESS, Boolean.TRUE.toString());
+    public void testRunGetHttp500RetryResponseGeneratedRequired() {
+        runner.setProperty(InvokeHTTP.RESPONSE_GENERATION_REQUIRED, Boolean.TRUE.toString());
 
         enqueueResponseCodeAndRun(HTTP_INTERNAL_ERROR);
 
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RETRY, HTTP_INTERNAL_ERROR);
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_INTERNAL_ERROR);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RETRY, HTTP_INTERNAL_ERROR);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_INTERNAL_ERROR);
     }
 
     @Test
     public void testRunDeleteHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, DELETE_METHOD);
-        assertRequestMethodSuccess(DELETE_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.DELETE.name());
+        assertRequestMethodSuccess(HttpMethod.DELETE);
     }
 
     @Test
     public void testRunHeadHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, HEAD_METHOD);
-        assertRequestMethodSuccess(HEAD_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.HEAD.name());
+        assertRequestMethodSuccess(HttpMethod.HEAD);
     }
 
     @Test
     public void testRunOptionsHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, OPTIONS_METHOD);
-        assertRequestMethodSuccess(OPTIONS_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.OPTIONS.name());
+        assertRequestMethodSuccess(HttpMethod.OPTIONS);
     }
 
     @Test
     public void testRunPatchHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, PATCH_METHOD);
-        assertRequestMethodSuccess(PATCH_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.PATCH.name());
+        assertRequestMethodSuccess(HttpMethod.PATCH);
     }
 
     @Test
     public void testRunPostHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
-        assertRequestMethodSuccess(POST_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
+        assertRequestMethodSuccess(HttpMethod.POST);
     }
 
     @Test
     public void testRunPostHttp200SuccessContentEncodingGzip() throws InterruptedException, IOException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
-        runner.setProperty(InvokeHTTP.PROP_CONTENT_ENCODING, ContentEncodingStrategy.GZIP.getValue());
-        runner.setProperty(InvokeHTTP.PROP_SEND_BODY, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
+        runner.setProperty(InvokeHTTP.REQUEST_CONTENT_ENCODING, ContentEncodingStrategy.GZIP.getValue());
+        runner.setProperty(InvokeHTTP.REQUEST_BODY_ENABLED, Boolean.TRUE.toString());
 
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String contentLength = request.getHeader(CONTENT_LENGTH_HEADER);
@@ -757,13 +743,13 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunPostHttp200SuccessChunkedEncoding() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
-        runner.setProperty(InvokeHTTP.PROP_USE_CHUNKED_ENCODING, Boolean.TRUE.toString());
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
+        runner.setProperty(InvokeHTTP.REQUEST_CHUNKED_TRANSFER_ENCODING_ENABLED, Boolean.TRUE.toString());
 
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String contentLength = request.getHeader(CONTENT_LENGTH_HEADER);
@@ -775,14 +761,14 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunPostHttp200SuccessFormData() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, POST_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.POST.name());
 
         final String formName = "multipart-form";
-        runner.setProperty(InvokeHTTP.PROP_FORM_BODY_FORM_NAME, formName);
+        runner.setProperty(InvokeHTTP.REQUEST_FORM_DATA_NAME, formName);
 
         final String formDataParameter = String.class.getName();
         final String formDataParameterName = "label";
-        final String formDataPropertyName = String.format("%s:%s", InvokeHTTP.FORM_BASE, formDataParameterName);
+        final String formDataPropertyName = String.format("%s:%s", InvokeHTTP.FORM_DATA_NAME_BASE, formDataParameterName);
         runner.setProperty(formDataPropertyName, formDataParameter);
 
         setUrlProperty();
@@ -791,7 +777,7 @@ public class InvokeHTTPTest {
         runner.run();
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
         final String contentType = request.getHeader(CONTENT_TYPE_HEADER);
@@ -806,8 +792,8 @@ public class InvokeHTTPTest {
 
     @Test
     public void testRunPutHttp200Success() throws InterruptedException {
-        runner.setProperty(InvokeHTTP.PROP_METHOD, PUT_METHOD);
-        assertRequestMethodSuccess(PUT_METHOD);
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, HttpMethod.PUT.name());
+        assertRequestMethodSuccess(HttpMethod.PUT);
     }
 
     @ParameterizedTest(name = "{index} => When {0} http://baseUrl/{1}, filename of the response FlowFile should be {2}")
@@ -816,9 +802,9 @@ public class InvokeHTTPTest {
         URL baseUrl = new URL(getMockWebServerUrl());
         URL targetUrl = new URL(baseUrl, inputUrl);
 
-        runner.setProperty(InvokeHTTP.PROP_METHOD, httpMethod);
-        runner.setProperty(InvokeHTTP.PROP_URL, targetUrl.toString());
-        runner.setProperty(InvokeHTTP.FLOW_FILE_NAMING_STRATEGY, FlowFileNamingStrategy.URL_PATH.name());
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, httpMethod);
+        runner.setProperty(InvokeHTTP.HTTP_URL, targetUrl.toString());
+        runner.setProperty(InvokeHTTP.RESPONSE_FLOW_FILE_NAMING_STRATEGY, FlowFileNamingStrategy.URL_PATH.name());
 
         Map<String, String> ffAttributes = new HashMap<>();
         ffAttributes.put(CoreAttributes.FILENAME.key(), FLOW_FILE_INITIAL_FILENAME);
@@ -828,38 +814,37 @@ public class InvokeHTTPTest {
 
         runner.run();
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), expectedFileName);
     }
 
     private static Stream<Arguments> testResponseFlowFileFilenameExtractedFromRemoteUrl() {
         return Stream.of(
-            Arguments.of(GET_METHOD, "file", "file"),
-            Arguments.of(GET_METHOD, "file/", "file"),
-            Arguments.of(GET_METHOD, "file.txt", "file.txt"),
-            Arguments.of(GET_METHOD, "file.txt/", "file.txt"),
-            Arguments.of(GET_METHOD, "file.txt/?qp=v", "file.txt"),
-            Arguments.of(GET_METHOD, "f%69%6Cle.txt", "f%69%6Cle.txt"),
-            Arguments.of(GET_METHOD, "path/to/file.txt", "file.txt"),
-            Arguments.of(GET_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(POST_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(POST_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(PUT_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(PUT_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(PATCH_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(PATCH_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(DELETE_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(DELETE_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(HEAD_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(HEAD_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(OPTIONS_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
-            Arguments.of(OPTIONS_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME)
+            Arguments.of(HttpMethod.GET.name(), "file", "file"),
+            Arguments.of(HttpMethod.GET.name(), "file/", "file"),
+            Arguments.of(HttpMethod.GET.name(), "file.txt", "file.txt"),
+            Arguments.of(HttpMethod.GET.name(), "file.txt/", "file.txt"),
+            Arguments.of(HttpMethod.GET.name(), "file.txt/?qp=v", "file.txt"),
+            Arguments.of(HttpMethod.GET.name(), "f%69%6Cle.txt", "f%69%6Cle.txt"),
+            Arguments.of(HttpMethod.GET.name(), "path/to/file.txt", "file.txt"),
+            Arguments.of(HttpMethod.GET.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.POST.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.POST.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.PUT.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.PUT.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.PATCH.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.PATCH.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.DELETE.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.DELETE.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.HEAD.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.HEAD.name(), "has/path", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.OPTIONS.name(), "", FLOW_FILE_INITIAL_FILENAME),
+            Arguments.of(HttpMethod.OPTIONS.name(), "has/path", FLOW_FILE_INITIAL_FILENAME)
         );
     }
 
     @Test
     public void testValidWhenOAuth2Set() throws Exception {
-        // GIVEN
         String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
 
         OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
@@ -870,16 +855,13 @@ public class InvokeHTTPTest {
 
         setUrlProperty();
 
-        // WHEN
-        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
 
-        // THEN
         runner.assertValid();
     }
 
     @Test
     public void testInvalidWhenOAuth2AndUserNameSet() throws Exception {
-        // GIVEN
         String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
 
         OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
@@ -890,17 +872,14 @@ public class InvokeHTTPTest {
 
         setUrlProperty();
 
-        // WHEN
-        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "userName");
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.REQUEST_USERNAME, "userName");
 
-        // THEN
         runner.assertNotValid();
     }
 
     @Test
     public void testInvalidWhenOAuth2AndPasswordSet() throws Exception {
-        // GIVEN
         String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
 
         OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
@@ -911,17 +890,14 @@ public class InvokeHTTPTest {
 
         setUrlProperty();
 
-        // WHEN
-        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
-        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "password");
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.REQUEST_PASSWORD, "password");
 
-        // THEN
         runner.assertNotValid();
     }
 
     @Test
     public void testOAuth2AuthorizationHeader() throws Exception {
-        // GIVEN
         String accessToken = "access_token";
 
         String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
@@ -937,21 +913,19 @@ public class InvokeHTTPTest {
 
         mockWebServer.enqueue(new MockResponse());
 
-        // WHEN
-        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.REQUEST_OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
         runner.enqueue("unimportant");
         runner.run();
 
-        // THEN
         RecordedRequest recordedRequest = mockWebServer.takeRequest();
 
-        String actualAuthorizationHeader = recordedRequest.getHeader("Authorization");
+        String actualAuthorizationHeader = recordedRequest.getHeader(HttpHeader.AUTHORIZATION.getHeader());
         assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
 
     }
 
     private void setUrlProperty() {
-        runner.setProperty(InvokeHTTP.PROP_URL, getMockWebServerUrl());
+        runner.setProperty(InvokeHTTP.HTTP_URL, getMockWebServerUrl());
     }
 
     private String getMockWebServerUrl() {
@@ -972,25 +946,25 @@ public class InvokeHTTPTest {
     }
 
     private MockFlowFile getFailureFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.REL_FAILURE).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.FAILURE).iterator().next();
     }
 
     private MockFlowFile getRequestFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.REL_SUCCESS_REQ).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.ORIGINAL).iterator().next();
     }
 
     private MockFlowFile getResponseFlowFile() {
-        return runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).iterator().next();
+        return runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
     }
 
-    private void assertRequestMethodSuccess(final String method) throws InterruptedException {
+    private void assertRequestMethodSuccess(final HttpMethod httpMethod) throws InterruptedException {
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
         final RecordedRequest request = takeRequestCompleted();
-        assertEquals(method, request.getMethod());
+        assertEquals(httpMethod.name(), request.getMethod());
     }
 
     private void assertRelationshipStatusCodeEquals(final Relationship relationship, final int statusCode) {
@@ -1018,11 +992,11 @@ public class InvokeHTTPTest {
             assertFalse(errorMessages.isEmpty(), message);
         }
 
-        runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
-        runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
-        runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_NO_RETRY, 0);
-        runner.assertTransferCount(InvokeHTTP.REL_FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.ORIGINAL, 1);
+        runner.assertTransferCount(InvokeHTTP.RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.NO_RETRY, 0);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
     }
 
     private void assertResponseSuccessSslContextConfigured(final TlsConfiguration serverTlsConfiguration, final TlsConfiguration clientTlsConfiguration) throws InitializationException, TlsException {
@@ -1030,9 +1004,9 @@ public class InvokeHTTPTest {
         enqueueResponseCodeAndRun(HTTP_OK);
 
         assertResponseSuccessRelationships();
-        assertRelationshipStatusCodeEquals(InvokeHTTP.REL_RESPONSE, HTTP_OK);
+        assertRelationshipStatusCodeEquals(InvokeHTTP.RESPONSE, HTTP_OK);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.REL_RESPONSE).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(InvokeHTTP.RESPONSE).iterator().next();
         flowFile.assertAttributeExists(InvokeHTTP.REMOTE_DN);
     }
 
@@ -1053,9 +1027,9 @@ public class InvokeHTTPTest {
 
         runner.addControllerService(serviceIdentifier, sslContextService);
         runner.enableControllerService(sslContextService);
-        runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier);
-        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, TLS_CONNECTION_TIMEOUT);
-        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, TLS_CONNECTION_TIMEOUT);
+        runner.setProperty(InvokeHTTP.SSL_CONTEXT_SERVICE, serviceIdentifier);
+        runner.setProperty(InvokeHTTP.SOCKET_READ_TIMEOUT, TLS_CONNECTION_TIMEOUT);
+        runner.setProperty(InvokeHTTP.SOCKET_CONNECT_TIMEOUT, TLS_CONNECTION_TIMEOUT);
         return sslContextService;
     }
 
