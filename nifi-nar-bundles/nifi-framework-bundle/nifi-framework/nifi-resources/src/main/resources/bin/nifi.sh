@@ -326,7 +326,7 @@ run() {
 
     BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
 
-    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
+    run_bootstrap_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms48m -Xmx48m ${BOOTSTRAP_DIR_PARAMS} ${BOOTSTRAP_DEBUG_PARAMS} ${BOOTSTRAP_JAVA_OPTS} org.apache.nifi.bootstrap.RunNiFi"
     run_nifi_cmd="${run_bootstrap_cmd} $@"
 
     if [ -n "${run_as_user}" ]; then
