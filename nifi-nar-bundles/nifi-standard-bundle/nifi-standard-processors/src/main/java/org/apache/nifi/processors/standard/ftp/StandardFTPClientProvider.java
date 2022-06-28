@@ -79,11 +79,16 @@ public class StandardFTPClientProvider implements FTPClientProvider {
 
         final boolean attributesEmpty = attributes.isEmpty();
 
+        // Evaluate Hostname and Port properties based on the presence of attributes because ListFTP does not support FlowFile attributes
         final PropertyValue hostnameProperty = context.getProperty(HOSTNAME);
-        final String hostname = attributesEmpty ? hostnameProperty.getValue() : hostnameProperty.evaluateAttributeExpressions(attributes).getValue();
+        final String hostname = attributesEmpty
+                ? hostnameProperty.evaluateAttributeExpressions().getValue()
+                : hostnameProperty.evaluateAttributeExpressions(attributes).getValue();
 
         final PropertyValue portProperty = context.getProperty(PORT);
-        final int port = attributesEmpty ? portProperty.asInteger() : portProperty.evaluateAttributeExpressions(attributes).asInteger();
+        final int port = attributesEmpty
+                ? portProperty.evaluateAttributeExpressions().asInteger()
+                : portProperty.evaluateAttributeExpressions(attributes).asInteger();
         final String address = String.format(ADDRESS_FORMAT, hostname, port);
 
         try {
@@ -96,7 +101,9 @@ public class StandardFTPClientProvider implements FTPClientProvider {
         }
 
         final PropertyValue usernameProperty = context.getProperty(USERNAME);
-        final String username = attributesEmpty ? usernameProperty.getValue() : usernameProperty.evaluateAttributeExpressions(attributes).getValue();
+        final String username = attributesEmpty
+                ? usernameProperty.evaluateAttributeExpressions().getValue()
+                : usernameProperty.evaluateAttributeExpressions(attributes).getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions(attributes).getValue();
 
         try {
