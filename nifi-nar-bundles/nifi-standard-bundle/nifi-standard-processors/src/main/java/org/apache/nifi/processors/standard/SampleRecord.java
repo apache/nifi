@@ -23,13 +23,12 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -53,7 +52,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,6 +71,10 @@ import java.util.regex.Pattern;
         + "FlowFile may be of a fixed number of records (in the case of reservoir-based algorithms) or some subset of the total number of records "
         + "(in the case of probabilistic sampling), or a deterministic number of records (in the case of interval sampling).")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@WritesAttributes({
+        @WritesAttribute(attribute = "mime.type", description = "The MIME type indicated by the record writer"),
+        @WritesAttribute(attribute = "record.count", description = "The number of records in the resulting flow file")
+})
 public class SampleRecord extends AbstractProcessor {
 
     static final String INTERVAL_SAMPLING_KEY = "interval";
@@ -222,56 +224,6 @@ public class SampleRecord extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
-    }
-
-    @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-
-        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-
-        final String samplingStrategyValue = validationContext.getProperty(SAMPLING_STRATEGY).getValue();
-        if (INTERVAL_SAMPLING_KEY.equals(samplingStrategyValue)) {
-            final PropertyValue pd = validationContext.getProperty(SAMPLING_INTERVAL);
-            if (!pd.isSet()) {
-                results.add(new ValidationResult.Builder().subject(INTERVAL_SAMPLING.getDisplayName()).valid(false)
-                        .explanation(SAMPLING_INTERVAL.getDisplayName() + " property must be set to use " + INTERVAL_SAMPLING.getDisplayName() + " strategy")
-                        .build());
-            }
-        } else if (RANGE_SAMPLING_KEY.equals(samplingStrategyValue)) {
-            final PropertyValue samplingRangeProperty = validationContext.getProperty(SAMPLING_RANGE);
-            if (!samplingRangeProperty.isSet()) {
-                results.add(new ValidationResult.Builder().subject(RANGE_SAMPLING.getDisplayName()).valid(false)
-                        .explanation(SAMPLING_RANGE.getDisplayName() + " property must be set to use " + RANGE_SAMPLING.getDisplayName() + " strategy")
-                        .build());
-            }
-            if (!samplingRangeProperty.isExpressionLanguagePresent()) {
-                // Try to parse/validate the range expression if no NiFi Expression Language is present
-                final String rangeExpression = samplingRangeProperty.getValue();
-                if (rangeExpression != null) {
-                    Matcher m = RANGE_PATTERN.matcher(rangeExpression);
-                    if (!m.matches()) {
-                        results.add(new ValidationResult.Builder().subject(RANGE_SAMPLING.getDisplayName()).valid(false)
-                                .explanation("range expression is not valid")
-                                .build());
-                    }
-                }
-            }
-        } else if (PROBABILISTIC_SAMPLING_KEY.equals(samplingStrategyValue)) {
-            final PropertyValue samplingProbabilityProperty = validationContext.getProperty(SAMPLING_PROBABILITY);
-            if (!samplingProbabilityProperty.isSet()) {
-                results.add(new ValidationResult.Builder().subject(PROBABILISTIC_SAMPLING.getDisplayName()).valid(false)
-                        .explanation(SAMPLING_PROBABILITY.getDisplayName() + " property must be set to use " + PROBABILISTIC_SAMPLING.getDisplayName() + " strategy")
-                        .build());
-            }
-        } else if (RESERVOIR_SAMPLING_KEY.equals(samplingStrategyValue)) {
-            final PropertyValue pd = validationContext.getProperty(RESERVOIR_SIZE);
-            if (!pd.isSet()) {
-                results.add(new ValidationResult.Builder().subject(RESERVOIR_SAMPLING.getDisplayName()).valid(false)
-                        .explanation(RESERVOIR_SIZE.getDisplayName() + " property must be set to use " + RESERVOIR_SAMPLING.getDisplayName() + " strategy")
-                        .build());
-            }
-        }
-        return results;
     }
 
     @Override
