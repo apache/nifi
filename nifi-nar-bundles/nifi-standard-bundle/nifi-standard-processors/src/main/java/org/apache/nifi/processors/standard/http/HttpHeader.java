@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.standard.http;
 
 /**
- * HTTP Header supported values
+ * HTTP Header reusable enumerated values
  */
 public enum HttpHeader {
     /** Authorization defined in RFC 7235 Section 4.2 */

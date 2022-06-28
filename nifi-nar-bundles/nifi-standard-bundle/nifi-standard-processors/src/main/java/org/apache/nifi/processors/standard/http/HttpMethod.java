@@ -17,7 +17,7 @@
 package org.apache.nifi.processors.standard.http;
 
 /**
- * HTTP Method supported values
+ * HTTP Method reusable enumerated values
  */
 public enum HttpMethod {
     DELETE(false),
