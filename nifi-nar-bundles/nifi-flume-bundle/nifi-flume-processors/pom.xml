@@ -24,7 +24,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <flume.version>1.6.0</flume.version>
+        <flume.version>1.10.0</flume.version>
     </properties>
 
     <dependencies>
@@ -97,21 +97,6 @@
 
         <!-- Flume Sinks -->
         <dependency>
-            <groupId>org.apache.flume.flume-ng-sinks</groupId>
-            <artifactId>flume-dataset-sink</artifactId>
-            <version>${flume.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databind</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-logging</groupId>
-                    <artifactId>commons-logging</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
@@ -171,11 +156,6 @@
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-irc-sink</artifactId>
-            <version>${flume.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flume.flume-ng-sinks</groupId>
-            <artifactId>flume-ng-elasticsearch-sink</artifactId>
             <version>${flume.version}</version>
         </dependency>
         <dependency>
