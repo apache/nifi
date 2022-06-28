@@ -99,4 +99,34 @@
         <packageUrl regex="true">^pkg:maven/org\.apache\.spark/spark\-.+?_2\.13@.*$</packageUrl>
         <cpe>cpe:/a:apache:spark</cpe>
     </suppress>
+    <suppress>
+        <notes>Apache Hive vulnerabilities do not apply to Flume Hive Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-hive\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hive</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-kafka\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Kafka Source</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sources/flume\-kafka\-source@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Kafka vulnerabilities do not apply to Flume Shared Kafka</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-shared/flume\-shared\-kafka@.*$</packageUrl>
+        <cpe>cpe:/a:apache:kafka</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache HBase vulnerabilities do not apply to Flume HBase Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-hbase\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:hbase</cpe>
+    </suppress>
+    <suppress>
+        <notes>Apache Solr vulnerabilities do not apply to Flume Solr Sink</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-morphline\-solr\-sink@.*$</packageUrl>
+        <cpe>cpe:/a:apache:solr</cpe>
+    </suppress>
 </suppressions>
