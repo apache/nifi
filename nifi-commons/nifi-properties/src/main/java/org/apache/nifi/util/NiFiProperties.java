@@ -333,7 +333,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String TRACK_PERFORMANCE_PERCENTAGE = "nifi.performance.tracking.percentage";
 
     // performance tracking defaults
-    public static final int DEFAULT_TRACK_PERFORMANCE_PERCENTAGE = 5;
+    public static final int DEFAULT_TRACK_PERFORMANCE_PERCENTAGE = 0;
 
     // defaults
     public static final Boolean DEFAULT_AUTO_RESUME_STATE = true;
