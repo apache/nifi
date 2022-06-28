@@ -50,6 +50,8 @@ import org.mockftpserver.fake.filesystem.WindowsFakeFileSystem;
 
 public class TestFTP {
 
+    private static final String LOCALHOST_ADDRESS = "127.0.0.1";
+
     final FakeFtpServer fakeFtpServer = new FakeFtpServer();
     final String username = "nifi-ftp-user";
     final String password = "Test test test chocolate";
@@ -126,9 +128,9 @@ public class TestFTP {
     }
 
     @Test
-    public void basicFileUpload() throws IOException {
+    public void testPutFtp() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
-        runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FTPTransfer.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FTPTransfer.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
@@ -147,7 +149,7 @@ public class TestFTP {
     }
 
     @Test
-    public void basicProvenanceEventTest() throws IOException {
+    public void testPutFtpProvenanceEvents() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
 
         runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
@@ -166,7 +168,7 @@ public class TestFTP {
         try (FileInputStream fis = new FileInputStream("src/test/resources/hello.txt")) {
             Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "hello.txt");
-            attributes.put("transfer-host", "127.0.0.1");
+            attributes.put("transfer-host", LOCALHOST_ADDRESS);
             runner.enqueue(fis, attributes);
             runner.run();
         }
@@ -198,7 +200,7 @@ public class TestFTP {
     }
 
     @Test
-    public void basicFileGet() {
+    public void testGetFtp() {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
@@ -209,7 +211,7 @@ public class TestFTP {
         Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
-        runner.setProperty(FTPTransfer.HOSTNAME, "localhost");
+        runner.setProperty(FTPTransfer.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FTPTransfer.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
@@ -222,7 +224,7 @@ public class TestFTP {
     }
 
     @Test
-    public void basicFileFetch() {
+    public void testFetchFtp() {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
@@ -255,9 +257,9 @@ public class TestFTP {
     }
 
     @Test
-    public void testFetchFileNotFound() {
+    public void testFetchFtpFileNotFound() {
         final TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
-        runner.setProperty(FetchFTP.HOSTNAME, "127.0.0.1");
+        runner.setProperty(FetchFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FetchFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
@@ -270,7 +272,7 @@ public class TestFTP {
     }
 
     @Test
-    public void testFetchFilePermissionDenied() {
+    public void testFetchFtpFilePermissionDenied() {
         final FileSystem fs = fakeFtpServer.getFileSystem();
 
         final FileEntry restrictedFileEntry = new FileEntry("c:\\data\\restricted");
@@ -278,7 +280,7 @@ public class TestFTP {
         fs.add(restrictedFileEntry);
 
         final TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
-        runner.setProperty(FetchFTP.HOSTNAME, "127.0.0.1");
+        runner.setProperty(FetchFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FetchFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
@@ -291,9 +293,32 @@ public class TestFTP {
     }
 
     @Test
+    public void testListFtpHostPortVariablesFileFound() {
+        final FileSystem fs = fakeFtpServer.getFileSystem();
+
+        final FileEntry fileEntry = new FileEntry("c:\\data\\found");
+        fs.add(fileEntry);
+
+        final TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
+        runner.setVariable("host", LOCALHOST_ADDRESS);
+        runner.setVariable("port", Integer.toString(ftpPort));
+
+        runner.setProperty(ListFTP.HOSTNAME, "${host}");
+        runner.setProperty(FTPTransfer.PORT, "${port}");
+        runner.setProperty(ListFTP.USERNAME, username);
+        runner.setProperty(FTPTransfer.PASSWORD, password);
+        runner.setProperty(ListFile.TARGET_SYSTEM_TIMESTAMP_PRECISION, ListFile.PRECISION_MILLIS);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(ListFTP.REL_SUCCESS, 1);
+    }
+
+    @Test
     @EnabledIfSystemProperty(named = "file.encoding", matches = "UTF-8",
             disabledReason = "org.mockftpserver does not support specification of charset")
-    public void basicFileFetchWithUTF8FileName() {
+    public void testFetchFtpUnicodeFileName() {
         FileSystem fs = fakeFtpServer.getFileSystem();
 
         FileEntry sampleFile = new FileEntry("c:\\data\\őűőű.txt");
@@ -301,7 +326,7 @@ public class TestFTP {
         fs.add(sampleFile);
 
         TestRunner runner = TestRunners.newTestRunner(FetchFTP.class);
-        runner.setProperty(FetchFTP.HOSTNAME, "localhost");
+        runner.setProperty(FetchFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(FetchFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, String.valueOf(ftpPort));
@@ -320,7 +345,7 @@ public class TestFTP {
     }
 
     @Test
-    public void basicFileList() throws InterruptedException {
+    public void testListFtp() throws InterruptedException {
         FileSystem results = fakeFtpServer.getFileSystem();
 
         FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
@@ -331,7 +356,7 @@ public class TestFTP {
         Assertions.assertTrue(results.exists("c:\\data\\randombytes-2"));
 
         TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
-        runner.setProperty(ListFTP.HOSTNAME, "localhost");
+        runner.setProperty(ListFTP.HOSTNAME, LOCALHOST_ADDRESS);
         runner.setProperty(ListFTP.USERNAME, username);
         runner.setProperty(FTPTransfer.PASSWORD, password);
         runner.setProperty(FTPTransfer.PORT, Integer.toString(ftpPort));
