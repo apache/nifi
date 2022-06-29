@@ -286,7 +286,7 @@ public class RocksDBFlowFileRepository implements FlowFileRepository {
     }
 
     public RocksDBFlowFileRepository(final NiFiProperties niFiProperties) {
-        logger.warn("WARNING: " + RocksDBFlowFileRepository.class.getSimpleName() + " is deprecated and will be removed in future versions of Apache NiFi.");
+        logger.warn("*** " + RocksDBFlowFileRepository.class.getSimpleName() + " is deprecated and will be removed in future versions of Apache NiFi. ***");
 
         deserializationThreads = RocksDbProperty.DESERIALIZATION_THREADS.getIntValue(niFiProperties);
         deserializationBufferSize = RocksDbProperty.DESERIALIZATION_BUFFER_SIZE.getIntValue(niFiProperties);
