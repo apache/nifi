@@ -51,10 +51,6 @@ public class SNMPTrapReceiverHandler {
         snmpManager = new SNMPManagerFactory().createSnmpManagerInstance(configuration);
     }
 
-    public SNMPTrapReceiverHandler(final SNMPConfiguration configuration) {
-        this(configuration, null);
-    }
-
     public void createTrapReceiver(final ProcessSessionFactory processSessionFactory, final ComponentLog logger) {
         addUsmUsers();
         SNMPTrapReceiver trapReceiver = new SNMPTrapReceiver(processSessionFactory, logger);

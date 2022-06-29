@@ -16,11 +16,26 @@
  */
 package org.apache.nifi.snmp.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.snmp4j.security.UsmUser;
 
 import java.util.List;
 
-public interface UsmReader {
+public class JsonUsmReader implements UsmReader {
 
-    List<UsmUser> readUsm();
+    private final String usmUsersJson;
+
+    public JsonUsmReader(String usmUsersJson) {
+        this.usmUsersJson = usmUsersJson;
+    }
+
+    @Override
+    public List<UsmUser> readUsm() {
+        try {
+            return UsmJsonParser.parse(usmUsersJson);
+        } catch (JsonProcessingException e) {
+            throw new ProcessException("Could not parse USM user file, please check the processor details for examples.", e);
+        }
+    }
 }

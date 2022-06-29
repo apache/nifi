@@ -17,10 +17,26 @@
 package org.apache.nifi.snmp.utils;
 
 import org.snmp4j.security.UsmUser;
+import org.snmp4j.smi.OctetString;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public interface UsmReader {
+public class SecurityNamesUsmReader implements UsmReader {
 
-    List<UsmUser> readUsm();
+    private final String usmSecurityNames;
+
+    public SecurityNamesUsmReader(String usmSecurityNames) {
+        this.usmSecurityNames = usmSecurityNames;
+    }
+
+    @Override
+    public List<UsmUser> readUsm() {
+        return Arrays.stream(usmSecurityNames.trim().split(","))
+                .map(securityName -> new UsmUser(
+                        new OctetString(securityName), null, null, null, null)
+                )
+                .collect(Collectors.toList());
+    }
 }

@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.snmp.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.snmp4j.security.UsmUser;
 
 import java.util.List;
 
-public interface UsmReader {
+public class UsmJsonParser {
 
-    List<UsmUser> readUsm();
+    static List<UsmUser> parse(final String json) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(UsmUser.class, new UsmUserDeserializer());
+        mapper.registerModule(module);
+        return mapper.readValue(json, new TypeReference<List<UsmUser>>() {
+        });
+    }
 }

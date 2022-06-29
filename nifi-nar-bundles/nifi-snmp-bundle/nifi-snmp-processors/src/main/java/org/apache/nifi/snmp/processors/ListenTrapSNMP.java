@@ -24,32 +24,36 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.operations.SNMPTrapReceiverHandler;
 import org.apache.nifi.snmp.processors.properties.BasicProperties;
 import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
+import org.apache.nifi.snmp.utils.JsonFileUsmReader;
+import org.apache.nifi.snmp.utils.JsonUsmReader;
 import org.apache.nifi.snmp.utils.SNMPUtils;
+import org.apache.nifi.snmp.utils.SecurityNamesUsmReader;
 import org.apache.nifi.snmp.utils.UsmReader;
 import org.snmp4j.security.UsmUser;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -64,7 +68,7 @@ import java.util.Set;
 @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "*", description = "Attributes retrieved from the SNMP response. It may include:"
         + " snmp$errorIndex, snmp$errorStatus, snmp$errorStatusText, snmp$nonRepeaters, snmp$requestID, snmp$type, snmp$variableBindings")
 @RequiresInstanceClassLoading
-public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
+public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
 
     public static final AllowableValue USM_JSON_FILE_PATH = new AllowableValue("usm-json-file-path", "Json File Path", "The path of the JSON file containing the USM users");
     public static final AllowableValue USM_JSON_CONTENT = new AllowableValue("usm-json-content", "Json Content", "The JSON containing the USM users");
@@ -151,43 +155,39 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor {
 
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
+    public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
 
-        final String usmUserSource = validationContext.getProperty(SNMP_USM_USER_SOURCE).getValue();
+        final String usmUserSource = context.getProperty(SNMP_USM_USER_SOURCE).getValue();
 
         if (usmUserSource != null) {
-            final String usmUsersJsonFile = validationContext.getProperty(SNMP_USM_USERS_JSON_FILE_PATH).getValue();
-            final String usmUsersJson = validationContext.getProperty(SNMP_USM_USERS_JSON).getValue();
-            final String usmSecurityNames = validationContext.getProperty(SNMP_USM_SECURITY_NAMES).getValue();
+            final String usmUsersJsonFilePath = context.getProperty(SNMP_USM_USERS_JSON_FILE_PATH).getValue();
+            final String usmUsersJson = context.getProperty(SNMP_USM_USERS_JSON).getValue();
+            final String usmSecurityNames = context.getProperty(SNMP_USM_SECURITY_NAMES).getValue();
 
             UsmReader usmReader = null;
-            String usmData = null;
 
             if (USM_JSON_FILE_PATH.getValue().equals(usmUserSource)) {
-                usmReader = UsmReader.jsonFileUsmReader();
-                usmData = usmUsersJsonFile;
+                usmReader = new JsonFileUsmReader(usmUsersJsonFilePath);
             } else if (USM_JSON_CONTENT.getValue().equals(usmUserSource)) {
-                usmReader = UsmReader.jsonUsmReader();
-                usmData = usmUsersJson;
+                usmReader = new JsonUsmReader(usmUsersJson);
             } else if (USM_SECURITY_NAMES.getValue().equals(usmUserSource)) {
-                usmReader = UsmReader.securityNamesUsmReader();
-                usmData = usmSecurityNames;
+                usmReader = new SecurityNamesUsmReader(usmSecurityNames);
             }
 
             try {
                 if (usmReader != null) {
-                    usmUsers = usmReader.readUsm(usmData);
+                    usmUsers = usmReader.readUsm();
                 }
             } catch (Exception e) {
-                problems.add(new ValidationResult.Builder()
-                        .subject("USM User processing")
+                results.add(new ConfigVerificationResult.Builder()
+                        .verificationStepName("USM User processing")
+                        .outcome(ConfigVerificationResult.Outcome.FAILED)
                         .explanation(e.getMessage() + " " + e.getCause().getMessage())
-                        .valid(false)
                         .build());
             }
         }
-        return problems;
+        return results;
     }
 
     @OnScheduled

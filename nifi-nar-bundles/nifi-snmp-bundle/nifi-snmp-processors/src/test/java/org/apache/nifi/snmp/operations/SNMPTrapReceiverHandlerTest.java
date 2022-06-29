@@ -19,25 +19,25 @@ package org.apache.nifi.snmp.operations;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
-import org.apache.nifi.snmp.utils.UsmReader;
+import org.apache.nifi.snmp.utils.JsonFileUsmReader;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.snmp4j.Snmp;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.USM;
 import org.snmp4j.security.UsmUser;
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -89,45 +89,24 @@ public class SNMPTrapReceiverHandlerTest {
 
     @Test
     public void testAddUsmUsers() {
-        final Set<String> expectedUserAttributes = new HashSet<>();
+        final List<UsmUser> usmUsers = new JsonFileUsmReader(USERS_JSON).readUsm();
 
-        final List<UsmUser> usmUsers = UsmReader.jsonFileUsmReader().readUsm(USERS_JSON);
-        usmUsers.forEach(user -> {
-            expectedUserAttributes.add(user.getSecurityName().toString());
-            expectedUserAttributes.add(user.getAuthenticationProtocol().toString());
-            expectedUserAttributes.add(user.getAuthenticationPassphrase().toString());
-            expectedUserAttributes.add(user.getPrivacyProtocol().toString());
-            expectedUserAttributes.add(user.getPrivacyPassphrase().toString());
-        });
-        final Set<String> usmAttributes = new HashSet<>();
-        final SNMPConfiguration snmpConfiguration = mock(SNMPConfiguration.class);
-        final ProcessSessionFactory mockProcessSessionFactory = mock(ProcessSessionFactory.class);
-        final MockComponentLog mockComponentLog = new MockComponentLog("componentId", new Object());
-        final Snmp mockSnmpManager = mock(Snmp.class);
-        final USM mockUsm = mock(USM.class);
+        final SNMPConfiguration snmpConfiguration = SNMPConfiguration.builder()
+                .setManagerPort(NetworkUtils.getAvailableUdpPort())
+                .setVersion(SnmpConstants.version3)
+                .build();
 
-        when(snmpConfiguration.getManagerPort()).thenReturn(NetworkUtils.getAvailableUdpPort());
-        when(snmpConfiguration.getVersion()).thenReturn(SnmpConstants.version3);
-        doAnswer(invocation -> {
-            UsmUser usmUser = invocation.getArgument(0);
-            usmAttributes.add(usmUser.getSecurityName().toString());
-            usmAttributes.add(usmUser.getAuthenticationProtocol().toString());
-            usmAttributes.add(usmUser.getAuthenticationPassphrase().toString());
-            usmAttributes.add(usmUser.getPrivacyProtocol().toString());
-            usmAttributes.add(usmUser.getPrivacyPassphrase().toString());
-            return null;
-        }).when(mockUsm).addUser(any(UsmUser.class));
-        when(mockSnmpManager.getUSM()).thenReturn(mockUsm);
+        final Snmp mockSnmpManager = mock(Snmp.class, RETURNS_DEEP_STUBS);
+        final ArgumentCaptor<UsmUser> usmUserCaptor = ArgumentCaptor.forClass(UsmUser.class);
 
         final SNMPTrapReceiverHandler trapReceiverHandler = new SNMPTrapReceiverHandler(snmpConfiguration, usmUsers);
         trapReceiverHandler.setSnmpManager(mockSnmpManager);
-        trapReceiverHandler.createTrapReceiver(mockProcessSessionFactory, mockComponentLog);
+        trapReceiverHandler.createTrapReceiver(null, null);
 
-
+        verify(mockSnmpManager.getUSM(), times(2)).addUser(usmUserCaptor.capture());
         verify(mockSnmpManager).addCommandResponder(any(SNMPTrapReceiver.class));
 
         assertTrue(trapReceiverHandler.isStarted());
-
-        assertEquals(expectedUserAttributes, usmAttributes);
+        assertEquals(usmUsers, usmUserCaptor.getAllValues());
     }
 }
