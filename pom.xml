@@ -1089,31 +1089,6 @@
                 </dependencies>
             </dependencyManagement>
         </profile>
-        <!-- The following profiles are here as a convenience for folks that
-            want to build against vendor-specific distributions of the various Hadoop
-            ecosystem libraries. These will alter which dependencies are sourced in a
-            manner that can adjust the correct LICENSE and NOTICE requirements for any
-            affected jar and the resulting assembly overall. These L&N impacts are not
-            automatically handled by the build process and are the responsibility of
-            those creating and using the resulting binary artifacts. -->
-        <profile>
-            <!-- This profile will add the Cloudera repository for resolving
-                Cloudera Distribution of Hadoop (CDH) artifacts for the Hadoop bundles -->
-            <id>cloudera</id>
-            <repositories>
-                <repository>
-                    <id>cloudera-repo</id>
-                    <name>Cloudera Repository</name>
-                    <url>https://repository.cloudera.com/artifactory/cloudera-repos</url>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
-            </repositories>
-        </profile>
         <profile>
             <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
             <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
