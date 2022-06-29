@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>25</version>
+        <version>26</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -138,75 +138,6 @@
         <h2.version>2.1.210</h2.version>
         <zookeeper.version>3.8.0</zookeeper.version>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>central</id>
-            <!-- This should be at top, it makes maven try the central repo
-                first and then others and hence faster dep resolution -->
-            <name>Maven Repository</name>
-            <url>https://repo1.maven.org/maven2</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>apache-repo</id>
-            <name>Apache Repository</name>
-            <url>https://repository.apache.org/content/repositories/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>Shibboleth</id>
-            <name>Shibboleth</name>
-            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>
-    </repositories>
-
-    <pluginRepositories>
-        <pluginRepository>
-            <id>gcs-maven-central-mirror</id>
-            <!--
-              Google Mirror of Maven Central, placed first so that it's used instead of flaky Maven Central.
-              See https://storage-download.googleapis.com/maven-central/index.html
-            -->
-            <name>GCS Maven Central mirror</name>
-            <url>https://maven-central.storage-download.googleapis.com/repos/central/data/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </pluginRepository>
-        <pluginRepository>
-            <id>central</id>
-            <name>Central Repository</name>
-            <url>https://repo.maven.apache.org/maven2</url>
-            <layout>default</layout>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <updatePolicy>never</updatePolicy>
-            </releases>
-        </pluginRepository>
-    </pluginRepositories>
-
     <dependencyManagement>
         <dependencies>
             <!-- The following dependency management entries exist because these are jars
@@ -673,7 +604,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.9.0</version>
+                    <version>3.10.1</version>
                     <configuration>
                         <fork>true</fork>
                         <showDeprecation>${maven.compiler.showDeprecation}</showDeprecation>
@@ -798,6 +729,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
                     <version>3.2.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.rat</groupId>
+                    <artifactId>apache-rat-plugin</artifactId>
+                    <version>0.14</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -1161,69 +1097,6 @@
             automatically handled by the build process and are the responsibility of
             those creating and using the resulting binary artifacts. -->
         <profile>
-            <!-- This profile adds the Hortonworks repository for resolving
-                Hortonworks Data Platform (HDP) artifacts for the Hadoop bundles -->
-            <id>hortonworks</id>
-            <repositories>
-                <repository>
-                    <id>hortonworks-releases</id>
-                    <name>Hortonworks Repository</name>
-                    <url>https://repo.hortonworks.com/content/repositories/releases/</url>
-                    <releases>
-                        <enabled>true</enabled>
-                        <updatePolicy>always</updatePolicy>
-                        <checksumPolicy>warn</checksumPolicy>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                        <checksumPolicy>fail</checksumPolicy>
-                    </snapshots>
-                </repository>
-                <repository>
-                    <id>hortonworks-jetty</id>
-                    <name>Hortonworks Jetty Repository</name>
-                    <url>https://repo.hortonworks.com/content/repositories/jetty-hadoop/</url>
-                    <releases>
-                        <enabled>true</enabled>
-                        <updatePolicy>always</updatePolicy>
-                        <checksumPolicy>warn</checksumPolicy>
-                    </releases>
-                    <snapshots>
-                        <enabled>false</enabled>
-                        <updatePolicy>never</updatePolicy>
-                        <checksumPolicy>fail</checksumPolicy>
-                    </snapshots>
-                </repository>
-            </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.7.1.2.4.0.0-169</hadoop.version> -->
-            </properties>
-        </profile>
-        <profile>
-            <!-- This profile will add the MapR repository for resolving
-                MapR Hadoop artifacts for the Hadoop bundles -->
-            <id>mapr</id>
-            <repositories>
-                <repository>
-                    <id>mapr-releases</id>
-                    <name>MapR Repository</name>
-                    <url>https://repository.mapr.com/maven/</url>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                    <releases>
-                        <enabled>true</enabled>
-                    </releases>
-                </repository>
-            </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.7.0-mapr-1602</hadoop.version> -->
-            </properties>
-        </profile>
-        <profile>
             <!-- This profile will add the Cloudera repository for resolving
                 Cloudera Distribution of Hadoop (CDH) artifacts for the Hadoop bundles -->
             <id>cloudera</id>
@@ -1240,10 +1113,6 @@
                     </snapshots>
                 </repository>
             </repositories>
-            <properties>
-                <!-- Vendor-specific version number included here as default,
-                    should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
-            </properties>
         </profile>
         <profile>
             <!-- Run "mvn validate -P dependency-check" to generate dependency-check-report.html in the target directory -->
