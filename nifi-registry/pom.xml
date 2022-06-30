@@ -359,7 +359,7 @@
                     <dependency>
                         <groupId>org.codehaus.groovy</groupId>
                         <artifactId>groovy-eclipse-batch</artifactId>
-                        <version>${nifi.groovy.version}-01</version>
+                        <version>${groovy.eclipse.batch.version}</version>
                     </dependency>
                 </dependencies>
             </plugin>
