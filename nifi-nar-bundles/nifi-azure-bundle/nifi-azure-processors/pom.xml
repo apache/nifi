@@ -97,7 +97,7 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-cosmos</artifactId>
-            <version>${azure-cosmos.version}</version>
+            <version>4.31.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.azure</groupId>
