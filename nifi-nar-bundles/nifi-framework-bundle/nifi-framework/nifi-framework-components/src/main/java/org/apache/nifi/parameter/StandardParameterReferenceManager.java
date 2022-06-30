@@ -105,7 +105,7 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
 
         for (final ProcessGroup group : referencingGroups) {
             for (final T componentNode : componentFunction.apply(group)) {
-                if (isComponentReferencing(componentNode, parameterName)) {
+                if (componentNode.isReferencingParameter(parameterName)) {
                     referencingComponents.add(componentNode);
                     continue;
                 }
@@ -113,22 +113,6 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         }
 
         return referencingComponents;
-    }
-
-    private boolean isComponentReferencing(final ComponentNode componentNode, final String parameterName) {
-        for (final PropertyConfiguration configuration : componentNode.getProperties().values()) {
-            if (configuration == null) {
-                continue;
-            }
-
-            for (final ParameterReference reference : configuration.getParameterReferences()) {
-                if (parameterName.equals(reference.getParameterName())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     private Set<ParameterReferencedControllerServiceData> getReferencedControllerServiceData(

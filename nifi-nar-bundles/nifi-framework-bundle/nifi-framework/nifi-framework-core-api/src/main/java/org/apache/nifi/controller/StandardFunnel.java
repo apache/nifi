@@ -442,7 +442,7 @@ public class StandardFunnel implements Funnel {
     }
 
     @Override
-    public void setScheduldingPeriod(final String schedulingPeriod) {
+    public void setSchedulingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
         if (schedulingNanos < 0) {
             throw new IllegalArgumentException("Scheduling Period must be positive");
@@ -617,6 +617,11 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setMaxBackoffPeriod(String maxBackoffPeriod) {
+    }
+
+    @Override
+    public String evaluateParameters(String value) {
+        return value;
     }
 
     @Override

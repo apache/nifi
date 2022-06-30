@@ -240,7 +240,7 @@ public class ProcessorLifecycleIT {
         this.randomOnTriggerDelay(testProcessor, randomDelayLimit);
 
         testProcNode.setMaxConcurrentTasks(4);
-        testProcNode.setScheduldingPeriod("500 millis");
+        testProcNode.setSchedulingPeriod("500 millis");
         testProcNode.setAutoTerminatedRelationships(Collections.singleton(new Relationship.Builder().name("success").build()));
 
         testGroup.addProcessor(testProcNode);

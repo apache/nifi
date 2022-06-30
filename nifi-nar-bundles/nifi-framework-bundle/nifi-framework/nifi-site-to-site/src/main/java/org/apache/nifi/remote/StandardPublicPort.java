@@ -109,7 +109,7 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
 
         super(id, name, type, scheduler);
 
-        setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
+        setSchedulingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
         this.authorizer = authorizer;
         this.secure = secure;
         this.identityMappings = identityMappings;

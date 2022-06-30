@@ -105,7 +105,8 @@ public class QuartzSchedulingAgent extends AbstractTimeBasedSchedulingAgent {
             throw new IllegalStateException("Cannot schedule " + connectable + " because it is already scheduled to run");
         }
 
-        final String cronSchedule = connectable.getSchedulingPeriod();
+        final String cronSchedule = connectable.evaluateParameters(connectable.getSchedulingPeriod());
+
         final CronExpression cronExpression;
         try {
             cronExpression = new CronExpression(cronSchedule);

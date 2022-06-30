@@ -22,6 +22,7 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.LoggableComponent;
@@ -35,6 +36,9 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
+
+import java.util.Collections;
+import java.util.List;
 
 public class StandardReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
 
@@ -85,6 +89,11 @@ public class StandardReportingTaskNode extends AbstractReportingTaskNode impleme
     @Override
     public ReportingContext getReportingContext() {
         return new StandardReportingContext(flowController, flowController.getBulletinRepository(), getEffectivePropertyValues(), this, getVariableRegistry(), ParameterLookup.EMPTY);
+    }
+
+    @Override
+    protected List<ValidationResult> validateConfig() {
+        return Collections.emptyList();
     }
 
     @Override

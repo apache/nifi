@@ -411,7 +411,7 @@ public class StandardFlowSnippet implements FlowSnippet {
 
                 // ensure that the scheduling strategy is set prior to these values
                 procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
-                procNode.setScheduldingPeriod(config.getSchedulingPeriod());
+                procNode.setSchedulingPeriod(config.getSchedulingPeriod());
 
                 final Set<Relationship> relationships = new HashSet<>();
                 if (processorDTO.getRelationships() != null) {

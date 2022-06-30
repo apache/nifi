@@ -19,6 +19,7 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -33,6 +34,9 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.stateless.engine.StatelessEngine;
 
+import java.util.Collections;
+import java.util.List;
+
 public class StatelessReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
     private final FlowManager flowManager;
     private final StatelessEngine statelessEngine;
@@ -44,6 +48,11 @@ public class StatelessReportingTaskNode extends AbstractReportingTaskNode implem
         super(reportingTask, id, statelessEngine.getControllerServiceProvider(), processScheduler, validationContextFactory, variableRegistry, reloadComponent, extensionManager, validationTrigger);
         this.flowManager = flowManager;
         this.statelessEngine = statelessEngine;
+    }
+
+    @Override
+    protected List<ValidationResult> validateConfig() {
+        return Collections.emptyList();
     }
 
     @Override

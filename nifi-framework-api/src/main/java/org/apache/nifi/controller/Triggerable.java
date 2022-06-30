@@ -113,5 +113,5 @@ public interface Triggerable {
      *
      * @param schedulingPeriod to set
      */
-    void setScheduldingPeriod(String schedulingPeriod);
+    void setSchedulingPeriod(String schedulingPeriod);
 }

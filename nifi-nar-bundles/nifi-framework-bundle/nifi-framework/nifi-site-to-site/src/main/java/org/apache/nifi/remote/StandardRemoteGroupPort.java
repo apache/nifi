@@ -103,7 +103,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
         this.sslContext = sslContext;
-        setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
+        setSchedulingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
     }
 
     @Override

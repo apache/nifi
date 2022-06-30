@@ -181,7 +181,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                     processor.setMaxConcurrentTasks(maxTasks);
                 }
                 if (isNotNull(schedulingPeriod)) {
-                    processor.setScheduldingPeriod(schedulingPeriod);
+                    processor.setSchedulingPeriod(schedulingPeriod);
                 }
                 if (isNotNull(penaltyDuration)) {
                     processor.setPenalizationPeriod(penaltyDuration);
@@ -308,22 +308,25 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
 
         // validate the scheduling period based on the scheduling strategy
-        if (isNotNull(config.getSchedulingPeriod())) {
+        final String schedulingPeriod = config.getSchedulingPeriod();
+        final String evaluatedSchedulingPeriod = processorNode.evaluateParameters(schedulingPeriod);
+
+        if (isNotNull(schedulingPeriod) && isNotNull(evaluatedSchedulingPeriod)) {
             switch (schedulingStrategy) {
                 case TIMER_DRIVEN:
                 case PRIMARY_NODE_ONLY:
-                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(config.getSchedulingPeriod());
+                    final Matcher schedulingMatcher = FormatUtils.TIME_DURATION_PATTERN.matcher(evaluatedSchedulingPeriod);
                     if (!schedulingMatcher.matches()) {
                         validationErrors.add("Scheduling period is not a valid time duration (ie 30 sec, 5 min)");
                     }
                     break;
                 case CRON_DRIVEN:
                     try {
-                        new CronExpression(config.getSchedulingPeriod());
+                        new CronExpression(evaluatedSchedulingPeriod);
                     } catch (final ParseException pe) {
-                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", config.getSchedulingPeriod(), pe.getMessage()));
+                        throw new IllegalArgumentException(String.format("Scheduling Period '%s' is not a valid cron expression: %s", schedulingPeriod, pe.getMessage()));
                     } catch (final Exception e) {
-                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + config.getSchedulingPeriod());
+                        throw new IllegalArgumentException("Scheduling Period is not a valid cron expression: " + schedulingPeriod);
                     }
                     break;
             }

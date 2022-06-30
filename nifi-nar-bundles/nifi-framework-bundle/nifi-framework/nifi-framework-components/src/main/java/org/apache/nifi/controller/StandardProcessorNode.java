@@ -61,8 +61,14 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -127,6 +133,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
     public static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
+    private static final String RUN_SCHEDULE = "Run Schedule";
+
     private final AtomicReference<ProcessGroup> processGroup;
     private final AtomicReference<ProcessorDetails> processorRef;
     private final AtomicReference<String> identifier;
@@ -150,6 +158,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private volatile long yieldNanos;
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
     private volatile LogLevel bulletinLevel = LogLevel.WARN;
+    private volatile List<ParameterReference> parameterReferences = Collections.emptyList();
 
     private SchedulingStrategy schedulingStrategy; // guarded by synchronized keyword
     private ExecutionNode executionNode;
@@ -220,7 +229,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     LOG.error(String.format("Error while setting scheduling strategy from DefaultSchedule annotation: %s", ex.getMessage()), ex);
                 }
                 try {
-                    this.setScheduldingPeriod(dsc.period());
+                    this.setSchedulingPeriod(dsc.period());
                 } catch (Throwable ex) {
                     this.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
                     LOG.error(String.format("Error while setting scheduling period from DefaultSchedule annotation: %s", ex.getMessage()), ex);
@@ -504,36 +513,20 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    @SuppressWarnings("deprecation")
-    public synchronized void setScheduldingPeriod(final String schedulingPeriod) {
+    public synchronized void setSchedulingPeriod(final String schedulingPeriod) {
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
 
-        switch (schedulingStrategy) {
-        case CRON_DRIVEN: {
-            try {
-                new CronExpression(schedulingPeriod);
-            } catch (final Exception e) {
-                throw new IllegalArgumentException(
-                        "Scheduling Period is not a valid cron expression: " + schedulingPeriod);
-            }
-        }
-            break;
-        case PRIMARY_NODE_ONLY:
-        case TIMER_DRIVEN: {
-            final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod),
-                    TimeUnit.NANOSECONDS);
-            if (schedulingNanos < 0) {
-                throw new IllegalArgumentException("Scheduling Period must be positive");
-            }
-            this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
-        }
-            break;
-        case EVENT_DRIVEN:
-        default:
-            return;
-        }
+        //Before setting the new Configuration references, we need to remove the current ones from reference counts.
+        parameterReferences.forEach(parameterReference -> decrementReferenceCounts(parameterReference.getParameterName()));
+
+        //Setting the new Configuration references.
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(schedulingPeriod);
+
+        parameterReferences = new ArrayList<>(parameterTokenList.toReferenceList());
+        parameterReferences.forEach(parameterReference -> incrementReferenceCounts(parameterReference.getParameterName()));
 
         this.schedulingPeriod.set(schedulingPeriod);
     }
@@ -1194,6 +1187,98 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     .valid(false).build());
         }
 
+        return results;
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public List<ValidationResult> validateConfig() {
+
+        final List<ValidationResult> results = new ArrayList<>();
+        final ParameterContext parameterContext = getParameterContext();
+
+        if (parameterContext == null && !this.parameterReferences.isEmpty()) {
+            results.add(new ValidationResult.Builder()
+                    .subject(RUN_SCHEDULE)
+                    .input("Parameter Context")
+                    .valid(false)
+                    .explanation("Processor configuration references one or more Parameters but no Parameter Context is currently set on the Process Group.")
+                    .build());
+        } else {
+            for (final ParameterReference paramRef : parameterReferences) {
+                final Optional<Parameter> parameterRef = parameterContext.getParameter(paramRef.getParameterName());
+                if (!parameterRef.isPresent() ) {
+                    results.add(new ValidationResult.Builder()
+                            .subject(RUN_SCHEDULE)
+                            .input(paramRef.getParameterName())
+                            .valid(false)
+                            .explanation("Processor configuration references Parameter '" + paramRef.getParameterName() +
+                                    "' but the currently selected Parameter Context does not have a Parameter with that name")
+                            .build());
+                } else {
+                    final ParameterDescriptor parameterDescriptor = parameterRef.get().getDescriptor();
+                    if (parameterDescriptor.isSensitive()) {
+                        results.add(new ValidationResult.Builder()
+                                .subject(RUN_SCHEDULE)
+                                .input(parameterDescriptor.getName())
+                                .valid(false)
+                                .explanation("Processor configuration cannot reference sensitive parameters")
+                                .build());
+                    }
+                }
+            }
+
+            final String schedulingPeriod = getSchedulingPeriod();
+            final String evaluatedSchedulingPeriod = evaluateParameters(schedulingPeriod);
+
+            if (evaluatedSchedulingPeriod != null) {
+                switch (schedulingStrategy) {
+                    case CRON_DRIVEN: {
+                        try {
+                            new CronExpression(evaluatedSchedulingPeriod);
+                        } catch (final Exception e) {
+                            results.add(new ValidationResult.Builder()
+                                    .subject(RUN_SCHEDULE)
+                                    .input(schedulingPeriod)
+                                    .valid(false)
+                                    .explanation("Scheduling Period is not a valid cron expression")
+                                    .build());
+                        }
+                    }
+                    break;
+                    case PRIMARY_NODE_ONLY:
+                    case TIMER_DRIVEN: {
+                        try {
+                            final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(evaluatedSchedulingPeriod),
+                                    TimeUnit.NANOSECONDS);
+
+                            if (schedulingNanos < 0) {
+                                results.add(new ValidationResult.Builder()
+                                        .subject(RUN_SCHEDULE)
+                                        .input(schedulingPeriod)
+                                        .valid(false)
+                                        .explanation("Scheduling Period must be positive")
+                                        .build());
+                            }
+
+                            this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
+
+                        } catch (final Exception e) {
+                            results.add(new ValidationResult.Builder()
+                                    .subject(RUN_SCHEDULE)
+                                    .input(schedulingPeriod)
+                                    .valid(false)
+                                    .explanation("Scheduling Period is not a valid time duration")
+                                    .build());
+                        }
+                    }
+                    break;
+                    case EVENT_DRIVEN:
+                    default:
+                        return results;
+                }
+            }
+        }
         return results;
     }
 
@@ -1928,6 +2013,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
         this.maxBackoffPeriod = maxBackoffPeriod;
     }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        final ParameterContext parameterContext = getParameterContext();
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+
+        return parameterTokenList.substitute(parameterContext);
+    }
+
     private void monitorAsyncTask(final Future<?> taskFuture, final Future<?> monitoringFuture, final long completionTimestamp) {
         if (taskFuture.isDone()) {
             monitoringFuture.cancel(false); // stop scheduling this task

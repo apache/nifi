@@ -754,6 +754,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
             }
 
             final List<ValidationResult> invalidParameterResults = validateParameterReferences(validationContext);
+            invalidParameterResults.addAll(validateConfig());
+
             if (!invalidParameterResults.isEmpty()) {
                 // At this point, we are not able to properly resolve all property values, so we will not attempt to perform
                 // any further validation. Doing so would result in values being reported as invalid and containing confusing explanations.
@@ -792,6 +794,16 @@ public abstract class AbstractComponentNode implements ComponentNode {
             .explanation("Failed to perform validation due to " + failureCause)
             .build());
     }
+
+    /**
+     * Validates the current configuration, returning ValidationResults for any
+     * invalid configuration parameter.
+     *
+     * @return Collection of validation result objects for any invalid findings
+     *         only. If the collection is empty then the component is valid. Should guarantee
+     *         non-null
+     */
+    protected abstract List<ValidationResult> validateConfig();
 
     private List<ValidationResult> validateParameterReferences(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
@@ -1040,6 +1052,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
         // For any Property that references an updated Parameter, we need to call onPropertyModified().
         // Additionally, we need to trigger validation to run if this component is affected by the parameter update.
         boolean componentAffected = false;
+
+        //Determine if the component is affected by the Parameter Update
+        for (final String updatedParameterName : updatedParameters.keySet()) {
+            if (isReferencingParameter(updatedParameterName)) {
+                componentAffected = true;
+                break;
+            }
+        }
+
         for (final Map.Entry<PropertyDescriptor, PropertyConfiguration> entry : properties.entrySet()) {
             final PropertyDescriptor propertyDescriptor = entry.getKey();
             final PropertyConfiguration configuration = entry.getValue();
@@ -1051,7 +1072,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 final String referencedParamName = reference.getParameterName();
                 if (updatedParameters.containsKey(referencedParamName)) {
                     propertyAffected = true;
-                    componentAffected = true;
                     break;
                 }
             }
@@ -1084,6 +1104,14 @@ public abstract class AbstractComponentNode implements ComponentNode {
             logger.debug("Configuration of {} changed due to an update to Parameter Context. Resetting validation state", this);
             resetValidationState();
         }
+    }
+
+    protected void incrementReferenceCounts(final String parameterName) {
+        parameterReferenceCounts.merge(parameterName, 1, (a, b) -> a == -1 ? null : a + b);
+    }
+
+    protected void decrementReferenceCounts(final String parameterName) {
+        parameterReferenceCounts.merge(parameterName, -1, (a, b) -> a == 1 ? null : a + b);
     }
 
     private ParameterLookup createParameterLookupForPreviousValues(final Map<String, ParameterUpdate> updatedParameters) {
@@ -1350,4 +1378,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected abstract ParameterContext getParameterContext();
+
+    @Override
+    public boolean isReferencingParameter(final String parameterName) {
+        return parameterReferenceCounts.containsKey(parameterName);
+    }
 }

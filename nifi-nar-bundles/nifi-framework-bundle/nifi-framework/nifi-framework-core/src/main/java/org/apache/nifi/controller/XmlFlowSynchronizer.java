@@ -1256,7 +1256,7 @@ public class XmlFlowSynchronizer implements FlowSynchronizer {
 
             // must set scheduling strategy before these two
             procNode.setMaxConcurrentTasks(config.getConcurrentlySchedulableTaskCount());
-            procNode.setScheduldingPeriod(config.getSchedulingPeriod());
+            procNode.setSchedulingPeriod(config.getSchedulingPeriod());
             if (config.getRunDurationMillis() != null) {
                 procNode.setRunDuration(config.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             }

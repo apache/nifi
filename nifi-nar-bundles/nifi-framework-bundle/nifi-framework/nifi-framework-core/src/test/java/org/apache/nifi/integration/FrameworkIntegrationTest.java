@@ -582,7 +582,7 @@ public class FrameworkIntegrationTest {
         final FlowFileEvent initialReport = getStatusReport(processor);
         final int initialInvocations = (initialReport == null) ? 0 : initialReport.getInvocations();
 
-        processor.setScheduldingPeriod("1 hour");
+        processor.setSchedulingPeriod("1 hour");
 
         // We will only trigger the Processor to run once per hour. So we need to ensure that
         // we don't trigger the Processor while it's yielded. So if its yield expiration is in the future,
@@ -600,7 +600,7 @@ public class FrameworkIntegrationTest {
         }
 
         stop(processor).get();
-        processor.setScheduldingPeriod(schedulingPeriod);
+        processor.setSchedulingPeriod(schedulingPeriod);
     }
 
     protected FlowFileEvent getStatusReport(final ProcessorNode processor) {

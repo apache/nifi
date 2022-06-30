@@ -2537,7 +2537,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             processor.setProperties(properties, true, sensitiveDynamicPropertyNames);
             processor.setRunDuration(proposed.getRunDurationMillis(), TimeUnit.MILLISECONDS);
             processor.setSchedulingStrategy(SchedulingStrategy.valueOf(proposed.getSchedulingStrategy()));
-            processor.setScheduldingPeriod(proposed.getSchedulingPeriod());
+            processor.setSchedulingPeriod(proposed.getSchedulingPeriod());
             processor.setMaxConcurrentTasks(proposed.getConcurrentlySchedulableTaskCount());
             processor.setExecutionNode(ExecutionNode.valueOf(proposed.getExecutionNode()));
             processor.setStyle(proposed.getStyle());
