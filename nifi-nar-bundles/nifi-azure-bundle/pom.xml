@@ -31,7 +31,7 @@
         <azure.identity.version>1.4.5</azure.identity.version>
         <!-- azure-identity depends on msal4j transitively, keep these versions consistent -->
         <msal4j.version>1.11.0</msal4j.version>
-        <azure-cosmos.version>4.26.0</azure-cosmos.version>
+        <azure-cosmos.version>4.31.0</azure-cosmos.version>
     </properties>
 
     <modules>
