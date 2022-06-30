@@ -26,12 +26,17 @@ import java.util.List;
 
 public class UsmJsonParser {
 
+    private UsmJsonParser() {
+        // Utility class, not to instantiate.
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final SimpleModule MODULE = new SimpleModule();
+
     static List<UsmUser> parse(final String json) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(UsmUser.class, new UsmUserDeserializer());
-        mapper.registerModule(module);
-        return mapper.readValue(json, new TypeReference<List<UsmUser>>() {
+        MODULE.addDeserializer(UsmUser.class, new UsmUserDeserializer());
+        MAPPER.registerModule(MODULE);
+        return MAPPER.readValue(json, new TypeReference<List<UsmUser>>() {
         });
     }
 }
