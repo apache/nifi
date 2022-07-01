@@ -125,7 +125,7 @@ public class StartRunner implements CommandRunner {
 
         try {
             while (true) {
-                if (processUtils.isAlive(process)) {
+                if (process.isAlive()) {
                     handleReload();
                 } else {
                     Runtime runtime = Runtime.getRuntime();

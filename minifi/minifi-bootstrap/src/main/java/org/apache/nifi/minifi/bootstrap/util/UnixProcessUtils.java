@@ -76,7 +76,7 @@ public class UnixProcessUtils implements ProcessUtils {
     }
 
     @Override
-    public void gracefulShutDownMiNiFiProcess(Long pid, String s, int gracefulShutdownSeconds) {
+    public void shutdownProcess(Long pid, String s, int gracefulShutdownSeconds) {
         long startWait = System.nanoTime();
         while (isProcessRunning(pid)) {
             LOGGER.info("Waiting for Apache MiNiFi to finish shutting down...");

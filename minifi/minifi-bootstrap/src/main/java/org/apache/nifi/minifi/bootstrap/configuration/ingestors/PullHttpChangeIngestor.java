@@ -40,7 +40,6 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import okhttp3.CacheControl;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
@@ -219,7 +218,6 @@ public class PullHttpChangeIngestor extends AbstractPullChangeIngestor {
 
         final Request.Builder requestBuilder = new Request.Builder()
             .get()
-            .cacheControl(CacheControl.FORCE_NETWORK)
             .url(url);
 
         if (useEtag) {

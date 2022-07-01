@@ -21,31 +21,29 @@ import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class CompositeCommandRunnerTest {
 
+    @Mock
     private CommandRunner startRunner;
+    @Mock
     private CommandRunner stopRunner;
     private CompositeCommandRunner compositeCommandRunner;
 
     @BeforeEach
     void setup() {
-        startRunner = mock(StartRunner.class);
-        stopRunner = mock(StopRunner.class);
-        openMocks(this);
         compositeCommandRunner = new CompositeCommandRunner(Arrays.asList(startRunner, stopRunner));
     }
 

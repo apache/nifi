@@ -22,22 +22,7 @@ import java.io.IOException;
 public interface ProcessUtils {
     boolean isProcessRunning(Long pid);
 
-    void gracefulShutDownMiNiFiProcess(Long pid, String s, int gracefulShutdownSeconds);
+    void shutdownProcess(Long pid, String s, int gracefulShutdownSeconds);
 
     void killProcessTree(Long pid) throws IOException;
-
-    /**
-     * Checks the status of the given process.
-     *
-     * @param process the process object what we want to check
-     * @return true if the process is Alive
-     */
-     default boolean isAlive(Process process) {
-        try {
-            process.exitValue();
-            return false;
-        } catch (IllegalStateException | IllegalThreadStateException itse) {
-            return true;
-        }
-    }
 }

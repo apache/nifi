@@ -58,8 +58,7 @@ class BootstrapCodecTest {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BootstrapCodec bootstrapCodec = new BootstrapCodec(runner, inputStream, outputStream);
 
-        IOException expectedException = assertThrows(IOException.class, bootstrapCodec::communicate);
-        assertEquals("Received invalid command from MiNiFi: null", expectedException.getMessage());
+        assertThrows(IOException.class, bootstrapCodec::communicate);
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
         verifyNoInteractions(runner);
     }
@@ -71,8 +70,7 @@ class BootstrapCodecTest {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BootstrapCodec bootstrapCodec = new BootstrapCodec(runner, inputStream, outputStream);
 
-        IOException expectedException = assertThrows(IOException.class, bootstrapCodec::communicate);
-        assertEquals("Received invalid command from MiNiFi: " + unknown, expectedException.getMessage());
+        assertThrows(IOException.class, bootstrapCodec::communicate);
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
         verifyNoInteractions(runner);
     }
@@ -92,22 +90,21 @@ class BootstrapCodecTest {
 
     @ParameterizedTest(name = "{index} => command={0}, expectedExceptionMessage={1}")
     @MethodSource("portCommandValidationInputs")
-    void testCommunicateShouldFailWhenReceivesPortCommand(String command, String expectedExceptionMessage) {
+    void testCommunicateShouldFailWhenReceivesPortCommand(String command) {
         InputStream inputStream = new ByteArrayInputStream(command.getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BootstrapCodec bootstrapCodec = new BootstrapCodec(runner, inputStream, outputStream);
 
-        IOException expectedException = assertThrows(IOException.class, bootstrapCodec::communicate);
-        assertEquals(expectedExceptionMessage, expectedException.getCause().getMessage());
+        assertThrows(IOException.class, bootstrapCodec::communicate);
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
         verifyNoInteractions(runner);
     }
 
     private static Stream<Arguments> portCommandValidationInputs() {
         return Stream.of(
-            Arguments.of("PORT", "PORT command must contain the port and secretKey arguments"),
-            Arguments.of("PORT invalid secretKey", "Invalid Port number; should be integer between 1 and 65535"),
-            Arguments.of("PORT 0 secretKey", "Invalid Port number; should be integer between 1 and 65535")
+            Arguments.of("PORT"),
+            Arguments.of("PORT invalid secretKey"),
+            Arguments.of("PORT 0 secretKey")
         );
     }
 
@@ -117,8 +114,7 @@ class BootstrapCodecTest {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BootstrapCodec bootstrapCodec = new BootstrapCodec(runner, inputStream, outputStream);
 
-        IOException expectedException = assertThrows(IOException.class, bootstrapCodec::communicate);
-        assertEquals("STARTED command must contain a status argument", expectedException.getCause().getMessage());
+        assertThrows(IOException.class, bootstrapCodec::communicate);
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
         verifyNoInteractions(runner);
     }
@@ -129,8 +125,7 @@ class BootstrapCodecTest {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         BootstrapCodec bootstrapCodec = new BootstrapCodec(runner, inputStream, outputStream);
 
-        IOException expectedException = assertThrows(IOException.class, bootstrapCodec::communicate);
-        assertEquals("Invalid status for STARTED command; should be true or false, but was 'yes'", expectedException.getCause().getMessage());
+        assertThrows(IOException.class, bootstrapCodec::communicate);
         assertEquals(EMPTY_STRING, outputStream.toString().trim());
         verifyNoInteractions(runner);
     }

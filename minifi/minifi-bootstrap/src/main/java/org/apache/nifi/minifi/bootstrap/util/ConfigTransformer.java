@@ -72,7 +72,6 @@ import org.apache.nifi.minifi.commons.schema.SwapSchema;
 import org.apache.nifi.minifi.commons.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.commons.schema.common.Schema;
 import org.apache.nifi.minifi.commons.schema.common.StringUtil;
-import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.xml.processing.ProcessingException;
@@ -85,13 +84,13 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 public final class ConfigTransformer {
-    // Underlying version of NIFI will be using
-    public static final String ROOT_GROUP = "Root-Group";
-
+    private static final String OVERRIDE_CORE_PROPERTIES_KEY = PULL_HTTP_BASE_KEY + ".override.core";
     private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
+    private static final Logger LOGGER = LoggerFactory.getLogger(ConfigTransformer.class);
 
-    public static final Logger logger = LoggerFactory.getLogger(ConfigTransformer.class);
+    // Underlying version of NIFI will be using
+    public static final String ROOT_GROUP = "Root-Group";
 
     // Final util classes should have private constructor
     private ConfigTransformer() {
@@ -125,19 +124,19 @@ public final class ConfigTransformer {
         // See if we are providing defined properties from the filesystem configurations and use those as the definitive values
         if (securityProperties != null) {
             configSchemaNew.setSecurityProperties(securityProperties);
-            logger.info("Bootstrap flow override: Replaced security properties");
+            LOGGER.info("Bootstrap flow override: Replaced security properties");
         }
 
         if (provenanceReportingProperties != null) {
             configSchemaNew.setProvenanceReportingProperties(provenanceReportingProperties);
-            logger.info("Bootstrap flow override: Replaced provenance reporting properties");
+            LOGGER.info("Bootstrap flow override: Replaced provenance reporting properties");
         }
 
         // Replace all processor SSL controller services with MiNiFi parent, if bootstrap boolean is set to true
         if (BootstrapTransformer.processorSSLOverride(bootstrapProperties)) {
             for (ProcessorSchema processorConfig : configSchemaNew.getProcessGroupSchema().getProcessors()) {
                 processorConfig.getProperties().replace("SSL Context Service", processorConfig.getProperties().get("SSL Context Service"), "SSL-Context-Service");
-                logger.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
+                LOGGER.info("Bootstrap flow override: Replaced {} SSL Context Service with parent MiNiFi SSL", processorConfig.getName());
             }
         }
 
@@ -292,7 +291,7 @@ public final class ConfigTransformer {
             final String notnullSensitivePropertiesKey;
             // Auto-generate the sensitive properties key if not provided, NiFi security libraries require it
             if (StringUtil.isNullOrEmpty(sensitivePropertiesKey)) {
-                logger.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
+                LOGGER.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
                 final SecureRandom secureRandom = new SecureRandom();
                 final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
                 secureRandom.nextBytes(sensitivePropertiesKeyBinary);
@@ -757,7 +756,7 @@ public final class ConfigTransformer {
     }
 
     public static ByteBuffer overrideNonFlowSectionsFromOriginalSchema(byte[] newSchema, ByteBuffer currentConfigScheme, Properties bootstrapProperties)
-        throws IOException, InvalidConfigurationException, SchemaLoaderException {
+        throws InvalidConfigurationException {
         try {
             boolean overrideCoreProperties = ConfigTransformer.overrideCoreProperties(bootstrapProperties);
             boolean overrideSecurityProperties = ConfigTransformer.overrideSecurityProperties(bootstrapProperties);
@@ -774,12 +773,12 @@ public final class ConfigTransformer {
                 configSchemaNew.setNifiPropertiesOverrides(configSchemaOld.getNifiPropertiesOverrides());
 
                 if (!overrideCoreProperties) {
-                    logger.debug("Preserving previous core properties...");
+                    LOGGER.debug("Preserving previous core properties...");
                     configSchemaNew.setCoreProperties(configSchemaOld.getCoreProperties());
                 }
 
                 if (!overrideSecurityProperties) {
-                    logger.debug("Preserving previous security properties...");
+                    LOGGER.debug("Preserving previous security properties...");
                     configSchemaNew.setSecurityProperties(configSchemaOld.getSecurityProperties());
                 }
 
@@ -788,38 +787,18 @@ public final class ConfigTransformer {
                 return ByteBuffer.wrap(writer.toString().getBytes()).asReadOnlyBuffer();
             }
         } catch (Exception e) {
-            logger.error("Loading the old and the new schema for merging was not successful", e);
-            throw e;
+            throw new InvalidConfigurationException("Loading the old and the new schema for merging was not successful", e);
         }
     }
 
     private static boolean overrideSecurityProperties(Properties properties) {
         String overrideSecurityProperties = (String) properties.getOrDefault(OVERRIDE_SECURITY, "false");
-        boolean overrideSecurity;
-        if ("true".equalsIgnoreCase(overrideSecurityProperties) || "false".equalsIgnoreCase(overrideSecurityProperties)) {
-            overrideSecurity = Boolean.parseBoolean(overrideSecurityProperties);
-        } else {
-            throw new IllegalArgumentException(
-                "Property, " + OVERRIDE_SECURITY + ", to specify whether to override security properties must either be a value boolean value (\"true\" or \"false\")" +
-                    " or left to the default value of \"false\". It is set to \"" + overrideSecurityProperties + "\".");
-        }
-
-        return overrideSecurity;
+        return Boolean.parseBoolean(overrideSecurityProperties);
     }
 
     private static boolean overrideCoreProperties(Properties properties) {
-        String overrideCorePropertiesKey = PULL_HTTP_BASE_KEY + ".override.core";
-        String overrideCoreProps = (String) properties.getOrDefault(overrideCorePropertiesKey, "false");
-        boolean overrideCoreProperties;
-        if ("true".equalsIgnoreCase(overrideCoreProps) || "false".equalsIgnoreCase(overrideCoreProps)) {
-            overrideCoreProperties = Boolean.parseBoolean(overrideCoreProps);
-        } else {
-            throw new IllegalArgumentException(
-                "Property, " + overrideCorePropertiesKey + ", to specify whether to override core properties must either be a value boolean value (\"true\" or \"false\")" +
-                    " or left to the default value of \"false\". It is set to \"" + overrideCoreProps + "\".");
-        }
-
-        return overrideCoreProperties;
+        String overrideCoreProps = (String) properties.getOrDefault(OVERRIDE_CORE_PROPERTIES_KEY, "false");
+        return Boolean.parseBoolean(overrideCoreProps);
     }
 
     public static final String PROPERTIES_FILE_APACHE_2_0_LICENSE =

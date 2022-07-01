@@ -62,7 +62,7 @@ public class ReloadService {
             if (commandResponse.filter(RELOAD_CMD::equals).isPresent()) {
                 DEFAULT_LOGGER.info("Apache MiNiFi has accepted the Reload Command and is reloading");
                 if (minifiPid != UNINITIALIZED) {
-                    processUtils.gracefulShutDownMiNiFiProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds as part of configuration reload. Killing process.",
+                    processUtils.shutdownProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds as part of configuration reload. Killing process.",
                         gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
                     runMiNiFi.setReloading(true);
                     DEFAULT_LOGGER.info("MiNiFi has finished shutting down and will be reloaded.");

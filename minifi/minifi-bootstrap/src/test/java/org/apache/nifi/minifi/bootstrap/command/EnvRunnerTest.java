@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
@@ -29,11 +28,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.TestLogAppender;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,7 +39,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EnvRunnerTest {
 
-    private static final TestLogAppender LOG_APPENDER = new TestLogAppender();
     private static final int MINIFI_PORT = 1337;
     private static final String ENV_DATA = "ENV_DATA";
 
@@ -55,17 +50,6 @@ class EnvRunnerTest {
     @InjectMocks
     private EnvRunner envRunner;
 
-    @BeforeAll
-    static void setupAll() {
-        ((ch.qos.logback.classic.Logger) CMD_LOGGER).addAppender(LOG_APPENDER);
-        LOG_APPENDER.start();
-    }
-
-    @BeforeEach
-    void setup() {
-        LOG_APPENDER.reset();
-    }
-
     @Test
     void testRunCommandShouldReturnNotRunningStatusCodeIfPortReturnsNull() {
         when(currentPortProvider.getCurrentPort()).thenReturn(null);
@@ -73,7 +57,6 @@ class EnvRunnerTest {
         int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), statusCode);
-        assertEquals("Apache MiNiFi is not currently running", LOG_APPENDER.getLastLoggedEvent().getFormattedMessage());
         verifyNoMoreInteractions(currentPortProvider);
         verifyNoInteractions(miNiFiCommandSender);
     }
@@ -86,19 +69,17 @@ class EnvRunnerTest {
         int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
-        assertEquals("Failed to get ENV response from MiNiFi", LOG_APPENDER.getLastLoggedEvent().getMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
     @Test
-    void testRunCommandShouldReturnOkStatusCodeAndLogEnvData() throws IOException {
+    void testRunCommandShouldReturnOkStatusCode() throws IOException {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
         when(miNiFiCommandSender.sendCommand(ENV_CMD, MINIFI_PORT)).thenReturn(Optional.of(ENV_DATA));
 
         int statusCode = envRunner.runCommand(new String[]{});
 
         assertEquals(OK.getStatusCode(), statusCode);
-        assertEquals(ENV_DATA, LOG_APPENDER.getLastLoggedEvent().getMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 }

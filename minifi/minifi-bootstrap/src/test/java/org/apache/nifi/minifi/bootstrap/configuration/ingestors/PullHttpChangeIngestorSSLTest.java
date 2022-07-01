@@ -18,9 +18,9 @@
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
 import static org.apache.nifi.minifi.bootstrap.configuration.ingestors.PullHttpChangeIngestor.PULL_HTTP_BASE_KEY;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.Properties;
@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ingestors.common.PullHttpChangeIngestorCommonTest;
 import org.apache.nifi.minifi.commons.schema.ConfigSchema;
+import org.apache.nifi.minifi.commons.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.commons.schema.serialization.SchemaLoader;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
@@ -73,7 +74,7 @@ public class PullHttpChangeIngestorSSLTest extends PullHttpChangeIngestorCommonT
     }
 
     @Override
-    public void pullHttpChangeIngestorInit(Properties properties) {
+    public void pullHttpChangeIngestorInit(Properties properties) throws IOException, SchemaLoaderException {
         properties.setProperty(PullHttpChangeIngestor.TRUSTSTORE_LOCATION_KEY, "./src/test/resources/localhost-ts.jks");
         properties.setProperty(PullHttpChangeIngestor.TRUSTSTORE_PASSWORD_KEY, "localtest");
         properties.setProperty(PullHttpChangeIngestor.TRUSTSTORE_TYPE_KEY, "JKS");
@@ -87,15 +88,11 @@ public class PullHttpChangeIngestorSSLTest extends PullHttpChangeIngestorCommonT
         properties.put(PULL_HTTP_BASE_KEY + ".override.core", "true");
         ConfigurationFileHolder configurationFileHolder = Mockito.mock(ConfigurationFileHolder.class);
 
-        try {
-            ConfigSchema configSchema =
-                SchemaLoader.loadConfigSchemaFromYaml(PullHttpChangeIngestorSSLTest.class.getClassLoader().getResourceAsStream("config.yml"));
-            StringWriter writer = new StringWriter();
-            SchemaLoader.toYaml(configSchema, writer);
-            when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(writer.toString().getBytes())));
-        } catch (Exception e) {
-            fail("Failed to read test config file", e);
-        }
+        ConfigSchema configSchema =
+            SchemaLoader.loadConfigSchemaFromYaml(PullHttpChangeIngestorSSLTest.class.getClassLoader().getResourceAsStream("config.yml"));
+        StringWriter writer = new StringWriter();
+        SchemaLoader.toYaml(configSchema, writer);
+        when(configurationFileHolder.getConfigFileReference()).thenReturn(new AtomicReference<>(ByteBuffer.wrap(writer.toString().getBytes())));
 
         pullHttpChangeIngestor = new PullHttpChangeIngestor();
 

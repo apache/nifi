@@ -79,7 +79,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
         jetty.setHandler(handlerCollection);
     }
 
-    public abstract void pullHttpChangeIngestorInit(Properties properties);
+    public abstract void pullHttpChangeIngestorInit(Properties properties) throws IOException, SchemaLoaderException;
 
     @BeforeEach
     public void setListeners() {
@@ -95,7 +95,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testNewUpdate() throws IOException {
+    public void testNewUpdate() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
@@ -129,7 +129,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testNoUpdate() throws IOException {
+    public void testNoUpdate() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
@@ -142,7 +142,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testUseEtag() throws IOException {
+    public void testUseEtag() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         pullHttpChangeIngestorInit(properties);
@@ -163,7 +163,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testNewUpdateWithPath() throws IOException {
+    public void testNewUpdateWithPath() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PATH_KEY, "/config.yml");
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
@@ -177,7 +177,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testNoUpdateWithPath() throws IOException {
+    public void testNoUpdateWithPath() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         properties.put(PATH_KEY, "/config.yml");
@@ -191,7 +191,7 @@ public abstract class PullHttpChangeIngestorCommonTest {
     }
 
     @Test
-    public void testUseEtagWithPath() throws IOException {
+    public void testUseEtagWithPath() throws IOException, SchemaLoaderException {
         Properties properties = new Properties();
         properties.put(PullHttpChangeIngestor.OVERRIDE_SECURITY, "true");
         properties.put(PATH_KEY, "/config.yml");

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,14 +24,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
-import org.apache.nifi.minifi.bootstrap.TestLogAppender;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.commons.status.instance.InstanceHealth;
 import org.apache.nifi.minifi.commons.status.instance.InstanceStatus;
 import org.apache.nifi.minifi.commons.status.processor.ProcessorStatusBean;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -42,7 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class FlowStatusRunnerTest {
 
-    private static final TestLogAppender LOG_APPENDER = new TestLogAppender();
     protected static final String STATUS_REQUEST = "processor:TailFile:health,stats,bulletins";
 
     @Mock
@@ -50,17 +45,6 @@ class FlowStatusRunnerTest {
 
     @InjectMocks
     private FlowStatusRunner flowStatusRunner;
-
-    @BeforeAll
-    static void setupAll() {
-        ((ch.qos.logback.classic.Logger) CMD_LOGGER).addAppender(LOG_APPENDER);
-        LOG_APPENDER.start();
-    }
-
-    @BeforeEach
-    void setup() {
-        LOG_APPENDER.reset();
-    }
 
     @Test
     void testRunCommandShouldReturnErrorCodeWhenArgsLengthIsNotTwo() {
@@ -71,14 +55,13 @@ class FlowStatusRunnerTest {
     }
 
     @Test
-    void testRunCommandShouldReturnOkCodeAndLogFlowStatusWhenArgsLengthIsTwo() {
+    void testRunCommandShouldReturnOkCodeWhenArgsLengthIsTwo() {
         FlowStatusReport flowStatusReport = aFlowStatusReport();
         when(periodicStatusReporterManager.statusReport(STATUS_REQUEST)).thenReturn(flowStatusReport);
 
         int statusCode = flowStatusRunner.runCommand(new String[] {"flowStatus", STATUS_REQUEST});
 
         assertEquals(OK.getStatusCode(), statusCode);
-        assertEquals(flowStatusReport.toString(), LOG_APPENDER.getLastLoggedEvent().getMessage());
     }
 
     private FlowStatusReport aFlowStatusReport() {

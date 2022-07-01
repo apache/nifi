@@ -18,7 +18,6 @@
 package org.apache.nifi.minifi.bootstrap;
 
 import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.STOP;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,13 +36,14 @@ class ShutdownHookTest {
     private RunMiNiFi runner;
     @Mock
     private MiNiFiStdLogHandler miNiFiStdLogHandler;
+    @Mock
+    private PeriodicStatusReporterManager periodicStatusReporterManager;
 
     @InjectMocks
     private ShutdownHook shutdownHook;
 
     @Test
     void testRunShouldShutdownSchedulersAndProcesses() {
-        PeriodicStatusReporterManager periodicStatusReporterManager = mock(PeriodicStatusReporterManager.class);
         when(runner.getPeriodicStatusReporterManager()).thenReturn(periodicStatusReporterManager);
 
         shutdownHook.run();

@@ -110,7 +110,7 @@ public class StopRunner implements CommandRunner {
         File pidFile = bootstrapFileProvider.getPidFile();
 
         if (minifiPid != UNINITIALIZED) {
-            processUtils.gracefulShutDownMiNiFiProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds. Killing process.",
+            processUtils.shutdownProcess(minifiPid, "MiNiFi has not finished shutting down after {} seconds. Killing process.",
                 gracefulShutdownParameterProvider.getGracefulShutdownSeconds());
 
             if (statusFile.exists() && !statusFile.delete()) {

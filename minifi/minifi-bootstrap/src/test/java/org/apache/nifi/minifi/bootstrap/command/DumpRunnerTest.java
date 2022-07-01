@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
@@ -31,11 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.TestLogAppender;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,7 +43,6 @@ class DumpRunnerTest {
 
     private static final int MINIFI_PORT = 1337;
     private static final String DUMP_CONTENT = "dump_content";
-    private static final TestLogAppender LOG_APPENDER = new TestLogAppender();
 
     @Mock
     private MiNiFiCommandSender miNiFiCommandSender;
@@ -57,17 +52,6 @@ class DumpRunnerTest {
     @InjectMocks
     private DumpRunner dumpRunner;
 
-    @BeforeAll
-    static void setupAll() {
-        ((ch.qos.logback.classic.Logger) CMD_LOGGER).addAppender(LOG_APPENDER);
-        LOG_APPENDER.start();
-    }
-
-    @BeforeEach
-    void setup() {
-        LOG_APPENDER.reset();
-    }
-
     @Test
     void testRunCommandShouldDumpToConsoleIfNoFileDefined() throws IOException {
         when(currentPortProvider.getCurrentPort()).thenReturn(MINIFI_PORT);
@@ -76,7 +60,6 @@ class DumpRunnerTest {
         int statusCode = dumpRunner.runCommand(new String[0]);
 
         assertEquals(OK.getStatusCode(), statusCode);
-        assertEquals(DUMP_CONTENT, LOG_APPENDER.getLastLoggedEvent().getMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
@@ -92,7 +75,6 @@ class DumpRunnerTest {
 
         assertEquals(OK.getStatusCode(), statusCode);
         assertEquals(DUMP_CONTENT, getDumpContent(file));
-        assertEquals("Successfully wrote thread dump to " + tmpFilePath, LOG_APPENDER.getLastLoggedEvent().getFormattedMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
@@ -103,7 +85,6 @@ class DumpRunnerTest {
         int statusCode = dumpRunner.runCommand(new String[]{});
 
         assertEquals(MINIFI_NOT_RUNNING.getStatusCode(), statusCode);
-        assertEquals("Apache MiNiFi is not currently running", LOG_APPENDER.getLastLoggedEvent().getFormattedMessage());
         verifyNoMoreInteractions(currentPortProvider);
         verifyNoInteractions(miNiFiCommandSender);
     }
@@ -116,7 +97,6 @@ class DumpRunnerTest {
         int statusCode = dumpRunner.runCommand(new String[]{});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
-        assertEquals("Failed to get DUMP response from MiNiFi", LOG_APPENDER.getLastLoggedEvent().getMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
@@ -132,7 +112,6 @@ class DumpRunnerTest {
         int statusCode = dumpRunner.runCommand(new  String[] {DUMP_CMD, tmpFilePath});
 
         assertEquals(ERROR.getStatusCode(), statusCode);
-        assertEquals("Failed to write DUMP response to file", LOG_APPENDER.getLastLoggedEvent().getMessage());
         verifyNoMoreInteractions(currentPortProvider, miNiFiCommandSender);
     }
 
