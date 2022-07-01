@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -56,6 +57,7 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataResult;
 import com.amazonaws.services.cloudwatch.model.StatisticSet;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -70,16 +72,19 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    public static final Set<String> units = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(
-                    "Seconds", "Microseconds", "Milliseconds", "Bytes",
-                    "Kilobytes", "Megabytes", "Gigabytes", "Terabytes",
-                    "Bits", "Kilobits", "Megabits", "Gigabits", "Terabits",
-                    "Percent", "Count", "Bytes/Second", "Kilobytes/Second",
-                    "Megabytes/Second", "Gigabytes/Second", "Terabytes/Second",
-                    "Bits/Second", "Kilobits/Second", "Megabits/Second",
-                    "Gigabits/Second", "Terabits/Second", "Count/Second",
-                    "None", "")));
+    // public static final Set<String> units = Collections.unmodifiableSet(
+    //         new HashSet<>(Arrays.asList(
+    //                 "Seconds", "Microseconds", "Milliseconds", "Bytes",
+    //                 "Kilobytes", "Megabytes", "Gigabytes", "Terabytes",
+    //                 "Bits", "Kilobits", "Megabits", "Gigabits", "Terabits",
+    //                 "Percent", "Count", "Bytes/Second", "Kilobytes/Second",
+    //                 "Megabytes/Second", "Gigabytes/Second", "Terabytes/Second",
+    //                 "Bits/Second", "Kilobits/Second", "Megabits/Second",
+    //                 "Gigabits/Second", "Terabits/Second", "Count/Second",
+    //                 "None", "")));
+
+    public static final Set<String> units = Arrays.stream(StandardUnit.values())
+            .map(StandardUnit::toString).collect(Collectors.toSet());
 
     private static final Validator UNIT_VALIDATOR = new Validator() {
         @Override
