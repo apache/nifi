@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.FileSystemFactory;
@@ -31,6 +30,7 @@ import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -39,48 +39,64 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 /**
- * Seed a UTF-7 folder in FTP server with files using i18n known filenames.  Iterate through a set of i18n folder
+ * Seed an ASCII charset folder in FTP server with files using i18n known filenames.  Iterate through a set of i18n folder
  * names, copying the known content into each new target.  Afterwards, verify that the last folder contains all
  * files with the expected filenames.
  * <p>
- * To test against a live FTP server:
- * <ol>
- *     <li>replace EMBED_FTP_SERVER value with <code>false</code></li>
- *     <li>replace HOSTNAME, PORT, USER, PASSWORD as needed</li>
- * </ol>
+ * To test against a live FTP server, run test with system property set
+ * <code>TestFTPCharset=hostname,port,user,password</code>, like
+ * <code>TestFTPCharset=localhost,21,ftpuser,ftppassword</code>.
  */
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class TestFTPCharset {
-    private static final boolean EMBED_FTP_SERVER = true;
+public class TestFTPCharsetIT {
+    private static final String SERVER_OVERRIDE = System.getProperty(TestFTPCharsetIT.class.getSimpleName());
+    private static final boolean EMBED_FTP_SERVER = (SERVER_OVERRIDE == null);
     private static FtpServer FTP_SERVER;
 
     private static final String USE_UTF8 = Boolean.TRUE.toString();
     private static final String HOSTNAME = "localhost";
-    private static final int PORT = 2121;
+    private static final String PORT = Integer.toString(NetworkUtils.getAvailableTcpPort());
     private static final String USER = "ftpuser";
     private static final String PASSWORD = "admin";
-    private static final File FOLDER = new File("target", TestFTPCharset.class.getSimpleName());
+
+    @TempDir
+    private static File FOLDER_FTP;
+    @TempDir
+    private static File FOLDER_USER_PROPERTIES;
+
+    public static Arguments serverParametersProvider() {
+        final String override = System.getProperty(TestFTPCharsetIT.class.getSimpleName());
+        if (override == null) {
+            return arguments(HOSTNAME, PORT, USER, PASSWORD);
+        } else {
+            return arguments((Object[]) override.split(","));
+        }
+    }
 
     public static Stream<Arguments> folderNamesProvider() {
         return Stream.of(
@@ -105,24 +121,25 @@ public class TestFTPCharset {
                 "し回亡丹し工z丹卞工回几.txt");
     }
 
-    /**
-     * Start test FTP server (if using embedded).
-     *
-     * @throws FtpException on server startup failure
-     */
     @BeforeAll
-    static void beforeAll() throws FtpException {
+    static void startEmbeddedServer() throws IOException, FtpException {
         if (EMBED_FTP_SERVER) {
-            FOLDER.mkdirs();
             // setup ftp user
+            final Properties userProperties = new Properties();
+            userProperties.setProperty("ftpserver.user.ftpuser.idletime", "0");
+            userProperties.setProperty("ftpserver.user.ftpuser.enableflag", "true");
+            userProperties.setProperty("ftpserver.user.ftpuser.userpassword", "admin");
+            userProperties.setProperty("ftpserver.user.ftpuser.writepermission", "true");
+            userProperties.setProperty("ftpserver.user.ftpuser.homedirectory", FOLDER_FTP.getAbsolutePath());
+            final File userPropertiesFile = new File(FOLDER_USER_PROPERTIES, "user.properties");
+            try (final FileOutputStream fos = new FileOutputStream(userPropertiesFile)) {
+                userProperties.store(fos, "ftp-user-properties");
+            }
             final PropertiesUserManagerFactory userManagerFactory = new PropertiesUserManagerFactory();
-            userManagerFactory.setUrl(TestFTPCharset.class.getClassLoader()
-                    .getResource("TestFTPCharset/users.properties"));
+            userManagerFactory.setUrl(userPropertiesFile.toURI().toURL());
             userManagerFactory.setPasswordEncryptor(new ClearTextPasswordEncryptor());
             final UserManager userManager = userManagerFactory.createUserManager();
             final BaseUser ftpuser = (BaseUser) userManager.getUserByName(USER);
-            ftpuser.setHomeDirectory(FOLDER.getAbsolutePath());
-            userManager.save(ftpuser);
             // setup embedded ftp server
             final FtpServerFactory serverFactory = new FtpServerFactory();
             serverFactory.setUserManager(userManager);
@@ -130,33 +147,23 @@ public class TestFTPCharset {
             final FileSystemView view = fileSystemFactory.createFileSystemView(ftpuser);
             final FtpFile workingDirectory = view.getWorkingDirectory();
             final Object physicalFile = workingDirectory.getPhysicalFile();
-            assertTrue(physicalFile instanceof File);
-            assertEquals(FOLDER.getAbsolutePath(), ((File) physicalFile).getAbsolutePath());
+            assertInstanceOf(File.class, physicalFile);
+            assertEquals(FOLDER_FTP.getAbsolutePath(), ((File) physicalFile).getAbsolutePath());
             final ListenerFactory factory = new ListenerFactory();
-            factory.setPort(PORT);
+            factory.setPort(Integer.parseInt(PORT));
             serverFactory.addListener("default", factory.createListener());
             FTP_SERVER = serverFactory.createServer();
             FTP_SERVER.start();
         }
     }
 
-    /**
-     * Stop test FTP server (if using embedded).
-     *
-     * @throws IOException on failure to clean up test data
-     */
     @AfterAll
-    static void afterAll() throws IOException {
+    static void stopEmbeddedServer() throws InterruptedException {
         if (EMBED_FTP_SERVER) {
             FTP_SERVER.stop();
             while (!FTP_SERVER.isStopped()) {
-                try {
-                    Thread.sleep(100L);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
+                Thread.sleep(100L);
             }
-            FileUtils.deleteDirectory(FOLDER);
         }
     }
 
@@ -227,8 +234,8 @@ public class TestFTPCharset {
         runnerList.setProperty(FTPTransfer.REMOTE_PATH, folderName);
         runnerList.clearTransferState();
         runnerList.run(1);
-        runnerList.assertTransferCount("success", filenamesExpected.size());
-        final List<MockFlowFile> flowFilesList = runnerList.getFlowFilesForRelationship("success");
+        runnerList.assertTransferCount(AbstractListProcessor.REL_SUCCESS, filenamesExpected.size());
+        final List<MockFlowFile> flowFilesList = runnerList.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS);
         for (MockFlowFile flowFile : flowFilesList) {
             filenamesExpected.remove(flowFile.getAttribute("filename"));
         }
@@ -252,7 +259,7 @@ public class TestFTPCharset {
         runnerList.setProperty(FTPTransfer.REMOTE_PATH, source);
         runnerList.clearTransferState();
         runnerList.run(1);
-        runnerList.assertTransferCount("success", fileCount);
+        runnerList.assertTransferCount(AbstractListProcessor.REL_SUCCESS, fileCount);
         final List<MockFlowFile> flowFilesList = runnerList.getFlowFilesForRelationship("success");
         // FetchFTP
         final TestRunner runnerFetch = provisionTestRunner(FetchFTP.class);
@@ -264,7 +271,7 @@ public class TestFTPCharset {
         runnerFetch.assertTransferCount("comms.failure", 0);
         runnerFetch.assertTransferCount("not.found", 0);
         runnerFetch.assertTransferCount("permission.denied", 0);
-        runnerFetch.assertTransferCount("success", fileCount);
+        runnerFetch.assertTransferCount(FetchFileTransfer.REL_SUCCESS, fileCount);
         final List<MockFlowFile> flowFilesFetch = runnerFetch.getFlowFilesForRelationship("success");
         // PutFTP
         final TestRunner runnerPut = provisionTestRunner(PutFTP.class);
@@ -283,10 +290,12 @@ public class TestFTPCharset {
 
     private static TestRunner provisionTestRunner(final Class<? extends Processor> processorClass) {
         final TestRunner runner = TestRunners.newTestRunner(processorClass);
-        runner.setProperty(FTPTransfer.HOSTNAME, HOSTNAME);
-        runner.setProperty(FTPTransfer.PORT, Integer.toString(PORT));
-        runner.setProperty(FTPTransfer.USERNAME, USER);
-        runner.setProperty(FTPTransfer.PASSWORD, PASSWORD);
+        final Object[] serverParameters = serverParametersProvider().get();
+        int i = -1;
+        runner.setProperty(FTPTransfer.HOSTNAME, serverParameters[++i].toString());
+        runner.setProperty(FTPTransfer.PORT, serverParameters[++i].toString());
+        runner.setProperty(FTPTransfer.USERNAME, serverParameters[++i].toString());
+        runner.setProperty(FTPTransfer.PASSWORD, serverParameters[++i].toString());
         runner.setProperty(FTPTransfer.UTF8_ENCODING, USE_UTF8);
         runner.setProperty(FTPTransfer.CONNECTION_TIMEOUT, "3 secs");
         runner.setProperty(FTPTransfer.DATA_TIMEOUT, "3 secs");

@@ -151,12 +151,11 @@ public class StandardFTPClientProvider implements FTPClientProvider {
         client.setDataTimeout(dataTimeout);
         client.setDefaultTimeout(connectionTimeout);
         client.setRemoteVerificationEnabled(false);
+        client.setAutodetectUTF8(true);
 
         final boolean unicodeEnabled = context.getProperty(UTF8_ENCODING).isSet() ? context.getProperty(UTF8_ENCODING).asBoolean() : false;
         final Charset charset = unicodeEnabled ? StandardCharsets.UTF_8 : Charset.defaultCharset();
-        client.setCharset(charset);
         client.setControlEncoding(charset.name());
-        client.setAutodetectUTF8(unicodeEnabled);
     }
 
     private void disconnectClient(final FTPClient client) {
