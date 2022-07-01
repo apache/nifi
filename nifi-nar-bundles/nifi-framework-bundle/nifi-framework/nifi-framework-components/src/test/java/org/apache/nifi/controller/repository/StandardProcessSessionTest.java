@@ -20,6 +20,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
+import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
@@ -43,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -91,6 +93,9 @@ class StandardProcessSessionTest {
     @Mock
     ContentRepository contentRepository;
 
+    @Mock
+    PerformanceTracker performanceTracker;
+
     @Captor
     ArgumentCaptor<FlowFileEvent> flowFileEventCaptor;
 
@@ -99,11 +104,11 @@ class StandardProcessSessionTest {
     @BeforeEach
     void setSession() {
         when(repositoryContext.createProvenanceReporter(any(), any())).thenReturn(provenanceReporter);
-        when(repositoryContext.createContentClaimWriteCache()).thenReturn(contentClaimWriteCache);
+        when(repositoryContext.createContentClaimWriteCache(isA(PerformanceTracker.class))).thenReturn(contentClaimWriteCache);
         when(repositoryContext.getConnectable()).thenReturn(connectable);
         when(connectable.getIdentifier()).thenReturn(Connectable.class.getSimpleName());
 
-        session = new StandardProcessSession(repositoryContext, taskTermination);
+        session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
     }
 
     @Test
