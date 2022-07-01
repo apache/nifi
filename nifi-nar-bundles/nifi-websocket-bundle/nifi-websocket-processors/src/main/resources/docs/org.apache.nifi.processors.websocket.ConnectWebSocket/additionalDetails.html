@@ -35,7 +35,8 @@
 <p>
     You can define custom websocket headers in the incoming flowfile as additional attributes. The attribute key
     shall start with "header." and continue with they header key. For example: "header.Authorization". The attribute
-    value will be the corresponding header value.
+    value will be the corresponding header value. If a new flowfile is passed to the processor, the previous sessions will be closed,
+    and any data being sent will be aborted.
 <ol>
     <li>header.Autorization | Basic base64UserNamePassWord</li>
     <li>header.Content-Type | application, audio, example</li>
