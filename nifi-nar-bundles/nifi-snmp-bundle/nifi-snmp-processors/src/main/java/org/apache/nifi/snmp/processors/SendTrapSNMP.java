@@ -121,12 +121,8 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
-        final FlowFile flowFile = processSession.get();
-        final Map<String, String> attributes = new HashMap<>(
-                Optional.ofNullable(flowFile)
-                        .map(FlowFile::getAttributes)
-                        .orElse(Collections.emptyMap())
-        );
+        final FlowFile flowFile = Optional.ofNullable(processSession.get()).orElse(processSession.create());
+        final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
 
         try {
             final int snmpVersion = SNMPUtils.getVersion(context.getProperty(BasicProperties.SNMP_VERSION).getValue());
@@ -136,7 +132,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 final String agentAddress = context.getProperty(V1TrapProperties.AGENT_ADDRESS).evaluateAttributeExpressions(flowFile).getValue();
                 String genericTrapType = context.getProperty(V1TrapProperties.GENERIC_TRAP_TYPE).getValue();
 
-                if (genericTrapType.equals(V1TrapProperties.WITH_FLOW_FILE_ATTRIBUTE.getValue()) && flowFile != null) {
+                if (genericTrapType.equals(V1TrapProperties.WITH_FLOW_FILE_ATTRIBUTE.getValue())) {
                     genericTrapType = flowFile.getAttribute(V1TrapProperties.GENERIC_TRAP_TYPE_FF_ATTRIBUTE);
                 }
 
@@ -158,14 +154,10 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
                 attributes.put("trapOidValue", trapOidValue);
                 snmpHandler.sendTrap(attributes, v2TrapConfiguration);
             }
-            if (flowFile == null) {
-                FlowFile outgoingFlowFile = processSession.create();
-                processSession.putAllAttributes(outgoingFlowFile, attributes);
-                processSession.transfer(outgoingFlowFile, REL_SUCCESS);
-            } else {
-                processSession.putAllAttributes(flowFile, attributes);
-                processSession.transfer(flowFile, REL_SUCCESS);
-            }
+
+            processSession.putAllAttributes(flowFile, attributes);
+            processSession.transfer(flowFile, REL_SUCCESS);
+
         } catch (IOException e) {
             getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.", e);
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);

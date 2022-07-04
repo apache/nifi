@@ -21,6 +21,7 @@ import org.apache.nifi.snmp.configuration.V1TrapConfiguration;
 import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
 import org.apache.nifi.snmp.factory.trap.V1TrapPDUFactory;
 import org.apache.nifi.snmp.factory.trap.V2TrapPDUFactory;
+import org.apache.nifi.snmp.operations.SNMPResourceHandler;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
