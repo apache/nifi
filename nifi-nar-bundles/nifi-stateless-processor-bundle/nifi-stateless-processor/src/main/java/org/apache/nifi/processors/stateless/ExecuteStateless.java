@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.SystemResourceConsiderations;
@@ -120,6 +121,7 @@ import static org.apache.nifi.processor.util.StandardValidators.createDirectoryE
 
 @Restricted
 @SupportsBatching
+@SupportsSensitiveDynamicProperties
 @SystemResourceConsiderations({
     @SystemResourceConsideration(resource= SystemResource.CPU),
     @SystemResourceConsideration(resource= SystemResource.DISK),
@@ -403,7 +405,6 @@ public class ExecuteStateless extends AbstractProcessor implements Searchable {
             .name(propertyDescriptorName)
             .defaultValue("Value for the " + propertyDescriptorName + " parameter")
             .addValidator(Validator.VALID)
-            .sensitive(true)
             .dynamic(true)
             .build();
     }
