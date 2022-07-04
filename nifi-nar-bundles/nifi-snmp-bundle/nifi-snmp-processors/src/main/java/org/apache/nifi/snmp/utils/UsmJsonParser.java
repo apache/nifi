@@ -30,12 +30,17 @@ public class UsmJsonParser {
         // Utility class, not to instantiate.
     }
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final SimpleModule MODULE = new SimpleModule();
+    private static final ObjectMapper MAPPER;
+    private static final SimpleModule MODULE;
 
-    static List<UsmUser> parse(final String json) throws JsonProcessingException {
+    static {
+        MAPPER = new ObjectMapper();
+        MODULE = new SimpleModule();
         MODULE.addDeserializer(UsmUser.class, new UsmUserDeserializer());
         MAPPER.registerModule(MODULE);
+    }
+
+    static List<UsmUser> parse(final String json) throws JsonProcessingException {
         return MAPPER.readValue(json, new TypeReference<List<UsmUser>>() {
         });
     }
