@@ -315,7 +315,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers</artifactId>
-                <version>1.11.3</version>
+                <version>1.17.3</version>
                 <scope>test</scope>
             </dependency>
             <!-- These Jetty dependencies are required for the Jetty Web Server all nars extend from it so we dont want this getting overriden -->
