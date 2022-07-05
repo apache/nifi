@@ -121,7 +121,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
-        final FlowFile flowFile = Optional.ofNullable(processSession.get()).orElse(processSession.create());
+        final FlowFile flowFile = Optional.ofNullable(processSession.get()).orElseGet(processSession::create);
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
 
         try {

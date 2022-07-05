@@ -33,13 +33,13 @@ import org.snmp4j.mp.SnmpConstants;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class TrapSNMPIT {
+class TrapSNMPIT {
 
     protected static final String SYSTEM_DESCRIPTION_OID = "1.3.6.1.2.1.1.1.0";
     protected static final String SYSTEM_DESCRIPTION_OID_VALUE = "optionalTrapOidTestValue";
 
     @Test
-    public void testSendReceiveV1Trap() throws InterruptedException {
+    void testSendReceiveV1Trap() throws InterruptedException {
         final int listenPort = NetworkUtils.getAvailableUdpPort();
 
         final V1TrapConfiguration v1TrapConfiguration = TrapConfigurationFactory.getV1TrapConfiguration();
