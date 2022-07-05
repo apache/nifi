@@ -18,7 +18,6 @@ package org.apache.nifi.snmp.operations;
 
 import org.apache.nifi.snmp.configuration.V1TrapConfiguration;
 import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
-import org.apache.nifi.snmp.exception.SNMPException;
 import org.apache.nifi.snmp.factory.trap.V1TrapPDUFactory;
 import org.apache.nifi.snmp.factory.trap.V2TrapPDUFactory;
 import org.apache.nifi.util.MockComponentLog;
@@ -29,15 +28,12 @@ import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.event.ResponseEvent;
-import org.snmp4j.smi.TransportIpAddress;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -114,35 +110,5 @@ public class SendTrapSNMPHandlerTest {
 
         final String expectedDebugLog = "{} No optional SNMP specific variables found in flowfile.";
         assertEquals(expectedDebugLog, mockComponentLog.getDebugMessages().get(0).getMsg());
-    }
-
-    @Test
-    public void testSendTrapToInvalidPort() throws IOException {
-        when(mockSnmpManager.send(mockPdu, mockTarget)).thenReturn(null);
-        final TransportIpAddress mockAddress = mock(TransportIpAddress.class);
-        final int port = 55555;
-        when(mockAddress.getPort()).thenReturn(port);
-        when(mockTarget.getAddress()).thenReturn(mockAddress);
-
-        final String flowFileOid = "1.3.6.1.2.1.1.1.0";
-        Exception e = assertThrows(IOException.class,
-                () -> sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV2TrapConfiguration)
-        );
-
-        assertTrue(e.getMessage().contains(String.valueOf(port)));
-    }
-
-    @Test
-    public void testSendTrapInvalidResponse() throws IOException {
-        final String trapSnmpError = "Test Trap SNMP Error";
-        when(mockResponseEvent.getError()).thenReturn(new SNMPException(trapSnmpError));
-        when(mockSnmpManager.send(mockPdu, mockTarget)).thenReturn(mockResponseEvent);
-
-        final String flowFileOid = "1.3.6.1.2.1.1.1.0";
-        Exception e = assertThrows(IOException.class,
-                () -> sendTrapSNMPHandler.sendTrap(Collections.singletonMap("snmp$" + flowFileOid, "OID value"), mockV2TrapConfiguration)
-        );
-
-        assertTrue(e.getCause().getMessage().contains(trapSnmpError));
     }
 }
