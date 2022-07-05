@@ -18,7 +18,6 @@ package org.apache.nifi.snmp.operations;
 
 import org.apache.nifi.snmp.configuration.V1TrapConfiguration;
 import org.apache.nifi.snmp.configuration.V2TrapConfiguration;
-import org.apache.nifi.snmp.exception.SNMPException;
 import org.apache.nifi.snmp.factory.trap.V1TrapPDUFactory;
 import org.apache.nifi.snmp.factory.trap.V2TrapPDUFactory;
 import org.apache.nifi.util.MockComponentLog;
@@ -29,15 +28,12 @@ import org.snmp4j.PDU;
 import org.snmp4j.Snmp;
 import org.snmp4j.Target;
 import org.snmp4j.event.ResponseEvent;
-import org.snmp4j.smi.TransportIpAddress;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
