@@ -18,8 +18,10 @@
 package org.apache.nifi.processors.mqtt;
 
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
+import org.apache.nifi.processors.mqtt.common.MqttClient;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
+import org.apache.nifi.processors.mqtt.common.StandardMqttMessage;
 import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -29,10 +31,6 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,8 +57,8 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
 
         @Override
-        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
-            mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Subscriber);
+        protected MqttClient createMqttClient() {
+            mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
             return mqttTestClient;
         }
     }
@@ -111,10 +109,10 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     public void testMessageNotConsumedOnCommitFail() throws NoSuchFieldException, IllegalAccessException {
         testRunner.run(1, false);
         ConsumeMQTT processor = (ConsumeMQTT) testRunner.getProcessor();
-        MQTTQueueMessage mock = mock(MQTTQueueMessage.class);
+        ReceivedMqttMessage mock = mock(ReceivedMqttMessage.class);
         when(mock.getPayload()).thenReturn(new byte[0]);
         when(mock.getTopic()).thenReturn("testTopic");
-        BlockingQueue<MQTTQueueMessage> mqttQueue = getMqttQueue(processor);
+        BlockingQueue<ReceivedMqttMessage> mqttQueue = getMqttQueue(processor);
         mqttQueue.add(mock);
 
         ProcessSession session = testRunner.getProcessSessionFactory().createSession();
@@ -131,11 +129,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     }
 
     @Override
-    public void internalPublish(final MqttMessage message, final String topicName) {
-        try {
-            mqttTestClient.publish(topicName, message);
-        } catch (MqttException e) {
-            throw new RuntimeException(e);
-        }
+    public void internalPublish(final StandardMqttMessage message, final String topicName) {
+        mqttTestClient.publish(topicName, message);
     }
 }

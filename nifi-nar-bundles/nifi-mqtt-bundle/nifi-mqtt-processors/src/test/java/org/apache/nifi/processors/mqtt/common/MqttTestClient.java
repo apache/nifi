@@ -17,24 +17,9 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
-import org.eclipse.paho.client.mqttv3.IMqttToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.MqttPersistenceException;
-import org.eclipse.paho.client.mqttv3.MqttSecurityException;
-import org.eclipse.paho.client.mqttv3.MqttTopic;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class MqttTestClient implements IMqttClient {
-
-    public String serverURI;
-    public String clientId;
+public class MqttTestClient implements MqttClient {
 
     public AtomicBoolean connected = new AtomicBoolean(false);
 
@@ -42,194 +27,15 @@ public class MqttTestClient implements IMqttClient {
     public ConnectType type;
     public enum ConnectType {Publisher, Subscriber}
 
-    public MQTTQueueMessage publishedMessage;
+    private StandardMqttMessage lastPublishedMessage;
+    private String lastPublishedTopic;
 
     public String subscribedTopic;
     public int subscribedQos;
 
 
-    public MqttTestClient(String serverURI, String clientId, ConnectType type) throws MqttException {
-        this.serverURI = serverURI;
-        this.clientId = clientId;
+    public MqttTestClient(ConnectType type) {
         this.type = type;
-    }
-
-    @Override
-    public void connect() throws MqttSecurityException, MqttException {
-        connected.set(true);
-    }
-
-    @Override
-    public void connect(MqttConnectOptions options) throws MqttSecurityException, MqttException {
-        connected.set(true);
-    }
-
-    @Override
-    public IMqttToken connectWithResult(MqttConnectOptions options) throws MqttSecurityException, MqttException {
-        return null;
-    }
-
-    @Override
-    public void disconnect() throws MqttException {
-        connected.set(false);
-    }
-
-    @Override
-    public void disconnect(long quiesceTimeout) throws MqttException {
-        connected.set(false);
-    }
-
-    @Override
-    public void disconnectForcibly() throws MqttException {
-        connected.set(false);
-    }
-
-    @Override
-    public void disconnectForcibly(long disconnectTimeout) throws MqttException {
-        connected.set(false);
-    }
-
-    @Override
-    public void disconnectForcibly(long quiesceTimeout, long disconnectTimeout) throws MqttException {
-        connected.set(false);
-    }
-
-    @Override
-    public void subscribe(String topicFilter) throws MqttException, MqttSecurityException {
-        subscribedTopic = topicFilter;
-        subscribedQos = -1;
-    }
-
-    @Override
-    public void subscribe(String[] topicFilters) throws MqttException {
-        throw new UnsupportedOperationException("Multiple topic filters is not supported");
-    }
-
-    @Override
-    public void subscribe(String topicFilter, int qos) throws MqttException {
-        subscribedTopic = topicFilter;
-        subscribedQos = qos;
-    }
-
-    @Override
-    public void subscribe(String[] topicFilters, int[] qos) throws MqttException {
-        throw new UnsupportedOperationException("Multiple topic filters is not supported");
-    }
-
-    @Override
-    public void subscribe(String s, IMqttMessageListener iMqttMessageListener) throws MqttException, MqttSecurityException {
-
-    }
-
-    @Override
-    public void subscribe(String[] strings, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
-
-    }
-
-    @Override
-    public void subscribe(String s, int i, IMqttMessageListener iMqttMessageListener) throws MqttException {
-
-    }
-
-    @Override
-    public void subscribe(String[] strings, int[] ints, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
-
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String s) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String s, IMqttMessageListener iMqttMessageListener) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String s, int i) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String s, int i, IMqttMessageListener iMqttMessageListener) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String[] strings) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String[] strings, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String[] strings, int[] ints) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public IMqttToken subscribeWithResponse(String[] strings, int[] ints, IMqttMessageListener[] iMqttMessageListeners) throws MqttException {
-        return null;
-    }
-
-    @Override
-    public void unsubscribe(String topicFilter) throws MqttException {
-        subscribedTopic = "";
-        subscribedQos = -2;
-    }
-
-    @Override
-    public void unsubscribe(String[] topicFilters) throws MqttException {
-        throw new UnsupportedOperationException("Multiple topic filters is not supported");
-    }
-
-    @Override
-    public void publish(String topic, byte[] payload, int qos, boolean retained) throws MqttException, MqttPersistenceException {
-        MqttMessage message = new MqttMessage(payload);
-        message.setQos(qos);
-        message.setRetained(retained);
-        switch (type) {
-            case Publisher:
-                publishedMessage = new MQTTQueueMessage(topic, message);
-                break;
-            case Subscriber:
-                try {
-                    mqttCallback.messageArrived(topic, message);
-                } catch (Exception e) {
-                    throw new MqttException(e);
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void publish(String topic, MqttMessage message) throws MqttException, MqttPersistenceException {
-        switch (type) {
-            case Publisher:
-                publishedMessage = new MQTTQueueMessage(topic, message);
-                break;
-            case Subscriber:
-                try {
-                    mqttCallback.messageArrived(topic, message);
-                } catch (Exception e) {
-                    throw new MqttException(e);
-                }
-                break;
-        }
-    }
-
-    @Override
-    public void setCallback(MqttCallback callback) {
-        this.mqttCallback = callback;
-    }
-
-    @Override
-    public MqttTopic getTopic(String topic) {
-        return null;
     }
 
     @Override
@@ -238,37 +44,49 @@ public class MqttTestClient implements IMqttClient {
     }
 
     @Override
-    public String getClientId() {
-        return clientId;
+    public void connect() {
+        connected.set(true);
     }
 
     @Override
-    public String getServerURI() {
-        return serverURI;
+    public void disconnect() {
+        connected.set(false);
     }
 
     @Override
-    public IMqttDeliveryToken[] getPendingDeliveryTokens() {
-        return new IMqttDeliveryToken[0];
-    }
-
-    @Override
-    public void setManualAcks(boolean b) {
+    public void close() {
 
     }
 
     @Override
-    public void reconnect() throws MqttException {
-
+    public void publish(String topic, StandardMqttMessage message) {
+        switch (type) {
+            case Publisher:
+                lastPublishedMessage = message;
+                lastPublishedTopic = topic;
+                break;
+            case Subscriber:
+                mqttCallback.messageArrived(new ReceivedMqttMessage(message.getPayload(), message.getQos(), message.isRetained(), topic));
+                break;
+        }
     }
 
     @Override
-    public void messageArrivedComplete(int i, int i1) throws MqttException {
-
+    public void subscribe(String topicFilter, int qos) {
+        subscribedTopic = topicFilter;
+        subscribedQos = qos;
     }
 
     @Override
-    public void close() throws MqttException {
+    public void setCallback(MqttCallback callback) {
+        this.mqttCallback = callback;
+    }
 
+    public StandardMqttMessage getLastPublishedMessage() {
+        return lastPublishedMessage;
+    }
+
+    public String getLastPublishedTopic() {
+        return lastPublishedTopic;
     }
 }
