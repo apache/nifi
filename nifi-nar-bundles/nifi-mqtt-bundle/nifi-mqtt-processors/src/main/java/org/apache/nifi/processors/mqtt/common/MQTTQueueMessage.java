@@ -17,17 +17,15 @@
 
 package org.apache.nifi.processors.mqtt.common;
 
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-
 public class MQTTQueueMessage {
-    private String topic;
+    private final String topic;
 
-    private byte[] payload;
-    private int qos = 1;
-    private boolean retained = false;
-    private boolean duplicate = false;
+    private final byte[] payload;
+    private final int qos;
+    private final boolean retained;
+    private final boolean duplicate;
 
-    public MQTTQueueMessage(String topic, MqttMessage message) {
+    public MQTTQueueMessage(String topic, NifiMqttMessage message) {
         this.topic = topic;
         payload = message.getPayload();
         qos = message.getQos();

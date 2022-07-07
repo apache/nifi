@@ -36,18 +36,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.mqtt.common.AbstractMQTTProcessor;
+import org.apache.nifi.processors.mqtt.common.NifiMqttCallback;
+import org.apache.nifi.processors.mqtt.common.NifiMqttException;
+import org.apache.nifi.processors.mqtt.common.NifiMqttMessage;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 @CapabilityDescription("Publishes a message to an MQTT topic")
 @SeeAlso({ConsumeMQTT.class})
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
-public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
+public class PublishMQTT extends AbstractMQTTProcessor implements NifiMqttCallback {
 
     public static final PropertyDescriptor PROP_TOPIC = new PropertyDescriptor.Builder()
             .name("Topic")
@@ -143,12 +139,12 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowfile = session.get();
+        final FlowFile flowfile = session.get();
         if (flowfile == null) {
             return;
         }
 
-        if (!isConnected()){
+        if (!isConnected()) {
             synchronized (this) {
                 if (!isConnected()) {
                     initializeClient(context);
@@ -157,7 +153,7 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         }
 
         // get the MQTT topic
-        String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
+        final String topic = context.getProperty(PROP_TOPIC).evaluateAttributeExpressions(flowfile).getValue();
 
         if (topic == null || topic.isEmpty()) {
             logger.warn("Evaluation of the topic property returned null or evaluated to be empty, routing to failure");
@@ -167,15 +163,10 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
 
         // do the read
         final byte[] messageContent = new byte[(int) flowfile.getSize()];
-        session.read(flowfile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.fillBuffer(in, messageContent, true);
-            }
-        });
+        session.read(flowfile, in -> StreamUtils.fillBuffer(in, messageContent, true));
 
         int qos = context.getProperty(PROP_QOS).evaluateAttributeExpressions(flowfile).asInteger();
-        final MqttMessage mqttMessage = new MqttMessage(messageContent);
+        final NifiMqttMessage mqttMessage = new NifiMqttMessage();
         mqttMessage.setQos(qos);
         mqttMessage.setPayload(messageContent);
         mqttMessage.setRetained(context.getProperty(PROP_RETAIN).evaluateAttributeExpressions(flowfile).asBoolean());
@@ -188,9 +179,9 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
              */
             mqttClient.publish(topic, mqttMessage);
 
-            session.getProvenanceReporter().send(flowfile, broker, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().send(flowfile, clientProperties.getBroker(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowfile, REL_SUCCESS);
-        } catch(MqttException me) {
+        } catch (NifiMqttException me) {
             logger.error("Failed to publish message.", me);
             session.transfer(flowfile, REL_FAILURE);
         }
@@ -202,34 +193,36 @@ public class PublishMQTT extends AbstractMQTTProcessor implements MqttCallback {
         try {
             if (mqttClient == null) {
                 logger.debug("Creating client");
-                mqttClient = createMqttClient(broker, clientID, persistence);
+                mqttClient = createMqttClient();
                 mqttClient.setCallback(this);
             }
 
             if (!mqttClient.isConnected()) {
                 logger.debug("Connecting client");
-                mqttClient.connect(connOpts);
+                mqttClient.connect(connectionProperties);
             }
-        } catch (MqttException e) {
-            logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", new Object[]{broker}, e);
+        } catch (NifiMqttException e) {
+            logger.error("Connection to {} lost (or was never connected) and connection failed. Yielding processor", clientProperties.getBroker(), e);
             context.yield();
         }
     }
 
     @Override
     public void connectionLost(Throwable cause) {
-        logger.error("Connection to {} lost due to: {}", new Object[]{broker, cause.getMessage()}, cause);
+        logger.error("Connection to {} lost due to: {}", new Object[]{clientProperties.getBroker(), cause.getMessage()}, cause);
     }
 
     @Override
-    public void messageArrived(String topic, MqttMessage message) throws Exception {
-        logger.error("Message arrived to a PublishMQTT processor { topic:'" + topic +"; payload:"+ Arrays.toString(message.getPayload())+"}");
+    public void messageArrived(String topic, NifiMqttMessage message) {
+        // Unlikely situation. Api uses the same callback for publisher and consumer as well.
+        // That's why we have this log message here to indicate something really messy thing happened.
+        logger.error("Message arrived to a PublishMQTT processor { topic:'" + topic + "; payload:" + Arrays.toString(message.getPayload()) + "}");
     }
 
     @Override
-    public void deliveryComplete(IMqttDeliveryToken token) {
+    public void deliveryComplete(String token) {
         // Client.publish waits for message to be delivered so this token will always have a null message and is useless in this application.
-        logger.trace("Received 'delivery complete' message from broker for:" + token.toString());
+        logger.trace("Received 'delivery complete' message from broker for:" + token);
     }
 
 }

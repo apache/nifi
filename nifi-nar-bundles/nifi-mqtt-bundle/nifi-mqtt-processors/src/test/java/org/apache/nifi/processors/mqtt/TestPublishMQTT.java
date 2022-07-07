@@ -19,11 +19,10 @@ package org.apache.nifi.processors.mqtt;
 
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.NifiMqttClient;
+import org.apache.nifi.processors.mqtt.common.NifiMqttException;
 import org.apache.nifi.processors.mqtt.common.TestPublishMqttCommon;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Arrays;
@@ -50,8 +49,8 @@ public class TestPublishMQTT extends TestPublishMqttCommon {
         }
 
         @Override
-        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
-            mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Publisher);
+        protected NifiMqttClient createMqttClient() throws NifiMqttException {
+            mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Publisher);
             return mqttTestClient;
         }
     }

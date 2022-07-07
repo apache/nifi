@@ -28,8 +28,6 @@ import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -66,7 +64,7 @@ public abstract class TestConsumeMqttCommon {
     private static final int LEAST_ONE = 1;
     private static final int EXACTLY_ONCE = 2;
 
-    public abstract void internalPublish(MqttMessage message, String topicName);
+    public abstract void internalPublish(NifiMqttMessage message, String topicName);
 
     @Test
     public void testClientIDConfiguration() {
@@ -295,7 +293,7 @@ public abstract class TestConsumeMqttCommon {
 
         testRunner.assertValid();
 
-        MqttMessage innerMessage = new MqttMessage();
+        NifiMqttMessage innerMessage = new NifiMqttMessage();
         innerMessage.setPayload(ByteBuffer.wrap("testMessage".getBytes()).array());
         innerMessage.setQos(2);
         MQTTQueueMessage testMessage = new MQTTQueueMessage("testTopic", innerMessage);
@@ -551,7 +549,7 @@ public abstract class TestConsumeMqttCommon {
     private static boolean isConnected(AbstractMQTTProcessor processor) throws NoSuchFieldException, IllegalAccessException {
         Field f = AbstractMQTTProcessor.class.getDeclaredField("mqttClient");
         f.setAccessible(true);
-        IMqttClient mqttClient = (IMqttClient) f.get(processor);
+        NifiMqttClient mqttClient = (NifiMqttClient) f.get(processor);
         return mqttClient.isConnected();
     }
 
@@ -585,7 +583,7 @@ public abstract class TestConsumeMqttCommon {
     }
 
     private void publishMessage(final String payload, final int qos) {
-        final MqttMessage message = new MqttMessage();
+        final NifiMqttMessage message = new NifiMqttMessage();
         message.setPayload(payload.getBytes(StandardCharsets.UTF_8));
         message.setQos(qos);
         message.setRetained(false);

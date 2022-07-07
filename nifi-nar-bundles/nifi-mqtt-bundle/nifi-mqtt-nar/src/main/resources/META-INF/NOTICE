@@ -41,6 +41,11 @@ The following binary components are provided under the Apache Software License v
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
 
+  (ASLv2) HiveMQ MQTT Client
+    The following NOTICE information applies:
+      HiveMQ MQTT Client
+      Copyright 2018-2022 HiveMQ and the HiveMQ Community
+
 ************************
 Eclipse Public License 1.0
 ************************

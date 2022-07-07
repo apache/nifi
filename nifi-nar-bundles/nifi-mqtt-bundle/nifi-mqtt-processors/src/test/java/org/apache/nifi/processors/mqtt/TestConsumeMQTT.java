@@ -20,6 +20,9 @@ package org.apache.nifi.processors.mqtt;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.common.MQTTQueueMessage;
 import org.apache.nifi.processors.mqtt.common.MqttTestClient;
+import org.apache.nifi.processors.mqtt.common.NifiMqttClient;
+import org.apache.nifi.processors.mqtt.common.NifiMqttException;
+import org.apache.nifi.processors.mqtt.common.NifiMqttMessage;
 import org.apache.nifi.processors.mqtt.common.TestConsumeMqttCommon;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.SslContextFactory;
@@ -29,10 +32,6 @@ import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.paho.client.mqttv3.IMqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,8 +58,8 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
 
         @Override
-        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
-            mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Subscriber);
+        protected NifiMqttClient createMqttClient() {
+            mqttTestClient = new MqttTestClient(MqttTestClient.ConnectType.Subscriber);
             return mqttTestClient;
         }
     }
@@ -131,11 +130,11 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     }
 
     @Override
-    public void internalPublish(final MqttMessage message, final String topicName) {
+    public void internalPublish(final NifiMqttMessage message, final String topicName) {
         try {
             mqttTestClient.publish(topicName, message);
-        } catch (MqttException e) {
-            throw new RuntimeException(e);
+        } catch (NifiMqttException e) {
+            throw e;
         }
     }
 }
