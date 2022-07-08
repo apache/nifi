@@ -100,6 +100,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -416,6 +417,49 @@ public class StandardProcessSessionIT {
 
         final Set<String> childUuids = children.stream().map(ff -> ff.getAttribute(CoreAttributes.UUID.key())).collect(Collectors.toSet());
         assertEquals(childUuids, new HashSet<>(fork.getChildUuids()));
+    }
+
+    @Test
+    public void testCloneOnMultipleDestinations() {
+        final String originalUuid = "12345678-1234-1234-1234-123456789012";
+        final StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", originalUuid)
+            .addAttribute("abc", "xyz")
+            .entryDate(System.currentTimeMillis());
+
+        flowFileQueue.put(flowFileRecordBuilder.build());
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        final List<Connection> connectionList = new ArrayList<>();
+        for (int i=0; i < 3; i++) {
+            connectionList.add(createConnection());
+        }
+
+        when(connectable.getConnections(any(Relationship.class))).thenReturn(new HashSet<>(connectionList));
+
+        session.transfer(flowFile, Relationship.ANONYMOUS);
+        session.commit();
+
+        final List<FlowFileRecord> outputFlowFiles = new ArrayList<>();
+        for (final Connection connection : connectionList) {
+            final FlowFileRecord outputFlowFile = connection.getFlowFileQueue().poll(Collections.emptySet());
+            outputFlowFiles.add(outputFlowFile);
+        }
+
+        assertEquals(3, outputFlowFiles.size());
+
+        final Set<String> uuids = outputFlowFiles.stream()
+            .map(ff -> ff.getAttribute("uuid"))
+            .collect(Collectors.toSet());
+
+        assertEquals(3, uuids.size());
+        assertTrue(uuids.contains(originalUuid));
+
+        final Predicate<FlowFileRecord> attributeAbcMatches = ff -> ff.getAttribute("abc").equals("xyz");
+        assertTrue(outputFlowFiles.stream().allMatch(attributeAbcMatches));
     }
 
     @Test

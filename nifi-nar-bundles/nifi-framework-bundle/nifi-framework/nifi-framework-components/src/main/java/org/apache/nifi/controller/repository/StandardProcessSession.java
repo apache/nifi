@@ -348,17 +348,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
                 }
             } else {
-                final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
                 final FlowFileRecord currRec = record.getCurrent();
-                final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
-                builder.removeAttributes(retryAttribute);
-
+                final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
                 record.setDestination(finalDestination.getFlowFileQueue());
-                record.setWorking(builder.build(), false);
                 incrementConnectionInputCounts(finalDestination, record);
 
                 for (final Connection destination : destinations) { // iterate over remaining destinations and "clone" as needed
                     incrementConnectionInputCounts(destination, record);
+
+                    final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
+                    builder.removeAttributes(retryAttribute);
                     builder.id(context.getNextFlowFileSequence());
 
                     final String newUuid = UUID.randomUUID().toString();
@@ -372,7 +371,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     if (claim != null) {
                         context.getContentRepository().incrementClaimaintCount(claim);
                     }
-                    newRecord.setWorking(clone, Collections.<String, String>emptyMap(), false);
+                    newRecord.setWorking(clone, Collections.emptyMap(), false);
 
                     newRecord.setDestination(destination.getFlowFileQueue());
                     newRecord.setTransferRelationship(record.getTransferRelationship());
