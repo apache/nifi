@@ -13,3 +13,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.apache.nifi.registry.extension.NiFiRegistryExternalResourceProvider
+org.apache.nifi.flow.resource.HttpsExternalResourceProvider

@@ -34,7 +34,7 @@ public interface ExternalResourceProvider {
     /**
      * Performs a listing of all resources that are available.
      *
-     * @Return The result is a list of descriptors for the available resources.
+     * @return The result is a list of descriptors for the available resources.
      */
     Collection<ExternalResourceDescriptor> listResources() throws IOException;
 
@@ -43,4 +43,11 @@ public interface ExternalResourceProvider {
      * but implementations might differ.
      */
     InputStream fetchExternalResource(ExternalResourceDescriptor descriptor) throws IOException;
+
+    /**
+     * Performs a listing of a given resource.
+     *
+     * @return The result is a list of descriptors for the available resources.
+     */
+    Collection<ExternalResourceDescriptor> listResources(final ExternalResourceDescriptor descriptor) throws IOException;
 }

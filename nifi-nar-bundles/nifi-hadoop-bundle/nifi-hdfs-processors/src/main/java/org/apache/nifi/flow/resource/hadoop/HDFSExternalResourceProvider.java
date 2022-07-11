@@ -47,6 +47,7 @@ import java.net.URI;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -259,5 +260,10 @@ public class HDFSExternalResourceProvider implements ExternalResourceProvider {
         } catch (final InterruptedException e) {
             throw new IOException("Unable to create file system: " + e.getMessage(), e);
         }
+    }
+
+    @Override
+    public Collection<ExternalResourceDescriptor> listResources(final ExternalResourceDescriptor descriptor) throws IOException {
+        return Collections.emptyList();
     }
 }

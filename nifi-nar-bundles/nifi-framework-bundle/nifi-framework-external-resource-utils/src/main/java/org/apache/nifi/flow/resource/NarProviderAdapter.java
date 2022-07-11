@@ -23,6 +23,7 @@ import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,11 @@ public class NarProviderAdapter implements ExternalResourceProvider {
     @Override
     public InputStream fetchExternalResource(final ExternalResourceDescriptor descriptor) throws IOException {
         return payload.fetchNarContents(descriptor.getLocation());
+    }
+
+    @Override
+    public Collection<ExternalResourceDescriptor> listResources(ExternalResourceDescriptor descriptor) throws IOException {
+        return Collections.emptyList();
     }
 
     private static class NarProviderInitializationContextAdapter implements NarProviderInitializationContext {

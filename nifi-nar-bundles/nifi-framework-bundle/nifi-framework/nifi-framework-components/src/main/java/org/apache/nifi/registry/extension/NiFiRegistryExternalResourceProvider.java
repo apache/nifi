@@ -93,4 +93,9 @@ public class NiFiRegistryExternalResourceProvider implements ExternalResourcePro
             throw new RuntimeException(e.getMessage(), e);
         }
     }
+
+    @Override
+    public Collection<ExternalResourceDescriptor> listResources(final ExternalResourceDescriptor descriptor) throws IOException {
+        return Collections.emptySet();
+    }
 }
