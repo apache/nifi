@@ -158,12 +158,9 @@ public class TestFTPCharsetIT {
     }
 
     @AfterAll
-    static void stopEmbeddedServer() throws InterruptedException {
+    static void stopEmbeddedServer() {
         if (EMBED_FTP_SERVER) {
             FTP_SERVER.stop();
-            while (!FTP_SERVER.isStopped()) {
-                Thread.sleep(100L);
-            }
         }
     }
 

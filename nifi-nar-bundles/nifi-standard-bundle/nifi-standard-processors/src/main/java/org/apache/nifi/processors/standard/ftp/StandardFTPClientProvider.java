@@ -154,8 +154,10 @@ public class StandardFTPClientProvider implements FTPClientProvider {
         client.setAutodetectUTF8(true);
 
         final boolean unicodeEnabled = context.getProperty(UTF8_ENCODING).isSet() ? context.getProperty(UTF8_ENCODING).asBoolean() : false;
-        final Charset charset = unicodeEnabled ? StandardCharsets.UTF_8 : Charset.defaultCharset();
-        client.setControlEncoding(charset.name());
+        // in non-UTF-8 mode, FTP control encoding should be left as default (ISO-8859-1)
+        if (unicodeEnabled) {
+            client.setControlEncoding(StandardCharsets.UTF_8.name());
+        }
     }
 
     private void disconnectClient(final FTPClient client) {
