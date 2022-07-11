@@ -33,25 +33,24 @@ import javax.net.SocketFactory;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.BUFFER_SIZE;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.CONNECTION_MODE;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.CONNECTION_MODE_ACTIVE;
-import static org.apache.nifi.processors.standard.util.FTPTransfer.DATA_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.CONNECTION_TIMEOUT;
-import static org.apache.nifi.processors.standard.util.FTPTransfer.UTF8_ENCODING;
-import static org.apache.nifi.processors.standard.util.FTPTransfer.USERNAME;
-import static org.apache.nifi.processors.standard.util.FTPTransfer.PASSWORD;
+import static org.apache.nifi.processors.standard.util.FTPTransfer.DATA_TIMEOUT;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.HOSTNAME;
+import static org.apache.nifi.processors.standard.util.FTPTransfer.PASSWORD;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.PORT;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.TRANSFER_MODE;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.TRANSFER_MODE_ASCII;
+import static org.apache.nifi.processors.standard.util.FTPTransfer.USERNAME;
+import static org.apache.nifi.processors.standard.util.FTPTransfer.UTF8_ENCODING;
+import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 /**
  * Standard implementation of FTP Client Provider

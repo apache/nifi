@@ -73,8 +73,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
  * <code>TestFTPCharset=localhost,21,ftpuser,ftppassword</code>.
  */
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class TestFTPCharsetIT {
-    private static final String SERVER_OVERRIDE = System.getProperty(TestFTPCharsetIT.class.getSimpleName());
+public class FTPCharsetIT {
+    private static final String SERVER_OVERRIDE = System.getProperty(FTPCharsetIT.class.getSimpleName());
     private static final boolean EMBED_FTP_SERVER = (SERVER_OVERRIDE == null);
     private static FtpServer FTP_SERVER;
 
@@ -90,7 +90,7 @@ public class TestFTPCharsetIT {
     private static File FOLDER_USER_PROPERTIES;
 
     public static Arguments serverParametersProvider() {
-        final String override = System.getProperty(TestFTPCharsetIT.class.getSimpleName());
+        final String override = System.getProperty(FTPCharsetIT.class.getSimpleName());
         if (override == null) {
             return arguments(HOSTNAME, PORT, USER, PASSWORD);
         } else {
