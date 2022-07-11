@@ -43,13 +43,18 @@
                 <exclude>swagger-annotations</exclude>
                 <exclude>aspectjweaver</exclude>
                 <exclude>h2</exclude>
-                <exclude>jaxb-runtime</exclude>
                 <exclude>mail</exclude>
                 <exclude>log4j</exclude>
                 <exclude>lucene-queryparser</exclude>
                 <exclude>commons-net</exclude>
                 <exclude>spring-context</exclude>
                 <exclude>spring-security-core</exclude>
+
+                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
+                <!-- TODO: remove these once minimum Java version is 11 -->
+                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
+                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
+                <exclude>javax.annotation:javax.annotation-api</exclude>
             </excludes>
         </dependencySet>
 
@@ -69,6 +74,24 @@
                 <include>commons-io</include>
                 <include>slf4j-api</include>
                 <include>logback-classic</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the bootstrap libs for java11 to its own dir -->
+        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>org.glassfish.jaxb:jaxb-runtime</include>
+                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+                <include>javax.annotation:javax.annotation-api</include>
+                <include>com.sun.activation:jakarta.activation</include>
+                <include>jakarta.activation:jakarta.activation-api</include>
             </includes>
         </dependencySet>
 

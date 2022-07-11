@@ -640,7 +640,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - https://json-processing-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - https://glassfish.org/osgi-resource-locator)
-    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - https://jcp.org/en/jsr/detail?id=250)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.3.2 - https://jcp.org/en/jsr/detail?id=250)
     (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - https://jax-rs-spec.java.net)
 
@@ -663,6 +663,19 @@ The following binary components are provided under the Eclipse Public License 1.
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - https://www.h2database.com/html/license.html)
     (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.6 - https://logback.qos.ch/)
     (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.2.6 - https://logback.qos.ch/)
+
+************************
+Eclipse Distribution License 1.0
+************************
+
+The following binary components are provided under the Eclipse Distribution License 1.0.
+
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:1.2.2)
+    (EDL 1.0) Jakarta Activation (com.sun.activation:jakarta.activation:jar:1.2.2)
+    (EDL 1.0) Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:jar:2.3.3)
+    (EDL 1.0) JAXB (JSR 222) Reference Implementation (org.glassfish.jaxb:jaxb-runtime:jar:2.3.5)
+    (EDL 1.0) Istack Common Utility Code Runtime (com.sun.istack:istack-commons-runtime:jar:3.0.12)
+    (EDL 1.0) TXW2 Runtime (org.glassfish.jaxb:txw2:jar:2.3.5)
 
 *****************
 Mozilla Public License v2.0
