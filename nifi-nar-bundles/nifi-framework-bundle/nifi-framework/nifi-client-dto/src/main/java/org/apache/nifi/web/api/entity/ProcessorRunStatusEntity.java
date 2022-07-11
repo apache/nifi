@@ -26,9 +26,7 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "processorRunStatus")
 public class ProcessorRunStatusEntity extends ComponentRunStatusEntity {
 
-    // SUPPORTED_STATE *MUST* match the allowableValues below
-    // if it doesn't, OpenAPI/Swagger generation will generate
-    // correct clients, and they will have errors when deserializing
+    // Must match the @ApiModelProperty.allowableValues above getState()
     private static String[] SUPPORTED_STATE = {"RUNNING", "RUN_ONCE", "STOPPED", "DISABLED"};
 
     @Override
