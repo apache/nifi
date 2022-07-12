@@ -299,4 +299,51 @@ public class TestPutEmail {
         assertEquals("anotherbcc@apache.org", message.getRecipients(RecipientType.BCC)[1].toString());
     }
 
+    @Test
+    public void testValidDynamicMailProperties() throws Exception {
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+        runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
+        runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.smtp.timeout", "sample dynamic mail property");
+        runner.setProperty("mail.smtp.writetimeout", "sample dynamic mail property");
+        runner.setProperty("mail.smtp.connectiontimeout", "sample dynamic mail property");
+        runner.setProperty("mail.smtp.auth.xoauth2.disable", "sample dynamic mail property");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testInvalidDynamicMailPropertyName() {
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+        runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
+        runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.", "sample_value");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testOverwritingDynamicMailProperty() {
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+        runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
+        runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.smtp.user", "test-user-value");
+        runner.assertNotValid();
+    }
 }
