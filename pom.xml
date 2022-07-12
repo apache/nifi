@@ -992,7 +992,7 @@
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
-                                <phase>verify</phase>
+                                <phase>validate</phase>
                             </execution>
                         </executions>
                     </plugin>
@@ -1002,7 +1002,7 @@
                         <executions>
                             <execution>
                                 <id>check-style</id>
-                                <phase>verify</phase>
+                                <phase>validate</phase>
                                 <configuration>
                                     <encoding>UTF-8</encoding>
                                     <excludes>**/generated-sources/**/*</excludes>
