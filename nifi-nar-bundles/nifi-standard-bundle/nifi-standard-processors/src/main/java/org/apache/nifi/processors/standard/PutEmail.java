@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -253,7 +254,7 @@ public class PutEmail extends AbstractProcessor {
                     + "If not set, UTF-8 will be the default value.")
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .defaultValue("UTF-8")
+            .defaultValue(StandardCharsets.UTF_8.name())
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()

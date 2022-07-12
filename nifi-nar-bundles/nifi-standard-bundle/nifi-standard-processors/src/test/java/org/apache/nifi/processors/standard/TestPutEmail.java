@@ -351,9 +351,9 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "test@apache.org");
-        runner.setProperty(PutEmail.MESSAGE, new String(rawBytes, StandardCharsets.US_ASCII));
+        runner.setProperty(PutEmail.MESSAGE, new String(rawBytesUTF8, StandardCharsets.UTF_8));
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
-        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.UTF_8.name());
+        runner.setProperty(PutEmail.INPUT_CHARACTER_SET, StandardCharsets.US_ASCII.name());
 
         runner.enqueue("Some Text".getBytes());
 
@@ -365,7 +365,8 @@ public class TestPutEmail {
         // Verify that the Message was populated correctly
         assertEquals(1, processor.getMessages().size(), "Expected a single message to be sent");
         Message message = processor.getMessages().get(0);
-        assertNotEquals(rawString, message.getContent());
+        final String retrievedMessageText = getMessageText(message, StandardCharsets.US_ASCII);
+        assertNotEquals(rawString, retrievedMessageText);
     }
 
     private void setRequiredProperties(final TestRunner runner) {
