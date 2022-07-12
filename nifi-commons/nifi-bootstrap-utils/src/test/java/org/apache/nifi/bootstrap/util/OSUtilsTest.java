@@ -17,6 +17,8 @@
 package org.apache.nifi.bootstrap.util;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class OSUtilsTest {
 
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testGetPid() throws IOException {
         final ProcessBuilder builder = new ProcessBuilder();
