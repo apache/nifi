@@ -31,6 +31,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.Proxy;
@@ -105,17 +106,6 @@ public abstract class AbstractGCPProcessor<
             .sensitive(true)
             .build();
 
-    /**
-     * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
-     */
-    public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("gcp-credentials-provider-service")
-            .name("GCP Credentials Provider Service")
-            .description("The Controller Service used to obtain Google Cloud Platform credentials.")
-            .required(true)
-            .identifiesControllerService(GCPCredentialsService.class)
-            .build();
-
 
     protected volatile CloudService cloudService;
 
@@ -127,7 +117,7 @@ public abstract class AbstractGCPProcessor<
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
                 PROJECT_ID,
-                GCP_CREDENTIALS_PROVIDER_SERVICE,
+                GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
                 RETRY_COUNT,
                 PROXY_HOST,
                 PROXY_PORT,
@@ -175,7 +165,7 @@ public abstract class AbstractGCPProcessor<
      */
     protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
         final GCPCredentialsService gcpCredentialsService =
-                context.getProperty(GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
+                context.getProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
         return gcpCredentialsService.getGoogleCredentials();
     }
 

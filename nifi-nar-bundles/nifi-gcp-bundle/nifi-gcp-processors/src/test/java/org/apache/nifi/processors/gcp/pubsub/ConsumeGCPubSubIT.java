@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,7 +41,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
-        runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
         runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "10");
 
@@ -62,7 +63,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
-        runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
         runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "2");
 
@@ -86,7 +87,7 @@ public class ConsumeGCPubSubIT extends AbstractGCPubSubIT{
         runner = setCredentialsCS(runner);
 
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT_ID);
-        runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, subscription);
         runner.setProperty(ConsumeGCPubSub.BATCH_SIZE, "2");
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,7 +40,7 @@ public class PublishGCPubSubIT extends AbstractGCPubSubIT{
 
         runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(PublishGCPubSub.TOPIC_NAME, topic);
-        runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(PublishGCPubSub.BATCH_SIZE, "1");
 
         runner.assertValid();
@@ -60,7 +61,7 @@ public class PublishGCPubSubIT extends AbstractGCPubSubIT{
 
         runner.setProperty(PublishGCPubSub.PROJECT_ID, PROJECT_ID);
         runner.setProperty(PublishGCPubSub.TOPIC_NAME, topic);
-        runner.setProperty(PublishGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(PublishGCPubSub.BATCH_SIZE, "1");
 
         runner.assertValid();

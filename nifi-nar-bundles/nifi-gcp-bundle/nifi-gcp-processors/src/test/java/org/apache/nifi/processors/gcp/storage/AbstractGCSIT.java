@@ -25,6 +25,7 @@ import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.testing.RemoteStorageHelper;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -96,7 +97,7 @@ public abstract class AbstractGCSIT {
         runner.addControllerService("gcpCredentialsControllerService", credentialsControllerService);
         runner.enableControllerService(credentialsControllerService);
 
-        runner.setProperty(AbstractGCSProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
         runner.setProperty(AbstractGCSProcessor.PROJECT_ID, PROJECT_ID);
         runner.setProperty(AbstractGCSProcessor.RETRY_COUNT, String.valueOf(RETRIES));
 

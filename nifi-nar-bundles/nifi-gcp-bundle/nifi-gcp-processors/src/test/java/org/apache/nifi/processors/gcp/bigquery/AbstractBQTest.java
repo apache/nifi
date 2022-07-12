@@ -24,6 +24,7 @@ import com.google.cloud.bigquery.testing.RemoteBigQueryHelper;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +58,7 @@ public abstract class AbstractBQTest {
         runner.addControllerService("gcpCredentialsControllerService", credentialsService);
         runner.enableControllerService(credentialsService);
 
-        runner.setProperty(AbstractBigQueryProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, "gcpCredentialsControllerService");
         runner.setProperty(AbstractBigQueryProcessor.PROJECT_ID, PROJECT_ID);
         runner.setProperty(AbstractBigQueryProcessor.RETRY_COUNT, String.valueOf(RETRIES));
 

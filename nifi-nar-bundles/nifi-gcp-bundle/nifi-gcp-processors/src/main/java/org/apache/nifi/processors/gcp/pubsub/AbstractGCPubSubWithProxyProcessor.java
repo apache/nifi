@@ -24,6 +24,7 @@ import io.grpc.ProxyDetector;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 import javax.annotation.Nullable;
@@ -40,7 +41,7 @@ public abstract class AbstractGCPubSubWithProxyProcessor extends AbstractGCPubSu
         return Collections.unmodifiableList(Arrays.asList(
                 PROJECT_ID,
                 ProxyConfiguration.createProxyConfigPropertyDescriptor(true, ProxyAwareTransportFactory.PROXY_SPECS),
-                GCP_CREDENTIALS_PROVIDER_SERVICE)
+                GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
         );
     }
     protected TransportChannelProvider getTransportChannelProvider(ProcessContext context) {

@@ -115,6 +115,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>com.google.apis</groupId>
+            <artifactId>google-api-services-drive</artifactId>
+            <version>v3-rev20211107-1.32.1</version>
+        </dependency>
+        <dependency>
             <groupId>com.tdunning</groupId>
             <artifactId>json</artifactId>
             <version>1.8</version>
@@ -153,6 +158,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
+                        <exclude>src/test/resources/ListGoogleDriveIT/test_file.txt</exclude>
                         <exclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</exclude>
                         <exclude>src/test/resources/mock-gcp-service-account.json</exclude>
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>

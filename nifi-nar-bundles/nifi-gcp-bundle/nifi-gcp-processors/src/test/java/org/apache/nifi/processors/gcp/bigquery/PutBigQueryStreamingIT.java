@@ -29,6 +29,7 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.DateTimeUtils;
@@ -55,7 +56,7 @@ public class PutBigQueryStreamingIT extends AbstractBigQueryIT {
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(PutBigQueryStreaming.class);
         runner = setCredentialsControllerService(runner);
-        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(AbstractGCPProcessor.PROJECT_ID, PROJECT_ID);
     }
 
