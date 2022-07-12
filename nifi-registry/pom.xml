@@ -453,44 +453,6 @@
             </build>
         </profile>
         <profile>
-            <!-- Checks style and licensing requirements. This is a good idea to run
-            for contributions and for the release process. While it would be nice to
-            run always these plugins can considerably slow the build and have proven
-            to create unstable builds in our multi-module project and when building using
-            multiple threads. The stability issues seen with Checkstyle in multi-module
-            builds include false-positives and false negatives. -->
-            <id>contrib-check</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.rat</groupId>
-                        <artifactId>apache-rat-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-checkstyle-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>check-style</id>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
             <!-- Enables execution of integration tests managed by the Maven FailSafe plugin. -->
             <id>nifi-registry-integration-tests</id>
             <build>
