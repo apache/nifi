@@ -2968,7 +2968,8 @@ public class StandardProcessSessionIT {
         StandardProcessSession session = createSessionForRetry(processor);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-                .build();
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .build();
 
         flowFileQueue.put(flowFileRecord);
 
@@ -2991,7 +2992,8 @@ public class StandardProcessSessionIT {
         final StandardProcessSession session = createSessionForRetry(processor);
 
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-                .build();
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .build();
 
         flowFileQueue.put(flowFileRecord);
 

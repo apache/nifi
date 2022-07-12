@@ -348,7 +348,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
                 }
             } else {
-                final FlowFileRecord currRec = record.getCurrent();
+                FlowFileRecord currRec = record.getCurrent();
+
+                // If there's a retry attribute present, remove it. The attribute should only live while the FlowFile is being processed by the current component
+                if (currRec.getAttribute(retryAttribute) != null) {
+                    currRec = new StandardFlowFileRecord.Builder().fromFlowFile(currRec).removeAttributes(retryAttribute).build();
+                    record.setWorking(currRec, retryAttribute, null, false);
+                }
+
                 final Connection finalDestination = destinations.remove(destinations.size() - 1); // remove last element
                 record.setDestination(finalDestination.getFlowFileQueue());
                 incrementConnectionInputCounts(finalDestination, record);
@@ -357,7 +364,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     incrementConnectionInputCounts(destination, record);
 
                     final StandardFlowFileRecord.Builder builder = new StandardFlowFileRecord.Builder().fromFlowFile(currRec);
-                    builder.removeAttributes(retryAttribute);
                     builder.id(context.getNextFlowFileSequence());
 
                     final String newUuid = UUID.randomUUID().toString();
