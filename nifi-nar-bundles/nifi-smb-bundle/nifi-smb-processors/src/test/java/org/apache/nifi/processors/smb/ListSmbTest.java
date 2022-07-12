@@ -25,6 +25,7 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_S
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
+import static org.apache.nifi.processors.smb.ListSmb.SHARE;
 import static org.apache.nifi.processors.smb.ListSmb.SKIP_FILES_WITH_SUFFIX;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_CONNECTION_POOL_SERVICE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -93,9 +95,10 @@ class ListSmbTest {
 
         final SmbConnectionPoolService connectionPoolService = mock(SmbConnectionPoolService.class);
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool-2");
+        when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://locahost:443/share"));
         final NiFiSmbClientFactory mockSmbClientFactory = mock(NiFiSmbClientFactory.class);
         ((ListSmb) testRunner.getProcessor()).smbClientFactory = mockSmbClientFactory;
-        when(mockSmbClientFactory.create(any(), any(), any(), any(), any())).thenReturn(mockNifiSmbjClient);
+        when(mockSmbClientFactory.create(any(), any())).thenReturn(mockNifiSmbjClient);
         testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool-2");
         testRunner.addControllerService("connection-pool-2", connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
@@ -211,13 +214,11 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final SmbConnectionPoolService connectionPoolService = mockSmbConnectionPoolService();
         testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
+        testRunner.setProperty(SHARE, "share");
         testRunner.addControllerService("connection-pool", connectionPoolService);
-        when(connectionPoolService.getHostname()).thenReturn("hostname");
-        when(connectionPoolService.getPort()).thenReturn(443);
-        when(connectionPoolService.getShareName()).thenReturn("share");
+        when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://hostname:443"));
         final ListSmb underTest = (ListSmb) testRunner.getProcessor();
 
-        testRunner.setProperty(DIRECTORY, "");
         assertEquals("smb://hostname:443/share:\\", underTest.getPath(testRunner.getProcessContext()));
 
         testRunner.setProperty(DIRECTORY, "\\");
@@ -228,11 +229,20 @@ class ListSmbTest {
 
         testRunner.setProperty(DIRECTORY, "root\\subdirectory");
         assertEquals("smb://hostname:443/share:\\root\\subdirectory\\", underTest.getPath(testRunner.getProcessContext()));
+
+        testRunner.removeProperty(SHARE);
+
+        testRunner.setProperty(DIRECTORY, "");
+        assertEquals("smb://hostname:443:\\", underTest.getPath(testRunner.getProcessContext()));
+
+        testRunner.setProperty(DIRECTORY, "root");
+        assertEquals("smb://hostname:443:\\root\\", underTest.getPath(testRunner.getProcessContext()));
     }
 
     private SmbConnectionPoolService mockSmbConnectionPoolService() {
         final SmbConnectionPoolService connectionPoolService = mock(SmbConnectionPoolService.class);
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool");
+        when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://localhost:443/share"));
         return connectionPoolService;
     }
 
@@ -244,7 +254,7 @@ class ListSmbTest {
         final SmbConnectionPoolService connectionPoolService = mockSmbConnectionPoolService();
         final NiFiSmbClientFactory mockSmbClientFactory = mock(NiFiSmbClientFactory.class);
         ((ListSmb) testRunner.getProcessor()).smbClientFactory = mockSmbClientFactory;
-        when(mockSmbClientFactory.create(any(), any(), any(), any(), any())).thenReturn(mockNifiSmbjClient);
+        when(mockSmbClientFactory.create(any(), any())).thenReturn(mockNifiSmbjClient);
         testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
         testRunner.addControllerService("connection-pool", connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);

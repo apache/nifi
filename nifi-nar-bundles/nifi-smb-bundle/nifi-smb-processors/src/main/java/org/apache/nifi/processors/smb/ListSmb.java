@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.smb;
 
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
@@ -27,13 +28,12 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDA
 import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 
 import java.io.IOException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.net.URI;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -136,7 +136,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .build();
 
     public static final PropertyDescriptor SKIP_FILES_WITH_SUFFIX = new Builder()
-            .name("skip-files-with-suffix")
+            .name("file-name-suffix-filter")
             .displayName("File name suffix filter")
             .description("Files ends with the given suffix will be omitted. This is handy when writing large data into "
                     + "temporary files and then moved to a final one. Please be advised that writing data into files "
@@ -145,9 +145,15 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .addValidator(NON_EMPTY_VALIDATOR)
             .addValidator(new MustNotContainDirectorySeparatorsValidator())
             .build();
+    public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
+            .displayName("Share")
+            .name("share")
+            .description("The network share to which files should be listed from. This is the \"first folder\"" +
+                    "after the hostname: smb://hostname:port\\[share]\\dir1\\dir2")
+            .required(false)
+            .addValidator(NON_BLANK_VALIDATOR)
+            .build();
 
-    private static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
-    private static final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
     private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
             AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION,
             AbstractListProcessor.RECORD_WRITER,
@@ -158,7 +164,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             SMB_CONNECTION_POOL_SERVICE,
             DIRECTORY,
             MINIMUM_AGE,
-            SKIP_FILES_WITH_SUFFIX
+            SKIP_FILES_WITH_SUFFIX,
+            SHARE
     ));
 
     NiFiSmbClientFactory smbClientFactory = new NiFiSmbClientFactory();
@@ -175,7 +182,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         attributes.put("path", entity.getPath());
         attributes.put("absolute.path", getPath(context) + entity.getPathWithName());
         attributes.put("identifier", entity.getIdentifier());
-        attributes.put("timestamp", formatter.format(new Date(entity.getTimestamp())));
+        attributes.put("timestamp",
+                ISO_DATE_TIME.format(LocalDateTime.ofEpochSecond(entity.getTimestamp(), 0, ZoneOffset.UTC)));
         attributes.put("size", String.valueOf(entity.getSize()));
         return unmodifiableMap(attributes);
     }
@@ -184,11 +192,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     protected String getPath(ProcessContext context) {
         final SmbConnectionPoolService connectionPoolService =
                 context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbConnectionPoolService.class);
-        final String hostname = connectionPoolService.getHostname();
-        final String port = String.valueOf(connectionPoolService.getPort());
-        final String share = connectionPoolService.getShareName();
+        final URI serviceLocation = connectionPoolService.getServiceLocation();
         final String directory = getDirectory(context);
-        return String.format("smb://%s:%s/%s:\\%s", hostname, port, share, directory.isEmpty() ? "" : directory + "\\");
+        final String shareName = context.getProperty(SHARE).isSet() ? "/" + context.getProperty(SHARE).getValue() : "";
+        return String.format("%s%s:\\%s", serviceLocation.toString(), shareName, directory.isEmpty() ? "" : directory + "\\");
     }
 
     @Override
@@ -212,10 +219,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 }
             }
             return result;
-        } catch (IOException o) {
-            throw o;
         } catch (Exception e) {
-            throw new IOException(e);
+            throw new IOException("Could not perform listing", e);
         }
     }
 
@@ -238,16 +243,14 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     protected Integer countUnfilteredListing(ProcessContext context) throws IOException {
         try (Stream<SmbListableEntity> listing = performListing(context)) {
             return Long.valueOf(listing.count()).intValue();
-        } catch (IOException e) {
-            throw e;
         } catch (Exception e) {
-            throw new IOException(e);
+            throw new IOException("Could not count files", e);
         }
     }
 
     @Override
     protected String getListingContainerName(ProcessContext context) {
-        return String.format("Samba Directory [%s]", getPath(context));
+        return String.format("Remote Directory [%s]", getPath(context));
     }
 
     private boolean isExecutionScheduled(ListingMode listingMode) {
@@ -275,7 +278,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final SmbConnectionPoolService connectionPoolService =
                 context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbConnectionPoolService.class);
         final String directory = getDirectory(context);
-        final NiFiSmbClient smbClient = smbClientFactory.create(connectionPoolService.getHostname(), connectionPoolService.getPort(), connectionPoolService.getShareName(), connectionPoolService.getAuthenticationContext(), connectionPoolService.getSmbClient());
+        final String share = context.getProperty(SHARE).isSet() ? context.getProperty(SHARE).getValue() : "";
+        final NiFiSmbClient smbClient = smbClientFactory.create(connectionPoolService.getSession(), share);
         return smbClient.listRemoteFiles(directory).onClose(smbClient::close);
     }
 

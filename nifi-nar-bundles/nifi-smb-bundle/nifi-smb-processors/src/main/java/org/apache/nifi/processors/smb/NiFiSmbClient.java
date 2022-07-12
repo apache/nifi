@@ -26,30 +26,26 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
-import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
-import org.apache.nifi.processors.smb.SmbListableEntity;
 
 public class NiFiSmbClient {
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
 
-    private Connection smbConnection;
-    private DiskShare share;
+    private final Session session;
+    private final DiskShare share;
 
-    NiFiSmbClient(Connection smbConnection, DiskShare share) {
-        this.smbConnection = smbConnection;
+    NiFiSmbClient(Session session, DiskShare share) {
+        this.session = session;
         this.share = share;
     }
 
@@ -59,7 +55,7 @@ public class NiFiSmbClient {
 
     public void close() {
         try {
-            smbConnection.close();
+            session.close();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

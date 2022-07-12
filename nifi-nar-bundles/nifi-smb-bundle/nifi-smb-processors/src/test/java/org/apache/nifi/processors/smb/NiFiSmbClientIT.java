@@ -80,7 +80,7 @@ public class NiFiSmbClientIT {
     }
 
     private void writeFile(String path, String content) {
-        try (OutputStream outputStream = niFiSmbjClient.getOutputStreamForFile(path)){
+        try (OutputStream outputStream = niFiSmbjClient.getOutputStreamForFile(path)) {
             outputStream.write(content.getBytes());
             outputStream.flush();
         } catch (IOException e) {
@@ -89,8 +89,8 @@ public class NiFiSmbClientIT {
     }
 
     private NiFiSmbClient createClient() throws IOException {
-        return new NiFiSmbClientFactory().create(sambaContainer.getHost(), sambaContainer.getMappedPort(445), "share", authenticationContext,
-                smbClient);
+        return new NiFiSmbClientFactory().create(
+                smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(445)).authenticate(authenticationContext), "share");
     }
 
 }

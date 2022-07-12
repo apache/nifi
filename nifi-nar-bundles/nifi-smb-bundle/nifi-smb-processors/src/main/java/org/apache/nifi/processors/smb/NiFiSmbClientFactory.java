@@ -16,24 +16,20 @@
  */
 package org.apache.nifi.processors.smb;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.Share;
-import java.io.IOException;
 
 public class NiFiSmbClientFactory {
 
-    NiFiSmbClient create(String hostName, Integer port, String shareName,
-            AuthenticationContext authenticationContext, SMBClient smbClient) throws IOException {
-        final Connection connection = smbClient.connect(hostName, port);
-        final Share share = connection.authenticate(authenticationContext).connectShare(shareName);
+    NiFiSmbClient create(Session session, String shareName) {
+        final Share share = session.connectShare(shareName);
         if (share instanceof DiskShare) {
-            return new NiFiSmbClient(connection, (DiskShare) share);
+            return new NiFiSmbClient(session, (DiskShare) share);
         } else {
             throw new IllegalArgumentException("NiFi supports only disk shares but " +
-                    share.getClass().getSimpleName() + " found on host " + hostName + "!");
+                    share.getClass().getSimpleName() + " found on host " + session.getConnection().getRemoteHostname()
+                    + "!");
         }
     }
 

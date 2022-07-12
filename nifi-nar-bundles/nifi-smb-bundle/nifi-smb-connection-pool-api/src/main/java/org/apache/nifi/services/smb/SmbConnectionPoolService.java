@@ -16,45 +16,24 @@
  */
 package org.apache.nifi.services.smb;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.session.Session;
+import java.net.URI;
 import org.apache.nifi.controller.ControllerService;
 
 public interface SmbConnectionPoolService extends ControllerService {
 
     /**
-     * Returns the name of the share to connect.
+     * Returns the identifier of the service location.
      *
-     * @return the share
+     * @return the remote location
      */
-    String getShareName();
+    URI getServiceLocation();
 
     /**
-     * Returns the hostname to connect to.
+     * Returns the active session to use.
      *
-     * @return the hostname
+     * @return the session.
      */
-    String getHostname();
-
-    /**
-     * Returns the port using to connect.
-     *
-     * @return the port.
-     */
-    Integer getPort();
-
-    /**
-     * Returns the SmbClient to use
-     *
-     * @return the smbClient
-     */
-    SMBClient getSmbClient();
-
-    /**
-     * Returns the authentication context.
-     *
-     * @return the authentication context.
-     */
-    AuthenticationContext getAuthenticationContext();
+    Session getSession();
 
 }
