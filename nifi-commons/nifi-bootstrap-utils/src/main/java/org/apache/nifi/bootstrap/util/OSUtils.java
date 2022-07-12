@@ -17,9 +17,6 @@
 
 package org.apache.nifi.bootstrap.util;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.WinNT;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -64,11 +61,8 @@ public final class OSUtils {
             final String processClassName = process.getClass().getName();
             if (processClassName.equals("java.lang.UNIXProcess")) {
                 pid = getUnixPid(process, logger);
-            } else if (processClassName.equals("java.lang.Win32Process")
-                    || processClassName.equals("java.lang.ProcessImpl")) {
-                pid = getWindowsProcessId(process, logger);
             } else {
-                logger.debug("Failed to determine Process ID from [{}]: {}", processClassName, e.getMessage());
+                logger.info("Failed to determine Process ID from [{}]: {}", processClassName, e.getMessage());
             }
         }
 
@@ -121,31 +115,5 @@ public final class OSUtils {
             logger.debug("Could not find Unix PID", e);
             return null;
         }
-    }
-
-    /**
-     * @param process NiFi Process Reference
-     * @param logger  Logger Reference for Debug
-     * @return        Returns pid or null in-case pid could not be determined
-     * This method takes {@link Process} and {@link Logger} and returns
-     * the platform specific Handle for Win32 Systems, a.k.a <b>pid</b>
-     * In-case it fails to determine the pid, it will return Null.
-     * Purpose for the Logger is to log any interaction for debugging.
-     */
-    private static Long getWindowsProcessId(final Process process, final Logger logger) {
-        Long pid = null;
-        try {
-            final Field handleField = process.getClass().getDeclaredField("handle");
-            handleField.setAccessible(true);
-            long peer = handleField.getLong(process);
-
-            final Kernel32 kernel = Kernel32.INSTANCE;
-            final WinNT.HANDLE handle = new WinNT.HANDLE();
-            handle.setPointer(Pointer.createConstant(peer));
-            pid = Long.valueOf(kernel.GetProcessId(handle));
-        } catch (final IllegalAccessException | NoSuchFieldException e) {
-            logger.debug("Could not find Windows PID", e);
-        }
-        return pid;
     }
 }
