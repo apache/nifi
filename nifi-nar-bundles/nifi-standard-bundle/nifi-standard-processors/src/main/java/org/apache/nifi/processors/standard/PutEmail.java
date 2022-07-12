@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.activation.DataHandler;
@@ -51,9 +52,11 @@ import jakarta.mail.internet.PreencodedMimeBodyPart;
 import jakarta.mail.util.ByteArrayDataSource;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -62,6 +65,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -79,9 +83,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 @Tags({"email", "put", "notify", "smtp"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends an e-mail to configured recipients for each incoming FlowFile")
+@SupportsSensitiveDynamicProperties
+@DynamicProperty(name = "mail.propertyName",
+        value = "Value for a specific property to be set in the JavaMail Session object",
+        description = "Dynamic property names that will be passed to the Mail session. " +
+                "Possible properties can be found in: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html.",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a String object) "
         + "will be read into memory in case the property to use the flow file content as the email body is set to true.")
 public class PutEmail extends AbstractProcessor {
+
+    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.smtps?\\.([a-z0-9\\.]+)$");
 
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
             .name("SMTP Hostname")
@@ -150,8 +162,8 @@ public class PutEmail extends AbstractProcessor {
             .name("attribute-name-regex")
             .displayName("Attributes to Send as Headers (Regex)")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
-                + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
-                + "If not specified, no FlowFile attributes will be added as headers.")
+                    + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
+                    + "If not specified, no FlowFile attributes will be added as headers.")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)
             .build();
@@ -303,6 +315,18 @@ public class PutEmail extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .description("SMTP property passed to the Mail Session")
+                .required(false)
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .addValidator(new DynamicMailPropertyValidator())
+                .build();
     }
 
     @Override
@@ -464,6 +488,16 @@ public class PutEmail extends AbstractProcessor {
             }
         }
 
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            if (descriptor.isDynamic()) {
+                final String mailPropertyValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                // Nullable values are not allowed, so filter out
+                if (null != mailPropertyValue) {
+                    properties.setProperty(descriptor.getName(), mailPropertyValue);
+                }
+            }
+        }
+
         return properties;
 
     }
@@ -493,7 +527,7 @@ public class PutEmail extends AbstractProcessor {
      * @throws AddressException if the property cannot be parsed to a valid InternetAddress[]
      */
     private InternetAddress[] toInetAddresses(final ProcessContext context, final FlowFile flowFile,
-            PropertyDescriptor propertyDescriptor) throws AddressException {
+                                              PropertyDescriptor propertyDescriptor) throws AddressException {
         InternetAddress[] parse;
         final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
         if (value == null || value.isEmpty()){
@@ -522,5 +556,36 @@ public class PutEmail extends AbstractProcessor {
      */
     protected void send(final Message msg) throws MessagingException {
         Transport.send(msg);
+    }
+
+    private static class DynamicMailPropertyValidator implements Validator {
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            final Matcher matcher = MAIL_PROPERTY_PATTERN.matcher(subject);
+            if (!matcher.matches()) {
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation(String.format("[%s] does not start with mail.smtp", subject))
+                        .build();
+            }
+
+            if (propertyToContext.containsKey(subject)) {
+                return new ValidationResult.Builder()
+                        .input(input)
+                        .subject(subject)
+                        .valid(false)
+                        .explanation(String.format("[%s] overwrites standard properties", subject))
+                        .build();
+            }
+
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .explanation("Valid mail.smtp property found")
+                    .build();
+        }
     }
 }

@@ -180,11 +180,9 @@ public class TestPutEmail {
     @Test
     public void testInvalidAddress() {
         // verifies that unparsable addresses lead to the flow file being routed to failure
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        setRequiredProperties(runner);
         runner.setProperty(PutEmail.FROM, "test@apache.org <invalid");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
         runner.enqueue("Some Text".getBytes());
 
@@ -200,11 +198,9 @@ public class TestPutEmail {
     public void testEmptyFrom() {
         // verifies that if the FROM property evaluates to an empty string at
         // runtime the flow file is transferred to failure.
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        setRequiredProperties(runner);
         runner.setProperty(PutEmail.FROM, "${MISSING_PROPERTY}");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
         runner.enqueue("Some Text".getBytes());
 
@@ -220,13 +216,10 @@ public class TestPutEmail {
     @Test
     public void testOutgoingMessageAttachment() throws Exception {
         // verifies that are set on the outgoing Message correctly
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        setRequiredProperties(runner);
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
         runner.setProperty(PutEmail.ATTACH_FILE, "true");
         runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
@@ -265,11 +258,8 @@ public class TestPutEmail {
     @Test
     public void testOutgoingMessageWithFlowfileContent() throws Exception {
         // verifies that are set on the outgoing Message correctly
-        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
+        setRequiredProperties(runner);
         runner.setProperty(PutEmail.MESSAGE, "${body}");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
         runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
         runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
@@ -299,4 +289,42 @@ public class TestPutEmail {
         assertEquals("anotherbcc@apache.org", message.getRecipients(RecipientType.BCC)[1].toString());
     }
 
+    @Test
+    public void testValidDynamicMailProperties() {
+        setRequiredProperties(runner);
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.smtp.timeout", "sample dynamic smtp property");
+        runner.setProperty("mail.smtps.timeout", "sample dynamic smtps property");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testInvalidDynamicMailPropertyName() {
+        setRequiredProperties(runner);
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.", "sample_value");
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testOverwritingDynamicMailProperty() {
+        setRequiredProperties(runner);
+        runner.setProperty(PutEmail.MESSAGE, "${body}");
+        runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
+
+        runner.setProperty("mail.smtp.user", "test-user-value");
+        runner.assertNotValid();
+    }
+
+    private void setRequiredProperties(final TestRunner runner) {
+        // values here may be overridden in some tests
+        runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
+        runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+    }
 }
