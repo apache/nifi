@@ -19,11 +19,9 @@
 
 var AppRun =  function($rootScope,$state,$http){
 
-    // Get the Request Token for CSRF mitigation and send on all requests
-    if (nf.AuthorizationStorage.hasToken()) {
-        var token = nf.AuthorizationStorage.getRequestToken();
-        $http.defaults.headers.common['Request-Token'] = token;
-    }
+    // Set CSRF Cookie and Header names to match Spring Security configuration in StandardCookieCsrfTokenRepository
+    $http.defaults.xsrfCookieName = '__Secure-Request-Token';
+    $http.defaults.xsrfHeaderName = 'Request-Token';
 
     $rootScope.$on('$stateChangeError', function(event, toState, toParams, fromState, fromParams, error){
         event.preventDefault();
