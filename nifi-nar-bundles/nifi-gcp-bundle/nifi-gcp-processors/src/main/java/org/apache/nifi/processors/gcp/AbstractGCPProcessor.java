@@ -31,6 +31,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
 import java.net.Proxy;
@@ -106,16 +107,13 @@ public abstract class AbstractGCPProcessor<
             .build();
 
     /**
-     * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
+     * Deprecated - Use {@link GoogleUtils#GCP_CREDENTIALS_PROVIDER_SERVICE} instead
      */
+    @Deprecated
     public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("gcp-credentials-provider-service")
-            .name("GCP Credentials Provider Service")
-            .description("The Controller Service used to obtain Google Cloud Platform credentials.")
-            .required(true)
-            .identifiesControllerService(GCPCredentialsService.class)
+            .fromPropertyDescriptor(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
+            .name("GCP Credentials Provider Service") // For backward compatibility
             .build();
-
 
     protected volatile CloudService cloudService;
 

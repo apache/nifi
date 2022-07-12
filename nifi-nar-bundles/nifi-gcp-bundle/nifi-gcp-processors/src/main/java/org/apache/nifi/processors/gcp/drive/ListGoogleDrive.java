@@ -1,0 +1,364 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.gcp.drive;
+
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.DriveScopes;
+import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.FileList;
+import com.google.auth.http.HttpCredentialsAdapter;
+import com.google.auth.oauth2.GoogleCredentials;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.annotation.behavior.Stateful;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+@PrimaryNodeOnly
+@TriggerSerially
+@Tags({"google", "drive", "storage"})
+@CapabilityDescription("Lists concrete files (shortcuts are ignored) in a Google Drive folder. " +
+        "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
+        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
+        "previous node left off without duplicating all of the data.")
+@InputRequirement(Requirement.INPUT_FORBIDDEN)
+@WritesAttributes({@WritesAttribute(attribute = "drive.id", description = "The id of the file"),
+        @WritesAttribute(attribute = "filename", description = "The name of the file"),
+        @WritesAttribute(attribute = "drive.size", description = "The size of the file"),
+        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file." +
+                " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
+                " 'Created time' takes the time when the upload occurs. However uploaded files can still be modified later."),
+        @WritesAttribute(attribute = "mime.type", description = "MimeType of the file")})
+@Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
+        " What exactly needs to be stored depends on the 'Listing Strategy'." +
+        " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
+        " where the previous node left off, without duplicating the data.")
+public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> {
+    private static final String APPLICATION_NAME = "NiFi";
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
+
+    private volatile HttpTransport httpTransport;
+
+    public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
+            .name("folder-id")
+            .displayName("Folder ID")
+            .description("The ID of the folder from which to pull list of files. Needs to be shared with a Service Account." +
+                    " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
+                    " This results in the processor not creating result flowfiles. No additional error message is provided.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .build();
+
+    public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
+            .name("recursive-search")
+            .displayName("Search Recursively")
+            .description("When 'true', will include list of files from concrete sub-folders (ignores shortcuts)." +
+                    " Otherwise, will return only files that have the defined 'Folder ID' as their parent directly." +
+                    " WARNING: The listing may fail if there are too many sub-folders (500+).")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
+    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+            .name("min-age")
+            .displayName("Minimum File Age")
+            .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractListProcessor.LISTING_STRATEGY)
+            .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, BY_TIME_WINDOW, NO_TRACKING)
+            .build();
+
+    public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ListedEntityTracker.TRACKING_STATE_CACHE)
+            .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+            .build();
+
+    public static final PropertyDescriptor TRACKING_TIME_WINDOW = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ListedEntityTracker.TRACKING_TIME_WINDOW)
+            .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+            .build();
+
+    public static final PropertyDescriptor INITIAL_LISTING_TARGET = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(ListedEntityTracker.INITIAL_LISTING_TARGET)
+            .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
+            .build();
+
+    private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+            GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
+            FOLDER_ID,
+            RECURSIVE_SEARCH,
+            MIN_AGE,
+            LISTING_STRATEGY,
+            TRACKING_STATE_CACHE,
+            TRACKING_TIME_WINDOW,
+            INITIAL_LISTING_TARGET,
+            RECORD_WRITER,
+            ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
+    ));
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
+    }
+
+    @Override
+    protected void customValidate(ValidationContext validationContext, Collection<ValidationResult> results) {
+    }
+
+    @Override
+    protected Map<String, String> createAttributes(
+            final GoogleDriveFileInfo entity,
+            final ProcessContext context
+    ) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("drive.id", entity.getId());
+        attributes.put("filename", entity.getName());
+        attributes.put("drive.size", String.valueOf(entity.getSize()));
+        attributes.put("drive.timestamp", String.valueOf(entity.getTimestamp()));
+        attributes.put("mime.type", entity.getMimeType());
+
+        return attributes;
+    }
+
+    @OnScheduled
+    public void onScheduled(final ProcessContext context) throws IOException {
+        final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
+        httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
+    }
+
+    @Override
+    protected String getListingContainerName(final ProcessContext context) {
+        return String.format("Google Drive Folder [%s]", getPath(context));
+    }
+
+    @Override
+    protected String getPath(final ProcessContext context) {
+        return context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
+    }
+
+    @Override
+    protected boolean isListingResetNecessary(final PropertyDescriptor property) {
+        return LISTING_STRATEGY.equals(property)
+                || FOLDER_ID.equals(property)
+                || RECURSIVE_SEARCH.equals(property);
+    }
+
+    @Override
+    protected Scope getStateScope(final PropertyContext context) {
+        return Scope.CLUSTER;
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return GoogleDriveFileInfo.getRecordSchema();
+    }
+
+    @Override
+    protected String getDefaultTimePrecision() {
+        return PRECISION_SECONDS.getValue();
+    }
+
+    @Override
+    protected List<GoogleDriveFileInfo> performListing(
+            final ProcessContext context,
+            final Long minTimestamp,
+            final ListingMode listingMode
+    ) throws IOException {
+        final List<GoogleDriveFileInfo> listing = new ArrayList<>();
+
+        final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
+        final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
+        final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+
+        Drive driveService = new Drive.Builder(
+                this.httpTransport,
+                JSON_FACTORY,
+                getHttpCredentialsAdapter(
+                        context,
+                        Arrays.asList(DriveScopes.DRIVE_METADATA_READONLY)
+                )
+        )
+                .setApplicationName(APPLICATION_NAME)
+                .build();
+
+        StringBuilder queryBuilder = new StringBuilder();
+        queryBuilder.append(buildQueryForDirs(driveService, folderId, recursive));
+        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.folder')");
+        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.shortcut')");
+        queryBuilder.append(" and trashed = false");
+        if (minTimestamp != null && minTimestamp > 0) {
+            String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
+
+            queryBuilder.append(" and (");
+            queryBuilder.append("modifiedTime >= '" + formattedMinTimestamp + "'");
+            queryBuilder.append(" or createdTime >= '" + formattedMinTimestamp + "'");
+            queryBuilder.append(")");
+        }
+        if (minAge != null && minAge > 0) {
+            long maxTimestamp = System.currentTimeMillis() - minAge;
+            String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
+
+            queryBuilder.append(" and modifiedTime < '" + formattedMaxTimestamp + "'");
+            queryBuilder.append(" and createdTime < '" + formattedMaxTimestamp + "'");
+        }
+
+        String pageToken = null;
+        do {
+            FileList result = driveService.files()
+                    .list()
+                    .setQ(queryBuilder.toString())
+                    .setPageToken(pageToken)
+                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
+                    .execute();
+
+            for (File file : result.getFiles()) {
+                GoogleDriveFileInfo.Builder builder = new GoogleDriveFileInfo.Builder()
+                        .id(file.getId())
+                        .fileName(file.getName())
+                        .size(file.getSize())
+                        .createdTime(file.getCreatedTime().getValue())
+                        .modifiedTime(file.getModifiedTime().getValue())
+                        .mimeType(file.getMimeType());
+
+                listing.add(builder.build());
+            }
+
+            pageToken = result.getNextPageToken();
+        } while (pageToken != null);
+
+        return listing;
+    }
+
+    @Override
+    protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
+        return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
+    }
+
+    HttpCredentialsAdapter getHttpCredentialsAdapter(
+            final ProcessContext context,
+            final Collection<String> scopes
+    ) {
+        GoogleCredentials googleCredentials = getGoogleCredentials(context);
+
+        HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials.createScoped(scopes));
+
+        return httpCredentialsAdapter;
+    }
+
+    private GoogleCredentials getGoogleCredentials(final ProcessContext context) {
+        final GCPCredentialsService gcpCredentialsService = context.getProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
+                .asControllerService(GCPCredentialsService.class);
+
+        return gcpCredentialsService.getGoogleCredentials();
+    }
+
+    private static String buildQueryForDirs(
+            final Drive service,
+            final String folderId,
+            boolean recursive
+    ) throws IOException {
+        StringBuilder queryBuilder = new StringBuilder("('")
+                .append(folderId)
+                .append("' in parents");
+
+        if (recursive) {
+            List<File> subDirectoryList = new LinkedList<>();
+
+            collectSubDirectories(service, folderId, subDirectoryList);
+
+            for (File subDirectory : subDirectoryList) {
+                queryBuilder.append(" or '")
+                        .append(subDirectory.getId())
+                        .append("' in parents");
+            }
+        }
+
+        queryBuilder.append(")");
+
+        return queryBuilder.toString();
+    }
+
+    private static void collectSubDirectories(
+            final Drive service,
+            final String folderId,
+            final List<File> dirList
+    ) throws IOException {
+        String pageToken = null;
+        do {
+            FileList directoryList = service.files()
+                    .list()
+                    .setQ("'" + folderId + "' in parents "
+                            + "and mimeType = 'application/vnd.google-apps.folder'"
+                    )
+                    .setPageToken(pageToken)
+                    .execute();
+
+            for (File directory : directoryList.getFiles()) {
+                dirList.add(directory);
+                collectSubDirectories(service, directory.getId(), dirList);
+            }
+
+            pageToken = directoryList.getNextPageToken();
+        } while (pageToken != null);
+    }
+}
