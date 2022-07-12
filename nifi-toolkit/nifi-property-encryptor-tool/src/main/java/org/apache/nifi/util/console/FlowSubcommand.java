@@ -18,9 +18,6 @@ package org.apache.nifi.util.console;
 
 import picocli.CommandLine;
 
-import java.io.File;
-import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
-
 @CommandLine.Command(name = "flow",
         description = "Operate on flow definition",
         usageHelpWidth=180

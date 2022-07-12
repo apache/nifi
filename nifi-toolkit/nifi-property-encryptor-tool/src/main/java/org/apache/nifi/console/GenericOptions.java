@@ -2,7 +2,7 @@ package org.apache.nifi.console;
 
 import picocli.CommandLine;
 
-@CommandLine.Command(synopsisHeading      = "%nUsage:%n%n",
+@CommandLine.Command(synopsisHeading = "%nUsage:%n%n",
         descriptionHeading   = "%nDescription:%n%n",
         parameterListHeading = "%nParameters:%n%n",
         optionListHeading    = "%nOptions:%n%n",

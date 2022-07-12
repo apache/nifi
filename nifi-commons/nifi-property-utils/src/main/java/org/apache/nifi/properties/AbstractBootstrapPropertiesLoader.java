@@ -126,26 +126,22 @@ public abstract class AbstractBootstrapPropertiesLoader {
      * @return the {@code $APPLICATION_HOME/conf/bootstrap.conf} file
      * @throws IOException if the directory containing the file is not readable
      */
-    private File getBootstrapFile(final String bootstrapPath) throws IOException {
+    public File getBootstrapFile(final String bootstrapPath) throws IOException {
         final File expectedBootstrapFile;
         if (bootstrapPath == null) {
             // Guess at location of bootstrap.conf file from nifi.properties file
             final String defaultApplicationPropertiesFilePath = getDefaultApplicationPropertiesFilePath();
             final File propertiesFile = new File(defaultApplicationPropertiesFilePath);
-            final File confDir = new File(propertiesFile.getParent());
-            if (confDir.exists() && confDir.canRead()) {
-                expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
-            } else {
-                throw new IOException(String.format("Configuration Directory [%s] not found for Bootstrap Properties", confDir));
-            }
+            final Path confPath = propertiesFile.getParentFile().toPath();
+            expectedBootstrapFile = getBootstrapFileWithinConfDirectory(confPath);
         } else {
-            expectedBootstrapFile = new File(bootstrapPath);
+            expectedBootstrapFile = getValidBootstrapFile(bootstrapPath);
         }
 
         if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
             return expectedBootstrapFile;
         } else {
-            throw new IOException("Cannot read from " + expectedBootstrapFile.getAbsolutePath());
+            throw new IOException(String.format("Cannot read from [%s]", BOOTSTRAP_CONF));
         }
     }
 
@@ -171,5 +167,30 @@ public abstract class AbstractBootstrapPropertiesLoader {
 
         logger.debug("Default Application Properties Path [{}]", systemPath);
         return systemPath;
+    }
+
+    /**
+     * Retrieve the bootstrap.conf file directly from $APPLICATION_HOME/conf/
+     * @param confPath The $APPLICATION_HOME/conf directory
+     * @return
+     */
+    public File getBootstrapFileWithinConfDirectory(final Path confPath) throws IOException {
+        File expectedBootstrapFile;
+        final File confDir = confPath.toFile();
+        if (confDir.exists() && confDir.canRead()) {
+            expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
+        } else {
+            throw new IOException(String.format("Configuration Directory [%s] not found for Bootstrap Properties", confDir));
+        }
+        return getValidBootstrapFile(expectedBootstrapFile.getPath());
+    }
+
+    private File getValidBootstrapFile(final String filename) throws IOException {
+        File bootstrapFile = new File(filename);
+        if (bootstrapFile.exists() && bootstrapFile.canRead()) {
+            return bootstrapFile;
+        } else {
+            throw new IOException(String.format("Cannot read from [%s]", BOOTSTRAP_CONF));
+        }
     }
 }

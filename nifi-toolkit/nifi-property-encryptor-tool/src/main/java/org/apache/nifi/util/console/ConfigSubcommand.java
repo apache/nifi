@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util.console;
 
+import org.apache.nifi.PropertyEncryptorMain;
 import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import org.apache.nifi.util.console.utils.BaseCommandParameters;
 import picocli.CommandLine;
@@ -34,8 +35,10 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 
     @Override
     public void run() {
+        final PropertyEncryptorMain propertyEncryptorMain = new PropertyEncryptorMain(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
             System.out.println("Encrypting!");
+            propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, passphrase, scheme);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
             System.out.println("Decrypting!");
         }

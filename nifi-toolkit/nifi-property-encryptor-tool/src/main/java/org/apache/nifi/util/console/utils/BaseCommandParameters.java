@@ -19,10 +19,11 @@ package org.apache.nifi.util.console.utils;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.nio.file.Path;
 
 public class BaseCommandParameters {
     @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi")
-    protected File baseDirectory;
+    protected Path baseDirectory;
 
     @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files")
     protected String passphrase;

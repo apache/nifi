@@ -1,11 +1,5 @@
 package org.apache.nifi.serde;
 
-import org.apache.nifi.properties.PropertiesLoader;
-import org.apache.nifi.util.NiFiProperties;
-
-import java.io.File;
-import java.io.IOException;
-
 public abstract class PropertiesSerde {
 
 //

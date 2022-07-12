@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.console.subcommands;
 
+import org.apache.nifi.PropertyEncryptorMain;
 import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import picocli.CommandLine;
 
 import java.io.File;
+import java.nio.file.Path;
 
 /**
  * The 'config' subcommand defines the operations that can be performed on the application configuration (eg. nifi.properties, login-identity-providers.xml etc)
@@ -38,7 +40,7 @@ public class Config implements Runnable {
 
     static class BaseDirectory {
         @CommandLine.Parameters(index="0", paramLabel="baseDirectory", description="The base directory of NiFi/NiFi Registry/MiNiFi")
-        File baseDirectory;
+        Path baseDirectory;
     }
 
     static class Password {
@@ -78,6 +80,8 @@ public class Config implements Runnable {
 
         @CommandLine.Mixin()
         Scheme scheme;
+
+
 //
 //        @CommandLine.Mixin()
 //        Scheme scheme;
@@ -89,7 +93,9 @@ public class Config implements Runnable {
 
         @Override
         public void run() {
-            System.out.println("Encrypt!");
+            System.out.println(String.format("The property encryptor is running the encrypt command on the given base directory [%s]", configParameters.baseDirectory.baseDirectory));
+            PropertyEncryptorMain main = new PropertyEncryptorMain(configParameters.baseDirectory.baseDirectory, configParameters.password.password);
+            //main.encryptConfigurationFiles(configParameters.baseDirectory.baseDirectory, scheme.scheme);
         }
     }
 

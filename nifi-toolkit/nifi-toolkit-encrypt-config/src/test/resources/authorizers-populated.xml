@@ -129,13 +129,13 @@
         <property name="Authentication Strategy">START_TLS</property>
 
         <property name="Manager DN">someuser</property>
-        <property name="Manager Password">thisIsABadPassword</property>
+        <property name="Manager Password" encryption="none">thisIsABadPassword</property>
 
         <property name="TLS - Keystore"></property>
-        <property name="TLS - Keystore Password">thisIsABadPassword</property>
+        <property name="TLS - Keystore Password" encryption="none">thisIsABadPassword</property>
         <property name="TLS - Keystore Type"></property>
         <property name="TLS - Truststore"></property>
-        <property name="TLS - Truststore Password">thisIsABadPassword</property>
+        <property name="TLS - Truststore Password" encryption="none">thisIsABadPassword</property>
         <property name="TLS - Truststore Type"></property>
         <property name="TLS - Client Auth"></property>
         <property name="TLS - Protocol"></property>
