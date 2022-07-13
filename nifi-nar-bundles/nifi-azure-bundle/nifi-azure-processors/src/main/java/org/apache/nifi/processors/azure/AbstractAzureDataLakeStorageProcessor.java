@@ -33,7 +33,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
+import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 
@@ -95,7 +95,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final String TEMP_FILE_DIRECTORY = "_nifitempdirectory";
 
-    private StorageClientFactory storageClientFactory;
+    private DataLakeServiceClientFactory clientFactory;
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -104,16 +104,16 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     @OnScheduled
     public void onScheduled() {
-        storageClientFactory = new StorageClientFactory();
+        clientFactory = new DataLakeServiceClientFactory();
     }
 
     @OnStopped
     public void onStopped() {
-        storageClientFactory = null;
+        clientFactory = null;
     }
 
-    public StorageClientFactory getStorageClientFactory() {
-        return storageClientFactory;
+    public DataLakeServiceClientFactory getStorageClientFactory() {
+        return clientFactory;
     }
 
     public DataLakeServiceClient getStorageClient(PropertyContext context, FlowFile flowFile) {
@@ -123,7 +123,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
         final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(attributes);
 
-        final DataLakeServiceClient storageClient = getStorageClientFactory().getStorageClient(AzureStorageUtils.getProxyOptions(context), credentialsDetails);
+        final DataLakeServiceClient storageClient = getStorageClientFactory().getStorageClient(credentialsDetails, AzureStorageUtils.getProxyOptions(context));
 
         return storageClient;
     }

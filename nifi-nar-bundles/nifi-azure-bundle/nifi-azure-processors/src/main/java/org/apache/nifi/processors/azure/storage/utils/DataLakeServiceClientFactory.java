@@ -34,38 +34,38 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import reactor.core.publisher.Mono;
 
-public class StorageClientFactory {
+public class DataLakeServiceClientFactory {
 
     private static final long STORAGE_CLIENT_CACHE_SIZE = 10;
 
-    private final Cache<Integer, DataLakeServiceClient> storageClientCache;
+    private final Cache<ADLSCredentialsDetails, DataLakeServiceClient> clientCache;
 
-    public StorageClientFactory() {
-        this.storageClientCache = createCache();
+    public DataLakeServiceClientFactory() {
+        this.clientCache = createCache();
     }
 
-    private Cache<Integer, DataLakeServiceClient> createCache() {
+    private Cache<ADLSCredentialsDetails, DataLakeServiceClient> createCache() {
         return Caffeine.newBuilder()
                 .maximumSize(STORAGE_CLIENT_CACHE_SIZE)
                 .build();
     }
 
-    public Cache<Integer, DataLakeServiceClient> getCache() {
-        return storageClientCache;
+    public Cache<ADLSCredentialsDetails, DataLakeServiceClient> getCache() {
+        return clientCache;
     }
 
     /**
      * Retrieves a {@link DataLakeServiceClient}
      *
-     * @param proxyOptions not used for caching, because proxy parameters are set in the ProxyConfiguration service
      * @param credentialsDetails used for caching because it can contain properties that are results of an expression
+     * @param proxyOptions not used for caching, because proxy parameters are set in the ProxyConfiguration service
      * @return DataLakeServiceClient
      */
-    public DataLakeServiceClient getStorageClient(ProxyOptions proxyOptions, ADLSCredentialsDetails credentialsDetails) {
-        return storageClientCache.get(credentialsDetails.hashCode(), __ -> createStorageClient(proxyOptions, credentialsDetails));
+    public DataLakeServiceClient getStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
+        return clientCache.get(credentialsDetails, __ -> createStorageClient(credentialsDetails, proxyOptions));
     }
 
-    private static DataLakeServiceClient createStorageClient(ProxyOptions proxyOptions, ADLSCredentialsDetails credentialsDetails) {
+    private static DataLakeServiceClient createStorageClient(ADLSCredentialsDetails credentialsDetails, ProxyOptions proxyOptions) {
         final String accountName = credentialsDetails.getAccountName();
         final String accountKey = credentialsDetails.getAccountKey();
         final String sasToken = credentialsDetails.getSasToken();

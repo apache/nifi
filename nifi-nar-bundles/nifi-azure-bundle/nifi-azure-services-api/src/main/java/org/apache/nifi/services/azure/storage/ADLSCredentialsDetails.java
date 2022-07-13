@@ -102,8 +102,14 @@ public class ADLSCredentialsDetails {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
         ADLSCredentialsDetails that = (ADLSCredentialsDetails) o;
         return useManagedIdentity == that.useManagedIdentity
                 && Objects.equals(accountName, that.accountName)

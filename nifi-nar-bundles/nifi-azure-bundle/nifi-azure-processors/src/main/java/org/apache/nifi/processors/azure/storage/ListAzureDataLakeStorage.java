@@ -43,7 +43,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
+import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
@@ -172,7 +172,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     private volatile Pattern filePattern;
     private volatile Pattern pathPattern;
 
-    private StorageClientFactory storageClientFactory;
+    private DataLakeServiceClientFactory clientFactory;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -183,14 +183,14 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
     public void onScheduled(final ProcessContext context) {
         filePattern = getPattern(context, FILE_FILTER);
         pathPattern = getPattern(context, PATH_FILTER);
-        storageClientFactory = new StorageClientFactory();
+        clientFactory = new DataLakeServiceClientFactory();
     }
 
     @OnStopped
     public void onStopped() {
         filePattern = null;
         pathPattern = null;
-        storageClientFactory = null;
+        clientFactory = null;
     }
 
     @Override
@@ -260,8 +260,8 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
         return attributes;
     }
 
-    public StorageClientFactory getStorageClientFactory() {
-        return storageClientFactory;
+    public DataLakeServiceClientFactory getStorageClientFactory() {
+        return clientFactory;
     }
 
     private List<ADLSFileInfo> performListing(final ProcessContext context, final Long minTimestamp, final ListingMode listingMode,
@@ -278,7 +278,7 @@ public class ListAzureDataLakeStorage extends AbstractListAzureProcessor<ADLSFil
 
             final ADLSCredentialsDetails credentialsDetails = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
-            final DataLakeServiceClient storageClient = storageClientFactory.getStorageClient(AzureStorageUtils.getProxyOptions(context), credentialsDetails);
+            final DataLakeServiceClient storageClient = clientFactory.getStorageClient(credentialsDetails, AzureStorageUtils.getProxyOptions(context));
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
 
             final ListPathsOptions options = new ListPathsOptions();

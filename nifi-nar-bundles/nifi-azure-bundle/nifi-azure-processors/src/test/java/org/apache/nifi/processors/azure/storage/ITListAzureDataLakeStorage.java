@@ -18,7 +18,7 @@ package org.apache.nifi.processors.azure.storage;
 
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
-import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
+import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
@@ -512,12 +512,12 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         assertSuccess("file1", "file2", "dir1/file11", "dir1/file12", "dir1/dir11/file111", "dir 2/file 21", "file3");
 
-        StorageClientFactory storageClientFactory = ((ListAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
+        DataLakeServiceClientFactory clientFactory = ((ListAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
 
-        assertNotNull(storageClientFactory);
+        assertNotNull(clientFactory);
 
-        storageClientFactory.getCache().cleanUp();
-        assertEquals(1, storageClientFactory.getCache().estimatedSize());
+        clientFactory.getCache().cleanUp();
+        assertEquals(1, clientFactory.getCache().estimatedSize());
 
         runner.stop();
 

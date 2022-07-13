@@ -26,7 +26,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processors.azure.storage.utils.StorageClientFactory;
+import org.apache.nifi.processors.azure.storage.utils.DataLakeServiceClientFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockComponentLog;
@@ -316,12 +316,12 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runner.assertAllFlowFilesTransferred(PutAzureDataLakeStorage.REL_SUCCESS, 3);
 
-        StorageClientFactory storageClientFactory = ((PutAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
+        DataLakeServiceClientFactory clientFactory = ((PutAzureDataLakeStorage) runner.getProcessor()).getStorageClientFactory();
 
-        assertNotNull(storageClientFactory);
+        assertNotNull(clientFactory);
 
-        storageClientFactory.getCache().cleanUp();
-        assertEquals(1, storageClientFactory.getCache().estimatedSize());
+        clientFactory.getCache().cleanUp();
+        assertEquals(1, clientFactory.getCache().estimatedSize());
 
         runner.stop();
 
