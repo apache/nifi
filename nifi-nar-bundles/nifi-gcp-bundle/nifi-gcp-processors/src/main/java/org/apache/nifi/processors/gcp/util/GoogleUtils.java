@@ -24,7 +24,6 @@ public class GoogleUtils {
      * Links to the {@link GCPCredentialsService} which provides credentials for this particular processor.
      */
     public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("gcp-credentials-provider-service")
             .name("GCP Credentials Provider Service")
             .description("The Controller Service used to obtain Google Cloud Platform credentials.")
             .required(true)
