@@ -17,6 +17,7 @@
 package org.apache.nifi.services.smb;
 
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.INTEGER_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
@@ -26,14 +27,14 @@ import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
+import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -51,7 +52,7 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .displayName("Hostname")
             .name("hostname")
-            .description("The network host to which files should be written.")
+            .description("The network host of the SMB file server.")
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .addValidator(NON_BLANK_VALIDATOR)
@@ -68,14 +69,15 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
             .displayName("Username")
             .name("username")
             .description(
-                    "The username used for authentication. If no username is set then anonymous authentication is attempted.")
+                    "The username used for authentication.")
             .required(false)
+            .defaultValue("Guest")
             .addValidator(NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .displayName("Password")
             .name("password")
-            .description("The password used for authentication. Required if Username is set.")
+            .description("The password used for authentication.")
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
             .sensitive(true)
@@ -91,7 +93,7 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .displayName("Timeout")
             .name("timeout")
-            .description("Network timeout in seconds")
+            .description("Timeout in seconds for read and write operations.")
             .required(true)
             .defaultValue("5")
             .addValidator(INTEGER_VALIDATOR)
@@ -102,10 +104,10 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
                     DOMAIN,
                     USERNAME,
                     PASSWORD,
-                    PORT
+                    PORT,
+                    TIMEOUT
             ));
     private SMBClient smbClient;
-    private Connection connection;
     private AuthenticationContext authenticationContext;
     private ConfigurationContext context;
     private String hostname;
@@ -113,7 +115,11 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
 
     @Override
     public Session getSession() {
-        return connection.authenticate(authenticationContext);
+        try {
+            return smbClient.connect(hostname, port).authenticate(authenticationContext);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -127,15 +133,14 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
         this.hostname = context.getProperty(HOSTNAME).getValue();
         this.port = context.getProperty(PORT).asInteger();
         this.smbClient = new SMBClient(SmbConfig.builder()
-                .withTimeout(context.getProperty(TIMEOUT).asLong(), TimeUnit.SECONDS)
+                .withTimeout(context.getProperty(TIMEOUT).asLong(), SECONDS)
+                .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
                 .build());
-        this.connection = smbClient.connect(hostname, port);
         createAuthenticationContext();
     }
 
     @OnDisabled
-    public void onDisabled() throws IOException {
-        connection.close();
+    public void onDisabled() {
         smbClient.close();
     }
 
@@ -157,11 +162,11 @@ public class SmbjConnectionPoolService extends AbstractControllerService impleme
     }
 
     private void createAuthenticationContext() {
-        final String userName = context.getProperty(USERNAME).getValue();
-        final String password = context.getProperty(PASSWORD).getValue();
-        final String domain = context.getProperty(DOMAIN).getValue();
-        if (userName != null && password != null) {
-            authenticationContext = new AuthenticationContext(userName, password.toCharArray(), domain);
+        if (context.getProperty(USERNAME).isSet()) {
+            final String userName = context.getProperty(USERNAME).getValue();
+            final String password = context.getProperty(PASSWORD).isSet() ? context.getProperty(PASSWORD).getValue() : "";
+            final String domainOrNull = context.getProperty(DOMAIN).isSet() ? context.getProperty(DOMAIN).getValue() : null;
+            authenticationContext = new AuthenticationContext(userName, password.toCharArray(), domainOrNull);
         } else {
             authenticationContext = AuthenticationContext.anonymous();
         }

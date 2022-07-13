@@ -86,7 +86,6 @@ public class ListSmbIT {
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
     private NiFiSmbClient nifiSmbClient;
-    private Connection connection;
 
     public static long currentMillis() {
         return currentMillis.get();
@@ -115,7 +114,6 @@ public class ListSmbIT {
     @AfterEach
     public void afterEach() throws IOException {
         nifiSmbClient.close();
-        connection.close();
         smbClient.close();
         sambaContainer.stop();
     }
@@ -288,7 +286,6 @@ public class ListSmbIT {
         assertEquals(1, underTest.performListing(mockProcessContext, null, null).size());
     }
 
-
     private <T> void mockProperty(ProcessContext processContext, PropertyDescriptor descriptor, T value) {
         final PropertyValue mockValue = mock(PropertyValue.class);
         when(processContext.getProperty(descriptor)).thenReturn(mockValue);
@@ -307,7 +304,7 @@ public class ListSmbIT {
 
     private void createClient() throws IOException {
         smbClient = new SMBClient();
-        connection = smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT));
+        final Connection connection = smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT));
         nifiSmbClient = new NiFiSmbClientFactory().create(connection.authenticate(authenticationContext), "share");
     }
 
@@ -316,7 +313,7 @@ public class ListSmbIT {
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create(
                 "smb://" + sambaContainer.getHost() + ":" + sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT)));
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool");
-        doAnswer(invocation -> connection.authenticate(authenticationContext)).when(connectionPoolService).getSession();
+        doAnswer(invocation -> smbClient.connect(sambaContainer.getHost(),sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT)).authenticate(authenticationContext)).when(connectionPoolService).getSession();
         return connectionPoolService;
     }
 
