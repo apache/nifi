@@ -42,7 +42,7 @@ public class SetSingleUserCredentials {
 
     private static final int MINIMUM_USERNAME_LENGTH = 4;
 
-    private static final int MINIMUM_PASSWORD_LENGTH = 12;
+    private static final int MINIMUM_PASSWORD_LENGTH = 4;
 
     public static void main(final String[] arguments) {
         if (arguments.length == 2) {
