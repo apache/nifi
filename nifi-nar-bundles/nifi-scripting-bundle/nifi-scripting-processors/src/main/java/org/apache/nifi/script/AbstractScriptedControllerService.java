@@ -25,7 +25,6 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptRunner;
 
@@ -119,7 +118,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
     }
 
     @OnConfigurationRestored
-    public void onConfigurationRestored(final ProcessContext context) {
+    public void onConfigurationRestored(final ConfigurationContext context) {
         scriptingComponentHelper.setupVariables(context);
         setup();
     }
