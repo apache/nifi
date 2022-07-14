@@ -18,7 +18,7 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 import com.google.cloud.bigquery.FormatOptions;
-import org.apache.nifi.processors.gcp.util.GoogleUtils;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -65,7 +65,7 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
     public void PutBigQueryBatchSmallPayloadTest() throws Exception {
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         runner = setCredentialsControllerService(runner);
-        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
         runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
         runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.json().getType());
@@ -86,7 +86,7 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
     public void PutBigQueryBatchBadRecordTest() throws Exception {
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         runner = setCredentialsControllerService(runner);
-        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
         runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
         runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.json().getType());
@@ -103,7 +103,7 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
     public void PutBigQueryBatchLargePayloadTest() throws InitializationException, IOException {
         String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
         runner = setCredentialsControllerService(runner);
-        runner.setProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
         runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
         runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
         runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.json().getType());

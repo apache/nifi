@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -159,6 +160,50 @@ public class ListGoogleDriveIT {
         // WHEN
         testRunner.setProperty(ListGoogleDrive.FOLDER_ID, main_sub1.getId());
         testRunner.setProperty(ListGoogleDrive.RECURSIVE_SEARCH, "false");
+        testRunner.run();
+
+        // THEN
+        successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
+
+        actualFileNames = successFlowFiles.stream()
+                .map(flowFile -> flowFile.getAttribute("filename"))
+                .collect(Collectors.toSet());
+
+        assertEquals(expectedFileNames, actualFileNames);
+    }
+
+    @Test
+    void doNotListTooYoungFilesWhenMinAgeIsSet() throws Exception {
+        // GIVEN
+        testRunner.setProperty(ListGoogleDrive.MIN_AGE, "15 s");
+
+        createFile("main_file", mainFolderId);
+
+        // Make sure the file 'arrives' and could be listed
+        Thread.sleep(5000);
+
+        // WHEN
+        testRunner.run();
+
+        // THEN
+        List<MockFlowFile> successFlowFiles = testRunner.getFlowFilesForRelationship(ListGoogleDrive.REL_SUCCESS);
+
+        Set<String> actualFileNames = successFlowFiles.stream()
+                .map(flowFile -> flowFile.getAttribute("filename"))
+                .collect(Collectors.toSet());
+
+        assertEquals(Collections.emptySet(), actualFileNames);
+
+        // Next, wait for another 10+ seconds for MIN_AGE to expire then list again
+
+        // GIVEN
+        Thread.sleep(10000);
+
+        Set<String> expectedFileNames = new HashSet<>(Arrays.asList(
+                "main_file"
+        ));
+
+        // WHEN
         testRunner.run();
 
         // THEN

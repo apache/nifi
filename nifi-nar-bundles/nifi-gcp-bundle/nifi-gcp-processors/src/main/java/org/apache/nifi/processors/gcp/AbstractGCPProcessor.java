@@ -106,6 +106,14 @@ public abstract class AbstractGCPProcessor<
             .sensitive(true)
             .build();
 
+    /**
+     * Deprecated - Use {@link GoogleUtils#GCP_CREDENTIALS_PROVIDER_SERVICE} instead
+     */
+    @Deprecated
+    public static final PropertyDescriptor GCP_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
+            .name("GCP Credentials Provider Service") // For backward compatibility
+            .build();
 
     protected volatile CloudService cloudService;
 
@@ -117,7 +125,7 @@ public abstract class AbstractGCPProcessor<
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(
                 PROJECT_ID,
-                GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
+                GCP_CREDENTIALS_PROVIDER_SERVICE,
                 RETRY_COUNT,
                 PROXY_HOST,
                 PROXY_PORT,
@@ -165,7 +173,7 @@ public abstract class AbstractGCPProcessor<
      */
     protected GoogleCredentials getGoogleCredentials(final ProcessContext context) {
         final GCPCredentialsService gcpCredentialsService =
-                context.getProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
+                context.getProperty(GCP_CREDENTIALS_PROVIDER_SERVICE).asControllerService(GCPCredentialsService.class);
         return gcpCredentialsService.getGoogleCredentials();
     }
 

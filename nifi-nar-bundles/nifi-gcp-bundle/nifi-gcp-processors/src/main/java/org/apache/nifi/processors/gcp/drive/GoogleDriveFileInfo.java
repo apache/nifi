@@ -35,6 +35,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private static final String ID = "id";
     private static final String FILENAME = "filename";
     private static final String SIZE = "size";
+    private static final String CREATED_TIME = "createdTime";
     private static final String MODIFIED_TIME = "modifiedTime";
     private static final String MIME_TYPE = "mimeType";
 
@@ -43,6 +44,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
+        recordFields.add(new RecordField(CREATED_TIME, RecordFieldType.TIMESTAMP.getDataType(), false));
         recordFields.add(new RecordField(MODIFIED_TIME, RecordFieldType.TIMESTAMP.getDataType(), false));
         recordFields.add(new RecordField(MIME_TYPE, RecordFieldType.STRING.getDataType()));
         SCHEMA = new SimpleRecordSchema(recordFields);
@@ -51,6 +53,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
     private final String id;
     private final String fileName;
     private final long size;
+    private final long createdTime;
     private final long modifiedTime;
     private final String mimeType;
 
@@ -60,6 +63,10 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
     public String getFileName() {
         return fileName;
+    }
+
+    public long getCreatedTime() {
+        return createdTime;
     }
 
     public long getModifiedTime() {
@@ -77,6 +84,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         values.put(ID, getId());
         values.put(FILENAME, getName());
         values.put(SIZE, getSize());
+        values.put(CREATED_TIME, getCreatedTime());
         values.put(MODIFIED_TIME, getModifiedTime());
         values.put(MIME_TYPE, getMimeType());
 
@@ -91,6 +99,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         private String id;
         private String fileName;
         private long size;
+        private long createdTime;
         private long modifiedTime;
         private String mimeType;
 
@@ -106,6 +115,11 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
         public Builder size(long size) {
             this.size = size;
+            return this;
+        }
+
+        public Builder createdTime(long createdTime) {
+            this.createdTime = createdTime;
             return this;
         }
 
@@ -159,6 +173,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         this.id = builder.id;
         this.fileName = builder.fileName;
         this.size = builder.size;
+        this.createdTime = builder.createdTime;
         this.modifiedTime = builder.modifiedTime;
         this.mimeType = builder.mimeType;
     }
@@ -175,7 +190,9 @@ public class GoogleDriveFileInfo implements ListableEntity {
 
     @Override
     public long getTimestamp() {
-        return getModifiedTime();
+        long timestamp = Math.max(getCreatedTime(), getModifiedTime());
+
+        return timestamp;
     }
 
     @Override

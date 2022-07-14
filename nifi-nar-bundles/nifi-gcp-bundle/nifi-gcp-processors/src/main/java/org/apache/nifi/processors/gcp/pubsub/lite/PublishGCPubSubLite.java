@@ -56,7 +56,6 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.pubsub.AbstractGCPubSubProcessor;
-import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.threeten.bp.Duration;
 
 import java.io.ByteArrayOutputStream;
@@ -129,7 +128,7 @@ public class PublishGCPubSubLite extends AbstractGCPubSubProcessor implements Ve
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return Collections.unmodifiableList(Arrays.asList(TOPIC_NAME,
-                GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
+                GCP_CREDENTIALS_PROVIDER_SERVICE,
                 ORDERING_KEY,
                 BATCH_SIZE,
                 BATCH_BYTES));

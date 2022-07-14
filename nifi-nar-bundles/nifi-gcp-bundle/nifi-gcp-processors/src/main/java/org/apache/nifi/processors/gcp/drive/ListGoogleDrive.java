@@ -64,6 +64,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -75,7 +76,7 @@ import java.util.Map;
 @WritesAttributes({@WritesAttribute(attribute = "drive.id", description = "The id of the file"),
         @WritesAttribute(attribute = "filename", description = "The name of the file"),
         @WritesAttribute(attribute = "drive.size", description = "The size of the file"),
-        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time of the file"),
+        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file"),
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. " +
         "This allows the Processor to list only files that have been added or modified after this date the next time that the Processor is run. State is " +
@@ -105,6 +106,15 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             .allowableValues("true", "false")
             .build();
 
+    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+            .name("min-age")
+            .displayName("Minimum File Age")
+            .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
+
     public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(ListedEntityTracker.TRACKING_STATE_CACHE)
             .dependsOn(LISTING_STRATEGY, BY_ENTITIES)
@@ -124,6 +134,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE,
             FOLDER_ID,
             RECURSIVE_SEARCH,
+            MIN_AGE,
             LISTING_STRATEGY,
             RECORD_WRITER,
             TRACKING_STATE_CACHE,
@@ -204,6 +215,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions().getValue();
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
+        final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
         Drive driveService = new Drive.Builder(
                 this.httpTransport,
@@ -219,9 +231,22 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         StringBuilder queryBuilder = new StringBuilder();
         queryBuilder.append(buildQueryForDirs(driveService, folderId, recursive));
         queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.folder')");
+        queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.shortcut')");
         queryBuilder.append(" and trashed = false");
         if (minTimestamp != null && minTimestamp > 0) {
-            queryBuilder.append(" and (modifiedTime >= '" + DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneId.of("UTC"))) + "')");
+            String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneId.of("UTC")));
+
+            queryBuilder.append(" and (");
+            queryBuilder.append("modifiedTime >= '" + formattedMinTimestamp + "'");
+            queryBuilder.append(" or createdTime >= '" + formattedMinTimestamp + "'");
+            queryBuilder.append(")");
+        }
+        if (minAge != null && minAge > 0) {
+            long maxTimestamp = System.currentTimeMillis() - minAge;
+            String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneId.of("UTC")));
+
+            queryBuilder.append(" and modifiedTime < '" + formattedMaxTimestamp + "'");
+            queryBuilder.append(" and createdTime < '" + formattedMaxTimestamp + "'");
         }
 
         String pageToken = null;
@@ -230,7 +255,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                     .list()
                     .setQ(queryBuilder.toString())
                     .setPageToken(pageToken)
-                    .setFields("nextPageToken, files(id, name, size, modifiedTime, mimeType)")
+                    .setFields("nextPageToken, files(id, name, size, createdTime, modifiedTime, mimeType)")
                     .execute();
 
             for (File file : result.getFiles()) {
@@ -238,6 +263,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                         .id(file.getId())
                         .fileName(file.getName())
                         .size(file.getSize())
+                        .createdTime(file.getCreatedTime().getValue())
                         .modifiedTime(file.getModifiedTime().getValue())
                         .mimeType(file.getMimeType());
 

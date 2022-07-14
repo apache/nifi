@@ -24,7 +24,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
-import org.apache.nifi.processors.gcp.util.GoogleUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 public class MockCredentialsServiceProcessor extends AbstractGCPProcessor {
     public final List<PropertyDescriptor> properties = Arrays.asList(
-            GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE
+            GCP_CREDENTIALS_PROVIDER_SERVICE
     );
 
     @Override
