@@ -128,7 +128,7 @@ public class NiFiWebApiSecurityConfiguration {
             http.addFilterBefore(knoxAuthenticationFilter, AnonymousAuthenticationFilter.class);
         }
 
-        if (properties.isAnonymousAuthenticationAllowed()) {
+        if (properties.isAnonymousAuthenticationAllowed() || properties.isHttpEnabled()) {
             http.addFilterAfter(anonymousAuthenticationFilter, AnonymousAuthenticationFilter.class);
         }
 
