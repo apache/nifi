@@ -609,7 +609,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
                     try {
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
-                            if ((KafkaProcessorUtils.USE_WRAPPER.getValue().equals(consumeStrategy)) && (consumerRecord.key() != null)) {
+                            if ((KafkaProcessorUtils.OUTPUT_USE_WRAPPER.getValue().equals(consumeStrategy)) && (consumerRecord.key() != null)) {
                                 record = toWrapperRecord(consumerRecord, record);
                             }
                             // Determine the bundle for this record.
@@ -729,21 +729,21 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         return new Tuple<>(recordField, headers);
     }
 
-    private Tuple<RecordField, Object> toWrapperRecordMetadata(final ConsumerRecord<byte[], byte[]> consumerRecord) {
-        final RecordField fieldTopic = new RecordField("topic", RecordFieldType.STRING.getDataType());
-        final RecordField fieldPartition = new RecordField("partition", RecordFieldType.INT.getDataType());
-        final RecordField fieldOffset = new RecordField("offset", RecordFieldType.LONG.getDataType());
-        final RecordField fieldTimestamp = new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType());
-        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
-                fieldTopic, fieldPartition, fieldOffset, fieldTimestamp));
+    private static final RecordField FIELD_TOPIC = new RecordField("topic", RecordFieldType.STRING.getDataType());
+    private static final RecordField FIELD_PARTITION = new RecordField("partition", RecordFieldType.INT.getDataType());
+    private static final RecordField FIELD_OFFSET = new RecordField("offset", RecordFieldType.LONG.getDataType());
+    private static final RecordField FIELD_TIMESTAMP = new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType());
+    private static final RecordSchema SCHEMA_WRAPPER = new SimpleRecordSchema(Arrays.asList(
+            FIELD_TOPIC, FIELD_PARTITION, FIELD_OFFSET, FIELD_TIMESTAMP));
 
-        final RecordField recordField = new RecordField("metadata", RecordFieldType.RECORD.getRecordDataType(schema));
+    private Tuple<RecordField, Object> toWrapperRecordMetadata(final ConsumerRecord<byte[], byte[]> consumerRecord) {
+        final RecordField recordField = new RecordField("metadata", RecordFieldType.RECORD.getRecordDataType(SCHEMA_WRAPPER));
         final Map<String, Object> metadata = new HashMap<>();
         metadata.put("topic", consumerRecord.topic());
         metadata.put("partition", consumerRecord.partition());
         metadata.put("offset", consumerRecord.offset());
         metadata.put("timestamp", consumerRecord.timestamp());
-        final Record record = new MapRecord(schema, metadata);
+        final Record record = new MapRecord(SCHEMA_WRAPPER, metadata);
         return new Tuple<>(recordField, record);
     }
 

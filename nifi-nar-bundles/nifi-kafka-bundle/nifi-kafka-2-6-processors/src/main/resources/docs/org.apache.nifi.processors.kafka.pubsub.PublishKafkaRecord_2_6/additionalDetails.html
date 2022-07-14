@@ -200,7 +200,7 @@
 
             <p>'Publish Strategy' controls the mode used to convert the FlowFile record into a Kafka record.</p>
             <ul>
-                <li>'Write Value Only' (the default) persists the record key as a byte array.</li>
+                <li>'Use Content as Record Value' (the default) persists the record key as a byte array.</li>
                 <li>'Use Wrapper' persists the record key as a record.</li>
             </ul>
 
@@ -213,6 +213,53 @@
                 downstream data processing (including that available in ConsumeKafkaRecord_2_6). If not defined, the
                 default implementation serializes the record key as an unmodified byte array (unchanged from previous
                 versions of the processor).</p>
+
+<p>Here is an example of a Kafka Record that is emitted by <code>JsonRecordSetWriter</code> when strategy "Use Wrapper" is active:</p>
+<div>
+<div>from NiFi</div>
+<table border="thin">
+<tr>
+<td>FlowFile content</td>
+<td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
+</tr>
+<tr>
+<td>FlowFile attributes</td>
+<td><code>attributeA=valueA; attributeB=valueB; otherAttribute=otherValue</code></td>
+</tr>
+<tr>
+<td>Message Key Field</td>
+<td>account</td>
+</tr>
+<tr>
+<td>Attributes to Send as Headers (Regex)</td>
+<td>attribute.*</td>
+</tr>
+<tr>
+<td>Publish Strategy</td>
+<td>Use Wrapper</td>
+</tr>
+</table>
+</div>
+<br/>
+
+<div>
+<div>to Kafka</div>
+<table border="thin">
+<tr>
+<td>Record Key</td>
+<td><code>{"name":"Acme","number":"AC1234"}</code></td>
+</tr>
+<tr>
+<td>Record Value</td>
+<td><code>[{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}]</code></td>
+</tr>
+<tr>
+<td>Record Attributes</td>
+<td><code>attributeA=valueA; attributeB=valueB</code></td>
+</tr>
+</table>
+</div>
+
         </div>
     </body>
 </html>

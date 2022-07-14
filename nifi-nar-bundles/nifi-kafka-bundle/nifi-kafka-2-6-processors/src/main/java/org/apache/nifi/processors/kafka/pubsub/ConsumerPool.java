@@ -76,7 +76,7 @@ public class ConsumerPool implements Closeable {
     private final boolean separateByKey;
     private final int[] partitionsToConsume;
     private final boolean commitOffsets;
-    private final String consumeStrategy;
+    private final String outputStrategy;
     private final String keyFormat;
     private final RecordReaderFactory keyReaderFactory;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
@@ -138,7 +138,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
-        this.consumeStrategy = null;
+        this.outputStrategy = null;
         this.keyFormat = null;
         this.keyReaderFactory = null;
         enqueueAssignedPartitions(partitionsToConsume);
@@ -178,7 +178,7 @@ public class ConsumerPool implements Closeable {
         this.separateByKey = separateByKey;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
-        this.consumeStrategy = null;
+        this.outputStrategy = null;
         this.keyFormat = null;
         this.keyReaderFactory = null;
         enqueueAssignedPartitions(partitionsToConsume);
@@ -222,7 +222,7 @@ public class ConsumerPool implements Closeable {
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
-        this.consumeStrategy = outputStrategy;
+        this.outputStrategy = outputStrategy;
         this.keyFormat = keyFormat;
         this.keyReaderFactory = keyReaderFactory;
         enqueueAssignedPartitions(partitionsToConsume);
@@ -266,7 +266,7 @@ public class ConsumerPool implements Closeable {
         this.keyEncoding = keyEncoding;
         this.partitionsToConsume = partitionsToConsume;
         this.commitOffsets = commitOffsets;
-        this.consumeStrategy = outputStrategy;
+        this.outputStrategy = outputStrategy;
         this.keyFormat = keyFormat;
         this.keyReaderFactory = keyReaderFactory;
         enqueueAssignedPartitions(partitionsToConsume);
@@ -641,7 +641,7 @@ public class ConsumerPool implements Closeable {
         private SimpleConsumerLease(final Consumer<byte[], byte[]> consumer, final List<TopicPartition> assignedPartitions) {
             super(maxWaitMillis, consumer, demarcatorBytes, keyEncoding, securityProtocol, bootstrapServers,
                     readerFactory, writerFactory, logger, headerCharacterSet, headerNamePattern, separateByKey,
-                    commitOffsets, consumeStrategy, keyFormat, keyReaderFactory);
+                    commitOffsets, outputStrategy, keyFormat, keyReaderFactory);
             this.consumer = consumer;
             this.assignedPartitions = assignedPartitions;
         }

@@ -29,8 +29,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.KEY_AS_RECORD;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.USE_WRAPPER;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.WRITE_VALUE_ONLY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.OUTPUT_USE_VALUE;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.OUTPUT_USE_WRAPPER;
 import static org.mockito.Mockito.mock;
 
 public class TestConsumeKafkaRecordKey_2_6 {
@@ -76,11 +76,11 @@ public class TestConsumeKafkaRecordKey_2_6 {
         runner.setProperty(ConsumeKafkaRecord_2_6.TOPICS, "foo");
         runner.setProperty(ConsumeKafkaRecord_2_6.GROUP_ID, "foo");
         runner.assertValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.CONSUME_STRATEGY, "foo");
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, "foo");
         runner.assertNotValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.CONSUME_STRATEGY, WRITE_VALUE_ONLY);
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OUTPUT_USE_VALUE);
         runner.assertValid();
-        runner.setProperty(ConsumeKafkaRecord_2_6.CONSUME_STRATEGY, USE_WRAPPER);
+        runner.setProperty(ConsumeKafkaRecord_2_6.OUTPUT_STRATEGY, OUTPUT_USE_WRAPPER);
         runner.assertValid();
         runner.setProperty(ConsumeKafkaRecord_2_6.KEY_FORMAT, "foo");
         runner.assertNotValid();

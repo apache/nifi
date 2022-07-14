@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
@@ -103,9 +104,8 @@ public class TestConsumeKafkaMock {
 
         final TestRunner runner = getTestRunner(consumerRecords, TEST_TOPIC, TEST_GROUP);
         runner.run(1);
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertNull(flowFile.getAttribute("kafka.key"));
@@ -127,9 +127,8 @@ public class TestConsumeKafkaMock {
 
         final TestRunner runner = getTestRunner(consumerRecords, TEST_TOPIC, TEST_GROUP);
         runner.run(1);
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertEquals(key, flowFile.getAttribute("kafka.key"));
@@ -152,9 +151,8 @@ public class TestConsumeKafkaMock {
 
         final TestRunner runner = getTestRunner(consumerRecords, TEST_TOPIC, TEST_GROUP);
         runner.run(1);
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         assertEquals(valueRecordSet, flowFile.getContent());
         assertEquals(key, flowFile.getAttribute("kafka.key"));
@@ -180,13 +178,11 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("consume-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", "use-wrapper");
         runner.setProperty("key-format", "byte-array");
         runner.run(1);
-
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
@@ -196,14 +192,10 @@ public class TestConsumeKafkaMock {
         final JsonNode flowFileValue = nodeFlowFile.iterator().next();
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
-        final JsonNode nodeWrapperKey = flowFileValue.get("key");
-        final JsonNode nodeWrapperValue = flowFileValue.get("value");
-        final JsonNode nodeWrapperHeaders = flowFileValue.get("headers");
-        final JsonNode nodeWrapperMetadata = flowFileValue.get("metadata");
-        assertNotNull(nodeWrapperKey);
-        assertNotNull(nodeWrapperValue);
-        assertNotNull(nodeWrapperHeaders);
-        assertNotNull(nodeWrapperMetadata);
+        final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
+        final JsonNode nodeWrapperValue = Objects.requireNonNull(flowFileValue.get("value"));
+        final JsonNode nodeWrapperHeaders = Objects.requireNonNull(flowFileValue.get("headers"));
+        final JsonNode nodeWrapperMetadata = Objects.requireNonNull(flowFileValue.get("metadata"));
         // validate headers
         assertEquals(2, nodeWrapperHeaders.size());
         final JsonNode header1 = nodeWrapperHeaders.get("header1");
@@ -253,13 +245,12 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("consume-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", "use-wrapper");
         runner.setProperty("key-format", "byte-array");
         runner.run(1);
 
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
@@ -269,14 +260,7 @@ public class TestConsumeKafkaMock {
         final JsonNode flowFileValue = nodeFlowFile.iterator().next();
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
-        final JsonNode nodeWrapperKey = flowFileValue.get("key");
-        final JsonNode nodeWrapperValue = flowFileValue.get("value");
-        final JsonNode nodeWrapperHeaders = flowFileValue.get("headers");
-        final JsonNode nodeWrapperMetadata = flowFileValue.get("metadata");
-        assertNotNull(nodeWrapperKey);
-        assertNotNull(nodeWrapperValue);
-        assertNotNull(nodeWrapperHeaders);
-        assertNotNull(nodeWrapperMetadata);
+        final JsonNode nodeWrapperHeaders = Objects.requireNonNull(flowFileValue.get("headers"));
         // validate headers
         assertEquals(2, nodeWrapperHeaders.size());
         final JsonNode header1 = nodeWrapperHeaders.get("header1");
@@ -303,13 +287,12 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("consume-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", "use-wrapper");
         runner.setProperty("key-format", "string");
         runner.run(1);
 
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
@@ -319,14 +302,7 @@ public class TestConsumeKafkaMock {
         final JsonNode flowFileValue = nodeFlowFile.iterator().next();
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
-        final JsonNode nodeWrapperKey = flowFileValue.get("key");
-        final JsonNode nodeWrapperValue = flowFileValue.get("value");
-        final JsonNode nodeWrapperHeaders = flowFileValue.get("headers");
-        final JsonNode nodeWrapperMetadata = flowFileValue.get("metadata");
-        assertNotNull(nodeWrapperKey);
-        assertNotNull(nodeWrapperValue);
-        assertNotNull(nodeWrapperHeaders);
-        assertNotNull(nodeWrapperMetadata);
+        final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
         // validate key
         assertTrue(nodeWrapperKey instanceof TextNode);
         TextNode textNodeKey = (TextNode) nodeWrapperKey;
@@ -356,14 +332,13 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("consume-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", "use-wrapper");
         runner.setProperty("key-format", "record");
         runner.setProperty("key-record-reader", "record-reader");
         runner.run(1);
 
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("parse.failure", 0);
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("success");
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
         final MockFlowFile flowFile = flowFiles.iterator().next();
         // consume strategy "use-wrapper" emits ArrayNode due to JsonRecordSetWriter
         final JsonNode nodeFlowFile = mapper.readTree(flowFile.getContent());
@@ -373,14 +348,10 @@ public class TestConsumeKafkaMock {
         final JsonNode flowFileValue = nodeFlowFile.iterator().next();
         // wrapper object contains "key", "value", "headers", "metadata"
         assertEquals(4, flowFileValue.size());
-        final JsonNode nodeWrapperKey = flowFileValue.get("key");
-        final JsonNode nodeWrapperValue = flowFileValue.get("value");
-        final JsonNode nodeWrapperHeaders = flowFileValue.get("headers");
-        final JsonNode nodeWrapperMetadata = flowFileValue.get("metadata");
-        assertNotNull(nodeWrapperKey);
-        assertNotNull(nodeWrapperValue);
-        assertNotNull(nodeWrapperHeaders);
-        assertNotNull(nodeWrapperMetadata);
+        final JsonNode nodeWrapperKey = Objects.requireNonNull(flowFileValue.get("key"));
+        final JsonNode nodeWrapperValue = Objects.requireNonNull(flowFileValue.get("value"));
+        final JsonNode nodeWrapperHeaders = Objects.requireNonNull(flowFileValue.get("headers"));
+        final JsonNode nodeWrapperMetadata = Objects.requireNonNull(flowFileValue.get("metadata"));
         // validate headers
         assertEquals(2, nodeWrapperHeaders.size());
         final JsonNode header1 = nodeWrapperHeaders.get("header1");
@@ -451,7 +422,7 @@ public class TestConsumeKafkaMock {
         final String topic = context.getProperty("topic").getValue();
         final Pattern patternTopic = (topic == null) ? null : Pattern.compile(topic);
         final String groupId = context.getProperty(ConsumerConfig.GROUP_ID_CONFIG).getValue();
-        final String consumeStrategy = context.getProperty("consume-strategy").getValue();
+        final String outputStrategy = context.getProperty("output-strategy").getValue();
         final String keyFormat = context.getProperty("key-format").getValue();
         final RecordReaderFactory keyReaderFactory = context.getProperty("key-record-reader")
                 .asControllerService(RecordReaderFactory.class);
@@ -472,7 +443,7 @@ public class TestConsumeKafkaMock {
                 UTF_8.name().toLowerCase(Locale.ROOT),
                 null,
                 true,
-                consumeStrategy,
+                outputStrategy,
                 keyFormat,
                 keyReaderFactory) {
             @Override

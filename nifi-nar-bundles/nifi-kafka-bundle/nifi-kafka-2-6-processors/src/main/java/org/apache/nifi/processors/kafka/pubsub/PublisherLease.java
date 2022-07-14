@@ -197,23 +197,7 @@ public class PublisherLease implements Closeable {
                     writer.flush();
                 }
                 final byte[] messageContent = baos.toByteArray();
-
-                final byte[] messageKey;
-                if ((recordKeyWriterFactory == null) || (messageKeyField == null)) {
-                    messageKey = Optional.ofNullable(record.getAsString(messageKeyField))
-                            .map(s -> s.getBytes(StandardCharsets.UTF_8)).orElse(null);
-                } else {
-                    try (final ByteArrayOutputStream os = new ByteArrayOutputStream(1024)) {
-                        final Record keyRecord = Optional.ofNullable(record.getValue(messageKeyField))
-                                .filter(Record.class::isInstance).map(Record.class::cast)
-                                .orElseThrow(() ->  new IOException("The property 'Record Key Writer' is defined, but the record key is not a record"));
-                        try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
-                            writerKey.write(keyRecord);
-                            writerKey.flush();
-                        }
-                        messageKey = os.toByteArray();
-                    }
-                }
+                final byte[] messageKey = getMessageKey(flowFile, writerFactory, record.getValue(messageKeyField));
 
                 final Integer partition = partitioner == null ? null : partitioner.apply(record);
                 publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker, partition);
@@ -236,6 +220,39 @@ public class PublisherLease implements Closeable {
             poison();
             throw e;
         }
+    }
+
+    private byte[] getMessageKey(final FlowFile flowFile, final RecordSetWriterFactory writerFactory,
+                                 final Object keyValue) throws IOException, SchemaNotFoundException {
+        final byte[] messageKey;
+        if (keyValue == null) {
+            messageKey = null;
+        } else if (keyValue instanceof byte[]) {
+            messageKey = (byte[]) keyValue;
+        } else if (keyValue instanceof Byte[]) {
+            // This case exists because in our Record API we currently don't have a BYTES type, we use an Array of type
+            // Byte, which creates a Byte[] instead of a byte[]. We should address this in the future, but we should
+            // account for the log here.
+            final Byte[] bytes = (Byte[]) keyValue;
+            final byte[] bytesPrimitive = new byte[bytes.length];
+            for (int i = 0; i < bytes.length; i++) {
+                bytesPrimitive[i] = bytes[i];
+            }
+            messageKey = bytesPrimitive;
+        } else if (keyValue instanceof Record) {
+            final Record keyRecord = (Record) keyValue;
+            try (final ByteArrayOutputStream os = new ByteArrayOutputStream(1024)) {
+                try (final RecordSetWriter writerKey = writerFactory.createWriter(logger, keyRecord.getSchema(), os, flowFile)) {
+                    writerKey.write(keyRecord);
+                    writerKey.flush();
+                }
+                messageKey = os.toByteArray();
+            }
+        } else {
+            final String keyString = keyValue.toString();
+            messageKey = keyString.getBytes(StandardCharsets.UTF_8);
+        }
+        return messageKey;
     }
 
     private void addHeaders(final FlowFile flowFile, final Map<String, String> additionalAttributes, final ProducerRecord<?, ?> record) {

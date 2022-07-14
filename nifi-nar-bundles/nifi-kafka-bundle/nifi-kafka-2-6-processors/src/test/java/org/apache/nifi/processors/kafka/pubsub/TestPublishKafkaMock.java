@@ -91,8 +91,7 @@ public class TestPublishKafkaMock {
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("failure", 0);
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> record = producedRecords.iterator().next();
         assertEquals(TEST_TOPIC_PUBLISH, record.topic());
@@ -124,8 +123,7 @@ public class TestPublishKafkaMock {
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("failure", 0);
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> record = producedRecords.iterator().next();
         assertEquals(TEST_TOPIC_PUBLISH, record.topic());
@@ -159,8 +157,7 @@ public class TestPublishKafkaMock {
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("failure", 0);
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> record = producedRecords.iterator().next();
         assertEquals(TEST_TOPIC_PUBLISH, record.topic());
@@ -195,8 +192,7 @@ public class TestPublishKafkaMock {
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("failure", 0);
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> record = producedRecords.iterator().next();
         assertEquals(TEST_TOPIC_PUBLISH, record.topic());
@@ -231,13 +227,15 @@ public class TestPublishKafkaMock {
         runner.setProperty("record-key-writer", "record-writer");
         runner.enqueue(flowFile);
         runner.run(1);
-        // verify results (processor configuration error state)
-        runner.assertTransferCount("success", 0);
-        runner.assertTransferCount("failure", 1);
-        assertEquals(0, producedRecords.size());
-        final List<MockFlowFile> failure = runner.getFlowFilesForRelationship("failure");
-        final MockFlowFile flowFileFail = failure.iterator().next();
-        assertNotNull(flowFileFail.getAttributes());  // should a "kafka.failure" attribute be added by processor?
+        // verify results
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
+        assertEquals(1, producedRecords.size());
+        final ProducerRecord<byte[], byte[]> producedRecord = producedRecords.iterator().next();
+        assertEquals("valueB", new String(producedRecord.key(), UTF_8));
+        assertEquals(value, new String(producedRecord.value(), UTF_8));
+        final List<MockFlowFile> success = runner.getFlowFilesForRelationship(PublishKafkaRecord_2_6.REL_SUCCESS);
+        final MockFlowFile flowFile1 = success.iterator().next();
+        assertNotNull(flowFile1.getAttribute("uuid"));
     }
 
     @Test
@@ -247,7 +245,6 @@ public class TestPublishKafkaMock {
         attributes.put("attrKeyA", "attrValueA");
         attributes.put("attrKeyB", "attrValueB");
         final ObjectNode key = mapper.createObjectNode().put("recordKey", "recordValue");
-        final String keyString = mapper.writeValueAsString(key);
         final ObjectNode node = mapper.createObjectNode()
                 .put("recordA", 1).put("recordB", "valueB").set("recordKey", key);
         final String value = mapper.writeValueAsString(node);
@@ -264,14 +261,14 @@ public class TestPublishKafkaMock {
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
-        runner.assertTransferCount("success", 1);
-        runner.assertTransferCount("failure", 0);
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_6.REL_SUCCESS, 1);
         assertEquals(1, producedRecords.size());
         final ProducerRecord<byte[], byte[]> record = producedRecords.iterator().next();
         assertEquals(TEST_TOPIC_PUBLISH, record.topic());
         final Headers headers = record.headers();
         assertEquals(0, headers.toArray().length);
         assertNotNull(record.key());
+        final String keyString = mapper.writeValueAsString(key);
         assertEquals(keyString, new String(record.key(), UTF_8));
         assertNotNull(record.value());
         assertEquals(value, new String(record.value(), UTF_8));

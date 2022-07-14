@@ -270,22 +270,54 @@
             </ul>
 
 
-            <p>The record schema that is used when 'Use Wrapper' is active is as follows:</p>
-            <ul>
-                <li>key: one of RECORD, STRING, or BYTE_ARRAY (based on processor configuration property 'Key Format')
-                </li>
-                <li>value: RECORD</li>
-                <li>headers: MAP (STRING, STRING)</li>
-                <li>metadata: RECORD
-                    <ul>
-                        <li>topic: STRING</li>
-                        <li>partition: INTEGER</li>
-                        <li>offset: LONG</li>
-                        <li>timestamp: TIMESTAMP</li>
-                    </ul>
-                </li>
-            </ul>
-
+            <p>The record schema that is used when 'Use Wrapper' is active is as follows (in Avro format):</p>
+<code>
+<pre>
+[
+  {
+    "type": "record",
+    "name": "kafka:ConsumeRecord:metadata",
+    "namespace": "org.apache.nifi",
+    "fields": [{
+      "name": "key",
+      "type": ["bytes", "string", "record"]
+    }, {
+      "name": "topic",
+      "type": "string"
+    }, {
+      "name": "partition",
+      "type": "int"
+    }, {
+      "name": "offset",
+      "type": "long"
+    }, {
+      "name": "timestamp",
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    }]
+  },
+  {
+    "type": "record",
+    "name": "kafka:ConsumeRecord:wrapper",
+    "namespace": "org.apache.nifi",
+    "fields": [{
+      "name": "key",
+      "type": ["bytes", "string", "record"]
+    }, {
+      "name": "value",
+      "type": "record"
+    }, {
+      "name": "headers",
+      "type": "map",
+      "values": "string"
+    }, {
+      "name": "metadata",
+      "type": "kafka:ConsumeRecord:metadata"
+    }]
+  }
+]
+</pre>
+</code>
             <p>If the Consume Strategy property 'Use Wrapper' is active, an additional processor configuration property
                 ('Key Format') is activated. This property is used to fine-tune the transformation of the incoming Kafka
                 record. The possible values for 'Key Format' are 'Byte Array', 'String', or 'Record'.</p>
@@ -307,6 +339,38 @@
                     bytes. It may be set to any available implementation of the NiFi 'RecordReaderFactory' interface.
                 </li>
             </ul>
+
+            <p>Here is an example of FlowFile content that is emitted by <code>JsonRecordSetWriter</code> when strategy "Use Wrapper" is active:</p>
+<code>
+<pre>
+[
+  {
+    "key": {
+      "name": "Acme",
+      "number": "AC1234"
+    },
+    "value": {
+      "address": "1234 First Street",
+      "zip": "12345",
+      "account": {
+        "name": "Acme",
+        "number": "AC1234"
+      }
+    },
+    "headers": {
+      "attributeA": "valueA",
+      "attributeB": "valueB"
+    },
+    "metadata": {
+      "topic": "accounts",
+      "partition": 0,
+      "offset": 0,
+      "timestamp": 0
+    }
+  }
+]
+</pre>
+</code>
 
             <p>These new processor properties may be used to extend the capabilities of ConsumeKafkaRecord_2_6, by
                 optionally incorporating additional information from the Kafka record (key, headers, metadata) into the

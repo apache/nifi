@@ -35,8 +35,8 @@ import org.mockito.Mockito;
 import java.io.IOException;
 import java.util.function.Function;
 
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.USE_WRAPPER;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.WRITE_VALUE_ONLY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_VALUE;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_WRAPPER;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
@@ -90,9 +90,9 @@ public class TestPublishKafkaRecordKey_2_6 {
         runner.assertValid();
         runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, "foo");
         runner.assertNotValid();
-        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, WRITE_VALUE_ONLY);
+        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PUBLISH_USE_VALUE);
         runner.assertValid();
-        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, USE_WRAPPER);
+        runner.setProperty(PublishKafkaRecord_2_6.PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER);
         runner.assertValid();
         runner.setProperty(PublishKafkaRecord_2_6.RECORD_KEY_WRITER, "no-record-writer");
         runner.assertNotValid();

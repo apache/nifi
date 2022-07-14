@@ -83,8 +83,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
 import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.USE_WRAPPER;
-import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.WRITE_VALUE_ONLY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_VALUE;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.PUBLISH_USE_WRAPPER;
 
 @Tags({"Apache", "Kafka", "Record", "csv", "json", "avro", "logs", "Put", "Send", "Message", "PubSub", "2.6"})
 @CapabilityDescription("Sends the contents of a FlowFile as individual records to Apache Kafka using the Kafka 2.6 Producer API. "
@@ -155,12 +155,22 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .required(true)
         .build();
 
+    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
+            .name("publish-strategy")
+            .displayName("Publish Strategy")
+            .description("The format used to publish the incoming FlowFile record to Kafka.")
+            .required(true)
+            .defaultValue(PUBLISH_USE_VALUE.getValue())
+            .allowableValues(PUBLISH_USE_VALUE, PUBLISH_USE_WRAPPER)
+            .build();
+
     static final PropertyDescriptor MESSAGE_KEY_FIELD = new Builder()
         .name("message-key-field")
         .displayName("Message Key Field")
         .description("The name of a field in the Input Records that should be used as the Key for the Kafka message.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_VALUE)
         .required(false)
         .build();
 
@@ -241,6 +251,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
             + "If not specified, no FlowFile attributes will be added as headers.")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .expressionLanguageSupported(NONE)
+        .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_VALUE)
         .required(false)
         .build();
     static final PropertyDescriptor USE_TRANSACTIONS = new Builder()
@@ -273,20 +284,12 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         .defaultValue("UTF-8")
         .required(false)
         .build();
-    static final PropertyDescriptor PUBLISH_STRATEGY = new PropertyDescriptor.Builder()
-            .name("publish-strategy")
-            .displayName("Publish Strategy")
-            .description("The format used to publish the outgoing FlowFile record to Kafka.")
-            .required(true)
-            .defaultValue(WRITE_VALUE_ONLY.getValue())
-            .allowableValues(WRITE_VALUE_ONLY, USE_WRAPPER)
-            .build();
     static final PropertyDescriptor RECORD_KEY_WRITER = new PropertyDescriptor.Builder()
             .name("record-key-writer")
             .displayName("Record Key Writer")
             .description("The Record Key Writer to use for outgoing FlowFiles")
             .identifiesControllerService(RecordSetWriterFactory.class)
-            .dependsOn(PUBLISH_STRATEGY, USE_WRAPPER)
+            .dependsOn(PUBLISH_STRATEGY, PUBLISH_USE_WRAPPER)
             .build();
     static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
