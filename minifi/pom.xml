@@ -478,7 +478,7 @@ limitations under the License.
             <dependency>
                 <groupId>io.swagger</groupId>
                 <artifactId>swagger-annotations</artifactId>
-                <version>1.5.16</version>
+                <version>1.6.6</version>
                 <scope>compile</scope>
                 <optional>true</optional>
             </dependency>
