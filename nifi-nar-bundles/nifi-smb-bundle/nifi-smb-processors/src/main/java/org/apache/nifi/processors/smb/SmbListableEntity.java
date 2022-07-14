@@ -32,40 +32,69 @@ import org.apache.nifi.serialization.record.RecordField;
 public class SmbListableEntity implements ListableEntity {
 
     private final String name;
+    private final String shortName;
     private final String path;
     private final long timestamp;
+    private final long creationTime;
+    private final long lastAccessTime;
+    private final long changeTime;
     private final boolean directory;
     private final long size;
+    private final long allocationSize;
 
-    public SmbListableEntity(String name, String path, long timestamp, boolean directory, long size) {
+    private SmbListableEntity(String name, String shortName, String path, long timestamp, long creationTime,
+            long lastAccessTime, long changeTime, boolean directory,
+            long size, long allocationSize) {
         this.name = name;
+        this.shortName = shortName;
         this.path = path;
         this.timestamp = timestamp;
+        this.creationTime = creationTime;
+        this.lastAccessTime = lastAccessTime;
+        this.changeTime = changeTime;
         this.directory = directory;
         this.size = size;
-    }
-
-    public SmbListableEntity(String fileName, long timeStamp, long size) {
-        this.name = fileName;
-        this.path = "";
-        this.timestamp = timeStamp;
-        this.directory = false;
-        this.size = size;
+        this.allocationSize = allocationSize;
     }
 
     public static SimpleRecordSchema getRecordSchema() {
         List<RecordField> fields = Arrays.asList(
                 new RecordField("name", STRING.getDataType(), false),
+                new RecordField("shortName", STRING.getDataType(), false),
                 new RecordField("path", STRING.getDataType(), false),
                 new RecordField("identifier", STRING.getDataType(), false),
                 new RecordField("timeStamp", LONG.getDataType(), false),
-                new RecordField("size", LONG.getDataType(), false)
+                new RecordField("createTime", LONG.getDataType(), false),
+                new RecordField("lastAccessTime", LONG.getDataType(), false),
+                new RecordField("changeTime", LONG.getDataType(), false),
+                new RecordField("size", LONG.getDataType(), false),
+                new RecordField("allocationSize", LONG.getDataType(), false)
         );
         return new SimpleRecordSchema(fields);
     }
 
     public static SmbListableEntityBuilder builder() {
         return new SmbListableEntityBuilder();
+    }
+
+    public String getShortName() {
+        return shortName;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public long getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    public long getChangeTime() {
+        return changeTime;
+    }
+
+    public long getAllocationSize() {
+        return allocationSize;
     }
 
     @Override
@@ -136,13 +165,23 @@ public class SmbListableEntity implements ListableEntity {
     public static class SmbListableEntityBuilder {
 
         private String name;
-        private String path;
+        private String shortName;
+        private String path = "";
         private long timestamp;
-        private boolean directory;
-        private long size;
+        private long creationTime;
+        private long lastAccessTime;
+        private long changeTime;
+        private boolean directory = false;
+        private long size = 0;
+        private long allocationSize = 0;
 
         public SmbListableEntityBuilder setName(String name) {
             this.name = name;
+            return this;
+        }
+
+        public SmbListableEntityBuilder setShortName(String shortName) {
+            this.shortName = shortName;
             return this;
         }
 
@@ -156,6 +195,21 @@ public class SmbListableEntity implements ListableEntity {
             return this;
         }
 
+        public SmbListableEntityBuilder setCreationTime(long creationTime) {
+            this.creationTime = creationTime;
+            return this;
+        }
+
+        public SmbListableEntityBuilder setLastAccessTime(long lastAccessTime) {
+            this.lastAccessTime = lastAccessTime;
+            return this;
+        }
+
+        public SmbListableEntityBuilder setChangeTime(long changeTime) {
+            this.changeTime = changeTime;
+            return this;
+        }
+
         public SmbListableEntityBuilder setDirectory(boolean directory) {
             this.directory = directory;
             return this;
@@ -166,8 +220,14 @@ public class SmbListableEntity implements ListableEntity {
             return this;
         }
 
+        public SmbListableEntityBuilder setAllocationSize(long allocationSize) {
+            this.allocationSize = allocationSize;
+            return this;
+        }
+
         public SmbListableEntity build() {
-            return new SmbListableEntity(name, path, timestamp, directory, size);
+            return new SmbListableEntity(name, shortName, path, timestamp, creationTime, lastAccessTime, changeTime,
+                    directory, size, allocationSize);
         }
     }
 

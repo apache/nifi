@@ -77,10 +77,15 @@ public class NiFiSmbClient {
     private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path) {
         return SmbListableEntity.builder()
                 .setName(info.getFileName())
+                .setShortName(info.getShortName())
                 .setPath(path)
                 .setTimestamp(info.getLastWriteTime().toEpochMillis())
+                .setCreationTime(info.getCreationTime().toEpochMillis())
+                .setChangeTime(info.getChangeTime().toEpochMillis())
+                .setLastAccessTime(info.getLastAccessTime().toEpochMillis())
                 .setDirectory((info.getFileAttributes() & FileAttributes.FILE_ATTRIBUTE_DIRECTORY.getValue()) != 0)
                 .setSize(info.getEndOfFile())
+                .setAllocationSize(info.getAllocationSize())
                 .build();
     }
 

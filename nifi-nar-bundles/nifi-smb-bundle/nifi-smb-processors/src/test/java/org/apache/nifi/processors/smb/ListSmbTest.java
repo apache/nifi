@@ -45,7 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processor.util.list.ListedEntity;
-import org.apache.nifi.services.smb.SmbConnectionPoolService;
+import org.apache.nifi.services.smb.SmbSessionProviderService;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -79,7 +79,7 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        testRunner.setProperty(MINIMUM_AGE, "0");
+        testRunner.setProperty(MINIMUM_AGE, "0 ms");
         final NiFiSmbClient mockNifiSmbjClient = configureTestRunnerWithMockedSambaClient(testRunner);
         long now = System.currentTimeMillis();
         mockSmbFolders(mockNifiSmbjClient, listableEntity("should_list_it_after_each_reset", now - 100));
@@ -93,7 +93,7 @@ class ListSmbTest {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 3);
 
-        final SmbConnectionPoolService connectionPoolService = mock(SmbConnectionPoolService.class);
+        final SmbSessionProviderService connectionPoolService = mock(SmbSessionProviderService.class);
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool-2");
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://locahost:443/share"));
         final NiFiSmbClientFactory mockSmbClientFactory = mock(NiFiSmbClientFactory.class);
@@ -115,7 +115,7 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        testRunner.setProperty(MINIMUM_AGE, String.valueOf(minimumAge));
+        testRunner.setProperty(MINIMUM_AGE, minimumAge + " ms");
         final NiFiSmbClient mockNifiSmbjClient = configureTestRunnerWithMockedSambaClient(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbjClient);
@@ -154,7 +154,7 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "entities");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        testRunner.setProperty(MINIMUM_AGE, String.valueOf(minimumAge));
+        testRunner.setProperty(MINIMUM_AGE, minimumAge + " ms");
         final DistributedMapCacheClient cacheService = mockDistributedMap();
         testRunner.addControllerService("cacheService", cacheService);
         testRunner.setProperty(TRACKING_STATE_CACHE, "cacheService");
@@ -184,7 +184,7 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        testRunner.setProperty(MINIMUM_AGE, String.valueOf(minimumAge));
+        testRunner.setProperty(MINIMUM_AGE, minimumAge + " ms");
         final NiFiSmbClient mockNifiSmbjClient = configureTestRunnerWithMockedSambaClient(testRunner);
         setTime(1000L);
         mockSmbFolders(mockNifiSmbjClient,
@@ -212,7 +212,7 @@ class ListSmbTest {
     @Test
     public void shouldFormatRemotePathProperly() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        final SmbConnectionPoolService connectionPoolService = mockSmbConnectionPoolService();
+        final SmbSessionProviderService connectionPoolService = mockSmbConnectionPoolService();
         testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
         testRunner.setProperty(SHARE, "share");
         testRunner.addControllerService("connection-pool", connectionPoolService);
@@ -239,8 +239,8 @@ class ListSmbTest {
         assertEquals("smb://hostname:443:\\root\\", underTest.getPath(testRunner.getProcessContext()));
     }
 
-    private SmbConnectionPoolService mockSmbConnectionPoolService() {
-        final SmbConnectionPoolService connectionPoolService = mock(SmbConnectionPoolService.class);
+    private SmbSessionProviderService mockSmbConnectionPoolService() {
+        final SmbSessionProviderService connectionPoolService = mock(SmbSessionProviderService.class);
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool");
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://localhost:443/share"));
         return connectionPoolService;
@@ -251,7 +251,7 @@ class ListSmbTest {
         final NiFiSmbClient mockNifiSmbjClient = mock(NiFiSmbClient.class);
         testRunner.setProperty(DIRECTORY, "testDirectory");
 
-        final SmbConnectionPoolService connectionPoolService = mockSmbConnectionPoolService();
+        final SmbSessionProviderService connectionPoolService = mockSmbConnectionPoolService();
         final NiFiSmbClientFactory mockSmbClientFactory = mock(NiFiSmbClientFactory.class);
         ((ListSmb) testRunner.getProcessor()).smbClientFactory = mockSmbClientFactory;
         when(mockSmbClientFactory.create(any(), any())).thenReturn(mockNifiSmbjClient);
@@ -267,7 +267,10 @@ class ListSmbTest {
     }
 
     private SmbListableEntity listableEntity(String name, long timeStamp) {
-        return new SmbListableEntity(name, timeStamp, 0);
+        return SmbListableEntity.builder()
+                .setName(name)
+                .setTimestamp(timeStamp)
+                .build();
     }
 
     private DistributedMapCacheClient mockDistributedMap() throws IOException {

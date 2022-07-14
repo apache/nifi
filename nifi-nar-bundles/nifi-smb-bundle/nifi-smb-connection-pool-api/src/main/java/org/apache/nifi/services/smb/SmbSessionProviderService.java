@@ -20,7 +20,7 @@ import com.hierynomus.smbj.session.Session;
 import java.net.URI;
 import org.apache.nifi.controller.ControllerService;
 
-public interface SmbConnectionPoolService extends ControllerService {
+public interface SmbSessionProviderService extends ControllerService {
 
     /**
      * Returns the identifier of the service location.

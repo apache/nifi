@@ -47,7 +47,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 
 @Tags({"microsoft", "samba"})
 @CapabilityDescription("Provides connection pool for ListSmb processor. ")
-public class SmbjConnectionPoolService extends AbstractControllerService implements SmbConnectionPoolService {
+public class SmbjSessionProviderService extends AbstractControllerService implements SmbSessionProviderService {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .displayName("Hostname")
