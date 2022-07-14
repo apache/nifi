@@ -696,6 +696,15 @@ public class NiFiProperties extends ApplicationProperties {
         return sslPort;
     }
 
+    /**
+     * Is HTTP without TLS enabled based on configuring nifi.web.http.port property
+     *
+     * @return HTTP enabled status
+     */
+    public boolean isHttpEnabled() {
+        return getPort() != null;
+    }
+
     public boolean isHTTPSConfigured() {
         return getSslPort() != null;
     }
