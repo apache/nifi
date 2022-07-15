@@ -85,7 +85,7 @@ public class StandardContentClaimWriteCache implements ContentClaimWriteCache {
         }
 
         if (!(claim instanceof CachableContentClaim)) {
-            // we know that we will only create Content Claims that are of type StandardContentClaim, so if we get anything
+            // we know that we will only create Content Claims that are of type CachableContentClaim, so if we get anything
             // else, just throw an Exception because it is not valid for this Repository
             throw new IllegalArgumentException("Cannot write to " + claim + " because that Content Claim does belong to this Claim Cache");
         }
