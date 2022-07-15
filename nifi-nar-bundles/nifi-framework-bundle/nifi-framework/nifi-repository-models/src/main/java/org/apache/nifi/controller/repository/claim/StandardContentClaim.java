@@ -25,7 +25,7 @@ package org.apache.nifi.controller.repository.claim;
  * Must be thread safe</p>
  *
  */
-public final class StandardContentClaim implements ContentClaim, Comparable<ContentClaim> {
+public final class StandardContentClaim implements CachableContentClaim {
 
     private final ResourceClaim resourceClaim;
     private final long offset;
