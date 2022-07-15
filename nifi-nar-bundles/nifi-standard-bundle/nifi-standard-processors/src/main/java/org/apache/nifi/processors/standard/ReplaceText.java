@@ -316,7 +316,7 @@ public class ReplaceText extends AbstractProcessor {
 
         if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
             if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                logger.warn("Transferred {} to 'faliure' because it was larger than the buffer size");
+                logger.warn("Transferred {} to 'failure' because it was larger than the buffer size");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
