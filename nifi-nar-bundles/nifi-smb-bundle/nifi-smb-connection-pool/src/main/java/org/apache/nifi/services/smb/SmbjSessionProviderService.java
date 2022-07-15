@@ -18,15 +18,16 @@ package org.apache.nifi.services.smb;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
 import static org.apache.nifi.processor.util.StandardValidators.INTEGER_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
 
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.transport.tcp.async.AsyncDirectTcpTransportFactory;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -46,15 +48,14 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 
 @Tags({"microsoft", "samba"})
-@CapabilityDescription("Provides connection pool for ListSmb processor. ")
+@CapabilityDescription("Provides access to SMB Sessions with shared authentication credentials.")
 public class SmbjSessionProviderService extends AbstractControllerService implements SmbSessionProviderService {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .displayName("Hostname")
             .name("hostname")
             .description("The network host of the SMB file server.")
-            .required(false)
-            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
@@ -95,30 +96,31 @@ public class SmbjSessionProviderService extends AbstractControllerService implem
             .name("timeout")
             .description("Timeout in seconds for read and write operations.")
             .required(true)
-            .defaultValue("5")
-            .addValidator(INTEGER_VALIDATOR)
+            .defaultValue("5 secs")
+            .addValidator(TIME_PERIOD_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(asList(
                     HOSTNAME,
+                    PORT,
                     DOMAIN,
                     USERNAME,
                     PASSWORD,
-                    PORT,
                     TIMEOUT
             ));
     private SMBClient smbClient;
     private AuthenticationContext authenticationContext;
     private ConfigurationContext context;
     private String hostname;
-    private Integer port;
+    private int port;
 
     @Override
     public Session getSession() {
         try {
-            return smbClient.connect(hostname, port).authenticate(authenticationContext);
+            final Connection connection = smbClient.connect(hostname, port);
+            return connection.authenticate(authenticationContext);
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("SMB connect failed", e);
         }
     }
 
@@ -133,7 +135,7 @@ public class SmbjSessionProviderService extends AbstractControllerService implem
         this.hostname = context.getProperty(HOSTNAME).getValue();
         this.port = context.getProperty(PORT).asInteger();
         this.smbClient = new SMBClient(SmbConfig.builder()
-                .withTimeout(context.getProperty(TIMEOUT).asLong(), SECONDS)
+                .withTimeout(context.getProperty(TIMEOUT).asTimePeriod(SECONDS), SECONDS)
                 .withTransportLayerFactory(new AsyncDirectTcpTransportFactory<>())
                 .build());
         createAuthenticationContext();

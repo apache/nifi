@@ -56,6 +56,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -296,14 +297,26 @@ public class ListSmbIT {
 
         underTest.updateScheduledTrue();
         assertEquals(3, underTest.performListing(mockProcessContext, null, null).size());
-        mockProperty(mockProcessContext, MINIMUM_SIZE, 10);
+        PropertyValue mockValue = mock(PropertyValue.class);
+        when(mockValue.isSet()).thenReturn(true);
+        when(mockProcessContext.getProperty(MINIMUM_SIZE)).thenReturn(mockValue);
+        when(mockValue.asDataSize(DataUnit.B)).thenReturn(10.0);
         assertEquals(2, underTest.performListing(mockProcessContext, null, null).size());
-        mockProperty(mockProcessContext, MINIMUM_SIZE, 50);
+        mockValue = mock(PropertyValue.class);
+        when(mockValue.isSet()).thenReturn(true);
+        when(mockProcessContext.getProperty(MINIMUM_SIZE)).thenReturn(mockValue);
+        when(mockValue.asDataSize(DataUnit.B)).thenReturn(50.0);
         assertEquals(1, underTest.performListing(mockProcessContext, null, null).size());
         mockProperty(mockProcessContext, MINIMUM_SIZE, null);
-        mockProperty(mockProcessContext, MAXIMUM_SIZE, 10);
+        mockValue = mock(PropertyValue.class);
+        when(mockValue.isSet()).thenReturn(true);
+        when(mockProcessContext.getProperty(MAXIMUM_SIZE)).thenReturn(mockValue);
+        when(mockValue.asDataSize(DataUnit.B)).thenReturn(10.0);
         assertEquals(2, underTest.performListing(mockProcessContext, null, null).size());
-        mockProperty(mockProcessContext, MAXIMUM_SIZE, 5);
+        mockValue = mock(PropertyValue.class);
+        when(mockValue.isSet()).thenReturn(true);
+        when(mockProcessContext.getProperty(MAXIMUM_SIZE)).thenReturn(mockValue);
+        when(mockValue.asDataSize(DataUnit.B)).thenReturn(5.0);
         assertEquals(1, underTest.performListing(mockProcessContext, null, null).size());
     }
 

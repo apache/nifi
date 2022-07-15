@@ -27,9 +27,8 @@ public class NiFiSmbClientFactory {
         if (share instanceof DiskShare) {
             return new NiFiSmbClient(session, (DiskShare) share);
         } else {
-            throw new IllegalArgumentException("NiFi supports only disk shares but " +
-                    share.getClass().getSimpleName() + " found on host " + session.getConnection().getRemoteHostname()
-                    + "!");
+            throw new IllegalArgumentException("DiskShare not found. Share " +
+                    share.getClass().getSimpleName() + " found on host " + session.getConnection().getRemoteHostname());
         }
     }
 

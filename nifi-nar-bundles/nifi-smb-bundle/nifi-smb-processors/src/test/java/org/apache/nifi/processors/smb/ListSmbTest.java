@@ -95,7 +95,7 @@ class ListSmbTest {
 
         final SmbSessionProviderService connectionPoolService = mock(SmbSessionProviderService.class);
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool-2");
-        when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://locahost:443/share"));
+        when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://localhost:443/share"));
         final NiFiSmbClientFactory mockSmbClientFactory = mock(NiFiSmbClientFactory.class);
         ((ListSmb) testRunner.getProcessor()).smbClientFactory = mockSmbClientFactory;
         when(mockSmbClientFactory.create(any(), any())).thenReturn(mockNifiSmbjClient);

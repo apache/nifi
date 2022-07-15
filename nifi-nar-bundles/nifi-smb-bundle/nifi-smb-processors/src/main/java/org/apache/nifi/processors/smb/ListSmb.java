@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 import static org.apache.nifi.components.state.Scope.CLUSTER;
+import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
@@ -57,6 +58,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
@@ -120,30 +122,30 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .build();
 
     public static final PropertyDescriptor MINIMUM_AGE = new PropertyDescriptor.Builder()
-            .displayName("Minimum File Age in milliseconds")
+            .displayName("Minimum File Age")
             .name("min-file-age")
             .description(
                     "Any file younger then the given value will be omitted. Ideally this value should be greater then"
                             + "the amount of time needed to perform a list.")
             .required(true)
             .addValidator(TIME_PERIOD_VALIDATOR)
-            .defaultValue("5ms")
+            .defaultValue("5 secs")
             .build();
 
     public static final PropertyDescriptor MINIMUM_SIZE = new PropertyDescriptor.Builder()
-            .displayName("Minimum File Size in bytes")
+            .displayName("Minimum File Size")
             .name("min-file-size")
             .description("Any file smaller then the given value will be omitted.")
             .required(false)
-            .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
+            .addValidator(DATA_SIZE_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MAXIMUM_SIZE = new PropertyDescriptor.Builder()
-            .displayName("Maximum File Size in bytes")
+            .displayName("Maximum File Size")
             .name("max-file-size")
             .description("Any file bigger then the given value will be omitted.")
             .required(false)
-            .addValidator(NON_NEGATIVE_INTEGER_VALIDATOR)
+            .addValidator(DATA_SIZE_VALIDATOR)
             .build();
 
 
@@ -175,7 +177,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .name("share")
             .description("The network share to which files should be listed from. This is the \"first folder\"" +
                     "after the hostname: smb://hostname:port\\[share]\\dir1\\dir2")
-            .required(false)
+            .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
@@ -229,7 +231,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbSessionProviderService.class);
         final URI serviceLocation = connectionPoolService.getServiceLocation();
         final String directory = getDirectory(context);
-        final String shareName = context.getProperty(SHARE).isSet() ? "/" + context.getProperty(SHARE).getValue() : "";
+        final String shareName = context.getProperty(SHARE).getValue();
         return String.format("%s%s:\\%s", serviceLocation.toString(), shareName,
                 directory.isEmpty() ? "" : directory + "\\");
     }
@@ -295,10 +297,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {
 
         final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final Integer minimumSizeOrNull =
-                context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asInteger() : null;
-        final Integer maximumSizeOrNull =
-                context.getProperty(MAXIMUM_SIZE).isSet() ? context.getProperty(MAXIMUM_SIZE).asInteger() : null;
+        final Double minimumSizeOrNull =
+                context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asDataSize(DataUnit.B) : null;
+        final Double maximumSizeOrNull =
+                context.getProperty(MAXIMUM_SIZE).isSet() ? context.getProperty(MAXIMUM_SIZE).asDataSize(DataUnit.B) : null;
         final String suffixOrNull = context.getProperty(SKIP_FILES_WITH_SUFFIX).getValue();
 
         final long now = getCurrentTime();

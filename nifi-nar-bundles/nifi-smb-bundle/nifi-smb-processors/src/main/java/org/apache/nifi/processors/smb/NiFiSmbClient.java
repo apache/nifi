@@ -57,7 +57,7 @@ public class NiFiSmbClient {
         try {
             session.close();
         } catch (IOException e) {
-            throw new UncheckedIOException(e);
+            throw new UncheckedIOException("SMB Session close failed", e);
         }
     }
 
