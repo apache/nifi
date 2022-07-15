@@ -116,22 +116,11 @@
     </dependencies>
     <profiles>
         <profile>
-            <id>kudu-windows</id>
-            <activation>
-                <os>
-                    <family>Windows</family>
-                </os>
-            </activation>
-            <properties>
-                <!-- Kudu tests do not support Windows. -->
-                <exclude.tests>**/*.java</exclude.tests>
-            </properties>
-        </profile>
-        <profile>
-            <id>kudu-linux</id>
+            <id>kudu-linux-x86</id>
             <activation>
                 <os>
                     <family>Unix</family>
+                    <arch>x86-64</arch>
                 </os>
             </activation>
             <dependencies>
@@ -145,10 +134,11 @@
             </dependencies>
         </profile>
         <profile>
-            <id>kudu-mac</id>
+            <id>kudu-mac-x86</id>
             <activation>
                 <os>
                     <family>mac</family>
+                    <arch>x86-64</arch>
                 </os>
             </activation>
             <dependencies>
