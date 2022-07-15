@@ -26,6 +26,7 @@ import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -660,6 +661,48 @@ public class TestSwappablePriorityQueue {
         assertEquals(0, queue.size().getByteCount());
         assertEquals(0, swapManager.swappedOut.size());
         assertEquals(2, swapManager.swapInCalledCount);
+    }
+
+    @Test(timeout = 5000)
+    public void testGetFlowFileAvailability() {
+        assertEquals(FlowFileAvailability.ACTIVE_QUEUE_EMPTY, queue.getFlowFileAvailability());
+
+        queue.put(new MockFlowFileRecord());
+        assertEquals(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+
+        for (int i = 0; i < 19999; i++) {
+            queue.put(new MockFlowFileRecord());
+        }
+        assertEquals(1, swapManager.swapOutCalledCount);
+        assertEquals(10000, queue.getQueueDiagnostics().getSwapQueueSize().getObjectCount());
+        assertEquals(10000, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+
+        final Set<FlowFileRecord> exp = new HashSet<>();
+        for (int i = 0; i < 10000; i++) {
+            final FlowFileRecord flowFile = queue.poll(exp, 0);
+            queue.acknowledge(flowFile);
+        }
+        assertEquals(1, swapManager.swapOutCalledCount);
+        assertEquals(0, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(10000, queue.getQueueDiagnostics().getSwapQueueSize().getObjectCount());
+        assertEquals(FlowFileAvailability.FLOWFILE_AVAILABLE, queue.getFlowFileAvailability());
+
+        for (int i = 0; i < 10000; i++) {
+            final FlowFileRecord flowFile = queue.poll(exp, 0);
+            queue.acknowledge(flowFile);
+        }
+        assertEquals(FlowFileAvailability.ACTIVE_QUEUE_EMPTY, queue.getFlowFileAvailability());
+
+        final FlowFileRecord penalizedFlowFile = mock(FlowFileRecord.class);
+        when(penalizedFlowFile.isPenalized()).thenReturn(true);
+        assertTrue(queue.isEmpty());
+        queue.put(penalizedFlowFile);
+        assertEquals(FlowFileAvailability.HEAD_OF_QUEUE_PENALIZED, queue.getFlowFileAvailability());
+
+        final FlowFileRecord flowFile = queue.poll(exp, 0, PollStrategy.ALL_FLOWFILES);
+        queue.acknowledge(flowFile);
+        assertEquals(FlowFileAvailability.ACTIVE_QUEUE_EMPTY, queue.getFlowFileAvailability());
     }
 
 

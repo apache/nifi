@@ -478,6 +478,7 @@ public class SwappablePriorityQueue {
             if (lockObtained) {
                 try {
                     migrateSwapToActive();
+                    top = activeQueue.peek();
                 } finally {
                     writeLock.unlock("getFlowFileAvailability");
                 }
