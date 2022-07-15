@@ -35,4 +35,44 @@
         <module>nifi-kudu-nar</module>
         <module>nifi-kudu-controller-service</module>
     </modules>
+
+    <profiles>
+        <profile>
+            <id>kudu-windows</id>
+            <activation>
+                <os>
+                    <family>Windows</family>
+                </os>
+            </activation>
+            <properties>
+                <!-- Kudu tests do not support Windows. -->
+                <exclude.tests>**/*.java</exclude.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>kudu-arm64</id>
+            <activation>
+                <os>
+                    <arch>arm64</arch>
+                </os>
+            </activation>
+            <properties>
+                <!-- Kudu tests do not support arm (as of kudu 1.16, it may be supported in the future). -->
+                <exclude.tests>**/*.java</exclude.tests>
+            </properties>
+        </profile>
+        <profile>
+            <id>kudu-aarch64</id>
+            <activation>
+                <os>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <!-- Kudu tests do not support arm (as of kudu 1.16, it may be supported in the future). -->
+                <exclude.tests>**/*.java</exclude.tests>
+            </properties>
+        </profile>
+    </profiles>
+
 </project>
