@@ -72,17 +72,6 @@ public class PutCloudWatchMetric extends AbstractAWSCredentialsProviderProcessor
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
-    // public static final Set<String> units = Collections.unmodifiableSet(
-    //         new HashSet<>(Arrays.asList(
-    //                 "Seconds", "Microseconds", "Milliseconds", "Bytes",
-    //                 "Kilobytes", "Megabytes", "Gigabytes", "Terabytes",
-    //                 "Bits", "Kilobits", "Megabits", "Gigabits", "Terabits",
-    //                 "Percent", "Count", "Bytes/Second", "Kilobytes/Second",
-    //                 "Megabytes/Second", "Gigabytes/Second", "Terabytes/Second",
-    //                 "Bits/Second", "Kilobits/Second", "Megabits/Second",
-    //                 "Gigabits/Second", "Terabits/Second", "Count/Second",
-    //                 "None", "")));
-
     public static final Set<String> units = Arrays.stream(StandardUnit.values())
             .map(StandardUnit::toString).collect(Collectors.toSet());
 
