@@ -56,6 +56,7 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -82,16 +83,17 @@ import org.apache.nifi.stream.io.StreamUtils;
 @Tags({"email", "put", "notify", "smtp"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Sends an e-mail to configured recipients for each incoming FlowFile")
-@DynamicProperty(name = "mail._____",
+@SupportsSensitiveDynamicProperties
+@DynamicProperty(name = "mail.propertyName",
         value = "Value for a specific property to be set in the JavaMail Session object",
-        description = "The values specified in this dynamic property will be set in the JavaMail Session object. " +
+        description = "Dynamic property names that will be passed to the Mail session. " +
                 "Possible properties can be found in: https://javaee.github.io/javamail/docs/api/com/sun/mail/smtp/package-summary.html.",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content (as a String object) "
         + "will be read into memory in case the property to use the flow file content as the email body is set to true.")
 public class PutEmail extends AbstractProcessor {
 
-    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.([a-z0-9\\.]+)$");
+    private static final Pattern MAIL_PROPERTY_PATTERN = Pattern.compile("^mail\\.smtps?\\.([a-z0-9\\.]+)$");
 
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
             .name("SMTP Hostname")
@@ -319,7 +321,7 @@ public class PutEmail extends AbstractProcessor {
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .description("Mail properties to be set to the JavaMail Session")
+                .description("SMTP property passed to the Mail Session")
                 .required(false)
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -488,10 +490,10 @@ public class PutEmail extends AbstractProcessor {
 
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
-                final String flowFileValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+                final String mailPropertyValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
                 // Nullable values are not allowed, so filter out
-                if (null != flowFileValue) {
-                    properties.setProperty(descriptor.getName(), flowFileValue);
+                if (null != mailPropertyValue) {
+                    properties.setProperty(descriptor.getName(), mailPropertyValue);
                 }
             }
         }
@@ -556,28 +558,6 @@ public class PutEmail extends AbstractProcessor {
         Transport.send(msg);
     }
 
-    /**
-     * Utility function to return a Map of optional {@code mail._____} properties that were set dynamically.
-     * @param context the ProcessContext
-     * @return a Map with optional {@code mail._____} properties
-     */
-    private Map<String, String> getDynamicMailProperties(final ProcessContext context) {
-        final Map<String, String> dynamicMailProperties = new HashMap<>();
-
-        for (final Map.Entry<PropertyDescriptor, String> entry: context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.isDynamic()) {
-                final String name = descriptor.getName();
-                final Matcher matcher = MAIL_PROPERTY_PATTERN.matcher(name);
-                if (matcher.matches()) {
-                    dynamicMailProperties.put(name, entry.getValue());
-                }
-            }
-        }
-
-        return dynamicMailProperties;
-    }
-
     private static class DynamicMailPropertyValidator implements Validator {
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
@@ -587,7 +567,7 @@ public class PutEmail extends AbstractProcessor {
                         .input(input)
                         .subject(subject)
                         .valid(false)
-                        .explanation(String.format("[%s] is an invalid mail._____ property", subject))
+                        .explanation(String.format("[%s] does not start with mail.smtp", subject))
                         .build();
             }
 
@@ -596,7 +576,7 @@ public class PutEmail extends AbstractProcessor {
                         .input(input)
                         .subject(subject)
                         .valid(false)
-                        .explanation(String.format("[%s] overwrites required existing properties", subject))
+                        .explanation(String.format("[%s] overwrites standard properties", subject))
                         .build();
             }
 
@@ -604,7 +584,7 @@ public class PutEmail extends AbstractProcessor {
                     .subject(subject)
                     .input(input)
                     .valid(true)
-                    .explanation("Valid mail._____ property that does not overwrite existing required properties")
+                    .explanation("Valid mail.smtp property found")
                     .build();
         }
     }
