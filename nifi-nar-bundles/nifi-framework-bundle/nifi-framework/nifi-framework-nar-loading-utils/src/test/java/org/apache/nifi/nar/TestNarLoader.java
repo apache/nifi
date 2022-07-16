@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.nar;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,19 +33,17 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+
+@DisabledOnOs({ OS.WINDOWS })
+@DisabledIfSystemProperty(named = "os.arch", matches = "aarch64|arm64")
 public class TestNarLoader extends AbstractTestNarLoader {
     static final String WORK_DIR = "./target/work";
     static final String NAR_AUTOLOAD_DIR = "./target/extensions";
     static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/extensions";
-
-    @BeforeClass
-    public static void setUpSuite() {
-        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
-    }
 
     @Test
     public void testNarLoaderWhenAllAvailable() throws IOException {
