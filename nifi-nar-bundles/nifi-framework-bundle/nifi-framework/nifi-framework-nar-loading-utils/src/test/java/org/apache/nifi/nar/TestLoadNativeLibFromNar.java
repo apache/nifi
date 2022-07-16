@@ -17,8 +17,10 @@
 package org.apache.nifi.nar;
 
 import org.apache.nifi.bundle.Bundle;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -34,20 +36,16 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@EnabledOnOs({ OS.MAC })
+@DisabledIfSystemProperty(named = "os.arch", matches = "aarch64|arm64")
 public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
     static final String WORK_DIR = "./target/work";
     static final String NAR_AUTOLOAD_DIR = "./target/nars_with_native_lib";
     static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.nar_with_native_lib.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/nars_with_native_lib";
-
-    @BeforeClass
-    public static void setUpSuite() {
-        assumeTrue("Test only runs on Mac OS", new OSUtil(){}.isOsMac());
-    }
 
     @Test
     public void testLoadSameLibraryFromBy2NarClassLoadersFromNar() throws Exception {
