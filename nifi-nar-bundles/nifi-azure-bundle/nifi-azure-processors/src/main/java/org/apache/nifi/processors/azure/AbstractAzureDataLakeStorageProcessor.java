@@ -57,7 +57,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
 
     public static final PropertyDescriptor FILESYSTEM = new PropertyDescriptor.Builder()
             .name("filesystem-name").displayName("Filesystem Name")
-            .description("Name of the Azure Storage File System. It is assumed to be already existing.")
+            .description("Name of the Azure Storage File System (also called Container). It is assumed to be already existing.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
