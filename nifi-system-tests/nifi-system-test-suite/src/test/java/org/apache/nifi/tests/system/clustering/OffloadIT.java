@@ -23,7 +23,6 @@ import org.apache.nifi.tests.system.SpawnedClusterNiFiInstanceFactory;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
@@ -71,7 +70,7 @@ public class OffloadIT extends NiFiSystemIT {
 
         waitForQueueNotEmpty(connectionEntity.getId());
 
-        final NodeDTO node2Dto = getNodeDTO(5672);
+        final NodeDTO node2Dto = getNodeDtoByApiPort(5672);
 
         disconnectNode(node2Dto);
         waitForNodeStatus(node2Dto, "DISCONNECTED");
@@ -84,16 +83,6 @@ public class OffloadIT extends NiFiSystemIT {
         waitForAllNodesConnected();
     }
 
-    private NodeDTO getNodeDTO(final int apiPort) throws NiFiClientException, IOException {
-        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        final NodeDTO node2Dto = clusterEntity.getCluster().getNodes().stream()
-            .filter(nodeDto -> nodeDto.getApiPort() == apiPort)
-            .findAny()
-            .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
-
-        return node2Dto;
-    }
-
 
     private void disconnectNode(final NodeDTO nodeDto) throws NiFiClientException, IOException, InterruptedException {
         getClientUtil().disconnectNode(nodeDto.getNodeId());
@@ -101,7 +90,7 @@ public class OffloadIT extends NiFiSystemIT {
         final Integer apiPort = nodeDto.getApiPort();
         waitFor(() -> {
             try {
-                final NodeDTO dto = getNodeDTO(apiPort);
+                final NodeDTO dto = getNodeDtoByApiPort(apiPort);
                 final String status = dto.getStatus();
                 return "DISCONNECTED".equals(status);
             } catch (final Exception e) {

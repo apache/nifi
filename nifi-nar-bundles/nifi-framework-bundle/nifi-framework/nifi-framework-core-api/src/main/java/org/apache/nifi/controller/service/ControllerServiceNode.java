@@ -201,6 +201,16 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      */
     boolean awaitEnabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
 
+
+    /**
+     * Waits up to the given amount of time for the Controller Service to transition to a DISABLED state.
+     * @param timePeriod maximum amount of time to wait
+     * @param timeUnit the unit for the time period
+     * @return <code>true</code> if the Controller Service finished disabling, <code>false</code> otherwise
+     * @throws InterruptedException if interrupted while waiting for the service complete its enabling
+     */
+    boolean awaitDisabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
+
     /**
      * Verifies that the Controller Service is in a state in which it can verify a configuration by calling
      * {@link #verifyConfiguration(ConfigurationContext, ComponentLog, Map, ExtensionManager)}.
