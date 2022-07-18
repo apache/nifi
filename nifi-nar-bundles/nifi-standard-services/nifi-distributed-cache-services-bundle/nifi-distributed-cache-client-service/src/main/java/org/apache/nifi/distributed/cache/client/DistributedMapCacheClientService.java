@@ -21,7 +21,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -116,19 +116,14 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
                 versionNegotiatorFactory);
     }
 
+    @OnShutdown
     @OnDisabled
     public void onDisabled() throws IOException {
-        getLogger().debug("Disabling Map Cache Client Service");
-        this.cacheClient.close();
+        if (cacheClient != null) {
+            this.cacheClient.close();
+        }
         this.versionNegotiatorFactory = null;
         this.cacheClient = null;
-    }
-
-    @OnStopped
-    public void onStopped() throws IOException {
-        if (isEnabled()) {
-            onDisabled();
-        }
     }
 
     @Override

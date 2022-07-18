@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -99,6 +100,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         }
     }
 
+    @OnShutdown
     @OnDisabled
     public void shutdownServer() throws IOException {
         if (cacheServer != null) {

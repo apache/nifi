@@ -31,6 +31,7 @@ import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
+import java.time.Duration;
 
 /**
  * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service
@@ -71,7 +72,7 @@ public class CacheClientChannelPoolFactory {
         final SSLContext sslContext = (sslContextService == null) ? null : sslContextService.createContext();
         final EventLoopGroup group = new NioEventLoopGroup();
         final Bootstrap bootstrap = new Bootstrap();
-        final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, factory);
+        final CacheClientChannelInitializer initializer = new CacheClientChannelInitializer(sslContext, factory, Duration.ofMillis(timeoutMillis), Duration.ofMillis(timeoutMillis));
         bootstrap.group(group)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMillis)
                 .remoteAddress(hostname, port)
