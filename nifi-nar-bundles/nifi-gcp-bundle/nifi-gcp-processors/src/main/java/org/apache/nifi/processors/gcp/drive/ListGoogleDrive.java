@@ -69,19 +69,23 @@ import java.util.concurrent.TimeUnit;
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"google", "drive", "storage"})
-@CapabilityDescription("Lists files in a Google Drive folder. Listing details are attached to an empty FlowFile for use with FetchGoogleDrive.  " +
+@CapabilityDescription("Lists concrete files (shortcuts are ignored) in a Google Drive folder. " +
+        "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile." +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({@WritesAttribute(attribute = "drive.id", description = "The id of the file"),
         @WritesAttribute(attribute = "filename", description = "The name of the file"),
         @WritesAttribute(attribute = "drive.size", description = "The size of the file"),
-        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file"),
+        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file." +
+                " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
+                " 'Created time' takea the time when the upload occurs. However uploaded files can still be modified later."),
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the file")})
-@Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. " +
-        "This allows the Processor to list only files that have been added or modified after this date the next time that the Processor is run. State is " +
-        "stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up " +
-        "where the previous node left off, without duplicating the data.")
+@Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
+        " What exactly needs to be stored depends on the 'Listing Strategy'." +
+        " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
+        " where the previous node left off, without duplicating the data.")
 public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> {
     private static final String APPLICATION_NAME = "NiFi";
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
@@ -91,7 +95,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
-            .description("The ID of the folder from which to pull list of files. Needs to be shared with a Service Account.")
+            .description("The ID of the folder from which to pull list of files. Needs to be shared with a Service Account." +
+                    " WARNING: Unauthorized access to the folder is treated as if the folder was empty." +
+                    " This results in the processor not creating result flowfiles. No additional error message is provided.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -100,7 +106,9 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
             .name("recursive-search")
             .displayName("Search Recursively")
-            .description("When 'true', will include list of files from sub-folders. Otherwise, will return only files that have the defined 'Folder ID' as their parent directly.")
+            .description("When 'true', will include list of files from concrete sub-folders (ignores shortcuts)." +
+                    " Otherwise, will return only files that have the defined 'Folder ID' as their parent directly." +
+                    " WARNING: The listing may fail if there are too many sub-folders (500+).")
             .required(true)
             .defaultValue("true")
             .allowableValues("true", "false")
@@ -113,6 +121,11 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
+            .build();
+
+    public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractListProcessor.LISTING_STRATEGY)
+            .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, BY_TIME_WINDOW, NO_TRACKING)
             .build();
 
     public static final PropertyDescriptor TRACKING_STATE_CACHE = new PropertyDescriptor.Builder()
