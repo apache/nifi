@@ -36,17 +36,15 @@ import java.io.UncheckedIOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
-import org.apache.nifi.services.smb.NiFiSmbClient;
-import org.apache.nifi.services.smb.SmbListableEntity;
 
-public class NiFiSmbjClient implements NiFiSmbClient {
+public class SmbjClientService implements SmbClientService {
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
 
     private final Session session;
     private final DiskShare share;
 
-    public NiFiSmbjClient(Session session, DiskShare share) {
+    public SmbjClientService(Session session, DiskShare share) {
         this.session = session;
         this.share = share;
     }
@@ -82,10 +80,10 @@ public class NiFiSmbjClient implements NiFiSmbClient {
     }
 
     @Override
-    public OutputStream getOutputStreamForFile(String pathAndFileName) {
+    public OutputStream getOutputStreamForFile(String path) {
         try {
             final File file = share.openFile(
-                    pathAndFileName,
+                    path,
                     EnumSet.of(AccessMask.GENERIC_WRITE),
                     EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
                     EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_WRITE,
@@ -111,7 +109,7 @@ public class NiFiSmbjClient implements NiFiSmbClient {
                 }
             };
         } catch (SMBApiException s) {
-            throw new RuntimeException("Could not open " + pathAndFileName + " for writing", s);
+            throw new RuntimeException("Could not open " + path + " for writing", s);
         }
     }
 

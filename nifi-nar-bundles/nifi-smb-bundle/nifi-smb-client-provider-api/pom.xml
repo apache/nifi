@@ -36,13 +36,5 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.hierynomus</groupId>
-            <artifactId>smbj</artifactId>
-        </dependency>
-        <!--dependency>
-            <groupId>net.engio</groupId>
-            <artifactId>mbassador</artifactId>
-        </dependency-->
     </dependencies>
 </project>

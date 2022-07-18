@@ -121,14 +121,14 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     private int port;
 
     @Override
-    public NiFiSmbClient getClient() {
+    public SmbClientService getClient() {
         try {
             final Connection connection = smbClient.connect(hostname, port);
             final Session session = connection.authenticate(authenticationContext);
             final String shareName = context.getProperty(SHARE).getValue();
             final Share share = session.connectShare(shareName);
             if (share instanceof DiskShare) {
-                return new NiFiSmbjClient(session, (DiskShare) share);
+                return new SmbjClientService(session, (DiskShare) share);
             } else {
                 throw new IllegalArgumentException("DiskShare not found. Share " +
                         share.getClass().getSimpleName() + " found on host " + session.getConnection()

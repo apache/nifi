@@ -61,7 +61,7 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockRecordWriter;
-import org.apache.nifi.services.smb.NiFiSmbjClient;
+import org.apache.nifi.services.smb.SmbjClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.util.MockFlowFile;
@@ -92,7 +92,7 @@ public class ListSmbIT {
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
     private SMBClient smbClient;
-    private NiFiSmbjClient nifiSmbjClient;
+    private SmbjClientService nifiSmbjClient;
 
     public static long currentMillis() {
         return currentMillis.get();
@@ -364,16 +364,16 @@ public class ListSmbIT {
         }
     }
 
-    private NiFiSmbjClient createClient() throws IOException {
+    private SmbjClientService createClient() throws IOException {
         return createClient(sambaContainer.getHost(), sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT), "share");
     }
 
-    private NiFiSmbjClient createClient(String hostname, int port, String shareName) throws IOException {
+    private SmbjClientService createClient(String hostname, int port, String shareName) throws IOException {
         smbClient = new SMBClient();
         final Connection connection = smbClient.connect(hostname, port);
         final Session session = connection.authenticate(authenticationContext);
         final Share share = session.connectShare(shareName);
-        return new NiFiSmbjClient(session, (DiskShare) share);
+        return new SmbjClientService(session, (DiskShare) share);
     }
 
     private SmbClientProviderService mockSmbConnectionPoolService() {

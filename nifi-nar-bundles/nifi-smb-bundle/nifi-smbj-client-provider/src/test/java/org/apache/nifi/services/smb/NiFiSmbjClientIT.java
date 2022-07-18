@@ -51,7 +51,7 @@ public class NiFiSmbjClientIT {
     private final SMBClient smbClient = new SMBClient();
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
-    private NiFiSmbjClient niFiSmbjClient;
+    private SmbjClientService niFiSmbjClient;
 
     @BeforeEach
     public void beforeEach() throws Exception {
@@ -92,11 +92,11 @@ public class NiFiSmbjClientIT {
         }
     }
 
-    private NiFiSmbjClient createClient() throws IOException {
+    private SmbjClientService createClient() throws IOException {
         final Connection connection = smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(445));
         final Session session = connection.authenticate(authenticationContext);
         final Share share = session.connectShare("share");
-        return new NiFiSmbjClient(session, (DiskShare) share);
+        return new SmbjClientService(session, (DiskShare) share);
     }
 
 }

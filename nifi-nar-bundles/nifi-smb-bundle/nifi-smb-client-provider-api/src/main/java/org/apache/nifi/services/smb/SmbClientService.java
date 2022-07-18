@@ -3,13 +3,16 @@ package org.apache.nifi.services.smb;
 import java.io.OutputStream;
 import java.util.stream.Stream;
 
-public interface NiFiSmbClient {
+/**
+ *  Service abstraction for Server Message Block protocol operations.
+ */
+public interface SmbClientService {
 
     Stream<SmbListableEntity> listRemoteFiles(String path);
 
     void createDirectory(String path);
 
-    OutputStream getOutputStreamForFile(String pathAndFileName);
+    OutputStream getOutputStreamForFile(String path);
 
     void close();
 }

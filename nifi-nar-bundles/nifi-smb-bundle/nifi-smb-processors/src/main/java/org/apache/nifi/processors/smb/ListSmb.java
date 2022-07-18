@@ -62,7 +62,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.services.smb.NiFiSmbClient;
+import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 
@@ -317,7 +317,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final SmbClientProviderService connectionPoolService =
                 context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
-        final NiFiSmbClient smbClient = connectionPoolService.getClient();
+        final SmbClientService smbClient = connectionPoolService.getClient();
         return smbClient.listRemoteFiles(directory).onClose(smbClient::close);
     }
 

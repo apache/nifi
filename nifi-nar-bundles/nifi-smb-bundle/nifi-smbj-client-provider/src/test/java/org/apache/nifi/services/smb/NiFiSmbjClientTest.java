@@ -32,7 +32,7 @@ class NiFiSmbjClientTest {
     DiskShare share;
 
     @InjectMocks
-    NiFiSmbjClient underTest;
+    SmbjClientService underTest;
 
     @BeforeEach
     public void beforeEach() {

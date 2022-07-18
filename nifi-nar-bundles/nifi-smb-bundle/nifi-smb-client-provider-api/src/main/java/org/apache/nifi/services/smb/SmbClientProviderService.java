@@ -33,6 +33,6 @@ public interface SmbClientProviderService extends ControllerService {
      *
      * @return the client.
      */
-    NiFiSmbClient getClient();
+    SmbClientService getClient();
 
 }
