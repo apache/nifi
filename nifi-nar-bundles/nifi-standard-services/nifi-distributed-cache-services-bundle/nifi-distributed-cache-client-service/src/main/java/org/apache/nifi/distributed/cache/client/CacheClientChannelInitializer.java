@@ -20,11 +20,16 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.handler.timeout.WriteTimeoutHandler;
+import org.apache.nifi.event.transport.netty.CloseContextIdleStateHandler;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Bootstrap a new netty connection.  This performs the socket handshake used by the nifi distributed set /
@@ -43,15 +48,20 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
      */
     private final VersionNegotiatorFactory versionNegotiatorFactory;
 
+    private final Duration idleTimeout;
+    private final Duration writeTimeout;
+
     /**
      * Constructor.
      *
      * @param sslContext the secure context (if any) to be associated with the channel
      * @param factory    creator of object used to broker the version of the distributed cache protocol with the service
      */
-    public CacheClientChannelInitializer(final SSLContext sslContext, final VersionNegotiatorFactory factory) {
+    public CacheClientChannelInitializer(final SSLContext sslContext, final VersionNegotiatorFactory factory, final Duration idleTimeout, final Duration writeTimeout) {
         this.sslContext = sslContext;
         this.versionNegotiatorFactory = factory;
+        this.idleTimeout = idleTimeout;
+        this.writeTimeout = writeTimeout;
     }
 
     @Override
@@ -66,7 +76,10 @@ public class CacheClientChannelInitializer extends ChannelInitializer<Channel> {
         }
 
         final VersionNegotiator versionNegotiator = versionNegotiatorFactory.create();
+        channelPipeline.addFirst(new IdleStateHandler(idleTimeout.getSeconds(), idleTimeout.getSeconds(), idleTimeout.getSeconds(), TimeUnit.SECONDS));
+        channelPipeline.addLast(new WriteTimeoutHandler(writeTimeout.toMillis(), TimeUnit.MILLISECONDS));
         channelPipeline.addLast(new CacheClientHandshakeHandler(channel, versionNegotiator));
         channelPipeline.addLast(new CacheClientRequestHandler());
+        channelPipeline.addLast(new CloseContextIdleStateHandler());
     }
 }

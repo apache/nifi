@@ -65,7 +65,7 @@ public class DistributedCacheClient {
     protected void invoke(final OutboundAdapter outboundAdapter, final InboundAdapter inboundAdapter) throws IOException {
         final Channel channel = channelPool.acquire().syncUninterruptibly().getNow();
         try {
-            final CacheClientRequestHandler requestHandler = (CacheClientRequestHandler) channel.pipeline().last();
+            final CacheClientRequestHandler requestHandler = channel.pipeline().get(CacheClientRequestHandler.class);
             requestHandler.invoke(channel, outboundAdapter, inboundAdapter);
         } finally {
             channelPool.release(channel).syncUninterruptibly();
