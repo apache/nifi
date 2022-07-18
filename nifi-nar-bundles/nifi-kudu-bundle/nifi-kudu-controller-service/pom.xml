@@ -101,7 +101,25 @@
             <activation>
                 <os>
                     <family>Unix</family>
-                    <arch>x86-64</arch>
+                    <arch>x86_64</arch>
+                </os>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.kudu</groupId>
+                    <artifactId>kudu-binary</artifactId>
+                    <version>${kudu.version}</version>
+                    <classifier>${os.detected.classifier}</classifier>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>kudu-linux-amd64</id>
+            <activation>
+                <os>
+                    <family>Unix</family>
+                    <arch>amd64</arch>
                 </os>
             </activation>
             <dependencies>
@@ -119,7 +137,7 @@
             <activation>
                 <os>
                     <family>mac</family>
-                    <arch>x86-64</arch>
+                    <arch>x86_64</arch>
                 </os>
             </activation>
             <dependencies>
