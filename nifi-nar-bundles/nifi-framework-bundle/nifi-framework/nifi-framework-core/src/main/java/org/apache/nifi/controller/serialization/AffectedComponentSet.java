@@ -45,6 +45,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -62,6 +63,11 @@ import java.util.stream.Collectors;
  */
 public class AffectedComponentSet {
     private static final Logger logger = LoggerFactory.getLogger(AffectedComponentSet.class);
+    private static final Set<ControllerServiceState> ACTIVE_CONTROLLER_SERVICE_STATES = new HashSet<>(Arrays.asList(
+        ControllerServiceState.ENABLED,
+        ControllerServiceState.ENABLING,
+        ControllerServiceState.DISABLING
+    ));
     private final FlowController flowController;
     private final FlowManager flowManager;
 
@@ -451,7 +457,7 @@ public class AffectedComponentSet {
         processors.stream().filter(this::isActive).forEach(active::addProcessor);
         reportingTasks.stream().filter(task -> task.getScheduledState() == ScheduledState.STARTING || task.getScheduledState() == ScheduledState.RUNNING || task.isRunning())
             .forEach(active::addReportingTask);
-        controllerServices.stream().filter(service -> service.getState() == ControllerServiceState.ENABLING || service.getState() == ControllerServiceState.ENABLED)
+        controllerServices.stream().filter(service -> ACTIVE_CONTROLLER_SERVICE_STATES.contains(service.getState()))
             .forEach(active::addControllerServiceWithoutReferences);
 
         return active;

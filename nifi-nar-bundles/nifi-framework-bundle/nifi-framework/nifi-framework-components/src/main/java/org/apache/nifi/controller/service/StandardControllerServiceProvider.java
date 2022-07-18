@@ -426,6 +426,16 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                         future.completeExceptionally(e);
                     }
                 }
+            } else {
+                boolean disabled = false;
+                while (!disabled) {
+                    try {
+                        disabled = serviceNode.awaitDisabled(1, TimeUnit.SECONDS);
+                    } catch (final Exception e) {
+                        logger.error("Failed to disable {}", serviceNode, e);
+                        future.completeExceptionally(e);
+                    }
+                }
             }
         }
     }

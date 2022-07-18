@@ -799,7 +799,7 @@ public class NiFiClientUtil {
 
         return servicesEntity.getControllerServices().stream()
             .filter(svc -> serviceIds == null || serviceIds.isEmpty() || serviceIds.contains(svc.getId()))
-            .filter(svc -> !desiredState.equals(svc.getStatus().getRunStatus()))
+            .filter(svc -> !desiredState.equalsIgnoreCase(svc.getComponent().getState()))
             .collect(Collectors.toList());
     }
 

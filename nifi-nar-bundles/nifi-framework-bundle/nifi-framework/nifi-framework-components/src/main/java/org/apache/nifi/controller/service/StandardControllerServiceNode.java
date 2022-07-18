@@ -394,6 +394,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return this.active.get();
     }
 
+    @Override
     public boolean awaitEnabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
         LOG.debug("Waiting up to {} {} for {} to be enabled", timePeriod, timeUnit, this);
         final boolean enabled = stateTransition.awaitStateOrInvalid(ControllerServiceState.ENABLED, timePeriod, timeUnit);
@@ -405,6 +406,20 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         return enabled;
+    }
+
+    @Override
+    public boolean awaitDisabled(final long timePeriod, final TimeUnit timeUnit) throws InterruptedException {
+        LOG.debug("Waiting up to {} {} for {} to be disabled", timePeriod, timeUnit, this);
+        final boolean disabled = stateTransition.awaitState(ControllerServiceState.DISABLED, timePeriod, timeUnit);
+
+        if (disabled) {
+            LOG.debug("{} is now disabled", this);
+        } else {
+            LOG.debug("After {} {}, {} is NOT disabled", timePeriod, timeUnit, this);
+        }
+
+        return disabled;
     }
 
     @Override

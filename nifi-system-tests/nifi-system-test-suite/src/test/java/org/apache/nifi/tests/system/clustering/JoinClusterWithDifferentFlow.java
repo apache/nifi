@@ -38,7 +38,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
@@ -114,7 +113,7 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         node2.start(true);
 
         final File backupFile = getBackupFile(node2ConfDir);
-        final NodeDTO node2Dto = getNodeDTO(5672);
+        final NodeDTO node2Dto = getNodeDtoByApiPort(5672);
 
         verifyFlowContentsOnDisk(backupFile);
         disconnectNode(node2Dto);
@@ -181,16 +180,6 @@ public class JoinClusterWithDifferentFlow extends NiFiSystemIT {
         assertFalse(procDto.getName().endsWith("00"));
     }
 
-
-    private NodeDTO getNodeDTO(final int apiPort) throws NiFiClientException, IOException {
-        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
-        final NodeDTO node2Dto = clusterEntity.getCluster().getNodes().stream()
-            .filter(nodeDto -> nodeDto.getApiPort() == apiPort)
-            .findAny()
-            .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
-
-        return node2Dto;
-    }
 
     private void disconnectNode(final NodeDTO nodeDto) throws NiFiClientException, IOException, InterruptedException {
         // Disconnect Node 2 so that we can go to the node directly via the REST API and ensure that the flow is correct.

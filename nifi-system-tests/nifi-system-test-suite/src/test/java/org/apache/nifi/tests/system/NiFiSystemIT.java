@@ -19,6 +19,7 @@ package org.apache.nifi.tests.system;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.impl.JerseyNiFiClient;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
@@ -62,6 +63,8 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     private static final String QUEUE_SIZE_LOGGING_KEY = "Queue Sizes";
     //                                                   Group ID  | Source Name | Dest Name | Conn Name  | Queue Size |
     private static final String QUEUE_SIZES_FORMAT = "| %1$-36.36s | %2$-30.30s | %3$-30.30s | %4$-30.30s | %5$-30.30s |";
+
+    public static final RequestConfig DO_NOT_REPLICATE = () -> Collections.singletonMap("X-Request-Replicated", "value");
 
     public static final int CLIENT_API_PORT = 5671;
     public static final int CLIENT_API_BASE_PORT = 5670;
@@ -157,12 +160,22 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
+        return createStandaloneInstanceFactory();
+    }
+
+    public NiFiInstanceFactory createStandaloneInstanceFactory() {
         return new SpawnedStandaloneNiFiInstanceFactory(
-                new InstanceConfiguration.Builder()
-                        .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
-                        .instanceDirectory("target/standalone-instance")
-                        .overrideNifiProperties(getNifiPropertiesOverrides())
-                        .build());
+            new InstanceConfiguration.Builder()
+                .bootstrapConfig("src/test/resources/conf/default/bootstrap.conf")
+                .instanceDirectory("target/standalone-instance")
+                .overrideNifiProperties(getNifiPropertiesOverrides())
+                .build());
+    }
+
+    public NiFiInstanceFactory createTwoNodeInstanceFactory() {
+        return new SpawnedClusterNiFiInstanceFactory(
+            "src/test/resources/conf/clustered/node1/bootstrap.conf",
+            "src/test/resources/conf/clustered/node2/bootstrap.conf");
     }
 
     protected String getTestName() {
@@ -470,5 +483,19 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     protected int getConnectionQueueSize(final String connectionId) {
         final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
         return statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued();
+    }
+
+    public NodeDTO getNodeDtoByNodeIndex(final int nodeIndex) throws NiFiClientException, IOException {
+        return getNodeDtoByApiPort(5670 + nodeIndex);
+    }
+
+    public NodeDTO getNodeDtoByApiPort(final int apiPort) throws NiFiClientException, IOException {
+        final ClusterEntity clusterEntity = getNifiClient().getControllerClient().getNodes();
+        final NodeDTO node2Dto = clusterEntity.getCluster().getNodes().stream()
+            .filter(nodeDto -> nodeDto.getApiPort() == apiPort)
+            .findAny()
+            .orElseThrow(() -> new RuntimeException("Could not locate Node 2"));
+
+        return node2Dto;
     }
 }

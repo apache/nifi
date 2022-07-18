@@ -55,7 +55,7 @@ public class StandardSleepService extends AbstractControllerService implements S
         .build();
     public static final PropertyDescriptor ON_DISABLED_SLEEP_TIME = new PropertyDescriptor.Builder()
         .name("@OnDisabled Sleep Time")
-        .description("The amount of time to sleep when disabeld")
+        .description("The amount of time to sleep when disabled")
         .required(false)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .defaultValue("0 sec")
