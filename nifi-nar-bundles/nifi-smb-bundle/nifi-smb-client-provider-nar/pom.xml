@@ -19,10 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-smb-bundle</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-smb-nar</artifactId>
+    <artifactId>nifi-smb-client-provider-nar</artifactId>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
@@ -32,19 +32,14 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smb-processors</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smbj-client-provider</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smb-client-provider-api-nar</artifactId>
+            <artifactId>nifi-smb-connection-pool-api-nar</artifactId>
             <version>1.17.0-SNAPSHOT</version>
             <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-smb-connection-pool</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

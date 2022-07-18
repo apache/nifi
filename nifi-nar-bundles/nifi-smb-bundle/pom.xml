@@ -26,10 +26,10 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-smb-connection-pool-api</module>
-        <module>nifi-smb-connection-pool-api-nar</module>
-        <module>nifi-smb-connection-pool</module>
-        <module>nifi-smb-connection-pool-nar</module>
+        <module>nifi-smb-client-provider-api</module>
+        <module>nifi-smb-client-provider-api-nar</module>
+        <module>nifi-smbj-client-provider</module>
+        <module>nifi-smb-client-provider-nar</module>
         <module>nifi-smb-processors</module>
         <module>nifi-smb-nar</module>
     </modules>

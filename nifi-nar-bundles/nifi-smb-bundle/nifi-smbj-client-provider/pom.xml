@@ -19,10 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-smb-bundle</artifactId>
-        <version>1.18.0-SNAPSHOT</version>
+        <version>1.17.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-smb-processors</artifactId>
+    <artifactId>nifi-smbj-client-provider</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
@@ -38,53 +38,39 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-distributed-cache-client-service-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record-serialization-service-api</artifactId>
+            <artifactId>nifi-record</artifactId>
         </dependency>
+        <!--dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-record-serialization-service-api</artifactId>
+        </dependency-->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.hierynomus</groupId>
             <artifactId>smbj</artifactId>
         </dependency>
-        <dependency>
+        <!--dependency>
             <groupId>net.engio</groupId>
             <artifactId>mbassador</artifactId>
-        </dependency>
+        </dependency-->
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <version>1.18.0-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
+        <!--dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency-->
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock-record-utils</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smbj-client-provider</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

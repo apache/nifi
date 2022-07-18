@@ -25,7 +25,6 @@ import static org.apache.nifi.components.state.Scope.CLUSTER;
 import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
 
 import java.io.IOException;
@@ -63,7 +62,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.services.smb.SmbSessionProviderService;
+import org.apache.nifi.services.smb.NiFiSmbClient;
+import org.apache.nifi.services.smb.SmbListableEntity;
+import org.apache.nifi.services.smb.SmbClientProviderService;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -155,11 +156,11 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .build();
 
     public static final PropertyDescriptor SMB_CONNECTION_POOL_SERVICE = new Builder()
-            .name("smb-connection-pool-service")
-            .displayName("SMB Connection Pool Service")
-            .description("Specifies the SMB Connection Pool to use for creating SMB connections.")
+            .name("smb-client-provider-service")
+            .displayName("SMB Client Provider Service")
+            .description("Specifies the SMB client provider to use for creating SMB connections.")
             .required(true)
-            .identifiesControllerService(SmbSessionProviderService.class)
+            .identifiesControllerService(SmbClientProviderService.class)
             .build();
 
     public static final PropertyDescriptor SKIP_FILES_WITH_SUFFIX = new Builder()
@@ -172,19 +173,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .addValidator(NON_EMPTY_VALIDATOR)
             .addValidator(new MustNotContainDirectorySeparatorsValidator())
             .build();
-    public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
-            .displayName("Share")
-            .name("share")
-            .description("The network share to which files should be listed from. This is the \"first folder\"" +
-                    "after the hostname: smb://hostname:port\\[share]\\dir1\\dir2")
-            .required(true)
-            .addValidator(NON_BLANK_VALIDATOR)
-            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
             SMB_LISTING_STRATEGY,
             SMB_CONNECTION_POOL_SERVICE,
-            SHARE,
             DIRECTORY,
             AbstractListProcessor.RECORD_WRITER,
             SKIP_FILES_WITH_SUFFIX,
@@ -196,8 +188,6 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             ListedEntityTracker.TRACKING_TIME_WINDOW,
             ListedEntityTracker.INITIAL_LISTING_TARGET
     ));
-
-    NiFiSmbClientFactory smbClientFactory = new NiFiSmbClientFactory();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -227,13 +217,11 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     @Override
     protected String getPath(ProcessContext context) {
-        final SmbSessionProviderService connectionPoolService =
-                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbSessionProviderService.class);
+        final SmbClientProviderService connectionPoolService =
+                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbClientProviderService.class);
         final URI serviceLocation = connectionPoolService.getServiceLocation();
         final String directory = getDirectory(context);
-        final String shareName = context.getProperty(SHARE).getValue();
-        return String.format("%s%s:\\%s", serviceLocation.toString(), shareName,
-                directory.isEmpty() ? "" : directory + "\\");
+        return String.format("%s:\\%s", serviceLocation.toString(), directory.isEmpty() ? "" : directory + "\\");
     }
 
     @Override
@@ -326,17 +314,16 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     private Stream<SmbListableEntity> performListing(ProcessContext context) throws IOException {
-        final SmbSessionProviderService connectionPoolService =
-                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbSessionProviderService.class);
+        final SmbClientProviderService connectionPoolService =
+                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
-        final String share = context.getProperty(SHARE).isSet() ? context.getProperty(SHARE).getValue() : "";
-        final NiFiSmbClient smbClient = smbClientFactory.create(connectionPoolService.getSession(), share);
+        final NiFiSmbClient smbClient = connectionPoolService.getClient();
         return smbClient.listRemoteFiles(directory).onClose(smbClient::close);
     }
 
     private String getDirectory(ProcessContext context) {
         final PropertyValue property = context.getProperty(DIRECTORY);
-        final String directory = property.isSet() ? NiFiSmbClient.unifyDirectorySeparators(property.getValue()) : "";
+        final String directory = property.isSet() ? property.getValue().replace('/', '\\') : "";
         return directory.equals("\\") ? "" : directory;
     }
 
