@@ -71,7 +71,7 @@ import java.util.concurrent.TimeUnit;
 @Tags({"google", "drive", "storage"})
 @CapabilityDescription("Lists concrete files (shortcuts are ignored) in a Google Drive folder. " +
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
-        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile." +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -80,7 +80,7 @@ import java.util.concurrent.TimeUnit;
         @WritesAttribute(attribute = "drive.size", description = "The size of the file"),
         @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file." +
                 " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
-                " 'Created time' takea the time when the upload occurs. However uploaded files can still be modified later."),
+                " 'Created time' takes the time when the upload occurs. However uploaded files can still be modified later."),
         @WritesAttribute(attribute = "mime.type", description = "MimeType of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
@@ -117,7 +117,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
             .name("min-age")
             .displayName("Minimum File Age")
-            .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored")
+            .description("The minimum age a file must be in order to be considered; any files younger than this will be ignored.")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("0 sec")
@@ -149,10 +149,10 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             RECURSIVE_SEARCH,
             MIN_AGE,
             LISTING_STRATEGY,
-            RECORD_WRITER,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
             INITIAL_LISTING_TARGET,
+            RECORD_WRITER,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
     ));
 
