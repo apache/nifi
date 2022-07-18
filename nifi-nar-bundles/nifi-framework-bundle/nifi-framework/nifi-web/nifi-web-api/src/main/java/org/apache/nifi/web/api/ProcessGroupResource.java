@@ -1636,7 +1636,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Path("{id}/empty-all-connections-requests")
     @ApiOperation(
         value = "Creates a request to drop all flowfiles of all connection queues in this process group.",
-        response = ProcessGroupEntity.class,
+        response = DropRequestEntity.class,
         authorizations = {
             @Authorization(value = "Read - /process-groups/{uuid} - For this and all encapsulated process groups"),
             @Authorization(value = "Write Source Data - /data/{component-type}/{uuid} - For all encapsulated connections")
