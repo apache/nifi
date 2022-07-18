@@ -709,7 +709,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>buildnumber-maven-plugin</artifactId>
-                    <version>1.4</version>
+                    <version>3.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.antlr</groupId>
@@ -724,14 +724,14 @@
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>9.2.1</version>
+                            <version>9.3</version>
                         </dependency>
                     </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.3.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.rat</groupId>
@@ -797,7 +797,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.0.0</version>
+                <version>3.1.0</version>
                 <executions>
                     <execution>
                         <id>enforce-maven-version</id>
@@ -975,12 +975,6 @@
             </build>
         </profile>
         <profile>
-            <!-- Checks style and licensing requirements. This is a good
-                idea to run for contributions and for the release process. While it would
-                be nice to run always these plugins can considerably slow the build and have
-                proven to create unstable builds in our multi-module project and when building
-                using multiple threads. The stability issues seen with Checkstyle in multi-module
-                builds include false-positives and false negatives. -->
             <id>contrib-check</id>
             <build>
                 <plugins>

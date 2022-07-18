@@ -33,6 +33,7 @@ env:
     -nsu
     -ntp
     -ff
+    --threads 1C
   MAVEN_BUILD_PROFILES: >-
     -P include-grpc
     -P skip-nifi-bin-assembly
@@ -57,12 +58,18 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
+      - name: Cache Maven Modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.m2/repository
+          # Cache Maven modules using a cache key different from setup-java steps
+          key: ${{ runner.os }}-maven-static-analysis-${{ hashFiles('**/pom.xml') }}
       - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'maven'
       - name: Maven Build
         run: >
           mvn validate
@@ -91,9 +98,7 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm16-
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 17
         uses: actions/setup-java@v3
         with:
@@ -148,9 +153,7 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm16-
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 11
         uses: actions/setup-java@v3
         with:
@@ -205,9 +208,7 @@ jobs:
           path: |
             ~/.npm
             **/node_modules
-          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm16-
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 8
         uses: actions/setup-java@v3
         with:
@@ -268,9 +269,7 @@ jobs:
           path: |
             ${{ steps.npm-cache-directory.outputs.directory }}
             **/node_modules
-          key: ${{ runner.os }}-npm16-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm16-
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 8
         uses: actions/setup-java@v3
         with:
