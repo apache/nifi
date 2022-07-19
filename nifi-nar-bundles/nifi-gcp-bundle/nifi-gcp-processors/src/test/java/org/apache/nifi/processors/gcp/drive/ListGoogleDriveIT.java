@@ -17,7 +17,8 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.FileContent;
+import com.google.api.client.http.AbstractInputStreamContent;
+import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -240,7 +242,7 @@ public class ListGoogleDriveIT {
         fileMetadata.setName(name);
         fileMetadata.setParents(Arrays.asList(folderIds));
 
-        FileContent content = new FileContent("text/plain", new java.io.File("src/test/java/org/apache/nifi/processors/gcp/drive/ListGoogleDriveIT.java"));
+        AbstractInputStreamContent content = new ByteArrayContent("text/plain", "test_content".getBytes(StandardCharsets.UTF_8));
 
         Drive.Files.Create create = driveService.files()
                 .create(fileMetadata, content)
