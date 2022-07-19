@@ -240,7 +240,7 @@ public class ListGoogleDriveIT {
         fileMetadata.setName(name);
         fileMetadata.setParents(Arrays.asList(folderIds));
 
-        FileContent content = new FileContent("text/plain", new java.io.File("src/test/resources/ListGoogleDriveIT/test_file.txt"));
+        FileContent content = new FileContent("text/plain", new java.io.File("src/test/java/org/apache/nifi/processors/gcp/drive/ListGoogleDriveIT.java"));
 
         Drive.Files.Create create = driveService.files()
                 .create(fileMetadata, content)

@@ -54,7 +54,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -247,7 +247,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.shortcut')");
         queryBuilder.append(" and trashed = false");
         if (minTimestamp != null && minTimestamp > 0) {
-            String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneId.of("UTC")));
+            String formattedMinTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(minTimestamp), ZoneOffset.UTC));
 
             queryBuilder.append(" and (");
             queryBuilder.append("modifiedTime >= '" + formattedMinTimestamp + "'");
@@ -256,7 +256,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         }
         if (minAge != null && minAge > 0) {
             long maxTimestamp = System.currentTimeMillis() - minAge;
-            String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneId.of("UTC")));
+            String formattedMaxTimestamp = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.ofInstant(Instant.ofEpochMilli(maxTimestamp), ZoneOffset.UTC));
 
             queryBuilder.append(" and modifiedTime < '" + formattedMaxTimestamp + "'");
             queryBuilder.append(" and createdTime < '" + formattedMaxTimestamp + "'");
