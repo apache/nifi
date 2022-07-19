@@ -36,9 +36,9 @@ import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.DateTimeUtils;
+import org.apache.nifi.serialization.JsonRecordReaderFactory;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.SchemaRegistryService;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -67,7 +67,7 @@ import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
         + "a field that is not present in the schema, that field will be skipped. "
         + "See the Usage of the Controller Service for more information and examples.")
 @SeeAlso(JsonPathReader.class)
-public class JsonTreeReader extends SchemaRegistryService implements RecordReaderFactory {
+public class JsonTreeReader extends SchemaRegistryService implements JsonRecordReaderFactory {
 
     private volatile String dateFormat;
     private volatile String timeFormat;

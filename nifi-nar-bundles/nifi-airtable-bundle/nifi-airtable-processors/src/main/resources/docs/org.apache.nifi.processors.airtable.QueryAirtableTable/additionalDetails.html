@@ -1,0 +1,83 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+
+<head>
+    <meta charset="utf-8"/>
+    <title>QueryAirtableTable</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
+    <style>
+h2 {margin-top: 4em}
+h3 {margin-top: 3em}
+td {text-align: left}
+    </style>
+</head>
+
+<body>
+
+<h1>QueryAirtableTable</h1>
+
+<h3>Description</h3>
+<p>
+    Airtable is a spreadsheet-database hybrid. In Airtable an application is called base and each base can have multiple tables.
+    A table consists of records (rows) and each record can have multiple fields (columns).
+    The QueryAirtableTable processor can query records from a single base and table via Airtable's REST API.
+    The processor utilizes streams and NiFi record-based processing to be able to handle a large number of records and to allow arbitrary output format.
+    It can also split large record sets to multiple FlowFiles and transfer them in batches just like a database processor.
+</p>
+
+<h3>API Token</h3>
+<p>
+    Airtable REST API calls require a so-called "API Token" that can needs to be passed in a request. An Airtable account is required to generate such token.
+</p>
+
+<h3>API rate limit</h3>
+<p>
+    The Airtable REST API limits the number of requests that can be sent on a per-base basis to avoid bottlenecks. Currently, this limit is 5 requests per second per base.
+    If this limit is exceeded the user can't make another request for 30 seconds. It's the user's responsibility to handle this rate limit.
+</p>
+
+<h3>Metadata API</h3>
+<p>
+    Currently the Metadata API of Airtable is unstable, and we don't provide a way to use it. Until it becomes stable the user should set up a JsonTreeReader service to provide a schema.
+    The JsonTreeReader is need to be set up in a specific way to properly work with the response of an Airtable REST API call.
+</p>
+<ul>
+    <li>"Starting Field Strategy" needs to be set to "Nested Field"</li>
+    <li>"Starting Field Name" needs to be set to "records"</li>
+    <li>"Schema Application Strategy" needs to be set to "Selected Part"</li>
+</ul>
+<p>This ensures that only the records are included in the schema.</p>
+
+</body>
+</html>
