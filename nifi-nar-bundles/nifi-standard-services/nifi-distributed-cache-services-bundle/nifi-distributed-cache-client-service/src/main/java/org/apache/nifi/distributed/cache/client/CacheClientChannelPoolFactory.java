@@ -18,8 +18,6 @@ package org.apache.nifi.distributed.cache.client;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -28,18 +26,12 @@ import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
 import io.netty.channel.pool.FixedChannelPool;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
-import org.apache.nifi.event.transport.netty.channel.ssl.ClientSslStandardChannelInitializer;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Supplier;
 
 /**
  * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service
