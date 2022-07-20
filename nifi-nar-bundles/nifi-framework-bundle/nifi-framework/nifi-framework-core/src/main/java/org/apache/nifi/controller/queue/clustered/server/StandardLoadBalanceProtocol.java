@@ -23,7 +23,12 @@ import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
+import org.apache.nifi.controller.queue.clustered.util.MarshallingUtil;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
@@ -60,6 +65,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -78,14 +84,14 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.MORE_FLOWFILES;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_DATA_FRAME;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_MORE_FLOWFILES;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.QUEUE_FULL;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.PARTITION_INFO;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SKIP_SPACE_CHECK;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
 public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
+
     private static final Logger logger = LoggerFactory.getLogger(StandardLoadBalanceProtocol.class);
 
     private static final int SOCKET_CLOSED = -1;
@@ -100,13 +106,16 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
     private final ThreadLocal<byte[]> dataBuffer = new ThreadLocal<>();
     private final AtomicLong lineageStartIndex = new AtomicLong(0L);
 
+    private final FlowFileEventRepository flowFileEventRepository;
+
     public StandardLoadBalanceProtocol(final FlowFileRepository flowFileRepository, final ContentRepository contentRepository, final ProvenanceRepository provenanceRepository,
-                                       final FlowController flowController, final LoadBalanceAuthorizer authorizer) {
+                                       final FlowController flowController, final LoadBalanceAuthorizer authorizer, final FlowFileEventRepository flowFileEventRepository) {
         this.flowFileRepository = flowFileRepository;
         this.contentRepository = contentRepository;
         this.provenanceRepository = provenanceRepository;
         this.flowController = flowController;
         this.authorizer = authorizer;
+        this.flowFileEventRepository = flowFileEventRepository;
     }
 
 
@@ -222,16 +231,13 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         }
 
         if (spaceCheck == CHECK_SPACE) {
-            if (loadBalancedFlowFileQueue.isLocalPartitionFull()) {
-                logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with QUEUE_FULL", peerDescription, connectionId);
-                out.write(QUEUE_FULL);
-                out.flush();
-                return; // we're finished receiving flowfiles for now, and we'll restart the communication process.
-            } else {
-                logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with SPACE_AVAILABLE", peerDescription, connectionId);
-                out.write(SPACE_AVAILABLE);
-                out.flush();
-            }
+            logger.debug("Received a 'Check Space' request from Peer {} for Connection with ID {}; responding with PARTITION_INFO", peerDescription, connectionId);
+            out.write(PARTITION_INFO);
+            final QueueSize localPartitionSize = Optional.ofNullable(loadBalancedFlowFileQueue.getLocalPartitionSize()).orElse(new QueueSize(0,0));
+            final FlowFileEvent flowFileEvent = flowFileEventRepository.reportTransferEvents(connectionId, System.currentTimeMillis());
+            final PartitionStatus status = new PartitionStatus(localPartitionSize.getObjectCount(), localPartitionSize.getByteCount(), flowFileEvent.getFlowFilesOut());
+            MarshallingUtil.writePartitionStatus(out, status);
+            out.flush();
         } else if (spaceCheck != SKIP_SPACE_CHECK) {
             throw new TransactionAbortedException("Expected to receive a request to determine whether or not space was available for Connection with ID "
                 + connectionId + " from Peer " + peerDescription + " but instead received value " + spaceCheck);

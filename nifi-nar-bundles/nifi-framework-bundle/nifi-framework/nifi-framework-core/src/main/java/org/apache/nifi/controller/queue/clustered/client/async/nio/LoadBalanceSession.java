@@ -18,11 +18,14 @@
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategy;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.TransactionThreshold;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
 import org.apache.nifi.controller.queue.clustered.server.TransactionAbortedException;
+import org.apache.nifi.controller.queue.clustered.util.MarshallingUtil;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.remote.StandardVersionNegotiator;
@@ -53,12 +56,10 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.ABORT_TRANSACTION;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.QUEUE_FULL;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.PARTITION_INFO;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REQEUST_DIFFERENT_VERSION;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
-
 
 public class LoadBalanceSession {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalanceSession.class);
@@ -89,8 +90,10 @@ public class LoadBalanceSession {
     private long readTimeout;
     private volatile LoadBalanceSessionState sessionState = LoadBalanceSessionState.ACTIVE;
 
+    private final PartitionConsumptionStrategy consumptionStrategy;
+
     public LoadBalanceSession(final RegisteredPartition partition, final FlowFileContentAccess contentAccess, final LoadBalanceFlowFileCodec flowFileCodec, final PeerChannel peerChannel,
-                              final int timeoutMillis, final TransactionThreshold transactionThreshold) {
+                              final int timeoutMillis, final TransactionThreshold transactionThreshold, final PartitionConsumptionStrategy consumptionStrategy) {
         this.partition = partition;
         this.flowFileSupplier = partition.getFlowFileRecordSupplier();
         this.connectionId = partition.getConnectionId();
@@ -104,6 +107,7 @@ public class LoadBalanceSession {
         }
         this.timeoutMillis = timeoutMillis;
         this.transactionThreshold = transactionThreshold;
+        this.consumptionStrategy = consumptionStrategy;
     }
 
     public RegisteredPartition getPartition() {
@@ -551,7 +555,6 @@ public class LoadBalanceSession {
         return buffer;
     }
 
-
     private boolean receiveSpaceAvailableResponse() throws IOException {
         logger.debug("Receiving response from Peer {} to determine whether or not space is available in queue {}", peerDescription, connectionId);
 
@@ -569,17 +572,25 @@ public class LoadBalanceSession {
             throw new EOFException("Encountered End-of-File when trying to verify with Peer " + peerDescription + " whether or not space is available in Connection " + connectionId);
         }
 
-        if (response == SPACE_AVAILABLE) {
-            logger.debug("Peer {} has confirmed that space is available in Connection {}", peerDescription, connectionId);
-            phase = TransactionPhase.GET_NEXT_FLOWFILE;
-        } else if (response == QUEUE_FULL) {
-            logger.debug("Peer {} has confirmed that the queue is full for Connection {}", peerDescription, connectionId);
-            phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
-            checksum.reset(); // We are restarting the session entirely so we need to reset our checksum
+        if (response == PARTITION_INFO) {
+            final PartitionStatus lastStatus = MarshallingUtil.readPartitionStatus(channel);
+            partition.getPartitionStatusSnapshots().put(partition.getNodeIdentifier().getId(), lastStatus);
 
-            // consider complete because there's nothing else that we can do in this session. Allow client to move on to a different session.
-            sessionState = LoadBalanceSessionState.COMPLETED_SUCCESSFULLY;
-            partition.penalize(1000L);
+            if (logger.isTraceEnabled()) {
+                logger.trace("The following partition info arrived from node %: %", partition.getNodeIdentifier().getApiAddress(), lastStatus.toString());
+            }
+
+            if (consumptionStrategy.shouldSendFlowFile(partition.getPartitionStatusSnapshots())) {
+                logger.debug("Based on the last partition status, next flow file should be sent");
+                phase = TransactionPhase.GET_NEXT_FLOWFILE;
+            } else {
+                logger.debug("Based on the last partition status, session is considered complete");
+                phase = TransactionPhase.RECOMMEND_PROTOCOL_VERSION;
+                checksum.reset(); // We are restarting the session entirely so we need to reset our checksum
+                // consider complete because there's nothing else that we can do in this session. Allow client to move on to a different session.
+                sessionState = LoadBalanceSessionState.COMPLETED_SUCCESSFULLY;
+                partition.penalize(1000L);
+            }
         } else {
             throw new TransactionAbortedException("After requesting to know whether or not Peer " + peerDescription + " has space available in Connection " + connectionId
                 + ", received unexpected response of " + response + ". Aborting transaction.");
@@ -587,8 +598,6 @@ public class LoadBalanceSession {
 
         return true;
     }
-
-
 
     private enum TransactionPhase {
         RECOMMEND_PROTOCOL_VERSION(SelectionKey.OP_WRITE),

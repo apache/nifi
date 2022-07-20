@@ -17,10 +17,12 @@
 
 package org.apache.nifi.controller.queue.clustered.partition;
 
+import com.google.common.base.Function;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
@@ -30,6 +32,7 @@ import org.apache.nifi.controller.queue.clustered.TransferFailureDestination;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -54,10 +57,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -68,6 +71,7 @@ public class RemoteQueuePartition implements QueuePartition {
 
     private final NodeIdentifier nodeIdentifier;
     private final SwappablePriorityQueue priorityQueue;
+    private final SwappablePriorityQueue sharedPriorityQueue;
     private final LoadBalancedFlowFileQueue flowFileQueue;
     private final TransferFailureDestination failureDestination;
 
@@ -76,37 +80,54 @@ public class RemoteQueuePartition implements QueuePartition {
     private final ContentRepository contentRepo;
     private final AsyncLoadBalanceClientRegistry clientRegistry;
 
+    private final Map<String, PartitionStatus> partitionStatusSnapshots;
+    private final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory;
+
     private boolean running = false;
     private final String description;
 
-    public RemoteQueuePartition(final NodeIdentifier nodeId, final SwappablePriorityQueue priorityQueue, final TransferFailureDestination failureDestination,
-                                final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo, final ContentRepository contentRepository,
-                                final AsyncLoadBalanceClientRegistry clientRegistry, final LoadBalancedFlowFileQueue flowFileQueue) {
+    private volatile boolean isInSharedMode = false;
+
+    public RemoteQueuePartition(final NodeIdentifier nodeId, final SwappablePriorityQueue priorityQueue, final SwappablePriorityQueue sharedPriorityQueue,
+                                final TransferFailureDestination failureDestination, final FlowFileRepository flowFileRepo, final ProvenanceEventRepository provRepo,
+                                final ContentRepository contentRepository, final AsyncLoadBalanceClientRegistry clientRegistry, final LoadBalancedFlowFileQueue flowFileQueue,
+                                final Map<String, PartitionStatus> partitionStatusSnapshots, final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory) {
 
         this.nodeIdentifier = nodeId;
         this.priorityQueue = priorityQueue;
+        this.sharedPriorityQueue = sharedPriorityQueue;
         this.flowFileQueue = flowFileQueue;
         this.failureDestination = failureDestination;
         this.flowFileRepo = flowFileRepo;
         this.provRepo = provRepo;
         this.contentRepo = contentRepository;
         this.clientRegistry = clientRegistry;
+        this.partitionStatusSnapshots = partitionStatusSnapshots;
+        this.partitionConsumptionStrategyFactory = partitionConsumptionStrategyFactory;
         this.description = "RemoteQueuePartition[queueId=" + flowFileQueue.getIdentifier() + ", nodeId=" + nodeIdentifier + "]";
+    }
+
+    public void setSharedMode(final boolean isInSharedMode) {
+        this.isInSharedMode = isInSharedMode;
+    }
+
+    private SwappablePriorityQueue getQueue() {
+        return isInSharedMode ? sharedPriorityQueue : priorityQueue;
     }
 
     @Override
     public QueueSize size() {
-        return priorityQueue.size();
+        return getQueue().size();
     }
 
     @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
-        return priorityQueue.getTotalQueuedDuration(fromTimestamp);
+        return getQueue().getTotalQueuedDuration(fromTimestamp);
     }
 
     @Override
     public long getMinLastQueueDate() {
-        return priorityQueue.getMinLastQueueDate();
+        return getQueue().getMinLastQueueDate();
     }
 
     @Override
@@ -121,37 +142,37 @@ public class RemoteQueuePartition implements QueuePartition {
 
     @Override
     public void put(final FlowFileRecord flowFile) {
-        priorityQueue.put(flowFile);
+        getQueue().put(flowFile);
     }
 
     @Override
     public void putAll(final Collection<FlowFileRecord> flowFiles) {
-        priorityQueue.putAll(flowFiles);
+        getQueue().putAll(flowFiles);
     }
 
     @Override
     public void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
-        priorityQueue.dropFlowFiles(dropRequest, requestor);
+        getQueue().dropFlowFiles(dropRequest, requestor);
     }
 
     @Override
     public SwapSummary recoverSwappedFlowFiles() {
-        return priorityQueue.recoverSwappedFlowFiles();
+        return getQueue().recoverSwappedFlowFiles();
     }
 
     @Override
     public FlowFileQueueContents packageForRebalance(String newPartitionName) {
-        return priorityQueue.packageForRebalance(newPartitionName);
+        return getQueue().packageForRebalance(newPartitionName);
     }
 
     @Override
     public void setPriorities(final List<FlowFilePrioritizer> newPriorities) {
-        priorityQueue.setPriorities(newPriorities);
+        getQueue().setPriorities(newPriorities);
     }
 
     private FlowFileRecord getFlowFile() {
         final Set<FlowFileRecord> expired = new HashSet<>();
-        final FlowFileRecord flowFile = priorityQueue.poll(expired, flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS), PollStrategy.ALL_FLOWFILES);
+        final FlowFileRecord flowFile = getQueue().poll(expired, flowFileQueue.getFlowFileExpiration(TimeUnit.MILLISECONDS), PollStrategy.ALL_FLOWFILES);
         flowFileQueue.handleExpiredRecords(expired);
         return flowFile;
     }
@@ -169,7 +190,9 @@ public class RemoteQueuePartition implements QueuePartition {
                 // and then put the FlowFiles back, or transfer them to another partition. We do not call
                 // flowFileQueue#onTransfer in the case of failure, though, because the size of the FlowFileQueue itself
                 // has not changed. They FlowFiles were just re-queued or moved between partitions.
-                priorityQueue.acknowledge(flowFiles);
+                getQueue().acknowledge(flowFiles);
+
+                final Function<String, FlowFileQueueContents> packageForRebalance = getQueue()::packageForRebalance;
 
                 if (cause instanceof ContentNotFoundException) {
                     // Handle ContentNotFound by creating a RepositoryRecord for the FlowFile and marking as aborted, then updating the
@@ -191,7 +214,7 @@ public class RemoteQueuePartition implements QueuePartition {
                         // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
                         // In either case, transfer those FlowFiles that we failed to send.
                         if (phase == TransactionPhase.CONNECTING) {
-                            failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
+                            failureDestination.putAll(packageForRebalance, partitioner);
                         }
                         failureDestination.putAll(successfulFlowFiles, partitioner);
 
@@ -204,7 +227,7 @@ public class RemoteQueuePartition implements QueuePartition {
                 // If unable to even connect to the node, go ahead and transfer all FlowFiles for this queue to the failure destination.
                 // In either case, transfer those FlowFiles that we failed to send.
                 if (phase == TransactionPhase.CONNECTING) {
-                    failureDestination.putAll(priorityQueue::packageForRebalance, partitioner);
+                    failureDestination.putAll(packageForRebalance, partitioner);
                 }
                 failureDestination.putAll(flowFiles, partitioner);
             }
@@ -220,15 +243,15 @@ public class RemoteQueuePartition implements QueuePartition {
             public void onTransactionComplete(final List<FlowFileRecord> flowFilesSent, final NodeIdentifier nodeIdentifier) {
                 // We've now completed the transaction. We must now update the repositories and "keep the books", acknowledging the FlowFiles
                 // with the queue so that its size remains accurate.
-                priorityQueue.acknowledge(flowFilesSent);
+                getQueue().acknowledge(flowFilesSent);
                 flowFileQueue.onTransfer(flowFilesSent);
                 updateRepositories(flowFilesSent, Collections.emptyList(), nodeIdentifier);
             }
         };
 
-        final BooleanSupplier emptySupplier = priorityQueue::isEmpty;
-        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, emptySupplier, this::getFlowFile,
-            failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes);
+        clientRegistry.register(flowFileQueue.getIdentifier(), nodeIdentifier, () -> getQueue().isEmpty(), this::getFlowFile,
+                failureCallback, successCallback, flowFileQueue::getLoadBalanceCompression, flowFileQueue::isPropagateBackpressureAcrossNodes,
+                partitionStatusSnapshots, partitionConsumptionStrategyFactory);
 
         running = true;
     }
@@ -351,7 +374,7 @@ public class RemoteQueuePartition implements QueuePartition {
     }
 
     public RemoteQueuePartitionDiagnostics getDiagnostics() {
-        return new StandardRemoteQueuePartitionDiagnostics(nodeIdentifier.toString(), priorityQueue.getFlowFileQueueSize());
+        return new StandardRemoteQueuePartitionDiagnostics(nodeIdentifier.toString(), getQueue().getFlowFileQueueSize());
     }
 
     @Override

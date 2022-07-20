@@ -46,6 +46,8 @@ import org.apache.nifi.controller.queue.clustered.server.NotAuthorizedException;
 import org.apache.nifi.controller.queue.clustered.server.StandardLoadBalanceProtocol;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
@@ -121,6 +123,7 @@ public class LoadBalancedQueueIT {
     private ResourceClaimManager resourceClaimManager;
     private LoadBalancedFlowFileQueue serverQueue;
     private FlowController flowController;
+    private FlowFileEventRepository flowFileEventRepository;
 
     private ProvenanceRepository clientProvRepo;
     private ContentRepository clientContentRepo;
@@ -176,6 +179,11 @@ public class LoadBalancedQueueIT {
         when(flowManager.getConnection(Mockito.anyString())).thenReturn(connection);
         when(flowController.getFlowManager()).thenReturn(flowManager);
 
+        final FlowFileEvent event = mock(FlowFileEvent.class);
+        flowFileEventRepository = mock(FlowFileEventRepository.class);
+        when(flowFileEventRepository.reportTransferEvents(Mockito.anyString(), Mockito.anyLong())).thenReturn(event);
+        when(event.getFlowFilesOut()).thenReturn(9);
+
         // Create repos for the server
         serverRepoRecords = Collections.synchronizedList(new ArrayList<>());
         serverFlowFileRepo = createFlowFileRepository(serverRepoRecords);
@@ -216,14 +224,15 @@ public class LoadBalancedQueueIT {
         return new NioAsyncLoadBalanceClientFactory(sslContext, 30000, flowFileContentAccess, eventReporter, new StandardLoadBalanceFlowFileCodec(), clusterCoordinator);
     }
 
-    @Test(timeout = 20_000)
+    @Test
     public void testNewNodeAdded() throws IOException, InterruptedException {
         localNodeId = new NodeIdentifier("unit-test-local", "localhost", 7090, "localhost", 7090, "localhost", 7090, null, null, null, false, null);
         nodeIdentifiers.add(localNodeId);
 
         // Create the server
         final int timeoutMillis = 1000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final NioAsyncLoadBalanceClientRegistry clientRegistry = new NioAsyncLoadBalanceClientRegistry(createClientFactory(sslContext), 1);
@@ -313,7 +322,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 1000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -416,7 +426,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -504,7 +515,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -575,7 +587,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -665,7 +678,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -753,8 +767,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
-
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
@@ -841,7 +855,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
@@ -928,7 +943,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
@@ -1043,7 +1059,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
         final SSLContext sslContext = null;
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
@@ -1149,7 +1166,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, NEVER_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, NEVER_AUTHORIZED, flowFileEventRepository);
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();
@@ -1217,7 +1235,8 @@ public class LoadBalancedQueueIT {
 
         // Create the server
         final int timeoutMillis = 30000;
-        final LoadBalanceProtocol loadBalanceProtocol = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED);
+        final LoadBalanceProtocol loadBalanceProtocol
+                = new StandardLoadBalanceProtocol(serverFlowFileRepo, serverContentRepo, serverProvRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final ConnectionLoadBalanceServer server = new ConnectionLoadBalanceServer("localhost", 0, sslContext, 2, loadBalanceProtocol, eventReporter, timeoutMillis);
         server.start();

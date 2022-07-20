@@ -1285,6 +1285,11 @@
                 description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the cluster is not able to receive data as fast as other nodes,'
                                 + ' that node may be skipped in one or more iterations in order to maximize throughput of data distribution across the cluster.'
             }, {
+                text: 'Fluid',
+                value: 'FLUID',
+                description: 'FlowFiles will be distributed between nodes based on their capacity to process them.'
+                                + 'Capacity is constantly monitored based on partition information the nodes share with each other.'
+            }, {
                 text: 'Single node',
                 value: 'SINGLE_NODE',
                 description: 'All FlowFiles will be sent to the same node. Which node they are sent to is not defined.'

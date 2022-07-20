@@ -23,12 +23,15 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -67,9 +70,9 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.MORE_FLOWFILES;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_DATA_FRAME;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.NO_MORE_FLOWFILES;
+import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.PARTITION_INFO;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.REJECT_CHECKSUM;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SKIP_SPACE_CHECK;
-import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -79,12 +82,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 public class TestStandardLoadBalanceProtocol {
+    private final static long TOTAL_SIZE_BYTES = 1;
+    private final static int NUMBER_OF_OBJECTS = 2;
+    private final static int FLOW_FILES_OUT = 3;
+
     private final LoadBalanceAuthorizer ALWAYS_AUTHORIZED = (sslSocket) -> sslSocket == null ? null : "authorized.mydomain.com";
     private FlowFileRepository flowFileRepo;
     private ContentRepository contentRepo;
     private ProvenanceRepository provenanceRepo;
     private FlowController flowController;
     private LoadBalancedFlowFileQueue flowFileQueue;
+    private FlowFileEventRepository flowFileEventRepository;
 
     private List<RepositoryRecord> flowFileRepoUpdateRecords;
     private List<ProvenanceEventRecord> provRepoUpdateRecords;
@@ -105,6 +113,7 @@ public class TestStandardLoadBalanceProtocol {
         contentRepo = Mockito.mock(ContentRepository.class);
         provenanceRepo = Mockito.mock(ProvenanceRepository.class);
         flowController = Mockito.mock(FlowController.class);
+        flowFileEventRepository = Mockito.mock(FlowFileEventRepository.class);
         claimContents = new ConcurrentHashMap<>();
 
         Mockito.doAnswer(new Answer<ContentClaim>() {
@@ -159,6 +168,8 @@ public class TestStandardLoadBalanceProtocol {
             }
         }).when(flowFileQueue).receiveFromPeer(anyCollection());
 
+        Mockito.doReturn(new QueueSize(NUMBER_OF_OBJECTS,TOTAL_SIZE_BYTES)).when(flowFileQueue).getLocalPartitionSize();
+
         Mockito.doAnswer(new Answer<Void>() {
             @Override
             public Void answer(final InvocationOnMock invocation) throws Throwable {
@@ -174,12 +185,15 @@ public class TestStandardLoadBalanceProtocol {
                 return null;
             }
         }).when(provenanceRepo).registerEvents(anyCollection());
-    }
 
+        final StandardFlowFileEvent event = new StandardFlowFileEvent();
+        event.setFlowFilesOut(FLOW_FILES_OUT);
+        Mockito.doReturn(event).when(flowFileEventRepository).reportTransferEvents(Mockito.anyString(), Mockito.anyLong());
+    }
 
     @Test
     public void testSimpleFlowFileTransaction() throws IOException, IllegalClusterStateException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -210,10 +224,7 @@ public class TestStandardLoadBalanceProtocol {
         protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(3, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
-        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
+        assertArrayEquals(new ExpectedResponseBuilder().withConfirmedChecksum().withConfirmedCompletion().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -227,7 +238,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testMultipleFlowFiles() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -272,10 +283,7 @@ public class TestStandardLoadBalanceProtocol {
         protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(3, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
-        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
+        assertArrayEquals(new ExpectedResponseBuilder().withConfirmedChecksum().withConfirmedCompletion().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         final byte[] bytes = claimContents.values().iterator().next();
@@ -292,7 +300,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testMultipleFlowFilesWithoutCheckingSpace() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -355,7 +363,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testEofExceptionMultipleFlowFiles() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -403,8 +411,7 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(1, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertArrayEquals(new ExpectedResponseBuilder().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         assertArrayEquals("hellogreetings".getBytes(), claimContents.values().iterator().next());
@@ -416,7 +423,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testBadChecksum() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -450,9 +457,7 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(2, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
-        assertEquals(REJECT_CHECKSUM, serverResponse[1]);
+        assertArrayEquals(new ExpectedResponseBuilder().withRejectedChecksum().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -468,7 +473,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testEofWritingContent() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -504,8 +509,7 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(1, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
+        assertArrayEquals(new ExpectedResponseBuilder().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -521,7 +525,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testAbortAfterChecksumConfirmation() throws IOException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -555,9 +559,7 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(2, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
+        assertArrayEquals(new ExpectedResponseBuilder().withConfirmedChecksum().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         final byte[] firstFlowFileContent = claimContents.values().iterator().next();
@@ -573,7 +575,7 @@ public class TestStandardLoadBalanceProtocol {
 
     @Test
     public void testFlowFileNoContent() throws IOException, IllegalClusterStateException {
-        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
+        final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED, flowFileEventRepository);
 
         final PipedInputStream serverInput = new PipedInputStream();
         final PipedOutputStream serverContentSource = new PipedOutputStream();
@@ -602,10 +604,7 @@ public class TestStandardLoadBalanceProtocol {
         protocol.receiveFlowFiles(serverInput, serverOutput, "Unit Test", 1);
 
         final byte[] serverResponse = serverOutput.toByteArray();
-        assertEquals(3, serverResponse.length);
-        assertEquals(SPACE_AVAILABLE, serverResponse[0]);
-        assertEquals(CONFIRM_CHECKSUM, serverResponse[1]);
-        assertEquals(CONFIRM_COMPLETE_TRANSACTION, serverResponse[2]);
+        assertArrayEquals(new ExpectedResponseBuilder().withConfirmedChecksum().withConfirmedCompletion().build(), serverResponse);
 
         assertEquals(1, claimContents.size());
         assertEquals(0, claimContents.values().iterator().next().length);
@@ -662,5 +661,44 @@ public class TestStandardLoadBalanceProtocol {
         }
 
         out.write(NO_DATA_FRAME);
+    }
+
+    private static class ExpectedResponseBuilder {
+        private byte[] expectedResponse = new byte[17];
+
+        ExpectedResponseBuilder() {
+            expectedResponse[0] = PARTITION_INFO;
+            setRange(expectedResponse, 1, new byte[]{0,0,0,0,0,0,0,1});
+            setRange(expectedResponse, 9, new byte[]{0,0,0,2});
+            setRange(expectedResponse, 13, new byte[]{0,0,0,3});
+        }
+
+        ExpectedResponseBuilder withConfirmedChecksum() {
+            expectedResponse = Arrays.copyOf(expectedResponse, expectedResponse.length + 1);
+            expectedResponse[expectedResponse.length - 1] = CONFIRM_CHECKSUM;
+            return this;
+        }
+
+        ExpectedResponseBuilder withRejectedChecksum() {
+            expectedResponse = Arrays.copyOf(expectedResponse, expectedResponse.length + 1);
+            expectedResponse[expectedResponse.length - 1] = REJECT_CHECKSUM;
+            return this;
+        }
+
+        ExpectedResponseBuilder withConfirmedCompletion() {
+            expectedResponse = Arrays.copyOf(expectedResponse, expectedResponse.length + 1);
+            expectedResponse[expectedResponse.length - 1] = CONFIRM_COMPLETE_TRANSACTION;
+            return this;
+        }
+
+        byte[] build() {
+            return expectedResponse;
+        }
+    }
+
+    private static void setRange(final byte[] original, final int startAt, final byte[] newValues) {
+        for (int i = 0; i < newValues.length; i++) {
+            original[i + startAt] = newValues[i];
+        }
     }
 }

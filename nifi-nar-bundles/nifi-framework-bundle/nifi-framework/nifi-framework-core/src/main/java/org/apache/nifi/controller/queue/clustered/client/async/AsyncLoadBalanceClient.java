@@ -19,9 +19,12 @@ package org.apache.nifi.controller.queue.clustered.client.async;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -35,7 +38,8 @@ public interface AsyncLoadBalanceClient {
 
     void register(String connectionId, BooleanSupplier emptySupplier, Supplier<FlowFileRecord> flowFileSupplier,
                   TransactionFailureCallback failureCallback, TransactionCompleteCallback successCallback,
-                  Supplier<LoadBalanceCompression> compressionSupplier, BooleanSupplier honorBackpressureSupplier);
+                  Supplier<LoadBalanceCompression> compressionSupplier, BooleanSupplier honorBackpressureSupplier,
+                  Map<String, PartitionStatus> partitionStatusSnapshots, PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory);
 
     void unregister(String connectionId);
 

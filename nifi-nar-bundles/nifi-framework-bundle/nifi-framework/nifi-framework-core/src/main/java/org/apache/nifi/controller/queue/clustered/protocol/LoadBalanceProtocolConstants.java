@@ -37,8 +37,7 @@ public class LoadBalanceProtocolConstants {
     // Backpressure / Space constants
     public static final int CHECK_SPACE = 0x61;
     public static final int SKIP_SPACE_CHECK = 0x62;
-    public static final int SPACE_AVAILABLE = 0x65;
-    public static final int QUEUE_FULL = 0x66;
+    public static final int PARTITION_INFO = 0x67;
 
     // data frame constants
     public static final int NO_DATA_FRAME = 0x40;

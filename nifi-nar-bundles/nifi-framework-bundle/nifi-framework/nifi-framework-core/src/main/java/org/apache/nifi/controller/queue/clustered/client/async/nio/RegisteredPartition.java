@@ -17,11 +17,15 @@
 
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 
+import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -35,8 +39,13 @@ public class RegisteredPartition {
     private final BooleanSupplier honorBackpressureSupplier;
     private volatile long penaltyExpiration;
 
+    private final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory;
+    private final Map<String, PartitionStatus> partitionStatusSnapshots;
+    private final NodeIdentifier nodeIdentifier;
+
     public RegisteredPartition(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier, final TransactionFailureCallback failureCallback,
-                               final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
+                               final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier,
+                               Map<String, PartitionStatus> partitionStatusSnapshots, final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory, NodeIdentifier nodeIdentifier) {
         this.connectionId = connectionId;
         this.emptySupplier = emptySupplier;
         this.flowFileRecordSupplier = flowFileSupplier;
@@ -44,6 +53,9 @@ public class RegisteredPartition {
         this.successCallback = successCallback;
         this.compressionSupplier = compressionSupplier;
         this.honorBackpressureSupplier = honorBackpressureSupplier;
+        this.partitionStatusSnapshots = partitionStatusSnapshots;
+        this.partitionConsumptionStrategyFactory = partitionConsumptionStrategyFactory;
+        this.nodeIdentifier = nodeIdentifier;
     }
 
     public boolean isEmpty() {
@@ -80,5 +92,17 @@ public class RegisteredPartition {
 
     public boolean isPenalized() {
         return penaltyExpiration > System.currentTimeMillis();
+    }
+
+    public Map<String, PartitionStatus> getPartitionStatusSnapshots() {
+        return partitionStatusSnapshots;
+    }
+
+    public NodeIdentifier getNodeIdentifier() {
+        return nodeIdentifier;
+    }
+
+    public PartitionConsumptionStrategyFactory getPartitionConsumptionStrategyFactory() {
+        return partitionConsumptionStrategyFactory;
     }
 }

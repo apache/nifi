@@ -74,4 +74,9 @@ public interface LoadBalancedFlowFileQueue extends FlowFileQueue {
      * @return <code>true</code> if the number of FlowFiles or total size of FlowFiles in the local partition alone meets or exceeds the backpressure threshold, <code>false</code> otherwise.
      */
     boolean isLocalPartitionFull();
+
+    /**
+     * @return Returns the actual size of thee local partition.
+     */
+    QueueSize getLocalPartitionSize();
 }

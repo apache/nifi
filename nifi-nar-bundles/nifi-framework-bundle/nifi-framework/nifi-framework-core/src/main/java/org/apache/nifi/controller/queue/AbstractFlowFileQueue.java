@@ -144,7 +144,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return getMaxQueueSize().getMaxSize();
     }
 
-    private MaxQueueSize getMaxQueueSize() {
+    protected MaxQueueSize getMaxQueueSize() {
         return maxQueueSize.get();
     }
 

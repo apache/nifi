@@ -57,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestPeerChannel {
+public class  TestPeerChannel {
     private static final String LOCALHOST = "localhost";
 
     private static final int GROUP_THREADS = 1;
@@ -117,6 +117,35 @@ public class TestPeerChannel {
         assertWriteReadSuccess(TLS_1_3);
     }
 
+    @Test
+    @Timeout(value = CHANNEL_TIMEOUT, unit = TimeUnit.MILLISECONDS)
+    public void testReadingBytesTls12() throws IOException {
+        assertWriteReadBytesSuccess(TLS_1_2);
+    }
+
+    @EnabledIf(TLS_1_3_SUPPORTED)
+    @Test
+    @Timeout(value = CHANNEL_TIMEOUT, unit = TimeUnit.MILLISECONDS)
+    public void testReadingBytesTls13() throws IOException {
+        assertWriteReadBytesSuccess(TLS_1_3);
+    }
+
+    private byte[] readBytes(final PeerChannel peerChannel, final int size) throws IOException {
+        while (true) {
+
+            try {
+                return peerChannel.readBytes(size);
+            } catch (IOException e) {
+                try {
+                    TimeUnit.MILLISECONDS.sleep(READ_SLEEP_INTERVAL);
+                } catch (InterruptedException i) {
+                    Thread.interrupted();
+                    throw new RuntimeException("Peer Channel read sleep interrupted", i);
+                }
+            }
+        }
+    }
+
     private void assertWriteReadSuccess(final String enabledProtocol) throws IOException {
         processChannel(enabledProtocol, peerChannel -> {
             try {
@@ -137,6 +166,25 @@ public class TestPeerChannel {
 
                 final int secondByteRead = read(peerChannel);
                 assertEquals(VERSION_ACCEPTED, secondByteRead, "Peer Channel second byte read not matched");
+            } catch (final IOException e) {
+                throw new UncheckedIOException(String.format("Channel Failed for %s", enabledProtocol), e);
+            }
+        });
+    }
+
+    private void assertWriteReadBytesSuccess(final String enabledProtocol) throws IOException {
+        processChannel(enabledProtocol, peerChannel -> {
+            try {
+                peerChannel.performHandshake();
+
+
+                final byte[] payload = new byte[]{PROTOCOL_VERSION};
+                final ByteBuffer versionBuffer = ByteBuffer.wrap(payload);
+                final ByteBuffer encryptedVersionBuffer = peerChannel.prepareForWrite(versionBuffer);
+                peerChannel.write(encryptedVersionBuffer);
+
+                final byte[] result = readBytes(peerChannel, 1);
+                assertEquals(PROTOCOL_VERSION, result[0], "Peer Channel read did not matched");
             } catch (final IOException e) {
                 throw new UncheckedIOException(String.format("Channel Failed for %s", enabledProtocol), e);
             }

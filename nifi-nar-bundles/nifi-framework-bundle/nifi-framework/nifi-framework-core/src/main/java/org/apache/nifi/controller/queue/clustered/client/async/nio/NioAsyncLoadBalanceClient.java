@@ -22,6 +22,8 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategy;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
 import org.apache.nifi.controller.queue.clustered.TransactionThreshold;
@@ -29,6 +31,7 @@ import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCode
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
@@ -48,6 +51,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +74,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final LoadBalanceFlowFileCodec flowFileCodec;
     private final EventReporter eventReporter;
     private final ClusterCoordinator clusterCoordinator;
+    private final NioAsyncLoadBalancerClientSemaphore loadBalancerClientSemaphore;
+    private volatile NioAsyncLoadBalancerClientSemaphore.Reservation loadBalancerClientReservation;
 
     private volatile boolean running = false;
     private final AtomicLong penalizationEnd = new AtomicLong(0L);
@@ -92,7 +98,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
 
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
-                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
+                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator,
+                                     final NioAsyncLoadBalancerClientSemaphore loadBalancerClientSemaphore) {
         this.nodeIdentifier = nodeIdentifier;
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
@@ -100,6 +107,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         this.flowFileCodec = flowFileCodec;
         this.eventReporter = eventReporter;
         this.clusterCoordinator = clusterCoordinator;
+        this.loadBalancerClientSemaphore = loadBalancerClientSemaphore;
     }
 
     @Override
@@ -109,13 +117,15 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
     public synchronized void register(final String connectionId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
                                       final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
-                                      final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
+                                      final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier,
+                                      final Map<String, PartitionStatus> partitionStatusSnapshots, final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory) {
 
         if (registeredPartitions.containsKey(connectionId)) {
             throw new IllegalStateException("Connection with ID " + connectionId + " is already registered");
         }
 
-        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier, honorBackpressureSupplier);
+        final RegisteredPartition partition = new RegisteredPartition(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback,
+                compressionSupplier, honorBackpressureSupplier, partitionStatusSnapshots, partitionConsumptionStrategyFactory, nodeIdentifier);
         registeredPartitions.put(connectionId, partition);
         partitionQueue.add(partition);
     }
@@ -219,8 +229,9 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             return false;
         }
 
+        RegisteredPartition readyPartition = null;
+
         try {
-            RegisteredPartition readyPartition = null;
 
             if (!isConnectionEstablished()) {
                 readyPartition = getReadyPartition();
@@ -235,6 +246,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 } catch (IOException e) {
                     penalize();
 
+                    Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
                     partitionQueue.offer(readyPartition);
 
                     for (final RegisteredPartition partition : getRegisteredPartitions().values()) {
@@ -249,12 +261,15 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             final LoadBalanceSession loadBalanceSession = getActiveTransaction(readyPartition);
             if (loadBalanceSession == null) {
                 penalize();
+
+                Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
                 return false;
             }
 
             selector.selectNow();
             final boolean ready = (loadBalanceSession.getDesiredReadinessFlag() & selectionKey.readyOps()) != 0;
             if (!ready) {
+                Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
                 return false;
             }
 
@@ -272,6 +287,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                     loadBalanceSession.getPartition().getFailureCallback().onTransactionFailed(loadBalanceSession.getAndPurgeFlowFilesSent(), e, TransactionFailureCallback.TransactionPhase.SENDING);
                     close();
 
+                    Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
                     return false;
                 }
 
@@ -279,6 +295,11 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             } while (success);
 
             final LoadBalanceSession.LoadBalanceSessionState sessionState = loadBalanceSession.getSessionState();
+
+            if (sessionState.isComplete() && readyPartition != null) {
+                Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
+            }
+
             if (sessionState.isComplete() && sessionState != LoadBalanceSession.LoadBalanceSessionState.CANCELED) {
                 loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getAndPurgeFlowFilesSent(), nodeIdentifier);
             }
@@ -286,6 +307,11 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             return anySuccess;
         } catch (final Exception e) {
             close();
+
+            if (readyPartition != null) {
+                Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
+            }
+
             loadBalanceSession = null;
             throw e;
         } finally {
@@ -330,6 +356,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 return;
             }
 
+            Optional.ofNullable(loadBalancerClientReservation).ifPresent(r -> r.release());
             partitionQueue.offer(readyPartition); // allow partition to be obtained again
             failFlowFiles(readyPartition);
             penalize(); // Don't just transfer FlowFiles out of queue's partition as fast as possible, because the node may only be disconnected for a short time.
@@ -380,6 +407,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                     continue;
                 }
 
+                final Optional<NioAsyncLoadBalancerClientSemaphore.Reservation> reservation = loadBalancerClientSemaphore.acquire(partition);
+
+                if (reservation.isPresent()) {
+                    loadBalancerClientReservation = reservation.get();
+                } else {
+                    throw new IllegalStateException("Could not acquire semaphore for partition " + partition.getNodeIdentifier() + "of connection" + partition.getConnectionId());
+                }
+
                 return partition;
             }
 
@@ -412,7 +447,8 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             return null;
         }
 
-        loadBalanceSession = new LoadBalanceSession(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis, newTransactionThreshold());
+        final PartitionConsumptionStrategy consumptionStrategy = readyPartition.getPartitionConsumptionStrategyFactory().create();
+        loadBalanceSession = new LoadBalanceSession(readyPartition, flowFileContentAccess, flowFileCodec, channel, timeoutMillis, newTransactionThreshold(), consumptionStrategy);
         partitionQueue.offer(readyPartition);
 
         return loadBalanceSession;

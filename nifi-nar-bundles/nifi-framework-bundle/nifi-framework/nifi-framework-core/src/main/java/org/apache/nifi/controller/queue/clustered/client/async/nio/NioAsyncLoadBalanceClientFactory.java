@@ -25,6 +25,8 @@ import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceC
 import org.apache.nifi.events.EventReporter;
 
 import javax.net.ssl.SSLContext;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NioAsyncLoadBalanceClientFactory implements AsyncLoadBalanceClientFactory {
     private final SSLContext sslContext;
@@ -33,6 +35,7 @@ public class NioAsyncLoadBalanceClientFactory implements AsyncLoadBalanceClientF
     private final EventReporter eventReporter;
     private final LoadBalanceFlowFileCodec flowFileCodec;
     private final ClusterCoordinator clusterCoordinator;
+    private final Map<NodeIdentifier, NioAsyncLoadBalancerClientSemaphore> partitionLocks = new HashMap<>();
 
     public NioAsyncLoadBalanceClientFactory(final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess, final EventReporter eventReporter,
                                             final LoadBalanceFlowFileCodec loadBalanceFlowFileCodec, final ClusterCoordinator clusterCoordinator) {
@@ -47,6 +50,10 @@ public class NioAsyncLoadBalanceClientFactory implements AsyncLoadBalanceClientF
 
     @Override
     public NioAsyncLoadBalanceClient createClient(final NodeIdentifier nodeIdentifier) {
-        return new NioAsyncLoadBalanceClient(nodeIdentifier, sslContext, timeoutMillis, flowFileContentAccess, flowFileCodec, eventReporter, clusterCoordinator);
+        if (!partitionLocks.containsKey(nodeIdentifier)) {
+            partitionLocks.put(nodeIdentifier, new NioAsyncLoadBalancerClientSemaphore());
+        }
+
+        return new NioAsyncLoadBalanceClient(nodeIdentifier, sslContext, timeoutMillis, flowFileContentAccess, flowFileCodec, eventReporter, clusterCoordinator, partitionLocks.get(nodeIdentifier));
     }
 }

@@ -24,15 +24,18 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
+import org.apache.nifi.controller.queue.BalancerAwarePartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
-import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.FluidPartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.MaxSizePartitionConsumptionStrategyFactory;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -40,6 +43,7 @@ import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.queue.clustered.partition.CorrelationAttributePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FirstNodePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
@@ -62,6 +66,7 @@ import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -88,11 +93,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue implements LoadBalancedFlowFileQueue {
@@ -125,6 +132,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     private boolean stopped = true;
     private volatile boolean offloaded = false;
 
+    private final SwappablePriorityQueue sharedPartitionQueue;
+    private final Map<String, PartitionStatus> partitionStatusSnapshots = new ConcurrentHashMap<>();
 
     public SocketLoadBalancedFlowFileQueue(final String identifier, final ConnectionEventListener eventListener, final ProcessScheduler scheduler, final FlowFileRepository flowFileRepo,
                                            final ProvenanceEventRepository provRepo, final ContentRepository contentRepo, final ResourceClaimManager resourceClaimManager,
@@ -143,6 +152,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
         localPartition = new SwappablePriorityQueueLocalPartition(swapManager, swapThreshold, eventReporter, this, this::drop);
         rebalancingPartition = new StandardRebalancingPartition(swapManager, swapThreshold, eventReporter, this, this::drop);
+
+        sharedPartitionQueue = new SwappablePriorityQueue(swapManager, NODE_SWAP_THRESHOLD, eventReporter, this, this::drop, "shared");
 
         // Create a RemoteQueuePartition for each node
         nodeIdentifiers = clusterCoordinator == null ? Collections.emptySet() : new TreeSet<>(loadBalanceEndpointComparator);
@@ -189,7 +200,6 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         rebalancingPartition.start(partitioner);
     }
 
-
     @Override
     public synchronized void setLoadBalanceStrategy(final LoadBalanceStrategy strategy, final String partitioningAttribute) {
         final LoadBalanceStrategy currentStrategy = getLoadBalanceStrategy();
@@ -226,6 +236,7 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 partitioner = new CorrelationAttributePartitioner(partitioningAttribute);
                 break;
             case ROUND_ROBIN:
+            case FLUID:
                 partitioner = new RoundRobinPartitioner();
                 break;
             case SINGLE_NODE:
@@ -386,7 +397,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
                 } else {
                     logger.debug("Returning {} FlowFiles to their queue for node {} because Partitioner {} indicates that the FlowFiles should stay where they are",
                         flowFiles.size(), nodeId, partitionerUsed);
-                    partitionQueue.putAll(flowFiles);
+                    if (getLoadBalanceStrategy().usesSharedRemoteQueue()) {
+                        sharedPartitionQueue.putAll(flowFiles);
+                    } else {
+                        partitionQueue.putAll(flowFiles);
+                    }
                 }
             }
 
@@ -409,7 +424,18 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             }
         };
 
-        final QueuePartition partition = new RemoteQueuePartition(nodeId, partitionQueue, failureDestination, flowFileRepo, provRepo, contentRepo, clientRegistry, this);
+        final Supplier<LoadBalanceStrategy> loadBalanceStrategySupplier = super::getLoadBalanceStrategy;
+        final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory = new BalancerAwarePartitionConsumptionStrategyFactory(
+                loadBalanceStrategySupplier,
+                Collections.singletonMap(
+                        LoadBalanceStrategy.FLUID,
+                        new FluidPartitionConsumptionStrategyFactory(nodeId.getId(), () -> super.getMaxQueueSize(), () -> size(), partitionStatusSnapshots)),
+                new MaxSizePartitionConsumptionStrategyFactory(nodeId.getId(), () -> super.getMaxQueueSize())
+        );
+
+        final QueuePartition partition = new RemoteQueuePartition(
+                nodeId, partitionQueue, sharedPartitionQueue, failureDestination, flowFileRepo, provRepo, contentRepo, clientRegistry,
+                this, partitionStatusSnapshots, partitionConsumptionStrategyFactory);
 
         if (!stopped) {
             partition.start(partitioner);
@@ -666,6 +692,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return isFull(localPartition.size());
     }
 
+    @Override
+    public QueueSize getLocalPartitionSize() {
+        return localPartition.size();
+    }
+
     /**
      * Determines which QueuePartition the given FlowFile belongs to. Must be called with partition read lock held.
      *
@@ -805,6 +836,11 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     protected void rebalance(final QueuePartition partition) {
         logger.debug("Rebalancing Partition {}", partition);
         final FlowFileQueueContents contents = partition.packageForRebalance(rebalancingPartition.getSwapPartitionName());
+
+        if (partition instanceof RemoteQueuePartition) {
+            ((RemoteQueuePartition) partition).setSharedMode(getLoadBalanceStrategy().usesSharedRemoteQueue());
+        }
+
         rebalancingPartition.rebalance(contents);
     }
 
@@ -960,7 +996,12 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
     @Override
     public FlowFileRecord poll(final Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
-        final FlowFileRecord flowFile = localPartition.poll(expiredRecords, pollStrategy);
+        FlowFileRecord flowFile = localPartition.poll(expiredRecords, pollStrategy);
+
+        if (flowFile == null && getLoadBalanceStrategy().usesSharedRemoteQueue()) {
+            flowFile = sharedPartitionQueue.poll(expiredRecords, 100L, pollStrategy);
+        }
+
         onAbort(expiredRecords);
         return flowFile;
     }
@@ -968,13 +1009,23 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
         final List<FlowFileRecord> flowFiles = localPartition.poll(maxResults, expiredRecords, pollStrategy);
+
+        if (flowFiles.size() < maxResults && getLoadBalanceStrategy().usesSharedRemoteQueue()) {
+            flowFiles.addAll(sharedPartitionQueue.poll(maxResults, expiredRecords, 100L, pollStrategy));
+        }
+
         onAbort(expiredRecords);
         return flowFiles;
     }
 
     @Override
     public List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords, final PollStrategy pollStrategy) {
-        final List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords, pollStrategy);
+        List<FlowFileRecord> flowFiles = localPartition.poll(filter, expiredRecords, pollStrategy);
+
+        if (flowFiles.isEmpty() && getLoadBalanceStrategy().usesSharedRemoteQueue()) {
+            flowFiles = sharedPartitionQueue.poll(filter, expiredRecords, 100L, pollStrategy);
+        }
+
         onAbort(expiredRecords);
         return flowFiles;
     }

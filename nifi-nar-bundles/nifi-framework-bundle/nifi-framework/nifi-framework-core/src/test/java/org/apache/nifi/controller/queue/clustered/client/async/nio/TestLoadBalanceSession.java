@@ -17,18 +17,24 @@
 
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategy;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.SimpleLimitThreshold;
 import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants;
+import org.apache.nifi.controller.queue.clustered.util.MarshallingUtil;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,6 +51,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedOutputStream;
 import java.util.zip.Checksum;
@@ -85,7 +92,8 @@ public class TestLoadBalanceSession {
                     int data;
 
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.VERSION_ACCEPTED);
-                    socket.getOutputStream().write(LoadBalanceProtocolConstants.SPACE_AVAILABLE);
+                    socket.getOutputStream().write(LoadBalanceProtocolConstants.PARTITION_INFO);
+                    MarshallingUtil.writePartitionStatus(socket.getOutputStream(), new PartitionStatus(1,2,3));
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_CHECKSUM);
                     socket.getOutputStream().write(LoadBalanceProtocolConstants.CONFIRM_COMPLETE_TRANSACTION);
 
@@ -107,7 +115,7 @@ public class TestLoadBalanceSession {
         serverSocket.close();
     }
 
-    @Test(timeout = 10000)
+    @Test //(timeout = 10000)
     public void testSunnyCase() throws InterruptedException, IOException {
         final Queue<FlowFileRecord> flowFiles = new LinkedList<>();
         final FlowFileRecord flowFile1 = new MockFlowFileRecord(5);
@@ -119,17 +127,26 @@ public class TestLoadBalanceSession {
         contentMap.put(flowFile1, new ByteArrayInputStream("hello".getBytes()));
         contentMap.put(flowFile2, new ByteArrayInputStream("good-bye".getBytes()));
 
+        final NodeIdentifier nodeIdentifier = Mockito.mock(NodeIdentifier.class);
+        Mockito.when(nodeIdentifier.getId()).thenReturn("node1");
+        final Map<String, PartitionStatus> partitionStatusSnapshots = new ConcurrentHashMap<>();
+        final PartitionConsumptionStrategy partitionConsumptionStrategy = Mockito.mock(PartitionConsumptionStrategy.class);
+        final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory = Mockito.mock(PartitionConsumptionStrategyFactory.class);
+        Mockito.when(partitionConsumptionStrategyFactory.create()).thenReturn(partitionConsumptionStrategy);
+        Mockito.when(partitionConsumptionStrategy.shouldSendFlowFile(Mockito.anyMap())).thenReturn(true);
+
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS,
+            () -> true, partitionStatusSnapshots, partitionConsumptionStrategyFactory, nodeIdentifier);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
         final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
-            new SimpleLimitThreshold(100, 10_000_000));
+            new SimpleLimitThreshold(100, 10_000_000), partitionConsumptionStrategy);
 
         Thread.sleep(100L);
 
@@ -208,17 +225,27 @@ public class TestLoadBalanceSession {
         final Map<FlowFileRecord, InputStream> contentMap = new HashMap<>();
         contentMap.put(flowFile1, new ByteArrayInputStream(content));
 
+        final NodeIdentifier nodeIdentifier = Mockito.mock(NodeIdentifier.class);
+        Mockito.when(nodeIdentifier.getId()).thenReturn("node1");
+        final Map<String, PartitionStatus> partitionStatusSnapshots = new ConcurrentHashMap<>();
+        final PartitionConsumptionStrategy partitionConsumptionStrategy = Mockito.mock(PartitionConsumptionStrategy.class);
+        final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory = Mockito.mock(PartitionConsumptionStrategyFactory.class);
+        Mockito.when(partitionConsumptionStrategyFactory.create()).thenReturn(partitionConsumptionStrategy);
+        Mockito.when(partitionConsumptionStrategy.shouldSendFlowFile(Mockito.anyMap())).thenReturn(true);
+
+
         final FlowFileContentAccess contentAccess = contentMap::get;
 
         final RegisteredPartition partition = new RegisteredPartition("unit-test-connection", () -> false,
-            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS, () -> true);
+            flowFiles::poll, NOP_FAILURE_CALLBACK, (ff, nodeId) -> {}, () -> LoadBalanceCompression.DO_NOT_COMPRESS,
+            () -> true, partitionStatusSnapshots, partitionConsumptionStrategyFactory, nodeIdentifier);
 
         final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress("localhost", port));
 
         socketChannel.configureBlocking(false);
         final PeerChannel peerChannel = new PeerChannel(socketChannel, null, "unit-test");
         final LoadBalanceSession transaction = new LoadBalanceSession(partition, contentAccess, new StandardLoadBalanceFlowFileCodec(), peerChannel, 30000,
-            new SimpleLimitThreshold(100, 10_000_000));
+            new SimpleLimitThreshold(100, 10_000_000), partitionConsumptionStrategy);
 
         Thread.sleep(100L);
 

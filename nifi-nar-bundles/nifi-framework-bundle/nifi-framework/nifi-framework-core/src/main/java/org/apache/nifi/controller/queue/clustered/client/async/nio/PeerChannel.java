@@ -144,6 +144,37 @@ public class PeerChannel implements Closeable {
     }
 
     /**
+     * Read the defined number of bytes from the channel
+     *
+     * @param size The number of bytes to read
+     * @return Return with an array of bytes where the size of the array equals to the "size" argument and the bytes are
+     *         The read bytes from the channel in the order of reading.
+     * @throws IOException An exception is thrown when the underlying communication is not successful. Also an exception is
+     *                     thrown in case no sufficient amount of bytes to read.
+     */
+    public byte[] readBytes(int size) throws IOException {
+        final byte[] result = new byte[size];
+
+        for (int i = 0; i < size; i++) {
+            result[i] = readByte();
+        }
+
+        return result;
+    }
+
+    private byte readByte() throws IOException {
+        singleByteBuffer.clear();
+        final int bytesRead = read(singleByteBuffer);
+
+        if (bytesRead > 0) {
+            singleByteBuffer.flip();
+            return singleByteBuffer.get();
+        } else {
+            throw new IOException("Expected to read a byte. The number of the read bytes was: " + bytesRead);
+        }
+    }
+
+    /**
      * Reads the given ByteBuffer of data and returns a new ByteBuffer (which is "flipped" / ready to be read). The newly returned
      * ByteBuffer will be written to be written via the {@link #write(ByteBuffer)} method. I.e., it will have already been encrypted, if
      * necessary, and any other decorations that need to be applied before sending will already have been applied.

@@ -240,7 +240,7 @@ public class ConnectionDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "How to load balance the data in this Connection across the nodes in the cluster.",
-        allowableValues = "DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN, SINGLE_NODE")
+        allowableValues = "DO_NOT_LOAD_BALANCE, PARTITION_BY_ATTRIBUTE, ROUND_ROBIN, SINGLE_NODE, FLUID")
     public String getLoadBalanceStrategy() {
         return loadBalanceStrategy;
     }

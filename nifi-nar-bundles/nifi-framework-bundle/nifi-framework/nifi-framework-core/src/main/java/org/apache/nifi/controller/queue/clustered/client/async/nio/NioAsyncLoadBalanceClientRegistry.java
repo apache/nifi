@@ -19,10 +19,12 @@ package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.PartitionConsumptionStrategyFactory;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClient;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionCompleteCallback;
 import org.apache.nifi.controller.queue.clustered.client.async.TransactionFailureCallback;
+import org.apache.nifi.controller.queue.clustered.dto.PartitionStatus;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,15 +54,17 @@ public class NioAsyncLoadBalanceClientRegistry implements AsyncLoadBalanceClient
 
     @Override
     public synchronized void register(final String connectionId, final NodeIdentifier nodeId, final BooleanSupplier emptySupplier, final Supplier<FlowFileRecord> flowFileSupplier,
-                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback,
-                                      final Supplier<LoadBalanceCompression> compressionSupplier, final BooleanSupplier honorBackpressureSupplier) {
+                                      final TransactionFailureCallback failureCallback, final TransactionCompleteCallback successCallback, final Supplier<LoadBalanceCompression> compressionSupplier,
+                                      final BooleanSupplier honorBackpressureSupplier, final Map<String, PartitionStatus> partitionStatusSnapshots,
+                                      final PartitionConsumptionStrategyFactory partitionConsumptionStrategyFactory) {
 
         Set<AsyncLoadBalanceClient> clients = clientMap.get(nodeId);
         if (clients == null) {
             clients = registerClients(nodeId);
         }
 
-        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback, compressionSupplier, honorBackpressureSupplier));
+        clients.forEach(client -> client.register(connectionId, emptySupplier, flowFileSupplier, failureCallback, successCallback,
+                compressionSupplier, honorBackpressureSupplier, partitionStatusSnapshots, partitionConsumptionStrategyFactory));
         logger.debug("Registered Connection with ID {} to send to Node {}", connectionId, nodeId);
     }
 

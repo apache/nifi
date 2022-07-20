@@ -59,7 +59,7 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         super(identifier, scheduler, flowFileRepo, provRepo, resourceClaimManager);
         super.setFlowFileExpiration(expirationPeriod);
         this.swapManager = swapManager;
-        this.queue = new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, this, this::drop, null);
+        this.queue = new SwappablePriorityQueue(swapManager, swapThreshold, eventReporter, this, (flowFiles, requestor) -> drop(flowFiles, requestor), null);
         this.eventListener = eventListener;
 
         writeLock = new TimedLock(this.lock.writeLock(), getIdentifier() + " Write Lock", 100);
