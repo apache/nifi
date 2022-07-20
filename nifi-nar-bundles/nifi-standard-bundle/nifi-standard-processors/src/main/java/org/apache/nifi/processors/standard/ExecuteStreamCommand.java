@@ -173,7 +173,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
     public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()
             .name("original")
-            .description("FlowFiles that were successfully processed.")
+            .description("The original FlowFile will be routed. It will have new attributes detailing the result of the script execution.")
             .build();
     public static final Relationship OUTPUT_STREAM_RELATIONSHIP = new Relationship.Builder()
             .name("output stream")
