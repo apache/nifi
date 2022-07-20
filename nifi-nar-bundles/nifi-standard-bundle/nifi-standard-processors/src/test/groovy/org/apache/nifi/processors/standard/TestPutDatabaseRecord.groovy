@@ -768,6 +768,51 @@ class TestPutDatabaseRecord {
     }
 
     @Test
+    void testUpdatePkNotFirst() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable('CREATE TABLE PERSONS (name varchar(100), id integer primary key, code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord('rec1', 1, 201)
+        parser.addRecord('rec2', 2, 202)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        // Set some existing records with different values for name and code
+        final Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute('''INSERT INTO PERSONS VALUES ('x1', 1, 101)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES ('x2', 2, 102)''')
+        stmt.close()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals('rec1', rs.getString(1))
+        assertEquals(1, rs.getInt(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals('rec2', rs.getString(1))
+        assertEquals(2, rs.getInt(2))
+        assertEquals(202, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+    
+    @Test
     void testUpdateMultipleSchemas() throws InitializationException, ProcessException, SQLException, IOException {
         // Manually create and drop the tables and schemas
         def conn = dbcp.connection
@@ -944,6 +989,52 @@ class TestPutDatabaseRecord {
         Statement stmt = conn.createStatement()
         stmt.execute('''INSERT INTO PERSONS VALUES (1,'x1',101)''')
         stmt.execute('''INSERT INTO PERSONS VALUES (2,'x2',102)''')
+        stmt.close()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(201, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(202, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testUpdateSpecifyUpdateKeysNotFirst() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable('CREATE TABLE PERSONS (id integer, name varchar(100), code integer)')
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        parser.addRecord(1, 'rec1', 201)
+        parser.addRecord(2, 'rec2', 202)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.UPDATE_TYPE)
+        runner.setProperty(PutDatabaseRecord.UPDATE_KEYS, 'code')
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        // Set some existing records with different values for name and code
+        final Connection conn = dbcp.getConnection()
+        Statement stmt = conn.createStatement()
+        stmt.execute('''INSERT INTO PERSONS VALUES (10,'x1',201)''')
+        stmt.execute('''INSERT INTO PERSONS VALUES (12,'x2',202)''')
         stmt.close()
 
         runner.enqueue(new byte[0])

@@ -667,6 +667,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
                         }
 
+                        // Log debug sqlHolder
+                        log.debug("Generated SQL: {}", sqlHolder.getSql());
                         // Create the Prepared Statement
                         final PreparedStatement preparedStatement = con.prepareStatement(sqlHolder.getSql());
 
@@ -1200,6 +1202,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
+                boolean firstUpdateKey = true;
 
                 final String normalizedColName = normalizeColumnName(fieldName, settings.translateFieldNames);
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
@@ -1210,9 +1213,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                         if (whereFieldCount.getAndIncrement() > 0) {
                             sqlBuilder.append(" AND ");
-                        } else if (i == 0) {
+                        } else if (firstUpdateKey) {
                             // Set the WHERE clause based on the Update Key values
                             sqlBuilder.append(" WHERE ");
+                            firstUpdateKey = false;
                         }
 
                         if (settings.escapeColumnNames) {
