@@ -158,7 +158,6 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes combine.children="append">
-                        <exclude>src/test/resources/ListGoogleDriveIT/test_file.txt</exclude>
                         <exclude>src/test/resources/mockito-extensions/org.mockito.plugins.MockMaker</exclude>
                         <exclude>src/test/resources/mock-gcp-service-account.json</exclude>
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
