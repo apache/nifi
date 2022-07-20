@@ -440,6 +440,7 @@ public class ListenHTTPServlet extends HttpServlet {
         flowFile = session.putAllAttributes(flowFile, attributes);
         flowFile = session.putAttribute(flowFile, "restlistener.remote.source.host", request.getRemoteHost());
         flowFile = session.putAttribute(flowFile, "restlistener.request.uri", request.getRequestURI());
+        flowFile = session.putAttribute(flowFile, "restlistener.query.string", request.getQueryString());
         flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
         flowFile = session.putAttribute(flowFile, "restlistener.remote.issuer.dn", foundIssuer);
         return flowFile;
