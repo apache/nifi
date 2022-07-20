@@ -54,5 +54,6 @@
         <module>nifi-hadoop-dbcp-service-bundle</module>
         <module>nifi-kerberos-user-service-api</module>
         <module>nifi-kerberos-user-service-bundle</module>
+        <module>nifi-web-client-provider-bundle</module>
     </modules>
 </project>

@@ -64,6 +64,8 @@
         <module>nifi-utils</module>
         <module>nifi-uuid5</module>
         <module>nifi-vault-utils</module>
+        <module>nifi-web-client</module>
+        <module>nifi-web-client-api</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
         <module>nifi-xml-processing</module>
