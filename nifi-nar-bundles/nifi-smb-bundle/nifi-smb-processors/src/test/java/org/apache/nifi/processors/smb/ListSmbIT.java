@@ -92,7 +92,7 @@ public class ListSmbIT {
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
     private SMBClient smbClient;
-    private SmbjClientService nifiSmbjClient;
+    private SmbjClientService smbjClientService;
 
     public static long currentMillis() {
         return currentMillis.get();
@@ -116,12 +116,12 @@ public class ListSmbIT {
     public void beforeEach() throws Exception {
         sambaContainer.start();
         smbClient = new SMBClient();
-        nifiSmbjClient = createClient();
+        smbjClientService = createClient();
     }
 
     @AfterEach
     public void afterEach() throws IOException {
-        nifiSmbjClient.close();
+        smbjClientService.close();
         smbClient.close();
         sambaContainer.stop();
     }
@@ -213,9 +213,9 @@ public class ListSmbIT {
                 "directory\\subdirectory2\\4.txt",
                 "directory\\subdirectory3\\5.txt"
         ));
-        nifiSmbjClient.createDirectory("directory\\subdirectory");
-        nifiSmbjClient.createDirectory("directory\\subdirectory2");
-        nifiSmbjClient.createDirectory("directory\\subdirectory3");
+        smbjClientService.createDirectory("directory\\subdirectory");
+        smbjClientService.createDirectory("directory\\subdirectory2");
+        smbjClientService.createDirectory("directory\\subdirectory3");
         testFiles.forEach(file -> writeFile(file, generateContentWithSize(4)));
 
         waitForFilesToAppear(testFiles.size());
@@ -245,9 +245,8 @@ public class ListSmbIT {
         final Set<String> testFiles = new HashSet<>(asList(
                 "1.txt", "directory\\2.txt", "directory\\subdirectory\\3.txt"
         ));
-        nifiSmbjClient.createDirectory("directory\\subdirectory");
+        smbjClientService.createDirectory("directory\\subdirectory");
         testFiles.forEach(file -> writeFile(file, generateContentWithSize(4)));
-        Thread.sleep(1000);
         waitForFilesToAppear(3);
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
@@ -280,7 +279,7 @@ public class ListSmbIT {
 
         writeFile("1.txt", generateContentWithSize(1));
         waitForFilesToAppear(1);
-        final long latestTimeStamp = nifiSmbjClient.listRemoteFiles("").findFirst().get().getTimestamp();
+        final long latestTimeStamp = smbjClientService.listRemoteFiles("").findFirst().get().getTimestamp();
 
         underTest.updateScheduledTrue();
         assertEquals(1, underTest.performListing(mockProcessContext, null, null).size());
@@ -400,14 +399,14 @@ public class ListSmbIT {
 
     private void waitForFilesToAppear(Integer numberOfFiles) {
         await().until(() -> {
-            try (Stream<SmbListableEntity> s = nifiSmbjClient.listRemoteFiles("")) {
+            try (Stream<SmbListableEntity> s = smbjClientService.listRemoteFiles("")) {
                 return s.count() == numberOfFiles;
             }
         });
     }
 
     private void writeFile(String path, String content) {
-        try (OutputStream outputStream = nifiSmbjClient.getOutputStreamForFile(path)) {
+        try (OutputStream outputStream = smbjClientService.getOutputStreamForFile(path)) {
             final InputStream inputStream = new ByteArrayInputStream(content.getBytes());
             copy(inputStream, outputStream);
         } catch (IOException e) {

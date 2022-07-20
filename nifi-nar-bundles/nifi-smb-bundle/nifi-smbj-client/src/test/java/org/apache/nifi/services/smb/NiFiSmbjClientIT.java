@@ -51,30 +51,30 @@ public class NiFiSmbjClientIT {
     private final SMBClient smbClient = new SMBClient();
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
-    private SmbjClientService niFiSmbjClient;
+    private SmbjClientService smbjClientService;
 
     @BeforeEach
     public void beforeEach() throws Exception {
         sambaContainer.start();
-        niFiSmbjClient = createClient();
+        smbjClientService = createClient();
     }
 
     @AfterEach
     public void afterEach() {
-        niFiSmbjClient.close();
+        smbjClientService.close();
         sambaContainer.stop();
     }
 
     @Test
     public void shouldIterateDirectory() {
-        niFiSmbjClient.createDirectory("testDirectory\\directory1");
-        niFiSmbjClient.createDirectory("testDirectory\\directory2");
-        niFiSmbjClient.createDirectory("testDirectory\\directory2\\nested_directory");
+        smbjClientService.createDirectory("testDirectory\\directory1");
+        smbjClientService.createDirectory("testDirectory\\directory2");
+        smbjClientService.createDirectory("testDirectory\\directory2\\nested_directory");
         writeFile("testDirectory\\file", "content");
         writeFile("testDirectory\\directory1\\file", "content");
         writeFile("testDirectory\\directory2\\file", "content");
         writeFile("testDirectory\\directory2\\nested_directory\\file", "content");
-        final Set<String> actual = niFiSmbjClient.listRemoteFiles("testDirectory")
+        final Set<String> actual = smbjClientService.listRemoteFiles("testDirectory")
                 .map(SmbListableEntity::getIdentifier)
                 .collect(toSet());
         assertTrue(actual.contains("testDirectory\\file"));
@@ -84,7 +84,7 @@ public class NiFiSmbjClientIT {
     }
 
     private void writeFile(String path, String content) {
-        try (OutputStream outputStream = niFiSmbjClient.getOutputStreamForFile(path)) {
+        try (OutputStream outputStream = smbjClientService.getOutputStreamForFile(path)) {
             outputStream.write(content.getBytes());
             outputStream.flush();
         } catch (IOException e) {

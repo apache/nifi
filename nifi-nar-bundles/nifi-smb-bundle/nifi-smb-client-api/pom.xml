@@ -19,7 +19,7 @@
         <artifactId>nifi-smb-bundle</artifactId>
         <version>1.17.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-smb-client-provider-api</artifactId>
+    <artifactId>nifi-smb-client-api</artifactId>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
