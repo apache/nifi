@@ -1200,6 +1200,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             for (int i = 0; i < fieldCount; i++) {
                 RecordField field = recordSchema.getField(i);
                 String fieldName = field.getFieldName();
+                boolean firstUpdateKey = false;
 
                 final String normalizedColName = normalizeColumnName(fieldName, settings.translateFieldNames);
                 final ColumnDescription desc = tableSchema.getColumns().get(normalizeColumnName(fieldName, settings.translateFieldNames));
@@ -1210,9 +1211,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                         if (whereFieldCount.getAndIncrement() > 0) {
                             sqlBuilder.append(" AND ");
-                        } else if (i == 0) {
+                        } else if (!firstUpdateKey) {
                             // Set the WHERE clause based on the Update Key values
                             sqlBuilder.append(" WHERE ");
+                            firstUpdateKey = true;
                         }
 
                         if (settings.escapeColumnNames) {
