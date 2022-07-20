@@ -2891,12 +2891,15 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             resourceClaimManager.incrementClaimantCount(resourceClaim);
             final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset();
             contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
-            contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
 
             if (!contentRepository.isAccessible(contentClaim)) {
                 resourceClaimManager.decrementClaimantCount(resourceClaim);
                 throw new IllegalStateException("Cannot replay data from Provenance Event because the data is no longer available in the Content Repository");
             }
+
+            // Determine ContentClaim length according to Repository ContentClaim size returned
+            final long contentClaimLength = contentRepository.size(contentClaim);
+            contentClaim.setLength(contentClaimLength);
         }
 
         final String parentUUID = event.getFlowFileUuid();
