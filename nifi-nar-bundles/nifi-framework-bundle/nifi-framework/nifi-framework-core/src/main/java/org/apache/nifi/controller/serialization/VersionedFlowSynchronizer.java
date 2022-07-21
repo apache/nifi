@@ -179,6 +179,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         // Stop the active components, and then wait for all components to be stopped.
         logger.info("In order to inherit proposed dataflow, will stop any components that will be affected by the update");
+        if (logger.isDebugEnabled()) {
+            logger.debug("Will stop the following components:");
+            logger.debug(activeSet.toString());
+            final String differencesToString = flowDifferences.stream()
+                .map(FlowDifference::toString)
+                .collect(Collectors.joining("\n"));
+            logger.debug("This Active Set was determined from the following Flow Differences:\n{}", differencesToString);
+        }
+
         activeSet.stop();
 
         try {

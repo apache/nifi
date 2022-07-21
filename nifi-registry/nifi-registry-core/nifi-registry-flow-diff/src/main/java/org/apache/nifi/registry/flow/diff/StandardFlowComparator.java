@@ -23,6 +23,8 @@ import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -30,8 +32,8 @@ import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
-import org.apache.nifi.flow.VersionedParameter;
-import org.apache.nifi.flow.VersionedParameterContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +46,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StandardFlowComparator implements FlowComparator {
+    private static final Logger logger = LoggerFactory.getLogger(StandardFlowComparator.class);
+
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
 
@@ -86,21 +90,12 @@ public class StandardFlowComparator implements FlowComparator {
     }
 
 
-
     private Set<FlowDifference> compare(final VersionedProcessGroup groupA, final VersionedProcessGroup groupB) {
         final Set<FlowDifference> differences = new HashSet<>();
         // Note that we do not compare the names, because when we import a Flow into NiFi, we may well give it a new name.
         // Child Process Groups' names will still compare but the main group that is under Version Control will not
         compare(groupA, groupB, differences, false);
         return differences;
-    }
-
-    private boolean allHaveInstanceId(Set<? extends VersionedComponent> components) {
-        if (components == null) {
-            return false;
-        }
-
-        return components.stream().allMatch(component -> component.getInstanceIdentifier() != null);
     }
 
     private <T extends VersionedComponent> Set<FlowDifference> compareComponents(final Set<T> componentsA, final Set<T> componentsB, final ComponentComparator<T> comparator) {
@@ -198,7 +193,7 @@ public class StandardFlowComparator implements FlowComparator {
         compareProperties(taskA, taskB, taskA.getProperties(), taskB.getProperties(), taskA.getPropertyDescriptors(), taskB.getPropertyDescriptors(), differences);
     }
 
-    private void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
+    void compare(final VersionedParameterContext contextA, final VersionedParameterContext contextB, final Set<FlowDifference> differences) {
         if (compareComponents(contextA, contextB, differences)) {
             return;
         }
@@ -218,7 +213,9 @@ public class StandardFlowComparator implements FlowComparator {
                 continue;
             }
 
-            if (!Objects.equals(parameterA.getValue(), parameterB.getValue())) {
+            final String decryptedValueA = decryptValue(parameterA);
+            final String decryptedValueB = decryptValue(parameterB);
+            if (!Objects.equals(decryptedValueA, decryptedValueB)) {
                 final String valueA = parameterA.isSensitive() ? "<Sensitive Value A>" : parameterA.getValue();
                 final String valueB = parameterB.isSensitive() ? "<Sensitive Value B>" : parameterB.getValue();
                 final String description = differenceDescriptor.describeDifference(DifferenceType.PARAMETER_VALUE_CHANGED, flowA.getName(), flowB.getName(), contextA, contextB, name, valueA, valueB);
@@ -280,6 +277,21 @@ public class StandardFlowComparator implements FlowComparator {
         }
 
         return propertyDecryptor.apply(value.substring(ENCRYPTED_VALUE_PREFIX.length(), value.length() - ENCRYPTED_VALUE_SUFFIX.length()));
+    }
+
+    private String decryptValue(final VersionedParameter parameter) {
+        final String rawValue = parameter.getValue();
+        if (rawValue == null) {
+            return null;
+        }
+
+        final boolean sensitive = parameter.isSensitive() && rawValue.startsWith(ENCRYPTED_VALUE_PREFIX) && rawValue.endsWith(ENCRYPTED_VALUE_SUFFIX);
+        if (!sensitive) {
+            logger.debug("Will not decrypt value for parameter {} because it is not encrypted", parameter.getName());
+            return rawValue;
+        }
+
+        return propertyDecryptor.apply(rawValue.substring(ENCRYPTED_VALUE_PREFIX.length(), rawValue.length() - ENCRYPTED_VALUE_SUFFIX.length()));
     }
 
     private void compareProperties(final VersionedComponent componentA, final VersionedComponent componentB,
