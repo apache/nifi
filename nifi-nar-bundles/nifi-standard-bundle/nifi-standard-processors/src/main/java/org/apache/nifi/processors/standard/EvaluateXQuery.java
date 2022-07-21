@@ -144,10 +144,10 @@ public class EvaluateXQuery extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
-            .displayName("Allow Document Type Declaration")
+            .displayName("Allow DTD")
             .name("Validate DTD")
-            .description("When enabled, Embedded Document Type Declaration will be allowed and it will be used for the XML content validation. "
-                    + "Because of security reasons it is advised to disable this feature.")
+            .description("Allow embedded Document Type Declaration in XML. "
+                    + "This feature should be disabled to avoid XML entity expansion vulnerabilities.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
