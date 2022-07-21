@@ -63,8 +63,9 @@ public class SmbjClientService implements SmbClientService {
         final Directory directory = openDirectory(path);
         return stream(directory::spliterator, 0, false)
                 .map(entity -> buildSmbListableEntity(entity, path))
-                .filter(this::specialDirectory)
-                .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable) : Stream.of(listable))
+                .filter(entity -> !specialDirectory(entity))
+                .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
+                        : Stream.of(listable))
                 .onClose(directory::close);
     }
 
@@ -113,10 +114,6 @@ public class SmbjClientService implements SmbClientService {
         }
     }
 
-    private Stream<SmbListableEntity> listRemoteFiles(SmbListableEntity listable) {
-        return listRemoteFiles(listable.getPathWithName());
-    }
-
     private SmbListableEntity buildSmbListableEntity(FileIdBothDirectoryInformation info, String path) {
         return SmbListableEntity.builder()
                 .setName(info.getFileName())
@@ -148,7 +145,7 @@ public class SmbjClientService implements SmbClientService {
     }
 
     private boolean specialDirectory(SmbListableEntity entity) {
-        return !SPECIAL_DIRECTORIES.contains(entity.getName());
+        return SPECIAL_DIRECTORIES.contains(entity.getName());
     }
 
 }

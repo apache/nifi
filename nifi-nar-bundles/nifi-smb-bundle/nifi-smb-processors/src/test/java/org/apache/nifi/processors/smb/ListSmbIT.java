@@ -25,11 +25,12 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.LISTING_
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.RECORD_WRITER;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
+import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_SIZE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_SIZE;
-import static org.apache.nifi.processors.smb.ListSmb.SKIP_FILES_WITH_SUFFIX;
-import static org.apache.nifi.processors.smb.ListSmb.SMB_CONNECTION_POOL_SERVICE;
+import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doAnswer;
@@ -163,7 +164,7 @@ public class ListSmbIT {
         doAnswer(invocation -> createClient(hostname, port, "invalid_share")).when(connectionPoolService).getClient();
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create(
                 "smb://" + hostname + ":" + port + "/invalid_share"));
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, connectionPoolService.getIdentifier());
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, connectionPoolService.getIdentifier());
         testRunner.addControllerService(connectionPoolService.getIdentifier(), connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
         testRunner.run();
@@ -180,7 +181,7 @@ public class ListSmbIT {
         doAnswer(invocation -> createClient(hostname, port, "share")).when(connectionPoolService).getClient();
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create(
                 "smb://" + hostname + ":1/share"));
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, connectionPoolService.getIdentifier());
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, connectionPoolService.getIdentifier());
         testRunner.addControllerService(connectionPoolService.getIdentifier(), connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
         testRunner.run();
@@ -197,7 +198,7 @@ public class ListSmbIT {
         doAnswer(invocation -> createClient(hostname, port, "share")).when(connectionPoolService).getClient();
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create(
                 "smb://" + hostname + ":" + port + "/share"));
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, connectionPoolService.getIdentifier());
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, connectionPoolService.getIdentifier());
         testRunner.addControllerService(connectionPoolService.getIdentifier(), connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
         testRunner.run();
@@ -264,40 +265,17 @@ public class ListSmbIT {
     }
 
     @Test
-    public void shouldFilterOlderFiles() throws Exception {
-        final ListSmb underTest = new ListSmb();
-        final ProcessContext mockProcessContext = mock(ProcessContext.class);
-        final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
-        final PropertyValue mockMinAge = mock(PropertyValue.class);
-        when(mockMinAge.asTimePeriod(MILLISECONDS)).thenReturn(0L);
-        when(mockProcessContext.getProperty(MINIMUM_AGE)).thenReturn(mockMinAge);
-        mockProperty(mockProcessContext, MINIMUM_SIZE, null);
-        mockProperty(mockProcessContext, MAXIMUM_SIZE, null);
-        mockProperty(mockProcessContext, DIRECTORY, null);
-        mockProperty(mockProcessContext, SKIP_FILES_WITH_SUFFIX, null);
-        mockProperty(mockProcessContext, SMB_CONNECTION_POOL_SERVICE, connectionPoolService);
-
-        writeFile("1.txt", generateContentWithSize(1));
-        waitForFilesToAppear(1);
-        final long latestTimeStamp = smbjClientService.listRemoteFiles("").findFirst().get().getTimestamp();
-
-        underTest.updateScheduledTrue();
-        assertEquals(1, underTest.performListing(mockProcessContext, null, null).size());
-        assertEquals(1, underTest.performListing(mockProcessContext, latestTimeStamp - 1, null).size());
-        assertEquals(0, underTest.performListing(mockProcessContext, latestTimeStamp + 1, null).size());
-    }
-
-    @Test
     public void shouldFilterFilesBySizeCriteria() throws Exception {
         final ListSmb underTest = new ListSmb();
         final ProcessContext mockProcessContext = mock(ProcessContext.class);
         final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
         mockProperty(mockProcessContext, MINIMUM_AGE, "0 ms");
+        mockProperty(mockProcessContext, MAXIMUM_AGE, null);
         mockProperty(mockProcessContext, MINIMUM_SIZE, null);
         mockProperty(mockProcessContext, MAXIMUM_SIZE, null);
         mockProperty(mockProcessContext, DIRECTORY, null);
-        mockProperty(mockProcessContext, SKIP_FILES_WITH_SUFFIX, null);
-        mockProperty(mockProcessContext, SMB_CONNECTION_POOL_SERVICE, connectionPoolService);
+        mockProperty(mockProcessContext, FILE_NAME_SUFFIX_FILTER, null);
+        mockProperty(mockProcessContext, SMB_CLIENT_PROVIDER_SERVICE, connectionPoolService);
 
         writeFile("1.txt", generateContentWithSize(1));
         writeFile("10.txt", generateContentWithSize(10));
@@ -336,10 +314,11 @@ public class ListSmbIT {
         final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
         mockProperty(mockProcessContext, DIRECTORY, null);
         mockProperty(mockProcessContext, MINIMUM_AGE, "0 ms");
+        mockProperty(mockProcessContext, MAXIMUM_AGE, null);
         mockProperty(mockProcessContext, MINIMUM_SIZE, null);
         mockProperty(mockProcessContext, MAXIMUM_SIZE, null);
-        mockProperty(mockProcessContext, SMB_CONNECTION_POOL_SERVICE, connectionPoolService);
-        mockProperty(mockProcessContext, SKIP_FILES_WITH_SUFFIX, ".suffix");
+        mockProperty(mockProcessContext, SMB_CLIENT_PROVIDER_SERVICE, connectionPoolService);
+        mockProperty(mockProcessContext, FILE_NAME_SUFFIX_FILTER, ".suffix");
         writeFile("should_list_this", generateContentWithSize(1));
         writeFile("should_skip_this.suffix", generateContentWithSize(1));
         waitForFilesToAppear(2);
@@ -386,7 +365,7 @@ public class ListSmbIT {
 
     private void configureTestRunnerForSambaDockerContainer(TestRunner testRunner) throws Exception {
         final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
         testRunner.addControllerService("connection-pool", connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
     }

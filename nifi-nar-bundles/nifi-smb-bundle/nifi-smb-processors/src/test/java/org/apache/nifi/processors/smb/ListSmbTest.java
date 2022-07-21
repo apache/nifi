@@ -24,9 +24,10 @@ import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCC
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
+import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
-import static org.apache.nifi.processors.smb.ListSmb.SKIP_FILES_WITH_SUFFIX;
-import static org.apache.nifi.processors.smb.ListSmb.SMB_CONNECTION_POOL_SERVICE;
+import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
+import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -90,7 +91,7 @@ class ListSmbTest {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 2);
 
-        testRunner.setProperty(SKIP_FILES_WITH_SUFFIX, "suffix_changed");
+        testRunner.setProperty(FILE_NAME_SUFFIX_FILTER, "suffix_changed");
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 3);
 
@@ -98,7 +99,7 @@ class ListSmbTest {
         when(connectionPoolService.getIdentifier()).thenReturn("connection-pool-2");
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
         when(connectionPoolService.getClient()).thenReturn(mockNifiSmbClientService);
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool-2");
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool-2");
         testRunner.addControllerService("connection-pool-2", connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
 
@@ -198,6 +199,25 @@ class ListSmbTest {
     }
 
     @Test
+    public void testShouldFilterByFileAgeCriteria() throws Exception {
+        final TestRunner testRunner = newTestRunner(TimeMockingListSmb.class);
+        testRunner.setProperty(LISTING_STRATEGY, "none");
+        testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
+        testRunner.setProperty(MINIMUM_AGE, "10 ms");
+        testRunner.setProperty(MAXIMUM_AGE, "30 ms");
+        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSambaClient(testRunner);
+        setTime(1000L);
+        mockSmbFolders(mockNifiSmbClientService,
+                listableEntity("too_young", 1000),
+                listableEntity("too_old", 969),
+                listableEntity("should_list_this", 989)
+        );
+        testRunner.run();
+        testRunner.assertTransferCount(REL_SUCCESS, 1);
+        testRunner.assertValid();
+    }
+
+    @Test
     public void shouldTurnSmbClientExceptionsToBulletins() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
@@ -212,7 +232,7 @@ class ListSmbTest {
     public void shouldFormatRemotePathProperly() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
         testRunner.addControllerService("connection-pool", connectionPoolService);
         when(connectionPoolService.getServiceLocation()).thenReturn(URI.create("smb://hostname:445/share"));
         final ListSmb underTest = (ListSmb) testRunner.getProcessor();
@@ -244,7 +264,7 @@ class ListSmbTest {
 
         final SmbClientProviderService connectionPoolService = mockSmbConnectionPoolService();
         when(connectionPoolService.getClient()).thenReturn(mockNifiSmbClientService);
-        testRunner.setProperty(SMB_CONNECTION_POOL_SERVICE, "connection-pool");
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
         testRunner.addControllerService("connection-pool", connectionPoolService);
         testRunner.enableControllerService(connectionPoolService);
 

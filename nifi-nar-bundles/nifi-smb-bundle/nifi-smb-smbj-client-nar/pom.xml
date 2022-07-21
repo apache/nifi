@@ -22,44 +22,24 @@
         <version>1.17.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-smbj-client</artifactId>
-    <packaging>jar</packaging>
+    <artifactId>nifi-smb-smbj-client-nar</artifactId>
+    <packaging>nar</packaging>
+    <properties>
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <source.skip>true</source.skip>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-smb-client-api</artifactId>
+            <artifactId>nifi-smb-client-api-nar</artifactId>
             <version>1.17.0-SNAPSHOT</version>
-            <scope>provided</scope>
+            <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-record</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.hierynomus</groupId>
-            <artifactId>smbj</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <scope>test</scope>
+            <artifactId>nifi-smb-smbj-client</artifactId>
+            <version>1.17.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

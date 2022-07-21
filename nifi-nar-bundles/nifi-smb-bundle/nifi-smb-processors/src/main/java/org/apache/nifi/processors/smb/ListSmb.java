@@ -62,18 +62,21 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
-import org.apache.nifi.services.smb.SmbClientProviderService;
 
 @PrimaryNodeOnly
 @TriggerSerially
-@Tags({"microsoft", "storage", "samba"})
+@Tags({"samba, smb, cifs, files", "list"})
 @SeeAlso({PutSmbFile.class, GetSmbFile.class})
-@CapabilityDescription("Retrieves a listing of files shared via SMB protocol. For each file that is listed, " +
-        "creates a FlowFile that represents the file. This Processor is designed to run on Primary Node only in " +
-        "a cluster. If the primary node changes, the new Primary Node will pick up where the previous node left " +
-        "off without duplicating all of the data.")
+@CapabilityDescription("Lists concrete files shared via SMB protocol. " +
+        "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. "
+        +
+        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the "
+        +
+        "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The name of the file that was read from filesystem."),
@@ -114,9 +117,9 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .name("directory")
             .description("The network folder to which files should be written. This is the remaining relative " +
                     "after the hostname: smb://HOSTNAME:PORT/SHARE/[DIRECTORY]\\sub\\directories. It is also possible "
-                    + " to add subdirectories using this property. The given path on the remote file share must exists. "
+                    + "to add subdirectories using this property. The given path on the remote file share must exists. "
                     + "The existence of the remote folder can be checked using verification. You may mix different "
-                    + "directory separators in this property. If so NiFi will unify all of them and will use windows's"
+                    + "directory separators in this property. If so NiFi will unify all of them and will use Windows's "
                     + "directory separator: '\\' ")
             .required(false)
             .addValidator(NON_BLANK_VALIDATOR)
@@ -126,11 +129,19 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .displayName("Minimum File Age")
             .name("min-file-age")
             .description(
-                    "Any file younger then the given value will be omitted. Ideally this value should be greater then"
+                    "Any file younger than the given value will be omitted. Ideally this value should be greater then "
                             + "the amount of time needed to perform a list.")
             .required(true)
             .addValidator(TIME_PERIOD_VALIDATOR)
             .defaultValue("5 secs")
+            .build();
+
+    public static final PropertyDescriptor MAXIMUM_AGE = new PropertyDescriptor.Builder()
+            .displayName("Maximum File Age")
+            .name("max-file-age")
+            .description("Any file older than the given value will be omitted. ")
+            .required(false)
+            .addValidator(TIME_PERIOD_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MINIMUM_SIZE = new PropertyDescriptor.Builder()
@@ -155,7 +166,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .allowableValues(BY_ENTITIES, NO_TRACKING, BY_TIMESTAMPS)
             .build();
 
-    public static final PropertyDescriptor SMB_CONNECTION_POOL_SERVICE = new Builder()
+    public static final PropertyDescriptor SMB_CLIENT_PROVIDER_SERVICE = new Builder()
             .name("smb-client-provider-service")
             .displayName("SMB Client Provider Service")
             .description("Specifies the SMB client provider to use for creating SMB connections.")
@@ -163,7 +174,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .identifiesControllerService(SmbClientProviderService.class)
             .build();
 
-    public static final PropertyDescriptor SKIP_FILES_WITH_SUFFIX = new Builder()
+    public static final PropertyDescriptor FILE_NAME_SUFFIX_FILTER = new Builder()
             .name("file-name-suffix-filter")
             .displayName("File Name Suffix Filter")
             .description("Files ends with the given suffix will be omitted. This is handy when writing large data into "
@@ -176,11 +187,12 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     private static final List<PropertyDescriptor> PROPERTIES = unmodifiableList(asList(
             SMB_LISTING_STRATEGY,
-            SMB_CONNECTION_POOL_SERVICE,
+            SMB_CLIENT_PROVIDER_SERVICE,
             DIRECTORY,
             AbstractListProcessor.RECORD_WRITER,
-            SKIP_FILES_WITH_SUFFIX,
+            FILE_NAME_SUFFIX_FILTER,
             MINIMUM_AGE,
+            MAXIMUM_AGE,
             MINIMUM_SIZE,
             MAXIMUM_SIZE,
             AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION,
@@ -202,14 +214,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         attributes.put("path", entity.getPath());
         attributes.put("absolute.path", getPath(context) + entity.getPathWithName());
         attributes.put("identifier", entity.getIdentifier());
-        attributes.put("timestamp",
-                ISO_DATE_TIME.format(LocalDateTime.ofEpochSecond(entity.getTimestamp(), 0, ZoneOffset.UTC)));
-        attributes.put("creationTime",
-                ISO_DATE_TIME.format(LocalDateTime.ofEpochSecond(entity.getCreationTime(), 0, ZoneOffset.UTC)));
-        attributes.put("lastAccessedTime",
-                ISO_DATE_TIME.format(LocalDateTime.ofEpochSecond(entity.getLastAccessTime(), 0, ZoneOffset.UTC)));
-        attributes.put("changeTime",
-                ISO_DATE_TIME.format(LocalDateTime.ofEpochSecond(entity.getChangeTime(), 0, ZoneOffset.UTC)));
+        attributes.put("timestamp", formatTimeStamp(entity.getTimestamp()));
+        attributes.put("creationTime", formatTimeStamp(entity.getCreationTime()));
+        attributes.put("lastAccessTime", formatTimeStamp(entity.getLastAccessTime()));
+        attributes.put("changeTime", formatTimeStamp(entity.getChangeTime()));
         attributes.put("size", String.valueOf(entity.getSize()));
         attributes.put("allocationSize", String.valueOf(entity.getAllocationSize()));
         return unmodifiableMap(attributes);
@@ -217,9 +225,9 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     @Override
     protected String getPath(ProcessContext context) {
-        final SmbClientProviderService connectionPoolService =
-                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbClientProviderService.class);
-        final URI serviceLocation = connectionPoolService.getServiceLocation();
+        final SmbClientProviderService clientProviderService =
+                context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
+        final URI serviceLocation = clientProviderService.getServiceLocation();
         final String directory = getDirectory(context);
         return String.format("%s:\\%s", serviceLocation.toString(), directory.isEmpty() ? "" : directory + "\\");
     }
@@ -251,7 +259,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     @Override
     protected boolean isListingResetNecessary(PropertyDescriptor property) {
-        return asList(SMB_CONNECTION_POOL_SERVICE, DIRECTORY, SKIP_FILES_WITH_SUFFIX).contains(property);
+        return asList(SMB_CLIENT_PROVIDER_SERVICE, DIRECTORY, FILE_NAME_SUFFIX_FILTER).contains(property);
     }
 
     @Override
@@ -278,6 +286,11 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         return String.format("Remote Directory [%s]", getPath(context));
     }
 
+    private String formatTimeStamp(long timestamp) {
+        return ISO_DATE_TIME.format(
+                LocalDateTime.ofEpochSecond(TimeUnit.MILLISECONDS.toSeconds(timestamp), 0, ZoneOffset.UTC));
+    }
+
     private boolean isExecutionScheduled(ListingMode listingMode) {
         return ListingMode.CONFIGURATION_VERIFICATION.equals(listingMode) || isScheduled();
     }
@@ -285,14 +298,21 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {
 
         final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
+        final Long maximumAgeOrNull = context.getProperty(MAXIMUM_AGE).isSet() ? context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final Double minimumSizeOrNull =
-                context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asDataSize(DataUnit.B) : null;
+                context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asDataSize(DataUnit.B)
+                        : null;
         final Double maximumSizeOrNull =
-                context.getProperty(MAXIMUM_SIZE).isSet() ? context.getProperty(MAXIMUM_SIZE).asDataSize(DataUnit.B) : null;
-        final String suffixOrNull = context.getProperty(SKIP_FILES_WITH_SUFFIX).getValue();
+                context.getProperty(MAXIMUM_SIZE).isSet() ? context.getProperty(MAXIMUM_SIZE).asDataSize(DataUnit.B)
+                        : null;
+        final String suffixOrNull = context.getProperty(FILE_NAME_SUFFIX_FILTER).getValue();
 
         final long now = getCurrentTime();
         Predicate<SmbListableEntity> filter = entity -> now - entity.getTimestamp() >= minimumAge;
+
+        if (maximumAgeOrNull != null) {
+            filter = filter.and(entity -> now - entity.getTimestamp() <= maximumAgeOrNull);
+        }
 
         if (minTimestampOrNull != null) {
             filter = filter.and(entity -> entity.getTimestamp() >= minTimestampOrNull);
@@ -314,11 +334,17 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     }
 
     private Stream<SmbListableEntity> performListing(ProcessContext context) throws IOException {
-        final SmbClientProviderService connectionPoolService =
-                context.getProperty(SMB_CONNECTION_POOL_SERVICE).asControllerService(SmbClientProviderService.class);
+        final SmbClientProviderService clientProviderService =
+                context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
-        final SmbClientService smbClient = connectionPoolService.getClient();
-        return smbClient.listRemoteFiles(directory).onClose(smbClient::close);
+        final SmbClientService smbClient = clientProviderService.getClient();
+        return smbClient.listRemoteFiles(directory).onClose(() -> {
+            try {
+                smbClient.close();
+            } catch (Exception e) {
+                throw new RuntimeException("Could not close samba client", e);
+            }
+        });
     }
 
     private String getDirectory(ProcessContext context) {
@@ -338,5 +364,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                     .explanation(subject + " must not contain any folder separator character.")
                     .build();
         }
+
     }
+
 }

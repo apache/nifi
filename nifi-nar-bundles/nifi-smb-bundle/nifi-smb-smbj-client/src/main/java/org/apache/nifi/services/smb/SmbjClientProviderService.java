@@ -43,7 +43,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 
-@Tags({"microsoft", "samba"})
+@Tags({"samba, smb, cifs, files"})
 @CapabilityDescription("Provides access to SMB Sessions with shared authentication credentials.")
 public class SmbjClientProviderService extends AbstractControllerService implements SmbClientProviderService {
 
@@ -98,7 +98,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .displayName("Timeout")
             .name("timeout")
-            .description("Timeout in seconds for read and write operations.")
+            .description("Timeout for read and write operations.")
             .required(true)
             .defaultValue("5 secs")
             .addValidator(TIME_PERIOD_VALIDATOR)
@@ -108,24 +108,22 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
                     HOSTNAME,
                     PORT,
                     SHARE,
-                    DOMAIN,
                     USERNAME,
                     PASSWORD,
+                    DOMAIN,
                     TIMEOUT
             ));
     private SMBClient smbClient;
     private AuthenticationContext authenticationContext;
-    private ConfigurationContext context;
     private String hostname;
-    private String share;
     private int port;
+    private String shareName;
 
     @Override
     public SmbClientService getClient() {
         try {
             final Connection connection = smbClient.connect(hostname, port);
             final Session session = connection.authenticate(authenticationContext);
-            final String shareName = context.getProperty(SHARE).getValue();
             final Share share = session.connectShare(shareName);
             if (share instanceof DiskShare) {
                 return new SmbjClientService(session, (DiskShare) share);
@@ -141,24 +139,27 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
 
     @Override
     public URI getServiceLocation() {
-        return URI.create(String.format("smb://%s:%d/%s", hostname, port, share));
+        return URI.create(String.format("smb://%s:%d/%s", hostname, port, shareName));
     }
 
     @OnEnabled
-    public void onEnabled(ConfigurationContext context) throws IOException {
-        this.context = context;
+    public void onEnabled(ConfigurationContext context) {
         this.hostname = context.getProperty(HOSTNAME).getValue();
-        this.share = context.getProperty(SHARE).getValue();
         this.port = context.getProperty(PORT).asInteger();
+        this.shareName = context.getProperty(SHARE).getValue();
         this.smbClient = new SMBClient(SmbConfig.builder()
                 .withTimeout(context.getProperty(TIMEOUT).asTimePeriod(SECONDS), SECONDS)
                 .build());
-        createAuthenticationContext();
+        createAuthenticationContext(context);
     }
 
     @OnDisabled
     public void onDisabled() {
         smbClient.close();
+        smbClient = null;
+        hostname = null;
+        port = 0;
+        shareName = null;
     }
 
     @Override
@@ -166,7 +167,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         return PROPERTIES;
     }
 
-    private void createAuthenticationContext() {
+    private void createAuthenticationContext(ConfigurationContext context) {
         if (context.getProperty(USERNAME).isSet()) {
             final String userName = context.getProperty(USERNAME).getValue();
             final String password =

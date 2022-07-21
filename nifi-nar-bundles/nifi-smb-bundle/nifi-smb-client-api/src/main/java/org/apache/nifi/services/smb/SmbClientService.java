@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 /**
  *  Service abstraction for Server Message Block protocol operations.
  */
-public interface SmbClientService {
+public interface SmbClientService extends AutoCloseable {
 
     Stream<SmbListableEntity> listRemoteFiles(String path);
 
@@ -30,5 +30,4 @@ public interface SmbClientService {
 
     OutputStream getOutputStreamForFile(String path);
 
-    void close();
 }

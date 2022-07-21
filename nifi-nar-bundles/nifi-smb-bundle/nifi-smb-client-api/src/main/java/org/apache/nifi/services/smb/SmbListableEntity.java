@@ -57,12 +57,12 @@ public class SmbListableEntity implements ListableEntity {
 
     public static SimpleRecordSchema getRecordSchema() {
         List<RecordField> fields = Arrays.asList(
-                new RecordField("name", RecordFieldType.STRING.getDataType(), false),
+                new RecordField("filename", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("shortName", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("path", RecordFieldType.STRING.getDataType(), false),
                 new RecordField("identifier", RecordFieldType.STRING.getDataType(), false),
-                new RecordField("timeStamp", RecordFieldType.LONG.getDataType(), false),
-                new RecordField("createTime", RecordFieldType.LONG.getDataType(), false),
+                new RecordField("timestamp", RecordFieldType.LONG.getDataType(), false),
+                new RecordField("creationTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("lastAccessTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("changeTime", RecordFieldType.LONG.getDataType(), false),
                 new RecordField("size", RecordFieldType.LONG.getDataType(), false),
@@ -152,11 +152,15 @@ public class SmbListableEntity implements ListableEntity {
     @Override
     public Record toRecord() {
         final Map<String, Object> record = new TreeMap<>();
-        record.put("name", name);
+        record.put("filename", getName());
+        record.put("shortName", getShortName());
         record.put("path", path);
         record.put("identifier", getPathWithName());
         record.put("timestamp", getTimestamp());
-        record.put("size", size);
+        record.put("creationTime", getCreationTime());
+        record.put("lastAccessTime", getLastAccessTime());
+        record.put("size", getSize());
+        record.put("allocationSize", getAllocationSize());
         return new MapRecord(getRecordSchema(), record);
     }
 

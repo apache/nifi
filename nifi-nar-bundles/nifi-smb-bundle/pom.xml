@@ -28,8 +28,8 @@
     <modules>
         <module>nifi-smb-client-api</module>
         <module>nifi-smb-client-api-nar</module>
-        <module>nifi-smbj-client</module>
-        <module>nifi-smbj-client-nar</module>
+        <module>nifi-smb-smbj-client</module>
+        <module>nifi-smb-smbj-client-nar</module>
         <module>nifi-smb-processors</module>
         <module>nifi-smb-nar</module>
     </modules>
