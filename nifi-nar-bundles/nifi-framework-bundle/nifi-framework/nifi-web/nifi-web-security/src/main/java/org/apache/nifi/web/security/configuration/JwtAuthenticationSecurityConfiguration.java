@@ -28,6 +28,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.jwt.converter.StandardJwtAuthenticationConverter;
+import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.jwt.jws.StandardJWSKeySelector;
 import org.apache.nifi.web.security.jwt.jws.StandardJwsSignerProvider;
 import org.apache.nifi.web.security.jwt.key.command.KeyExpirationCommand;
@@ -57,6 +58,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationProvider;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 
@@ -109,12 +111,19 @@ public class JwtAuthenticationSecurityConfiguration {
     public BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter(final AuthenticationManager authenticationManager) {
         final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter = new BearerTokenAuthenticationFilter(authenticationManager);
         bearerTokenAuthenticationFilter.setBearerTokenResolver(bearerTokenResolver());
+        bearerTokenAuthenticationFilter.setAuthenticationEntryPoint(authenticationEntryPoint());
         return bearerTokenAuthenticationFilter;
     }
 
     @Bean
     public BearerTokenResolver bearerTokenResolver() {
         return new StandardBearerTokenResolver();
+    }
+
+    @Bean
+    public StandardAuthenticationEntryPoint authenticationEntryPoint() {
+        final BearerTokenAuthenticationEntryPoint bearerTokenAuthenticationEntryPoint = new BearerTokenAuthenticationEntryPoint();
+        return new StandardAuthenticationEntryPoint(bearerTokenAuthenticationEntryPoint);
     }
 
     @Bean
