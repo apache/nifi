@@ -304,8 +304,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public void verifyModifiable() throws IllegalStateException {
-        if (getState() != ControllerServiceState.DISABLED) {
-            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently enabled. Please disable the Controller Service first.");
+        final ControllerServiceState state = getState();
+
+        if (state == ControllerServiceState.DISABLING) {
+            // Provide precise/accurate error message for DISABLING case
+            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently still disabling. " +
+                "Please wait for the service to fully disable before attempting to modify it.");
+        }
+        if (state != ControllerServiceState.DISABLED) {
+            throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently not disabled - it has a state of " + state
+                + ". Please disable the Controller Service first.");
         }
     }
 
@@ -654,6 +662,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
+        final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
+        if (transitioned) {
+            return future;
+        }
+
         if (this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLED, future)) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, this.serviceProvider, null, getVariableRegistry());
             scheduler.execute(new Runnable() {
@@ -672,8 +685,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
                 }
             });
-        } else {
-            this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
         }
 
         return future;

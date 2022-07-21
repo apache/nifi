@@ -76,7 +76,7 @@ public class ServiceStateTransition {
             }
 
             state = ControllerServiceState.ENABLED;
-            logger.debug("{} transitioned to ENABLED", controllerServiceNode);
+            logger.debug("{} is now fully ENABLED", controllerServiceNode);
 
             enabledFutures.forEach(future -> future.complete(null));
         } finally {
@@ -124,7 +124,7 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             state = ControllerServiceState.DISABLED;
-            logger.debug("{} transitioned to DISABLED", controllerServiceNode);
+            logger.info("{} is now fully DISABLED", controllerServiceNode);
 
             stateChangeCondition.signalAll();
             disabledFutures.forEach(future -> future.complete(null));
