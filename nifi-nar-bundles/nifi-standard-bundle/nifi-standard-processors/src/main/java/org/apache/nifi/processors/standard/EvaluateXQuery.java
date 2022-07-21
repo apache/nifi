@@ -144,8 +144,10 @@ public class EvaluateXQuery extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .displayName("Allow DTD")
             .name("Validate DTD")
-            .description("Specifies whether or not the XML content should be validated against the DTD.")
+            .description("Allow embedded Document Type Declaration in XML. "
+                    + "This feature should be disabled to avoid XML entity expansion vulnerabilities.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
