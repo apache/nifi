@@ -129,8 +129,10 @@ public class EvaluateXPath extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor VALIDATE_DTD = new PropertyDescriptor.Builder()
+            .displayName("Allow Document Type Declaration")
             .name("Validate DTD")
-            .description("Specifies whether or not the XML content should be validated against the DTD.")
+            .description("When enabled, Embedded Document Type Declaration will be allowed and it will be used for the XML content validation. "
+                    + "Because of security reasons it is advised to disable this feature.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
