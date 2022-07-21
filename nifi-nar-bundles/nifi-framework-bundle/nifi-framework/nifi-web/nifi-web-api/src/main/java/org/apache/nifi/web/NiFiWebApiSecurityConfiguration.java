@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.web.security.StandardAuthenticationEntryPoint;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.csrf.CsrfCookieRequestMatcher;
 import org.apache.nifi.web.security.csrf.StandardCookieCsrfTokenRepository;
@@ -28,7 +29,6 @@ import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleL
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
@@ -44,7 +44,6 @@ import org.springframework.security.saml2.provider.service.web.authentication.lo
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
 
@@ -72,6 +71,7 @@ public class NiFiWebApiSecurityConfiguration {
     public SecurityFilterChain securityFilterChain(
             final HttpSecurity http,
             final NiFiProperties properties,
+            final StandardAuthenticationEntryPoint authenticationEntryPoint,
             final X509AuthenticationFilter x509AuthenticationFilter,
             final BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter,
             final KnoxAuthenticationFilter knoxAuthenticationFilter,
@@ -118,7 +118,7 @@ public class NiFiWebApiSecurityConfiguration {
                         )
                 )
                 .exceptionHandling(exceptionHandling -> exceptionHandling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                        .authenticationEntryPoint(authenticationEntryPoint)
                 )
                 .addFilterBefore(x509AuthenticationFilter, AnonymousAuthenticationFilter.class)
                 .addFilterBefore(bearerTokenAuthenticationFilter, AnonymousAuthenticationFilter.class)
