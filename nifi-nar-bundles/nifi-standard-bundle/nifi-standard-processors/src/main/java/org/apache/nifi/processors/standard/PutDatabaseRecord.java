@@ -84,6 +84,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -479,10 +480,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final Connection connection = dbcpService.getConnection(flowFile.getAttributes());
+        Optional<Connection> connectionHolder = Optional.empty();
 
         boolean originalAutoCommit = false;
         try {
+            final Connection connection = dbcpService.getConnection(flowFile.getAttributes());
+            connectionHolder = Optional.of(connection);
+
             originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
 
@@ -513,25 +517,31 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 session.transfer(flowFile, relationship);
             }
 
-            try {
-                connection.rollback();
-            } catch (final Exception e1) {
-                getLogger().error("Failed to rollback JDBC transaction", e1);
-            }
+            connectionHolder.ifPresent(connection -> {
+                try {
+                    connection.rollback();
+                } catch (final Exception rollbackException) {
+                    getLogger().error("Failed to rollback JDBC transaction", rollbackException);
+                }
+            });
         } finally {
             if (originalAutoCommit) {
-                try {
-                    connection.setAutoCommit(true);
-                } catch (final Exception e) {
-                    getLogger().warn("Failed to set auto-commit back to true on connection {} after finishing update", connection);
-                }
+                connectionHolder.ifPresent(connection -> {
+                    try {
+                        connection.setAutoCommit(true);
+                    } catch (final Exception autoCommitException) {
+                        getLogger().warn("Failed to set auto-commit back to true on connection", autoCommitException);
+                    }
+                });
             }
 
-            try {
-                connection.close();
-            } catch (final Exception e) {
-                getLogger().warn("Failed to close database connection", e);
-            }
+            connectionHolder.ifPresent(connection -> {
+                try {
+                    connection.close();
+                } catch (final Exception closeException) {
+                    getLogger().warn("Failed to close database connection", closeException);
+                }
+            });
         }
     }
 
