@@ -58,6 +58,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.BufferOverflowException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -315,7 +316,7 @@ public class ReplaceText extends AbstractProcessor {
 
         if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
             if (flowFile.getSize() > maxBufferSize && replacementStrategyExecutor.isAllDataBufferedForEntireText()) {
-                logger.warn("Transferred {} to 'faliure' because it was larger than the buffer size");
+                logger.warn("Transferred {} to 'failure' because it was larger than the buffer size");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -329,6 +330,10 @@ public class ReplaceText extends AbstractProcessor {
             // Some regular expressions can produce many matches on large input data size using recursive code
             // do not log the StackOverflowError stack trace
             logger.info("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString() });
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        } catch (BufferOverflowException e) {
+            logger.warn("Transferred {} to 'failure' due to {}", new Object[] { flowFile, e.toString()});
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (IllegalAttributeException | AttributeExpressionLanguageException e) {

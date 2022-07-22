@@ -782,6 +782,23 @@ public class TestReplaceText {
     }
 
     @Test
+    public void testRoutesToFailureIfLineTooLarge() throws IOException {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.SEARCH_VALUE, "[123]");
+        runner.setProperty(ReplaceText.MAX_BUFFER_SIZE, "5 kb");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${abc}");
+        runner.setProperty(ReplaceText.EVALUATION_MODE, ReplaceText.LINE_BY_LINE);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "Good");
+        runner.enqueue(Paths.get("src/test/resources/TestReplaceTextLineByLine/apacheLicenseOnOneLine.txt"), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_FAILURE, 1);
+    }
+
+    @Test
     public void testRoutesToSuccessIfTooLargeButRegexIsDotAsterisk() throws IOException {
         final TestRunner runner = getRunner();
         runner.setProperty(ReplaceText.SEARCH_VALUE, ".*");
