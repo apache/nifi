@@ -324,7 +324,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     @Override
     public void verifyCanDisable(final Set<ControllerServiceNode> ignoreReferences) {
         if (!this.isActive()) {
-            throw new IllegalStateException("Cannot disable " + getControllerServiceImplementation().getIdentifier() + " because it is not enabled");
+            return;
         }
 
         final ControllerServiceReference references = getReferences();
@@ -608,16 +608,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                         final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this);
-                        componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-                        LOG.error("Failed to invoke @OnEnabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
+                        componentLog.error("Failed to invoke @OnEnabled method", cause);
                         invokeDisable(configContext);
 
                         if (isActive()) {
                             scheduler.schedule(this, administrativeYieldMillis, TimeUnit.MILLISECONDS);
                         } else {
-                            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
-                                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, getControllerServiceImplementation(), configContext);
-                            }
                             stateTransition.disable();
                         }
                     }
