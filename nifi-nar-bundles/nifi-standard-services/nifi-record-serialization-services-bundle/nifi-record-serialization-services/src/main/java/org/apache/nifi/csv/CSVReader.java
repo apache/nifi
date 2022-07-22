@@ -50,6 +50,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.csv.CSVUtils.CSV_FORMAT;
+
 @Tags({"csv", "parse", "record", "row", "reader", "delimited", "comma", "separated", "values"})
 @CapabilityDescription("Parses CSV-formatted data, returning each row in the CSV file as a separate record. "
     + "This reader allows for inferring a schema based on the first line of the CSV, if a 'header line' is present, or providing an explicit schema "
@@ -79,6 +81,17 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             .required(true)
             .build();
 
+    public static final PropertyDescriptor TRIM_DOUBLE_QUOTE = new PropertyDescriptor.Builder()
+            .name("Trim double quote")
+            .description("Whether or not to trim starting and ending double quotes. For example: with trim string '\"test\"'"
+            +" would be parsed to 'test', without trim would be parsed to '\"test\"'. Default value is true, with trim.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .dependsOn(CSV_FORMAT, CSVUtils.RFC_4180)
+            .required(true)
+            .build();
+
     private volatile ConfigurationContext context;
 
     private volatile String csvParser;
@@ -99,7 +112,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(DateTimeUtils.DATE_FORMAT);
         properties.add(DateTimeUtils.TIME_FORMAT);
         properties.add(DateTimeUtils.TIMESTAMP_FORMAT);
-        properties.add(CSVUtils.CSV_FORMAT);
+        properties.add(CSV_FORMAT);
         properties.add(CSVUtils.VALUE_SEPARATOR);
         properties.add(CSVUtils.RECORD_SEPARATOR);
         properties.add(CSVUtils.FIRST_LINE_IS_HEADER);
@@ -111,6 +124,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.TRIM_FIELDS);
         properties.add(CSVUtils.CHARSET);
         properties.add(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES);
+        properties.add(TRIM_DOUBLE_QUOTE);
         return properties;
     }
 
@@ -154,10 +168,12 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
             format = CSVUtils.createCSVFormat(context, variables);
         }
 
+        final boolean trimDoubleQuote = context.getProperty(TRIM_DOUBLE_QUOTE).asBoolean();
+
         if (APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else if (JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet, trimDoubleQuote);
         } else {
             throw new IOException("Parser not supported");
         }

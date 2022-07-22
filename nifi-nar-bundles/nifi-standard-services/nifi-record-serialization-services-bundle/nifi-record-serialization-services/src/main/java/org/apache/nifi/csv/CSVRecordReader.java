@@ -44,11 +44,12 @@ import org.apache.nifi.serialization.record.RecordSchema;
 
 public class CSVRecordReader extends AbstractCSVRecordReader {
     private final CSVParser csvParser;
+    private final boolean trimDoubleQuote;
 
     private List<RecordField> recordFields;
 
     public CSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
-                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+                           final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
         super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
@@ -67,6 +68,7 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
         }
 
         csvParser = new CSVParser(reader, withHeader);
+        this.trimDoubleQuote = trimDoubleQuote;
     }
 
     @Override
@@ -99,12 +101,12 @@ public class CSVRecordReader extends AbstractCSVRecordReader {
 
                     final Object value;
                     if (coerceTypes) {
-                        value = convert(rawValue, dataType, rawFieldName);
+                        value = convert(rawValue, dataType, rawFieldName, trimDoubleQuote);
                     } else {
                         // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
                         // dictate a field type. As a result, we will use the schema that we have to attempt to convert
                         // the value into the desired type if it's a simple type.
-                        value = convertSimpleIfPossible(rawValue, dataType, rawFieldName);
+                        value = convertSimpleIfPossible(rawValue, dataType, rawFieldName, trimDoubleQuote);
                     }
 
                     values.put(rawFieldName, value);

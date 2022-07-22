@@ -20,6 +20,7 @@ package org.apache.nifi.csv;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import java.text.DateFormat;
@@ -73,12 +74,20 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         }
     }
 
-    protected final Object convert(final String value, final DataType dataType, final String fieldName) {
+    protected final Object convert(final String value, final DataType dataType, final String fieldName, final boolean trimDoubleQuote) {
         if (dataType == null || value == null) {
             return value;
         }
 
-        final String trimmed = trim(value);
+        final String trimmed;
+        final RecordFieldType type = dataType.getFieldType();
+
+        if (!trimDoubleQuote && (type.equals(RecordFieldType.STRING) || type.equals(RecordFieldType.CHOICE))) {
+            trimmed = value;
+        } else {
+            trimmed = trim(value);
+        }
+
         if (trimmed.isEmpty()) {
             return null;
         }
@@ -86,12 +95,19 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
     }
 
-    protected final Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
+    protected final Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName, final boolean trimDoubleQuote) {
         if (dataType == null || value == null) {
             return value;
         }
 
-        final String trimmed = trim(value);
+        final String trimmed;
+
+        if (!trimDoubleQuote && dataType.getFieldType().equals(RecordFieldType.STRING)) {
+            trimmed = value;
+        } else {
+            trimmed = trim(value);
+        }
+
         if (trimmed.isEmpty()) {
             return null;
         }
