@@ -95,10 +95,8 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
     @OnEnabled
     public void startServer(final ConfigurationContext context) throws IOException {
         if (cacheServer == null) {
-            getLogger().debug("Starting distributed cache server");
             cacheServer = createCacheServer(context);
             cacheServer.start();
-            getLogger().debug("Successfully started distributed cache server");
         }
     }
 
@@ -106,9 +104,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
     @OnDisabled
     public void shutdownServer() throws IOException {
         if (cacheServer != null) {
-            getLogger().debug("Shutting down distributed cache server");
             cacheServer.stop();
-            getLogger().debug("Successfully shut down distributed cache server");
         }
         cacheServer = null;
     }

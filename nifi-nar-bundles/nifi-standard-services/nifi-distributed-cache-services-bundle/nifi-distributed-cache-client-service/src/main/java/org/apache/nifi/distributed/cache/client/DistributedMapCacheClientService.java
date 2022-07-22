@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -38,7 +37,6 @@ import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -120,30 +118,12 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
 
     @OnShutdown
     @OnDisabled
-    public void onDisabled() {
-        try {
-            if (cacheClient != null) {
-                getLogger().debug("Disabling Map Cache Client Service");
-                this.cacheClient.close();
-                getLogger().debug("Successfully disabled Map Cache Client Service");
-            }
-        } catch (ConnectException e) {
-            getLogger().error("Failed to contact remote server when closing", e);
-        } catch (Exception e) {
-            getLogger().error("Failed to close cache client", e);
+    public void onDisabled() throws IOException {
+        if (cacheClient != null) {
+            this.cacheClient.close();
         }
-
         this.versionNegotiatorFactory = null;
         this.cacheClient = null;
-    }
-
-    @OnStopped
-    public void onStopped() {
-        if (isEnabled()) {
-            onDisabled();
-        } else {
-            getLogger().debug("Map Cache Client Service was already disabled");
-        }
     }
 
     @Override

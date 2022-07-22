@@ -34,8 +34,6 @@ import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -47,9 +45,6 @@ import java.util.Arrays;
  * Standard Map Cache Server implemented using Netty
  */
 public class StandardMapCacheServer extends EventCacheServer {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardMapCacheServer.class);
-
     private final EventServerFactory eventServerFactory;
 
     private final MapCache cache;
@@ -106,9 +101,7 @@ public class StandardMapCacheServer extends EventCacheServer {
     @Override
     public void stop() {
         try {
-            LOGGER.debug("Shutting down Standard Map Cache Server");
             cache.shutdown();
-            LOGGER.debug("Successfully shut down Standard Map Cache Server");
         } catch (final IOException e) {
             throw new UncheckedIOException("Cache Shutdown Failed", e);
         } finally {
