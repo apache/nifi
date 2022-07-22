@@ -72,10 +72,8 @@ import org.apache.nifi.services.smb.SmbListableEntity;
 @SeeAlso({PutSmbFile.class, GetSmbFile.class})
 @CapabilityDescription("Lists concrete files shared via SMB protocol. " +
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
-        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. "
-        +
-        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the "
-        +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
+        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
@@ -86,17 +84,17 @@ import org.apache.nifi.services.smb.SmbListableEntity;
                         + "on filesystem compared to the Share and Input Directory properties and the configured host "
                         + "and port inherited from the configured connection pool controller service. For example, for "
                         + "a given remote location smb://HOSTNAME:PORT/SHARE:\\DIRECTORY, and a file is being listed from "
-                        + "smb://HOSTNAME:PORT/SHARE:DIRECTORY\\sub\\folder\\file then the path attribute will be set to \"sub\\folder\\file\"."),
+                        + "smb://HOSTNAME:PORT/SHARE:\\DIRECTORY\\sub\\folder\\file then the path attribute will be set to \"sub\\folder\\file\"."),
         @WritesAttribute(attribute = "absolute.path", description =
                 "The absolute.path is set to the absolute path of the file's directory on the remote location. For example, "
                         + "given a remote location smb://HOSTNAME:PORT/SHARE:\\DIRECTORY, and a file is being listen from "
                         + "SHARE:\\DIRECTORY\\sub\\folder\\file then the absolute.path attribute will be set to "
-                        + "\"SHARE:\\DIRECTORY\\sub\\folder\\file\"."),
+                        + "SHARE:\\DIRECTORY\\sub\\folder\\file."),
         @WritesAttribute(attribute = "identifier", description =
                 "The identifier of the file. This equals to the path attribute so two files with the same relative path "
                         + "coming from different file shares considered to be identical."),
         @WritesAttribute(attribute = "timestamp", description =
-                "The timestamp of when the file's content in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
+                "The timestamp of when the file's content changed in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
         @WritesAttribute(attribute = "createTime", description =
                 "The timestamp of when the file was created in the filesystem as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
         @WritesAttribute(attribute = "lastAccessTime", description =
@@ -115,12 +113,11 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .displayName("Input Directory")
             .name("directory")
-            .description("The network folder to which files should be written. This is the remaining relative " +
-                    "after the hostname: smb://HOSTNAME:PORT/SHARE/[DIRECTORY]\\sub\\directories. It is also possible "
-                    + "to add subdirectories using this property. The given path on the remote file share must exists. "
-                    + "The existence of the remote folder can be checked using verification. You may mix different "
-                    + "directory separators in this property. If so NiFi will unify all of them and will use Windows's "
-                    + "directory separator: '\\' ")
+            .description("The network folder from which to list files. This is the remaining relative path " +
+                    "after the share: smb://HOSTNAME:PORT/SHARE/[DIRECTORY]\\sub\\directories. It is also possible "
+                    + "to add subdirectories. The given path on the remote file share must exist. "
+                    + "This can be checked using verification. You may mix Windows and Linux-style "
+                    + "directory separators.")
             .required(false)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
@@ -128,9 +125,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor MINIMUM_AGE = new PropertyDescriptor.Builder()
             .displayName("Minimum File Age")
             .name("min-file-age")
-            .description(
-                    "Any file younger than the given value will be omitted. Ideally this value should be greater then "
-                            + "the amount of time needed to perform a list.")
+            .description("The minimum age that a file must be in order to be listed; any file younger than this "
+                    + "amount of time will be ignored.")
             .required(true)
             .addValidator(TIME_PERIOD_VALIDATOR)
             .defaultValue("5 secs")
@@ -147,7 +143,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor MINIMUM_SIZE = new PropertyDescriptor.Builder()
             .displayName("Minimum File Size")
             .name("min-file-size")
-            .description("Any file smaller then the given value will be omitted.")
+            .description("Any file smaller than the given value will be omitted.")
             .required(false)
             .addValidator(DATA_SIZE_VALIDATOR)
             .build();
@@ -155,7 +151,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor MAXIMUM_SIZE = new PropertyDescriptor.Builder()
             .displayName("Maximum File Size")
             .name("max-file-size")
-            .description("Any file bigger then the given value will be omitted.")
+            .description("Any file larger than the given value will be omitted.")
             .required(false)
             .addValidator(DATA_SIZE_VALIDATOR)
             .build();
@@ -177,9 +173,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     public static final PropertyDescriptor FILE_NAME_SUFFIX_FILTER = new Builder()
             .name("file-name-suffix-filter")
             .displayName("File Name Suffix Filter")
-            .description("Files ends with the given suffix will be omitted. This is handy when writing large data into "
-                    + "temporary files and then moved to a final one. Please be advised that writing data into files "
-                    + "first is highly recommended when using Entity Tracking or Timestamp based listing strategies.")
+            .description("Files ending with the given suffix will be omitted. Can be used to make sure that files "
+                    + "that are still uploading are not listed multiple times, by having those files have a suffix "
+                    + "and remove the suffix once the upload finishes. This is highly recommended when using "
+                    + "'Tracking Entities' or 'Tracking Timestamps' listing strategies.")
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
             .addValidator(new MustNotContainDirectorySeparatorsValidator())
