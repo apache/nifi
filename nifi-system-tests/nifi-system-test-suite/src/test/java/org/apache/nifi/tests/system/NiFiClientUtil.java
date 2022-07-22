@@ -550,6 +550,20 @@ public class NiFiClientUtil {
         return nifiClient.getControllerServicesClient().updateControllerService(entity);
     }
 
+    public ActivateControllerServicesEntity enableControllerServices(final String groupId, final boolean waitForEnabled) throws NiFiClientException, IOException {
+        final ActivateControllerServicesEntity activateControllerServicesEntity = new ActivateControllerServicesEntity();
+        activateControllerServicesEntity.setId(groupId);
+        activateControllerServicesEntity.setState(ActivateControllerServicesEntity.STATE_ENABLED);
+        activateControllerServicesEntity.setDisconnectedNodeAcknowledged(true);
+
+        final ActivateControllerServicesEntity activateControllerServices = nifiClient.getFlowClient().activateControllerServices(activateControllerServicesEntity);
+        if (waitForEnabled) {
+            waitForControllerSerivcesEnabled(groupId);
+        }
+
+        return activateControllerServices;
+    }
+
     public ControllerServiceEntity enableControllerService(final ControllerServiceEntity entity) throws NiFiClientException, IOException {
         final ControllerServiceRunStatusEntity runStatusEntity = new ControllerServiceRunStatusEntity();
         runStatusEntity.setState("ENABLED");
@@ -730,6 +744,10 @@ public class NiFiClientUtil {
 
     public void waitForControllerSerivcesEnabled(final String groupId, final String... serviceIdsOfInterest) throws NiFiClientException, IOException {
         waitForControllerServiceState(groupId, "ENABLED", Arrays.asList(serviceIdsOfInterest));
+    }
+
+    public void waitForControllerSerivcesEnabled(final String groupId, final List<String> serviceIdsOfInterest) throws NiFiClientException, IOException {
+        waitForControllerServiceState(groupId, "ENABLED", serviceIdsOfInterest);
     }
 
     public void waitForControllerServiceState(final String groupId, final String desiredState, final Collection<String> serviceIdsOfInterest) throws NiFiClientException, IOException {

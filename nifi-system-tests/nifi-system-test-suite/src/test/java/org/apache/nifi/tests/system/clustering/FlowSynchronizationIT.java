@@ -157,7 +157,6 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
             final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), i);
             assertEquals("updated", flowFile.getFlowFile().getAttributes().get("attr"));
         }
-
     }
 
     @Test
