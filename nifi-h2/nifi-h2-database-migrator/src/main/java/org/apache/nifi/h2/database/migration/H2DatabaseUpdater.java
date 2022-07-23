@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.h2.database.migration;
 
-import org.h2.jdbc.JdbcSQLNonTransientException;
 import org.h2.jdbcx.JdbcDataSource;
 import org.h2.mvstore.MVStoreException;
 import org.slf4j.Logger;
@@ -28,6 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientException;
 import java.sql.Statement;
 
 public class H2DatabaseUpdater {
@@ -48,16 +48,18 @@ public class H2DatabaseUpdater {
         migrationDataSource.setPassword(pass);
         try (Connection connection = migrationDataSource.getConnection()) {
             return;
-        } catch (JdbcSQLNonTransientException jsqlnte) {
+        } catch (SQLNonTransientException e) {
             // Migration/version issues will be caused by an MVStoreException
-            final Throwable exceptionCause = jsqlnte.getCause();
+            final Throwable exceptionCause = e.getCause();
             if (exceptionCause instanceof MVStoreException) {
                 // Check for specific error message
                 final String errorMessage = exceptionCause.getMessage();
                 if (!errorMessage.contains("The write format")
                         && !errorMessage.contains("is smaller than the supported format")) {
-                    throw jsqlnte;
+                    throw e;
                 }
+            } else {
+                throw e;
             }
         } catch (SQLException sqle) {
             throw new RuntimeException(String.format("H2 connection failed URL [%s] File [%s]", dbUrl, dbPathNoExtension), sqle);
