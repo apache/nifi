@@ -138,7 +138,7 @@
         <netty.4.version>4.1.79.Final</netty.4.version>
         <spring.version>5.3.22</spring.version>
         <spring.security.version>5.7.2</spring.security.version>
-        <h2.version>2.1.210</h2.version>
+        <h2.version>2.1.214</h2.version>
         <zookeeper.version>3.8.0</zookeeper.version>
     </properties>
     <dependencyManagement>
