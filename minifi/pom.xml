@@ -41,7 +41,7 @@ limitations under the License.
     </modules>
     <properties>
         <system.rules.version>1.19.0</system.rules.version>
-        <aws.sdk.version>1.11.172</aws.sdk.version>
+        <aws.sdk.version>1.12.267</aws.sdk.version>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
     </properties>
 
