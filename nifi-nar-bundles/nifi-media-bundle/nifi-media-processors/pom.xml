@@ -29,6 +29,16 @@
         <tika.version>2.4.1</tika.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override Xerces 2.12.1 from Tika -->
+            <dependency>
+                <groupId>xerces</groupId>
+                <artifactId>xercesImpl</artifactId>
+                <version>2.12.2</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
