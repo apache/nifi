@@ -129,4 +129,9 @@
         <packageUrl regex="true">^pkg:maven/org\.apache\.flume\.flume\-ng\-sinks/flume\-ng\-morphline\-solr\-sink@.*$</packageUrl>
         <cpe>cpe:/a:apache:solr</cpe>
     </suppress>
+    <suppress>
+        <notes>CVE-2017-10355 does not apply to Xerces 2.12.2</notes>
+        <packageUrl regex="true">^pkg:maven/xerces/xercesImpl@.*$</packageUrl>
+        <cve>CVE-2017-10355</cve>
+    </suppress>
 </suppressions>

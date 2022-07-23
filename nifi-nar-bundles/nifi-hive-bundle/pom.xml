@@ -97,6 +97,12 @@
                 <artifactId>ant</artifactId>
                 <version>1.10.12</version>
             </dependency>
+            <!-- Override Xerces 2.9.1 in Hive 1.1 and 1.2 -->
+            <dependency>
+                <groupId>xerces</groupId>
+                <artifactId>xercesImpl</artifactId>
+                <version>2.12.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
