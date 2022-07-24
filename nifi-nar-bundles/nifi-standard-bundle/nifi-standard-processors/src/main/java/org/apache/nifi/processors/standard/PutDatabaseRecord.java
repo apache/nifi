@@ -668,7 +668,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         }
 
                         // Log debug sqlHolder
-                        log.debug("Generated SQL: {}", sqlHolder.getSql())
+                        log.debug("Generated SQL: {}", sqlHolder.getSql());
                         // Create the Prepared Statement
                         final PreparedStatement preparedStatement = con.prepareStatement(sqlHolder.getSql());
 
