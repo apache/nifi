@@ -667,6 +667,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             throw new IllegalArgumentException(format("Statement Type %s is not valid, FlowFile %s", statementType, flowFile));
                         }
 
+                        // Log debug sqlHolder
+                        log.debug("Generated SQL: {}", sqlHolder.getSql())
                         // Create the Prepared Statement
                         final PreparedStatement preparedStatement = con.prepareStatement(sqlHolder.getSql());
 
