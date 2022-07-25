@@ -536,6 +536,8 @@ public class LookupRecord extends AbstractProcessor {
     private class RecordPathReplacementStrategy implements ReplacementStrategy {
         private int lookupCount = 0;
 
+        private ArrayList SCHEMA_LOOKUP_RESULT_CACHE = new ArrayList();
+
         @Override
         public Set<Relationship> lookup(final Record record, final ProcessContext context, final LookupContext lookupContext) {
             lookupCount++;
@@ -549,7 +551,11 @@ public class LookupRecord extends AbstractProcessor {
             final FlowFile flowFile = lookupContext.getOriginalFlowFile();
             final Optional<?> lookupValueOption;
             try {
-                lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
+                if (lookupCount <= SCHEMA_LOOKUP_RESULT_CACHE.size()) {
+                    lookupValueOption = (Optional<?>) SCHEMA_LOOKUP_RESULT_CACHE.get(lookupCount - 1);
+                } else {
+                    lookupValueOption = lookupService.lookup(lookupCoordinates, flowFile.getAttributes());
+                }
             } catch (final Exception e) {
                 throw new ProcessException("Failed to lookup coordinates " + lookupCoordinates + " in Lookup Service", e);
             }
@@ -634,6 +640,8 @@ public class LookupRecord extends AbstractProcessor {
                     }
 
                     final Optional<?> lookupResult = lookupService.lookup(lookupCoordinates, flowFileAttributes);
+                    SCHEMA_LOOKUP_RESULT_CACHE.add(lookupResult);
+
                     if (!lookupResult.isPresent()) {
                         continue;
                     }
