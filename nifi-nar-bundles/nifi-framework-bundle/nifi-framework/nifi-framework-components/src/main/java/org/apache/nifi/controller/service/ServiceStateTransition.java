@@ -76,7 +76,7 @@ public class ServiceStateTransition {
             }
 
             state = ControllerServiceState.ENABLED;
-            logger.info("{} is now fully ENABLED", controllerServiceNode);
+            logger.debug("{} is now fully ENABLED", controllerServiceNode);
 
             enabledFutures.forEach(future -> future.complete(null));
         } finally {
