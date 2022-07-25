@@ -17,9 +17,9 @@
 
 package org.apache.nifi.stateless.basics;
 
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -28,7 +28,6 @@ import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -39,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class RollbackOnExceptionIT extends StatelessSystemIT {
     private static final String EXCEPTION_TEXT = "Intentional Exception to verify behavior in RollbackOnExceptionIT";
 
-    @Timeout(30)
     @Test
     public void testFlowFileCompletelyRemovedWhenExceptionThrown() throws IOException, StatelessConfigurationException, InterruptedException {
         final VersionedFlowBuilder builder = new VersionedFlowBuilder();
