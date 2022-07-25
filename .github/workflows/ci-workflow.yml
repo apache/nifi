@@ -33,7 +33,6 @@ env:
     -nsu
     -ntp
     -ff
-    --threads 1C
   MAVEN_BUILD_PROFILES: >-
     -P include-grpc
     -P skip-nifi-bin-assembly
