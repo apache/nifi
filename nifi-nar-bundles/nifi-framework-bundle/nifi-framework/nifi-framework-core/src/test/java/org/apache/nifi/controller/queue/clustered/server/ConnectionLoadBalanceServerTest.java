@@ -18,7 +18,6 @@ package org.apache.nifi.controller.queue.clustered.server;
 
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
-import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TemporaryKeyStoreBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
@@ -30,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -37,15 +37,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectionLoadBalanceServerTest {
@@ -54,11 +51,9 @@ class ConnectionLoadBalanceServerTest {
 
     static final int SERVER_THREADS = 1;
 
-    static final int SOCKET_TIMEOUT_MILLIS = 5000;
+    static final int SOCKET_TIMEOUT_MILLIS = 30000;
 
     static final Duration SOCKET_TIMEOUT = Duration.ofMillis(SOCKET_TIMEOUT_MILLIS);
-
-    static final String ERROR_CATEGORY = "Load Balanced Connection";
 
     static SSLContext sslContext;
 
@@ -81,7 +76,6 @@ class ConnectionLoadBalanceServerTest {
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
             try (final Socket socket = socketFactory.createSocket()) {
                 final SSLSocket sslSocket = assertSocketConnected(socket, server.getPort());
-
                 assertTimeoutPreemptively(SOCKET_TIMEOUT, sslSocket::startHandshake, "TLS handshake failed");
             }
         } finally {
@@ -90,19 +84,17 @@ class ConnectionLoadBalanceServerTest {
     }
 
     @Test
-    void testConnectSocketException() throws IOException {
-        final ConnectionLoadBalanceServer server = getServer(new SocketExceptionLoadBalanceProtocol());
+    void testHandshakeCompletedProtocolException() throws IOException {
+        final ConnectionLoadBalanceServer server = getServer(new ReceiveFlowFilesSslExceptionLoadBalanceProtocol());
 
         try {
             server.start();
 
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
             try (final Socket socket = socketFactory.createSocket()) {
-                final InetSocketAddress socketAddress = new InetSocketAddress(LOCALHOST, server.getPort());
-                socket.connect(socketAddress, SOCKET_TIMEOUT_MILLIS);
+                final SSLSocket sslSocket = assertSocketConnected(socket, server.getPort());
+                assertTimeoutPreemptively(SOCKET_TIMEOUT, sslSocket::startHandshake, "TLS handshake failed");
             }
-
-            verify(eventReporter).reportEvent(eq(Severity.ERROR), eq(ERROR_CATEGORY), anyString());
         } finally {
             server.stop();
         }
@@ -141,11 +133,18 @@ class ConnectionLoadBalanceServerTest {
         }
     }
 
-    static class SocketExceptionLoadBalanceProtocol implements LoadBalanceProtocol {
+    static class ReceiveFlowFilesSslExceptionLoadBalanceProtocol implements LoadBalanceProtocol {
+        final AtomicBoolean receiveFlowFilesInvoked = new AtomicBoolean();
 
         @Override
         public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
-            throw new SocketException();
+            if (receiveFlowFilesInvoked.get()) {
+                throw new SSLException(SSLException.class.getSimpleName());
+            } else {
+                final SSLSocket sslSocket = (SSLSocket) socket;
+                sslSocket.startHandshake();
+            }
+            receiveFlowFilesInvoked.getAndSet(true);
         }
     }
 }
