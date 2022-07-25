@@ -30,7 +30,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -38,9 +37,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -91,16 +90,16 @@ class ConnectionLoadBalanceServerTest {
     }
 
     @Test
-    void testSslContextSocketHandshakeException() throws IOException {
-        final ConnectionLoadBalanceServer server = getServer(new SslHandshakeExceptionLoadBalanceProtocol());
+    void testConnectSocketException() throws IOException {
+        final ConnectionLoadBalanceServer server = getServer(new SocketExceptionLoadBalanceProtocol());
 
         try {
             server.start();
 
             final SSLSocketFactory socketFactory = sslContext.getSocketFactory();
             try (final Socket socket = socketFactory.createSocket()) {
-                final SSLSocket sslSocket = assertSocketConnected(socket, server.getPort());
-                assertThrows(IOException.class, sslSocket::startHandshake);
+                final InetSocketAddress socketAddress = new InetSocketAddress(LOCALHOST, server.getPort());
+                socket.connect(socketAddress, SOCKET_TIMEOUT_MILLIS);
             }
 
             verify(eventReporter).reportEvent(eq(Severity.ERROR), eq(ERROR_CATEGORY), anyString());
@@ -142,11 +141,11 @@ class ConnectionLoadBalanceServerTest {
         }
     }
 
-    static class SslHandshakeExceptionLoadBalanceProtocol implements LoadBalanceProtocol {
+    static class SocketExceptionLoadBalanceProtocol implements LoadBalanceProtocol {
 
         @Override
         public void receiveFlowFiles(final Socket socket, final InputStream in, final OutputStream out) throws IOException {
-            throw new SSLException("Handshake Failed");
+            throw new SocketException();
         }
     }
 }
