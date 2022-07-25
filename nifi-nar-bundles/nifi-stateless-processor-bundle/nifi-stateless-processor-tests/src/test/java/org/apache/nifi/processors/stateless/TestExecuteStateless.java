@@ -88,7 +88,6 @@ public class TestExecuteStateless {
         runner.assertAllFlowFilesTransferred(ExecuteStateless.REL_OUTPUT, 0);
     }
 
-
     @Test
     public void testRouteToFailureWithInput() {
         runner.setProperty(ExecuteStateless.DATAFLOW_FILE, "src/test/resources/route-to-desired-port.json");
@@ -99,7 +98,7 @@ public class TestExecuteStateless {
         runner.enqueue("B", Collections.singletonMap("desired.port", "B"));
         runner.enqueue("C", Collections.singletonMap("desired.port", "C"));
 
-        runner.run(3, true, true, 60000L);
+        runner.run(3, true, true, 300_000L);
 
         runner.assertTransferCount(ExecuteStateless.REL_OUTPUT, 3);
         runner.assertTransferCount(ExecuteStateless.REL_ORIGINAL, 3);

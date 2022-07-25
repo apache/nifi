@@ -17,10 +17,10 @@
 
 package org.apache.nifi.stateless.basics;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.flow.VersionedPort;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -29,7 +29,6 @@ import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,13 +98,11 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         assertTrue(failureOutputFile.exists());
     }
 
-    @Timeout(10)
     @Test
     public void testCleanupAfterFlowFilesTerminated() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupAfterFlowFilesTerminated("asynchronous");
     }
 
-    @Timeout(10)
     @Test
     public void testSynchronousCommitCleanupAfterFlowFilesTerminated() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupAfterFlowFilesTerminated("synchronous");
