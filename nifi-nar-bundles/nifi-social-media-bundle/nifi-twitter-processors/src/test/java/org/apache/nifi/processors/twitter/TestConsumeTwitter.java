@@ -25,6 +25,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 
@@ -53,6 +54,7 @@ public class TestConsumeTwitter {
     }
 
     @Test
+    @Timeout(60)
     public void testReceiveSingleTweetInStream() throws InterruptedException {
         MockResponse response = new MockResponse()
                 .setResponseCode(200)
@@ -68,11 +70,13 @@ public class TestConsumeTwitter {
 
         runner.assertValid();
 
-        // the TwitterStreamAPI class spins up another thread and might not be done queueing tweets in one run of the processor
-        final int maxTries = 3;
-        final long runSchedule = 250;
-        runner.setRunSchedule(runSchedule);
-        runner.run(maxTries, false, true);
+        // The TwitterStreamAPI class spins up another thread and might not be done queueing tweets in one run of the
+        // processor, so the test will timeout after 60 seconds.
+        runner.run(1, false, true);
+
+        while (runner.getFlowFilesForRelationship(ConsumeTwitter.REL_SUCCESS).size() == 0) {
+            runner.run(1, false, false);
+        }
         runner.stop();
 
         // there should only be a single FlowFile containing a tweet
