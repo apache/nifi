@@ -36,7 +36,7 @@ case ${NIFI_REGISTRY_FLOW_PROVIDER} in
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.FileSystemFlowPersistenceProvider" "${providers_file}"
         ;;
     database)
-        xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.git.DatabaseFlowPersistenceProvider" "${providers_file}"
+        xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.DatabaseFlowPersistenceProvider" "${providers_file}"
         ;;
     git)
         xmlstarlet ed --inplace -u "${property_xpath}/class" -v "org.apache.nifi.registry.provider.flow.git.GitFlowPersistenceProvider" "${providers_file}"
