@@ -267,15 +267,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 .explanation("Cannot set Parse Messages to 'true' if Batch Size is greater than 1").build());
         }
 
-        final String protocol = validationContext.getProperty(PROTOCOL).getValue();
-        final SSLContextService sslContextService = validationContext.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-
-        if (UDP_VALUE.getValue().equals(protocol) && sslContextService != null) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("SSL can not be used with UDP")
-                    .valid(false).subject("SSL Context").build());
-        }
-
         return results;
     }
 
@@ -305,7 +296,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         factory.setSocketKeepAlive(socketKeepAlive);
 
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if (sslContextService != null) {
+        if (protocol == TransportProtocol.TCP && sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
             ClientAuth clientAuth = ClientAuth.REQUIRED;
             final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
