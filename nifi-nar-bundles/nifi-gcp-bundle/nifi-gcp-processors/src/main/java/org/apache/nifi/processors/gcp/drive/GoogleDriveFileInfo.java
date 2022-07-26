@@ -30,23 +30,23 @@ import java.util.List;
 import java.util.Map;
 
 public class GoogleDriveFileInfo implements ListableEntity {
+    public static final String ID = "drive.id";
+    public static final String FILENAME = "filename";
+    public static final String SIZE = "drive.size";
+    public static final String TIMESTAMP = "drive.timestamp";
+    public static final String MIME_TYPE = "mime.type";
 
-    private static final RecordSchema SCHEMA;
-    private static final String ID = "id";
-    private static final String FILENAME = "filename";
-    private static final String SIZE = "size";
-    private static final String CREATED_TIME = "createdTime";
-    private static final String MODIFIED_TIME = "modifiedTime";
-    private static final String MIME_TYPE = "mimeType";
+    private  static final RecordSchema SCHEMA;
 
     static {
         final List<RecordField> recordFields = new ArrayList<>();
+
         recordFields.add(new RecordField(ID, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
         recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
-        recordFields.add(new RecordField(CREATED_TIME, RecordFieldType.TIMESTAMP.getDataType(), false));
-        recordFields.add(new RecordField(MODIFIED_TIME, RecordFieldType.TIMESTAMP.getDataType(), false));
+        recordFields.add(new RecordField(TIMESTAMP, RecordFieldType.LONG.getDataType(), false));
         recordFields.add(new RecordField(MIME_TYPE, RecordFieldType.STRING.getDataType()));
+
         SCHEMA = new SimpleRecordSchema(recordFields);
     }
 
@@ -84,8 +84,7 @@ public class GoogleDriveFileInfo implements ListableEntity {
         values.put(ID, getId());
         values.put(FILENAME, getName());
         values.put(SIZE, getSize());
-        values.put(CREATED_TIME, getCreatedTime());
-        values.put(MODIFIED_TIME, getModifiedTime());
+        values.put(TIMESTAMP, getTimestamp());
         values.put(MIME_TYPE, getMimeType());
 
         return new MapRecord(SCHEMA, values);
