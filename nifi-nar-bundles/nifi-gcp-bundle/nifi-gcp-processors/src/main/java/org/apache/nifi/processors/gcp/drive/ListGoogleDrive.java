@@ -17,14 +17,11 @@
 package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
-import com.google.auth.http.HttpCredentialsAdapter;
-import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -33,6 +30,7 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,7 +39,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -64,6 +61,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @PrimaryNodeOnly
@@ -74,24 +72,20 @@ import java.util.concurrent.TimeUnit;
         "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
         "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
         "previous node left off without duplicating all of the data.")
+@SeeAlso({FetchGoogleDrive.class})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@WritesAttributes({@WritesAttribute(attribute = "drive.id", description = "The id of the file"),
-        @WritesAttribute(attribute = "filename", description = "The name of the file"),
-        @WritesAttribute(attribute = "drive.size", description = "The size of the file"),
-        @WritesAttribute(attribute = "drive.timestamp", description = "The last modified time or created time (whichever is greater) of the file." +
+@WritesAttributes({@WritesAttribute(attribute = GoogleDriveFileInfo.ID, description = "The id of the file"),
+        @WritesAttribute(attribute = GoogleDriveFileInfo.FILENAME, description = "The name of the file"),
+        @WritesAttribute(attribute = GoogleDriveFileInfo.SIZE, description = "The size of the file"),
+        @WritesAttribute(attribute = GoogleDriveFileInfo.TIMESTAMP, description = "The last modified time or created time (whichever is greater) of the file." +
                 " The reason for this is that the original modified date of a file is preserved when uploaded to Google Drive." +
                 " 'Created time' takes the time when the upload occurs. However uploaded files can still be modified later."),
-        @WritesAttribute(attribute = "mime.type", description = "MimeType of the file")})
+        @WritesAttribute(attribute = GoogleDriveFileInfo.MIME_TYPE, description = "MimeType of the file")})
 @Stateful(scopes = {Scope.CLUSTER}, description = "The processor stores necessary data to be able to keep track what files have been listed already." +
         " What exactly needs to be stored depends on the 'Listing Strategy'." +
         " State is stored across the cluster so that this Processor can be run on Primary Node only and if a new Primary Node is selected, the new node can pick up" +
         " where the previous node left off, without duplicating the data.")
-public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> {
-    private static final String APPLICATION_NAME = "NiFi";
-    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
-
-    private volatile HttpTransport httpTransport;
-
+public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> implements GoogleDriveTrait {
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
             .name("folder-id")
             .displayName("Folder ID")
@@ -156,6 +150,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS)
     ));
 
+    private volatile Drive driveService;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -171,11 +167,11 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
             final ProcessContext context
     ) {
         final Map<String, String> attributes = new HashMap<>();
-        attributes.put("drive.id", entity.getId());
-        attributes.put("filename", entity.getName());
-        attributes.put("drive.size", String.valueOf(entity.getSize()));
-        attributes.put("drive.timestamp", String.valueOf(entity.getTimestamp()));
-        attributes.put("mime.type", entity.getMimeType());
+
+        for (GoogleDriveFlowFileAttribute attribute : GoogleDriveFlowFileAttribute.values()) {
+            Optional.ofNullable(attribute.getValue(entity))
+                    .ifPresent(value -> attributes.put(attribute.getName(), value));
+        }
 
         return attributes;
     }
@@ -183,7 +179,10 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
-        httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
+
+        HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
+
+        driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE_METADATA_READONLY);
     }
 
     @Override
@@ -230,17 +229,6 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
         final Boolean recursive = context.getProperty(RECURSIVE_SEARCH).asBoolean();
         final Long minAge = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        Drive driveService = new Drive.Builder(
-                this.httpTransport,
-                JSON_FACTORY,
-                getHttpCredentialsAdapter(
-                        context,
-                        Arrays.asList(DriveScopes.DRIVE_METADATA_READONLY)
-                )
-        )
-                .setApplicationName(APPLICATION_NAME)
-                .build();
-
         StringBuilder queryBuilder = new StringBuilder();
         queryBuilder.append(buildQueryForDirs(driveService, folderId, recursive));
         queryBuilder.append(" and (mimeType != 'application/vnd.google-apps.folder')");
@@ -276,8 +264,8 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
                         .id(file.getId())
                         .fileName(file.getName())
                         .size(file.getSize())
-                        .createdTime(file.getCreatedTime().getValue())
-                        .modifiedTime(file.getModifiedTime().getValue())
+                        .createdTime(Optional.ofNullable(file.getCreatedTime()).map(DateTime::getValue).orElse(0L))
+                        .modifiedTime(Optional.ofNullable(file.getModifiedTime()).map(DateTime::getValue).orElse(0L))
                         .mimeType(file.getMimeType());
 
                 listing.add(builder.build());
@@ -292,24 +280,6 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
     @Override
     protected Integer countUnfilteredListing(final ProcessContext context) throws IOException {
         return performListing(context, null, ListingMode.CONFIGURATION_VERIFICATION).size();
-    }
-
-    HttpCredentialsAdapter getHttpCredentialsAdapter(
-            final ProcessContext context,
-            final Collection<String> scopes
-    ) {
-        GoogleCredentials googleCredentials = getGoogleCredentials(context);
-
-        HttpCredentialsAdapter httpCredentialsAdapter = new HttpCredentialsAdapter(googleCredentials.createScoped(scopes));
-
-        return httpCredentialsAdapter;
-    }
-
-    private GoogleCredentials getGoogleCredentials(final ProcessContext context) {
-        final GCPCredentialsService gcpCredentialsService = context.getProperty(GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE)
-                .asControllerService(GCPCredentialsService.class);
-
-        return gcpCredentialsService.getGoogleCredentials();
     }
 
     private static String buildQueryForDirs(
