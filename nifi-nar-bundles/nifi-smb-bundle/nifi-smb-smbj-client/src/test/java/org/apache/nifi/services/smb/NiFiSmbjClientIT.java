@@ -17,37 +17,67 @@
 package org.apache.nifi.services.smb;
 
 import static java.util.stream.Collectors.toSet;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.DOMAIN;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.PASSWORD;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.TIMEOUT;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
 
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.Share;
+import eu.rekawek.toxiproxy.model.ToxicDirection;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.ToxiproxyContainer;
+import org.testcontainers.containers.ToxiproxyContainer.ContainerProxy;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 public class NiFiSmbjClientIT {
 
-    private final static Logger logger = LoggerFactory.getLogger(NiFiSmbjClientIT.class);
+    private final static Logger sambaContainerLogger = LoggerFactory.getLogger("sambaContainer");
+    private final static Logger toxyProxyLogger = LoggerFactory.getLogger("toxiProxy");
+
+    private final Network network = Network.newNetwork();
 
     private final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
             .withExposedPorts(139, 445)
             .waitingFor(Wait.forListeningPort())
-            .withLogConsumer(new Slf4jLogConsumer(logger))
+            .withLogConsumer(new Slf4jLogConsumer(sambaContainerLogger))
+            .withNetwork(network)
+            .withNetworkAliases("samba")
             .withCommand("-w domain -u username;password -s share;/folder;;no;no;username;;; -p");
+
+    private final ToxiproxyContainer toxiproxy = new ToxiproxyContainer("shopify/toxiproxy")
+            .withNetwork(network)
+            .withLogConsumer(new Slf4jLogConsumer(toxyProxyLogger))
+            .withNetworkAliases("toxiproxy");
+
     private final SMBClient smbClient = new SMBClient();
     private final AuthenticationContext authenticationContext =
             new AuthenticationContext("username", "password".toCharArray(), "domain");
@@ -56,31 +86,100 @@ public class NiFiSmbjClientIT {
     @BeforeEach
     public void beforeEach() throws Exception {
         sambaContainer.start();
+        toxiproxy.start();
         smbjClientService = createClient();
     }
 
     @AfterEach
     public void afterEach() {
         smbjClientService.close();
+        smbClient.close();
+        toxiproxy.stop();
         sambaContainer.stop();
     }
 
     @Test
-    public void shouldIterateDirectory() {
-        smbjClientService.createDirectory("testDirectory\\directory1");
-        smbjClientService.createDirectory("testDirectory\\directory2");
-        smbjClientService.createDirectory("testDirectory\\directory2\\nested_directory");
-        writeFile("testDirectory\\file", "content");
-        writeFile("testDirectory\\directory1\\file", "content");
-        writeFile("testDirectory\\directory2\\file", "content");
-        writeFile("testDirectory\\directory2\\nested_directory\\file", "content");
-        final Set<String> actual = smbjClientService.listRemoteFiles("testDirectory")
-                .map(SmbListableEntity::getIdentifier)
-                .collect(toSet());
-        assertTrue(actual.contains("testDirectory\\file"));
-        assertTrue(actual.contains("testDirectory\\directory1\\file"));
-        assertTrue(actual.contains("testDirectory\\directory2\\file"));
-        assertTrue(actual.contains("testDirectory\\directory2\\nested_directory\\file"));
+    public void shouldRescueAfterConnectionFailure() throws Exception {
+        smbjClientService.createDirectory("testDirectory/directory1");
+        smbjClientService.createDirectory("testDirectory/directory2");
+        smbjClientService.createDirectory("testDirectory/directory2/nested_directory");
+        writeFile("testDirectory/file", "content");
+        writeFile("testDirectory/directory1/file", "content");
+        writeFile("testDirectory/directory2/file", "content");
+        writeFile("testDirectory/directory2/nested_directory/file", "content");
+        ContainerProxy sambaProxy = toxiproxy.getProxy("samba", 445);
+        SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
+        ConfigurationContext context = mock(ConfigurationContext.class);
+
+        Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(HOSTNAME, sambaProxy.getContainerIpAddress());
+        properties.put(PORT, String.valueOf(sambaProxy.getProxyPort()));
+        properties.put(SHARE, "share");
+        properties.put(USERNAME, "username");
+        properties.put(PASSWORD, "password");
+        properties.put(DOMAIN, "domain");
+        properties.put(TIMEOUT, "0.5 sec");
+        MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
+
+        smbjClientProviderService.onEnabled(mockConfigurationContext);
+
+        sambaProxy.toxics().latency("slow", ToxicDirection.DOWNSTREAM, 300);
+
+        AtomicInteger i = new AtomicInteger(0);
+
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(10);
+        CountDownLatch latch = new CountDownLatch(100);
+        executorService.scheduleWithFixedDelay(() -> {
+
+            int iteration = i.getAndIncrement();
+
+            if (iteration > 100) {
+                return;
+            }
+
+            executorService.submit(() -> {
+
+                SmbClientService s = null;
+                try {
+
+                    s = smbjClientProviderService.getClient();
+                    if (iteration == 25) {
+                        sambaProxy.setConnectionCut(true);
+                    }
+
+                    final Set<String> actual = s.listRemoteFiles("testDirectory")
+                            .map(SmbListableEntity::getIdentifier)
+                            .collect(toSet());
+
+                    assertTrue(actual.contains("testDirectory/file"));
+                    assertTrue(actual.contains("testDirectory/directory1/file"));
+                    assertTrue(actual.contains("testDirectory/directory2/file"));
+                    assertTrue(actual.contains("testDirectory/directory2/nested_directory/file"));
+
+
+                } catch (Exception e) {
+                    if (iteration == 50) {
+                        sambaProxy.setConnectionCut(false);
+                    }
+                    if (iteration == 100) {
+                        fail();
+                    }
+                } finally {
+                    if (s != null) {
+                        try {
+                            s.close();
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+                latch.countDown();
+            });
+
+        }, 0, 2, TimeUnit.SECONDS);
+
+        latch.await();
+        executorService.shutdown();
+        smbjClientProviderService.onDisabled();
     }
 
     private void writeFile(String path, String content) {
@@ -93,10 +192,9 @@ public class NiFiSmbjClientIT {
     }
 
     private SmbjClientService createClient() throws IOException {
-        final Connection connection = smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(445));
-        final Session session = connection.authenticate(authenticationContext);
-        final Share share = session.connectShare("share");
-        return new SmbjClientService(session, (DiskShare) share);
+        SmbjClientService smbjClientService = new SmbjClientService(smbClient, authenticationContext);
+        smbjClientService.connectToShare(sambaContainer.getHost(), sambaContainer.getMappedPort(445), "share");
+        return smbjClientService;
     }
 
 }

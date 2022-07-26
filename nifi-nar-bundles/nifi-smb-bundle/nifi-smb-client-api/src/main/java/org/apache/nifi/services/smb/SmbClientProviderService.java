@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.smb;
 
+import java.io.IOException;
 import java.net.URI;
 import org.apache.nifi.controller.ControllerService;
 
@@ -33,6 +34,6 @@ public interface SmbClientProviderService extends ControllerService {
      *
      * @return the client.
      */
-    SmbClientService getClient();
+    SmbClientService getClient() throws IOException;
 
 }

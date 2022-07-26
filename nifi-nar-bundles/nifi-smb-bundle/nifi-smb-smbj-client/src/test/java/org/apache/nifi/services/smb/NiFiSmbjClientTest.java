@@ -46,11 +46,11 @@ class NiFiSmbjClientTest {
         when(share.fileExists("to")).thenReturn(false);
         when(share.fileExists("create")).thenReturn(false);
 
-        underTest.createDirectory("directory\\path\\to\\create");
+        underTest.createDirectory("directory/path/to/create");
 
-        verify(share).mkdir("directory\\path");
-        verify(share).mkdir("directory\\path\\to");
-        verify(share).mkdir("directory\\path\\to\\create");
+        verify(share).mkdir("directory/path");
+        verify(share).mkdir("directory/path/to");
+        verify(share).mkdir("directory/path/to/create");
 
     }
 

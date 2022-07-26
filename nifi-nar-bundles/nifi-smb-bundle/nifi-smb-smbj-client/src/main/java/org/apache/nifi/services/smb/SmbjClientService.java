@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.smb;
 
+import static java.lang.String.format;
 import static java.util.Arrays.asList;
 import static java.util.stream.StreamSupport.stream;
 
@@ -26,13 +27,16 @@ import com.hierynomus.mssmb2.SMB2CreateDisposition;
 import com.hierynomus.mssmb2.SMB2CreateOptions;
 import com.hierynomus.mssmb2.SMB2ShareAccess;
 import com.hierynomus.mssmb2.SMBApiException;
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
+import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -41,37 +45,78 @@ public class SmbjClientService implements SmbClientService {
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
 
-    private final Session session;
-    private final DiskShare share;
+    final private AuthenticationContext authenticationContext;
+    final private SMBClient smbClient;
 
-    public SmbjClientService(Session session, DiskShare share) {
-        this.session = session;
-        this.share = share;
+    private Connection connection;
+    private Session session;
+    private DiskShare share;
+
+    public SmbjClientService(SMBClient smbClient, AuthenticationContext authenticationContext) {
+        this.smbClient = smbClient;
+        this.authenticationContext = authenticationContext;
+    }
+
+    public void connectToShare(String hostname, int port, String shareName) throws IOException {
+        Share share;
+        try {
+            connection = smbClient.connect(hostname, port);
+            session = connection.authenticate(authenticationContext);
+            share = session.connectShare(shareName);
+        } catch (Exception e) {
+            close();
+            throw new IOException("Could not connect to share " + format("%s:%d/%s", hostname, port, shareName), e);
+        }
+        if (share instanceof DiskShare) {
+            this.share = (DiskShare) share;
+        } else {
+            close();
+            throw new IllegalArgumentException("DiskShare not found. Share " +
+                    share.getClass().getSimpleName() + " found on " + format("%s:%d/%s", hostname, port,
+                    shareName));
+        }
+    }
+
+    public void forceFullyCloseConnection() {
+        try {
+            if (connection != null) {
+                connection.close(true);
+            }
+        } catch (IOException ignore) {
+        } finally {
+            connection = null;
+        }
     }
 
     @Override
     public void close() {
         try {
-            session.close();
-        } catch (IOException e) {
-            throw new UncheckedIOException("SMB Session close failed", e);
+            if (session != null) {
+                session.close();
+            }
+        } catch (IOException ignore) {
+
+        } finally {
+            session = null;
         }
     }
 
     @Override
-    public Stream<SmbListableEntity> listRemoteFiles(String path) {
-        final Directory directory = openDirectory(path);
-        return stream(directory::spliterator, 0, false)
-                .map(entity -> buildSmbListableEntity(entity, path))
-                .filter(entity -> !specialDirectory(entity))
-                .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
-                        : Stream.of(listable))
-                .onClose(directory::close);
+    public Stream<SmbListableEntity> listRemoteFiles(String filePath) {
+        return Stream.of(filePath).flatMap(path -> {
+            final Directory directory = openDirectory(path);
+            return stream(directory::spliterator, 0, false)
+                    .map(entity -> buildSmbListableEntity(entity, path))
+                    .filter(entity -> !specialDirectory(entity))
+                    .flatMap(listable -> listable.isDirectory() ? listRemoteFiles(listable.getPathWithName())
+                            : Stream.of(listable))
+                    .onClose(directory::close);
+        });
     }
 
     @Override
     public void createDirectory(String path) {
-        final int lastDirectorySeparatorPosition = path.lastIndexOf("\\");
+        final int lastDirectorySeparatorPosition = path.lastIndexOf("/");
         if (lastDirectorySeparatorPosition > 0) {
             createDirectory(path.substring(0, lastDirectorySeparatorPosition));
         }

@@ -182,7 +182,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish, final boolean initialize) {
-        run(iterations, stopOnFinish, initialize, 5000);
+        run(iterations, stopOnFinish, initialize, 5000 + iterations * runSchedule);
     }
 
     @Override

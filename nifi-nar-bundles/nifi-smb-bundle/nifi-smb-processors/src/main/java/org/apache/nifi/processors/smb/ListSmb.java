@@ -72,8 +72,10 @@ import org.apache.nifi.services.smb.SmbListableEntity;
 @SeeAlso({PutSmbFile.class, GetSmbFile.class})
 @CapabilityDescription("Lists concrete files shared via SMB protocol. " +
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
-        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. " +
-        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the " +
+        "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. "
+        +
+        "This Processor is designed to run on Primary Node only in a cluster. If the primary node changes, the new Primary Node will pick up where the "
+        +
         "previous node left off without duplicating all of the data.")
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @WritesAttributes({
@@ -83,13 +85,13 @@ import org.apache.nifi.services.smb.SmbListableEntity;
                 "The path is set to the relative path of the file's directory "
                         + "on filesystem compared to the Share and Input Directory properties and the configured host "
                         + "and port inherited from the configured connection pool controller service. For example, for "
-                        + "a given remote location smb://HOSTNAME:PORT/SHARE:\\DIRECTORY, and a file is being listed from "
-                        + "smb://HOSTNAME:PORT/SHARE:\\DIRECTORY\\sub\\folder\\file then the path attribute will be set to \"sub\\folder\\file\"."),
+                        + "a given remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listed from "
+                        + "smb://HOSTNAME:PORT/SHARE/DIRECTORY/sub/folder/file then the path attribute will be set to \"sub/folder/file\"."),
         @WritesAttribute(attribute = "absolute.path", description =
                 "The absolute.path is set to the absolute path of the file's directory on the remote location. For example, "
-                        + "given a remote location smb://HOSTNAME:PORT/SHARE:\\DIRECTORY, and a file is being listen from "
-                        + "SHARE:\\DIRECTORY\\sub\\folder\\file then the absolute.path attribute will be set to "
-                        + "SHARE:\\DIRECTORY\\sub\\folder\\file."),
+                        + "given a remote location smb://HOSTNAME:PORT/SHARE/DIRECTORY, and a file is being listen from "
+                        + "SHARE/DIRECTORY/sub/folder/file then the absolute.path attribute will be set to "
+                        + "SHARE/DIRECTORY/sub/folder/file."),
         @WritesAttribute(attribute = "identifier", description =
                 "The identifier of the file. This equals to the path attribute so two files with the same relative path "
                         + "coming from different file shares considered to be identical."),
@@ -114,7 +116,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .displayName("Input Directory")
             .name("directory")
             .description("The network folder from which to list files. This is the remaining relative path " +
-                    "after the share: smb://HOSTNAME:PORT/SHARE/[DIRECTORY]\\sub\\directories. It is also possible "
+                    "after the share: smb://HOSTNAME:PORT/SHARE/[DIRECTORY]/sub/directories. It is also possible "
                     + "to add subdirectories. The given path on the remote file share must exist. "
                     + "This can be checked using verification. You may mix Windows and Linux-style "
                     + "directory separators.")
@@ -155,7 +157,6 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             .required(false)
             .addValidator(DATA_SIZE_VALIDATOR)
             .build();
-
 
     public static final PropertyDescriptor SMB_LISTING_STRATEGY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(LISTING_STRATEGY)
@@ -209,7 +210,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         attributes.put("filename", entity.getName());
         attributes.put("shortname", entity.getShortName());
         attributes.put("path", entity.getPath());
-        attributes.put("absolute.path", getPath(context) + entity.getPathWithName());
+        attributes.put("absolute.path", entity.getPathWithName());
         attributes.put("identifier", entity.getIdentifier());
         attributes.put("timestamp", formatTimeStamp(entity.getTimestamp()));
         attributes.put("creationTime", formatTimeStamp(entity.getCreationTime()));
@@ -226,7 +227,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final URI serviceLocation = clientProviderService.getServiceLocation();
         final String directory = getDirectory(context);
-        return String.format("%s:\\%s", serviceLocation.toString(), directory.isEmpty() ? "" : directory + "\\");
+        return String.format("%s/%s", serviceLocation.toString(), directory.isEmpty() ? "" : directory + "/");
     }
 
     @Override
@@ -295,7 +296,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
     private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {
 
         final Long minimumAge = context.getProperty(MINIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
-        final Long maximumAgeOrNull = context.getProperty(MAXIMUM_AGE).isSet() ? context.getProperty(MAXIMUM_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
+        final Long maximumAgeOrNull = context.getProperty(MAXIMUM_AGE).isSet() ? context.getProperty(MAXIMUM_AGE)
+                .asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final Double minimumSizeOrNull =
                 context.getProperty(MINIMUM_SIZE).isSet() ? context.getProperty(MINIMUM_SIZE).asDataSize(DataUnit.B)
                         : null;
@@ -334,10 +336,10 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
         final SmbClientProviderService clientProviderService =
                 context.getProperty(SMB_CLIENT_PROVIDER_SERVICE).asControllerService(SmbClientProviderService.class);
         final String directory = getDirectory(context);
-        final SmbClientService smbClient = clientProviderService.getClient();
-        return smbClient.listRemoteFiles(directory).onClose(() -> {
+        final SmbClientService clientService = clientProviderService.getClient();
+        return clientService.listRemoteFiles(directory).onClose(() -> {
             try {
-                smbClient.close();
+                clientService.close();
             } catch (Exception e) {
                 throw new RuntimeException("Could not close samba client", e);
             }
@@ -346,8 +348,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
 
     private String getDirectory(ProcessContext context) {
         final PropertyValue property = context.getProperty(DIRECTORY);
-        final String directory = property.isSet() ? property.getValue().replace('/', '\\') : "";
-        return directory.equals("\\") ? "" : directory;
+        final String directory = property.isSet() ? property.getValue().replace('\\', '/') : "";
+        return directory.equals("/") ? "" : directory;
     }
 
     private static class MustNotContainDirectorySeparatorsValidator implements Validator {
@@ -357,7 +359,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(value)
-                    .valid(!value.contains("\\"))
+                    .valid(!value.contains("/"))
                     .explanation(subject + " must not contain any folder separator character.")
                     .build();
         }

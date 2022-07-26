@@ -17,7 +17,7 @@
 package org.apache.nifi.services.smb;
 
 import static java.util.Arrays.asList;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
@@ -26,12 +26,7 @@ import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALI
 import com.hierynomus.smbj.SMBClient;
 import com.hierynomus.smbj.SmbConfig;
 import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import com.hierynomus.smbj.session.Session;
-import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
@@ -91,7 +86,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .displayName("Share")
             .name("share")
             .description("The network share to which files should be listed from. This is the \"first folder\"" +
-                    "after the hostname: smb://hostname:port\\[share]\\dir1\\dir2")
+                    "after the hostname: smb://hostname:port/[share]/dir1/dir2")
             .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
@@ -100,7 +95,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .name("timeout")
             .description("Timeout for read and write operations.")
             .required(true)
-            .defaultValue("5 secs")
+            .defaultValue("5 sec")
             .addValidator(TIME_PERIOD_VALIDATOR)
             .build();
     private static final List<PropertyDescriptor> PROPERTIES = Collections
@@ -120,21 +115,17 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
     private String shareName;
 
     @Override
-    public SmbClientService getClient() {
+    public SmbClientService getClient() throws IOException {
+        final SmbjClientService client = new SmbjClientService(smbClient, authenticationContext);
+
         try {
-            final Connection connection = smbClient.connect(hostname, port);
-            final Session session = connection.authenticate(authenticationContext);
-            final Share share = session.connectShare(shareName);
-            if (share instanceof DiskShare) {
-                return new SmbjClientService(session, (DiskShare) share);
-            } else {
-                throw new IllegalArgumentException("DiskShare not found. Share " +
-                        share.getClass().getSimpleName() + " found on host " + session.getConnection()
-                        .getRemoteHostname());
-            }
+            client.connectToShare(hostname, port, shareName);
         } catch (IOException e) {
-            throw new UncheckedIOException("Could not connect to " + hostname, e);
+            client.forceFullyCloseConnection();
+            client.connectToShare(hostname, port, shareName);
         }
+
+        return client;
     }
 
     @Override
@@ -148,7 +139,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         this.port = context.getProperty(PORT).asInteger();
         this.shareName = context.getProperty(SHARE).getValue();
         this.smbClient = new SMBClient(SmbConfig.builder()
-                .withTimeout(context.getProperty(TIMEOUT).asTimePeriod(SECONDS), SECONDS)
+                .withTimeout(context.getProperty(TIMEOUT).asTimePeriod(MILLISECONDS), MILLISECONDS)
                 .build());
         createAuthenticationContext(context);
     }

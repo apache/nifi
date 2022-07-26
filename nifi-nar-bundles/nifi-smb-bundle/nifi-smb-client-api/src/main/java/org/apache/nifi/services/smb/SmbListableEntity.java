@@ -105,7 +105,7 @@ public class SmbListableEntity implements ListableEntity {
     }
 
     public String getPathWithName() {
-        return path.isEmpty() ? name : path + "\\" + name;
+        return path.isEmpty() ? name : path + "/" + name;
     }
 
     @Override
