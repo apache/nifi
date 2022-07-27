@@ -59,11 +59,11 @@ public class StandardRequestFilterProvider implements RequestFilterProvider {
 
         final List<FilterHolder> filters = new ArrayList<>();
 
-        filters.add(getHeaderWriterFilter());
-
         if (properties.isHTTPSConfigured()) {
             filters.add(getFilterHolder(RequestAuthenticationFilter.class));
         }
+
+        filters.add(getHeaderWriterFilter());
 
         final int maxContentSize = getMaxContentSize(properties);
         if (maxContentSize > MAX_CONTENT_SIZE_DISABLED) {

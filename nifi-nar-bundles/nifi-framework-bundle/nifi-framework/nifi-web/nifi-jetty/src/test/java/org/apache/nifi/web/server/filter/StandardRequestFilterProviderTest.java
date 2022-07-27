@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,6 +80,10 @@ public class StandardRequestFilterProviderTest {
         assertStandardFiltersFound(filters);
 
         assertFilterClassFound(filters, RequestAuthenticationFilter.class);
+
+        final FilterHolder firstFilterHolder = filters.get(0);
+        final Class<? extends Filter> firstFilterClass = firstFilterHolder.getHeldClass();
+        assertEquals(RequestAuthenticationFilter.class, firstFilterClass);
     }
 
     private void assertStandardFiltersFound(final List<FilterHolder> filters) {
