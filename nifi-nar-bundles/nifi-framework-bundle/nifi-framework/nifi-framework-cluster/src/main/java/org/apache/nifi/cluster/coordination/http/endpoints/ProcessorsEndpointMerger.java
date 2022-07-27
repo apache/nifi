@@ -53,13 +53,7 @@ public class ProcessorsEndpointMerger implements EndpointResponseMerger {
             final Set<ProcessorEntity> nodeProcessorEntities = nodeResponseEntity.getProcessors();
 
             for (final ProcessorEntity nodeProcessorEntity : nodeProcessorEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ProcessorEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeProcessorEntity.getId(), innerMap);
-                }
-
+                Map<NodeIdentifier, ProcessorEntity> innerMap = entityMap.computeIfAbsent(nodeProcessorEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeProcessorEntity);
             }
         }
