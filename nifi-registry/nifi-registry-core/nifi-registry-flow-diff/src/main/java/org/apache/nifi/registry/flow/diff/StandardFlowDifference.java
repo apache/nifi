@@ -32,12 +32,12 @@ public class StandardFlowDifference implements FlowDifference {
     private final String description;
 
     public StandardFlowDifference(final DifferenceType type, final VersionedComponent componentA, final VersionedComponent componentB, final Object valueA, final Object valueB,
-            final String description) {
+                                  final String description) {
         this(type, componentA, componentB, null, valueA, valueB, description);
     }
 
     public StandardFlowDifference(final DifferenceType type, final VersionedComponent componentA, final VersionedComponent componentB, final String fieldName,
-            final Object valueA, final Object valueB, final String description) {
+                                  final Object valueA, final Object valueB, final String description) {
         this.type = type;
         this.componentA = componentA;
         this.componentB = componentB;
@@ -89,11 +89,11 @@ public class StandardFlowDifference implements FlowDifference {
 
     @Override
     public int hashCode() {
-        return 31 + 17 * (componentA == null ? 0 : componentA.getIdentifier().hashCode()) +
-            17 * (componentB == null ? 0 : componentB.getIdentifier().hashCode()) +
-            15 * (componentA == null ? 0 : Objects.hash(componentA.getInstanceIdentifier())) +
-            15 * (componentB == null ? 0 : Objects.hash(componentB.getInstanceIdentifier())) +
-            Objects.hash(description, type, valueA, valueB);
+        return 31 + 17 * (componentA == null ? 0 : Objects.hash(componentA.getIdentifier())) +
+                17 * (componentB == null ? 0 : Objects.hash(componentB.getIdentifier())) +
+                15 * (componentA == null ? 0 : Objects.hash(componentA.getInstanceIdentifier())) +
+                15 * (componentB == null ? 0 : Objects.hash(componentB.getInstanceIdentifier())) +
+                Objects.hash(description, type, valueA, valueB);
     }
 
     @Override
@@ -116,18 +116,18 @@ public class StandardFlowDifference implements FlowDifference {
 
         // If both flows have a component A with an instance identifier, the instance ID's must be the same.
         if (componentA != null && componentA.getInstanceIdentifier() != null && other.componentA != null && other.componentA.getInstanceIdentifier() != null
-            && !componentA.getInstanceIdentifier().equals(other.componentA.getInstanceIdentifier())) {
+                && !componentA.getInstanceIdentifier().equals(other.componentA.getInstanceIdentifier())) {
             return false;
         }
 
         // If both flows have a component B with an instance identifier, the instance ID's must be the same.
         if (componentB != null && componentB.getInstanceIdentifier() != null && other.componentB != null && other.componentB.getInstanceIdentifier() != null
-            && !componentB.getInstanceIdentifier().equals(other.componentB.getInstanceIdentifier())) {
+                && !componentB.getInstanceIdentifier().equals(other.componentB.getInstanceIdentifier())) {
             return false;
         }
 
         return Objects.equals(componentAId, otherComponentAId) && Objects.equals(componentBId, otherComponentBId)
-            && Objects.equals(description, other.description) && Objects.equals(type, other.type)
-            && Objects.equals(valueA, other.valueA) && Objects.equals(valueB, other.valueB);
+                && Objects.equals(description, other.description) && Objects.equals(type, other.type)
+                && Objects.equals(valueA, other.valueA) && Objects.equals(valueB, other.valueB);
     }
 }
