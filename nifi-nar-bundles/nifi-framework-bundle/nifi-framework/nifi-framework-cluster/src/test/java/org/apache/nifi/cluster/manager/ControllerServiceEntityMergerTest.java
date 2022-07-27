@@ -37,8 +37,8 @@ class ControllerServiceEntityMergerTest {
 
     @Test
     void testMergeStatusFields() {
-        final ControllerServiceEntity nodeOneControllerserviceEntity = getControllerServiceEntity("id1", RunStatus.Stopped.toString(), ValidationStatus.VALIDATING.toString());
-        final ControllerServiceEntity nodeTwoControllerServiceEntity = getControllerServiceEntity("id2", RunStatus.Validating.toString(), ValidationStatus.INVALID.toString());
+        final ControllerServiceEntity nodeOneControllerserviceEntity = getControllerServiceEntity("id1", RunStatus.Stopped.name(), ValidationStatus.VALIDATING.name());
+        final ControllerServiceEntity nodeTwoControllerServiceEntity = getControllerServiceEntity("id2", RunStatus.Validating.name(), ValidationStatus.INVALID.name());
         final Map<NodeIdentifier, ControllerServiceEntity> entityMap = new HashMap();
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneControllerserviceEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoControllerServiceEntity);
@@ -56,12 +56,12 @@ class ControllerServiceEntityMergerTest {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
         dto.setId(id);
         dto.setState(ScheduledState.STOPPED.name());
-        dto.setValidationStatus(ValidationStatus.VALIDATING.toString());
+        dto.setValidationStatus(ValidationStatus.VALIDATING.name());
 
         final ControllerServiceStatusDTO statusDto = new ControllerServiceStatusDTO();
-        statusDto.setRunStatus(RunStatus.Stopped.toString());
+        statusDto.setRunStatus(RunStatus.Stopped.name());
         statusDto.setActiveThreadCount(1);
-        statusDto.setValidationStatus(ValidationStatus.VALIDATING.toString());
+        statusDto.setValidationStatus(ValidationStatus.VALIDATING.name());
 
         final PermissionsDTO permissed = new PermissionsDTO();
         permissed.setCanRead(true);
