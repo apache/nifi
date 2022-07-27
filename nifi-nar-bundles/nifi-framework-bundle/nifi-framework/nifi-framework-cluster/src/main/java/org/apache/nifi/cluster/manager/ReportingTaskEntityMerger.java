@@ -34,8 +34,8 @@ public class ReportingTaskEntityMerger implements ComponentEntityMerger<Reportin
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
         for (Map.Entry<NodeIdentifier, ReportingTaskEntity> entry : entityMap.entrySet()) {
             final ReportingTaskEntity entityStatus = entry.getValue();
-            if (clientEntity != entityStatus) {
-                StatusMerger.merge(clientEntity.getStatus(), entry.getValue().getStatus());
+            if (!clientEntity.equals(entityStatus)) {
+                StatusMerger.merge(clientEntity.getStatus(), entityStatus.getStatus());
             }
         }
     }

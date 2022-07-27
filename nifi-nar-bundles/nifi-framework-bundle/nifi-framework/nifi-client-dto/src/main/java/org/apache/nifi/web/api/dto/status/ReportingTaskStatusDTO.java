@@ -27,6 +27,10 @@ import javax.xml.bind.annotation.XmlType;
 @XmlType(name = "reportingTaskStatus")
 public class ReportingTaskStatusDTO extends ComponentStatusDTO {
 
+    public static final String RUNNING = "RUNNING";
+    public static final String STOPPED = "STOPPED";
+    public static final String DISABLED = "DISABLED";
+
     @ApiModelProperty(value = "The run status of this ReportingTask",
             accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             allowableValues = "RUNNING, STOPPED, DISABLED")
