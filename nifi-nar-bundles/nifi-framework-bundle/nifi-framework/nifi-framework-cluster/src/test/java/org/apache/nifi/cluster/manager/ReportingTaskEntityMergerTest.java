@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ReportingTaskEntityMergerTest {
 
     @Test
-    void TestMergeStatusFields() {
+    void testMergeStatusFields() {
         final ReportingTaskEntity nodeOneReportingTaskEntity = getReportingTaskEntity("id1", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALID.name());
         final ReportingTaskEntity nodeTwoReportingTaskEntity = getReportingTaskEntity("id2", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALIDATING.name());
         final Map<NodeIdentifier, ReportingTaskEntity> entityMap = new HashMap();

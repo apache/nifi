@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ControllerServiceEntityMergerTest {
 
     @Test
-    void TestMergeStatusFields() {
+    void testMergeStatusFields() {
         final ControllerServiceEntity nodeOneControllerserviceEntity = getControllerServiceEntity("id1", RunStatus.Stopped.toString(), ValidationStatus.VALIDATING.toString());
         final ControllerServiceEntity nodeTwoControllerServiceEntity = getControllerServiceEntity("id2", RunStatus.Validating.toString(), ValidationStatus.INVALID.toString());
         final Map<NodeIdentifier, ControllerServiceEntity> entityMap = new HashMap();
