@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>nifi-aws-bundle</artifactId>
@@ -63,4 +63,8 @@
         <module>nifi-aws-abstract-processors</module>
         <module>nifi-aws-parameter-value-providers</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

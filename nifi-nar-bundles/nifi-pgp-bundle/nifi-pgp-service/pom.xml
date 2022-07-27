@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-pgp-bundle</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>nifi-pgp-service</artifactId>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-service-api</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -44,7 +44,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -59,8 +59,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-pgp-test-utils</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

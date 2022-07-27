@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>nifi-redis-bundle</artifactId>
@@ -36,4 +36,8 @@
         <module>nifi-redis-extensions</module>
         <module>nifi-redis-nar</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

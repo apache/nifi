@@ -19,11 +19,11 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry-core</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <groupId>org.apache.nifi.registry</groupId>
     <artifactId>nifi-registry-web-ui</artifactId>
-    <version>1.17.0-SNAPSHOT</version>
+    <version>1.17.0</version>
     <packaging>war</packaging>
     <properties>
         <frontend.source>${basedir}/src/main</frontend.source>
@@ -439,4 +439,8 @@
             <artifactId>javax.servlet-api</artifactId>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

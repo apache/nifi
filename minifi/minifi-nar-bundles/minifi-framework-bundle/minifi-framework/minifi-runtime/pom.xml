@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <groupId>org.apache.nifi.minifi</groupId>
         <artifactId>minifi-framework</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>minifi-runtime</artifactId>
@@ -72,4 +72,8 @@ limitations under the License.
             <artifactId>jackson-databind</artifactId>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

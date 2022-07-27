@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
   
     <artifactId>nifi-http-context-map-api</artifactId>
@@ -33,4 +33,8 @@
             <artifactId>javax.servlet-api</artifactId>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

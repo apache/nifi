@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-flume-bundle</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <artifactId>nifi-flume-nar</artifactId>
     <packaging>nar</packaging>
@@ -129,8 +129,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-libraries-nar</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <type>nar</type>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

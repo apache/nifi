@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-snowflake-bundle</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>nifi-snowflake-services</artifactId>
@@ -29,19 +29,19 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-credentials-service-api</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -61,8 +61,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

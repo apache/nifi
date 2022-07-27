@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi-provenance-repository-bundle</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>minifi-provenance-repository-nar</artifactId>
@@ -37,4 +37,8 @@ limitations under the License.
             <type>nar</type>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-nar-bundles</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -28,4 +28,8 @@
         <module>nifi-stateless-processor-nar</module>
         <module>nifi-stateless-processor-tests</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>
