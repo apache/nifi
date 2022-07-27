@@ -20,7 +20,6 @@ import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
-import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.util.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +42,6 @@ import java.util.stream.Collectors;
 
 /**
  * Used to initialize the extension and framework classloaders.
- *
  * The core framework should obtain a singleton reference from NarClassLoadersHolder.
  */
 public final class NarClassLoaders {
@@ -69,7 +67,6 @@ public final class NarClassLoaders {
                 final Bundle frameworkBundle,
                 final Bundle jettyBundle,
                 final NiFiServer serverInstance,
-                final C2Client c2ClientInstance,
                 final Map<String, Bundle> bundles) {
             this.frameworkWorkingDir = frameworkDir;
             this.extensionWorkingDir = extensionDir;
@@ -168,7 +165,6 @@ public final class NarClassLoaders {
         }
 
         NiFiServer serverInstance = null;
-        C2Client c2ClientInstance = null;
         if (!narWorkingDirContents.isEmpty()) {
             final List<BundleDetails> narDetails = new ArrayList<>();
             final Map<String, String> narCoordinatesToWorkingDir = new HashMap<>();
@@ -311,7 +307,7 @@ public final class NarClassLoaders {
                 .filter(b -> b.getBundleDetails().getCoordinate().getId().equals(JETTY_NAR_ID))
                 .findFirst().orElse(null);
 
-        return new InitContext(frameworkWorkingDir, extensionsWorkingDir, frameworkBundle, jettyBundle, serverInstance, c2ClientInstance, new LinkedHashMap<>(narDirectoryBundleLookup));
+        return new InitContext(frameworkWorkingDir, extensionsWorkingDir, frameworkBundle, jettyBundle, serverInstance, new LinkedHashMap<>(narDirectoryBundleLookup));
     }
 
     /**
