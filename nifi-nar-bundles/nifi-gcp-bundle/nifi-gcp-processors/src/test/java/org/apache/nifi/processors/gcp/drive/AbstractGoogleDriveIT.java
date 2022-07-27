@@ -49,8 +49,8 @@ import java.util.Arrays;
  * WARNING: The creation of a file is not a synchronized operation, may need to adjust tests accordingly!
  */
 public abstract class AbstractGoogleDriveIT<T extends GoogleDriveTrait & Processor> {
-    private static final String CREDENTIAL_JSON_FILE_PATH = "/Users/tamaspalfy/cfm/2796/gcp-eng-dim-longrunning-76e38a53c9e8.json";
-    private static final String SHARED_FOLDER_ID = "1vYwjBmVLcdvtj4cY68hNHO6BTObiTUB_";
+    private static final String CREDENTIAL_JSON_FILE_PATH = "";
+    private static final String SHARED_FOLDER_ID = "";
 
     protected static final String DEFAULT_FILE_CONTENT = "test_content";
 
