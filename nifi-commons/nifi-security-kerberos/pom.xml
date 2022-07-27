@@ -18,19 +18,19 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-security-kerberos</artifactId>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-kerberos-api</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -57,8 +57,4 @@
             </exclusions>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-grpc-bundle</artifactId>
@@ -41,12 +41,8 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-grpc-processors</artifactId>
-                <version>1.17.0</version>
+                <version>1.18.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

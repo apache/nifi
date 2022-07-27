@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-utils</artifactId>
     <packaging>jar</packaging>
@@ -37,7 +37,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <profiles>
@@ -60,8 +60,4 @@
             </dependencies>
         </profile>
     </profiles>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

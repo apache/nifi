@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-websocket-bundle</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-websocket-services-jetty-nar</artifactId>
@@ -33,17 +33,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-websocket-services-api-nar</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-websocket-services-jetty</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

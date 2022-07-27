@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-cluster</artifactId>
     <packaging>jar</packaging>
@@ -204,8 +204,4 @@
             </dependencies>
         </profile>
     </profiles>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

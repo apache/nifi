@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi.registry</groupId>
         <artifactId>nifi-registry</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-registry-toolkit</artifactId>
     <packaging>pom</packaging>
@@ -28,8 +28,4 @@
         <module>nifi-registry-toolkit-persistence</module>
         <module>nifi-registry-toolkit-assembly</module>
     </modules>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>

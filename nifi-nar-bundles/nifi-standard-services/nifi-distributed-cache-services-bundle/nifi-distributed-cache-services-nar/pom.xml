@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-distributed-cache-services-bundle</artifactId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-distributed-cache-services-nar</artifactId>
     <packaging>nar</packaging>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>1.17.0</version>
+            <version>1.18.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -45,8 +45,4 @@
             <artifactId>nifi-distributed-cache-server</artifactId>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>
