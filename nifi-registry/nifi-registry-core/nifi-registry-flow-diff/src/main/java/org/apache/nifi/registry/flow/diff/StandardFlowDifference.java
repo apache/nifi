@@ -89,8 +89,8 @@ public class StandardFlowDifference implements FlowDifference {
 
     @Override
     public int hashCode() {
-        return 31 + 17 * (componentA == null ? 0 : componentA.getIdentifier().hashCode()) +
-            17 * (componentB == null ? 0 : componentB.getIdentifier().hashCode()) +
+        return 31 + 17 * (componentA == null ? 0 : Objects.hashCode(componentA.getIdentifier())) +
+            17 * (componentB == null ? 0 : Objects.hashCode(componentB.getIdentifier())) +
             15 * (componentA == null ? 0 : Objects.hash(componentA.getInstanceIdentifier())) +
             15 * (componentB == null ? 0 : Objects.hash(componentB.getInstanceIdentifier())) +
             Objects.hash(description, type, valueA, valueB);
