@@ -16,25 +16,69 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Tags({"environment", "variable"})
 @CapabilityDescription("Fetches parameters from environment variables")
-public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
-    private final Map<String, String> environmentVariables = System.getenv();
 
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.ACCESS_ENVIRONMENT_CREDENTIALS,
+                        explanation = "Provides operator the ability to read environment variables, which may contain environment credentials.")
+        }
+)
+public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
+    private final Map<String, String> environmentVariables = new ConcurrentHashMap<>();
+
+    private static final AllowableValue COMMA_SEPARATED_STRATEGY = new AllowableValue("comma-separated", "Comma-Separated",
+            "List comma-separated Environment Variable names to include");
+    private static final AllowableValue REGEX_STRATEGY = new AllowableValue("regex", "Regular Expression",
+            "Include Environment Variable names that match a Regular Expression");
+
+    public static final PropertyDescriptor INCLUDE_ENVIRONMENT_VARIABLES = new PropertyDescriptor.Builder()
+            .name("include-environment-variables")
+            .displayName("Include Environment Variables")
+            .description("Specifies environment variable names that should be included from the fetched environment variables.  May be a comma-separated list " +
+                    "or a Regular Expression, depending on 'Environment Variable Inclusion Strategy'.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("environment-variable-inclusion-strategy")
+            .displayName("Environment Variable Inclusion Strategy")
+            .description("Indicates how included Environment Variables should be specified in 'Include Environment Variables'")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(new AllowableValue[] { COMMA_SEPARATED_STRATEGY, REGEX_STRATEGY })
+            .defaultValue(COMMA_SEPARATED_STRATEGY.getValue())
+            .required(false)
+            .dependsOn(INCLUDE_ENVIRONMENT_VARIABLES)
+            .build();
     public static final PropertyDescriptor PARAMETER_GROUP_NAME = new PropertyDescriptor.Builder()
             .name("parameter-group-name")
             .displayName("Parameter Group Name")
@@ -51,6 +95,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PARAMETER_GROUP_NAME);
+        properties.add(INCLUDE_ENVIRONMENT_VARIABLES);
+        properties.add(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY);
 
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -62,12 +108,19 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
 
     @Override
     public List<ParameterGroup> fetchParameters(final ConfigurationContext context) {
+        environmentVariables.clear();
+        environmentVariables.putAll(System.getenv());
+
+        final EnvironmentVariableInclusionStrategy inclusionStrategy = getStrategy(context);
         final String parameterGroupName = context.getProperty(PARAMETER_GROUP_NAME).getValue();
 
         final List<Parameter> parameters = new ArrayList<>();
-        environmentVariables.forEach( (key, value) -> {
-            final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
-            parameters.add(new Parameter(parameterDescriptor, value, null, true));
+        environmentVariables
+                .forEach( (key, value) -> {
+                    if (inclusionStrategy.include(key)) {
+                        final ParameterDescriptor parameterDescriptor = new ParameterDescriptor.Builder().name(key).build();
+                        parameters.add(new Parameter(parameterDescriptor, value, null, true));
+                    }
         });
         return Collections.singletonList(new ParameterGroup(parameterGroupName, parameters));
     }
@@ -93,5 +146,94 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
                     .build());
         }
         return results;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final PropertyValue includeEnvironmentVariables = validationContext.getProperty(INCLUDE_ENVIRONMENT_VARIABLES);
+        if (includeEnvironmentVariables.isSet()) {
+            final String inclusionStrategy = validationContext.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY).getValue();
+            if (inclusionStrategy == null) {
+                results.add(new ValidationResult.Builder()
+                        .subject(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY.getDisplayName())
+                        .valid(false)
+                        .explanation(String.format("'%s' is required if '%s' is set", ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY.getDisplayName(),
+                                        INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName()))
+                        .build());
+            } else {
+                if (REGEX_STRATEGY.getValue().equals(inclusionStrategy)) {
+                    results.add(StandardValidators.REGULAR_EXPRESSION_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
+                            includeEnvironmentVariables.getValue(), validationContext));
+                } else {
+                    results.add(StandardValidators.NON_EMPTY_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
+                            includeEnvironmentVariables.getValue(), validationContext));
+                }
+            }
+        }
+        return results;
+    }
+
+    private EnvironmentVariableInclusionStrategy getStrategy(final ConfigurationContext context) {
+        final PropertyValue includeEnvironmentVariables = context.getProperty(INCLUDE_ENVIRONMENT_VARIABLES);
+        if (includeEnvironmentVariables.isSet()) {
+            final String value = includeEnvironmentVariables.getValue();
+
+            final PropertyValue inclusionStrategy = context.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY);
+            final String strategyName;
+            if (inclusionStrategy.isSet()) {
+                strategyName = context.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY).getValue();
+            } else {
+                strategyName = COMMA_SEPARATED_STRATEGY.getValue();
+            }
+
+            if (COMMA_SEPARATED_STRATEGY.getValue().equals(strategyName)) {
+                return new CommaSeparatedEnvironmentVariableInclusionStrategy(value);
+            }
+            if (REGEX_STRATEGY.getValue().equals(strategyName)) {
+                return new RegexEnvironmentVariableInclusionStrategy(value);
+            }
+        }
+
+        return new AllowAllEnvironmentVariableInclusionStrategy();
+    }
+
+    interface EnvironmentVariableInclusionStrategy {
+        boolean include(String variableName);
+    }
+
+    static class RegexEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
+        private final Pattern pattern;
+
+        RegexEnvironmentVariableInclusionStrategy(final String regex) {
+            this.pattern = Pattern.compile(regex);
+        }
+
+        @Override
+        public boolean include(final String variableName) {
+            return pattern.matcher(variableName).matches();
+        }
+    }
+
+    static class CommaSeparatedEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
+        private final Set<String> includedNames;
+
+        CommaSeparatedEnvironmentVariableInclusionStrategy(final String includedNames) {
+            this.includedNames = new HashSet<>(Arrays.asList(includedNames.split(",")).stream().map(String::trim).collect(Collectors.toList()));
+        }
+
+        @Override
+        public boolean include(final String variableName) {
+            return includedNames.contains(variableName);
+        }
+    }
+
+    class AllowAllEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
+
+        @Override
+        public boolean include(final String variableName) {
+            return true;
+        }
     }
 }

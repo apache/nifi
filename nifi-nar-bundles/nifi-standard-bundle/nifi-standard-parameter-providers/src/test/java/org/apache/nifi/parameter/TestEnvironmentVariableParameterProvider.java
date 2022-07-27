@@ -36,9 +36,23 @@ public class TestEnvironmentVariableParameterProvider {
     }
 
     @Test
-    public void testFetchParameters() throws InitializationException, IOException {
+    public void testFetchParametersCommaSeparated() throws InitializationException, IOException {
+        final String commaSeparatedList = "HOME, USER";
+        testFetchParameters(new EnvironmentVariableParameterProvider.CommaSeparatedEnvironmentVariableInclusionStrategy(commaSeparatedList), commaSeparatedList,
+                "comma-separated");
+    }
+
+    @Test
+    public void testFetchParametersRegex() throws InitializationException, IOException {
+        final String regex = "H.*";
+        testFetchParameters(new EnvironmentVariableParameterProvider.RegexEnvironmentVariableInclusionStrategy(regex), regex, "regex");
+    }
+
+    private void testFetchParameters(final EnvironmentVariableParameterProvider.EnvironmentVariableInclusionStrategy inclusionStrategy,
+                                     final String includeEnvironmentVariables, final String strategy) throws InitializationException, IOException {
         final Map<String, String> env = System.getenv();
-        final long expectedCount = env.size();
+
+        final long expectedCount = env.keySet().stream().filter(variable -> inclusionStrategy.include(variable)).count();
 
         final ParameterProvider parameterProvider = getParameterProvider();
         final MockParameterProviderInitializationContext initContext = new MockParameterProviderInitializationContext("id", "name",
@@ -47,6 +61,8 @@ public class TestEnvironmentVariableParameterProvider {
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(EnvironmentVariableParameterProvider.PARAMETER_GROUP_NAME, "environment variables");
+        properties.put(EnvironmentVariableParameterProvider.INCLUDE_ENVIRONMENT_VARIABLES, includeEnvironmentVariables);
+        properties.put(EnvironmentVariableParameterProvider.ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY, strategy);
         final MockConfigurationContext mockConfigurationContext = new MockConfigurationContext(properties, null);
 
         // Verify parameter fetching
