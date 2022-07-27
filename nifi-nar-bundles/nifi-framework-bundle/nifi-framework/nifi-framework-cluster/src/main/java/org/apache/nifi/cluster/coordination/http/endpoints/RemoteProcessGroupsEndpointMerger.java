@@ -65,13 +65,7 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
 
                 if (nodeRpgEntities != null) {
                     for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
-                        final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                        Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.get(nodeId);
-                        if (innerMap == null) {
-                            innerMap = new HashMap<>();
-                            entityMap.put(nodeRpgEntity.getId(), innerMap);
-                        }
-
+                        Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.computeIfAbsent(nodeRpgEntity.getId(), k -> new HashMap<>());
                         innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity);
                     }
                 }

@@ -53,13 +53,7 @@ public class ProcessGroupsEndpointMerger implements EndpointResponseMerger {
             final Set<ProcessGroupEntity> nodeProcessGroupEntities = nodeResponseEntity.getProcessGroups();
 
             for (final ProcessGroupEntity nodeProcessGroupEntity : nodeProcessGroupEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, ProcessGroupEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeProcessGroupEntity.getId(), innerMap);
-                }
-
+                Map<NodeIdentifier, ProcessGroupEntity> innerMap = entityMap.computeIfAbsent(nodeProcessGroupEntity.getId(), k -> new HashMap<>());
                 innerMap.put(nodeResponse.getNodeId(), nodeProcessGroupEntity);
             }
         }

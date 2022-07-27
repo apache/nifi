@@ -1026,15 +1026,15 @@ public class StatusMerger {
 
         // RunStatus for ControllerServiceStatusDTO can be one of [ENABLED, ENABLING, DISABLED, DISABLING]
         if (ControllerServiceState.DISABLING.toString().equalsIgnoreCase(toMerge.getRunStatus())) {
-            target.setRunStatus(ControllerServiceState.DISABLING.toString());
+            target.setRunStatus(ControllerServiceState.DISABLING.name());
         } else if (ControllerServiceState.ENABLING.toString().equalsIgnoreCase(toMerge.getRunStatus())) {
-            target.setRunStatus(ControllerServiceState.ENABLING.toString());
+            target.setRunStatus(ControllerServiceState.ENABLING.name());
         }
 
         if (ValidationStatus.VALIDATING.toString().equalsIgnoreCase(toMerge.getValidationStatus())) {
-            target.setValidationStatus(ValidationStatus.VALIDATING.toString());
+            target.setValidationStatus(ValidationStatus.VALIDATING.name());
         } else if (ValidationStatus.INVALID.toString().equalsIgnoreCase(toMerge.getRunStatus())) {
-            target.setValidationStatus(ValidationStatus.INVALID.toString());
+            target.setValidationStatus(ValidationStatus.INVALID.name());
         }
     }
 
@@ -1046,9 +1046,9 @@ public class StatusMerger {
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
 
         if (ValidationStatus.VALIDATING.toString().equalsIgnoreCase(toMerge.getValidationStatus())) {
-            target.setValidationStatus(ValidationStatus.VALIDATING.toString());
+            target.setValidationStatus(ValidationStatus.VALIDATING.name());
         } else if (ValidationStatus.INVALID.toString().equalsIgnoreCase(toMerge.getRunStatus())) {
-            target.setValidationStatus(ValidationStatus.INVALID.toString());
+            target.setValidationStatus(ValidationStatus.INVALID.name());
         }
     }
 }

@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.entity.RuntimeManifestEntity;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,7 +49,7 @@ public class RuntimeManifestEndpointMerger implements EndpointResponseMerger {
 
         final RuntimeManifestEntity responseEntity = clientResponse.getClientResponse().readEntity(RuntimeManifestEntity.class);
         final RuntimeManifest responseManifest = responseEntity.getRuntimeManifest();
-        final Set<Bundle> responseBundles = responseManifest.getBundles() == null ? Collections.emptySet() : new LinkedHashSet<>(responseManifest.getBundles());
+        final Set<Bundle> responseBundles = responseManifest.getBundles() == null ? new HashSet<>() : new LinkedHashSet<>(responseManifest.getBundles());
 
         for (final NodeResponse nodeResponse : successfulResponses) {
             final RuntimeManifestEntity nodeResponseEntity = nodeResponse.getClientResponse().readEntity(RuntimeManifestEntity.class);

@@ -20,8 +20,6 @@ package org.apache.nifi.cluster.manager;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -38,8 +36,8 @@ class ReportingTaskEntityMergerTest {
 
     @Test
     void TestMergeStatusFields() {
-        final ReportingTaskEntity nodeOneReportingTaskEntity = getReportingTaskEntity("id1", RunStatus.Disabled.toString(), ValidationStatus.VALIDATING.toString());
-        final ReportingTaskEntity nodeTwoReportingTaskEntity = getReportingTaskEntity("id2", ControllerServiceState.DISABLING.toString(), ValidationStatus.INVALID.toString());
+        final ReportingTaskEntity nodeOneReportingTaskEntity = getReportingTaskEntity("id1", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALID.name());
+        final ReportingTaskEntity nodeTwoReportingTaskEntity = getReportingTaskEntity("id2", ReportingTaskStatusDTO.RUNNING, ValidationStatus.VALIDATING.name());
         final Map<NodeIdentifier, ReportingTaskEntity> entityMap = new HashMap();
         entityMap.put(getNodeIdentifier("node1", 8000), nodeOneReportingTaskEntity);
         entityMap.put(getNodeIdentifier("node2", 8010), nodeTwoReportingTaskEntity);
@@ -47,7 +45,8 @@ class ReportingTaskEntityMergerTest {
         ReportingTaskEntityMerger merger = new ReportingTaskEntityMerger();
         merger.merge(nodeOneReportingTaskEntity, entityMap);
         assertEquals(2, nodeOneReportingTaskEntity.getStatus().getActiveThreadCount());
-        assertEquals("DISABLING", nodeOneReportingTaskEntity.getStatus().getRunStatus());
+        assertEquals(ReportingTaskStatusDTO.RUNNING, nodeOneReportingTaskEntity.getStatus().getRunStatus());
+        assertEquals(ValidationStatus.VALIDATING.name(), nodeOneReportingTaskEntity.getStatus().getValidationStatus());
     }
 
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {
