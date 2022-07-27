@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.17.0</version>
+        <version>1.18.0-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-c2</artifactId>
     <packaging>pom</packaging>
@@ -35,8 +35,4 @@ limitations under the License.
         <module>minifi-c2-docker</module>
         <module>minifi-c2-integration-tests</module>
     </modules>
-
-  <scm>
-    <tag>nifi-1.17.0-RC2</tag>
-  </scm>
 </project>
