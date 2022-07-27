@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <artifactId>nifi-hadoop-bundle</artifactId>
     <packaging>pom</packaging>
@@ -31,8 +31,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hdfs-processors</artifactId>
-                <version>1.17.0-SNAPSHOT</version>
+                <version>1.17.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

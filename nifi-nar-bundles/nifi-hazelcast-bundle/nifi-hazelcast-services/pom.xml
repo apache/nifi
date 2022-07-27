@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hazelcast-bundle</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>nifi-hazelcast-services</artifactId>
@@ -31,14 +31,14 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hazelcast-services-api</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
         </dependency>
 
         <dependency>
@@ -59,8 +59,12 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <version>1.17.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

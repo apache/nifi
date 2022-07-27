@@ -21,7 +21,7 @@ limitations under the License.
     <parent>
         <artifactId>c2</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
 
     <artifactId>c2-protocol</artifactId>
@@ -31,4 +31,8 @@ limitations under the License.
         <module>c2-protocol-component-api</module>
         <module>c2-protocol-api</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

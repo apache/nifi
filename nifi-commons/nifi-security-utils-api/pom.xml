@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <artifactId>nifi-security-utils-api</artifactId>
     <description>
@@ -28,5 +28,9 @@
     <!--
     This module cannot have any external dependencies as it is referred to by many *-api modules
       -->
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>
 

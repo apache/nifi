@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <artifactId>nifi-kerberos-credentials-service-bundle</artifactId>
     <packaging>pom</packaging>
@@ -25,4 +25,8 @@
         <module>nifi-kerberos-credentials-service</module>
         <module>nifi-kerberos-credentials-service-nar</module>
     </modules>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>

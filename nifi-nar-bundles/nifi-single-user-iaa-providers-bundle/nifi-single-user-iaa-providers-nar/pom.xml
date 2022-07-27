@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-single-user-iaa-providers-bundle</artifactId>
-        <version>1.17.0-SNAPSHOT</version>
+        <version>1.17.0</version>
     </parent>
     <artifactId>nifi-single-user-iaa-providers-nar</artifactId>
     <packaging>nar</packaging>
@@ -32,4 +32,8 @@
             <artifactId>nifi-single-user-iaa-providers</artifactId>
         </dependency>
     </dependencies>
+
+  <scm>
+    <tag>nifi-1.17.0-RC2</tag>
+  </scm>
 </project>
