@@ -119,7 +119,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
 
     static final PropertyDescriptor RECORD_READER = new Builder()
         .name("record-reader")
-        .displayName("Record Reader")
+        .displayName("Value Record Reader")
         .description("The Record Reader to use for incoming FlowFiles")
         .identifiesControllerService(RecordReaderFactory.class)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -128,7 +128,7 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
 
     static final PropertyDescriptor RECORD_WRITER = new Builder()
         .name("record-writer")
-        .displayName("Record Writer")
+        .displayName("Record Value Writer")
         .description("The Record Writer to use in order to serialize the data before sending to Kafka")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -439,12 +439,12 @@ public class ConsumeKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
 
-        final String outputStrategy = context.getProperty(OUTPUT_STRATEGY).getValue();
+        final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty(OUTPUT_STRATEGY).getValue());
         final String keyFormat = context.getProperty(KEY_FORMAT).getValue();
         final RecordReaderFactory keyReaderFactory = context.getProperty(KEY_RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         final String headerNameRegex = context.getProperty(HEADER_NAME_REGEX).getValue();
-        final boolean isActiveHeaderNamePattern = ((OUTPUT_USE_VALUE.getValue().equals(outputStrategy)) && (headerNameRegex != null));
+        final boolean isActiveHeaderNamePattern = (OutputStrategy.USE_VALUE.equals(outputStrategy) && (headerNameRegex != null));
         final Pattern headerNamePattern = isActiveHeaderNamePattern ? Pattern.compile(headerNameRegex) : null;
 
         final boolean separateByKey = context.getProperty(SEPARATE_BY_KEY).asBoolean();

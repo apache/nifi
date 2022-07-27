@@ -26,16 +26,23 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.FencedInstanceIdException;
 import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -49,7 +56,9 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,6 +76,7 @@ public class PublisherLease implements Closeable {
     private final boolean useTransactions;
     private final Pattern attributeNameRegex;
     private final Charset headerCharacterSet;
+    private final PublishStrategy publishStrategy;
     private final RecordSetWriterFactory recordKeyWriterFactory;
     private volatile boolean poisoned = false;
     private final AtomicLong messagesSent = new AtomicLong(0L);
@@ -78,7 +88,7 @@ public class PublisherLease implements Closeable {
 
     public PublisherLease(final Producer<byte[], byte[]> producer, final int maxMessageSize, final long maxAckWaitMillis,
                           final ComponentLog logger, final boolean useTransactions, final Pattern attributeNameRegex,
-                          final Charset headerCharacterSet, final RecordSetWriterFactory recordKeyWriterFactory) {
+                          final Charset headerCharacterSet, final PublishStrategy publishStrategy, final RecordSetWriterFactory recordKeyWriterFactory) {
         this.producer = producer;
         this.maxMessageSize = maxMessageSize;
         this.logger = logger;
@@ -86,6 +96,7 @@ public class PublisherLease implements Closeable {
         this.useTransactions = useTransactions;
         this.attributeNameRegex = attributeNameRegex;
         this.headerCharacterSet = headerCharacterSet;
+        this.publishStrategy = publishStrategy;
         this.recordKeyWriterFactory = recordKeyWriterFactory;
     }
 
@@ -191,16 +202,31 @@ public class PublisherLease implements Closeable {
                 baos.reset();
 
                 Map<String, String> additionalAttributes = Collections.emptyMap();
-                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
-                    final WriteResult writeResult = writer.write(record);
-                    additionalAttributes = writeResult.getAttributes();
-                    writer.flush();
+                final List<Header> headers;
+                final byte[] messageContent;
+                final byte[] messageKey;
+                if (PublishStrategy.USE_WRAPPER.equals(publishStrategy)) {
+                    headers = toHeaders(flowFile, new HashMap<>());
+                    final Record recordWrapper = toWrapperRecord(record, headers, messageKeyField, topic);
+                    final Object key = recordWrapper.getValue("key");
+                    final Object value = recordWrapper.getValue("value");
+                    logger.trace("Key: {}", key);
+                    logger.trace("Value: {}", value);
+                    messageContent = toByteArray("value", recordWrapper, writerFactory, flowFile);
+                    messageKey = toByteArray("key", key, recordKeyWriterFactory, flowFile);
+                } else {
+                    try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
+                        final WriteResult writeResult = writer.write(record);
+                        additionalAttributes = writeResult.getAttributes();
+                        writer.flush();
+                    }
+                    headers = toHeaders(flowFile, additionalAttributes);
+                    messageContent = baos.toByteArray();
+                    messageKey = getMessageKey(flowFile, writerFactory, record.getValue(messageKeyField));
                 }
-                final byte[] messageContent = baos.toByteArray();
-                final byte[] messageKey = getMessageKey(flowFile, writerFactory, record.getValue(messageKeyField));
 
                 final Integer partition = partitioner == null ? null : partitioner.apply(record);
-                publish(flowFile, additionalAttributes, messageKey, messageContent, topic, tracker, partition);
+                publish(flowFile, headers, messageKey, messageContent, topic, tracker, partition);
 
                 if (tracker.isFailed(flowFile)) {
                     // If we have a failure, don't try to send anything else.
@@ -213,12 +239,97 @@ public class PublisherLease implements Closeable {
             }
         } catch (final TokenTooLargeException ttle) {
             tracker.fail(flowFile, ttle);
-        } catch (final SchemaNotFoundException snfe) {
+        } catch (final SchemaNotFoundException | MalformedRecordException snfe) {
             throw new IOException(snfe);
         } catch (final Exception e) {
             tracker.fail(flowFile, e);
             poison();
             throw e;
+        }
+    }
+
+    private static final RecordField FIELD_TOPIC = new RecordField("topic", RecordFieldType.STRING.getDataType());
+    private static final RecordField FIELD_PARTITION = new RecordField("partition", RecordFieldType.INT.getDataType());
+    private static final RecordField FIELD_TIMESTAMP = new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType());
+    private static final RecordSchema SCHEMA_METADATA = new SimpleRecordSchema(Arrays.asList(
+            FIELD_TOPIC, FIELD_PARTITION, FIELD_TIMESTAMP));
+    private static final RecordField FIELD_METADATA = new RecordField("metadata", RecordFieldType.RECORD.getRecordDataType(SCHEMA_METADATA));
+    private static final RecordField FIELD_HEADERS = new RecordField("headers", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
+
+    private Record toWrapperRecord(final Record record, final List<Header> headers,
+                                   final String messageKeyField, final String topic) {
+        final Record recordKey = (Record) record.getValue(messageKeyField);
+        final RecordField fieldKey = new RecordField("key", RecordFieldType.RECORD.getRecordDataType(recordKey.getSchema()));
+        final RecordField fieldValue = new RecordField("value", RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
+        final RecordSchema schemaWrapper = new SimpleRecordSchema(Arrays.asList(FIELD_METADATA, FIELD_HEADERS, fieldKey, fieldValue));
+
+        final Map<String, Object> valuesMetadata = new HashMap<>();
+        valuesMetadata.put("topic", topic);
+        valuesMetadata.put("timestamp", System.currentTimeMillis());
+        final Record recordMetadata = new MapRecord(SCHEMA_METADATA, valuesMetadata);
+
+        final Map<String, Object> valuesHeaders = new HashMap<>();
+        for (Header header : headers) {
+            valuesHeaders.put(header.key(), new String(header.value(), headerCharacterSet));
+        }
+
+        final Map<String, Object> valuesWrapper = new HashMap<>();
+        valuesWrapper.put("metadata", recordMetadata);
+        valuesWrapper.put("headers", valuesHeaders);
+        valuesWrapper.put("key", record.getValue(messageKeyField));
+        valuesWrapper.put("value", record);
+        return new MapRecord(schemaWrapper, valuesWrapper);
+    }
+
+    private List<Header> toHeaders(final FlowFile flowFile, final Map<String, ?> additionalAttributes) {
+        if (attributeNameRegex == null) {
+            return Collections.emptyList();
+        }
+
+        final List<Header> headers = new ArrayList<>();
+        for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+            if (attributeNameRegex.matcher(entry.getKey()).matches()) {
+                headers.add(new RecordHeader(entry.getKey(), entry.getValue().getBytes(headerCharacterSet)));
+            }
+        }
+
+        for (final Map.Entry<String, ?> entry : additionalAttributes.entrySet()) {
+            if (attributeNameRegex.matcher(entry.getKey()).matches()) {
+                final Object value = entry.getValue();
+                if (value != null) {
+                    final String valueString = value.toString();
+                    headers.add(new RecordHeader(entry.getKey(), valueString.getBytes(headerCharacterSet)));
+                }
+            }
+        }
+        return headers;
+    }
+
+    private byte[] toByteArray(final String name, final Object object, final RecordSetWriterFactory writerFactory, final FlowFile flowFile)
+            throws IOException, SchemaNotFoundException, MalformedRecordException {
+        if (object == null) {
+            return null;
+        } else if (object instanceof Record) {
+            final Record record = (Record) object;
+            final RecordSchema schema = record.getSchema();
+            try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                 final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
+                writer.write(record);
+                writer.flush();
+                return baos.toByteArray();
+            }
+        } else if (object instanceof Byte[]) {
+            final Byte[] bytesUppercase = (Byte[]) object;
+            final byte[] bytes = new byte[bytesUppercase.length];
+            for (int i = 0; (i < bytesUppercase.length); ++i) {
+                bytes[i] = bytesUppercase[i];
+            }
+            return bytes;
+        } else if (object instanceof String) {
+            final String string = (String) object;
+            return string.getBytes(StandardCharsets.UTF_8);
+        } else {
+            throw new MalformedRecordException(String.format("Couldn't convert %s record data to byte array.", name));
         }
     }
 
@@ -275,15 +386,14 @@ public class PublisherLease implements Closeable {
     }
 
     protected void publish(final FlowFile flowFile, final byte[] messageKey, final byte[] messageContent, final String topic, final InFlightMessageTracker tracker, final Integer partition) {
-        publish(flowFile, Collections.emptyMap(), messageKey, messageContent, topic, tracker, partition);
+        publish(flowFile, Collections.emptyList(), messageKey, messageContent, topic, tracker, partition);
     }
 
-    protected void publish(final FlowFile flowFile, final Map<String, String> additionalAttributes, final byte[] messageKey, final byte[] messageContent,
+    protected void publish(final FlowFile flowFile, final List<Header> headers, final byte[] messageKey, final byte[] messageContent,
                            final String topic, final InFlightMessageTracker tracker, final Integer partition) {
 
         final Integer moddedPartition = partition == null ? null : Math.abs(partition) % (producer.partitionsFor(topic).size());
-        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, moddedPartition, messageKey, messageContent);
-        addHeaders(flowFile, additionalAttributes, record);
+        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, moddedPartition, messageKey, messageContent, headers);
 
         producer.send(record, new Callback() {
             @Override

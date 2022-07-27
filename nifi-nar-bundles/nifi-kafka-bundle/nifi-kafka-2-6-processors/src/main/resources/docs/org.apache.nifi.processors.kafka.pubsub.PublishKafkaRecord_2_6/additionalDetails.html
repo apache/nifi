@@ -214,51 +214,35 @@
                 default implementation serializes the record key as an unmodified byte array (unchanged from previous
                 versions of the processor).</p>
 
-<p>Here is an example of a Kafka Record that is emitted by <code>JsonRecordSetWriter</code> when strategy "Use Wrapper" is active:</p>
+<p>Here is an example of a Kafka Record that is emitted by <code>JsonRecordSetWriter</code> for the two strategies:</p>
 <div>
 <div>from NiFi</div>
 <table border="thin">
-<tr>
-<td>FlowFile content</td>
-<td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td>
-</tr>
-<tr>
-<td>FlowFile attributes</td>
-<td><code>attributeA=valueA; attributeB=valueB; otherAttribute=otherValue</code></td>
-</tr>
-<tr>
-<td>Message Key Field</td>
-<td>account</td>
-</tr>
-<tr>
-<td>Attributes to Send as Headers (Regex)</td>
-<td>attribute.*</td>
-</tr>
-<tr>
-<td>Publish Strategy</td>
-<td>Use Wrapper</td>
-</tr>
+<tr><td>FlowFile content</td><td><code>{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}</code></td></tr>
+<tr><td>FlowFile attributes</td><td><code>attributeA=valueA; attributeB=valueB; otherAttribute=otherValue</code></td></tr>
+<tr><td>Message Key Field</td><td>account</td></tr>
+<tr><td>Attributes to Send as Headers (Regex)</td><td>attribute.*</td></tr>
 </table>
 </div>
 <br/>
 
 <div>
-<div>to Kafka</div>
-<table border="thin">
-<tr>
-<td>Record Key</td>
-<td><code>{"name":"Acme","number":"AC1234"}</code></td>
-</tr>
-<tr>
-<td>Record Value</td>
-<td><code>[{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}]</code></td>
-</tr>
-<tr>
-<td>Record Attributes</td>
-<td><code>attributeA=valueA; attributeB=valueB</code></td>
-</tr>
-</table>
-</div>
+<div>to Kafka (Publish Strategy == "Use Content as Record Value")</div><table border="thin">
+<tr><td>Record Key</td><td><code>{"name":"Acme","number":"AC1234"}</code></td></tr>
+<tr><td>Record Value</td><td><code>[{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}]</code></td></tr>
+<tr><td>Record Headers</td><td><code>attributeA=valueA; attributeB=valueB</code></td></tr>
+</table></div>
+<br/>
+
+<div>
+<div>to Kafka (Publish Strategy == "Use Wrapper")</div><table border="thin">
+<tr><td>Record Key</td><td><code>{"name":"Acme","number":"AC1234"}</code></td></tr>
+<tr><td>Record Value</td><td><code>[{"metadata":{"topic":"$TOPIC","timestamp":$TIMESTAMP},
+"headers":{"attributeA":"valueA","attributeB":"valueB"},
+"key":{"name":"Acme","number":"AC1234"},
+"value":{"address":"1234 First Street","zip":"12345","account":{"name":"Acme","number":"AC1234"}}}]</code></td></tr>
+<tr><td>Record Headers</td><td><code>attributeA=valueA; attributeB=valueB</code></td></tr>
+</table></div>
 
         </div>
     </body>

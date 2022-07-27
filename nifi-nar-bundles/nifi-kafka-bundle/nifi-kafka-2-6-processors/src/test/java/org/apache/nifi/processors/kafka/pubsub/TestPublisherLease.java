@@ -259,7 +259,7 @@ public class TestPublisherLease {
         private final AtomicInteger poisonCount  = new AtomicInteger(0);
 
         public PoisonCountingLease() {
-            super(producer, 1024 * 1024, 1000L, logger, true, null, StandardCharsets.UTF_8, null);
+            super(producer, 1024 * 1024, 1000L, logger, true, null, StandardCharsets.UTF_8, null, null);
         }
 
         @Override

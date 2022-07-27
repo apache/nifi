@@ -178,7 +178,7 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("output-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", OutputStrategy.USE_WRAPPER.name());
         runner.setProperty("key-format", "byte-array");
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
@@ -245,7 +245,7 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("output-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", OutputStrategy.USE_WRAPPER.name());
         runner.setProperty("key-format", "byte-array");
         runner.run(1);
 
@@ -287,7 +287,7 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("output-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", OutputStrategy.USE_WRAPPER.name());
         runner.setProperty("key-format", "string");
         runner.run(1);
 
@@ -332,7 +332,7 @@ public class TestConsumeKafkaMock {
         runner.addControllerService(keyReaderId, keyReaderService);
         runner.enableControllerService(keyReaderService);
         runner.setProperty(keyReaderId, keyReaderId);
-        runner.setProperty("output-strategy", "use-wrapper");
+        runner.setProperty("output-strategy", OutputStrategy.USE_WRAPPER.name());
         runner.setProperty("key-format", "record");
         runner.setProperty("key-record-reader", "record-reader");
         runner.run(1);
@@ -379,6 +379,32 @@ public class TestConsumeKafkaMock {
         assertEquals(textToKafkaKey, flowFile.getAttribute("kafka.key"));
     }
 
+    @Test
+    public void testConsumeRecordWrapperStrategyStringKeyNullValue() throws InitializationException, JsonProcessingException {
+        final Headers headers = new RecordHeaders();
+        headers.add(new RecordHeader("headerA", "valueA".getBytes(UTF_8)));
+        final String key = "a-string-key";
+        final ConsumerRecord<byte[], byte[]> record = new ConsumerRecord<>(
+                TEST_TOPIC, 0, 0, 0L, TimestampType.NO_TIMESTAMP_TYPE, 0L, key.length(), 0, key.getBytes(UTF_8), null, headers);
+        final ConsumerRecords<byte[], byte[]> consumerRecords = getConsumerRecords(record);
+
+        final TestRunner runner = getTestRunner(consumerRecords, TEST_TOPIC, TEST_GROUP);
+        runner.setProperty("output-strategy", OutputStrategy.USE_WRAPPER.name());
+        runner.setProperty("key-format", "string");
+
+        runner.run(1);
+        runner.assertAllFlowFilesTransferred(ConsumeKafkaRecord_2_6.REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafkaRecord_2_6.REL_SUCCESS);
+        final MockFlowFile flowFile = flowFiles.iterator().next();
+        final JsonNode nodeFlowFiles = mapper.readTree(flowFile.getContent());
+        final JsonNode nodeFlowFile = nodeFlowFiles.iterator().next();
+        final JsonNode nodeWrapperKey = Objects.requireNonNull(nodeFlowFile.get("key"));
+        assertEquals(key, nodeWrapperKey.asText());
+        assertTrue(nodeFlowFile.get("value").isNull());
+        final JsonNode nodeWrapperHeaders = Objects.requireNonNull(nodeFlowFile.get("headers"));
+        assertEquals("valueA", nodeWrapperHeaders.get("headerA").asText());
+    }
+
     /**
      * Construct a test runner that simulates Kafka interactions.
      */
@@ -422,7 +448,7 @@ public class TestConsumeKafkaMock {
         final String topic = context.getProperty("topic").getValue();
         final Pattern patternTopic = (topic == null) ? null : Pattern.compile(topic);
         final String groupId = context.getProperty(ConsumerConfig.GROUP_ID_CONFIG).getValue();
-        final String outputStrategy = context.getProperty("output-strategy").getValue();
+        final OutputStrategy outputStrategy = OutputStrategy.valueOf(context.getProperty("output-strategy").getValue());
         final String keyFormat = context.getProperty("key-format").getValue();
         final RecordReaderFactory keyReaderFactory = context.getProperty("key-record-reader")
                 .asControllerService(RecordReaderFactory.class);

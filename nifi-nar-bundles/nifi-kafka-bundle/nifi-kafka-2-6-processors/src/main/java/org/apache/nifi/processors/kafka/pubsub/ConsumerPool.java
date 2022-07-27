@@ -76,7 +76,7 @@ public class ConsumerPool implements Closeable {
     private final boolean separateByKey;
     private final int[] partitionsToConsume;
     private final boolean commitOffsets;
-    private final String outputStrategy;
+    private final OutputStrategy outputStrategy;
     private final String keyFormat;
     private final RecordReaderFactory keyReaderFactory;
     private final AtomicLong consumerCreatedCountRef = new AtomicLong();
@@ -201,7 +201,7 @@ public class ConsumerPool implements Closeable {
             final String keyEncoding,
             final int[] partitionsToConsume,
             final boolean commitOffsets,
-            final String outputStrategy,
+            final OutputStrategy outputStrategy,
             final String keyFormat,
             final RecordReaderFactory keyReaderFactory) {
         this.pooledLeases = new LinkedBlockingQueue<>();
@@ -245,7 +245,7 @@ public class ConsumerPool implements Closeable {
             final String keyEncoding,
             final int[] partitionsToConsume,
             final boolean commitOffsets,
-            final String outputStrategy,
+            final OutputStrategy outputStrategy,
             final String keyFormat,
             final RecordReaderFactory keyReaderFactory) {
         this.pooledLeases = new LinkedBlockingQueue<>();

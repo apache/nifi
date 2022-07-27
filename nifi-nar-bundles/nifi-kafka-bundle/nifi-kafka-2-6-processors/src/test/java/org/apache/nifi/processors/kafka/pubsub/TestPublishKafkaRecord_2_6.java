@@ -263,7 +263,7 @@ public class TestPublishKafkaRecord_2_6 {
         verify(mockLease, times(2)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
                 AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(0)).publish(
-            any(FlowFile.class), any(Map.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), any(Integer.class));
+            any(FlowFile.class), any(List.class), eq(null), any(byte[].class), eq(TOPIC_NAME), any(InFlightMessageTracker.class), any(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();

@@ -153,7 +153,7 @@ public class TestPublishKafkaMock {
         final TestRunner runner = getTestRunner(producedRecords);
         runner.setProperty("topic", TEST_TOPIC_PUBLISH);
         runner.setProperty("attribute-name-regex", "attr.*");
-        runner.setProperty("publish-strategy", "use-wrapper");
+        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
@@ -188,7 +188,7 @@ public class TestPublishKafkaMock {
         runner.setProperty("topic", TEST_TOPIC_PUBLISH);
         runner.setProperty("attribute-name-regex", ".*B");
         runner.setProperty("message-key-field", "recordB");
-        runner.setProperty("publish-strategy", "use-wrapper");
+        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
         runner.enqueue(flowFile);
         runner.run(1);
         // verify results
@@ -223,7 +223,7 @@ public class TestPublishKafkaMock {
         runner.setProperty("topic", TEST_TOPIC_PUBLISH);
         runner.setProperty("attribute-name-regex", ".*B");
         runner.setProperty("message-key-field", "recordB");
-        runner.setProperty("publish-strategy", "use-wrapper");
+        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
         runner.setProperty("record-key-writer", "record-writer");
         runner.enqueue(flowFile);
         runner.run(1);
@@ -255,7 +255,7 @@ public class TestPublishKafkaMock {
         final Collection<ProducerRecord<byte[], byte[]>> producedRecords = new ArrayList<>();
         final TestRunner runner = getTestRunner(producedRecords);
         runner.setProperty("topic", TEST_TOPIC_PUBLISH);
-        runner.setProperty("publish-strategy", "use-wrapper");
+        runner.setProperty("publish-strategy", PublishStrategy.USE_WRAPPER.name());
         runner.setProperty("message-key-field", "recordKey");
         runner.setProperty("record-key-writer", "record-writer");
         runner.enqueue(flowFile);
@@ -331,6 +331,7 @@ public class TestPublishKafkaMock {
                 true,
                 patternAttributeName,
                 UTF_8,
+                null,
                 keyWriterFactory);
     }
 }

@@ -258,7 +258,7 @@
 
         <h2>Output Modes</h2>
         <div>
-            <p>This processor (NiFi 1.17+) offers multiple output strategies (configured via processor property 'Consume
+            <p>This processor offers multiple output strategies (configured via processor property 'Consume
                 Strategy') for converting Kafka records into FlowFiles.</p>
             <ul>
                 <li>Consume Strategy 'Write Value Only' (the default) emits flowfile records containing only the Kafka
@@ -273,49 +273,49 @@
             <p>The record schema that is used when 'Use Wrapper' is active is as follows (in Avro format):</p>
 <code>
 <pre>
-[
-  {
-    "type": "record",
-    "name": "kafka:ConsumeRecord:metadata",
-    "namespace": "org.apache.nifi",
-    "fields": [{
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [{
       "name": "key",
-      "type": ["bytes", "string", "record"]
-    }, {
-      "name": "topic",
-      "type": "string"
-    }, {
-      "name": "partition",
-      "type": "int"
-    }, {
-      "name": "offset",
-      "type": "long"
-    }, {
-      "name": "timestamp",
-      "type": "long",
-      "logicalType": "timestamp-millis"
-    }]
-  },
-  {
-    "type": "record",
-    "name": "kafka:ConsumeRecord:wrapper",
-    "namespace": "org.apache.nifi",
-    "fields": [{
-      "name": "key",
-      "type": ["bytes", "string", "record"]
-    }, {
+      "type": [{
+          <Schema is determined by the Key Record Reader, or will be "string" or "bytes", depending on the "Key Format" property>
+        }, "null"]
+    },
+    {
       "name": "value",
-      "type": "record"
-    }, {
+      "type": [
+        {
+          <Schema is determined by the Value Record Reader, or will be "string" or "bytes", depending on the "Key Format" property>
+        },
+        "null"
+      ]
+    },
+    {
       "name": "headers",
-      "type": "map",
-      "values": "string"
-    }, {
+      "type": [
+        { "type": "map", "values": "string", "default": {}},
+        "null"]
+    },
+    {
       "name": "metadata",
-      "type": "kafka:ConsumeRecord:metadata"
-    }]
-  }
-]
+      "type": [
+        {
+          "type": "record",
+          "name": "metadataType",
+          "fields": [
+            { "name": "topic", "type": ["string", "null"] },
+            { "name": "partition", "type": ["int", "null"] },
+            { "name": "offset", "type": ["int", "null"] },
+            { "name": "timestamp", "type": ["long", "null"] }
+          ]
+        },
+        "null"
+      ]
+    }
+  ]
+}
 </pre>
 </code>
             <p>If the Consume Strategy property 'Use Wrapper' is active, an additional processor configuration property

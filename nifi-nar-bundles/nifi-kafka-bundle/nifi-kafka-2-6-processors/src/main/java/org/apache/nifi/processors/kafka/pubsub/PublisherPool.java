@@ -42,6 +42,7 @@ public class PublisherPool implements Closeable {
     private final boolean useTransactions;
     private final Pattern attributeNameRegex;
     private final Charset headerCharacterSet;
+    private final PublishStrategy publishStrategy;
     private final RecordSetWriterFactory recordKeyWriterFactory;
     private Supplier<String> transactionalIdSupplier;
 
@@ -49,7 +50,7 @@ public class PublisherPool implements Closeable {
 
     PublisherPool(final Map<String, Object> kafkaProperties, final ComponentLog logger, final int maxMessageSize, final long maxAckWaitMillis,
                   final boolean useTransactions, final Supplier<String> transactionalIdSupplier, final Pattern attributeNameRegex,
-                  final Charset headerCharacterSet, final RecordSetWriterFactory recordKeyWriterFactory) {
+                  final Charset headerCharacterSet, final PublishStrategy publishStrategy, final RecordSetWriterFactory recordKeyWriterFactory) {
         this.logger = logger;
         this.publisherQueue = new LinkedBlockingQueue<>();
         this.kafkaProperties = kafkaProperties;
@@ -58,6 +59,7 @@ public class PublisherPool implements Closeable {
         this.useTransactions = useTransactions;
         this.attributeNameRegex = attributeNameRegex;
         this.headerCharacterSet = headerCharacterSet;
+        this.publishStrategy = publishStrategy;
         this.recordKeyWriterFactory = recordKeyWriterFactory;
         this.transactionalIdSupplier = transactionalIdSupplier;
     }
@@ -84,7 +86,7 @@ public class PublisherPool implements Closeable {
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
         final PublisherLease lease = new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger,
-                useTransactions, attributeNameRegex, headerCharacterSet, recordKeyWriterFactory) {
+                useTransactions, attributeNameRegex, headerCharacterSet, publishStrategy, recordKeyWriterFactory) {
             private volatile boolean closed = false;
 
             @Override

@@ -317,6 +317,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         properties.add(TRANSACTIONAL_ID_PREFIX);
         properties.add(KafkaProcessorUtils.FAILURE_STRATEGY);
         properties.add(DELIVERY_GUARANTEE);
+        properties.add(PUBLISH_STRATEGY);
         properties.add(ATTRIBUTE_NAME_REGEX);
         properties.add(MESSAGE_HEADER_ENCODING);
         properties.add(KafkaProcessorUtils.SECURITY_PROTOCOL);
@@ -331,7 +332,6 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         properties.add(KafkaProcessorUtils.TOKEN_AUTH);
         properties.add(KafkaProcessorUtils.SSL_CONTEXT_SERVICE);
         properties.add(MESSAGE_KEY_FIELD);
-        properties.add(PUBLISH_STRATEGY);
         properties.add(RECORD_KEY_WRITER);
         properties.add(MAX_REQUEST_SIZE);
         properties.add(ACK_WAIT_TIME);
@@ -434,6 +434,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
         final String transactionalIdPrefix = context.getProperty(TRANSACTIONAL_ID_PREFIX).evaluateAttributeExpressions().getValue();
         Supplier<String> transactionalIdSupplier = KafkaProcessorUtils.getTransactionalIdSupplier(transactionalIdPrefix);
+        final PublishStrategy publishStrategy = PublishStrategy.valueOf(context.getProperty(PUBLISH_STRATEGY).getValue());
 
         final String charsetName = context.getProperty(MESSAGE_HEADER_ENCODING).evaluateAttributeExpressions().getValue();
         final Charset charset = Charset.forName(charsetName);
@@ -446,7 +447,7 @@ public class PublishKafkaRecord_2_6 extends AbstractProcessor implements Verifia
         kafkaProperties.put("max.request.size", String.valueOf(maxMessageSize));
 
         return new PublisherPool(kafkaProperties, getLogger(), maxMessageSize, maxAckWaitMillis,
-                useTransactions, transactionalIdSupplier, attributeNamePattern, charset, recordKeyWriterFactory);
+                useTransactions, transactionalIdSupplier, attributeNamePattern, charset, publishStrategy, recordKeyWriterFactory);
     }
 
     @OnStopped
