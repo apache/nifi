@@ -50,7 +50,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);
@@ -89,7 +89,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);
@@ -129,7 +129,7 @@ public class ProcessGroupVariablesIT extends NiFiSystemIT {
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
 
         // Start Processor, wait for 1 FlowFile to be queued up, then stop processor
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         waitForQueueCount(connection.getId(), 1);
 
         final FlowFileEntity flowFile = getClientUtil().getQueueFlowFile(connection.getId(), 0);

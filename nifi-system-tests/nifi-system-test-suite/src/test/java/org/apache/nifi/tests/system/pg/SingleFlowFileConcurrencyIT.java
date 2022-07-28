@@ -127,7 +127,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         // Start generate so that data is created. Start Input Port so that the data is ingested.
         // Start Output Ports but not the Sleep processor. This will keep data queued up for the Sleep processor,
         // and that should prevent data from being transferred by Output Port "Out2" also.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         getNifiClient().getInputPortClient().startInputPort(inputPort);
         getNifiClient().getOutputPortClient().startOutputPort(outputPort);
         getNifiClient().getOutputPortClient().startOutputPort(secondOut);
@@ -143,7 +143,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         }
 
         // Start Sleep
-        getNifiClient().getProcessorClient().startProcessor(sleep);
+        getClientUtil().startProcessor(sleep);
 
         // Data should now flow from both output ports.
         waitForQueueCount(inputToSleep.getId(), 0);
@@ -192,7 +192,7 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
 
         // Start generate so that data is created. Start Input Port so that the data is ingested.
         // Start "Out" Output Ports but "Out2.". This will keep data queued up for the Out2 output port.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         getNifiClient().getInputPortClient().startInputPort(inputPort);
         getNifiClient().getOutputPortClient().startOutputPort(outputPort);
 

@@ -65,8 +65,8 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         getClientUtil().setAutoTerminatedRelationships(count, "success");
         getClientUtil().createConnection(generateFlowFile, count, "success");
 
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
-        getNifiClient().getProcessorClient().startProcessor(count);
+        getClientUtil().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(count);
 
         ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
@@ -102,7 +102,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         getClientUtil().setAutoTerminatedRelationships(terminate, "success");
         getClientUtil().createConnection(generateFlowFile, terminate, "success");
 
-        generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
 
         ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
@@ -118,7 +118,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // The GenerateFlowFile would have 800. The first 200 events from Terminate will be in the first Event File, causing that one to
         // roll over and subsequently be aged off. The second Event File will hold the other 600. So we may have 600 or 800 events,
         // depending on when the query is executed.
-        getNifiClient().getProcessorClient().startProcessor(terminate);
+        getClientUtil().startProcessor(terminate);
 
         ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
         terminateSearchValueDto.setValue(terminate.getId());
@@ -131,7 +131,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
 
         // Emit 25 more events
         getClientUtil().updateProcessorProperties(generateFlowFile, Collections.singletonMap("Batch Size", "25"));
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
 
         // Wait for those 25 events to be emitted
         waitForEventCountAtLeast(generateSearchTerms, 25);
@@ -152,7 +152,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         getClientUtil().setAutoTerminatedRelationships(terminate, "success");
         getClientUtil().createConnection(generateFlowFile, terminate, "success");
 
-        generateFlowFile = getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
 
         ProvenanceSearchValueDTO searchValueDto = new ProvenanceSearchValueDTO();
         searchValueDto.setValue(generateFlowFile.getId());
@@ -168,7 +168,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // The GenerateFlowFile would have 800. The first 200 events from Terminate will be in the first Event File, causing that one to
         // roll over and subsequently be aged off. The second Event File will hold the other 600. So we may have 600 or 800 events,
         // depending on when the query is executed.
-        getNifiClient().getProcessorClient().startProcessor(terminate);
+        getClientUtil().startProcessor(terminate);
 
         ProvenanceSearchValueDTO terminateSearchValueDto = new ProvenanceSearchValueDTO();
         terminateSearchValueDto.setValue(terminate.getId());
@@ -193,7 +193,7 @@ public class ProvenanceRepositoryIT extends NiFiSystemIT {
         // Emit 400 more events
         generateFlowFile.getRevision().setVersion(0L); // Reset the revision
         getClientUtil().updateProcessorProperties(generateFlowFile, Collections.singletonMap("Batch Size", "400"));
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
 
         // Since we restarted, the previous Event File will be rolled over. And since it will be > 1 KB in size, it will age off almost immediately.
         // This will leave us with only the 400 newly created events.

@@ -93,7 +93,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.ROUND_ROBIN, compression, null);
 
         // Generate the data.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
 
         // Wait until all 20 FlowFiles are queued up.
         waitFor(() -> {
@@ -131,7 +131,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.SINGLE_NODE, LoadBalanceCompression.DO_NOT_COMPRESS, null);
 
         // Generate the data.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
 
         // Wait until all 20 FlowFiles are queued up.
         waitFor(() -> {
@@ -187,7 +187,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         // Queue 100 FlowFiles. 10 with number=0, 10 with number=1, 10 with number=2, etc. to up 10 with number=9
         for (int i=1; i <= 10; i++) {
             // Generate the data.
-            getNifiClient().getProcessorClient().startProcessor(generate);
+            getClientUtil().startProcessor(generate);
 
             final int expectedQueueSize = 10 * i;
 
@@ -238,7 +238,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         getClientUtil().updateProcessorProperties(generate, generateProperties);
 
         // Generate the data.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
 
         // Wait until all 20 FlowFiles are queued up.
         waitFor(() -> {
@@ -338,7 +338,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         getClientUtil().updateConnectionLoadBalancing(connection, LoadBalanceStrategy.ROUND_ROBIN, LoadBalanceCompression.DO_NOT_COMPRESS, null);
 
         // Generate the data.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
 
         // Wait until all 20 FlowFiles are queued up.
         waitFor(() -> {
@@ -380,7 +380,7 @@ public class LoadBalanceIT extends NiFiSystemIT {
         // times out.
         while (true) {
             // Generate the data.
-            getNifiClient().getProcessorClient().startProcessor(generate);
+            getClientUtil().startProcessor(generate);
 
             // Wait until all 20 FlowFiles are queued up
             waitFor(() -> {

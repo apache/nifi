@@ -70,7 +70,7 @@ public class JoinClusterAdjustStateIT extends NiFiSystemIT {
 
         // Start the Processor that requires a file named "monitored" to exist. When we join Node 2 to the cluster, this directory will not exist.
         // We want to ensure that the Processor does in fact start on its own when the directory is created.
-        getNifiClient().getProcessorClient().startProcessor(fileProcessor.getId(), fileProcessor.getRevision().getClientId(), 1);
+        getClientUtil().startProcessor(fileProcessor);
         getClientUtil().waitForRunningProcessor(fileProcessor.getId());
 
         // Create a new NiFi instance
@@ -84,7 +84,7 @@ public class JoinClusterAdjustStateIT extends NiFiSystemIT {
 
         // Start the Count Processor on Node 1. When Node 2 joins the cluster, we know that its flow will indicate that the Processor is stopped.
         // But because the cluster indicates that the Processor is running, the second node should inherit this value and immediately start the Processor also.
-        getNifiClient().getProcessorClient().startProcessor(countProcessor.getId(), countProcessor.getRevision().getClientId(), 1);
+        getClientUtil().startProcessor(countProcessor);
 
         node2Instance.start();
 
