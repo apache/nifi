@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 public class TestEnvironmentVariableParameterProvider {
     private ParameterProvider getParameterProvider() {
@@ -40,12 +41,26 @@ public class TestEnvironmentVariableParameterProvider {
         final String commaSeparatedList = "HOME, USER";
         testFetchParameters(new EnvironmentVariableParameterProvider.CommaSeparatedEnvironmentVariableInclusionStrategy(commaSeparatedList), commaSeparatedList,
                 "comma-separated");
+
+        assertThrows(IllegalArgumentException.class, () -> testFetchParameters(
+                new EnvironmentVariableParameterProvider.CommaSeparatedEnvironmentVariableInclusionStrategy(commaSeparatedList), null,
+                "comma-separated"));
+
     }
 
     @Test
     public void testFetchParametersRegex() throws InitializationException, IOException {
         final String regex = "H.*";
         testFetchParameters(new EnvironmentVariableParameterProvider.RegexEnvironmentVariableInclusionStrategy(regex), regex, "regex");
+
+        assertThrows(IllegalArgumentException.class, () -> testFetchParameters(
+                new EnvironmentVariableParameterProvider.RegexEnvironmentVariableInclusionStrategy(regex), null,
+                "regex"));
+    }
+
+    @Test
+    public void testFetchParametersIncludeAll() throws InitializationException, IOException {
+        testFetchParameters(new EnvironmentVariableParameterProvider.IncludeAllEnvironmentVariableInclusionStrategy(null), null, "include-all");
     }
 
     private void testFetchParameters(final EnvironmentVariableParameterProvider.EnvironmentVariableInclusionStrategy inclusionStrategy,

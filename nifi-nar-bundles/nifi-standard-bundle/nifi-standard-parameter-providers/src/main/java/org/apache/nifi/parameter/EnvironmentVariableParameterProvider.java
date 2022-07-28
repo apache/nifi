@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -56,28 +57,59 @@ import java.util.stream.Collectors;
 public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements VerifiableParameterProvider {
     private final Map<String, String> environmentVariables = new ConcurrentHashMap<>();
 
+    private static final AllowableValue INCLUDE_ALL_STRATEGY = new AllowableValue("include-all", "Include All",
+            "All Environment Variables will be included");
     private static final AllowableValue COMMA_SEPARATED_STRATEGY = new AllowableValue("comma-separated", "Comma-Separated",
             "List comma-separated Environment Variable names to include");
     private static final AllowableValue REGEX_STRATEGY = new AllowableValue("regex", "Regular Expression",
             "Include Environment Variable names that match a Regular Expression");
 
-    public static final PropertyDescriptor INCLUDE_ENVIRONMENT_VARIABLES = new PropertyDescriptor.Builder()
-            .name("include-environment-variables")
-            .displayName("Include Environment Variables")
-            .description("Specifies environment variable names that should be included from the fetched environment variables.  May be a comma-separated list " +
-                    "or a Regular Expression, depending on 'Environment Variable Inclusion Strategy'.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
+    private enum InclusionStrategyValue {
+        INCLUDE_ALL(EnvironmentVariableParameterProvider.INCLUDE_ALL_STRATEGY.getValue(), IncludeAllEnvironmentVariableInclusionStrategy::new),
+        COMMA_SEPARATED(EnvironmentVariableParameterProvider.COMMA_SEPARATED_STRATEGY.getValue(), CommaSeparatedEnvironmentVariableInclusionStrategy::new),
+        REGEX_STRATEGY(EnvironmentVariableParameterProvider.REGEX_STRATEGY.getValue(), RegexEnvironmentVariableInclusionStrategy::new);
+
+        private String name;
+        private Function<String, EnvironmentVariableInclusionStrategy> factoryMethod;
+
+        InclusionStrategyValue(final String name, final Function<String, EnvironmentVariableInclusionStrategy> factoryMethod) {
+            this.name = name;
+            this.factoryMethod = factoryMethod;
+        }
+
+        EnvironmentVariableInclusionStrategy getStrategy(final String inclusionText) {
+            return factoryMethod.apply(inclusionText);
+        }
+
+        static InclusionStrategyValue fromValue(final String value) {
+            if (value == null) {
+                throw new IllegalArgumentException("Inclusion strategy value is required");
+            }
+            for (final InclusionStrategyValue v : values()) {
+                if (v.name.equals(value)) {
+                    return v;
+                }
+            }
+            throw new IllegalArgumentException("Unrecognized inclusion strategy value");
+        }
+    }
+
     public static final PropertyDescriptor ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY = new PropertyDescriptor.Builder()
             .name("environment-variable-inclusion-strategy")
             .displayName("Environment Variable Inclusion Strategy")
-            .description("Indicates how included Environment Variables should be specified in 'Include Environment Variables'")
+            .description("Indicates how Environment Variables should be included")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .allowableValues(new AllowableValue[] { COMMA_SEPARATED_STRATEGY, REGEX_STRATEGY })
-            .defaultValue(COMMA_SEPARATED_STRATEGY.getValue())
+            .allowableValues(new AllowableValue[] { INCLUDE_ALL_STRATEGY, COMMA_SEPARATED_STRATEGY, REGEX_STRATEGY })
+            .defaultValue(INCLUDE_ALL_STRATEGY.getValue())
+            .required(true)
+            .build();
+    public static final PropertyDescriptor INCLUDE_ENVIRONMENT_VARIABLES = new PropertyDescriptor.Builder()
+            .name("include-environment-variables")
+            .displayName("Include Environment Variables")
+            .description("Specifies environment variable names that should be included from the fetched environment variables.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
-            .dependsOn(INCLUDE_ENVIRONMENT_VARIABLES)
+            .dependsOn(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY, REGEX_STRATEGY, COMMA_SEPARATED_STRATEGY)
             .build();
     public static final PropertyDescriptor PARAMETER_GROUP_NAME = new PropertyDescriptor.Builder()
             .name("parameter-group-name")
@@ -95,8 +127,8 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
     protected void init(final ParameterProviderInitializationContext config) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PARAMETER_GROUP_NAME);
-        properties.add(INCLUDE_ENVIRONMENT_VARIABLES);
         properties.add(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY);
+        properties.add(INCLUDE_ENVIRONMENT_VARIABLES);
 
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -155,85 +187,70 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
         final PropertyValue includeEnvironmentVariables = validationContext.getProperty(INCLUDE_ENVIRONMENT_VARIABLES);
         if (includeEnvironmentVariables.isSet()) {
             final String inclusionStrategy = validationContext.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY).getValue();
-            if (inclusionStrategy == null) {
-                results.add(new ValidationResult.Builder()
-                        .subject(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY.getDisplayName())
-                        .valid(false)
-                        .explanation(String.format("'%s' is required if '%s' is set", ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY.getDisplayName(),
-                                        INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName()))
-                        .build());
-            } else {
-                if (REGEX_STRATEGY.getValue().equals(inclusionStrategy)) {
-                    results.add(StandardValidators.REGULAR_EXPRESSION_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
-                            includeEnvironmentVariables.getValue(), validationContext));
-                } else {
-                    results.add(StandardValidators.NON_EMPTY_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
-                            includeEnvironmentVariables.getValue(), validationContext));
-                }
+            if (REGEX_STRATEGY.getValue().equals(inclusionStrategy)) {
+                results.add(StandardValidators.REGULAR_EXPRESSION_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
+                        includeEnvironmentVariables.getValue(), validationContext));
+            } else if (COMMA_SEPARATED_STRATEGY.getValue().equals(inclusionStrategy)) {
+                results.add(StandardValidators.NON_EMPTY_VALIDATOR.validate(INCLUDE_ENVIRONMENT_VARIABLES.getDisplayName(),
+                        includeEnvironmentVariables.getValue(), validationContext));
             }
         }
         return results;
     }
 
     private EnvironmentVariableInclusionStrategy getStrategy(final ConfigurationContext context) {
-        final PropertyValue includeEnvironmentVariables = context.getProperty(INCLUDE_ENVIRONMENT_VARIABLES);
-        if (includeEnvironmentVariables.isSet()) {
-            final String value = includeEnvironmentVariables.getValue();
-
-            final PropertyValue inclusionStrategy = context.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY);
-            final String strategyName;
-            if (inclusionStrategy.isSet()) {
-                strategyName = context.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY).getValue();
-            } else {
-                strategyName = COMMA_SEPARATED_STRATEGY.getValue();
-            }
-
-            if (COMMA_SEPARATED_STRATEGY.getValue().equals(strategyName)) {
-                return new CommaSeparatedEnvironmentVariableInclusionStrategy(value);
-            }
-            if (REGEX_STRATEGY.getValue().equals(strategyName)) {
-                return new RegexEnvironmentVariableInclusionStrategy(value);
-            }
-        }
-
-        return new AllowAllEnvironmentVariableInclusionStrategy();
+        return InclusionStrategyValue
+                .fromValue(context.getProperty(ENVIRONMENT_VARIABLE_INCLUSION_STRATEGY).getValue())
+                .getStrategy(context.getProperty(INCLUDE_ENVIRONMENT_VARIABLES).getValue());
     }
 
     interface EnvironmentVariableInclusionStrategy {
         boolean include(String variableName);
     }
 
-    static class RegexEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
-        private final Pattern pattern;
+    static class IncludeAllEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
 
-        RegexEnvironmentVariableInclusionStrategy(final String regex) {
-            this.pattern = Pattern.compile(regex);
+        IncludeAllEnvironmentVariableInclusionStrategy(final String inclusionText) {
+
         }
-
-        @Override
-        public boolean include(final String variableName) {
-            return pattern.matcher(variableName).matches();
-        }
-    }
-
-    static class CommaSeparatedEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
-        private final Set<String> includedNames;
-
-        CommaSeparatedEnvironmentVariableInclusionStrategy(final String includedNames) {
-            this.includedNames = new HashSet<>(Arrays.asList(includedNames.split(",")).stream().map(String::trim).collect(Collectors.toList()));
-        }
-
-        @Override
-        public boolean include(final String variableName) {
-            return includedNames.contains(variableName);
-        }
-    }
-
-    class AllowAllEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
 
         @Override
         public boolean include(final String variableName) {
             return true;
         }
+    }
+
+    static class RegexEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
+
+        private final Pattern pattern;
+
+        RegexEnvironmentVariableInclusionStrategy(final String regex) {
+            if (regex == null) {
+                throw new IllegalArgumentException("Regular Expression is required");
+            }
+            this.pattern = Pattern.compile(regex);
+        }
+        @Override
+        public boolean include(final String variableName) {
+            return pattern.matcher(variableName).matches();
+        }
+
+    }
+
+    static class CommaSeparatedEnvironmentVariableInclusionStrategy implements EnvironmentVariableInclusionStrategy {
+
+        private final Set<String> includedNames;
+
+        CommaSeparatedEnvironmentVariableInclusionStrategy(final String includedNames) {
+            if (includedNames == null) {
+                throw new IllegalArgumentException("Comma-separated list of included names is required");
+            }
+            this.includedNames = new HashSet<>(Arrays.asList(includedNames.split(",")).stream().map(String::trim).collect(Collectors.toList()));
+        }
+        @Override
+        public boolean include(final String variableName) {
+            return includedNames.contains(variableName);
+        }
+
     }
 }
