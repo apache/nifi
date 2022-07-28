@@ -20,15 +20,16 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -96,13 +97,15 @@ public class StandardManagedAuthorizerTest {
         }
     };
 
-    @Test(expected = AuthorizerCreationException.class)
-    public void testNullAccessPolicyProvider() throws Exception {
-        getStandardManagedAuthorizer(null);
+    @Test
+    public void testNullAccessPolicyProvider() {
+        assertThrows(AuthorizerCreationException.class, () -> {
+            getStandardManagedAuthorizer(null);
+        });
     }
 
     @Test
-    public void testEmptyFingerPrint() throws Exception {
+    public void testEmptyFingerPrint() {
         final UserGroupProvider userGroupProvider = mock(UserGroupProvider.class);
 
         final AccessPolicyProvider accessPolicyProvider = mock(AccessPolicyProvider.class);
@@ -113,7 +116,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testNonEmptyFingerPrint() throws Exception {
+    public void testNonEmptyFingerPrint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
         when(userGroupProvider.getFingerprint()).thenReturn(TENANT_FINGERPRINT);
 
@@ -126,7 +129,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testInheritEmptyFingerprint() throws Exception {
+    public void testInheritEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
@@ -139,19 +142,21 @@ public class StandardManagedAuthorizerTest {
         verify(accessPolicyProvider, times(0)).inheritFingerprint(anyString());
     }
 
-    @Test(expected = AuthorizationAccessException.class)
-    public void testInheritInvalidFingerprint() throws Exception {
+    @Test
+    public void testInheritInvalidFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
         when(accessPolicyProvider.getUserGroupProvider()).thenReturn(userGroupProvider);
 
         final StandardManagedAuthorizer managedAuthorizer = getStandardManagedAuthorizer(accessPolicyProvider);
-        managedAuthorizer.inheritFingerprint("not a valid fingerprint");
+        assertThrows(AuthorizationAccessException.class, () -> {
+            managedAuthorizer.inheritFingerprint("not a valid fingerprint");
+        });
     }
 
     @Test
-    public void testInheritNonEmptyFingerprint() throws Exception {
+    public void testInheritNonEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
@@ -165,7 +170,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testCheckInheritEmptyFingerprint() throws Exception {
+    public void testCheckInheritEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
@@ -178,19 +183,21 @@ public class StandardManagedAuthorizerTest {
         verify(accessPolicyProvider, times(0)).inheritFingerprint(anyString());
     }
 
-    @Test(expected = AuthorizationAccessException.class)
-    public void testCheckInheritInvalidFingerprint() throws Exception {
+    @Test
+    public void testCheckInheritInvalidFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
         when(accessPolicyProvider.getUserGroupProvider()).thenReturn(userGroupProvider);
 
         final StandardManagedAuthorizer managedAuthorizer = getStandardManagedAuthorizer(accessPolicyProvider);
-        managedAuthorizer.checkInheritability("not a valid fingerprint");
+        assertThrows(AuthorizationAccessException.class, () -> {
+            managedAuthorizer.checkInheritability("not a valid fingerprint");
+        });
     }
 
     @Test
-    public void testCheckInheritNonEmptyFingerprint() throws Exception {
+    public void testCheckInheritNonEmptyFingerprint() {
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
 
         final ConfigurableAccessPolicyProvider accessPolicyProvider = mock(ConfigurableAccessPolicyProvider.class);
@@ -204,7 +211,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testAuthorizationByUser() throws Exception {
+    public void testAuthorizationByUser() {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
 
@@ -250,7 +257,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testAuthorizationByGroup() throws Exception {
+    public void testAuthorizationByGroup() {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
         final String groupIdentifier = "groupIdentifier1";
@@ -303,7 +310,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testAuthorizationByRequestGroups() throws Exception {
+    public void testAuthorizationByRequestGroups() {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
         final String groupIdentifier = "groupIdentifier1";
@@ -360,7 +367,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testResourceNotFound() throws Exception {
+    public void testResourceNotFound() {
         final String userIdentity = "userIdentity1";
 
         final ConfigurableUserGroupProvider userGroupProvider = mock(ConfigurableUserGroupProvider.class);
@@ -382,7 +389,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testUnauthorizedDueToUnknownUser() throws Exception {
+    public void testUnauthorizedDueToUnknownUser() {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
         final String notUser1Identity = "not userIdentity1";
@@ -429,7 +436,7 @@ public class StandardManagedAuthorizerTest {
     }
 
     @Test
-    public void testUnauthorizedDueToLackOfPermission() throws Exception {
+    public void testUnauthorizedDueToLackOfPermission() {
         final String userIdentifier = "userIdentifier1";
         final String userIdentity = "userIdentity1";
 
