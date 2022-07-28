@@ -32,8 +32,8 @@
     </modules>
 
     <properties>
-        <grpc.version>1.34.0</grpc.version>
-        <protoc.version>3.14.0</protoc.version>
+        <grpc.version>1.48.0</grpc.version>
+        <protoc.version>3.21.4</protoc.version>
     </properties>
 
     <dependencyManagement>
