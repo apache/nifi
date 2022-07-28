@@ -372,7 +372,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForValidProcessor(processorId);
 
         // Start Processors
-        getNifiClient().getProcessorClient().startProcessor(processorId, processorEntity.getRevision().getClientId(), 1);
+        getClientUtil().startProcessor(processorEntity);
 
         try {
             // Update Parameter Context to a long validation time.
@@ -388,9 +388,7 @@ public class ParameterContextIT extends NiFiSystemIT {
             waitForRunningProcessor(processorId);
         } finally {
             // Ensure that we stop the processor so that other tests are allowed to change the Parameter Context, etc.
-            getNifiClient().getProcessorClient().stopProcessor(processorId, processorEntity.getRevision().getClientId(), 2);
-            waitForStoppedProcessor(processorId);
-
+            getClientUtil().stopProcessor(processorEntity);
             getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
         }
     }
@@ -419,7 +417,7 @@ public class ParameterContextIT extends NiFiSystemIT {
             processorEntity.getComponent().getConfig().setAutoTerminatedRelationships(Collections.singleton("success"));
 
             getNifiClient().getProcessorClient().updateProcessor(processorEntity);
-            getNifiClient().getProcessorClient().startProcessor(processorId, processorEntity.getRevision().getClientId(), 1L);
+            getClientUtil().startProcessor(processorEntity);
 
             try {
                 final ParameterContextUpdateRequestEntity requestEntity = updateParameterContext(createdContextEntity, "sleep", "6 secs");
@@ -435,8 +433,7 @@ public class ParameterContextIT extends NiFiSystemIT {
 
                 waitForRunningProcessor(processorId);
             } finally {
-                getNifiClient().getProcessorClient().stopProcessor(processorId, processorEntity.getRevision().getClientId(), 1L);
-                waitForStoppedProcessor(processorId);
+                getClientUtil().stopProcessor(processorEntity);
                 getNifiClient().getProcessorClient().deleteProcessor(processorId, processorEntity.getRevision().getClientId(), 3);
             }
         } finally {
@@ -532,7 +529,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         getClientUtil().setAutoTerminatedRelationships(splitByLine, Collections.singleton("success"));
         getClientUtil().createConnection(generate, splitByLine, "success");
 
-        getNifiClient().getProcessorClient().startProcessor(splitByLine);
+        getClientUtil().startProcessor(splitByLine);
 
         // Change parameter to an invalid value. This will result in the processor being stopped, becoming invalid, and then being transitioned to a 'starting' state while invalid.
         final ParameterContextUpdateRequestEntity updateToInvalidRequestEntity = updateParameterContext(contextEntity, "clone", "invalid");
@@ -575,8 +572,8 @@ public class ParameterContextIT extends NiFiSystemIT {
         final ProcessorEntity secondProcessorEntity = createProcessor(TEST_PROCESSORS_PACKAGE + ".CountEvents", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
 
         // Start Processors
-        getNifiClient().getProcessorClient().startProcessor(processorEntity.getId(), processorEntity.getRevision().getClientId(), 1L);
-        getNifiClient().getProcessorClient().startProcessor(secondProcessorEntity.getId(), secondProcessorEntity.getRevision().getClientId(), 1L);
+        getClientUtil().startProcessor(processorEntity);
+        getClientUtil().startProcessor(secondProcessorEntity);
 
         Map<String, Long> counterValues = waitForCounter(processorEntity.getId(), "Scheduled", getNumberOfNodes());
         assertFalse(counterValues.containsKey("Stopped"));

@@ -108,7 +108,7 @@ public class BatchFlowBetweenGroupsIT extends NiFiSystemIT {
         getClientUtil().startProcessGroupComponents(processGroupA.getId());
 
         // Start generate processor and wait for data to queue up. Then stop.
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         waitForQueueNotEmpty(generateToInputPortA.getId());
         getNifiClient().getProcessorClient().stopProcessor(generate);
 

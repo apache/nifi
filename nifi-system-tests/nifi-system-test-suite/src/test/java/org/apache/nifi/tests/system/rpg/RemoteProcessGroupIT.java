@@ -102,7 +102,7 @@ public class RemoteProcessGroupIT extends NiFiSystemIT {
 
         getNifiClient().getInputPortClient().startInputPort(port);
         getClientUtil().waitForValidProcessor(generateFlowFile.getId());
-        getNifiClient().getProcessorClient().startProcessor(generateFlowFile);
+        getClientUtil().startProcessor(generateFlowFile);
         getNifiClient().getRemoteProcessGroupClient().startTransmitting(rpg);
 
         waitFor(() -> util.getQueueSize(generateToRPG.getId()).getObjectCount() == 0);

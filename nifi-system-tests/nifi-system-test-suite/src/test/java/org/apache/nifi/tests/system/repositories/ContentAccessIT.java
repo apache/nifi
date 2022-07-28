@@ -97,11 +97,11 @@ public class ContentAccessIT extends NiFiSystemIT {
         final ConnectionEntity verifyToTerminateUnmatched = getClientUtil().createConnection(verify, terminateAa, "unmatched");
 
         // Run Generate processor, wait for its output
-        getNifiClient().getProcessorClient().startProcessor(generate);
+        getClientUtil().startProcessor(generate);
         waitForQueueCount(generateToSplit.getId(), 1);
 
         // Run split processor, wait for its output
-        getNifiClient().getProcessorClient().startProcessor(split);
+        getClientUtil().startProcessor(split);
         waitForQueueCount(splitToReverse.getId(), 3);
 
         // Verify output of the Split processor
@@ -122,7 +122,7 @@ public class ContentAccessIT extends NiFiSystemIT {
         assertTrue(splitContents.contains("{ a : c }"));
 
         // Start the reverse processor, wait for its output
-        getNifiClient().getProcessorClient().startProcessor(reverse);
+        getClientUtil().startProcessor(reverse);
         waitForQueueCount(reverseToVerify.getId(), 3);
 
         final String firstReversedContents = getClientUtil().getFlowFileContentAsUtf8(reverseToVerify.getId(), 0);
@@ -140,7 +140,7 @@ public class ContentAccessIT extends NiFiSystemIT {
 
         // Start verify processor. This is different than verify the contents above because doing so above is handled by making a REST call, which does not make use
         // of the ProcessSession. Using the VerifyContents processor ensures that the Processors see the same contents.
-        getNifiClient().getProcessorClient().startProcessor(verify);
+        getClientUtil().startProcessor(verify);
 
         waitForQueueCount(verifyToTerminateAa.getId(), 1);
         waitForQueueCount(verifyToTerminateBa.getId(), 1);

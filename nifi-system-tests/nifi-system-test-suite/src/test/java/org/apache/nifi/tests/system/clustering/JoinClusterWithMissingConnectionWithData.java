@@ -64,7 +64,7 @@ public class JoinClusterWithMissingConnectionWithData extends NiFiSystemIT {
         ProcessorEntity generate = getNifiClient().getProcessorClient().getProcessor(GENERATE_UUID);
 
         // Start Generate Processor
-        generate = getNifiClient().getProcessorClient().startProcessor(generate);
+        generate = getClientUtil().startProcessor(generate);
 
         // Wait for data to be queued up, one FlowFile for each node.
         waitFor(this::isDataQueued);
