@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.mqtt.paho;
+package org.apache.nifi.processors.mqtt.adapters;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5BlockingClient;
@@ -75,14 +75,15 @@ public class HiveMqV5ClientAdapter implements NifiMqttClient {
 
         // checking for presence of password because username can be null
         final char[] password = connectionProperties.getPassword();
-        if (password.length > 0) {
+        if (password != null) {
             connectBuilder.simpleAuth()
                     .username(connectionProperties.getUsername())
                     .password(toBytes(password))
                     .applySimpleAuth();
+
+            clearSensitive(connectionProperties.getPassword());
+            clearSensitive(password);
         }
-        clearSensitive(connectionProperties.getPassword());
-        clearSensitive(password);
 
         final Mqtt5Connect mqtt5Connect = connectBuilder.build();
         mqtt5Client.toBlocking().connect(mqtt5Connect);
@@ -96,7 +97,7 @@ public class HiveMqV5ClientAdapter implements NifiMqttClient {
 
     @Override
     public void close() throws NifiMqttException {
-        mqtt5Client.toBlocking().disconnect();
+        // there is no paho's close equivalent in hivemq client
     }
 
     @Override

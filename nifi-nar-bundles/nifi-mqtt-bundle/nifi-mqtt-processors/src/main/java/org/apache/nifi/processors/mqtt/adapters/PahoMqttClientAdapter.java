@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.mqtt.paho;
+package org.apache.nifi.processors.mqtt.adapters;
 
 import org.apache.nifi.processors.mqtt.common.MqttConnectionProperties;
 import org.apache.nifi.processors.mqtt.common.NifiMqttCallback;

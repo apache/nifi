@@ -18,8 +18,8 @@ package org.apache.nifi.processors.mqtt.common;
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5ClientBuilder;
-import org.apache.nifi.processors.mqtt.paho.HiveMqV5ClientAdapter;
-import org.apache.nifi.processors.mqtt.paho.PahoMqttClientAdapter;
+import org.apache.nifi.processors.mqtt.adapters.HiveMqV5ClientAdapter;
+import org.apache.nifi.processors.mqtt.adapters.PahoMqttClientAdapter;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
