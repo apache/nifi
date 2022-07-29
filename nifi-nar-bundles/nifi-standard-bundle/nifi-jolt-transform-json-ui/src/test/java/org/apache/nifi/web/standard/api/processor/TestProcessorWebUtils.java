@@ -18,11 +18,9 @@ package org.apache.nifi.web.standard.api.processor;
 
 
 import org.apache.nifi.web.ComponentDetails;
-import org.apache.nifi.web.HttpServletConfigurationRequestContext;
 import org.apache.nifi.web.HttpServletRequestContext;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.servlet.http.HttpServletRequest;
@@ -51,17 +49,6 @@ public class TestProcessorWebUtils {
         ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext,"1",request);
         assertNotNull(componentDetails);
 
-    }
-
-    @Test
-    @Disabled("Capability to get specific client revision has been removed as of commit 05a1d63090d97d06bf823821d1b0e9b5482c7cd2")
-    // FIXME java11 Capability to get specific client revision has been removed as of commit 05a1d63090d97d06bf823821d1b0e9b5482c7cd2
-    //  Add test case for ProcessorWebUtils.getRequestContext() to verify proper revision is returned
-    public void testGetComponentDetailsForProcessorWithSpecificClientRevision(){
-        NiFiWebConfigurationContext configurationContext = mock(NiFiWebConfigurationContext.class);
-        when(configurationContext.getComponentDetails(any(HttpServletConfigurationRequestContext.class))).thenReturn(new ComponentDetails.Builder().build());
-        ComponentDetails componentDetails = ProcessorWebUtils.getComponentDetails(configurationContext,"1",mock(HttpServletRequest.class));
-        assertNotNull(componentDetails);
     }
 
     @Test
