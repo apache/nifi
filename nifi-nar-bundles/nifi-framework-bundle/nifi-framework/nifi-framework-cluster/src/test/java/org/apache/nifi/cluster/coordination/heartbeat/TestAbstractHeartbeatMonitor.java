@@ -30,10 +30,10 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -50,21 +50,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAbstractHeartbeatMonitor {
     private NodeIdentifier nodeId;
     private TestFriendlyHeartbeatMonitor monitor;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", 777, "localhost", null, null, false);
     }
 
-    @After
-    public void clear() throws IOException {
+    @AfterEach
+    public void clear() {
         if (monitor != null) {
             monitor.stop();
         }
@@ -77,7 +77,7 @@ public class TestAbstractHeartbeatMonitor {
      * @throws InterruptedException if interrupted
      */
     @Test
-    public void testNewConnectedHeartbeatFromUnknownNode() throws IOException, InterruptedException {
+    public void testNewConnectedHeartbeatFromUnknownNode() throws InterruptedException {
         final List<NodeIdentifier> requestedToConnect = Collections.synchronizedList(new ArrayList<>());
         final ClusterCoordinatorAdapter coordinator = new ClusterCoordinatorAdapter() {
             @Override
@@ -139,7 +139,7 @@ public class TestAbstractHeartbeatMonitor {
         assertTrue(requestedToConnect.isEmpty());
     }
 
-    @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
+    @Disabled("this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
     public void testDisconnectionOfTerminatedNodeDueToLackOfHeartbeat() throws Exception {
         final NodeIdentifier nodeId1 = nodeId;

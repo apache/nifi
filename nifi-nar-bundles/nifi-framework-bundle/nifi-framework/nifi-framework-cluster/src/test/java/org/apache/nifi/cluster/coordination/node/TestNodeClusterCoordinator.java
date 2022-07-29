@@ -38,9 +38,9 @@ import org.apache.nifi.state.MockStateMap;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.revision.RevisionSnapshot;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -54,13 +54,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -79,7 +81,7 @@ public class TestNodeClusterCoordinator {
         return NiFiProperties.createBasicNiFiProperties(null, addProps);
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
 
@@ -110,7 +112,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    public void testConnectionResponseIndicatesAllNodes() throws IOException {
+    public void testConnectionResponseIndicatesAllNodes() {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
@@ -174,7 +176,8 @@ public class TestNodeClusterCoordinator {
         assertEquals(5, response.getTryLaterSeconds());
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testUnknownNodeAskedToConnectOnAttemptedConnectionComplete() throws IOException, InterruptedException {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final AtomicReference<ReconnectionRequestMessage> requestRef = new AtomicReference<>();
@@ -221,8 +224,9 @@ public class TestNodeClusterCoordinator {
         assertTrue(Arrays.equals(dataFlow.getSnippets(), df.getSnippets()));
     }
 
-    @Test(timeout = 5000)
-    public void testFinishNodeConnectionResultsInConnectedState() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    public void testFinishNodeConnectionResultsInConnectedState() throws InterruptedException {
         final NodeIdentifier nodeId = createNodeId(1);
 
         // Create a connection request message and send to the coordinator
@@ -244,8 +248,9 @@ public class TestNodeClusterCoordinator {
         assertEquals(NodeConnectionState.CONNECTED, coordinator.getConnectionStatus(nodeId).getState());
     }
 
-    @Test(timeout = 5000)
-    public void testStatusChangesReplicated() throws InterruptedException, IOException {
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    public void testStatusChangesReplicated() throws InterruptedException {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
@@ -285,7 +290,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    public void testGetConnectionStates() throws IOException {
+    public void testGetConnectionStates() {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
@@ -315,7 +320,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    public void testGetNodeIdentifiers() throws IOException {
+    public void testGetNodeIdentifiers() {
         // Add a disconnected node
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(1), DisconnectionCode.LACK_OF_HEARTBEAT));
         coordinator.updateNodeStatus(new NodeConnectionStatus(createNodeId(2), NodeConnectionState.DISCONNECTING));
@@ -341,7 +346,8 @@ public class TestNodeClusterCoordinator {
         assertTrue(disconnectedIds.contains(createNodeId(1)));
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testRequestNodeDisconnect() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
@@ -365,7 +371,8 @@ public class TestNodeClusterCoordinator {
         assertEquals(NodeConnectionState.DISCONNECTED, status.getState());
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testCannotDisconnectLastNode() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
@@ -381,18 +388,16 @@ public class TestNodeClusterCoordinator {
 
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
 
-        try {
+        assertThrows(IllegalNodeDisconnectionException.class, () -> {
             coordinator.requestNodeDisconnect(nodeId1, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
-            Assert.fail("Expected an IllegalNodeDisconnectionException when trying to disconnect last node but it wasn't thrown");
-        } catch (final IllegalNodeDisconnectionException inde) {
-            // expected
-        }
+        });
 
         // Should still be able to request that node 2 disconnect, since it's not the node that is connected
         coordinator.requestNodeDisconnect(nodeId2, DisconnectionCode.USER_DISCONNECTED, "Unit Test");
     }
 
-    @Test(timeout = 5000)
+    @Test
+    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
     public void testUpdateNodeStatusOutOfOrder() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
