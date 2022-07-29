@@ -19,7 +19,7 @@ package org.apache.nifi.cluster.coordination.http.replication;
 
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import javax.ws.rs.core.Response;
 import java.net.URI;
@@ -30,8 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class TestResponseUtils {

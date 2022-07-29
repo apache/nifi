@@ -32,34 +32,36 @@ import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class ClusterConnectionIT {
     private Cluster cluster;
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         System.setProperty("nifi.properties.file.path", "src/test/resources/conf/nifi.properties");
     }
 
-    @Before
+    @BeforeEach
     public void createCluster() throws IOException {
         cluster = new Cluster();
         cluster.start();
     }
 
-    @After
+    @AfterEach
     public void destroyCluster() {
         if (cluster != null) {
             cluster.stop();
         }
     }
 
-    @Test(timeout = 20000)
-    public void testSingleNode() throws InterruptedException {
+    @Test
+    @Timeout(value = 20)
+    public void testSingleNode() {
         final Node firstNode = cluster.createNode();
         firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
 
@@ -67,8 +69,9 @@ public class ClusterConnectionIT {
         firstNode.waitUntilElectedForRole(ClusterRoles.PRIMARY_NODE, 10, TimeUnit.SECONDS);
     }
 
-    @Test(timeout = 60000)
-    public void testThreeNodeCluster() throws InterruptedException {
+    @Test
+    @Timeout(value = 60)
+    public void testThreeNodeCluster() {
         cluster.createNode();
         cluster.createNode();
         cluster.createNode();
@@ -83,7 +86,8 @@ public class ClusterConnectionIT {
         System.out.println("\n\n");
     }
 
-    @Test(timeout = 60000)
+    @Test
+    @Timeout(value = 60)
     public void testNewCoordinatorElected() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -97,7 +101,8 @@ public class ClusterConnectionIT {
         otherNode.waitUntilElectedForRole(ClusterRoles.CLUSTER_COORDINATOR, 10, TimeUnit.SECONDS);
     }
 
-    @Test(timeout = 60000)
+    @Test
+    @Timeout(value = 60)
     public void testReconnectGetsCorrectClusterTopology() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -140,8 +145,9 @@ public class ClusterConnectionIT {
         cluster.waitForPrimaryNode(10, TimeUnit.SECONDS);
     }
 
-    @Test(timeout = 60000)
-    public void testRestartAllNodes() throws IOException, InterruptedException {
+    @Test
+    @Timeout(value = 60)
+    public void testRestartAllNodes() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
         final Node thirdNode = cluster.createNode();
@@ -190,8 +196,9 @@ public class ClusterConnectionIT {
     }
 
 
-    @Test(timeout = 30000)
-    public void testHeartbeatsMonitored() throws IOException {
+    @Test
+    @Timeout(value = 30)
+    public void testHeartbeatsMonitored() {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
 
@@ -210,7 +217,8 @@ public class ClusterConnectionIT {
         otherNode.assertNodeConnects(nodeToSuspend.getIdentifier(), 10, TimeUnit.SECONDS);
     }
 
-    @Test(timeout = 60000)
+    @Test
+    @Timeout(value = 60)
     public void testNodeInheritsClusterTopologyOnHeartbeat() throws InterruptedException {
         final Node node1 = cluster.createNode();
         final Node node2 = cluster.createNode();

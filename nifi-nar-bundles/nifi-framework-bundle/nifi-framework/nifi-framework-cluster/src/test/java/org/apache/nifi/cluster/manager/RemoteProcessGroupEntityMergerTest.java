@@ -24,19 +24,19 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.RemoteProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class RemoteProcessGroupEntityMergerTest {
 
     @Test
-    public void testMergeRemoteProcessGroups() throws Exception {
+    public void testMergeRemoteProcessGroups() {
         final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
         final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
 
@@ -124,7 +124,7 @@ public class RemoteProcessGroupEntityMergerTest {
     }
 
     @Test
-    public void testNoPortsAvailableOnOneNode() throws Exception {
+    public void testNoPortsAvailableOnOneNode() {
         final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
         final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
 
