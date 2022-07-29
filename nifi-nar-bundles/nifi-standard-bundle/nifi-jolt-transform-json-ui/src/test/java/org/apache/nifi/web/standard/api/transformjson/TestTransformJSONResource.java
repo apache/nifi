@@ -18,7 +18,6 @@ package org.apache.nifi.web.standard.api.transformjson;
 
 import com.bazaarvoice.jolt.Diffy;
 import com.bazaarvoice.jolt.JsonUtils;
-import junit.framework.TestCase;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
@@ -31,9 +30,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.inmemory.InMemoryTestContainerFactory;
 import org.glassfish.jersey.test.spi.TestContainerFactory;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import javax.servlet.ServletContext;
@@ -44,17 +41,15 @@ import javax.ws.rs.core.Response.Status;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
 
 public class TestTransformJSONResource extends JerseyTest {
-
-    @Rule
-    public final ExpectedException exception = ExpectedException.none();
 
     public static final ServletContext servletContext = mock(ServletContext.class);
 
@@ -95,7 +90,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
         assertNotNull(validate);
-        assertTrue(!validate.isValid());
+        assertFalse(validate.isValid());
 
     }
 
@@ -107,7 +102,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
-        TestCase.assertNotNull(validation);
+        assertNotNull(validation);
         assertTrue(validation.isValid());
     }
 
@@ -119,7 +114,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
-        TestCase.assertNotNull(validation);
+        assertNotNull(validation);
         assertTrue(validation.isValid());
     }
 
@@ -131,7 +126,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
-        TestCase.assertNotNull(validation);
+        assertNotNull(validation);
         assertTrue(validation.isValid());
     }
 
@@ -143,7 +138,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
-        TestCase.assertNotNull(validation);
+        assertNotNull(validation);
         assertTrue(!validation.isValid());
     }
 
@@ -155,7 +150,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .request()
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
-        TestCase.assertNotNull(validation);
+        assertNotNull(validation);
         assertTrue(validation.isValid());
     }
 
@@ -198,7 +193,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .post(Entity.json(joltSpecificationDTO), ValidationDTO.class);
 
         assertNotNull(validate);
-        assertTrue(!validate.isValid());
+        assertFalse(validate.isValid());
     }
 
     @Test
