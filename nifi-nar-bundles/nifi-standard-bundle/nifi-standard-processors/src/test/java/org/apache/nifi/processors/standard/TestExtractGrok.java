@@ -47,9 +47,21 @@ public class TestExtractGrok {
     }
 
     @Test
+    public void testExtractGrokPatternsProperty() {
+        testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{USERNAME:username} - %{DATA}");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "USERNAME [a-zA-Z0-9._-]+");
+        testRunner.enqueue("admin - 127.0.0.1");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
+        final MockFlowFile matched = testRunner.getFlowFilesForRelationship(ExtractGrok.REL_MATCH).get(0);
+
+        matched.assertAttributeEquals("grok.username","admin");
+    }
+
+    @Test
     public void testExtractGrokWithMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
-        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_MATCH);
@@ -66,7 +78,7 @@ public class TestExtractGrok {
     }
 
     @Test
-    public void testExtractGrokKeepEmptyCaptures() throws Exception {
+    public void testExtractGrokKeepEmptyCaptures()  {
         String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
         testRunner.enqueue("-42");
@@ -77,7 +89,7 @@ public class TestExtractGrok {
     }
 
     @Test
-    public void testExtractGrokDoNotKeepEmptyCaptures() throws Exception {
+    public void testExtractGrokDoNotKeepEmptyCaptures() {
         String expression = "%{NUMBER}|%{NUMBER}";
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION,expression);
         testRunner.setProperty(ExtractGrok.KEEP_EMPTY_CAPTURES,"false");
@@ -92,7 +104,7 @@ public class TestExtractGrok {
     @Test
     public void testExtractGrokWithUnMatchedContent() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{URI}");
-        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_TEXT_INPUT);
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractGrok.REL_NO_MATCH);
@@ -103,7 +115,7 @@ public class TestExtractGrok {
     @Test
     public void testExtractGrokWithNotFoundPatternFile() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
-        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/toto_file");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "file:///src/test/resources/TestExtractGrok/file-not-found");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.assertNotValid();
     }
@@ -111,7 +123,7 @@ public class TestExtractGrok {
     @Test
     public void testExtractGrokWithBadGrokExpression() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{TOTO");
-        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "src/test/resources/TestExtractGrok/patterns");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.assertNotValid();
     }
@@ -119,7 +131,7 @@ public class TestExtractGrok {
     @Test
     public void testExtractGrokWithNamedCapturesOnly() throws IOException {
         testRunner.setProperty(ExtractGrok.GROK_EXPRESSION, "%{COMMONAPACHELOG}");
-        testRunner.setProperty(ExtractGrok.GROK_PATTERN_FILE, "src/test/resources/TestExtractGrok/patterns");
+        testRunner.setProperty(ExtractGrok.GROK_PATTERNS, "src/test/resources/TestExtractGrok/patterns");
         testRunner.setProperty(ExtractGrok.NAMED_CAPTURES_ONLY, "true");
         testRunner.enqueue(GROK_LOG_INPUT);
         testRunner.run();

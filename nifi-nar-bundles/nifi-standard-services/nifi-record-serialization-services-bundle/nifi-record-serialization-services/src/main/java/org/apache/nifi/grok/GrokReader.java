@@ -94,12 +94,13 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             + "The schema will also include a `stackTrace` field, and a `_raw` field containing the input line string."
     );
 
-    static final PropertyDescriptor PATTERN_FILE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor GROK_PATTERNS = new PropertyDescriptor.Builder()
         .name("Grok Pattern File")
-        .description("Path to a file that contains Grok Patterns to use for parsing logs. If not specified, a built-in default Pattern file "
-            + "will be used. If specified, all patterns in the given pattern file will override the default patterns. See the Controller Service's "
+        .displayName("Grok Patterns")
+        .description("Grok Patterns to use for parsing logs. If not specified, a built-in default Pattern file "
+            + "will be used. If specified, all patterns specified will override the default patterns. See the Controller Service's "
             + "Additional Details for a list of pre-defined patterns.")
-        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL, ResourceType.TEXT)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
@@ -130,7 +131,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(PATTERN_FILE);
+        properties.add(GROK_PATTERNS);
         properties.add(GROK_EXPRESSION);
         properties.add(NO_MATCH_BEHAVIOR);
         return properties;
@@ -144,10 +145,9 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
             grokCompiler.register(defaultPatterns);
         }
 
-        if (context.getProperty(PATTERN_FILE).isSet()) {
-            try (final InputStream in = context.getProperty(PATTERN_FILE).evaluateAttributeExpressions().asResource().read();
-                 final Reader reader = new InputStreamReader(in)) {
-                grokCompiler.register(reader);
+        if (context.getProperty(GROK_PATTERNS).isSet()) {
+            try (final InputStream patterns = context.getProperty(GROK_PATTERNS).evaluateAttributeExpressions().asResource().read()) {
+                grokCompiler.register(patterns);
             }
         }
 
@@ -191,8 +191,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
                     .build());
         }
 
-        final String patternFileName = validationContext.getProperty(PATTERN_FILE).evaluateAttributeExpressions().getValue();
-        final GrokExpressionValidator validator = new GrokExpressionValidator(patternFileName, grokCompiler);
+        final ResourceReference patternsReference = validationContext.getProperty(GROK_PATTERNS).evaluateAttributeExpressions().asResource();
+        final GrokExpressionValidator validator = new GrokExpressionValidator(patternsReference, grokCompiler);
 
         try {
             final List<String> grokExpressions = readGrokExpressions(validationContext);
