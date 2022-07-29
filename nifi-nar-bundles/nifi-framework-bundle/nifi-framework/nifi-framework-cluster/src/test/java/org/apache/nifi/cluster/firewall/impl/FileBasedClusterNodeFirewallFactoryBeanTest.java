@@ -20,16 +20,16 @@ import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.spring.FileBasedClusterNodeFirewallFactoryBean;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class FileBasedClusterNodeFirewallFactoryBeanTest {
     private static final String PROPERTIES_SUFFIX = ".firewall.properties";
@@ -38,7 +38,7 @@ public class FileBasedClusterNodeFirewallFactoryBeanTest {
 
     private NiFiProperties properties;
 
-    @Before
+    @BeforeEach
     public void setFactoryBean() {
         properties = NiFiProperties.createBasicNiFiProperties(StringUtils.EMPTY);
         factoryBean = new FileBasedClusterNodeFirewallFactoryBean();

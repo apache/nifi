@@ -16,20 +16,21 @@
  */
 package org.apache.nifi.cluster.firewall.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class FileBasedClusterNodeFirewallTest {
 
@@ -43,8 +44,8 @@ public class FileBasedClusterNodeFirewallTest {
 
     private File restoreDirectory;
 
-    @Rule
-    public final TemporaryFolder temp = new TemporaryFolder();
+    @TempDir
+    private Path tempDir;
 
     private static final String NONEXISTENT_HOSTNAME = "abc";
 
@@ -55,7 +56,7 @@ public class FileBasedClusterNodeFirewallTest {
      * This can be a problem i.e. on residential ISPs in the USA because the provider will often
      * wildcard match all possible DNS names in an attempt to serve advertising.
      */
-    @BeforeClass
+    @BeforeAll
     public static void ensureBadHostsDoNotWork() {
         final InetAddress ip;
         try {
@@ -65,33 +66,16 @@ public class FileBasedClusterNodeFirewallTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
 
         ipsConfig = new File(getClass().getResource("/org/apache/nifi/cluster/firewall/impl/ips.txt").toURI());
         emptyConfig = new File(getClass().getResource("/org/apache/nifi/cluster/firewall/impl/empty.txt").toURI());
 
-        restoreDirectory = temp.newFolder("firewall_restore");
+        restoreDirectory = Files.createDirectory(tempDir.resolve("firewall_restore")).toFile();
 
         ipsFirewall = new FileBasedClusterNodeFirewall(ipsConfig, restoreDirectory);
         acceptAllFirewall = new FileBasedClusterNodeFirewall(emptyConfig);
-    }
-
-    /**
-     * We have two garbage lines in our test config file, ensure they didn't get turned into hosts.
-     */
-    @Ignore("This does not run consistently on different environments")
-    @Test
-    public void ensureBadDataWasIgnored() {
-        assumeTrue(badHostsDoNotResolve);
-        assertFalse("firewall treated our malformed data as a host. If " +
-                        "`host \"bad data should be skipped\"` works locally, this test should have been " +
-                        "skipped.",
-                ipsFirewall.isPermissible("bad data should be skipped"));
-        assertFalse("firewall treated our malformed data as a host. If " +
-                        "`host \"more bad data\"` works locally, this test should have been " +
-                        "skipped.",
-                ipsFirewall.isPermissible("more bad data"));
     }
 
     @Test
@@ -117,9 +101,9 @@ public class FileBasedClusterNodeFirewallTest {
     @Test
     public void testIsPermissibleWithMalformedData() {
         assumeTrue(badHostsDoNotResolve);
-        assertFalse("firewall allowed host '" + NONEXISTENT_HOSTNAME + "' rather than rejecting as malformed. If `host " + NONEXISTENT_HOSTNAME + "` "
-                        + "works locally, this test should have been skipped.",
-                ipsFirewall.isPermissible(NONEXISTENT_HOSTNAME));
+        assertFalse(ipsFirewall.isPermissible(NONEXISTENT_HOSTNAME),
+                "firewall allowed host '" + NONEXISTENT_HOSTNAME + "' rather than rejecting as malformed. " +
+                        "If `host " + NONEXISTENT_HOSTNAME + "` works locally, this test should have been skipped.");
     }
 
     @Test
@@ -130,9 +114,9 @@ public class FileBasedClusterNodeFirewallTest {
     @Test
     public void testIsPermissibleWithEmptyConfigWithMalformedData() {
         assumeTrue(badHostsDoNotResolve);
-        assertTrue("firewall did not allow malformed host '" + NONEXISTENT_HOSTNAME + "' under permissive configs. If " +
-                        "`host " + NONEXISTENT_HOSTNAME + "` works locally, this test should have been skipped.",
-                acceptAllFirewall.isPermissible(NONEXISTENT_HOSTNAME));
+        assertTrue(acceptAllFirewall.isPermissible(NONEXISTENT_HOSTNAME),
+                "firewall did not allow malformed host '" + NONEXISTENT_HOSTNAME + "' under permissive configs. " +
+                        "If `host " + NONEXISTENT_HOSTNAME + "` works locally, this test should have been skipped.");
     }
 
 }

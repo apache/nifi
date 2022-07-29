@@ -17,7 +17,7 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -25,7 +25,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestStatusHistoryEndpointMerger {
     @Test

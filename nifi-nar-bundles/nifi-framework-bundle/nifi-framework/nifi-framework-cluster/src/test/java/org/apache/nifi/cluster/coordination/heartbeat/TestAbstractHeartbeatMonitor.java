@@ -30,14 +30,12 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,21 +48,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestAbstractHeartbeatMonitor {
     private NodeIdentifier nodeId;
     private TestFriendlyHeartbeatMonitor monitor;
 
-    @Before
+    @BeforeEach
     public void setup() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
         nodeId = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9999, "localhost", 8888, "localhost", 777, "localhost", null, null, false);
     }
 
-    @After
-    public void clear() throws IOException {
+    @AfterEach
+    public void clear() {
         if (monitor != null) {
             monitor.stop();
         }
@@ -77,7 +75,7 @@ public class TestAbstractHeartbeatMonitor {
      * @throws InterruptedException if interrupted
      */
     @Test
-    public void testNewConnectedHeartbeatFromUnknownNode() throws IOException, InterruptedException {
+    public void testNewConnectedHeartbeatFromUnknownNode() throws InterruptedException {
         final List<NodeIdentifier> requestedToConnect = Collections.synchronizedList(new ArrayList<>());
         final ClusterCoordinatorAdapter coordinator = new ClusterCoordinatorAdapter() {
             @Override
@@ -137,40 +135,6 @@ public class TestAbstractHeartbeatMonitor {
         assertEquals(1, requestedToDisconnect.size());
         assertEquals(nodeId, requestedToDisconnect.iterator().next());
         assertTrue(requestedToConnect.isEmpty());
-    }
-
-    @Ignore("this test is too unstable in terms of timing on different size/types of testing envs")
-    @Test
-    public void testDisconnectionOfTerminatedNodeDueToLackOfHeartbeat() throws Exception {
-        final NodeIdentifier nodeId1 = nodeId;
-        final NodeIdentifier nodeId2 = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 7777, "localhost", 6666, "localhost", 5555, "localhost", null, null, false);
-
-        final ClusterCoordinatorAdapter adapter = new ClusterCoordinatorAdapter();
-        final TestFriendlyHeartbeatMonitor monitor = createMonitor(adapter);
-
-        // set state to connecting
-        adapter.requestNodeConnect(nodeId1);
-        adapter.requestNodeConnect(nodeId2);
-
-        // ensure each node is connected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTING).containsAll(Arrays.asList(nodeId1, nodeId2)));
-
-        // let each node heartbeat in
-        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
-        monitor.addHeartbeat(createHeartbeat(nodeId2, NodeConnectionState.CONNECTED));
-        monitor.waitForProcessed();
-
-        // ensure each node is now connected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).containsAll(Arrays.asList(nodeId1, nodeId2)));
-
-        // purge the heartbeats, simulate nodeId2 termination by only having a nodeId1 heartbeat be present
-        monitor.purgeHeartbeats();
-        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
-        monitor.waitForProcessed();
-
-        // the node that did not heartbeat in should be disconnected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).contains(nodeId1));
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.DISCONNECTED).contains(nodeId2));
     }
 
     @Test

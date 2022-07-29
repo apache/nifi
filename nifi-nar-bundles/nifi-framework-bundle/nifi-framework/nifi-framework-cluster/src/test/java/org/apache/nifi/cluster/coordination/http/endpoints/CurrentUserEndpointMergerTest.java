@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.ComponentRestrictionPermissionDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.RequiredPermissionDTO;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -31,9 +31,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class CurrentUserEndpointMergerTest {
 
