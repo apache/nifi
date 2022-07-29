@@ -112,7 +112,7 @@ public class TestGrokReader {
 
         final GrokReader grokReader = new GrokReader();
         runner.addControllerService(GrokReader.class.getSimpleName(), grokReader);
-        runner.setProperty(grokReader, GrokReader.PATTERN_FILE, grokPatternFile);
+        runner.setProperty(grokReader, GrokReader.GROK_PATTERNS, grokPatternFile);
         runner.setProperty(grokReader, GrokReader.GROK_EXPRESSION, grokExpression);
         runner.enableControllerService(grokReader);
 
@@ -168,6 +168,36 @@ public class TestGrokReader {
         assertEquals(level, secondRecord.getValue(LEVEL_FIELD));
         assertEquals(message, secondRecord.getValue(MESSAGE_FIELD));
         assertEquals(timestamp, secondRecord.getValue(TIMESTAMP_FIELD));
+
+        assertNull(recordReader.nextRecord());
+    }
+
+    @Test
+    public void testPatternsProperty() throws InitializationException, IOException, SchemaNotFoundException, MalformedRecordException {
+        final String program = "NiFi";
+        final String level = "INFO";
+        final String message = "Processing Started";
+
+        final String logs = String.format("%s %s %s%n", program, level, message);
+        final byte[] bytes = logs.getBytes(StandardCharsets.UTF_8);
+
+        final String matchingExpression = "%{PROGRAM:program} %{LOGLEVEL:level} %{GREEDYDATA:message}";
+
+        final GrokReader grokReader = new GrokReader();
+        runner.addControllerService(GrokReader.class.getSimpleName(), grokReader);
+        runner.setProperty(grokReader, GrokReader.GROK_PATTERNS, "PROGRAM [a-zA-Z]+");
+        runner.setProperty(grokReader, GrokReader.GROK_EXPRESSION, matchingExpression);
+        runner.setProperty(grokReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, GrokReader.STRING_FIELDS_FROM_GROK_EXPRESSION);
+        runner.enableControllerService(grokReader);
+
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
+        final RecordReader recordReader = grokReader.createRecordReader(Collections.emptyMap(), inputStream, bytes.length, runner.getLogger());
+
+        final Record firstRecord = recordReader.nextRecord();
+        assertNotNull(firstRecord);
+        assertEquals(program, firstRecord.getValue(PROGRAM_FIELD));
+        assertEquals(level, firstRecord.getValue(LEVEL_FIELD));
+        assertEquals(message, firstRecord.getValue(MESSAGE_FIELD));
 
         assertNull(recordReader.nextRecord());
     }
