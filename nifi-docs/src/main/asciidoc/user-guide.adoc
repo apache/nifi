@@ -1303,7 +1303,7 @@ far-right column. Other buttons in this column include "Enable", "Remove" and "A
 
 image:controller-services-configure-buttons.png["Controller Services Buttons"]
 
-You can obtain information about Controller Services by clicking the "Usage" and "Alerts" buttons in the left-hand column.
+You can obtain information about Controller Services by clicking the "Usage", "Comments" and "Alerts" buttons in the left-hand column.
 
 image:controller-services-info-buttons.png["Controller Services Information Buttons"]
 
@@ -1370,7 +1370,7 @@ Once a Reporting Task has been added, the DFM may configure it by clicking the "
 
 image:reporting-tasks-edit-buttons.png["Reporting Tasks Edit Buttons"]
 
-You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
+You can obtain information about Reporting Tasks by clicking the "View Details", "Usage", "Comments" and "Alerts" buttons in the left-hand column.
 
 image:reporting-tasks-info-buttons.png["Reporting Tasks Information Buttons"]
 
