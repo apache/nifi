@@ -30,7 +30,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.inmemory.InMemoryTestContainerFactory;
 import org.glassfish.jersey.test.spi.TestContainerFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
@@ -42,9 +42,9 @@ import javax.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -129,12 +129,7 @@ public class TestProcessorResource extends JerseyTest {
 
         assertNotNull(value);
 
-        try{
-            assertTrue(value.get("name").asText().equals("mytransform"));
-        } catch (Exception e){
-            fail("Failed due to: " + e.toString());
-        }
-
+        assertEquals("mytransform", value.get("name").asText());
     }
 
     public static class MockRequestContext implements Factory<HttpServletRequest> {
