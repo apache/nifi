@@ -1197,42 +1197,75 @@ public final class StandardProcessGroup implements ProcessGroup {
             if (isInputPort(source)) { // if source is an input port, its destination must be in the same group unless it's an input port
                 if (isInputPort(destination)) { // if destination is input port, it must be in a child group.
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because destination is an Input Port that does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection for Input Port[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because destination [" + destination.getIdentifier() +
+                                "] is an Input Port that does not belong to a child Process Group");
                     }
                 } else if (sourceGroup != this || destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because source and destination are not both in this Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Input Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination [" + destination.getIdentifier() +
+                            "] because source and destination are not both in this Process Group");
                 }
             } else if (isOutputPort(source)) {
                 // if source is an output port, its group must be a child of this group, and its destination must be in this
                 // group (processor/output port) or a child group (input port)
                 if (!processGroups.containsKey(sourceGroup.getIdentifier())) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because source is an Output Port that does not belong to a child Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination [" + destination.getIdentifier() +
+                            "] because source is an Output Port that does not belong to a child Process Group");
                 }
 
                 if (isInputPort(destination)) {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input Port that does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because destination [" + destination.getIdentifier() +
+                                "] is an Input Port that does not belong to a child Process Group");
                     }
                 } else if (destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because its destination does not belong to this Process Group");
+                    throw new IllegalStateException("Cannot add Connection for Output Port[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] because its destination [" + destination.getIdentifier() +
+                            "] does not belong to this Process Group");
                 }
             } else { // source is not a port
                 if (sourceGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection to Process Group because the source does not belong to this Process Group");
+                    throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] because the source does not belong to this Process Group");
                 }
 
                 if (isOutputPort(destination)) {
                     if (destinationGroup != this) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Output Port but does not belong to this Process Group");
+                        throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because its destination [" + destination.getIdentifier() +
+                                "] is an Output Port that does not belong to this Process Group");
                     }
                 } else if (isInputPort(destination)) {
                     if (!processGroups.containsKey(destinationGroup.getIdentifier())) {
-                        throw new IllegalStateException("Cannot add Connection to Process Group because its destination is an Input "
-                            + "Port but the Input Port does not belong to a child Process Group");
+                        throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                                "] from Process Group [" + sourceGroup.getIdentifier() +
+                                "] to Process Group [" + destinationGroup.getIdentifier() +
+                                "] because its destination [" + destination.getIdentifier() +
+                                "] is an Input Port but the Input Port does not belong to a child Process Group");
                     }
                 } else if (destinationGroup != this) {
-                    throw new IllegalStateException("Cannot add Connection between " + source.getIdentifier() + " and " + destination.getIdentifier()
-                        + " because they are in different Process Groups and neither is an Input Port or Output Port");
+                    throw new IllegalStateException("Cannot add Connection from " + source.getConnectableType().name() + "[" + source.getIdentifier() +
+                            "] from Process Group [" + sourceGroup.getIdentifier() +
+                            "] to Process Group [" + destinationGroup.getIdentifier() +
+                            "] destination " + destination.getConnectableType().name() + "[" + destination.getIdentifier() +
+                            "] because they are in different Process Groups and neither is an Input Port or Output Port");
                 }
             }
 
