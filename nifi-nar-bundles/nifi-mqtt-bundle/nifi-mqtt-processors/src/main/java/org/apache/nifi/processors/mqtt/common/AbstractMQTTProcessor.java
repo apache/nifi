@@ -378,7 +378,11 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if (usernameProp.isSet()) {
             connectionProperties.setUsername(usernameProp.evaluateAttributeExpressions().getValue());
-            connectionProperties.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
+        }
+
+        final PropertyValue passwordProp = context.getProperty(PROP_PASSWORD);
+        if (passwordProp.isSet()) {
+            connectionProperties.setPassword(passwordProp.getValue().toCharArray());
         }
 
         return connectionProperties;
