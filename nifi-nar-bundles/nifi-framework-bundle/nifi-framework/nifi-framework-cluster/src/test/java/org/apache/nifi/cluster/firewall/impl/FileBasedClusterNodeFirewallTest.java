@@ -18,7 +18,6 @@ package org.apache.nifi.cluster.firewall.impl;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -77,19 +76,6 @@ public class FileBasedClusterNodeFirewallTest {
 
         ipsFirewall = new FileBasedClusterNodeFirewall(ipsConfig, restoreDirectory);
         acceptAllFirewall = new FileBasedClusterNodeFirewall(emptyConfig);
-    }
-
-    /**
-     * We have two garbage lines in our test config file, ensure they didn't get turned into hosts.
-     */
-    @Disabled("This does not run consistently on different environments")
-    @Test
-    public void ensureBadDataWasIgnored() {
-        final String errorMsg = "firewall treated our malformed data as a host. If `host \"bad data should be skipped\"` " +
-                "works locally, this test should have been skipped.";
-        assumeTrue(badHostsDoNotResolve);
-        assertFalse(ipsFirewall.isPermissible("bad data should be skipped"), errorMsg);
-        assertFalse(ipsFirewall.isPermissible("more bad data"), errorMsg);
     }
 
     @Test

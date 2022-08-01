@@ -60,7 +60,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 20000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 20)
     public void testSingleNode() {
         final Node firstNode = cluster.createNode();
         firstNode.waitUntilConnected(10, TimeUnit.SECONDS);
@@ -70,7 +70,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 60)
     public void testThreeNodeCluster() {
         cluster.createNode();
         cluster.createNode();
@@ -87,7 +87,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 60)
     public void testNewCoordinatorElected() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -102,7 +102,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 60)
     public void testReconnectGetsCorrectClusterTopology() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -146,7 +146,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 60)
     public void testRestartAllNodes() throws IOException {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -197,7 +197,7 @@ public class ClusterConnectionIT {
 
 
     @Test
-    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 30)
     public void testHeartbeatsMonitored() {
         final Node firstNode = cluster.createNode();
         final Node secondNode = cluster.createNode();
@@ -218,7 +218,7 @@ public class ClusterConnectionIT {
     }
 
     @Test
-    @Timeout(value = 60000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 60)
     public void testNodeInheritsClusterTopologyOnHeartbeat() throws InterruptedException {
         final Node node1 = cluster.createNode();
         final Node node2 = cluster.createNode();

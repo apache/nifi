@@ -40,7 +40,6 @@ public class OkHttpReplicationClientTest {
 
     @Test
     public void testShouldReplaceNonZeroContentLengthHeader() {
-        // Arrange
         final Map<String, String> headers = new HashMap<>();
         headers.put("Content-Length", "123");
         headers.put("Other-Header", "arbitrary value");
@@ -53,10 +52,8 @@ public class OkHttpReplicationClientTest {
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockProperties);
 
         for (final String method: methods) {
-            // Act
             client.prepareRequest(method, headers, null);
 
-            // Assert
             assertEquals(2, headers.size());
             assertEquals("0", headers.get("Content-Length"));
         }
@@ -64,7 +61,6 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldNotReplaceContentLengthHeaderWhenZeroOrNull() {
-        // Arrange
         final String method = "DELETE";
         final String[] zeroOrNullContentLengths = new String[] {null, "0"};
 
@@ -72,7 +68,6 @@ public class OkHttpReplicationClientTest {
 
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockProperties);
 
-        // Act
         final Map<String, String> headers = new HashMap<>();
         for (final String contentLength: zeroOrNullContentLengths) {
             headers.put("Content-Length", contentLength);
@@ -80,7 +75,6 @@ public class OkHttpReplicationClientTest {
 
             client.prepareRequest(method, headers, null);
 
-            // Assert
             assertEquals(2, headers.size());
             assertEquals(contentLength, headers.get("Content-Length"));
         }
@@ -88,7 +82,6 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldNotReplaceNonZeroContentLengthHeaderOnOtherMethod() {
-        // Arrange
         final Map<String, String> headers = new HashMap<>();
         headers.put("Content-Length", "123");
         headers.put("Other-Header", "arbitrary value");
@@ -99,11 +92,9 @@ public class OkHttpReplicationClientTest {
 
         final String[] nonDeleteMethods = new String[] {"POST", "PUT", "GET", "HEAD"};
 
-        // Act
         for (final String method: nonDeleteMethods) {
             client.prepareRequest(method, headers, null);
 
-            // Assert
             assertEquals(2, headers.size());
             assertEquals("123", headers.get("Content-Length"));
         }
@@ -111,7 +102,6 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldUseKeystorePasswordIfKeyPasswordIsBlank() {
-        // Arrange
         final Map<String, String> propsMap = new HashMap() {{
             put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
             put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
@@ -125,16 +115,13 @@ public class OkHttpReplicationClientTest {
         }};
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
-        // Act
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
 
-        // Assert
         assertTrue(client.isTLSConfigured());
     }
 
     @Test
     void testShouldUseKeystorePasswordIfKeyPasswordIsNull() {
-        // Arrange
         final Map<String, String> flowfileEncryptionProps = new HashMap() {{
             put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
             put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
@@ -148,16 +135,13 @@ public class OkHttpReplicationClientTest {
 
         final NiFiProperties mockNiFiProperties = new NiFiProperties(flowfileEncryptionProps);
 
-        // Act
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
 
-        // Assert
         assertTrue(client.isTLSConfigured());
     }
 
     @Test
     void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
-        // Arrange
         final Map<String, String> propsMap = new HashMap() {{
             put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
             put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
@@ -169,16 +153,13 @@ public class OkHttpReplicationClientTest {
         }};
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
-        // Act
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
 
-        // Assert
         assertFalse(client.isTLSConfigured());
     }
 
     @Test
     void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
-        // Arrange
         final Map<String, String> propsMap = new HashMap() {{
             put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
             put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
@@ -192,16 +173,13 @@ public class OkHttpReplicationClientTest {
 
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
-        // Act
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
 
-        // Assert
         assertFalse(client.isTLSConfigured());
     }
 
     @Test
     void testShouldDetermineIfTLSConfigured() {
-        // Arrange
         final Map<String, String> propsMap = new HashMap() {{
             put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
             put(NiFiProperties.WEB_HTTPS_PORT, "51552");
@@ -224,12 +202,10 @@ public class OkHttpReplicationClientTest {
         final NiFiProperties mockTLSNiFiProperties = new NiFiProperties(tlsPropsMap);
         final NiFiProperties mockInvalidTLSNiFiProperties = new NiFiProperties(invalidTlsPropsMap);
 
-        // Act
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
         final OkHttpReplicationClient invalidTlsClient = new OkHttpReplicationClient(mockInvalidTLSNiFiProperties);
         final OkHttpReplicationClient tlsClient = new OkHttpReplicationClient(mockTLSNiFiProperties);
 
-        // Assert
         assertFalse(client.isTLSConfigured());
         assertFalse(invalidTlsClient.isTLSConfigured());
         assertTrue(tlsClient.isTLSConfigured());

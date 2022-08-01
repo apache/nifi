@@ -54,7 +54,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -177,7 +176,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testUnknownNodeAskedToConnectOnAttemptedConnectionComplete() throws IOException, InterruptedException {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final AtomicReference<ReconnectionRequestMessage> requestRef = new AtomicReference<>();
@@ -225,7 +224,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testFinishNodeConnectionResultsInConnectedState() throws InterruptedException {
         final NodeIdentifier nodeId = createNodeId(1);
 
@@ -249,7 +248,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testStatusChangesReplicated() throws InterruptedException {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
         when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
@@ -347,7 +346,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testRequestNodeDisconnect() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
@@ -372,7 +371,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testCannotDisconnectLastNode() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);
@@ -397,7 +396,7 @@ public class TestNodeClusterCoordinator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testUpdateNodeStatusOutOfOrder() throws InterruptedException {
         // Add a connected node
         final NodeIdentifier nodeId1 = createNodeId(1);

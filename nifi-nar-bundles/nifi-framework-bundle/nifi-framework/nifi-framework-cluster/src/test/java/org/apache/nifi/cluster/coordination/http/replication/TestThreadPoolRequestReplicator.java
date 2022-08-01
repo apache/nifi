@@ -34,6 +34,7 @@ import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -74,6 +75,11 @@ public class TestThreadPoolRequestReplicator {
     @BeforeAll
     public static void setupClass() {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/conf/nifi.properties");
+    }
+
+    @AfterAll
+    public static void clearProperty() {
+        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
     }
 
     @Test
@@ -195,7 +201,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
-    @Timeout(value = 16000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 15)
     public void testLongWaitForResponse() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
@@ -225,7 +231,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
-    @Timeout(value = 15000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 15)
     public void testCompleteOnError() {
         withReplicator(replicator -> {
             final Set<NodeIdentifier> nodeIds = new HashSet<>();
@@ -251,7 +257,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
-    @Timeout(value = 15000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 15)
     public void testMultipleRequestWithTwoPhaseCommit() throws Exception {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
         final NodeIdentifier nodeId = new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false);
@@ -318,7 +324,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
-    @Timeout(value = 15000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 15)
     public void testOneNodeRejectsTwoPhaseCommit() {
         final Set<NodeIdentifier> nodeIds = new HashSet<>();
         nodeIds.add(new NodeIdentifier("1", "localhost", 8100, "localhost", 8101, "localhost", 8102, 8103, false));
@@ -353,7 +359,7 @@ public class TestThreadPoolRequestReplicator {
             }
         };
 
-        final Exception exception = assertThrows(Exception.class, () -> {
+        final IllegalClusterStateException exception = assertThrows(IllegalClusterStateException.class, () -> {
             final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(StandardNiFiUser.ANONYMOUS));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -361,12 +367,11 @@ public class TestThreadPoolRequestReplicator {
                     new URI("http://localhost:80/processors/1"), new ProcessorEntity(), new HashMap<>(), true, true);
             clusterResponse.awaitMergedResponse();
         });
-        assertTrue(exception instanceof IllegalClusterStateException);
         replicator.shutdown();
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnException() {
         withReplicator(replicator -> {
             final Object monitor = new Object();
@@ -416,7 +421,7 @@ public class TestThreadPoolRequestReplicator {
     }
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnSuccessfulCompletion() {
         withReplicator(replicator -> {
             final Object monitor = new Object();
@@ -470,7 +475,7 @@ public class TestThreadPoolRequestReplicator {
 
 
     @Test
-    @Timeout(value = 5000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 5)
     public void testMonitorNotifiedOnFailureResponse() {
         withReplicator(replicator -> {
             final Object monitor = new Object();

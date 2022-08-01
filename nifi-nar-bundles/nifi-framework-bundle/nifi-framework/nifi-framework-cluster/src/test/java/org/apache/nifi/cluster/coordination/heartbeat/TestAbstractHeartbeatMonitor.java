@@ -32,12 +32,10 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -137,40 +135,6 @@ public class TestAbstractHeartbeatMonitor {
         assertEquals(1, requestedToDisconnect.size());
         assertEquals(nodeId, requestedToDisconnect.iterator().next());
         assertTrue(requestedToConnect.isEmpty());
-    }
-
-    @Disabled("this test is too unstable in terms of timing on different size/types of testing envs")
-    @Test
-    public void testDisconnectionOfTerminatedNodeDueToLackOfHeartbeat() throws Exception {
-        final NodeIdentifier nodeId1 = nodeId;
-        final NodeIdentifier nodeId2 = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 7777, "localhost", 6666, "localhost", 5555, "localhost", null, null, false);
-
-        final ClusterCoordinatorAdapter adapter = new ClusterCoordinatorAdapter();
-        final TestFriendlyHeartbeatMonitor monitor = createMonitor(adapter);
-
-        // set state to connecting
-        adapter.requestNodeConnect(nodeId1);
-        adapter.requestNodeConnect(nodeId2);
-
-        // ensure each node is connected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTING).containsAll(Arrays.asList(nodeId1, nodeId2)));
-
-        // let each node heartbeat in
-        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
-        monitor.addHeartbeat(createHeartbeat(nodeId2, NodeConnectionState.CONNECTED));
-        monitor.waitForProcessed();
-
-        // ensure each node is now connected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).containsAll(Arrays.asList(nodeId1, nodeId2)));
-
-        // purge the heartbeats, simulate nodeId2 termination by only having a nodeId1 heartbeat be present
-        monitor.purgeHeartbeats();
-        monitor.addHeartbeat(createHeartbeat(nodeId1, NodeConnectionState.CONNECTED));
-        monitor.waitForProcessed();
-
-        // the node that did not heartbeat in should be disconnected
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.CONNECTED).contains(nodeId1));
-        assertTrue(adapter.getNodeIdentifiers(NodeConnectionState.DISCONNECTED).contains(nodeId2));
     }
 
     @Test
