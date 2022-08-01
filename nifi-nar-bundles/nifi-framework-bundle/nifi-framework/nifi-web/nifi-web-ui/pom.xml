@@ -216,6 +216,10 @@
                                         <include>slickgrid/plugins/slick.cellrangeselector.js</include>
                                         <include>slickgrid/plugins/slick.cellselectionmodel.js</include>
                                         <include>slickgrid/plugins/slick.rowselectionmodel.js</include>
+                                        <include>slickgrid/plugins/slick.checkboxselectcolumn.js</include>
+                                        <include>slickgrid/plugins/slick.cellcopymanager.js</include>
+                                        <include>slickgrid/plugins/slick.cellrangedecorator.js</include>
+                                        <include>slickgrid/controls/slick.columnpicker.js</include>
                                         <include>slickgrid/lib/jquery.event.drag-2.3.0.js</include>
                                         <include>slickgrid/slick.grid.css</include>
                                         <include>slickgrid/images/collapse.gif</include>

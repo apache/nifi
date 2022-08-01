@@ -19,8 +19,7 @@
     Parameter provider configuration styles.
 */
 
-#parameter-provider-configuration,
-#fetch-parameters-dialog {
+#parameter-provider-configuration {
     position: absolute;
     overflow: hidden;
     width: 800px;
@@ -28,6 +27,36 @@
     font-size: 10px;
     z-index: 1301;
     display: none;
+}
+
+#fetch-parameters-dialog {
+    position: absolute;
+    overflow: hidden;
+    min-width: 1048px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+#fetch-parameters-dialog div.create-parameter-context-label {
+    display: inline-block;
+    line-height: normal;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-left {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-center {
+    float: left;
+    width: 33%;
+}
+
+#fetch-parameters-dialog .dialog-content div.settings-right {
+    float: left;
+    width: 30%;
 }
 
 #parameter-provider-configuration-advanced {
@@ -72,6 +101,15 @@
     Fetch parameters dialog
 */
 
+#parameter-groups-table {
+    position: relative;
+    height: 300px;
+}
+
+/*#parameter-groups-table .slick-pane .slick-viewport .grid-canvas{*/
+/*    width: 100%;*/
+/*}*/
+
 #fetch-parameters-referencing-components {
     border: 0 solid #CCCCCC;
     overflow: auto;
@@ -84,20 +122,27 @@
 }
 
 #fetch-parameters-listing {
-    position: absolute;
-    bottom: 10px;
-    top: 62px;
-    width: 40%;
-    height: 350px;
-    overflow: auto;
+    overflow-x: auto;
     border: 0 solid #CCCCCC;
-    padding: 4px 2px 2px 2px;
+    padding: 4px 2px;
+    max-height: 300px;
 }
 
-#fetch-parameters-listing li {
+#fetch-parameters-listing li,
+#fetch-parameters-listing span {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
+    padding-left: 10px;
+}
+
+ol#fetch-parameters-listing ul {
+    padding-bottom: 4px;
+}
+
+ul.fetched-parameters {
+    padding: 0 0 2px 0;
+    list-style-type: disc;
 }
 
 div.referencing-component-block {
@@ -224,4 +269,77 @@ div.fetch-parameters-referencing-components {
 
 #fetch-parameters-progress li {
     line-height: 16px;
+}
+
+/*
+    Slickgrid selectable parameters table
+*/
+#selectable-parameters-table {
+    position: relative;
+    height: 300px;
+}
+
+#selectable-parameters-table .slick-cell-checkboxsel {
+    padding: 2px 4px 4px 4px;
+}
+
+#selectable-parameters-table .slick-column-name input {
+    margin: 5px 3px 3px 4px;
+}
+
+#selectable-parameters-table .slick-pane-left .slick-viewport {
+    overflow-x: hidden;
+}
+
+/*TODO: fix styles*/
+
+#parameter-groups-table .slick-pane-top .slick-viewport-top .grid-canvas-top,
+#selectable-parameters-table .slick-pane-top .slick-viewport .grid-canvas-top {
+    width: 100% !important;
+}
+
+#selectable-parameters-table .slick-pane-top .slick-viewport-top .grid-canvas-top .slick-cell.l1 {
+    padding-top: 1px;
+}
+
+#selectable-parameters-table .slick-pane-top .slick-viewport-top .slick-cell.l1:not(.selected) .table-cell {
+    margin-top: 5px;
+}
+
+#fetch-parameters-listing .slick-cell-checkboxsel {
+    background: #f0f0f0;
+    border-right-color: silver;
+    border-right-style: solid;
+}
+
+.slick-columnpicker {
+    border: 1px solid #718BB7;
+    background: #f0f0f0;
+    padding: 6px;
+    -moz-box-shadow: 2px 2px 2px silver;
+    -webkit-box-shadow: 2px 2px 2px silver;
+    box-shadow: 2px 2px 2px silver;
+    min-width: 100px;
+    cursor: default;
+}
+
+.slick-columnpicker li {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+}
+
+.slick-columnpicker input {
+    margin: 4px;
+}
+
+.slick-columnpicker li a {
+    display: block;
+    padding: 4px;
+    font-weight: bold;
+}
+
+.slick-columnpicker li a:hover {
+    background: white;
 }

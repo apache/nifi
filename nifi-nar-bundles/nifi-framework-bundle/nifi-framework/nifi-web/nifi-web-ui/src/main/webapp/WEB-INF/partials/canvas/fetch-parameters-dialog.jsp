@@ -28,17 +28,10 @@
                 </div>
             </div>
             <div id="fetch-parameters-usage-container" class="setting">
-                <div id="fetch-parameters-usage" class="settings-right">
-                    <div class="setting">
-                        <div class="setting-name">
-                            Parameters
-                            <div class="referencing-components-loading"></div>
-                        </div>
-                        <div class="setting-field">
-                            <ol id="fetch-parameters-listing"></ol>
-                        </div>
-                    </div>
+                <div class="setting-name">
+                    Select parameter groups to create parameter contexts
                 </div>
+                <div id="parameter-groups-table"></div>
             </div>
             <div id="fetch-parameters-update-status-container" class="setting">
                 <div id="fetch-parameters-update-status" class="hidden">
@@ -64,17 +57,49 @@
                     </ol>
                 </div>
             </div>
+        <%--end settings-left--%>
         </div>
+
         <div class="spacer">&nbsp;</div>
-        <div class="settings-right">
+
+        <div class="settings-center">
+            <div id="parameters-container" class="setting">
+                <div id="create-parameter-context-checkbox-container" class="setting-field"></div>
+                <div id="fetched-parameters-container" class="setting">
+                    <div class="setting-name">
+                        Fetched parameters
+                    </div>
+                    <div class="setting-field">
+                        <ol id="fetch-parameters-listing"></ol>
+                    </div>
+                </div>
+                <div id="selectable-parameters-container" class="setting">
+                    <div class="setting-name">
+                        Select parameters to be marked as sensitive
+                    </div>
+                    <div id="selectable-parameters-table" class="setting-field"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="spacer">&nbsp;</div>
+        <div id="fetch-parameter-usage" class="settings-right">
+            <%--add selected group's parameters here--%>
             <div class="setting">
                 <div class="setting-name">
-                    Referencing Components
-                    <div class="fa fa-question-circle" alt="Info" title="Other components referencing this Parameter Provider."></div>
+                    Parameter Group
+                    <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
-                    <div id="fetch-parameters-referencing-components"></div>
+                    <div id="fetch-parameter-referencing-components" class="ellipsis"></div>
                 </div>
+            </div>
+            <div class="setting">
+                <div class="setting-name">
+                    Affected Referencing Components
+                    <div class="fa fa-question-circle" alt="Info" title="Other components referencing this Parameter Provider."></div>
+                </div>
+                <div id="fetch-parameters-referencing-components-container" class="setting-field"></div>
             </div>
         </div>
     </div>

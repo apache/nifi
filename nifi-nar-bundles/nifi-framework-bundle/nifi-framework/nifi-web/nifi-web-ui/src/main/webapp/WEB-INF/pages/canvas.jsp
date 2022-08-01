@@ -69,6 +69,10 @@
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellselectionmodel.js"></script>
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.rowselectionmodel.js"></script>
         <script type="text/javascript" src="assets/slickgrid/plugins/slick.autotooltips.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.checkboxselectcolumn.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.cellcopymanager.js"></script>
+        <script type="text/javascript" src="assets/slickgrid/plugins/slick.O"></script>
+        <script type="text/javascript" src="assets/slickgrid/controls/slick.columnpicker.js"></script>
         <script type="text/javascript" src="assets/slickgrid/slick.formatters.js"></script>
         <script type="text/javascript" src="assets/slickgrid/slick.editors.js"></script>
         <script type="text/javascript" src="assets/slickgrid/slick.dataview.js"></script>
