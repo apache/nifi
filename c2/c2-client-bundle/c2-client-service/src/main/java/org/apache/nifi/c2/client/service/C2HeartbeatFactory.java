@@ -146,22 +146,18 @@ public class C2HeartbeatFactory {
                     logger.debug("Instance has multiple interfaces.  Generated information may be non-deterministic.");
                 }
 
-                NetworkInterface iface = operationIfaces.iterator().next();
-                Enumeration<InetAddress> inetAddresses = iface.getInetAddresses();
-                while (inetAddresses.hasMoreElements()) {
-                    InetAddress inetAddress = inetAddresses.nextElement();
-                    String hostAddress = inetAddress.getHostAddress();
-                    String hostName = inetAddress.getHostName();
-                    byte[] address = inetAddress.getAddress();
-                    String canonicalHostName = inetAddress.getCanonicalHostName();
-
-                    networkInfo.setDeviceId(iface.getName());
-                    networkInfo.setHostname(hostName);
-                    networkInfo.setIpAddress(hostAddress);
+                for (NetworkInterface networkInterface : operationIfaces) {
+                    Enumeration<InetAddress> inetAddresses = networkInterface.getInetAddresses();
+                    if (inetAddresses.hasMoreElements()) {
+                        InetAddress inetAddress = inetAddresses.nextElement();
+                        networkInfo.setDeviceId(networkInterface.getName());
+                        networkInfo.setHostname(inetAddress.getHostName());
+                        networkInfo.setIpAddress(inetAddress.getHostAddress());
+                        break;
+                    }
                 }
             }
-        } catch (
-            Exception e) {
+        } catch (Exception e) {
             logger.error("Network Interface processing failed", e);
         }
         return networkInfo;
@@ -206,7 +202,12 @@ public class C2HeartbeatFactory {
         OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
         systemInfo.setMachineArch(osMXBean.getArch());
         systemInfo.setOperatingSystem(osMXBean.getName());
-        systemInfo.setCpuUtilization(osMXBean.getSystemLoadAverage() / (double) osMXBean.getAvailableProcessors());
+
+        double systemLoadAverage = osMXBean.getSystemLoadAverage();
+        // getSystemLoadAverage is not available in Windows, so we need to prevent to send invalid data
+        if (systemLoadAverage >= 0) {
+            systemInfo.setCpuUtilization(systemLoadAverage / (double) osMXBean.getAvailableProcessors());
+        }
 
         return systemInfo;
     }
