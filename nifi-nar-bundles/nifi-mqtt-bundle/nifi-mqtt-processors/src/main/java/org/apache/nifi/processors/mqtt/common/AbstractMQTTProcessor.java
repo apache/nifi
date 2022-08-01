@@ -54,7 +54,9 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
 
 public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProcessor {
 
-    public static int DISCONNECT_TIMEOUT = 5000;
+    public static final int DISCONNECT_TIMEOUT = 5000;
+
+    private static final long SESSION_EXPIRY_INTERVAL_IN_SECONDS = 3600;
 
     protected ComponentLog logger;
 
@@ -174,13 +176,21 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static final PropertyDescriptor PROP_CLEAN_SESSION = new PropertyDescriptor.Builder()
             .name("Session state")
-            .description("Whether to start afresh or resume previous flows. See the allowable value descriptions for more details.")
+            .description("Whether to start a fresh or resume previous flows. See the allowable value descriptions for more details.")
             .required(true)
             .allowableValues(
                     ALLOWABLE_VALUE_CLEAN_SESSION_TRUE,
                     ALLOWABLE_VALUE_CLEAN_SESSION_FALSE
             )
             .defaultValue(ALLOWABLE_VALUE_CLEAN_SESSION_TRUE.getValue())
+            .build();
+
+    public static final PropertyDescriptor PROP_SESSION_EXPIRY_INTERVAL = new PropertyDescriptor.Builder()
+            .name("Session Expiry Interval")
+            .description("After this interval the broker will expire the client and clear the session state.")
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
+            .defaultValue(Long.toString(SESSION_EXPIRY_INTERVAL_IN_SECONDS))
             .build();
 
     public static final PropertyDescriptor PROP_MQTT_VERSION = new PropertyDescriptor.Builder()
@@ -229,6 +239,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         descriptors.add(PROP_LAST_WILL_RETAIN);
         descriptors.add(PROP_LAST_WILL_QOS);
         descriptors.add(PROP_CLEAN_SESSION);
+        descriptors.add(PROP_SESSION_EXPIRY_INTERVAL);
         descriptors.add(PROP_MQTT_VERSION);
         descriptors.add(PROP_CONN_TIMEOUT);
         descriptors.add(PROP_KEEP_ALIVE_INTERVAL);
@@ -347,6 +358,8 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         final MqttConnectionProperties connectionProperties = new MqttConnectionProperties();
 
         connectionProperties.setCleanSession(context.getProperty(PROP_CLEAN_SESSION).asBoolean());
+        connectionProperties.setSessionExpiryInterval(context.getProperty(PROP_SESSION_EXPIRY_INTERVAL).asLong());
+
         connectionProperties.setKeepAliveInterval(context.getProperty(PROP_KEEP_ALIVE_INTERVAL).asInteger());
         connectionProperties.setMqttVersion(context.getProperty(PROP_MQTT_VERSION).asInteger());
         connectionProperties.setConnectionTimeout(context.getProperty(PROP_CONN_TIMEOUT).asInteger());

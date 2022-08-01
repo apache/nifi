@@ -60,8 +60,13 @@ public class HiveMqV5ClientAdapter implements NifiMqttClient {
     @Override
     public void connect(MqttConnectionProperties connectionProperties) throws NifiMqttException {
         final Mqtt5ConnectBuilder connectBuilder = Mqtt5Connect.builder()
-                .keepAlive(connectionProperties.getKeepAliveInterval())
-                .cleanStart(connectionProperties.isCleanSession());
+                .keepAlive(connectionProperties.getKeepAliveInterval());
+
+        final boolean cleanSession = connectionProperties.isCleanSession();
+        connectBuilder.cleanStart(cleanSession);
+        if (!cleanSession) {
+            connectBuilder.sessionExpiryInterval(connectionProperties.getSessionExpiryInterval());
+        }
 
         final String lastWillTopic = connectionProperties.getLastWillTopic();
         if (lastWillTopic != null) {

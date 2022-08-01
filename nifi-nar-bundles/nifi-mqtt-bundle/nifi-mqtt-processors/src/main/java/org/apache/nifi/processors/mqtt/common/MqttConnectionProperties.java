@@ -19,10 +19,13 @@ package org.apache.nifi.processors.mqtt.common;
 import org.apache.nifi.ssl.SSLContextService;
 
 public class MqttConnectionProperties {
-    private boolean cleanSession;
-    private int keepAliveInterval;
+
     private int mqttVersion;
+    private int keepAliveInterval;
     private int connectionTimeout;
+
+    private boolean cleanSession;
+    private Long sessionExpiryInterval;
 
     private SSLContextService sslContextService;
 
@@ -34,12 +37,12 @@ public class MqttConnectionProperties {
     private String username;
     private char[] password;
 
-    public boolean isCleanSession() {
-        return cleanSession;
+    public int getMqttVersion() {
+        return mqttVersion;
     }
 
-    public void setCleanSession(boolean cleanSession) {
-        this.cleanSession = cleanSession;
+    public void setMqttVersion(int mqttVersion) {
+        this.mqttVersion = mqttVersion;
     }
 
     public int getKeepAliveInterval() {
@@ -50,20 +53,28 @@ public class MqttConnectionProperties {
         this.keepAliveInterval = keepAliveInterval;
     }
 
-    public int getMqttVersion() {
-        return mqttVersion;
-    }
-
-    public void setMqttVersion(int mqttVersion) {
-        this.mqttVersion = mqttVersion;
-    }
-
     public int getConnectionTimeout() {
         return connectionTimeout;
     }
 
     public void setConnectionTimeout(int connectionTimeout) {
         this.connectionTimeout = connectionTimeout;
+    }
+
+    public boolean isCleanSession() {
+        return cleanSession;
+    }
+
+    public void setCleanSession(boolean cleanSession) {
+        this.cleanSession = cleanSession;
+    }
+
+    public Long getSessionExpiryInterval() {
+        return sessionExpiryInterval;
+    }
+
+    public void setSessionExpiryInterval(Long sessionExpiryInterval) {
+        this.sessionExpiryInterval = sessionExpiryInterval;
     }
 
     public SSLContextService getSslContextService() {
