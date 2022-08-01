@@ -291,19 +291,24 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     }
 
     protected void onStopped() {
-        try {
-            logger.info("Disconnecting client");
-            mqttClient.disconnect(DISCONNECT_TIMEOUT);
-        } catch (NifiMqttException me) {
-            logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
-        }
+        // Since client is created in the onTrigger method it can happen that it never will be created because of an initialization error.
+        // We are preventing additional nullPtrException here, but the clean solution would be to create the client in the onScheduled method.
+        if (mqttClient != null) {
+            try {
+                logger.info("Disconnecting client");
+                mqttClient.disconnect(DISCONNECT_TIMEOUT);
+            } catch (NifiMqttException me) {
+                logger.error("Error disconnecting MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            }
 
-        try {
-            logger.info("Closing client");
-            mqttClient.close();
+            try {
+                logger.info("Closing client");
+                mqttClient.close();
+            } catch (NifiMqttException me) {
+                logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
+            }
+
             mqttClient = null;
-        } catch (NifiMqttException me) {
-            logger.error("Error closing MQTT client due to {}", new Object[]{me.getMessage()}, me);
         }
     }
 
