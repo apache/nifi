@@ -28,12 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
 import eu.rekawek.toxiproxy.model.ToxicDirection;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +51,7 @@ import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.containers.ToxiproxyContainer.ContainerProxy;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
 public class NiFiSmbjClientIT {
@@ -78,31 +74,20 @@ public class NiFiSmbjClientIT {
             .withLogConsumer(new Slf4jLogConsumer(toxyProxyLogger))
             .withNetworkAliases("toxiproxy");
 
-    private final SMBClient smbClient = new SMBClient();
-    private final AuthenticationContext authenticationContext =
-            new AuthenticationContext("username", "password".toCharArray(), "domain");
-    private SmbjClientService smbjClientService;
-
     @BeforeEach
-    public void beforeEach() throws Exception {
+    public void beforeEach() {
         sambaContainer.start();
         toxiproxy.start();
-        smbjClientService = createClient();
     }
 
     @AfterEach
     public void afterEach() {
-        smbjClientService.close();
-        smbClient.close();
         toxiproxy.stop();
         sambaContainer.stop();
     }
 
     @Test
     public void shouldRescueAfterConnectionFailure() throws Exception {
-        smbjClientService.createDirectory("testDirectory/directory1");
-        smbjClientService.createDirectory("testDirectory/directory2");
-        smbjClientService.createDirectory("testDirectory/directory2/nested_directory");
         writeFile("testDirectory/file", "content");
         writeFile("testDirectory/directory1/file", "content");
         writeFile("testDirectory/directory2/file", "content");
@@ -183,18 +168,8 @@ public class NiFiSmbjClientIT {
     }
 
     private void writeFile(String path, String content) {
-        try (OutputStream outputStream = smbjClientService.getOutputStreamForFile(path)) {
-            outputStream.write(content.getBytes());
-            outputStream.flush();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    private SmbjClientService createClient() throws IOException {
-        SmbjClientService smbjClientService = new SmbjClientService(smbClient, authenticationContext);
-        smbjClientService.connectToShare(sambaContainer.getHost(), sambaContainer.getMappedPort(445), "share");
-        return smbjClientService;
+        String containerPath = "/folder/" + path;
+        sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
     }
 
 }

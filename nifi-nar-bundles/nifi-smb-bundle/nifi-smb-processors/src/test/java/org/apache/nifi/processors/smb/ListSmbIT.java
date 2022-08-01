@@ -35,22 +35,11 @@ import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.testcontainers.shaded.org.apache.commons.io.IOUtils.copy;
-import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
-import com.hierynomus.smbj.SMBClient;
-import com.hierynomus.smbj.auth.AuthenticationContext;
-import com.hierynomus.smbj.connection.Connection;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -58,7 +47,6 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbListableEntity;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
-import org.apache.nifi.services.smb.SmbjClientService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
@@ -71,37 +59,26 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
 public class ListSmbIT {
 
     private final static Integer DEFAULT_SAMBA_PORT = 445;
     private final static Logger logger = LoggerFactory.getLogger(ListSmbTest.class);
-    private final static AtomicLong currentMillis = new AtomicLong();
-    private final static AtomicLong currentNanos = new AtomicLong();
     private final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
             .withExposedPorts(DEFAULT_SAMBA_PORT, 139)
             .waitingFor(Wait.forListeningPort())
             .withLogConsumer(new Slf4jLogConsumer(logger))
             .withCommand("-w domain -u username;password -s share;/folder;;no;no;username;;; -p");
-    private final AuthenticationContext authenticationContext =
-            new AuthenticationContext("username", "password".toCharArray(), "domain");
-    private SMBClient smbClient;
-    private SmbjClientService smbjClientService;
 
     @BeforeEach
-    public void beforeEach() throws Exception {
+    public void beforeEach() {
         sambaContainer.start();
-        smbClient = new SMBClient();
-        smbjClientService = createClient();
     }
 
     @AfterEach
-    public void afterEach() throws IOException {
-        smbjClientService.close();
-        Connection c = smbClient.connect(sambaContainer.getHost(), sambaContainer.getMappedPort(445));
-        c.close(true);
-        smbClient.close();
+    public void afterEach() {
         sambaContainer.stop();
     }
 
@@ -109,7 +86,6 @@ public class ListSmbIT {
     @ValueSource(ints = {4, 50, 45000})
     public void shouldFillSizeAttributeProperly(int size) throws Exception {
         writeFile("1.txt", generateContentWithSize(size));
-        waitForFilesToAppear(1);
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "none");
         testRunner.setProperty(MINIMUM_AGE, "0 ms");
@@ -183,11 +159,7 @@ public class ListSmbIT {
                 "directory/subdirectory2/4.txt",
                 "directory/subdirectory3/5.txt"
         ));
-        smbjClientService.createDirectory("directory/subdirectory");
-        smbjClientService.createDirectory("directory/subdirectory2");
-        smbjClientService.createDirectory("directory/subdirectory3");
         testFiles.forEach(file -> writeFile(file, generateContentWithSize(4)));
-        waitForFilesToAppear(5);
 
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final MockRecordWriter writer = new MockRecordWriter(null, false);
@@ -216,14 +188,12 @@ public class ListSmbIT {
         final Set<String> testFiles = new HashSet<>(asList(
                 "file_name", "directory/file_name", "directory/subdirectory/file_name"
         ));
-        smbjClientService.createDirectory("directory/subdirectory");
         testFiles.forEach(file -> writeFile(file, generateContentWithSize(4)));
-        waitForFilesToAppear(3);
         final TestRunner testRunner = newTestRunner(ListSmb.class);
-        testRunner.setProperty(LISTING_STRATEGY, "timestamps");
-        testRunner.setProperty(MINIMUM_AGE, "0 ms");
         final SmbjClientProviderService smbjClientProviderService =
                 configureTestRunnerForSambaDockerContainer(testRunner);
+        testRunner.setProperty(LISTING_STRATEGY, "none");
+        testRunner.setProperty(MINIMUM_AGE, "0 sec");
         testRunner.enableControllerService(smbjClientProviderService);
         testRunner.run(1);
         testRunner.assertTransferCount(REL_SUCCESS, 3);
@@ -236,8 +206,6 @@ public class ListSmbIT {
                 .map(attributes -> attributes.get("identifier"))
                 .collect(toSet());
         assertEquals(testFiles, identifiers);
-
-        System.out.println(allAttributes);
 
         allAttributes.forEach(attribute -> assertEquals(
                 Stream.of(attribute.get("path"), attribute.get("filename")).filter(s -> !s.isEmpty()).collect(
@@ -266,7 +234,6 @@ public class ListSmbIT {
         writeFile("1.txt", generateContentWithSize(1));
         writeFile("10.txt", generateContentWithSize(10));
         writeFile("100.txt", generateContentWithSize(100));
-        waitForFilesToAppear(3);
 
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 3);
@@ -296,17 +263,9 @@ public class ListSmbIT {
         testRunner.setProperty(LISTING_STRATEGY, "none");
         writeFile("should_list_this", generateContentWithSize(1));
         writeFile("should_skip_this.suffix", generateContentWithSize(1));
-        waitForFilesToAppear(2);
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.disableControllerService(smbClientProviderService);
-    }
-
-    private SmbjClientService createClient() throws IOException {
-        SmbjClientService smbjClientService = new SmbjClientService(smbClient, authenticationContext);
-        smbjClientService.connectToShare(sambaContainer.getHost(), sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT),
-                "share");
-        return smbjClientService;
     }
 
     private SmbjClientProviderService configureTestRunnerForSambaDockerContainer(TestRunner testRunner)
@@ -330,21 +289,9 @@ public class ListSmbIT {
         return new String(bytes);
     }
 
-    private void waitForFilesToAppear(Integer numberOfFiles) {
-        await().until(() -> {
-            try (Stream<SmbListableEntity> s = smbjClientService.listRemoteFiles("")) {
-                return s.count() == numberOfFiles;
-            }
-        });
-    }
-
     private void writeFile(String path, String content) {
-        try (OutputStream outputStream = smbjClientService.getOutputStreamForFile(path)) {
-            final InputStream inputStream = new ByteArrayInputStream(content.getBytes());
-            copy(inputStream, outputStream);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+        String containerPath = "/folder/" + path;
+        sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
     }
 
 }

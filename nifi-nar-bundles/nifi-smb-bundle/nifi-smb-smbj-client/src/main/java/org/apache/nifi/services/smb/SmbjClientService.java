@@ -33,10 +33,8 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
-import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -122,40 +120,6 @@ public class SmbjClientService implements SmbClientService {
         }
         if (!share.folderExists(path)) {
             share.mkdir(path);
-        }
-    }
-
-    @Override
-    public OutputStream getOutputStreamForFile(String path) {
-        try {
-            final File file = share.openFile(
-                    path,
-                    EnumSet.of(AccessMask.GENERIC_WRITE),
-                    EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                    EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ, SMB2ShareAccess.FILE_SHARE_WRITE,
-                            SMB2ShareAccess.FILE_SHARE_DELETE),
-                    SMB2CreateDisposition.FILE_OVERWRITE_IF,
-                    EnumSet.of(SMB2CreateOptions.FILE_WRITE_THROUGH));
-            final OutputStream smbOutputStream = file.getOutputStream();
-            return new OutputStream() {
-                @Override
-                public void write(int b) throws IOException {
-                    smbOutputStream.write(b);
-                }
-
-                @Override
-                public void flush() throws IOException {
-                    smbOutputStream.flush();
-                }
-
-                @Override
-                public void close() throws IOException {
-                    smbOutputStream.close();
-                    file.close();
-                }
-            };
-        } catch (SMBApiException s) {
-            throw new RuntimeException("Could not open " + path + " for writing", s);
         }
     }
 

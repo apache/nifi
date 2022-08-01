@@ -241,7 +241,7 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
             final Iterator<SmbListableEntity> iterator = listing.iterator();
             final List<SmbListableEntity> result = new LinkedList<>();
             while (iterator.hasNext()) {
-                if (!isExecutionScheduled(listingMode)) {
+                if (isExecutionStopped(listingMode)) {
                     return emptyList();
                 }
                 final SmbListableEntity entity = iterator.next();
@@ -289,8 +289,8 @@ public class ListSmb extends AbstractListProcessor<SmbListableEntity> {
                 LocalDateTime.ofEpochSecond(TimeUnit.MILLISECONDS.toSeconds(timestamp), 0, ZoneOffset.UTC));
     }
 
-    private boolean isExecutionScheduled(ListingMode listingMode) {
-        return ListingMode.CONFIGURATION_VERIFICATION.equals(listingMode) || isScheduled();
+    private boolean isExecutionStopped(ListingMode listingMode) {
+        return ListingMode.EXECUTION.equals(listingMode) && !isScheduled();
     }
 
     private Predicate<SmbListableEntity> createFileFilter(ProcessContext context, Long minTimestampOrNull) {

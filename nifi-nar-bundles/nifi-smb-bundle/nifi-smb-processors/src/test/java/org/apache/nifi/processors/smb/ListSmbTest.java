@@ -57,6 +57,7 @@ class ListSmbTest {
 
     private final static AtomicLong currentMillis = new AtomicLong();
     private final static AtomicLong currentNanos = new AtomicLong();
+    public static final String CLIENT_SERVICE_PROVIDER_ID = "client-provider-service-id";
 
     private static long currentMillis() {
         return currentMillis.get();
@@ -241,8 +242,8 @@ class ListSmbTest {
     public void shouldFormatRemotePathProperly() throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         final SmbClientProviderService clientProviderService = mockSmbConnectionPoolService();
-        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
-        testRunner.addControllerService("connection-pool", clientProviderService);
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, CLIENT_SERVICE_PROVIDER_ID);
+        testRunner.addControllerService(CLIENT_SERVICE_PROVIDER_ID, clientProviderService);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://hostname:445/share"));
         final ListSmb underTest = (ListSmb) testRunner.getProcessor();
 
@@ -261,7 +262,7 @@ class ListSmbTest {
 
     private SmbClientProviderService mockSmbConnectionPoolService() {
         final SmbClientProviderService clientProviderService = mock(SmbClientProviderService.class);
-        when(clientProviderService.getIdentifier()).thenReturn("connection-pool");
+        when(clientProviderService.getIdentifier()).thenReturn(CLIENT_SERVICE_PROVIDER_ID);
         when(clientProviderService.getServiceLocation()).thenReturn(URI.create("smb://localhost:445/share"));
         return clientProviderService;
     }
@@ -273,8 +274,8 @@ class ListSmbTest {
 
         final SmbClientProviderService clientProviderService = mockSmbConnectionPoolService();
         when(clientProviderService.getClient()).thenReturn(mockNifiSmbClientService);
-        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
-        testRunner.addControllerService("connection-pool", clientProviderService);
+        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, CLIENT_SERVICE_PROVIDER_ID);
+        testRunner.addControllerService(CLIENT_SERVICE_PROVIDER_ID, clientProviderService);
         testRunner.enableControllerService(clientProviderService);
 
         return mockNifiSmbClientService;
