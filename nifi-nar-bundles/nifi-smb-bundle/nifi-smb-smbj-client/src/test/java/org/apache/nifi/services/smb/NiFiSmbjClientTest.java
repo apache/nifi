@@ -16,9 +16,16 @@
  */
 package org.apache.nifi.services.smb;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.hierynomus.smbj.SMBClient;
+import com.hierynomus.smbj.auth.AuthenticationContext;
+import com.hierynomus.smbj.connection.Connection;
+import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +38,18 @@ class NiFiSmbjClientTest {
     @Mock
     DiskShare share;
 
+    @Mock
+    SMBClient smbClient;
+
+    @Mock
+    AuthenticationContext authenticationContext;
+
+    @Mock
+    Session session;
+
+    @Mock
+    Connection connection;
+
     @InjectMocks
     SmbjClientService underTest;
 
@@ -40,12 +59,18 @@ class NiFiSmbjClientTest {
     }
 
     @Test
-    public void shouldCreateDirectoriesRecursively() {
+    public void shouldCreateDirectoriesRecursively() throws Exception {
+
+        when(smbClient.connect("hostname", 445))
+                .thenReturn(connection);
+        when(connection.authenticate(authenticationContext)).thenReturn(session);
+        when(session.connectShare(anyString())).thenReturn(share);
         when(share.fileExists("directory")).thenReturn(true);
         when(share.fileExists("path")).thenReturn(false);
         when(share.fileExists("to")).thenReturn(false);
         when(share.fileExists("create")).thenReturn(false);
 
+        underTest.connectToShare("hostname", 445, "share");
         underTest.createDirectory("directory/path/to/create");
 
         verify(share).mkdir("directory/path");
