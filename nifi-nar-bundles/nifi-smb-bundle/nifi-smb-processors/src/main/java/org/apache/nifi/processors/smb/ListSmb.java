@@ -69,7 +69,7 @@ import org.apache.nifi.services.smb.SmbListableEntity;
 @PrimaryNodeOnly
 @TriggerSerially
 @Tags({"samba, smb, cifs, files", "list"})
-@SeeAlso({PutSmbFile.class, GetSmbFile.class})
+@SeeAlso({PutSmbFile.class, GetSmbFile.class, FetchSmb.class})
 @CapabilityDescription("Lists concrete files shared via SMB protocol. " +
         "Each listed file may result in one flowfile, the metadata being written as flowfile attributes. " +
         "Or - in case the 'Record Writer' property is set - the entire result is written as records to a single flowfile. "

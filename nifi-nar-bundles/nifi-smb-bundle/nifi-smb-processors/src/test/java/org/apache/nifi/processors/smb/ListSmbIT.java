@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.smb;
 
 import static java.util.Arrays.asList;
-import static java.util.Arrays.fill;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.LISTING_STRATEGY;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.RECORD_WRITER;
@@ -26,13 +25,9 @@ import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
 import static org.apache.nifi.processors.smb.ListSmb.FILE_NAME_SUFFIX_FILTER;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_SIZE;
-import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.DOMAIN;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.PASSWORD;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,38 +44,11 @@ import org.apache.nifi.services.smb.SmbListableEntity;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.builder.Transferable;
-import org.testcontainers.utility.DockerImageName;
 
-public class ListSmbIT {
-
-    private final static Integer DEFAULT_SAMBA_PORT = 445;
-    private final static Logger logger = LoggerFactory.getLogger(ListSmbTest.class);
-    private final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
-            .withExposedPorts(DEFAULT_SAMBA_PORT, 139)
-            .waitingFor(Wait.forListeningPort())
-            .withLogConsumer(new Slf4jLogConsumer(logger))
-            .withCommand("-w domain -u username;password -s share;/folder;;no;no;username;;; -p");
-
-    @BeforeEach
-    public void beforeEach() {
-        sambaContainer.start();
-    }
-
-    @AfterEach
-    public void afterEach() {
-        sambaContainer.stop();
-    }
+public class ListSmbIT extends SambaTestcontinerIT {
 
     @ParameterizedTest
     @ValueSource(ints = {4, 50, 45000})
@@ -266,32 +234,6 @@ public class ListSmbIT {
         testRunner.run();
         testRunner.assertTransferCount(REL_SUCCESS, 1);
         testRunner.disableControllerService(smbClientProviderService);
-    }
-
-    private SmbjClientProviderService configureTestRunnerForSambaDockerContainer(TestRunner testRunner)
-            throws Exception {
-        SmbjClientProviderService smbjClientProviderService = new SmbjClientProviderService();
-        testRunner.addControllerService("connection-pool", smbjClientProviderService);
-        testRunner.setProperty(SMB_CLIENT_PROVIDER_SERVICE, "connection-pool");
-        testRunner.setProperty(smbjClientProviderService, HOSTNAME, sambaContainer.getHost());
-        testRunner.setProperty(smbjClientProviderService, PORT,
-                String.valueOf(sambaContainer.getMappedPort(DEFAULT_SAMBA_PORT)));
-        testRunner.setProperty(smbjClientProviderService, USERNAME, "username");
-        testRunner.setProperty(smbjClientProviderService, PASSWORD, "password");
-        testRunner.setProperty(smbjClientProviderService, SHARE, "share");
-        testRunner.setProperty(smbjClientProviderService, DOMAIN, "domain");
-        return smbjClientProviderService;
-    }
-
-    private String generateContentWithSize(int sizeInBytes) {
-        byte[] bytes = new byte[sizeInBytes];
-        fill(bytes, (byte) 1);
-        return new String(bytes);
-    }
-
-    private void writeFile(String path, String content) {
-        String containerPath = "/folder/" + path;
-        sambaContainer.copyFileToContainer(Transferable.of(content), containerPath);
     }
 
 }

@@ -33,8 +33,10 @@ import com.hierynomus.smbj.connection.Connection;
 import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.Directory;
 import com.hierynomus.smbj.share.DiskShare;
+import com.hierynomus.smbj.share.File;
 import com.hierynomus.smbj.share.Share;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Stream;
@@ -120,6 +122,26 @@ public class SmbjClientService implements SmbClientService {
         }
         if (!share.folderExists(path)) {
             share.mkdir(path);
+        }
+    }
+
+    @Override
+    public void read(String fileName, OutputStream outputStream) throws IOException {
+        try (File f = share.openFile(
+                fileName,
+                EnumSet.of(AccessMask.GENERIC_READ),
+                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                EnumSet.of(SMB2ShareAccess.FILE_SHARE_READ),
+                SMB2CreateDisposition.FILE_OPEN,
+                EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY));
+        ) {
+            f.read(outputStream);
+        } catch (SMBApiException a) {
+            throw new SmbException(a.getMessage(), a.getStatusCode(), a);
+        } catch (Exception e) {
+            throw new SmbException(e.getMessage(), e);
+        } finally {
+            outputStream.close();
         }
     }
 
