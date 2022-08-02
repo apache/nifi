@@ -22,12 +22,13 @@ LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
 ARG GID=1000
-ARG NIFI_TOOLKIT_VERSION=1.16.0
+ARG NIFI_TOOLKIT_VERSION=1.17.0
 ARG MIRROR=https://archive.apache.org/dist
 
 ENV NIFI_TOOLKIT_BASE_DIR /opt/nifi-toolkit
 ENV NIFI_TOOLKIT_HOME ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}
-ENV NIFI_TOOLKIT_BINARY_PATH nifi/${NIFI_TOOLKIT_VERSION}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz
+ENV NIFI_TOOLKIT_BINARY nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.zip
+ENV NIFI_TOOLKIT_BINARY_PATH nifi/${NIFI_TOOLKIT_VERSION}/${NIFI_TOOLKIT_BINARY}
 ENV NIFI_TOOLKIT_BINARY_URL ${MIRROR}/${NIFI_TOOLKIT_BINARY_PATH}
 
 ADD sh/docker-entrypoint.sh /opt/sh/docker-entrypoint.sh
@@ -39,10 +40,10 @@ RUN apk add --update curl bash jq openssl \
     && addgroup -g $GID nifi \
     && adduser -D -s /bin/ash -u $UID -G nifi nifi \
     && mkdir -p ${NIFI_TOOLKIT_BASE_DIR} \
-    && curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz \
-    && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha256) *${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz" | sha256sum -c - \
-    && tar -xvzf ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz -C ${NIFI_TOOLKIT_BASE_DIR} \
-    && rm ${NIFI_TOOLKIT_BASE_DIR}/nifi-toolkit-${NIFI_TOOLKIT_VERSION}-bin.tar.gz \
+    && curl -fSL ${NIFI_TOOLKIT_BINARY_URL} -o ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
+    && echo "$(curl ${NIFI_TOOLKIT_BINARY_URL}.sha256) *${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY}" | sha256sum -c - \
+    && unzip ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} -d ${NIFI_TOOLKIT_BASE_DIR} \
+    && rm ${NIFI_TOOLKIT_BASE_DIR}/${NIFI_TOOLKIT_BINARY} \
     && chown -R nifi:nifi ${NIFI_TOOLKIT_BASE_DIR}
 
 USER nifi
