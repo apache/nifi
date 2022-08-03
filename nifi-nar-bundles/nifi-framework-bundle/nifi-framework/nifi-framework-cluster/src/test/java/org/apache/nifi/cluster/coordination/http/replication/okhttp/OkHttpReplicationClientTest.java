@@ -102,17 +102,17 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldUseKeystorePasswordIfKeyPasswordIsBlank() {
-        final Map<String, String> propsMap = new HashMap() {{
-            put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
-            put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
-            put(NiFiProperties.SECURITY_KEY_PASSWD, "");
-            put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-            put(NiFiProperties.WEB_HTTPS_PORT, "51552");
-        }};
+        final Map<String, String> propsMap = new HashMap<>();
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+        propsMap.put(NiFiProperties.SECURITY_KEY_PASSWD, "");
+        propsMap.put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
+        propsMap.put(NiFiProperties.WEB_HTTPS_PORT, "51552");
+
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
@@ -122,16 +122,15 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldUseKeystorePasswordIfKeyPasswordIsNull() {
-        final Map<String, String> flowfileEncryptionProps = new HashMap() {{
-            put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
-            put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
-            put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-            put(NiFiProperties.WEB_HTTPS_PORT, "51552");
-        }};
+        final Map<String, String> flowfileEncryptionProps = new HashMap<>();
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        flowfileEncryptionProps.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
+        flowfileEncryptionProps.put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
+        flowfileEncryptionProps.put(NiFiProperties.WEB_HTTPS_PORT, "51552");
 
         final NiFiProperties mockNiFiProperties = new NiFiProperties(flowfileEncryptionProps);
 
@@ -142,15 +141,15 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
-        final Map<String, String> propsMap = new HashMap() {{
-            put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "");
-            put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-            put(NiFiProperties.WEB_HTTPS_PORT, "51552");
-        }};
+        final Map<String, String> propsMap = new HashMap<>();
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "");
+        propsMap.put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
+        propsMap.put(NiFiProperties.WEB_HTTPS_PORT, "51552");
+
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
         final OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties);
@@ -160,16 +159,15 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
-        final Map<String, String> propsMap = new HashMap() {{
-            put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "");
-            put(NiFiProperties.SECURITY_KEY_PASSWD, "");
-            put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-            put(NiFiProperties.WEB_HTTPS_PORT, "51552");
-        }};
+        final Map<String, String> propsMap = new HashMap<>();
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        propsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        propsMap.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "");
+        propsMap.put(NiFiProperties.SECURITY_KEY_PASSWD, "");
+        propsMap.put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
+        propsMap.put(NiFiProperties.WEB_HTTPS_PORT, "51552");
 
         final NiFiProperties mockNiFiProperties = new NiFiProperties(propsMap);
 
@@ -180,21 +178,19 @@ public class OkHttpReplicationClientTest {
 
     @Test
     void testShouldDetermineIfTLSConfigured() {
-        final Map<String, String> propsMap = new HashMap() {{
-            put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
-            put(NiFiProperties.WEB_HTTPS_PORT, "51552");
-        }};
+        final Map<String, String> propsMap = new HashMap<>();
+        propsMap.put(NiFiProperties.WEB_HTTPS_HOST, "localhost");
+        propsMap.put(NiFiProperties.WEB_HTTPS_PORT, "51552");
 
-        final Map<String, String> tlsPropsMap = new HashMap(propsMap) {{
-            put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
-            put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
-            put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
-            put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
-            put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
-        }};
+        final Map<String, String> tlsPropsMap = new HashMap<>(propsMap);
+        tlsPropsMap.put(NiFiProperties.SECURITY_TRUSTSTORE, tlsConfiguration.getTruststorePath());
+        tlsPropsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, tlsConfiguration.getTruststoreType().getType());
+        tlsPropsMap.put(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, tlsConfiguration.getTruststorePassword());
+        tlsPropsMap.put(NiFiProperties.SECURITY_KEYSTORE, tlsConfiguration.getKeystorePath());
+        tlsPropsMap.put(NiFiProperties.SECURITY_KEYSTORE_TYPE, tlsConfiguration.getKeystoreType().getType());
+        tlsPropsMap.put(NiFiProperties.SECURITY_KEYSTORE_PASSWD, tlsConfiguration.getKeystorePassword());
 
-        final Map<String, String> invalidTlsPropsMap = new HashMap(tlsPropsMap);
+        final Map<String, String> invalidTlsPropsMap = new HashMap<>(tlsPropsMap);
         // Remove the keystore password to create an invalid configuration
         invalidTlsPropsMap.remove(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
 
