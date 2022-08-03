@@ -14,15 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.iotdb.processors;
+package org.apache.nifi.processors;
 
-import com.alibaba.fastjson.JSON;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Set;
+import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.iotdb.processors.model.Schema;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.processors.model.Schema;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.write.record.Tablet;
 import org.apache.iotdb.tsfile.write.schema.MeasurementSchema;
@@ -177,7 +180,7 @@ public class PutIoTDB extends AbstractIoTDB {
 
             schema =
                     schemaProperty != null
-                            ? JSON.parseObject(schemaProperty, Schema.class)
+                            ? new ObjectMapper().readValue(schemaProperty, Schema.class)
                             : convertSchema(recordReader.getSchema());
 
             List<String> fieldNames = schema.getFieldNames();

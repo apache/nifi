@@ -14,10 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.iotdb.processors.model;
+package org.apache.nifi.processors.model;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -32,7 +39,8 @@ public class Schema {
         STRING
     }
 
-    public Schema(String timeType, List<Field> fields) {
+    @JsonCreator
+    public Schema(@JsonProperty("fieldName") String timeType, @JsonProperty("fields") List<Field> fields) {
         this.timeType = "long".equals(timeType) ? TimeType.LONG : TimeType.STRING;
         this.fieldMap = new HashMap<>();
         this.fieldNames = new ArrayList<>();
@@ -81,16 +89,11 @@ public class Schema {
         return fieldMap.get(fieldName).getCompressionType();
     }
 
-    public List<Field> getFields() {
-        return (List<Field>) fieldMap.values();
-    }
-
     public static Set<String> getSupportedTimeType() {
-        return new HashSet<String>() {
-            {
-                add("long");
-                add("string");
-            }
-        };
+        HashSet<String> supportedTimeType = new HashSet<>();
+        supportedTimeType.add("long");
+        supportedTimeType.add("string");
+
+        return supportedTimeType;
     }
 }

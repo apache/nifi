@@ -14,10 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.iotdb.processors.model;
+package org.apache.nifi.processors.model;
 
 import java.util.HashMap;
 import java.util.Set;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSDataType;
 import org.apache.iotdb.tsfile.file.metadata.enums.TSEncoding;
@@ -28,48 +31,41 @@ public class Field {
     private TSEncoding encoding;
     private CompressionType compressionType;
 
-    private static final HashMap<String, TSDataType> typeMap =
-            new HashMap<String, TSDataType>() {
-                {
-                    put("INT32", TSDataType.INT32);
-                    put("INT64", TSDataType.INT64);
-                    put("FLOAT", TSDataType.FLOAT);
-                    put("DOUBLE", TSDataType.DOUBLE);
-                    put("BOOLEAN", TSDataType.BOOLEAN);
-                    put("TEXT", TSDataType.TEXT);
-                }
-            };
+    private static final HashMap<String, TSDataType> typeMap = new HashMap<>();
+    private static final HashMap<String, TSEncoding> encodingMap = new HashMap<>();
 
-    private static final HashMap<String, TSEncoding> encodingMap =
-            new HashMap<String, TSEncoding>() {
-                {
-                    put("PLAIN", TSEncoding.PLAIN);
-                    put("DICTIONARY", TSEncoding.DICTIONARY);
-                    put("RLE", TSEncoding.RLE);
-                    put("DIFF", TSEncoding.DIFF);
-                    put("TS_2DIFF", TSEncoding.TS_2DIFF);
-                    put("BITMAP", TSEncoding.BITMAP);
-                    put("GORILLA_V1", TSEncoding.GORILLA_V1);
-                    put("REGULAR", TSEncoding.REGULAR);
-                    put("GORILLA", TSEncoding.GORILLA);
-                }
-            };
+    private static final HashMap<String, CompressionType> compressionMap = new HashMap<>();
 
-    private static final HashMap<String, CompressionType> compressionMap =
-            new HashMap<String, CompressionType>() {
-                {
-                    put("UNCOMPRESSED", CompressionType.UNCOMPRESSED);
-                    put("SNAPPY", CompressionType.SNAPPY);
-                    put("GZIP", CompressionType.GZIP);
-                    put("LZO", CompressionType.LZO);
-                    put("SDT", CompressionType.SDT);
-                    put("PAA", CompressionType.PAA);
-                    put("PLA", CompressionType.PLA);
-                    put("LZ4", CompressionType.LZ4);
-                }
-            };
+    static {
+        typeMap.put("INT32", TSDataType.INT32);
+        typeMap.put("INT64", TSDataType.INT64);
+        typeMap.put("FLOAT", TSDataType.FLOAT);
+        typeMap.put("DOUBLE", TSDataType.DOUBLE);
+        typeMap.put("BOOLEAN", TSDataType.BOOLEAN);
+        typeMap.put("TEXT", TSDataType.TEXT);
 
-    public Field(String tsName, String dataType, String encoding, String compressionType) {
+        encodingMap.put("PLAIN", TSEncoding.PLAIN);
+        encodingMap.put("DICTIONARY", TSEncoding.DICTIONARY);
+        encodingMap.put("RLE", TSEncoding.RLE);
+        encodingMap.put("DIFF", TSEncoding.DIFF);
+        encodingMap.put("TS_2DIFF", TSEncoding.TS_2DIFF);
+        encodingMap.put("BITMAP", TSEncoding.BITMAP);
+        encodingMap.put("GORILLA_V1", TSEncoding.GORILLA_V1);
+        encodingMap.put("REGULAR", TSEncoding.REGULAR);
+        encodingMap.put("GORILLA", TSEncoding.GORILLA);
+
+        compressionMap.put("UNCOMPRESSED", CompressionType.UNCOMPRESSED);
+        compressionMap.put("SNAPPY", CompressionType.SNAPPY);
+        compressionMap.put("GZIP", CompressionType.GZIP);
+        compressionMap.put("LZO", CompressionType.LZO);
+        compressionMap.put("SDT", CompressionType.SDT);
+        compressionMap.put("PAA", CompressionType.PAA);
+        compressionMap.put("PLA", CompressionType.PLA);
+        compressionMap.put("LZ4", CompressionType.LZ4);
+    }
+
+    @JsonCreator
+    public Field(@JsonProperty("tsName") String tsName, @JsonProperty("dataType") String dataType, @JsonProperty("encoding") String encoding, @JsonProperty("compressionType") String compressionType) {
         this.tsName = tsName;
         this.dataType = typeMap.get(dataType);
         this.encoding = encodingMap.get(encoding);

@@ -14,16 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.iotdb.processors;
+package org.apache.nifi.processors;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import java.text.SimpleDateFormat;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.iotdb.processors.model.Field;
-import org.apache.iotdb.processors.model.Schema;
+import org.apache.nifi.processors.model.Field;
+import org.apache.nifi.processors.model.Schema;
 import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.session.Session;
 import org.apache.iotdb.tsfile.file.metadata.enums.CompressionType;
@@ -46,33 +54,17 @@ import org.apache.nifi.util.Tuple;
 public abstract class AbstractIoTDB extends AbstractProcessor {
     private static final int DEFAULT_IOTDB_PORT = 6667;
 
-    private static final Map<RecordFieldType, TSDataType> typeMap =
-            new HashMap<RecordFieldType, TSDataType>() {
-                {
-                    put(RecordFieldType.STRING, TSDataType.TEXT);
-                    put(RecordFieldType.BOOLEAN, TSDataType.BOOLEAN);
-                    put(RecordFieldType.INT, TSDataType.INT32);
-                    put(RecordFieldType.LONG, TSDataType.INT64);
-                    put(RecordFieldType.FLOAT, TSDataType.FLOAT);
-                    put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
-                }
-            };
+    private static Map<RecordFieldType, TSDataType> typeMap =
+            new HashMap<>();
 
     static final Set<RecordFieldType> supportedType =
-            new HashSet<>(
-                    Arrays.asList(
-                            RecordFieldType.BOOLEAN,
-                            RecordFieldType.STRING,
-                            RecordFieldType.INT,
-                            RecordFieldType.LONG,
-                            RecordFieldType.FLOAT,
-                            RecordFieldType.DOUBLE));
+            new HashSet<>();
 
     static final Set<RecordFieldType> supportedTimeType =
-            new HashSet<>(Arrays.asList(RecordFieldType.STRING, RecordFieldType.LONG));
+            new HashSet<>();
 
     private static final String[] STRING_TIME_FORMAT =
-            new String[] {
+            new String[]{
                     "yyyy-MM-dd HH:mm:ss.SSSX",
                     "yyyy/MM/dd HH:mm:ss.SSSX",
                     "yyyy.MM.dd HH:mm:ss.SSSX",
@@ -123,7 +115,7 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             new PropertyDescriptor.Builder()
                     .name("Port")
                     .description("The port of IoTDB.")
-                    .defaultValue("6667")
+                    .defaultValue(String.valueOf(DEFAULT_IOTDB_PORT))
                     .addValidator(StandardValidators.PORT_VALIDATOR)
                     .required(true)
                     .build();
@@ -168,6 +160,23 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
 
         relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
+
+        typeMap.put(RecordFieldType.STRING, TSDataType.TEXT);
+        typeMap.put(RecordFieldType.BOOLEAN, TSDataType.BOOLEAN);
+        typeMap.put(RecordFieldType.INT, TSDataType.INT32);
+        typeMap.put(RecordFieldType.LONG, TSDataType.INT64);
+        typeMap.put(RecordFieldType.FLOAT, TSDataType.FLOAT);
+        typeMap.put(RecordFieldType.DOUBLE, TSDataType.DOUBLE);
+
+        supportedType.add(RecordFieldType.BOOLEAN);
+        supportedType.add(RecordFieldType.STRING);
+        supportedType.add(RecordFieldType.INT);
+        supportedType.add(RecordFieldType.LONG);
+        supportedType.add(RecordFieldType.FLOAT);
+        supportedType.add(RecordFieldType.DOUBLE);
+
+        supportedTimeType.add(RecordFieldType.STRING);
+        supportedTimeType.add(RecordFieldType.LONG);
     }
 
     protected final AtomicReference<Session> session = new AtomicReference<>(null);
@@ -219,54 +228,59 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
     }
 
     protected Tuple<Boolean, String> validateSchemaAttribute(String schemaAttribute) {
-        JSONObject schema = JSON.parseObject(schemaAttribute);
-        Set<String> keySet = schema.keySet();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode schema = null;
+        try {
+            schema = mapper.readTree(schemaAttribute);
+        } catch (JsonProcessingException e) {
+            return new Tuple<>(false, e.getMessage());
+        }
+        Set<String> keySet = new HashSet<>();
+        schema.fieldNames().forEachRemaining(field -> keySet.add(field));
 
         if (!keySet.contains("timeType") || !keySet.contains("fields")) {
             String msg = "The JSON of schema must contain `timeType` and `fields`.";
             return new Tuple<>(false, msg);
         }
 
-        if (!Schema.getSupportedTimeType().contains(schema.getString("timeType").toLowerCase())) {
+        if (!Schema.getSupportedTimeType().contains(schema.get("timeType").asText().toLowerCase())) {
             String msg =
                     String.format(
                             "Unknown `timeType`: %s, there are only two options `long` and `string` for this property.",
-                            schema.getString("timeType"));
+                            schema.get("timeType").asText());
             return new Tuple<>(false, msg);
         }
 
-        for (int i = 0; i < schema.getJSONArray("fields").size(); i++) {
-            JSONObject field = schema.getJSONArray("fields").getJSONObject(i);
-            Set<String> fieldKeySet = field.keySet();
+        for (int i = 0; i < schema.get("fields").size(); i++) {
+            JsonNode field = schema.get("fields").get(i);
+            Set<String> fieldKeySet = new HashSet<>();
 
+            field.fieldNames().forEachRemaining(fieldName -> fieldKeySet.add(fieldName));
             if (!fieldKeySet.contains("tsName") || !fieldKeySet.contains("dataType")) {
                 String msg = "`tsName` or `dataType` has not been set.";
                 return new Tuple<>(false, msg);
             }
 
-            if (!field.getString("tsName").startsWith("root.")) {
+            if (!field.get("tsName").asText().startsWith("root.")) {
                 String msg =
-                        String.format("The tsName `%s` is not start with 'root.'.", field.get("tsName"));
+                        String.format("The tsName `%s` is not start with 'root.'.", field.get("tsName").asText());
                 return new Tuple<>(false, msg);
             }
 
-            if (!Field.getSupportedDataType().contains(field.getString("dataType"))) {
+            if (!Field.getSupportedDataType().contains(field.get("dataType").asText())) {
                 String msg =
                         String.format(
                                 "Unknown `dataType`: %s. The supported dataTypes are %s",
-                                field.getString("dataType"), Field.getSupportedDataType());
+                                field.get("dataType").asText(), Field.getSupportedDataType());
                 return new Tuple<>(false, msg);
             }
 
-            Set<String> supportedKeySet =
-                    new HashSet<String>() {
-                        {
-                            add("tsName");
-                            add("dataType");
-                            add("encoding");
-                            add("compressionType");
-                        }
-                    };
+            Set<String> supportedKeySet = new HashSet<>();
+            supportedKeySet.add("tsName");
+            supportedKeySet.add("dataType");
+            supportedKeySet.add("encoding");
+            supportedKeySet.add("compressionType");
+
             HashSet<String> tmpKetSet = new HashSet<>();
             tmpKetSet.addAll(supportedKeySet);
             tmpKetSet.addAll(fieldKeySet);
@@ -282,21 +296,21 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
                 return new Tuple<>(true, msg);
             }
 
-            if (field.getString("encoding") != null
-                    && !Field.getSupportedEncoding().contains(field.getString("encoding"))) {
+            if (field.get("encoding") != null
+                    && !Field.getSupportedEncoding().contains(field.get("encoding").asText())) {
                 String msg =
                         String.format(
                                 "Unknown `encoding`: %s, The supported encoding types are %s",
-                                field.getString("encoding"), Field.getSupportedEncoding());
+                                field.get("encoding").asText(), Field.getSupportedEncoding());
                 return new Tuple<>(false, msg);
             }
 
-            if (field.getString("compressionType") != null
-                    && !Field.getSupportedCompressionType().contains(field.getString("compressionType"))) {
+            if (field.get("compressionType") != null
+                    && !Field.getSupportedCompressionType().contains(field.get("compressionType"))) {
                 String msg =
                         String.format(
                                 "Unknown `compressionType`: %s, The supported compressionType are %s",
-                                field.getString("compressionType"), Field.getSupportedCompressionType());
+                                field.get("compressionType").asText(), Field.getSupportedCompressionType());
                 return new Tuple<>(false, msg);
             }
         }
