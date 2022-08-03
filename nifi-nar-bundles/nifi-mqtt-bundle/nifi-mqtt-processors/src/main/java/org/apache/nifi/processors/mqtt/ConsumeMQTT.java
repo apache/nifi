@@ -85,7 +85,6 @@ import static org.apache.nifi.processors.mqtt.ConsumeMQTT.IS_RETAINED_ATTRIBUTE_
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.QOS_ATTRIBUTE_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.RECORD_COUNT_KEY;
 import static org.apache.nifi.processors.mqtt.ConsumeMQTT.TOPIC_ATTRIBUTE_KEY;
-import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_MQTT_VERSION_500;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_0;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_1;
 import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VALUE_QOS_2;
@@ -131,7 +130,6 @@ public class ConsumeMQTT extends AbstractMQTTProcessor implements NifiMqttCallba
             .name("Group ID")
             .description("MQTT consumer group ID to use. If group ID not set, client will connect as individual consumer.")
             .required(false)
-            .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
