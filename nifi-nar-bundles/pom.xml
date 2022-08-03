@@ -111,6 +111,7 @@
         <module>nifi-salesforce-bundle</module>
         <module>nifi-rocksdb-bundle</module>
         <module>nifi-hubspot-bundle</module>
+        <module>nifi-dropbox-bundle</module>
     </modules>
 
     <build>
