@@ -208,9 +208,14 @@ public class StandardParameterContext implements ParameterContext {
                 parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, oldParameter.getValue(), null, parameterDescriptor.isSensitive()));
             } else {
                 final Parameter updatedParameter = createFullyPopulatedParameter(parameter);
-
-                final Parameter oldParameter = performUpdate ? currentParameters.put(updatedParameter.getDescriptor(), updatedParameter)
-                        : currentParameters.get(updatedParameter.getDescriptor());
+                final Parameter oldParameter;
+                if (performUpdate) {
+                    // Necessary to remove first, because the sensitivity may change, and ParameterDescriptor#hashCode only relies on `name`
+                    oldParameter = currentParameters.remove(updatedParameter.getDescriptor());
+                    currentParameters.put(updatedParameter.getDescriptor(), updatedParameter);
+                } else {
+                    oldParameter = currentParameters.get(updatedParameter.getDescriptor());
+                }
                 if (oldParameter == null || !Objects.equals(oldParameter.getValue(), updatedParameter.getValue())) {
                     final String previousValue = oldParameter == null ? null : oldParameter.getValue();
                     parameterUpdates.put(parameterName, new StandardParameterUpdate(parameterName, previousValue, updatedParameter.getValue(), updatedParameter.getDescriptor().isSensitive()));

@@ -38,6 +38,7 @@ import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class TestStandardParameterContext {
 
@@ -138,6 +139,42 @@ public class TestStandardParameterContext {
         assertEquals(abcDescriptor, abcParam.getDescriptor());
         assertEquals("Updated Again", abcParam.getDescriptor().getDescription());
         assertNull(abcParam.getValue());
+    }
+
+    @Test
+    public void testUpdateSensitivity() {
+        final ParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final StandardParameterContext context = new StandardParameterContext.Builder()
+                .id("unit-test-context")
+                .name("unit-test-context")
+                .parameterReferenceManager(referenceManager)
+                .build();
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").build();
+
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", new Parameter(abcDescriptor, "123", null, true));
+
+        context.setParameters(parameters);
+
+        Parameter abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertEquals("abc", abcParam.getDescriptor().getDescription());
+        assertEquals("123", abcParam.getValue());
+
+        ParameterDescriptor updatedDescriptor = new ParameterDescriptor.Builder().name("abc").description("abc").sensitive(true).build();
+        final Parameter unprovidedParam = new Parameter(updatedDescriptor, "321", null, false);
+        assertThrows(IllegalStateException.class, () -> context.setParameters(Collections.singletonMap("abc", unprovidedParam)));
+
+        final Parameter newSensitivityParam = new Parameter(updatedDescriptor, "321", null, true);
+        context.setParameters(Collections.singletonMap("abc", newSensitivityParam));
+
+        abcParam = context.getParameter("abc").get();
+        assertEquals(abcDescriptor, abcParam.getDescriptor());
+        assertTrue(abcParam.getDescriptor().isSensitive());
+
+        context.getParameters().keySet().forEach(pd -> {
+            assertTrue(pd.isSensitive());
+        });
     }
 
     @Test

@@ -1379,7 +1379,7 @@ public class ParameterProviderResource extends AbstractParameterResource {
         if (parameterContext == null && parameterGroupConfiguration.isSynchronized() != null && parameterGroupConfiguration.isSynchronized()) {
             final ParameterContextEntity parameterContextEntity = new ParameterContextEntity();
             final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
-            parameterContextDTO.setName(parameterGroupConfiguration.getGroupName());
+            parameterContextDTO.setName(parameterGroupConfiguration.getParameterContextName());
 
             final ParameterProviderConfigurationEntity parameterProviderConfiguration = new ParameterProviderConfigurationEntity();
             final ParameterProviderConfigurationDTO parameterProviderConfigurationDTO = new ParameterProviderConfigurationDTO();

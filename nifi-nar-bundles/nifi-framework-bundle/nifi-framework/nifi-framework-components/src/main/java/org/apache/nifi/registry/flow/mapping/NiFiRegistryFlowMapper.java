@@ -917,11 +917,6 @@ public class NiFiRegistryFlowMapper {
     }
 
     private VersionedParameter mapParameter(final Parameter parameter, final String value) {
-        // If it's provided, the parameters will have to be fetched once reconstituted anyway
-        if (parameter == null || parameter.isProvided()) {
-            return null;
-        }
-
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         final VersionedParameter versionedParameter = new VersionedParameter();
