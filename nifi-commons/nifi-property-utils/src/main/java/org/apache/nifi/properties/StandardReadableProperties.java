@@ -27,7 +27,7 @@ import java.util.Set;
  */
 public class StandardReadableProperties implements ReadableProperties {
 
-    private final Properties rawProperties = new Properties();
+    protected final Properties rawProperties = new Properties();
 
     public StandardReadableProperties(final Properties properties) {
         rawProperties.putAll(properties);

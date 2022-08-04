@@ -21,10 +21,12 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "migrate", description = "@|bold,fg(blue) Migrate|@ already encrypted application configuration or flow.xml.gz files to a new password. Can also apply a new scheme if provided.")
 class PropertyEncryptorMigrate implements Runnable {
 
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
+
     @Override
     public void run() {
-        // if the command was invoked without subcommand, show the usage help
-        System.out.println("Property encryptor: migrate mode");
+        // Show usage information if a subcommand was not chosen
+        spec.commandLine().usage(System.err);
     }
-
 }

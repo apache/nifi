@@ -2,8 +2,6 @@ package org.apache.nifi.xml;
 
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.OutputStream;
 import javax.xml.stream.XMLEventFactory;
@@ -12,8 +10,6 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 public class XmlEncryptor extends XmlCryptoParser {
-
-    private static final Logger logger = LoggerFactory.getLogger(XmlEncryptor.class);
 
     public XmlEncryptor(final SensitivePropertyProviderFactory providerFactory, final ProtectionScheme scheme) {
         super(providerFactory, scheme);

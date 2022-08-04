@@ -19,6 +19,8 @@ package org.apache.nifi.util.console;
 import org.apache.nifi.PropertyEncryptorMain;
 import org.apache.nifi.properties.scheme.PropertyProtectionScheme;
 import org.apache.nifi.util.console.utils.BaseCommandParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "config",
@@ -26,6 +28,8 @@ import picocli.CommandLine;
         usageHelpWidth=180
 )
 class ConfigSubcommand extends BaseCommandParameters implements Runnable {
+
+    private static final Logger logger = LoggerFactory.getLogger(ConfigSubcommand.class);
 
     @CommandLine.ParentCommand
     private DefaultCLIOptions parent;
@@ -37,12 +41,10 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
     public void run() {
         final PropertyEncryptorMain propertyEncryptorMain = new PropertyEncryptorMain(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
-            System.out.println("Encrypting!");
+            logger.info("The property encryptor is running to encrypt configuration files in [{}}]", baseDirectory);
             propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, passphrase, scheme);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
-            System.out.println("Decrypting!");
+            logger.info("The property encryptor is running to decrypt configuration files in [{}}]", baseDirectory);
         }
-        System.out.println("Encrypting config: [" + baseDirectory + "], [" + passphrase + "], [" + scheme + "]");
-
     }
 }

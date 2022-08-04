@@ -24,10 +24,13 @@ import picocli.CommandLine;
         usageHelpWidth=140)
 class PropertyEncryptorDecrypt extends DefaultCLIOptions implements Runnable {
 
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
+
     @Override
     public void run() {
-        // if the command was invoked without subcommand, show the usage help
-        System.out.println("Property encryptor: decrypt mode");
+        // Show usage information if a subcommand was not chosen
+        spec.commandLine().usage(System.err);
     }
 
 }

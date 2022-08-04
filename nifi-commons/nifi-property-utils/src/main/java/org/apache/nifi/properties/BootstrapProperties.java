@@ -65,7 +65,6 @@ public class BootstrapProperties extends StandardReadableProperties {
         this.configFilePath = configFilePath;
 
         this.filterProperties(properties);
-
     }
 
     /**
@@ -115,7 +114,7 @@ public class BootstrapProperties extends StandardReadableProperties {
         getRawProperties().putAll(filteredProperties);
     }
 
-    private String getPropertyKey(final String subKey) {
+    protected String getPropertyKey(final String subKey) {
         return String.format(PROPERTY_KEY_FORMAT, propertyPrefix, subKey);
     }
 

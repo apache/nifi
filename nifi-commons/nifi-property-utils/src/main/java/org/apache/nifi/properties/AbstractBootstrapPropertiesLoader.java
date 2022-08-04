@@ -81,6 +81,37 @@ public abstract class AbstractBootstrapPropertiesLoader {
     }
 
     /**
+     * Loads the bootstrap.conf file into a MutableBootstrapProperties object.
+     * @param bootstrapPath the path to the bootstrap file
+     * @return The bootstrap.conf as a MutableBootstrapProperties object
+     * @throws IOException If the file is not readable
+     */
+    public MutableBootstrapProperties loadMutableBootstrapProperties(final String bootstrapPath) throws IOException {
+        final Path bootstrapFilePath = getBootstrapFile(bootstrapPath).toPath();
+        return loadMutableBootstrapProperties(bootstrapFilePath, getApplicationPrefix());
+    }
+
+    /**
+     * Loads a properties file into a MutableBootstrapProperties object.
+     * @param bootstrapPath The path to the properties file
+     * @param propertyPrefix The property prefix to enforce
+     * @return The MutableBootstrapProperties
+     * @throws IOException If the properties file could not be read
+     */
+    public static MutableBootstrapProperties loadMutableBootstrapProperties(final Path bootstrapPath, final String propertyPrefix) throws IOException {
+        Objects.requireNonNull(bootstrapPath, "Bootstrap path must be provided");
+        Objects.requireNonNull(propertyPrefix, "Property prefix must be provided");
+
+        final Properties properties = new Properties();
+        try (final InputStream bootstrapInput = Files.newInputStream(bootstrapPath)) {
+            properties.load(bootstrapInput);
+            return new MutableBootstrapProperties(propertyPrefix, properties, bootstrapPath);
+        } catch (final IOException e) {
+            throw new IOException("Cannot read from " + bootstrapPath, e);
+        }
+    }
+
+    /**
      * Loads a properties file into a BootstrapProperties object.
      * @param bootstrapPath The path to the properties file
      * @param propertyPrefix The property prefix to enforce
@@ -172,7 +203,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
     /**
      * Retrieve the bootstrap.conf file directly from $APPLICATION_HOME/conf/
      * @param confPath The $APPLICATION_HOME/conf directory
-     * @return
+     * @return The bootstrap.conf file
      */
     public File getBootstrapFileWithinConfDirectory(final Path confPath) throws IOException {
         File expectedBootstrapFile;

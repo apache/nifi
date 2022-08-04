@@ -29,11 +29,6 @@ class XmlEncryptorTest {
     private static final String PASSWORD = "thisIsABadPassword";
 
     @Test
-    void loadXmlFile() {
-
-    }
-
-    @Test
     void TestDecryptLoginIdentityProviders() throws URISyntaxException, IOException {
         String encryptedXmlFilename = "/login-identity-providers-populated-encrypted.xml";
         XmlDecryptor decryptor = intializeXmlDecryptor();
@@ -81,11 +76,6 @@ class XmlEncryptorTest {
         assertEquals(3, verifyFileContains(temporaryOutputFile, DEFAULT_PROTECTION_SCHEME.getPath()));
 
         System.out.println("Encrypted to: " + temporaryOutputFile.getAbsolutePath());
-    }
-
-    @Test
-    void getXMLReader() {
-
     }
 
     private XmlEncryptor intializeXmlEncryptor() {

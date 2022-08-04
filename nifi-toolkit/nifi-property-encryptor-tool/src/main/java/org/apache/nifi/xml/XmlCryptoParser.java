@@ -1,11 +1,8 @@
 package org.apache.nifi.xml;
 
-import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,13 +18,11 @@ import javax.xml.stream.events.Characters;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 public abstract class XmlCryptoParser {
 
@@ -42,17 +37,6 @@ public abstract class XmlCryptoParser {
     public XmlCryptoParser(final SensitivePropertyProviderFactory providerFactory, final ProtectionScheme scheme) {
         this.providerFactory = providerFactory;
         cryptoProvider = providerFactory.getProvider(scheme);
-    }
-
-    static Supplier<BootstrapProperties> getBootstrapSupplier(final String bootstrapConfPath) {
-        return () -> {
-            try {
-                return NiFiBootstrapUtils.loadBootstrapProperties(bootstrapConfPath);
-            } catch (final IOException e) {
-                log.error("Could not load default bootstrap.conf: " + e.getMessage(), e);
-                return BootstrapProperties.EMPTY;
-            }
-        };
     }
 
     protected void cryptographicXmlOperation(final InputStream encryptedXmlContent, final OutputStream decryptedOutputStream) {

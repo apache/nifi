@@ -22,9 +22,9 @@ import java.io.File;
 import java.nio.file.Path;
 
 public class BaseCommandParameters {
-    @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi")
+    @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi which contains the 'conf' directory (eg. /var/lib/nifi)")
     protected Path baseDirectory;
 
-    @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files")
+    @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files (12 characters minimum)")
     protected String passphrase;
 }

@@ -19,73 +19,18 @@ package org.apache.nifi.util.console;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "encrypt",
-        subcommands = {ConfigSubcommand.class, FlowSubcommand.class},
+        subcommands = {ConfigSubcommand.class, FlowSubcommand.class, CommandLine.HelpCommand.class},
         description = "@|bold,fg(blue) Encrypt|@ the sensitive properties in either the application configuration files or the flow definition file.",
         usageHelpWidth=180
 )
 class PropertyEncryptorEncrypt extends DefaultCLIOptions implements Runnable {
 
-
-    // ./property-encryptor.sh encrypt [config | flow] [root-nifi-dir | root-nifi-registry-dir | root-minifi-dir] [password] --scheme
-
-//    @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = {
-//            "Print usage guide (this message)"})
-//    private boolean helpRequested;
-//
-//    class PositionalParameters {
-//        @CommandLine.Parameters(hidden = true)  // "hidden": don't show this parameter in usage help message
-//        List<String> allParameters; // no "index" attribute: captures _all_ arguments (as Strings)
-//
-////        @CommandLine.Parameters(description="The encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
-////        PropertyProtectionScheme scheme;
-//
-////        @Parameters(index = "1")    int port;
-////        @Parameters(index = "2..*") File[] files;
-//    }
-
-
-//    @CommandLine.Parameters(index="1", description="The base directory of NiFi/NiFi Registry/MiNiFi")
-//    File baseDirectory;
-//
-//    @CommandLine.Parameters(index="2", description="The passphrase used to derive a key and encrypt files")
-//    String passphrase;
-//
-//    @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1")
-//    FlowEncryptionScheme group;
-//
-//    @CommandLine.ArgGroup(exclusive = false, multiplicity = "0..1")
-//    ConfigEncryptionScheme secondGroup;
-//
-//    static class ConfigEncryptionScheme {
-//        @CommandLine.Parameters(index="0", description="Choose either [@|bold ${COMPLETION-CANDIDATES}|@]")
-//        Operation fileType;
-//
-//        @CommandLine.Parameters(index="3", description="The config encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
-//        PropertyProtectionScheme scheme;
-//    }
-//
-//    static class FlowEncryptionScheme {
-//        @CommandLine.Parameters(index="0", description="Choose either [@|bold ${COMPLETION-CANDIDATES}|@]")
-//        Operation fileType;
-//
-//        @CommandLine.Parameters(index="3", description="The flow encryption scheme to use, from one of the following schemes: [@|bold ${COMPLETION-CANDIDATES}|@]")
-//        FlowEncryptionScheme scheme;
-//    }
-//
-//    static class Scheme {
-//        @CommandLine.ArgGroup(exclusive = false, multiplicity = "1", heading = "Config encryption mode args%n")
-//        ConfigEncryptionScheme configEncryptionScheme;
-//
-//        @CommandLine.ArgGroup(exclusive = false, multiplicity = "1", heading = "Flow encryption mode args%n")
-//        FlowEncryptionScheme flowEncryptionScheme;
-//    }
-//
-//    @CommandLine.ArgGroup(exclusive = true, multiplicity = "1")
-//    Scheme scheme;
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
 
     @Override
     public void run() {
-        System.out.println("Encrypt command running..");
+        // Show usage information if a subcommand was not chosen
+        spec.commandLine().usage(System.err);
     }
-
 }

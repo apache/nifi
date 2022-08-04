@@ -48,7 +48,12 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <scope>compile</scope>
+            <version>${org.slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${org.slf4j.version}</version>
         </dependency>
     </dependencies>
     <build>
@@ -58,7 +63,7 @@
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>org.apache.nifi.console.PropertyEncryptorCLI</mainClass>
+                            <mainClass>org.apache.nifi.util.console.PropertyEncryptorCLI</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>
@@ -82,7 +87,7 @@
                 <configuration>
                     <programs>
                         <program>
-                            <mainClass>org.apache.nifi.console.PropertyEncryptorCLI</mainClass>
+                            <mainClass>org.apache.nifi.util.console.PropertyEncryptorCLI</mainClass>
                             <id>property-encryptor</id>
                         </program>
                     </programs>
