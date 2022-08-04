@@ -101,6 +101,11 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
         this.trimDoubleQuote = trimDoubleQuote;
     }
 
+    public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
+                                  final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding) throws IOException {
+        this(in, logger, schema, csvFormat, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, encoding, true);
+    }
+
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final RecordSchema schema = getSchema();

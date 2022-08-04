@@ -67,7 +67,7 @@ public class ITApacheCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(sb.toString().getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             Record record;
             int numRecords = 0;
@@ -94,7 +94,7 @@ public class ITApacheCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(sb.toString().getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, csvFormat, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             while (reader.nextRecord() != null) {}
         } catch (Exception e) {

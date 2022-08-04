@@ -63,6 +63,11 @@ public class TestCSVRecordReader {
         return fields;
     }
 
+    private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
+        return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    }
+
     private CSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new CSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
@@ -78,7 +83,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             final Record record = reader.nextRecord();
             final String name = (String)record.getValue("name");
@@ -99,7 +104,7 @@ public class TestCSVRecordReader {
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
                  final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object date = record.getValue("date");
@@ -119,7 +124,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             final Record record = reader.nextRecord();
             final BigDecimal result = (BigDecimal)record.getValue("decimal");
@@ -139,7 +144,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             final Object date = record.getValue("date");
@@ -157,7 +162,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM-dd-yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "MM-dd-yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             // When the values are not in the expected format, a String is returned unmodified
@@ -175,7 +180,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     null, RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     null, RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("1983-01-01", record.getValue("date"));
@@ -192,7 +197,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("1983-01-01", record.getValue("date"));
@@ -212,7 +217,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), timeFormat, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), timeFormat, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             final java.sql.Time time = (Time) record.getValue("time");
@@ -231,7 +236,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), "HH-MM-SS", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), "HH-MM-SS", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
@@ -248,7 +253,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), null, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), null, RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
@@ -265,7 +270,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), "", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), "", RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("time"));
@@ -285,7 +290,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), timeFormat,"UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), timeFormat,"UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             final java.sql.Timestamp time = (Timestamp) record.getValue("timestamp");
@@ -304,7 +309,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), "HH-MM-SS", "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), "HH-MM-SS", "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
             assertEquals("01:02:03", record.getValue("timestamp"));
@@ -319,7 +324,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account.csv");
-            final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -360,7 +365,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"valueA", "valueB"};
@@ -378,7 +383,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account.csv");
-            final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -422,7 +427,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/extra-white-space.csv");
-            final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -449,7 +454,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -510,7 +515,7 @@ public class TestCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -530,7 +535,7 @@ public class TestCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -612,7 +617,7 @@ public class TestCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -638,7 +643,7 @@ public class TestCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, true,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -735,7 +740,7 @@ public class TestCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -797,7 +802,7 @@ public class TestCSVRecordReader {
 
         // test nextRecord has shifted data columns right by 1 after the duplicate "id" & "name" header names
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final CSVRecordReader reader = createReader(bais, schema, format, true)) {
+             final CSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -820,7 +825,7 @@ public class TestCSVRecordReader {
         // confirm duplicate headers cause an exception when requested
         final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
-            final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat, true));
+            final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat));
             assertEquals(
                     "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
                             "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
@@ -885,7 +890,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
-            final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -909,7 +914,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             assertThrows(MalformedRecordException.class, () -> reader.nextRecord());
         }
@@ -925,7 +930,7 @@ public class TestCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final CSVRecordReader reader = createReader(fis, schema, format, true)) {
+             final CSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -974,7 +979,7 @@ public class TestCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name(), true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
             Record record = reader.nextRecord();
             String name = (String)record.getValue("name");

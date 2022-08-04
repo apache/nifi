@@ -57,6 +57,11 @@ public class TestJacksonCSVRecordReader {
         return fields;
     }
 
+    private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format) throws IOException {
+        return new JacksonCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII");
+    }
+
     private JacksonCSVRecordReader createReader(final InputStream in, final RecordSchema schema, CSVFormat format, final boolean trimDoubleQuote) throws IOException {
         return new JacksonCSVRecordReader(in, Mockito.mock(ComponentLog.class), schema, format, true, false,
             RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "ASCII", trimDoubleQuote);
@@ -72,7 +77,7 @@ public class TestJacksonCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
              final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             final String name = (String)record.getValue("name");
@@ -96,7 +101,7 @@ public class TestJacksonCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.ISO_8859_1));
              final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
-                     StandardCharsets.ISO_8859_1.name(), true)) {
+                     StandardCharsets.ISO_8859_1.name())) {
 
             final Record record = reader.nextRecord();
             final String name = (String)record.getValue("name");
@@ -116,7 +121,7 @@ public class TestJacksonCSVRecordReader {
 
         try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
              final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
-                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                     "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             final Object date = record.getValue("date");
@@ -132,7 +137,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account.csv");
-            final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -155,7 +160,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, CSVFormat.EXCEL)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"valueA", "valueB"};
@@ -173,7 +178,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account.csv");
-            final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -195,7 +200,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/extra-white-space.csv");
-            final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -222,7 +227,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -283,7 +288,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
@@ -303,7 +308,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRawRecord does contain 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -385,7 +390,7 @@ public class TestJacksonCSVRecordReader {
         final byte[] inputData = csvData.getBytes();
 
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -411,7 +416,7 @@ public class TestJacksonCSVRecordReader {
         // our schema to be the definitive list of what fields exist.
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final JacksonCSVRecordReader reader = new JacksonCSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, true,
-                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8", true)) {
+                RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
             assertNotNull(record);
@@ -508,7 +513,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord does not contain a 'continent' field
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-            final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -570,7 +575,7 @@ public class TestJacksonCSVRecordReader {
 
         // test nextRecord has ignored the first "id" and "name" columns
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, format, true)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
             final Record record = reader.nextRecord(false, false);
             assertNotNull(record);
@@ -590,7 +595,7 @@ public class TestJacksonCSVRecordReader {
         // confirm duplicate headers cause an exception when requested
         final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat, true)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
             assertEquals(
                     "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
@@ -632,7 +637,7 @@ public class TestJacksonCSVRecordReader {
         // confirm duplicate headers cause an exception when requested
         final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData);
-             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat, true)) {
+             final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
             assertEquals(
                     "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
@@ -654,7 +659,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_spec_delimiter.csv");
-            final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+            final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -678,7 +683,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             assertThrows(NumberFormatException.class, () -> reader.nextRecord());
         }
@@ -694,7 +699,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/multi-bank-account_escapechar.csv");
-             final JacksonCSVRecordReader reader = createReader(fis, schema, format, true)) {
+             final JacksonCSVRecordReader reader = createReader(fis, schema, format)) {
 
             final Object[] firstRecord = reader.nextRecord().getValues();
             final Object[] firstExpectedValues = new Object[] {"1", "John Doe\\", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
@@ -716,7 +721,7 @@ public class TestJacksonCSVRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream fis = new FileInputStream("src/test/resources/csv/single-bank-account.csv");
-             final JacksonCSVRecordReader reader = createReader(fis, schema, formatWithNullRecordSeparator, true)) {
+             final JacksonCSVRecordReader reader = createReader(fis, schema, formatWithNullRecordSeparator)) {
 
             final Object[] record = reader.nextRecord().getValues();
             final Object[] expectedValues = new Object[] {"1", "John Doe", 4750.89D, "123 My Street", "My City", "MS", "11111", "USA"};
