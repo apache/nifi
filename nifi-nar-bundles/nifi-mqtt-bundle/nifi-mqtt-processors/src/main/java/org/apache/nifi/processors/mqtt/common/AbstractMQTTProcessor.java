@@ -102,6 +102,19 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     };
 
+    public static final PropertyDescriptor PROP_MQTT_VERSION = new PropertyDescriptor.Builder()
+            .name("MQTT Specification Version")
+            .description("The MQTT specification version when connecting with the broker. See the allowable value descriptions for more details.")
+            .allowableValues(
+                    ALLOWABLE_VALUE_MQTT_VERSION_AUTO,
+                    ALLOWABLE_VALUE_MQTT_VERSION_500,
+                    ALLOWABLE_VALUE_MQTT_VERSION_311,
+                    ALLOWABLE_VALUE_MQTT_VERSION_310
+            )
+            .defaultValue(ALLOWABLE_VALUE_MQTT_VERSION_AUTO.getValue())
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor PROP_BROKER_URI = new PropertyDescriptor.Builder()
             .name("Broker URI")
             .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp', 'ssl', 'ws' and 'wss' schemes are supported. In order to use 'ssl', the SSL Context " +
@@ -188,22 +201,10 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     public static final PropertyDescriptor PROP_SESSION_EXPIRY_INTERVAL = new PropertyDescriptor.Builder()
             .name("Session Expiry Interval")
             .description("After this interval the broker will expire the client and clear the session state.")
-            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .addValidator(StandardValidators.NON_NEGATIVE_LONG_VALIDATOR)
+            .dependsOn(PROP_MQTT_VERSION, ALLOWABLE_VALUE_MQTT_VERSION_500)
             .dependsOn(PROP_CLEAN_SESSION, ALLOWABLE_VALUE_CLEAN_SESSION_FALSE)
             .defaultValue(Long.toString(SESSION_EXPIRY_INTERVAL_IN_SECONDS))
-            .build();
-
-    public static final PropertyDescriptor PROP_MQTT_VERSION = new PropertyDescriptor.Builder()
-            .name("MQTT Specification Version")
-            .description("The MQTT specification version when connecting with the broker. See the allowable value descriptions for more details.")
-            .allowableValues(
-                    ALLOWABLE_VALUE_MQTT_VERSION_AUTO,
-                    ALLOWABLE_VALUE_MQTT_VERSION_500,
-                    ALLOWABLE_VALUE_MQTT_VERSION_311,
-                    ALLOWABLE_VALUE_MQTT_VERSION_310
-            )
-            .defaultValue(ALLOWABLE_VALUE_MQTT_VERSION_AUTO.getValue())
-            .required(true)
             .build();
 
     public static final PropertyDescriptor PROP_CONN_TIMEOUT = new PropertyDescriptor.Builder()
