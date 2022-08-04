@@ -52,13 +52,12 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private final MappingIterator<String[]> recordStream;
     private List<String> rawFieldNames = null;
     private boolean allowDuplicateHeaderNames;
-    private final boolean trimDoubleQuote;
 
     private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
-        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat);
+        super(logger, schema, hasHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, trimDoubleQuote);
 
         final Reader reader = new InputStreamReader(new BOMInputStream(in), encoding);
 
@@ -98,7 +97,6 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 .withFeatures(features.toArray(new CsvParser.Feature[features.size()]));
 
         recordStream = objReader.readValues(reader);
-        this.trimDoubleQuote = trimDoubleQuote;
     }
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
@@ -174,12 +172,12 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
 
                 final Object value;
                 if (coerceTypes && dataTypeOption.isPresent()) {
-                    value = convert(rawValue, dataTypeOption.get(), rawFieldName, trimDoubleQuote);
+                    value = convert(rawValue, dataTypeOption.get(), rawFieldName);
                 } else if (dataTypeOption.isPresent()) {
                     // The CSV Reader is going to return all fields as Strings, because CSV doesn't have any way to
                     // dictate a field type. As a result, we will use the schema that we have to attempt to convert
                     // the value into the desired type if it's a simple type.
-                    value = convertSimpleIfPossible(rawValue, dataTypeOption.get(), rawFieldName, trimDoubleQuote);
+                    value = convertSimpleIfPossible(rawValue, dataTypeOption.get(), rawFieldName);
                 } else {
                     value = rawValue;
                 }

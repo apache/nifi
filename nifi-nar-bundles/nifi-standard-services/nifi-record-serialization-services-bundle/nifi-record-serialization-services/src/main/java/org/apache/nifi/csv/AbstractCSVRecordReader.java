@@ -31,6 +31,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final ComponentLog logger;
     protected final boolean hasHeader;
     protected final boolean ignoreHeader;
+    private final boolean trimDoubleQuote;
 
     protected final Supplier<DateFormat> LAZY_DATE_FORMAT;
     protected final Supplier<DateFormat> LAZY_TIME_FORMAT;
@@ -43,11 +44,12 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
     protected final RecordSchema schema;
 
     AbstractCSVRecordReader(final ComponentLog logger, final RecordSchema schema, final boolean hasHeader, final boolean ignoreHeader,
-                            final String dateFormat, final String timeFormat, final String timestampFormat) {
+                            final String dateFormat, final String timeFormat, final String timestampFormat, final boolean trimDoubleQuote) {
         this.logger = logger;
         this.schema = schema;
         this.hasHeader = hasHeader;
         this.ignoreHeader = ignoreHeader;
+        this.trimDoubleQuote = trimDoubleQuote;
 
         if (dateFormat == null || dateFormat.isEmpty()) {
             this.dateFormat = null;
@@ -74,7 +76,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         }
     }
 
-    protected final Object convert(final String value, final DataType dataType, final String fieldName, final boolean trimDoubleQuote) {
+    protected final Object convert(final String value, final DataType dataType, final String fieldName) {
         if (dataType == null || value == null) {
             return value;
         }
@@ -95,7 +97,7 @@ abstract public class AbstractCSVRecordReader implements RecordReader {
         return DataTypeUtils.convertType(trimmed, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
     }
 
-    protected final Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName, final boolean trimDoubleQuote) {
+    protected final Object convertSimpleIfPossible(final String value, final DataType dataType, final String fieldName) {
         if (dataType == null || value == null) {
             return value;
         }
