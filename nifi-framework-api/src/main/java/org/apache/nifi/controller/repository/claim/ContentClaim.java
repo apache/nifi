@@ -44,4 +44,6 @@ public interface ContentClaim extends Comparable<ContentClaim> {
      * @return the length of this ContentClaim
      */
     long getLength();
+
+    void setLength(final long length);
 }

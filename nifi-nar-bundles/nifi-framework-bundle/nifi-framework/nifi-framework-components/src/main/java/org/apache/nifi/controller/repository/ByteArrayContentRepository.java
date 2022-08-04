@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.repository;
+package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.engine.FlowEngine;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,14 +39,47 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ByteArrayContentRepository implements ContentRepository {
-    private ResourceClaimManager resourceClaimManager;
+    private static final Logger logger = LoggerFactory.getLogger(ByteArrayContentRepository.class);
+    private final ScheduledExecutorService executor = new FlowEngine(3, "ByteArrayContentRepository Cleaning Workers", true);
 
+    private ResourceClaimManager resourceClaimManager;
+    public static final String MAX_SIZE_PROPERTY = "nifi.bytearray.content.repository.max.size";
+    public static final String CONTAINER_NAME = "in-memory";
+    public static final String SECTION_NAME = "in-memory";
+
+    private final AtomicLong repoCurrentSize = new AtomicLong(0L);
+    private final AtomicLong idCounter = new AtomicLong(0L);
+    private final long maxBytes;
+
+    public ByteArrayContentRepository() {
+        maxBytes = 0L;
+    }
+
+    public ByteArrayContentRepository(final NiFiProperties nifiProperties) {
+        final String maxSizeProperty = nifiProperties.getProperty(MAX_SIZE_PROPERTY);
+        if (maxSizeProperty == null) {
+            maxBytes = (long) DataUnit.B.convert(100D, DataUnit.MB);
+        } else {
+            maxBytes = DataUnit.parseDataSize(maxSizeProperty, DataUnit.B).longValue();
+        }
+    }
     @Override
-    public void initialize(final ContentRepositoryContext context) {
+    public void initialize(final ContentRepositoryContext context) throws IOException {
         resourceClaimManager = context.getResourceClaimManager();
+
+        for (int i = 0; i < 3; i++) {
+            executor.scheduleWithFixedDelay(new CleanupOldClaims(), 1000, 10, TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
@@ -54,28 +88,33 @@ public class ByteArrayContentRepository implements ContentRepository {
 
     @Override
     public Set<String> getContainerNames() {
-        return Collections.singleton("container");
+        return Collections.singleton(CONTAINER_NAME);
     }
 
     @Override
     public long getContainerCapacity(final String containerName) {
-        return 0;
+        return maxBytes;
     }
 
     @Override
     public long getContainerUsableSpace(final String containerName) {
-        return 0;
+        final long usableSpace = maxBytes - repoCurrentSize.get();
+        logger.trace("Usable Space of container "+containerName+" is " + usableSpace);
+        return usableSpace;
     }
 
     @Override
     public String getContainerFileStoreName(final String containerName) {
-        return "container";
+        return CONTAINER_NAME;
     }
 
     @Override
-    public ContentClaim create(final boolean lossTolerant) {
+    public ContentClaim create(final boolean lossTolerant) throws IOException {
+        // Loss Tolerance is not configurable
+        // This is an in-memory repository without any backup
         final ContentClaim contentClaim = new ByteArrayContentClaim();
         resourceClaimManager.incrementClaimantCount(contentClaim.getResourceClaim());
+        logger.trace("A ContentClaim has been created : " + contentClaim.toString());
         return contentClaim;
     }
 
@@ -108,7 +147,8 @@ public class ByteArrayContentRepository implements ContentRepository {
 
     @Override
     public boolean remove(final ContentClaim claim) {
-        return true;
+        final ByteArrayContentClaim byteArrayContentClaim = verifyContentClaim(claim);
+        return byteArrayContentClaim.delete();
     }
 
     @Override
@@ -210,16 +250,16 @@ public class ByteArrayContentRepository implements ContentRepository {
 
     @Override
     public long size(final ResourceClaim claim) throws IOException {
-        return 0;
+        return verifyResourceClaim(claim).getLength();
     }
 
     @Override
-    public InputStream read(final ContentClaim claim) {
+    public InputStream read(final ContentClaim claim) throws IOException {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);
         }
 
-        final ByteArrayContentClaim byteArrayContentClaim = verifyClaim(claim);
+        final ByteArrayContentClaim byteArrayContentClaim = verifyContentClaim(claim);
         return byteArrayContentClaim.read();
     }
 
@@ -229,31 +269,39 @@ public class ByteArrayContentRepository implements ContentRepository {
             return new ByteArrayInputStream(new byte[0]);
         }
 
-        if (!(claim instanceof ByteArrayResourceClaim)) {
-            throw new IllegalArgumentException("Cannot access Resource Claim " + claim + " because the Resource Claim does not belong to this Content Repository");
-        }
-
-        final ByteArrayResourceClaim byteArrayResourceClaim = (ByteArrayResourceClaim) claim;
+        final ByteArrayResourceClaim byteArrayResourceClaim = verifyResourceClaim(claim);
         return byteArrayResourceClaim.read();
     }
 
     @Override
     public OutputStream write(final ContentClaim claim) {
-        final ByteArrayContentClaim byteArrayContentClaim = verifyClaim(claim);
+        final ByteArrayContentClaim byteArrayContentClaim = verifyContentClaim(claim);
         return byteArrayContentClaim.writeTo();
     }
 
-    private ByteArrayContentClaim verifyClaim(final ContentClaim claim) {
+    protected static ByteArrayContentClaim verifyContentClaim(final ContentClaim claim) {
         Objects.requireNonNull(claim);
         if (!(claim instanceof ByteArrayContentClaim)) {
-            throw new IllegalArgumentException("Cannot access Content Claim " + claim + " because the Content Claim does not belong to this Content Repository");
+            throw new IllegalArgumentException("Cannot access Content Claim " + claim
+                    + " because the Content Claim does not belong to this Content Repository");
         }
 
         return (ByteArrayContentClaim) claim;
     }
 
+    protected static ByteArrayResourceClaim verifyResourceClaim(final ResourceClaim claim) {
+        Objects.requireNonNull(claim);
+        if (!(claim instanceof ByteArrayResourceClaim)) {
+            throw new IllegalArgumentException("Cannot access Resouce Claim " + claim
+                    + " because the Resouce Claim does not belong to this Content Repository");
+        }
+
+        return (ByteArrayResourceClaim) claim;
+    }
+
     @Override
     public void purge() {
+        resourceClaimManager.purge();
     }
 
     @Override
@@ -262,11 +310,7 @@ public class ByteArrayContentRepository implements ContentRepository {
 
     public byte[] getBytes(final ContentClaim contentClaim) {
         final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
-        if (!(resourceClaim instanceof ByteArrayResourceClaim)) {
-            throw new IllegalArgumentException("Given ContentClaim was not created by this Repository");
-        }
-
-        return ((ByteArrayResourceClaim) resourceClaim).contents;
+        return verifyResourceClaim(resourceClaim).contents;
     }
 
     @Override
@@ -274,8 +318,18 @@ public class ByteArrayContentRepository implements ContentRepository {
         return false;
     }
 
-    private static class ByteArrayContentClaim implements ContentClaim {
+    protected class ByteArrayContentClaim implements ContentClaim {
         private final ByteArrayResourceClaim resourceClaim = new ByteArrayResourceClaim();
+
+        @Override
+        public int compareTo(final ContentClaim arg0) {
+            return resourceClaim.compareTo(arg0.getResourceClaim());
+        }
+
+        @Override
+        public void setLength(long length) {
+            // do nothing
+        }
 
         @Override
         public ResourceClaim getResourceClaim() {
@@ -292,11 +346,6 @@ public class ByteArrayContentRepository implements ContentRepository {
             return resourceClaim.getLength();
         }
 
-        @Override
-        public int compareTo(final ContentClaim o) {
-            return resourceClaim.compareTo(o.getResourceClaim());
-        }
-
         public OutputStream writeTo() {
             return resourceClaim.writeTo();
         }
@@ -304,12 +353,43 @@ public class ByteArrayContentRepository implements ContentRepository {
         public InputStream read() {
             return resourceClaim.read();
         }
+
+        public boolean delete() {
+            return resourceClaim.delete();
+        }
+
+        @Override
+        public String toString() {
+            return "ByteArrayContentClaim[resourceClaim=" + resourceClaim.toString() + "]";
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 37;
+            int result = 1;
+            result = prime * result;
+            result = prime * result + (resourceClaim == null ? 0 : resourceClaim.hashCode());
+            return result;
+        }
+    
+        @Override
+        public boolean equals(final Object other) {
+            if (this == other) {
+                return true;
+            }
+
+            try {
+                return resourceClaim.equals(verifyContentClaim((ContentClaim) other).getResourceClaim());
+            } catch (Exception e) {
+                return false;
+            }
+        }
     }
 
-    private static class ByteArrayResourceClaim implements ResourceClaim {
-        private static final AtomicLong idCounter = new AtomicLong(0L);
-        private final String id = String.valueOf(idCounter.getAndIncrement());
+    protected class ByteArrayResourceClaim implements ResourceClaim {
         private byte[] contents;
+        private final String id = String.valueOf(idCounter.getAndIncrement());
+        private AtomicLong internalSize = new AtomicLong(0);
 
         @Override
         public String getId() {
@@ -318,12 +398,12 @@ public class ByteArrayContentRepository implements ContentRepository {
 
         @Override
         public String getContainer() {
-            return "container";
+            return CONTAINER_NAME;
         }
 
         @Override
         public String getSection() {
-            return "section";
+            return SECTION_NAME;
         }
 
         @Override
@@ -342,17 +422,11 @@ public class ByteArrayContentRepository implements ContentRepository {
         }
 
         public long getLength() {
-            return contents == null ? 0L : contents.length;
+            return internalSize.get();
         }
 
         public OutputStream writeTo() {
-            return new ByteArrayOutputStream() {
-                @Override
-                public void close() throws IOException {
-                    super.close();
-                    ByteArrayResourceClaim.this.contents = toByteArray();
-                }
-            };
+            return new ManagedByteArrayOutputStream();
         }
 
         public InputStream read() {
@@ -361,6 +435,13 @@ public class ByteArrayContentRepository implements ContentRepository {
             }
 
             return new ByteArrayInputStream(contents);
+        }
+
+        public boolean delete() {
+            repoCurrentSize.addAndGet(-internalSize.get());
+            internalSize.lazySet(0L);
+            contents = null;      
+            return true;
         }
 
         @Override
@@ -380,6 +461,81 @@ public class ByteArrayContentRepository implements ContentRepository {
         @Override
         public int hashCode() {
             return Objects.hash(id);
+        }
+
+        @Override
+        public String toString() {
+            return "ByteArrayResourceClaim[ container=" + getContainer() + ", section=" + getSection() + ", id=" + id + ", length=" + getLength() + " ]";
+        }
+
+        class ManagedByteArrayOutputStream extends ByteArrayOutputStream {
+
+            @Override
+            public synchronized void write(int b) {
+                if (ByteArrayContentRepository.this.repoCurrentSize.get() + 1 > ByteArrayContentRepository.this.maxBytes) {
+                    throw new OutOfMemoryError("Content repository is out of space");
+                }
+
+                try {
+                    super.write(b);
+                }
+                finally {
+                    ByteArrayContentRepository.this.repoCurrentSize.incrementAndGet();
+                    internalSize.incrementAndGet();
+                }
+            }
+        
+            @Override
+            public void write(byte[] b, int off, int len) {
+                if (ByteArrayContentRepository.this.repoCurrentSize.get() + len > ByteArrayContentRepository.this.maxBytes) {
+                    throw new OutOfMemoryError("Content repository is out of space");                }
+
+                try {
+                    super.write(b, off, len);
+                }
+                finally {
+                    ByteArrayContentRepository.this.repoCurrentSize.addAndGet(len);
+                    internalSize.addAndGet(len);
+                }
+            }
+        
+            @Override
+            public void write(byte[] b) throws IOException {
+                write(b, 0, b.length);
+            }
+            
+            @Override
+            public synchronized void reset() {
+                super.reset();
+                repoCurrentSize.addAndGet(-internalSize.get());
+                internalSize.lazySet(0L);
+                contents = null;
+            }
+        
+            @Override
+            public void close() throws IOException {
+                super.close();
+                ByteArrayResourceClaim.this.contents = toByteArray();
+            }
+        }
+    }
+
+    private class CleanupOldClaims implements Runnable {
+
+        @Override
+        public void run() {
+            final List<ResourceClaim> destructable = new ArrayList<>(1000);
+            while (true) {
+                destructable.clear();
+                resourceClaimManager.drainDestructableClaims(destructable, 1000, 5, TimeUnit.SECONDS);
+                if (destructable.isEmpty()) {
+                    return;
+                }
+
+                for (final ResourceClaim resourceClaim : destructable) {
+                    verifyResourceClaim(resourceClaim).delete();
+                }
+            }
         }
     }
 }
