@@ -368,7 +368,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         final boolean needClientAuth = CLIENT_NEED.getValue().equals(clientAuthValue);
         serverConnectorFactory.setNeedClientAuth(needClientAuth);
         final boolean wantClientAuth = CLIENT_WANT.getValue().equals(clientAuthValue);
-        serverConnectorFactory.setNeedClientAuth(wantClientAuth);
+        serverConnectorFactory.setWantClientAuth(wantClientAuth);
         final SSLContext sslContext = sslService == null ? null : sslService.createContext();
         serverConnectorFactory.setSslContext(sslContext);
         final HttpProtocolStrategy httpProtocolStrategy = HttpProtocolStrategy.valueOf(context.getProperty(HTTP_PROTOCOL_STRATEGY).getValue());
