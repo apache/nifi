@@ -272,7 +272,7 @@
             <dependency>
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-core</artifactId>
-                <version>1.28.0</version>
+                <version>1.31.0</version>
                 <exclusions>
                     <exclusion>
                         <groupId>log4j</groupId>
