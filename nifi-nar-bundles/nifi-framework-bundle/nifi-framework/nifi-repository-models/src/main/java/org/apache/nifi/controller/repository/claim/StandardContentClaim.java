@@ -25,7 +25,7 @@ package org.apache.nifi.controller.repository.claim;
  * Must be thread safe</p>
  *
  */
-public final class StandardContentClaim implements ContentClaim, Comparable<ContentClaim> {
+public final class StandardContentClaim implements ContentClaim {
 
     private final ResourceClaim resourceClaim;
     private final long offset;
@@ -37,6 +37,7 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
         this.length = -1L;
     }
 
+    @Override
     public void setLength(final long length) {
         this.length = length;
     }

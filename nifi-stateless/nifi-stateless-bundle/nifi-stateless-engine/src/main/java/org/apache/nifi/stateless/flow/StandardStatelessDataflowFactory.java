@@ -19,6 +19,7 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.repository.ByteArrayContentRepository;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -69,7 +70,6 @@ import org.apache.nifi.stateless.engine.StatelessEngineInitializationContext;
 import org.apache.nifi.stateless.engine.StatelessFlowManager;
 import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessProvenanceAuthorizableFactory;
-import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.repository.StatelessFileSystemContentRepository;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
