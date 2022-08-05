@@ -18,7 +18,9 @@ package org.apache.nifi.util.console;
 
 import picocli.CommandLine;
 
-@CommandLine.Command(name = "migrate", description = "@|bold,fg(blue) Migrate|@ already encrypted application configuration or flow.xml.gz files to a new password. Can also apply a new scheme if provided.")
+@CommandLine.Command(name = "migrate",
+        description = "@|bold,fg(blue) Migrate|@ already encrypted application configuration or flow.xml.gz files to a new password. Can also apply a new scheme if provided.",
+        usageHelpWidth=140)
 class PropertyEncryptorMigrate implements Runnable {
 
     @CommandLine.Spec

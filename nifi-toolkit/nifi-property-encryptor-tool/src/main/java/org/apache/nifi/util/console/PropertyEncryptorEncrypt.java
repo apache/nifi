@@ -21,7 +21,7 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "encrypt",
         subcommands = {ConfigSubcommand.class, FlowSubcommand.class, CommandLine.HelpCommand.class},
         description = "@|bold,fg(blue) Encrypt|@ the sensitive properties in either the application configuration files or the flow definition file.",
-        usageHelpWidth=180
+        usageHelpWidth=140
 )
 class PropertyEncryptorEncrypt extends DefaultCLIOptions implements Runnable {
 

@@ -22,6 +22,7 @@ import picocli.CommandLine;
         subcommands = {ConfigSubcommand.class},
         description = "@|bold,fg(blue) Decrypt|@ application configuration files (nifi.properties, login-identity-provider.xml etc)",
         usageHelpWidth=140)
+
 class PropertyEncryptorDecrypt extends DefaultCLIOptions implements Runnable {
 
     @CommandLine.Spec
@@ -32,5 +33,4 @@ class PropertyEncryptorDecrypt extends DefaultCLIOptions implements Runnable {
         // Show usage information if a subcommand was not chosen
         spec.commandLine().usage(System.err);
     }
-
 }

@@ -25,7 +25,7 @@ import picocli.CommandLine;
 
 @CommandLine.Command(name = "config",
         description = "Operate on application configs",
-        usageHelpWidth=180
+        usageHelpWidth=140
 )
 class ConfigSubcommand extends BaseCommandParameters implements Runnable {
 

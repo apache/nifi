@@ -21,10 +21,12 @@ import picocli.CommandLine;
 @CommandLine.Command(name = "translate-for-nifi-cli", description = "@|bold,fg(blue) Translates|@ the nifi.properties file to a format suitable for use with the NiFi CLI tool")
 class PropertyEncryptorTranslateForCLI implements Runnable {
 
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
+
     @Override
     public void run() {
-        // if the command was invoked without subcommand, show the usage help
-        System.out.println("Property encryptor: translate-for-nifi-cli mode");
+        // Show usage information if a subcommand was not chosen
+        spec.commandLine().usage(System.err);
     }
-
 }

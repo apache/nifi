@@ -16,26 +16,21 @@
  */
 package org.apache.nifi.util.console;
 
+import org.apache.nifi.util.console.utils.BaseCommandParameters;
 import picocli.CommandLine;
 
 @CommandLine.Command(name = "flow",
         description = "Operate on flow definition",
-        usageHelpWidth=180
+        usageHelpWidth=140
 )
-class FlowSubcommand {
+class FlowSubcommand extends BaseCommandParameters implements Runnable {
 
-//    @CommandLine.Parameters(description="Choose one of [@|bold ${COMPLETION-CANDIDATES}|@] to encrypt either application configuration files (nifi.properties etc) or flow.xml/flow.json file")
-//    FileSelectionMode fileSelectionMode;
-//
-//    @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi")
-//    File baseDirectory;
-//
-//    @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files")
-//    String passphrase;
-//
-//    @CommandLine.Parameters(description="The encryption scheme to use from")
-//    PropertyProtectionScheme scheme;
+    @CommandLine.Spec
+    CommandLine.Model.CommandSpec spec;
 
-
-
+    @Override
+    public void run() {
+        // Show usage information if a subcommand was not chosen
+        spec.commandLine().usage(System.err);
+    }
 }
