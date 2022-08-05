@@ -38,8 +38,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -62,16 +60,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestMergeContent {
-
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
-    }
-
-    @AfterAll
-    public static void cleanup() {
-        System.clearProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard");
-    }
 
     /**
      * This test will verify that if we have a FlowFile larger than the Max Size for a Bin, it will go into its

@@ -25,8 +25,6 @@ import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -50,21 +48,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestExecuteStreamCommand {
-    @BeforeAll
-    public static void init() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteStreamCommand", "debug");
-    }
-
-    @AfterAll
-    public static void cleanup() {
-        System.clearProperty("org.slf4j.simpleLogger.defaultLogLevel");
-        System.clearProperty("org.slf4j.simpleLogger.showDateTime");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteStreamCommand");
-    }
 
     @Test
     public void testExecuteJar() throws Exception {

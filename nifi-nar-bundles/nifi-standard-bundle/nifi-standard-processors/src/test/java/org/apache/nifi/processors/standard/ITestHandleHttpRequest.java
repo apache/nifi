@@ -277,7 +277,7 @@ public class ITestHandleHttpRequest {
     }
 
     @Test
-    @Timeout(value = 30000, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 30)
     public void testMultipartFormDataRequestCaptureFormAttributes() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);

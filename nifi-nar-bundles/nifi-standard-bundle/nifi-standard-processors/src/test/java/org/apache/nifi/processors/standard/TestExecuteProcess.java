@@ -83,11 +83,9 @@ public class TestExecuteProcess {
         assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
-    @DisabledOnOs(OS.WINDOWS)   // won't run under Windows
+    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testEcho() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
-
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "echo");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");

@@ -29,8 +29,8 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -451,7 +451,11 @@ public class TestMergeRecord {
     }
 
     @Test
-    @Disabled("This unit test depends on timing and could potentially cause problems in an automated build environment. However, it can be useful for manual testing")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.performance",
+            matches = "true",
+            disabledReason = "This unit test depends on timing and could potentially cause problems in an automated build environment. However, it can be useful for manual testing"
+    )
     public void testTimeout() throws InterruptedException {
         runner.setProperty(MergeRecord.MIN_RECORDS, "500");
         runner.setProperty(MergeRecord.MAX_BIN_AGE, "500 millis");

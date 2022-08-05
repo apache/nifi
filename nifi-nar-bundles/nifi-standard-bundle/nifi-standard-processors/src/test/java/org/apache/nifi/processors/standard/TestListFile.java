@@ -32,9 +32,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
 import org.junit.runner.Description;
 
@@ -175,8 +175,13 @@ public class TestListFile {
 
 
     @Test
-    @Disabled("Intended only for manual testing, as is very expensive to run as a unit test. Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) to " +
-        "ensure performance is not harmed")
+    @EnabledIfSystemProperty(
+            named = "nifi.test.performance",
+            matches = "true",
+            disabledReason = "Intended only for manual testing, as is very expensive to run as a unit test. " +
+                    "Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) " +
+                    "to ensure performance is not harmed"
+    )
     public void testPerformanceOnLargeListing() {
         final List<Path> paths = new ArrayList<>(1_000_000);
         final File base = new File("target");

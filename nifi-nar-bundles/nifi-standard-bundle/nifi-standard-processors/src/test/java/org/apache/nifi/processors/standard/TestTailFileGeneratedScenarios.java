@@ -17,7 +17,9 @@
 package org.apache.nifi.processors.standard;
 
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -137,6 +139,7 @@ public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario
 
     @ParameterizedTest
     @MethodSource("provideActionsForTestScenario")
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test wants to rename an open file which is not allowed on Windows")
     public void testParameterizedScenario(List<Action> actions) throws Exception {
         testScenario(actions);
     }

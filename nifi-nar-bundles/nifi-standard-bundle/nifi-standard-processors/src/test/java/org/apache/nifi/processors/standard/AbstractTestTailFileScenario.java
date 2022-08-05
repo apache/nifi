@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
@@ -37,7 +36,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class AbstractTestTailFileScenario {
     public static final String TEST_DIRECTORY = "testTailFileScenario";
@@ -65,8 +63,6 @@ public class AbstractTestTailFileScenario {
 
     @BeforeEach
     public void setUp() throws IOException {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "TRACE");
-
         clean();
 
         File directory = new File("target/" + TEST_DIRECTORY);
@@ -112,7 +108,6 @@ public class AbstractTestTailFileScenario {
         }
 
         processor.cleanup(new MockProcessContext(processor));
-        System.clearProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard");
     }
 
     public void testScenario(List<Action> actions) throws Exception {
@@ -125,10 +120,6 @@ public class AbstractTestTailFileScenario {
     }
 
     public void testScenario(List<Action> actions, boolean stopAfterEachTrigger) throws Exception {
-        if (actions.contains(Action.ROLLOVER)) {
-            assumeTrue(!SystemUtils.IS_OS_WINDOWS, "Test wants to rename an open file which is not allowed on Windows");
-        }
-
         // GIVEN
         this.stopAfterEachTrigger.set(stopAfterEachTrigger);
 

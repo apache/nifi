@@ -66,6 +66,7 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -345,7 +346,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
            runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
     }
@@ -412,7 +413,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
            runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
     }
@@ -501,7 +502,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
            runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertTransferCount(PutSQL.REL_FAILURE, 0);
         runner.assertTransferCount(PutSQL.REL_SUCCESS, 0);
 
@@ -1153,7 +1154,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
             runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1254,7 +1255,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
             runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
 
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
@@ -1325,7 +1326,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
            runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
         runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 0);
     }
 
@@ -1480,7 +1481,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
            runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
     }
@@ -1507,7 +1508,7 @@ public class TestPutSQL {
         final AssertionError e = assertThrows(AssertionError.class, () -> {
             runner.run();
         });
-        assertTrue(e.getCause() instanceof ProcessException);
+        assertInstanceOf(ProcessException.class, e.getCause());
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_FAILURE, 0);
     }

@@ -41,8 +41,9 @@ import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
@@ -59,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class TestListenRELP {
 
     public static final String OPEN_FRAME_DATA = "relp_version=0\nrelp_software=librelp,1.2.7,http://librelp.adiscon.com\ncommands=syslog";
@@ -92,8 +94,6 @@ public class TestListenRELP {
     @Mock
     private RestrictedSSLContextService sslContextService;
 
-    private AutoCloseable closeable;
-
     private RELPEncoder encoder;
 
     private TestRunner runner;
@@ -103,12 +103,6 @@ public class TestListenRELP {
         encoder = new RELPEncoder(CHARSET);
         ListenRELP mockRELP = new MockListenRELP();
         runner = TestRunners.newTestRunner(mockRELP);
-        closeable = MockitoAnnotations.openMocks(this);
-    }
-
-    @AfterEach
-    public void cleanup() throws Exception {
-        closeable.close();
     }
 
     @AfterEach

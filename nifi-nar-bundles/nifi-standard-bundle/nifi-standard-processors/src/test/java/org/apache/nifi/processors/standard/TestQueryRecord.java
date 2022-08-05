@@ -41,8 +41,6 @@ import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -65,22 +63,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestQueryRecord {
-
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard.SQLTransform", "debug");
-    }
-
-    @AfterAll
-    public static void cleanup() {
-        System.clearProperty("org.slf4j.simpleLogger.defaultLogLevel");
-        System.clearProperty("org.slf4j.simpleLogger.showDateTime");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.io.nio");
-        System.clearProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard.SQLTransform");
-    }
 
     private static final String REL_NAME = "success";
 

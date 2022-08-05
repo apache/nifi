@@ -100,21 +100,11 @@ public class TestExecuteSQLRecord {
 
     @BeforeAll
     public static void setupClass() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteSQLRecord", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteSQLRecord", "debug");
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
     @AfterAll
     public static void cleanupClass() {
-        System.clearProperty("org.slf4j.simpleLogger.defaultLogLevel");
-        System.clearProperty("org.slf4j.simpleLogger.showDateTime");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.io.nio");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteSQLRecord");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteSQLRecord");
         System.clearProperty("derby.stream.error.file");
     }
 

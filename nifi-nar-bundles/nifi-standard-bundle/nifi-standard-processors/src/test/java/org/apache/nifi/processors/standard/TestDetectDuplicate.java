@@ -29,8 +29,6 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -40,24 +38,6 @@ import java.util.List;
 import java.util.Map;
 
 public class TestDetectDuplicate {
-
-    @BeforeAll
-    public static void setup() {
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
-        System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
-    }
-
-    @AfterAll
-    public static void cleanup() {
-        System.clearProperty("org.slf4j.simpleLogger.defaultLogLevel");
-        System.clearProperty("org.slf4j.simpleLogger.showDateTime");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.io.nio");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate");
-        System.clearProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate");
-    }
 
     @Test
     public void testDuplicate() throws InitializationException {
