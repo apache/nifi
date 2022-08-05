@@ -18,6 +18,11 @@ package org.apache.nifi.util.console;
 
 import picocli.CommandLine;
 
+@CommandLine.Command(synopsisHeading = "%nUsage:%n%n",
+        descriptionHeading   = "%nDescription:%n%n",
+        parameterListHeading = "%nParameters:%n%n",
+        optionListHeading    = "%nOptions:%n%n",
+        commandListHeading   = "%nCommands:%n%n")
 public class DefaultCLIOptions {
 
     @CommandLine.Option(names = {"-v", "--verbose"}, description = {
@@ -27,5 +32,4 @@ public class DefaultCLIOptions {
     @CommandLine.Option(names = {"-h", "--help"}, usageHelp = true, description = {
             "Print usage guide (this message)"})
     boolean helpRequested;
-
 }

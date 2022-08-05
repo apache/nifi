@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi;
 
 import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
@@ -76,9 +92,8 @@ public class PropertyEncryptorMain {
 
     /**
      * @param baseDirectory The base directory of a NiFi / NiFi Registry installation that should be encrypted
-     * @return
      */
-    public int encryptConfigurationFiles(final Path baseDirectory, final String passphrase, final PropertyProtectionScheme scheme) {
+    public int encryptConfigurationFiles(final Path baseDirectory, final PropertyProtectionScheme scheme) {
         XmlEncryptor encryptor = getXmlEncryptor(scheme);
         try {
             encryptConfigurationFiles(configurationFiles, encryptor);
@@ -116,15 +131,10 @@ public class PropertyEncryptorMain {
         return 0;
     }
 
-    /**
-    * @param baseDirectory The base directory of a NiFi / NiFi Registry installation that should be migrated to a new scheme eg. ./nifi
-     * @return
-     */
     public int migrateConfigurationFiles(final File baseDirectory) {
         logger.info("Not yet implemented.");
         return 0;
     }
-
 
     public int encryptFlowDefinition(final File baseDirectory) {
         logger.info("Not yet implemented.");

@@ -14,29 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.console;
+package org.apache.nifi.xml;
 
-import picocli.CommandLine;
+public class XmlCryptoException extends RuntimeException {
+    public XmlCryptoException(final String message) {
+        super(message);
+    }
 
-/**
- * This class defines the parameters required for the various schemes eg. a URL, a vault name etc
- */
-public class SchemeParameters {
-//    @CommandLine.Option(names = {"-p", "--password"}, description = "Passphrase", interactive = true)
-//    char[] password;
-//
-//    @CommandLine.Parameters(description = "Passphrase", interactive = true)
-//    char[] paramPassword;
-
-    // TODO: define mixin classes which include the interactive parameters needed to use the respective scheme
-    /**
-     *
-     *     static class HASHICORP_VAULT_KV {
-     *
-     *     }
-     *
-     *
-     */
-
-
+    public XmlCryptoException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

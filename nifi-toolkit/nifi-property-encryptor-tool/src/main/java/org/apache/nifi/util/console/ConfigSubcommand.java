@@ -42,7 +42,7 @@ class ConfigSubcommand extends BaseCommandParameters implements Runnable {
         final PropertyEncryptorMain propertyEncryptorMain = new PropertyEncryptorMain(baseDirectory, passphrase);
         if (parent instanceof PropertyEncryptorEncrypt) {
             logger.info("The property encryptor is running to encrypt configuration files in [{}}]", baseDirectory);
-            propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, passphrase, scheme);
+            propertyEncryptorMain.encryptConfigurationFiles(baseDirectory, scheme);
         } else if (parent instanceof PropertyEncryptorDecrypt) {
             logger.info("The property encryptor is running to decrypt configuration files in [{}}]", baseDirectory);
         }

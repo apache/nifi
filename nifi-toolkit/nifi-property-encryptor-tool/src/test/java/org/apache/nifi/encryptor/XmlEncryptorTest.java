@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.encryptor;
 
 import org.apache.nifi.util.crypto.CryptographyUtils;
@@ -29,7 +45,7 @@ class XmlEncryptorTest {
     private static final String PASSWORD = "thisIsABadPassword";
 
     @Test
-    void TestDecryptLoginIdentityProviders() throws URISyntaxException, IOException {
+    void testDecryptLoginIdentityProviders() throws URISyntaxException, IOException {
         String encryptedXmlFilename = "/login-identity-providers-populated-encrypted.xml";
         XmlDecryptor decryptor = intializeXmlDecryptor();
         File encryptedXmlFile = new File(XmlEncryptorTest.class.getResource(encryptedXmlFilename).toURI());
@@ -45,7 +61,7 @@ class XmlEncryptorTest {
     }
 
     @Test
-    void TestEncryptLoginIdentityProviders() throws URISyntaxException, IOException {
+    void testEncryptLoginIdentityProviders() throws URISyntaxException, IOException {
         String unencryptedXmlFilename = "/login-identity-providers-populated-unecrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());
@@ -62,7 +78,7 @@ class XmlEncryptorTest {
     }
 
     @Test
-    void TestEncryptAuthorizers() throws URISyntaxException, IOException {
+    void testEncryptAuthorizers() throws URISyntaxException, IOException {
         String unencryptedXmlFilename = "/authorizers-populated-unencrypted.xml";
         XmlEncryptor encryptor = intializeXmlEncryptor();
         File unencryptedXmlFile = new File(XmlEncryptorTest.class.getResource(unencryptedXmlFilename).toURI());

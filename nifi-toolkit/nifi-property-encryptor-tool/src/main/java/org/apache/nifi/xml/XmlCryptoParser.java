@@ -1,10 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.xml;
 
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.scheme.ProtectionScheme;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.xml.namespace.QName;
 import javax.xml.stream.XMLEventFactory;
@@ -26,7 +40,6 @@ import java.util.Objects;
 
 public abstract class XmlCryptoParser {
 
-    private static final Logger log = LoggerFactory.getLogger(XmlCryptoParser.class);
     protected static final String ENCRYPTION_ATTRIBUTE_NAME = "encryption";
     protected static final String PARENT_IDENTIFIER = "identifier";
     protected static final String PROPERTY_ELEMENT = "property";
@@ -76,20 +89,21 @@ public abstract class XmlCryptoParser {
     }
 
     /**
-     * Update the start element 'encryption' attribute for a sensitive value to add or remove the respective encryption details eg. encryption="aes/gcm/128"
-     * @return
+     * Update the StartElement 'encryption' attribute for a sensitive value to add or remove the respective encryption details eg. encryption="aes/gcm/128"
+     * @param xmlEvent A 'sensitive' StartElement that contains the 'encryption' tag attribute
+     * @return The updated StartElement
      */
     protected abstract StartElement updateStartElementEncryptionAttribute(final XMLEvent xmlEvent);
 
     /**
      * Perform an encrypt or decrypt cryptographic operation on a Characters element
-     * @param xmlEvent
-     * @param groupIdentifier
-     * @return
+     * @param xmlEvent A Characters XmlEvent
+     * @param groupIdentifier The XML <identifier/> tag
+     * @return The Characters XmlEvent that has been updated by the cryptographic operation
      */
     protected abstract Characters cryptoOperationOnCharacters(final XMLEvent xmlEvent, final String groupIdentifier, final String propertyName);
 
-    private String getGroupIdentifier(final XMLEvent xmlEvent) throws XMLStreamException {
+    private String getGroupIdentifier(final XMLEvent xmlEvent) {
         if (xmlEvent.isCharacters()) {
             return xmlEvent.asCharacters().getData();
         } else {
@@ -102,14 +116,14 @@ public abstract class XmlCryptoParser {
     }
 
     protected boolean isGroupIdentifier(final XMLEvent xmlEvent) {
-        return xmlEvent.isStartElement() &&
-                xmlEvent.asStartElement().getName().toString().equals(PARENT_IDENTIFIER);
+        return xmlEvent.isStartElement()
+                && xmlEvent.asStartElement().getName().toString().equals(PARENT_IDENTIFIER);
     }
 
     protected boolean isSensitiveElement(final XMLEvent xmlEvent) {
-        return  xmlEvent.isStartElement() &&
-                xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT) &&
-                elementHasEncryptionAttribute(xmlEvent.asStartElement());
+        return  xmlEvent.isStartElement()
+                && xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT)
+                && elementHasEncryptionAttribute(xmlEvent.asStartElement());
     }
 
     protected XMLEventReader getXMLReader(final InputStream fileStream) throws XMLStreamException, FileNotFoundException {

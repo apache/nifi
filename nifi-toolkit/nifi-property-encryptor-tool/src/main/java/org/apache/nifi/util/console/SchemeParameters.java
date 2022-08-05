@@ -14,16 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.util.console.utils;
+package org.apache.nifi.util.console;
 
-import picocli.CommandLine;
+/**
+ * This class defines the parameters required for the various schemes eg. a URL, a vault name etc
+ */
+public class SchemeParameters {
 
-import java.nio.file.Path;
+    // TODO: define mixin classes which include the interactive parameters needed to use the respective scheme
+    /**
+     *
+     *     static class HASHICORP_VAULT_KV {
+     *
+     *     }
+     *
+     *
+     */
 
-public class BaseCommandParameters {
-    @CommandLine.Parameters(description="The base directory of NiFi/NiFi Registry/MiNiFi which contains the 'conf' directory (eg. /var/lib/nifi)")
-    protected Path baseDirectory;
-
-    @CommandLine.Parameters(description="The passphrase used to derive a key and encrypt files (12 characters minimum)")
-    protected String passphrase;
 }

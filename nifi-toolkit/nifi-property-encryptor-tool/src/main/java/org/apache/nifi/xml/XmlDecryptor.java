@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.xml;
 
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
@@ -60,14 +76,14 @@ public class XmlDecryptor extends XmlCryptoParser {
         if (isEncryptedElement(xmlEvent)) {
             return updateElementAttribute(xmlEvent, ENCRYPTION_ATTRIBUTE_NAME, ENCRYPTION_NONE);
         } else {
-            throw new XMLCryptoException(String.format("Failed to update the element's [%s] attribute when decrypting the element value", ENCRYPTION_ATTRIBUTE_NAME));
+            throw new XmlCryptoException(String.format("Failed to update the element's [%s] attribute when decrypting the element value", ENCRYPTION_ATTRIBUTE_NAME));
         }
     }
 
     public boolean isEncryptedElement(final XMLEvent xmlEvent) {
-        return xmlEvent.isStartElement() &&
-               xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT) &&
-               elementHasEncryptionAttribute(xmlEvent.asStartElement());
+        return xmlEvent.isStartElement()
+                && xmlEvent.asStartElement().getName().toString().equals(PROPERTY_ELEMENT)
+                && elementHasEncryptionAttribute(xmlEvent.asStartElement());
     }
 
     private boolean elementHasEncryptionAttribute(final StartElement xmlEvent) {
