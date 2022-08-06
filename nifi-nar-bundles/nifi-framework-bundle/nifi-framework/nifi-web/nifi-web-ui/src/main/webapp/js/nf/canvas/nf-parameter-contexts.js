@@ -133,6 +133,27 @@
     };
 
     /**
+     * Formatter for the provider column.
+     *
+     * @param {type} row
+     * @param {type} cell
+     * @param {type} value
+     * @param {type} columnDef
+     * @param {type} dataContext
+     * @returns {String}
+     */
+    var providerFormatter = function (row, cell, value, columnDef, dataContext) {
+        if (dataContext.component.parameterProviderConfiguration) {
+            if (!dataContext.permissions.canRead) {
+                return '<span class="blank">' + nfCommon.escapeHtml(dataContext.component.parameterProviderConfiguration.id) + '</span>';
+            }
+
+            return nfCommon.escapeHtml(`${dataContext.component.parameterProviderConfiguration.component.parameterGroupName} 
+                from ${dataContext.component.parameterProviderConfiguration.component.parameterProviderName}`);
+        }
+    };
+
+    /**
      * Sorts the specified data using the specified sort details.
      *
      * @param {object} sortDetails
@@ -1053,7 +1074,7 @@
                 referencingComponents: originalParameter.referencingComponents,
                 previousValue: originalParameter.value,
                 previousDescription: originalParameter.description,
-                isEditable: originalParameter.isEditable,
+                isEditable: originalParameter.isEditable || originalParameter.provided !== true,
                 isEmptyStringSet: serializedParam.isEmptyStringSet,
                 isNew: originalParameter.isNew,
                 hasValueChanged: serializedParam.hasValueChanged,
@@ -1086,12 +1107,11 @@
         $('#parameter-context-dialog').modal('refreshButtons');
     };
 
-
     var hasParameterContextChanged = function (parameterContextEntity) {
-        var parameters = marshalParameters();
         var proposedParamContextName = $('#parameter-context-name').val();
         var proposedParamContextDesc = $('#parameter-context-description-field').val();
         var inheritedParameterContexts = marshalInheritedParameterContexts();
+        var componentDescription = _.get(parameterContextEntity, 'component.description') ?? '';
 
         var inheritedParameterContextEquals = isInheritedParameterContextEquals(parameterContextEntity, inheritedParameterContexts);
         if (inheritedParameterContextEquals) {
@@ -1100,15 +1120,23 @@
             $('#inherited-parameter-contexts-message').removeClass('hidden');
         }
 
-        if (_.isEmpty(parameters) &&
-            proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
-            proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
-            inheritedParameterContextEquals) {
-
-            return false;
+        if (parameterContextEntity.component.parameterProviderConfiguration) {
+            if (proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
+                proposedParamContextDesc === componentDescription &&
+                inheritedParameterContextEquals) {
+                return false;
+            }
         } else {
-            return true;
+            var parameters = marshalParameters();
+            if (_.isEmpty(parameters) &&
+                proposedParamContextName === _.get(parameterContextEntity, 'component.name') &&
+                proposedParamContextDesc === _.get(parameterContextEntity, 'component.description') &&
+                inheritedParameterContextEquals) {
+                return false;
+            }
         }
+
+        return true;
     };
 
     /**
@@ -1560,7 +1588,7 @@
                     description: parameterEntity.parameter.description,
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
-                    isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
+                    isEditable: _.defaultTo(readOnly, false) || parameterEntity.parameter.provided ? false : parameterEntity.canWrite,
                     referencingComponents: parameterEntity.parameter.referencingComponents,
                     parameterContext: containingParameterContext,
                     isInherited: (containingParameterContext.id !== parameterContext.component.id),
@@ -2538,6 +2566,13 @@
                 formatter: nameFormatter
             },
             {
+                id: 'parameterProviderConfiguration',
+                name: 'Provider',
+                sortable: true,
+                resizable: true,
+                formatter: providerFormatter
+            },
+            {
                 id: 'description',
                 name: 'Description',
                 sortable: true,
@@ -2672,6 +2707,11 @@
                 // new parameter contexts do not have an ID to show
                 if (!$('#parameter-context-id-setting').hasClass('hidden')) {
                     $('#parameter-context-id-setting').addClass('hidden');
+                }
+
+                // initially hide the provider setting
+                if (!$('#parameter-context-provider-setting').hasClass('hidden')) {
+                    $('#parameter-context-provider-setting').addClass('hidden');
                 }
 
                 // make sure this dialog is not in read-only mode
@@ -2926,6 +2966,22 @@
                     .prop('title', parameterContextEntity.id)
                     .text(parameterContextEntity.id);
 
+                // if provided, show the provider setting
+                if (parameterContextEntity.component.parameterProviderConfiguration) {
+                    if ($('#parameter-context-provider-setting').hasClass('hidden')) {
+                        $('#parameter-context-provider-setting').removeClass('hidden');
+                    }
+
+                    var parameterContextProviderSetting = $('#parameter-context-provider-setting').empty();
+                    var providerContent = nfCommon.escapeHtml(`${parameterContextEntity.component.parameterProviderConfiguration.component.parameterGroupName} 
+                from ${parameterContextEntity.component.parameterProviderConfiguration.component.parameterProviderName}`);
+
+                    $('<div class="setting-name">Provider</div>' +
+                        '<div class="setting-field">' +
+                        '<div id="parameter-context-provider-field" class="ellipsis" title="' + providerContent + '">' +
+                        providerContent + '</div></div>').appendTo(parameterContextProviderSetting);
+                }
+
                 // get the reference container
                 var referencingComponentsContainer = $('#parameter-context-referencing-components');
 
@@ -2995,6 +3051,22 @@
 
                     // select the parameters tab
                     $('#parameter-context-tabs').find('li:eq(1)').click();
+
+                    // if parameters are provided
+                    if (parameterContextEntity.component.parameterProviderConfiguration) {
+                        // hide the add parameter button
+                        $('#add-parameter').hide();
+                    } else {
+                        // hide the provider details
+                        if (!$('#parameter-context-provider-setting').hasClass('hidden')) {
+                            $('#parameter-context-provider-setting')
+                                .empty()
+                                .addClass('hidden');
+                        }
+
+                        // show the add parameter button
+                        $('#add-parameter').show();
+                    }
 
                     // check if border is necessary
                     updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
